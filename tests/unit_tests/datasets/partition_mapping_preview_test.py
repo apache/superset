@@ -1177,6 +1177,44 @@ def test_preview_declines_an_equality_the_chart_path_declines(
     probe.assert_not_called()
 
 
+def test_preview_explains_a_value_the_driver_cannot_write_as_its_own_case(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    A value the driver and the engine spell differently declines whatever the
+    column, the operator or the transform -- so none of the advice the other
+    declines carry applies, and the precision-loss message would send the owner
+    to map a different column over something no column fixes.
+
+    Postgres is the backend here because its driver really does over-escape a
+    backslash: SQLAlchemy only learns whether the server honours one when the
+    dialect connects, which the probe's dialect never does.
+    """
+    dataset.database.sqlalchemy_uri = "postgresql://user@host/db"
+    db.session.flush()
+
+    with patch(PROBE, return_value=["a\\b"]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "country",
+                "partition_column": "region_key",
+                "value_transform": "lower(:value)",
+                "sample_values": ["a\\b"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "escaping"
+    assert "backslash" in result["error"]
+    # The advice the resolution decline carries must not appear here.
+    assert "compares in full" not in result["error"]
+    assert "emitted_predicate" not in result
+    probe.assert_not_called()
+
+
 def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:

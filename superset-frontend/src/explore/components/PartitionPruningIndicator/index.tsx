@@ -210,6 +210,29 @@ function carriesUtcOffset(value: unknown): boolean {
 }
 
 /**
+ * A value carrying a character this database writes into a query ambiguously.
+ *
+ * The probe evaluates the transform at a literal, and the driver that writes
+ * that literal and the engine that reads it do not always agree about what a
+ * quote or a backslash in it means -- so `literal_round_trips` declines such a
+ * value for every operator, on the engines where they disagree. Which
+ * characters those are is a property of the driver and engine pair, not of the
+ * value, so the server reports them in `unmirrorable_value_chars` rather than
+ * leaving the glyph to guess; absent, nothing is declined on these grounds.
+ *
+ * The same trade as the helpers above: only ever used to *hide* the glyph.
+ */
+function carriesUnspellableCharacter(
+  value: unknown,
+  unmirrorableChars: string[] | undefined,
+): boolean {
+  return (
+    typeof value === 'string' &&
+    (unmirrorableChars ?? []).some(character => value.includes(character))
+  );
+}
+
+/**
  * Whether the server stands a chance of reading this value as an instant.
  *
  * Where the engine compares less of a value than it carries, the mirror is
@@ -252,11 +275,22 @@ function readableAsInstant(value: unknown): boolean {
  * included -- there is no instant to widen. So that gate is the broader of the
  * two, and the only one that applies at `second` resolution as well, where what
  * the engine drops is a sub-second part no pattern here can see.
+ *
+ * A character this database spells ambiguously is declined at every resolution
+ * and on every column, for each operator whose value reaches the probe as
+ * typed -- see `carriesUnspellableCharacter`. A range is resolved to a pair of
+ * instants instead, so it is out of this, like the two gates above. It is the
+ * one gate here that can also
+ * *under*-promise: the server declines per value, and a value carrying the
+ * character may still round-trip, in which case the query prunes while the
+ * glyph stays hidden. That is the advisory direction this control is allowed
+ * to be wrong in, and the opposite of promising a mirror that never happens.
  */
 function hasMirrorableValue(
   operator: string,
   comparator: unknown,
   resolution: PartitionFilterMapping['literal_resolution'],
+  unmirrorableChars: string[] | undefined,
 ): boolean {
   if (operator === 'TEMPORAL_RANGE') {
     // `No filter` resolves to neither bound, so no range is mirrored. A range
@@ -274,6 +308,9 @@ function hasMirrorableValue(
       // Declined whatever the resolution; one member is the whole list's
       // problem, as it is server-side.
       !comparator.some(carriesUtcOffset) &&
+      !comparator.some(member =>
+        carriesUnspellableCharacter(member, unmirrorableChars),
+      ) &&
       !(
         comparesLessThanTheValue &&
         comparator.some(member => !readableAsInstant(member))
@@ -281,9 +318,12 @@ function hasMirrorableValue(
       !(resolution === 'day' && comparator.some(carriesTimeOfDay))
     );
   }
-  // Ahead of the resolution gates, because the offset is declined on every
+  // Ahead of the resolution gates, because both of these are declined on every
   // column -- including one the engine compares in full.
   if (carriesUtcOffset(comparator)) {
+    return false;
+  }
+  if (carriesUnspellableCharacter(comparator, unmirrorableChars)) {
     return false;
   }
   if (comparesLessThanTheValue && !readableAsInstant(comparator)) {
@@ -358,5 +398,6 @@ export function isMirroredFilter(
     filter.operator,
     filter.comparator,
     mapping.literal_resolution,
+    mapping.unmirrorable_value_chars,
   );
 }

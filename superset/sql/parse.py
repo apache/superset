@@ -1308,6 +1308,54 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             for expression in self._parsed.expressions
         ]
 
+    def get_select_literal_value(self) -> str | None:
+        """
+        The string this statement's single projection denotes, if it is one.
+
+        For a caller that rendered a value into SQL text and needs to know that
+        the engine reads it back as the same value. Whether the renderer's
+        escaping is the escaping the engine honours is a per-engine, and
+        sometimes per-session, property; parsing the rendered text in the
+        engine's own dialect answers it rather than assuming it.
+
+        ``None`` where the projection is anything but exactly one string
+        literal -- a value that broke out of its quotes parses as a
+        concatenation, a function call or a syntax error, and none of those is
+        the value the caller rendered.
+
+        An alias is not part of what the projection denotes, so one is read
+        through: ``SELECT 'a' AS v0`` answers ``a``.
+
+        :return: the string the projection denotes, or ``None``
+        """
+        if not isinstance(self._parsed, exp.Select):
+            return None
+        expressions = self._parsed.expressions
+        if len(expressions) != 1:
+            return None
+        expression = expressions[0].unalias()
+        if not isinstance(expression, exp.Literal) or not expression.is_string:
+            return None
+        return str(expression.this)
+
+    def has_comment(self) -> bool:
+        """
+        Whether this statement carries a SQL comment anywhere in it.
+
+        Read off the parse rather than from the text, which is what makes it
+        both dialect-aware and literal-aware for free: sqlglot attaches a
+        comment to the node it follows only where its lexer for that dialect
+        saw a comment, so a value of ``a--b`` inside a string literal is data
+        and answers ``False``.
+
+        For a caller that assembles a statement and reads its results back
+        positionally: a comment swallows the rest of its line, and text the
+        caller appended after a spliced fragment can end up inside it.
+
+        :return: whether any node carries a comment
+        """
+        return any(node.comments for node in self._parsed.walk())
+
     def count_bare_column_references(self, name: str) -> int:
         """
         How many times ``name`` appears as a column reference in this statement.

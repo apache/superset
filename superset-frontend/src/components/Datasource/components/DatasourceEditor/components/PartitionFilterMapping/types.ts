@@ -68,6 +68,7 @@ export interface PartitionMappingPreview {
     | 'operator'
     | 'resolution'
     | 'offset'
+    | 'escaping'
     | 'unsaved'
     | 'engine'
     | 'type'

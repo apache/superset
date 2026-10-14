@@ -112,6 +112,28 @@ So a ``DATE``-typed mapped column mirrors a range at day granularity, and does
 not mirror an equality whose value carries a time of day at all. Map a
 ``TIMESTAMP`` column instead and every operator is available again.
 
+Writing the value into the probe
+--------------------------------
+The probe evaluates the transform at a *literal*, because it runs with no bound
+parameters at all -- so every value is written into SQL text by the driver's
+literal renderer and read back by the engine's lexer, and the two do not always
+agree. SQLAlchemy's default renderer doubles apostrophes and leaves backslashes
+alone; Hive honours backslash escapes and not doubling, so ``'O''Brien'`` is
+read there as two adjacent literals and ``'x\\''`` ends four characters into a
+value the filter carries whole. A disagreement is either a mirror built from a
+value nobody filtered on -- dropping rows the filter keeps -- or, where the
+value closes its own quote, an expression of the filterer's choosing running in
+the probe.
+
+Which side is right is not knowable from the driver: it is a per-session server
+setting (``standard_conforming_strings``, ``NO_BACKSLASH_ESCAPES``,
+``spark.sql.parser.escapedStringLiterals``), and SQLAlchemy's own view of it is
+only correct on a dialect that has connected. So escaping is not what makes
+this safe. `literal_round_trips` renders the literal and reads it back in the
+engine's own dialect instead, and a value that does not survive the trip is not
+mirrored -- the usual trade, pruning for correctness. `probe_sql_is_evaluable`
+re-reads the finished statement behind it.
+
 Negations are never safe because ``T`` need not be injective:
 ``lower(:value)`` with ``country != 'US'`` mirrors to ``region_key != 'us'``,
 which wrongly excludes rows whose ``country`` is already lowercase ``'us'`` --
@@ -398,9 +420,10 @@ class Unmirrorable:
 
     Returned by `ExploreMixin.mirror_probe_request` for a value the engine
     compares more coarsely than the filter carries, one it cannot render as a
-    literal, one in a time frame the transform would discard, or an ``IN`` list
-    with a member of any of those kinds. An object rather than `None`, because
-    `None` is a filter value in its own right.
+    literal, one whose rendered literal the engine would not read back as the
+    same value, one in a time frame the transform would discard, or an ``IN``
+    list with a member of any of those kinds. An object rather than `None`,
+    because `None` is a filter value in its own right.
 
     The reason rides along because the preview has to explain the decline to
     the owner, and the two declines want different advice: "the engine compares
@@ -435,6 +458,13 @@ UNMIRRORABLE = Unmirrorable("resolution")
 #: an engine that compares the whole instant would be probed in the wrong
 #: frame -- which is not something mapping a different column fixes.
 UNMIRRORABLE_OFFSET = Unmirrorable("offset")
+
+#: A value the driver and the engine would not spell the same way, declined
+#: whatever the column's resolution and whatever the operator. Nothing about
+#: the column or the transform fixes it -- see `literal_round_trips` -- so the
+#: advice the resolution reason carries would send an owner after the wrong
+#: thing entirely.
+UNMIRRORABLE_ESCAPING = Unmirrorable("escaping")
 
 
 def is_unmirrorable(value: Any) -> bool:
@@ -1393,10 +1423,12 @@ def raw_probe_value(database: "Database", element: Any) -> RawProbeValue:
     Freeze an engine-built expression into probe-ready SQL text.
 
     The text is produced entirely by SQLAlchemy and the engine spec from values
-    that have already been coerced, so no caller-supplied text reaches the probe
-    uninspected -- string elements are escaped by the dialect's own literal
-    processor. `probe_sql_is_evaluable` then re-reads the finished query, which
-    is what bounds the splice.
+    that have already been coerced, so no caller-supplied text reaches the
+    probe uninspected. Rendering is not what makes that true: a string element
+    is checked by `literal_round_trips` before it is rendered -- the dialect's
+    literal processor and the engine's lexer do not always agree about what a
+    rendered literal says -- and `probe_sql_is_evaluable` re-reads the finished
+    query, which is what bounds the splice.
 
     :param database: the database whose dialect renders the literal
     :param element: a SQLAlchemy expression, e.g. from ``array_literal``
@@ -1491,6 +1523,94 @@ def escape_foreign_colons(transform: str) -> str:
     return "".join(pieces)
 
 
+def literal_round_trips(value: Any, dialect: Dialect | None, engine: str) -> bool:
+    """
+    Whether the engine reads a rendered ``value`` back as that same value.
+
+    The probe runs with no bound parameters, so every value reaches the engine
+    as literal text the driver wrote (see `build_probe_sql`). Whether that text
+    says what the value says is a question about two independent spellings: the
+    driver's escaping, and the engine's lexer. SQLAlchemy's default renderer
+    doubles apostrophes and passes backslashes through; Hive and Spark honour
+    the backslash and not the doubling, so ``'O''Brien'`` is read there as two
+    adjacent literals -- the transform is evaluated at ``OBrien``, and the
+    mirror asks for a partition key that holds none of the rows the filter
+    keeps. The same gap in the other direction lets a value close its own quote
+    and have the rest of it read as SQL.
+
+    Escaping is not the repair. Whether a backslash introduces an escape is a
+    per-session server setting -- ``standard_conforming_strings`` on Postgres,
+    ``NO_BACKSLASH_ESCAPES`` on MySQL, ``escapedStringLiterals`` on Spark -- and
+    nothing in the engine specs exposes it. SQLAlchemy reads it off the server
+    into ``_backslash_escapes`` during ``initialize(connection)``, which the
+    probe's dialect never reaches: `_dialect_for` asks the ``Database`` for a
+    dialect, not for a connection, so Postgres renders ``a\\b`` as
+    ``'a\\\\b'`` and a server with the standard setting reads four
+    characters. An engine-spec flag would have to be defaulted, and either
+    default is wrong for a dozen engines: one leaves the hole open, the other
+    corrupts the probed value.
+
+    So the premise is verified rather than declared, the way
+    `probe_sql_is_evaluable` verifies the finished statement. A value that does
+    not survive the round trip is not mirrored, which costs the query its
+    pruning and nothing else.
+
+    The short-circuit is a proof, not a guess, and it matters for cost: a
+    200-member ``IN`` list would otherwise parse 200 times on the chart path.
+    If the renderer emitted the value between two quotes and changed nothing in
+    it, and the value carries neither a quote nor a backslash, then no lexer in
+    play can read it as anything but itself. Both exclusions are load-bearing:
+    on Hive ``a\\b`` renders verbatim and reads as ``a`` followed by a
+    backspace.
+
+    :param value: a filter value about to be rendered into the probe
+    :param dialect: the dialect that will render it, as `_dialect_for` reports
+    :param engine: ``database.backend``, whose lexer reads the result
+    :return: whether the two agree about what the literal says
+    """
+    if isinstance(value, RawProbeValue):
+        # Already SQL, with no single value for a parse to be compared against:
+        # its elements are checked before they are rendered, by
+        # `ExploreMixin._array_mirror_probe_value`. A backslash surviving into
+        # the finished text is refused here all the same, as the backstop for a
+        # renderer this module does not own.
+        return "\\" not in value.sql
+    if not isinstance(value, str):
+        # Numbers and instants are not written between delimiters, so there is
+        # no escaping for the two sides to disagree about.
+        return True
+
+    rendered = _compile_literal(sa.literal(value), dialect)
+    if rendered == f"'{value}'" and "'" not in value and "\\" not in value:
+        return True
+
+    try:
+        return (
+            SQLStatement(f"SELECT {rendered}", engine).get_select_literal_value()
+            == value
+        )
+    except SupersetParseError:
+        # A rendered literal the engine's own dialect will not parse is the
+        # strongest form of disagreement there is.
+        return False
+
+
+def value_round_trips(database: Database, value: Any) -> bool:
+    """
+    `literal_round_trips` for a caller holding a database, not a dialect.
+
+    Which renderer and which lexer apply is this module's business, so the two
+    callers outside it -- the chart path's own gate in
+    `ExploreMixin.mirror_probe_request` and the mapping summary Explore reads
+    -- ask in these terms and stay out of it.
+
+    :param database: the database whose driver renders and whose engine reads
+    :param value: a filter value about to be rendered into the probe
+    :return: whether the two agree about what the literal says
+    """
+    return literal_round_trips(value, _dialect_for(database), database.backend)
+
+
 def build_probe_sql(
     transform: str,
     values: list[Any],
@@ -1502,7 +1622,12 @@ def build_probe_sql(
 
     Values are attacker-controlled (a Gamma user picks filter values), so they
     are bound as parameters and rendered by the dialect's own literal processor
-    rather than interpolated into the SQL text.
+    rather than interpolated into the SQL text. That is not itself a boundary:
+    the processor's escaping is not always the escaping the engine honours, and
+    a value can close its own quote through the gap. The boundary is
+    `literal_round_trips` on the way in -- which callers must have run, like
+    `stored_expression_error` below -- and `probe_sql_is_evaluable` on the way
+    out.
 
     ``from_suffix`` comes from the engine spec's ``select_without_from_suffix``.
     A ``SELECT`` with no ``FROM`` is not universal SQL: Oracle and Db2 need a
@@ -1542,8 +1667,10 @@ def build_probe_sql(
             # get the value through that processor, and `_compile_literal`
             # inlines the result either way, so this is the same string by a
             # different route -- not a loosening of the "never interpolate a
-            # raw value" rule. `parse_skeleton` substitutes literally, so a
-            # rendered literal containing a backslash is safe here.
+            # raw value" rule. `parse_skeleton` substitutes literally, so the
+            # rendered literal arrives here exactly as it was rendered, which
+            # is what makes `literal_round_trips`' verdict on it good for this
+            # branch as much as for the bound one.
             rendered = parse_skeleton(
                 transform, _compile_literal(sa.literal(value), dialect)
             )
@@ -1566,7 +1693,7 @@ def probe_sql_is_evaluable(
     are supplied by whoever is filtering a chart, not only by the owner who
     wrote the transform.
 
-    Four things have to hold, and all four are about the probe still being
+    Five things have to hold, and all five are about the probe still being
     readable rather than about taste:
 
     * One statement. A value that closes the expression and starts another
@@ -1584,6 +1711,14 @@ def probe_sql_is_evaluable(
       ``FROM`` of its own without disturbing the aliases that follow it, which
       is a read of a table the mapping has no business reading; the same value
       could append a ``WHERE`` and nothing would notice either.
+    * No comment, anywhere. A value that closes its own quote has to hide the
+      text `build_probe_sql` appended after it, and a comment is the only way
+      to do that and still balance the quotes -- so this is what makes the
+      alias check above sufficient rather than merely necessary. Read off the
+      parse rather than the text, so a comment *inside* a literal is data and
+      costs no pruning, and so the question is asked in the engine's own
+      dialect. A transform has no legitimate reason to carry one either; see
+      `EXECUTABLE_COMMENT_RE`.
 
     Both FROM clauses are compared as sqlglot renders them, so the suffix's own
     spacing does not have to match what the probe emitted. Identifier case does,
@@ -1612,6 +1747,8 @@ def probe_sql_is_evaluable(
         # inspection below is implemented for SQL statements only, and the
         # alternative to declining here is an `AttributeError` that `_probe`
         # swallows into the same outcome, less legibly.
+        return False
+    if statement.has_comment():
         return False
     if statement.has_subquery():
         return False
@@ -1677,6 +1814,32 @@ def evaluate_transform(
         if key not in seen:
             seen.add(key)
             distinct.append(value)
+
+    # The value side of the premise `probe_sql_is_evaluable` checks on the
+    # finished statement: a value the driver and the engine would spell
+    # differently is not probed at all -- see `literal_round_trips`.
+    #
+    # `ExploreMixin.mirror_probe_request` declines one earlier, with a reason
+    # the preview can explain, and that is the gate an owner sees. This is the
+    # one that cannot be walked around. `_collect_partition_mirror_range`
+    # appends its bounds into the sink without passing through that method at
+    # all, and both paths can hand back a value the gate never saw: on a column
+    # carrying a `python_date_format`, what is probed is
+    # `strftime(that format)` -- text no mapping gate has ever read.
+    #
+    # Above `_run_probe` on purpose. This is a property of one input, not of
+    # the transform, and a verdict recorded here would withdraw the mirror for
+    # every later value of a transform the engine evaluates perfectly well.
+    dialect = _dialect_for(database)
+    if not all(
+        literal_round_trips(value, dialect, database.backend) for value in distinct
+    ):
+        logger.warning(
+            "A filter value is not written the same way by the driver and the "
+            "database, so the partition transform is not probed at it; this "
+            "query will not prune"
+        )
+        return None
 
     cache_key = _probe_cache_key(database, catalog, schema, transform, distinct)
     cached = _cache_get(cache_key)
@@ -2698,6 +2861,25 @@ def _preview_probe(
                     "offset to mirror this filter.",
                 ),
             }
+        if value.reason == "escaping":
+            # Nothing about the column, the operator or the transform is wrong
+            # here, so none of the advice the other branches carry applies: the
+            # driver and the database disagree about how to write this value
+            # down. Said in terms of the value, which is the only thing the
+            # owner can change.
+            return {
+                "valid": False,
+                "reason": "escaping",
+                "sample_input": sample_input,
+                "error": _(
+                    "A filter value containing a quote or a backslash is not "
+                    "mirrored on this database: the driver and the database do "
+                    "not agree on how to write it into a query, so the "
+                    "transform would be evaluated at a value the filter does "
+                    "not compare. Filters whose values carry neither still "
+                    "mirror.",
+                ),
+            }
         # The transform is fine and the engine evaluates it, the filter just
         # carries more of the value than the engine compares on this column --
         # which is the column's type talking, not a broken expression.
@@ -2796,8 +2978,10 @@ def _probe_input(
 
     Answers with a value, or `None` where an engine spec claims array columns
     without an array literal -- which `mirror_probe_request` then declines, as
-    the chart path declines it. Otherwise `UNMIRRORABLE` is
-    `mirror_probe_request`'s to return, and the caller hands this straight to it.
+    the chart path declines it. It may also answer with an `Unmirrorable` the
+    array branch raised itself, which `mirror_probe_request` passes through;
+    otherwise the decline is that method's to make, and the caller hands this
+    straight to it.
     """
     is_list = operator == FilterOperator.IN
     column_spec = datasource.db_engine_spec.get_column_spec(native_type=column.type)

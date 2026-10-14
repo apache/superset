@@ -103,8 +103,10 @@ from superset.connectors.sqla.partition_mapping import (
     raw_probe_value,
     resolve_partition_mapping,
     UNMIRRORABLE,
+    UNMIRRORABLE_ESCAPING,
     UNMIRRORABLE_OFFSET,
     UPPER_BOUND_OPERATORS,
+    value_round_trips,
 )
 from superset.constants import (
     CacheRegion,
@@ -480,10 +482,13 @@ _UNRENDERABLE = object()
 #: literal at all, which is worth a warning, and this one is an ordinary filter
 #: the mirror has to stay quiet about.
 #:
-#: `_UNMIRRORABLE_OFFSET` is the same decline with the reason the preview needs
-#: to explain it; `is_unmirrorable` recognises either.
+#: `_UNMIRRORABLE_OFFSET` and `_UNMIRRORABLE_ESCAPING` are the same decline
+#: with the reasons the preview needs to explain them -- a bound in a time
+#: frame the transform would discard, and a value the driver and the engine
+#: would not spell the same way. `is_unmirrorable` recognises any of them.
 _UNMIRRORABLE = UNMIRRORABLE
 _UNMIRRORABLE_OFFSET = UNMIRRORABLE_OFFSET
+_UNMIRRORABLE_ESCAPING = UNMIRRORABLE_ESCAPING
 
 
 def _instant_from_filter_value(value: Any) -> Optional[datetime]:
@@ -4812,7 +4817,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         `filter_values_handler` returns for an epoch-millisecond bound arrives
         here as a `RawProbeValue` rather than text -- and that literal was
         rendered by the engine at the engine's own resolution, so it is the one
-        thing on this path with nothing left to resolve.
+        thing on this path with nothing left to resolve. The escaping gate has
+        run too, on the value as it arrived; a string this method *returns* is a
+        fresh one, which is why `evaluate_transform` asks again.
 
         Where the engine compares the whole instant, a string is returned
         exactly as it arrived -- down to the type the probe binds and the cache
@@ -4966,14 +4973,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         when an element has no literal the dialect can render -- a nested array
         such as ``[[1, 2]]`` -- which costs the query its pruning and nothing
         else.
+
+        An element the driver and the engine would not spell the same way
+        declines with `_UNMIRRORABLE_ESCAPING` instead, which the preview can
+        explain. It has to be asked here: once the elements are inside the
+        engine's own array syntax there is no single value left for
+        `value_round_trips` to compare a parse against.
         """
 
         def literal(entry: Any) -> Any:
+            elements = coerce_array_values(parse_array_literal(entry), element_type)
+            if not all(
+                value_round_trips(self.database, element) for element in elements
+            ):
+                return _UNMIRRORABLE_ESCAPING
             return raw_probe_value(
                 self.database,
-                db_engine_spec.array_literal(
-                    coerce_array_values(parse_array_literal(entry), element_type)
-                ),
+                db_engine_spec.array_literal(elements),
             )
 
         try:
@@ -4981,7 +4997,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 candidates = (
                     list(value) if isinstance(value, (list, tuple)) else [value]
                 )
-                return tuple(literal(candidate) for candidate in candidates)
+                members = tuple(literal(candidate) for candidate in candidates)
+                # One element's problem is the whole list's, for the reason
+                # `mirror_probe_request` gives: mirroring the rest would be
+                # narrower than the filter.
+                return next(
+                    (member for member in members if is_unmirrorable(member)),
+                    members,
+                )
             return literal(value)
         except (NotImplementedError, sa.exc.CompileError):
             return None
@@ -5003,6 +5026,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Returns `_UNRENDERABLE` when the engine cannot render the literal, which
         costs the query its pruning and nothing else -- the same thing the probe
         itself does on failure.
+
+        Rendering is only half of what has to hold about a literal: whether the
+        engine reads the rendered text back as the value the filter compares is
+        asked separately, by `mirror_probe_request` through
+        `partition_mapping.value_round_trips`.
         """
 
         def rendered(entry: Any) -> Any:
@@ -5072,6 +5100,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         widen and an equality decline whichever shape the value arrived in -- a
         `datetime` from drill-to-detail, or the raw string a simple filter binds.
         """
+        # A decline the caller already made, passed through: the array branch
+        # and the preview's own coercion both answer with an `Unmirrorable` of
+        # their own, and re-reading it as a filter value here would lose the
+        # reason the preview is about to explain.
+        if is_unmirrorable(value):
+            return value
+
         # First, and ahead of anything that reads the value as an instant: a
         # value `filter_values_handler` already turned into engine SQL is
         # carried as text from here on, and the probe has to receive exactly
@@ -5081,6 +5116,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         value = self._as_probe_input(value)
         if value is _UNRENDERABLE:
             return UNMIRRORABLE
+
+        # Then, before any of the resolution rules: whether this database's
+        # driver and engine would write the value down the same way. They do
+        # not always -- see `partition_mapping.literal_round_trips` -- and a
+        # value they disagree about is either probed as something nobody
+        # filtered on or, where it closes its own quote, read as SQL. Its own
+        # reason, because nothing about the column, the operator or the
+        # transform is what went wrong, so none of the advice the resolution
+        # branch carries applies.
+        #
+        # One member is the whole list's problem, as below: mirroring the rest
+        # would be narrower than the filter.
+        candidates = value if isinstance(value, (list, tuple)) else [value]
+        if not all(
+            value_round_trips(self.database, candidate) for candidate in candidates
+        ):
+            return UNMIRRORABLE_ESCAPING
 
         if operator == utils.FilterOperator.IN:
             if not isinstance(value, (list, tuple)) or not value:

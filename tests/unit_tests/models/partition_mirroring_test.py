@@ -1662,6 +1662,127 @@ def test_an_unreadable_string_is_left_alone_on_a_full_precision_engine(
     assert "dt_epoch = 1783332491" in sql
 
 
+def _on_postgres(table: SqlaTable) -> SqlaTable:
+    """
+    Re-point the dataset at Postgres, whose driver over-escapes a backslash.
+
+    SQLAlchemy only learns whether the server honours a backslash escape when
+    the dialect connects, which the probe's dialect never does, so it renders
+    ``a\\b`` as ``'a\\\\b'`` and a server with the standard setting reads four
+    characters. A real backend rather than a patched helper, so the test is
+    tied to what the installed driver actually emits.
+    """
+    table.database.sqlalchemy_uri = "postgresql://user@host/db"
+    return table
+
+
+def test_a_value_the_engine_cannot_read_back_declines_rather_than_mirroring(
+    app: Flask,
+) -> None:
+    """
+    The probe evaluates the transform at a literal, so a value the driver and
+    the engine spell differently would be probed as something nobody filtered
+    on -- and the mirror would ask for a partition key holding none of the rows
+    the filter keeps. Declining costs the query its pruning and nothing else.
+    """
+    table = _on_postgres(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+            partition_column="region_key",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["a\\b"]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": "a\\b",
+                    }
+                ],
+            )
+
+    probe.assert_not_called()
+    assert "region_key" not in sql
+    # The filter the author wrote is untouched, so the query is correct and
+    # merely unpruned.
+    assert "country = 'a" in sql
+
+
+def test_a_member_the_dialect_cannot_write_faithfully_declines_the_whole_list(
+    app: Flask,
+) -> None:
+    """
+    One member is the whole list's problem, exactly as one carrying a UTC
+    offset is: mirroring the rest would be narrower than the filter and would
+    lose the rows it named.
+    """
+    table = _on_postgres(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+            partition_column="region_key",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us", "a\\b"]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.IN.value,
+                        "val": ["US", "a\\b"],
+                    }
+                ],
+            )
+
+    probe.assert_not_called()
+    assert "region_key" not in sql
+
+
+def test_a_quote_bearing_value_still_mirrors_where_the_engine_reads_it_back(
+    app: Flask,
+) -> None:
+    """
+    And the gate is not a blanket refusal of the character. On SQLite the
+    driver's doubling is the engine's own escape, so the probe asks about the
+    value the filter compares and the mirror stands.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["o'brien"]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": "O'Brien",
+                    }
+                ],
+            )
+
+    probe.assert_called_once()
+    assert "region_key = 'o''brien'" in sql
+
+
 def test_an_offset_bearing_bound_declines_rather_than_narrowing(app: Flask) -> None:
     """
     Rounding an offset-bearing bound outward would first have to place it in the
@@ -2842,6 +2963,51 @@ def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
     # expression -- and the elements coerced to the column's element type,
     # which is what keeps `array(1, 2)` from becoming `array('1', '2')`.
     assert probed == [[RawProbeValue("array(1, 2)")]]
+
+
+def test_an_array_element_the_driver_cannot_write_declines_the_mirror(
+    app: Flask,
+) -> None:
+    """
+    The element has to be checked before the engine spec renders it: once the
+    elements are inside ``array(...)`` there is no single value left for a
+    parse of the finished literal to be compared against.
+    """
+    table = _on_postgres(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="tags",
+            partition_mapped_column="tags",
+            partition_column="region_key",
+        )
+    )
+    table.columns.append(TableColumn(column_name="tags", type="Array(String)"))
+    for column in table.columns:
+        if column.column_name == "tags":
+            column.partition_value_transform = "lower(:value)"
+            column.partition_transform_is_monotonic = False
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us"]) as probe:
+            with patch.object(
+                type(table.database),
+                "db_engine_spec",
+                new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+            ):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "tags",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "['a\\\\b']",
+                        }
+                    ],
+                )
+
+    probe.assert_not_called()
+    assert "region_key" not in sql
 
 
 # ---------------------------------------------------------------------------

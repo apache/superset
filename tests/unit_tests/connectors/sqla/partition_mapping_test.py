@@ -56,6 +56,7 @@ from superset.connectors.sqla.partition_mapping import (
     is_transform_active,
     is_unfinished,
     known_mirror_verdict,
+    literal_round_trips,
     MappingValidationIssue,
     mirror_operator,
     MIRRORABLE_ALWAYS,
@@ -1063,6 +1064,11 @@ def test_a_cast_shorthand_value_is_still_escaped_by_the_dialect(
     Binding was only ever the vehicle for reaching that processor --
     `_compile_literal` inlines the result either way -- so this renders first
     and substitutes second. Same string, different order.
+
+    Rendering is necessary and not sufficient: whether the engine reads the
+    rendered text back as this value is a separate question, and the one
+    `literal_round_trips` answers. SQLite's engine honours the doubling its
+    driver emits, which is why this value is probed here at all.
     """
     database = _database_returning(["x"])
 
@@ -2895,6 +2901,134 @@ def test_the_probe_backstop_accepts_only_a_plain_projection_per_value(
     and `_probe` hands the same constant to the builder and to this gate.
     """
     assert probe_sql_is_evaluable(sql, "sqlite", expected, suffix) is evaluable
+
+
+def test_a_backslash_escaped_quote_really_does_break_out_of_the_probe_literal() -> None:
+    """
+    Why `literal_round_trips` exists, in the shape of the escape it was written
+    for.
+
+    SQLAlchemy's default literal processor doubles apostrophes and leaves
+    backslashes alone. Hive and Spark read it the other way round, so a value
+    of ``x\\'`` ends its own literal four characters in: everything after it is
+    SQL, the value supplies the ``AS v0`` the gate looks for, and ``--`` hides
+    the one `build_probe_sql` appended. The probe then evaluates an expression
+    of the filterer's choosing and hands the answer back in the mirrored
+    predicate -- reachable by anyone who can filter a chart.
+
+    Both halves are pinned because each is independently sufficient: the value
+    never reaches the probe (`literal_round_trips`), and the compiled statement
+    would be refused if it did (`probe_sql_is_evaluable`, on the comment).
+    """
+    payload = 'x\\\' || reflect("java.lang.System","getenv","HOME") AS v0 --'
+    sql = build_probe_sql(":value", [payload])
+
+    # Where the renderer and the lexer agree, that same compiled text is one
+    # literal holding the value, whole, and the probe is harmless.
+    assert SQLStatement(sql, "sqlite").get_select_literal_value() == payload
+    # Where they do not, the literal ends four characters in: the projection is
+    # no longer a literal at all, and the alias the builder appended is inside
+    # the comment the value opened.
+    assert SQLStatement(sql, "hive").get_select_literal_value() is None
+    assert SQLStatement(sql, "hive").has_comment() is True
+
+    assert literal_round_trips(payload, None, "hive") is False
+    assert probe_sql_is_evaluable(sql, "hive", 1) is False
+
+
+@pytest.mark.parametrize(
+    ("engine", "dialect", "value", "faithful"),
+    [
+        # Hive and Spark honour the backslash and not the doubling, so both of
+        # the characters that can end a literal early are ambiguous there.
+        ("hive", None, "plain", True),
+        ("hive", None, "O'Brien", False),
+        ("hive", None, "a\\b", False),
+        ("spark", None, "O'Brien", False),
+        # Postgres agrees about the apostrophe. It does not agree about the
+        # backslash: SQLAlchemy only learns whether the server honours one in
+        # `initialize(connection)`, which the probe's dialect never reaches, so
+        # it renders `a\b` as `'a\\b'` and a server with the standard setting
+        # reads four characters.
+        ("postgresql", postgresql.dialect(), "O'Brien", True),
+        ("postgresql", postgresql.dialect(), "a\\b", False),
+        # And where the two agree, nothing is declined -- this is not a blanket
+        # refusal of either character.
+        ("mysql", mysql.dialect(), "O'Brien", True),
+        ("mysql", mysql.dialect(), "a\\b", True),
+        ("sqlite", None, "O'Brien", True),
+        ("sqlite", None, "a\\b", True),
+        # Nor of anything else that merely looks like syntax.
+        ("hive", None, 'a"b', True),
+        ("hive", None, "a--b", True),
+        ("hive", None, "a\nb", True),
+        # A number is not written between delimiters at all.
+        ("hive", None, 42, True),
+    ],
+)
+def test_a_literal_the_engine_reads_back_differently_is_not_mirrored(
+    engine: str, dialect: Any, value: Any, faithful: bool
+) -> None:
+    """
+    The rule, stated as the verdict per renderer-and-lexer pair.
+
+    Verified rather than escaped: which spelling the engine honours is a
+    per-session server setting no engine spec exposes, so an escape would have
+    to guess, and a wrong guess either leaves the hole open or probes a value
+    nobody filtered on. Rendering the literal and reading it back answers the
+    question that actually matters, and the answer is only ever used to
+    decline.
+    """
+    assert literal_round_trips(value, dialect, engine) is faithful
+
+
+def test_a_comment_in_the_compiled_probe_is_refused() -> None:
+    """
+    The value-blind half, which is what makes the alias check sufficient rather
+    than merely necessary: a value that closes its own quote has to hide the
+    text appended after it, and a comment is the only way to do that and still
+    balance the quotes.
+
+    Read off the parse, so a comment *inside* a literal is data and costs no
+    pruning.
+    """
+    assert probe_sql_is_evaluable("SELECT lower('a') AS v0", "sqlite", 1) is True
+    assert (
+        probe_sql_is_evaluable("SELECT lower('a') AS v0 /* note */", "sqlite", 1)
+        is False
+    )
+    assert probe_sql_is_evaluable("SELECT lower('a--b') AS v0", "sqlite", 1) is True
+
+
+def test_a_value_the_dialect_cannot_write_faithfully_is_never_probed(
+    app: Flask,
+) -> None:
+    """
+    The backstop, above `_run_probe` on purpose.
+
+    `ExploreMixin.mirror_probe_request` declines such a value earlier with a
+    reason the preview explains, but it is not the only door into the probe:
+    a range's bounds are collected without passing through it, and on a
+    formatted column what is probed is `strftime(python_date_format)` -- text
+    no mapping gate has read.
+
+    And no verdict is recorded. This is a property of one input, so withdrawing
+    the mirror for the whole transform would report a working mapping as broken
+    for every later value, the way a `NULL` result once did.
+    """
+    database = Database(
+        database_name="probe_db", sqlalchemy_uri="hive://localhost:10000/default"
+    )
+    database.get_df = MagicMock()  # type: ignore[method-assign]
+
+    with app.app_context():
+        assert (
+            evaluate_transform(database, None, None, "lower(:value)", ["O'Brien"])
+            is None
+        )
+        assert known_mirror_verdict(database, None, None, "lower(:value)") is None
+
+    cast(MagicMock, database.get_df).assert_not_called()
 
 
 @pytest.mark.parametrize(

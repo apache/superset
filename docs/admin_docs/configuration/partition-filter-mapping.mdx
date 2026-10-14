@@ -182,6 +182,17 @@ through it — so a mirror built from the offset-bearing value could ask for a p
 matching rows are not in. Write the bound without an offset, in the frame the column is
 stored in, and it mirrors. The preview says so in those words when a sample carries one.
 
+**One exception on some databases: a quote or a backslash.** A value is written into the
+probe as a literal, and on some databases the driver that writes it and the engine that reads
+it disagree about what a quote or a backslash inside it means -- Hive and Spark honour a
+backslash escape and not a doubled apostrophe, which is the other way round from the driver.
+Superset checks each value rather than assuming either spelling, so where the two disagree a
+filter value carrying one of those characters does not mirror, for any operator, and no
+pruning indicator appears. The query is unaffected and simply reads more partitions. Values
+carrying neither still mirror everywhere, and which of the two is affected depends on the
+database: Hive and Spark decline both, Postgres declines only a backslash, and MySQL, SQLite
+and Trino decline neither. The preview says so in those words when a sample carries one.
+
 If `=` and `IN` on a date column matter to you, map a `TIMESTAMP` column instead: the engine
 then compares the whole value and every operator mirrors.
 

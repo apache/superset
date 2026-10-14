@@ -79,6 +79,7 @@ from superset.connectors.sqla.partition_mapping import (
     known_mirror_verdict,
     mirrorable_operators,
     resolve_partition_mapping,
+    value_round_trips,
 )
 from superset.connectors.sqla.utils import (
     get_columns_description,
@@ -2100,6 +2101,21 @@ class SqlaTable(
             # helper the query path uses, for the same reason
             # `mirrorable_operators` is.
             "literal_resolution": self._column_literal_resolution(mapped_column).value,
+            # Which characters this database's driver and engine would not
+            # spell the same way, for the same reason and read by the same
+            # glyph: a filter value carrying one is declined by the query path
+            # (see `partition_mapping.literal_round_trips`), and the glyph has
+            # no way to work that out for itself -- it is a property of the
+            # renderer and lexer pair, not of the value. Reported as the
+            # characters rather than as one flag so an engine that disagrees
+            # about only one of them, as Postgres does about the backslash,
+            # does not cost the other its glyph. Asked through the query path's
+            # own function, at the two characters that can end a literal early.
+            "unmirrorable_value_chars": [
+                character
+                for character in ("'", "\\")
+                if not value_round_trips(self.database, f"a{character}b")
+            ],
             "mirrorable_operators": sorted(
                 operator.value
                 for operator in mirrorable_operators(

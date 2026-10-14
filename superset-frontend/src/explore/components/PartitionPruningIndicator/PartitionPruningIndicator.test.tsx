@@ -306,6 +306,56 @@ test('a value carrying a UTC offset is not mirrored at any resolution', () => {
   ).toBe(true);
 });
 
+test('a value carrying a character this database spells ambiguously is not mirrored', () => {
+  // The probe evaluates the transform at a literal, and on Hive and Spark the
+  // driver's doubled apostrophe and the engine's backslash escape disagree
+  // about where that literal ends -- so `literal_round_trips` declines such a
+  // value for every operator and every resolution. The server reports which
+  // characters are affected, because it is a property of the driver and engine
+  // pair that the client cannot work out.
+  const AMBIGUOUS = { ...ACTIVE, unmirrorable_value_chars: ["'", '\\'] };
+
+  expect(
+    isMirroredFilter(AMBIGUOUS, { ...equalsFilter, comparator: "O'Brien" }),
+  ).toBe(false);
+  expect(
+    isMirroredFilter(AMBIGUOUS, { ...equalsFilter, comparator: 'a\\b' }),
+  ).toBe(false);
+  // One member is the whole list's problem, as it is server-side.
+  expect(
+    isMirroredFilter(AMBIGUOUS, {
+      ...equalsFilter,
+      operator: 'IN',
+      comparator: ['us', "O'Brien"],
+    }),
+  ).toBe(false);
+
+  // Only the characters the server named: Postgres disagrees about the
+  // backslash alone, and a quote-bearing value still mirrors there.
+  const BACKSLASH_ONLY = { ...ACTIVE, unmirrorable_value_chars: ['\\'] };
+  expect(
+    isMirroredFilter(BACKSLASH_ONLY, {
+      ...equalsFilter,
+      comparator: "O'Brien",
+    }),
+  ).toBe(true);
+  expect(
+    isMirroredFilter(BACKSLASH_ONLY, { ...equalsFilter, comparator: 'a\\b' }),
+  ).toBe(false);
+
+  // And where the driver and the engine agree the server names nothing, so
+  // the gate has not swallowed the ordinary case.
+  expect(
+    isMirroredFilter(ACTIVE, { ...equalsFilter, comparator: "O'Brien" }),
+  ).toBe(true);
+  expect(
+    isMirroredFilter(
+      { ...ACTIVE, unmirrorable_value_chars: [] },
+      { ...equalsFilter, comparator: 'a\\b' },
+    ),
+  ).toBe(true);
+});
+
 test('a date, or a date at midnight, still mirrors at day resolution', () => {
   // The decline is about a *lost* time of day, not about DATE columns: where the
   // value sits on the day boundary the engine's comparison and the mirror's

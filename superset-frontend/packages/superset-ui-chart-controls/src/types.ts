@@ -138,6 +138,13 @@ export interface PartitionFilterMapping {
    * `hasMirrorableValue`.
    */
   literal_resolution?: 'full' | 'second' | 'day';
+  /**
+   * Characters this database's driver and engine do not spell the same way in
+   * a string literal, so a filter value carrying one is declined server-side
+   * -- see `hasMirrorableValue`. Computed server-side because it is a property
+   * of the driver and engine pair, which the client cannot see.
+   */
+  unmirrorable_value_chars?: string[];
 }
 
 export interface ControlPanelState {
