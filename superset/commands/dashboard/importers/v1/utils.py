@@ -87,7 +87,9 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
     metadata = fixed.get("metadata", {})
     if "timed_refresh_immune_slices" in metadata:
         metadata["timed_refresh_immune_slices"] = [
-            id_map[old_id] for old_id in metadata["timed_refresh_immune_slices"]
+            new_id
+            for old_id in metadata["timed_refresh_immune_slices"]
+            if (new_id := _remap_legacy_chart_id(old_id, id_map)) is not None
         ]
 
     if "filter_scopes" in metadata:
@@ -110,8 +112,9 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
 
     if "expanded_slices" in metadata:
         metadata["expanded_slices"] = {
-            str(id_map[int(old_id)]): value
+            str(new_id): value
             for old_id, value in metadata["expanded_slices"].items()
+            if (new_id := _remap_legacy_chart_id(old_id, id_map)) is not None
         }
 
     if "default_filters" in metadata:
@@ -181,6 +184,23 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
 
     fixed = update_cross_filter_scoping(fixed, id_map, uuid_to_new_id)
     return fixed
+
+
+def _remap_legacy_chart_id(old_id: Any, id_map: dict[int, int]) -> int | None:
+    """Map one legacy integer chart ID to its new ID, or ``None``.
+
+    The integer-keyed metadata fields can hold a string rather than an int, and
+    can name a chart that is not in the bundle: nothing prunes them when a
+    chart is deleted or leaves a dashboard, and a chart in the layout is
+    skipped at import when its dataset is unresolvable. Returning ``None`` lets
+    the caller drop an unresolvable reference rather than fail the whole
+    import. The exporter coerces the same fields the same way; see
+    ``superset.commands.dashboard.export._stabilize_chart_ids``.
+    """
+    try:
+        return id_map.get(int(old_id))
+    except (TypeError, ValueError):
+        return None
 
 
 def _remap_chart_ids(

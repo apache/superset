@@ -82,6 +82,98 @@ def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
     }
 
 
+def test_update_id_refs_timed_refresh_immune_slices_missing(  # pylint: disable=invalid-name
+    app_context: None,
+):
+    """
+    Test that missing timed refresh immune charts are ignored.
+
+    Nothing prunes ``timed_refresh_immune_slices`` when a chart leaves the
+    dashboard, and a chart in the layout is skipped at import when its dataset
+    is not in the bundle. Either way the list can name a chart that has no new
+    ID, and that entry should be dropped rather than failing the import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {"timed_refresh_immune_slices": [101, 999]},
+    }
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}  # not used
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    assert fixed["metadata"]["timed_refresh_immune_slices"] == [1]
+
+
+def test_update_id_refs_expanded_slices_missing(  # pylint: disable=invalid-name
+    app_context: None,
+):
+    """
+    Test that missing expanded charts are ignored.
+
+    ``expanded_slices`` is keyed by chart ID as a string and is not pruned when
+    a chart leaves the dashboard, so it can name a chart that has no new ID.
+    That entry should be dropped rather than failing the import.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {"expanded_slices": {"101": True, "999": False}},
+    }
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}  # not used
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    assert fixed["metadata"]["expanded_slices"] == {"1": True}
+
+
+def test_update_id_refs_remaps_string_typed_chart_ids(  # pylint: disable=invalid-name
+    app_context: None,
+):
+    """
+    Test that string-typed chart IDs are remapped rather than dropped.
+
+    Both fields are written by the frontend and by older exports, so a live
+    reference can arrive as a string. The exporter coerces these with ``int``,
+    and the import side has to do the same or the reference is lost.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "timed_refresh_immune_slices": ["101"],
+            "expanded_slices": {101: True},
+        },
+    }
+    chart_ids = {"uuid1": 1}
+    dataset_info: dict[str, dict[str, Any]] = {}  # not used
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    assert fixed["metadata"]["timed_refresh_immune_slices"] == [1]
+    assert fixed["metadata"]["expanded_slices"] == {"1": True}
+
+
 def test_update_native_filter_config_scope_excluded():
     from superset.commands.dashboard.importers.v1.utils import update_id_refs
 
