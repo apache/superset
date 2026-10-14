@@ -193,7 +193,10 @@ const config: ControlPanelConfig = {
               // is set below, so "summary" rather than "total".
               label: t('Show row summaries'),
               default: false,
-              renderTrigger: true,
+              // Not a renderTrigger: for non-additive metrics, the totals and
+              // subtotals are rollup levels fetched by the query (see
+              // `buildGroupbyCombinations`), so toggling this needs a real
+              // requery rather than a client-side-only re-render.
               description: t('Display row level total'),
             },
           },
@@ -205,7 +208,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show rows subtotal'),
               default: false,
-              renderTrigger: true,
               description: t('Display row level subtotal'),
             },
           },
@@ -234,7 +236,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show column summaries'),
               default: false,
-              renderTrigger: true,
               description: t('Display column level total'),
             },
           },
@@ -246,7 +247,6 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Show columns subtotal'),
               default: false,
-              renderTrigger: true,
               description: t('Display column level subtotal'),
             },
           },

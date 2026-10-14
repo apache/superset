@@ -20,7 +20,11 @@ import { QueryFormMetric, QueryObject } from '@superset-ui/core';
 import buildQuery from '../../src/plugin/buildQuery';
 import controlPanel from '../../src/plugin/controlPanel';
 import buildGroupbyCombinations from '../../src/plugin/utilities';
-import { MetricsLayoutEnum, PivotTableQueryFormData } from '../../src/types';
+import {
+  MetricsLayoutEnum,
+  PivotTableQueryFormData,
+  ShowValuesAsEnum,
+} from '../../src/types';
 
 type GroupingSetsQuery = QueryObject & { grouping_sets: string[][] };
 
@@ -114,3 +118,63 @@ test('rowSubTotals alone changes the query, so it cannot share the no-options ca
   expect(withRowSubTotals).not.toEqual(groupingSets(noOptions));
   expect(withRowSubTotals).toContainEqual(['quarter']);
 });
+
+// The metric pseudo-dimension is drawn on the other axis for these, so the
+// subtotal toggle has no metric group to subtotal and adds no level.
+test('a subtotal toggle on the axis without the metrics requests no collapsed level', () => {
+  expect(
+    buildGroupbyCombinations({ ...noOptions, colSubTotals: true }),
+  ).toEqual(buildGroupbyCombinations(noOptions));
+  expect(
+    buildGroupbyCombinations({
+      ...noOptions,
+      metricsLayout: MetricsLayoutEnum.COLUMNS,
+      rowSubTotals: true,
+    }),
+  ).toEqual(buildGroupbyCombinations(noOptions));
+});
+
+// With combined metrics the metric is the innermost key, so no per-metric
+// Subtotal line exists. A percent mode forces its denominator level through
+// the combineMetric filter, which must not let the subtotal toggle's level
+// ride along with it.
+test.each([
+  [
+    MetricsLayoutEnum.ROWS,
+    ShowValuesAsEnum.PERCENT_OF_ROW,
+    'rowSubTotals',
+    false,
+  ],
+  [
+    MetricsLayoutEnum.ROWS,
+    ShowValuesAsEnum.PERCENT_OF_ROW,
+    'rowSubTotals',
+    true,
+  ],
+  [
+    MetricsLayoutEnum.COLUMNS,
+    ShowValuesAsEnum.PERCENT_OF_COLUMN,
+    'colSubTotals',
+    false,
+  ],
+  [
+    MetricsLayoutEnum.COLUMNS,
+    ShowValuesAsEnum.PERCENT_OF_COLUMN,
+    'colSubTotals',
+    true,
+  ],
+])(
+  'combined metrics (%s, %s) with only %s (transposed: %s) request no extra level',
+  (metricsLayout, showValuesAs, subtotalToggle, transposePivot) => {
+    const combined = {
+      ...noOptions,
+      combineMetric: true,
+      metricsLayout,
+      showValuesAs,
+      transposePivot,
+    };
+    expect(
+      buildGroupbyCombinations({ ...combined, [subtotalToggle]: true }),
+    ).toEqual(buildGroupbyCombinations(combined));
+  },
+);
