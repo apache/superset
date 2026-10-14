@@ -251,6 +251,19 @@ class DatasetReferencesAPI(RestApi):
         return self.response(200, result={"databases": databases})
 ```
 
+#### Cancelling asynchronous database queries
+
+`Database.execute_async()` returns an `AsyncQueryHandle`. Its `cancel()` method
+commits `STOPPED` when cancellation succeeds, including when an external kill
+causes the worker to record `FAILED` before the stop is saved. The conditional
+write preserves `SUCCESS` and `TIMED_OUT` committed while cancellation is in
+flight, returning `False` if either outcome wins the race.
+
+An engine-rejected cancellation or a missing cancellation handle returns
+`False` without writing `STOPPED`; connection errors can propagate to the caller.
+For engines that cancel through the live worker cursor, `True` acknowledges
+recorded stop intent, not confirmation that the warehouse has stopped executing.
+
 ### Automatic Context Detection
 
 The [`@api`](https://github.com/apache/superset/blob/master/superset-core/src/superset_core/rest_api/decorators.py) decorator automatically detects whether it's being used in host or extension code:

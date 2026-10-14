@@ -93,6 +93,7 @@ if TYPE_CHECKING:
 
     from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.core import Database
+    from superset.models.sql_lab import Query
     from superset.result_set import SupersetResultSet
 
 logger = logging.getLogger(__name__)
@@ -1438,7 +1439,7 @@ class SQLExecutor:
         return SQLExecutor._cancel_query(database, query)
 
     @staticmethod
-    def _cancel_query(database: Database, query: Any) -> bool:
+    def _cancel_query(database: Database, query: Query) -> bool:
         """
         Cancel a running query.
 
@@ -1450,38 +1451,60 @@ class SQLExecutor:
         :param query: Query model instance to cancel
         :returns: True if cancelled successfully, False otherwise
         """
-        from superset.common.db_query_status import FINISHED_QUERY_STATUSES
+        from superset.common.db_query_status import FINISHED_QUERY_STATUSES, QueryStatus
         from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
+        from superset.models.sql_lab import Query as QueryModel
         from superset.utils.core import QuerySource
+        from superset.utils.dates import now_as_float
 
-        # Some engines implicitly handle cancellation
-        if database.db_engine_spec.has_implicit_cancel():
-            return True
-
-        # Some databases may need to make preparations for query cancellation
-        database.db_engine_spec.prepare_cancel_query(query)
-
-        # The query may have finished while the stop was being prepared
         if query.status in FINISHED_QUERY_STATUSES:
             return False
 
-        # Check early cancellation flag
-        if query.extra.get(QUERY_EARLY_CANCEL_KEY):
+        cancelled = database.db_engine_spec.has_implicit_cancel()
+        if not cancelled:
+            database.db_engine_spec.prepare_cancel_query(query)
+            # The query may have finished while the stop was being prepared.
+            if query.status in FINISHED_QUERY_STATUSES:
+                return False
+            cancelled = bool(query.extra.get(QUERY_EARLY_CANCEL_KEY))
+
+        if not cancelled:
+            cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
+            if cancel_query_id is None:
+                return False
+
+            with database.get_sqla_engine(
+                catalog=query.catalog,
+                schema=query.schema,
+                source=QuerySource.SQL_LAB,
+            ) as engine:
+                with contextlib.closing(engine.raw_connection()) as conn:
+                    with contextlib.closing(conn.cursor()) as cursor:
+                        cancelled = database.db_engine_spec.cancel_query(
+                            cursor, query, cancel_query_id
+                        )
+
+        if not cancelled:
+            return False
+        if query.status == QueryStatus.STOPPED:
+            # Impala commits its stop while preparing cursor-side cancellation.
             return True
 
-        # Get cancel ID
-        cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
-        if cancel_query_id is None:
-            return False
-
-        # Execute cancellation
-        with database.get_sqla_engine(
-            catalog=query.catalog,
-            schema=query.schema,
-            source=QuerySource.SQL_LAB,
-        ) as engine:
-            with contextlib.closing(engine.raw_connection()) as conn:
-                with contextlib.closing(conn.cursor()) as cursor:
-                    return database.db_engine_spec.cancel_query(
-                        cursor, query, cancel_query_id
-                    )
+        # Match QueryDAO.stop_query: preserve SUCCESS/TIMED_OUT committed while
+        # cancellation was in flight, but replace a FAILED caused by the kill.
+        stopped = (
+            db.session.query(QueryModel)
+            .filter(
+                QueryModel.id == query.id,
+                QueryModel.status.notin_((QueryStatus.SUCCESS, QueryStatus.TIMED_OUT)),
+            )
+            .update(
+                {
+                    QueryModel.status: QueryStatus.STOPPED,
+                    QueryModel.end_time: now_as_float(),
+                },
+                synchronize_session="fetch",
+            )
+        )
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        return bool(stopped)

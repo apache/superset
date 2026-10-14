@@ -112,6 +112,167 @@ def _use_impala(mocker: MockerFixture) -> None:
     )
 
 
+@pytest.mark.parametrize("engine_name", ["postgresql", "mysql"])
+@pytest.mark.parametrize("cancelled", [True, False])
+@pytest.mark.parametrize(
+    "worker_status",
+    [
+        QueryStatus.RUNNING,
+        QueryStatus.FAILED,
+        QueryStatus.SUCCESS,
+        QueryStatus.TIMED_OUT,
+    ],
+)
+def test_async_external_cancel_commits_only_successful_stop(
+    mocker: MockerFixture,
+    app: Any,
+    session: Session,
+    session_engine: Engine,
+    query_id: int,
+    engine_name: str,
+    cancelled: bool,
+    worker_status: QueryStatus,
+) -> None:
+    """External cancellation commits STOPPED without losing terminal worker results."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+    from superset.sql.execution.executor import SQLExecutor
+
+    query = session.get(Query, query_id)
+    assert query is not None
+    database = query.database
+    query.set_extra_json_key(QUERY_CANCEL_KEY, "123")
+    session.commit()
+    spec = PostgresEngineSpec if engine_name == "postgresql" else MySQLEngineSpec
+    mocker.patch.object(
+        Database, "db_engine_spec", new_callable=mocker.PropertyMock, return_value=spec
+    )
+    engine = MagicMock()
+    mocker.patch.object(Database, "get_sqla_engine", return_value=engine)
+
+    def external_cancel(sql: str) -> None:
+        """Simulate the worker committing while the external kill is in flight."""
+        _worker_commits(session_engine, query.id, status=worker_status, end_time=2.0)
+        if not cancelled:
+            raise RuntimeError("warehouse rejected cancellation")
+
+    cursor = (
+        engine.__enter__.return_value.raw_connection.return_value.cursor.return_value
+    )
+    cursor.execute.side_effect = external_cancel
+    cancel = mocker.spy(spec, "cancel_query")
+    handle = SQLExecutor(database)._create_async_handle(query_id)
+
+    result = handle.cancel()
+
+    cancel.assert_called_once()
+    committed = _committed(session_engine, query_id)
+    should_stop = cancelled and worker_status not in (
+        QueryStatus.SUCCESS,
+        QueryStatus.TIMED_OUT,
+    )
+    assert result is should_stop
+    assert committed.status == (QueryStatus.STOPPED if should_stop else worker_status)
+    if should_stop:
+        assert committed.end_time is not None
+        assert committed.end_time != 2.0
+    else:
+        assert committed.end_time == 2.0
+
+
+@pytest.mark.parametrize("implicit", [True, False])
+def test_async_cancel_commits_implicit_or_early_stop(
+    mocker: MockerFixture,
+    app: Any,
+    session: Session,
+    session_engine: Engine,
+    query_id: int,
+    implicit: bool,
+) -> None:
+    """Successful stop intent is persisted even without an external kill handle."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.sql.execution.executor import SQLExecutor
+
+    query = session.get(Query, query_id)
+    assert query is not None
+    mocker.patch.object(
+        Database,
+        "db_engine_spec",
+        new_callable=mocker.PropertyMock,
+        return_value=BaseEngineSpec,
+    )
+    mocker.patch.object(BaseEngineSpec, "has_implicit_cancel", return_value=implicit)
+
+    def prepare(query: Query) -> None:
+        """Stage early stop intent without committing ahead of the status write."""
+        query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+
+    mocker.patch.object(BaseEngineSpec, "prepare_cancel_query", side_effect=prepare)
+    get_engine = mocker.patch.object(Database, "get_sqla_engine")
+
+    assert SQLExecutor(query.database)._create_async_handle(query_id).cancel()
+
+    committed = _committed(session_engine, query_id)
+    assert committed.status == QueryStatus.STOPPED
+    assert committed.end_time is not None
+    if not implicit:
+        assert committed.extra[QUERY_EARLY_CANCEL_KEY]
+    get_engine.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "status", [QueryStatus.SUCCESS, QueryStatus.FAILED, QueryStatus.TIMED_OUT]
+)
+def test_async_cancel_leaves_finished_query_untouched(
+    mocker: MockerFixture,
+    app: Any,
+    session: Session,
+    session_engine: Engine,
+    query_id: int,
+    status: QueryStatus,
+) -> None:
+    """A finished query is not cancelled or rewritten by a subsequent stop."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    query = session.get(Query, query_id)
+    assert query is not None
+    query.status = status
+    query.end_time = 2.0
+    session.commit()
+    get_engine = mocker.patch.object(Database, "get_sqla_engine")
+
+    assert not SQLExecutor(query.database)._create_async_handle(query_id).cancel()
+
+    committed = _committed(session_engine, query_id)
+    assert committed.status == status
+    assert committed.end_time == 2.0
+    get_engine.assert_not_called()
+
+
+def test_async_cancel_exception_does_not_commit_stop(
+    mocker: MockerFixture,
+    app: Any,
+    session: Session,
+    session_engine: Engine,
+    query_id: int,
+) -> None:
+    """A failed warehouse cancellation propagates instead of fabricating STOPPED."""
+    from superset.sql.execution.executor import SQLExecutor
+
+    query = session.get(Query, query_id)
+    assert query is not None
+    mocker.patch.object(
+        Database,
+        "get_sqla_engine",
+        side_effect=RuntimeError("cancel connection failed"),
+    )
+
+    with pytest.raises(RuntimeError, match="cancel connection failed"):
+        SQLExecutor(query.database)._create_async_handle(query_id).cancel()
+
+    assert _committed(session_engine, query_id).status == QueryStatus.RUNNING
+
+
 def test_stop_query_keeps_status_committed_after_its_check(
     mocker: MockerFixture,
     app: Any,
