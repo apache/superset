@@ -41,6 +41,7 @@ from superset.mcp_service.common.error_schemas import ChartGenerationError
 class TreemapChartPlugin(BaseChartPlugin):
     """Plugin for treemap chart type."""
 
+    owns_update_merge = True
     chart_type = "treemap_v2"
     allows_empty_result = True
     display_name = "Treemap"
@@ -234,7 +235,7 @@ class TreemapChartPlugin(BaseChartPlugin):
         return limit if 1 <= limit <= 10000 else 100
 
     def ascii_preview(
-        self, data: list[Any], form_data: dict[str, Any], width: int
+        self, data: list[Any], form_data: dict[str, Any], width: int, height: int = 20
     ) -> str | ChartError | None:
         """Render the hierarchy as an ASCII preview."""
         # Defer service helper imports to avoid plugin-loading cycles.
