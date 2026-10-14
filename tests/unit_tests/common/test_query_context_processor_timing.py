@@ -17,6 +17,7 @@
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
+import pytest
 
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
 from superset.common.db_query_status import QueryStatus
@@ -61,6 +62,40 @@ def _processor() -> QueryContextProcessor:
     processor._qc_datasource.column_names = ["col1"]
     processor._qc_datasource.data = {}
     return processor
+
+
+@pytest.mark.parametrize(
+    ("timeout", "force", "expected_force"),
+    [(-1, False, True), (60, True, True), (60, False, False)],
+)
+def test_contribution_totals_receive_resolved_cache_policy(
+    timeout: int, force: bool, expected_force: bool
+) -> None:
+    """Direct totals dispatch honors the same disabled/forced cache policy."""
+    processor: QueryContextProcessor = _processor()
+    main: MagicMock = _query_obj()
+    main.post_processing = [{"operation": "contribution", "options": {}}]
+    totals: MagicMock = _query_obj()
+    context: MagicMock = MagicMock()
+    context.queries = [main, totals]
+    context.get_query_result.return_value.df = pd.DataFrame({"revenue": [5.0]})
+    processor._query_context = context
+
+    def execute(query: MagicMock) -> MagicMock:
+        assert query is totals
+        assert query.cache_timeout == timeout
+        assert query.force_query is expected_force
+        return context.get_query_result.return_value
+
+    context.get_query_result.side_effect = execute
+    with (
+        patch.object(processor, "get_cache_timeout", return_value=timeout),
+        patch.object(processor, "query_cache_key", return_value="totals-key"),
+        patch.object(processor, "_resolve_forced_query", return_value=force),
+    ):
+        processor.ensure_totals_available([0], 1)
+    context.get_query_result.assert_called_once_with(totals)
+    assert main.post_processing[0]["options"]["contribution_totals"] == {"revenue": 5.0}
 
 
 def test_public_projection_is_explicit_and_versioned() -> None:
@@ -259,3 +294,47 @@ def test_get_payload_result_keeps_timing_sidecar() -> None:
     assert result.queries[0].payload == query_payload
     assert result.queries[0].timing.total_ns == 12_000_000
     assert "timing" not in result.queries[0].payload
+
+
+@patch("superset.common.query_context_processor.QueryCacheManager")
+def test_dataframe_payload_result_resolves_force_and_timeout_onto_query_object(
+    cache_manager: MagicMock,
+) -> None:
+    """Datasources with their own caching (semantic containment) read the
+    force decision and timeout from the query object, so the processor must
+    hand them the values it resolved for the result cache."""
+    cache: MagicMock = MagicMock()
+    cache.is_loaded = True
+    cache.is_cached = True
+    cache.df = pd.DataFrame({"col1": [1]})
+    cache.cache_dttm = "2026-01-01T00:00:00"
+    cache.queried_dttm = "2026-01-01T00:00:00"
+    cache.applied_template_filters = []
+    cache.applied_filter_columns = []
+    cache.rejected_filter_columns = []
+    cache.annotation_data = {}
+    cache.error_message = None
+    cache.query = "SELECT 1"
+    cache.status = "success"
+    cache.stacktrace = None
+    cache.sql_rowcount = 1
+    cache.bq_memory_limited = False
+    cache.bq_memory_limited_row_count = 0
+    cache_manager.get.return_value = cache
+
+    processor: QueryContextProcessor = _processor()
+    query_obj: MagicMock = _query_obj()
+    query_obj.force_query = False
+    query_obj.cache_timeout = None
+    with (
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=-1),
+    ):
+        processor.get_df_payload_result(query_obj)
+
+    # A resolved ``-1`` disables caching, which the processor expresses as a
+    # forced query; both facts must reach the query object.
+    assert query_obj.force_query is True
+    assert query_obj.cache_timeout == -1
+    cache_manager.get.assert_called_once()
+    assert cache_manager.get.call_args.kwargs["force_query"] is True

@@ -34,6 +34,10 @@ from superset.daos.exceptions import (
 )
 from superset.datasets.filters import dataset_certified_clause
 from superset.models.sql_lab import Query, SavedQuery
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.subjects.models import sqlatable_editors
 from superset.utils.core import DatasourceType
@@ -62,6 +66,12 @@ class DatasourceDAO(BaseDAO[Datasource]):
         datasource_type: Union[DatasourceType, str],
         database_id_or_uuid: int | str,
     ) -> Datasource:
+        if (
+            datasource_type == DatasourceType.SEMANTIC_VIEW
+            and not is_semantic_layers_enabled()
+        ):
+            raise SemanticLayersDisabledError()
+
         if datasource_type not in cls.sources:
             raise DatasourceTypeNotSupportedError()
 
@@ -110,7 +120,10 @@ class DatasourceDAO(BaseDAO[Datasource]):
         if model is Query:
             # Query.perm and schema checks read the database for every member.
             query = query.options(joinedload(Query.database))
-        return {item.id: item for item in query.filter(model.id.in_(ids)).all()}
+        return {
+            item.id: item
+            for item in query.filter(model.id.in_(ids)).all()  # type: ignore[union-attr]
+        }
 
     @staticmethod
     def build_dataset_query(
