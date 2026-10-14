@@ -119,6 +119,8 @@ def test_is_query_context_metadata_complete_accepts_empty_queries_list() -> None
         {"datasource": {"id": 1}, "queries": []},  # datasource missing 'type'
         {"datasource": {"type": "table"}, "queries": []},  # datasource missing 'id'
         {"datasource": "table:1", "queries": []},  # datasource not a mapping
+        {"datasource": {"id": 1, "type": "table"}, "queries": ["x"]},
+        {"datasource": {"id": 1, "type": "table"}, "queries": [None]},
         {
             "datasource": {"id": 1, "type": "not-a-real-type"},
             "queries": [],

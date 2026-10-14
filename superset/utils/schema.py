@@ -69,12 +69,14 @@ def is_query_context_metadata_complete(value: Any) -> bool:
     passes ``type`` straight to ``DatasourceType(...)``, which raises
     ``ValueError`` for a value outside that enum -- but ``queries`` may
     legitimately be an empty list (a chart with no query objects yet still
-    round-trips through ``create()`` without error), so only its presence as
-    a list is checked, not its truthiness.
+    round-trips through ``create()`` without error), so it is only required
+    to be a list of mappings, not to be non-empty.
 
     :param value: the object obtained by JSON-decoding a query_context string
     """
     if not isinstance(value, dict) or not isinstance(value.get("queries"), list):
+        return False
+    if not all(isinstance(query, dict) for query in value["queries"]):
         return False
     datasource = value.get("datasource")
     if not isinstance(datasource, dict) or not datasource.get("id"):
