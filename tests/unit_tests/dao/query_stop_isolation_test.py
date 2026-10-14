@@ -23,8 +23,9 @@ and locks rather than mocked sessions.
 
 from collections.abc import Iterator
 from pathlib import Path
+from threading import Event
 from typing import Any
-from unittest.mock import Mock
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from flask import Flask
@@ -296,3 +297,132 @@ def test_poll_sees_stop_committed_after_its_snapshot(
     cursor.cancel_operation.assert_called_once_with()
     cursor.close_operation.assert_called_once_with()
     worker.close()
+
+
+def _use_trino(mocker: MockerFixture) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    mocker.patch.object(
+        Database,
+        "db_engine_spec",
+        new_callable=mocker.PropertyMock,
+        return_value=TrinoEngineSpec,
+    )
+    mocker.patch.object(Database, "is_oauth2_enabled", return_value=False)
+    mocker.patch.object(TrinoEngineSpec, "get_tracking_url", return_value=None)
+
+
+def test_trino_early_cancel_that_kills_the_worker_ends_stopped(
+    mocker: MockerFixture,
+    app: Any,
+    session: Session,
+    session_engine: Engine,
+    query_id: int,
+) -> None:
+    """
+    A Trino stop with no published query ID still ends STOPPED when the
+    early-cancel flag it commits makes the worker kill its statement.
+
+    Trino's prepare_cancel_query() commits the flag, so the worker can see it,
+    kill the statement and reach its error handler before stop_query() reads
+    the row back. That failure is the stop's own doing.
+    """
+    from superset import db
+    from superset.daos.query import QueryDAO
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.sql_lab import handle_query_error
+
+    _use_trino(mocker)
+    query = session.get(Query, query_id)
+    query.extra_json = "{}"
+    session.commit()
+
+    killed = Event()
+    cursor = MagicMock()
+    cursor.query_id = "20261014_123456_00001_abcde"
+    cursor.fetchall.return_value = []
+
+    def driver_execute(sql: str) -> None:
+        if "kill_query" in sql:
+            killed.set()
+            return
+        # The statement runs until Trino kills it.
+        if not killed.wait(5):
+            raise RuntimeError("statement was never killed")
+        raise RuntimeError("Query was killed: Query cancelled by Superset")
+
+    cursor.execute.side_effect = driver_execute
+
+    def run_worker() -> None:
+        """The worker polls, sees the published flag and kills its statement."""
+        with Session(session_engine) as worker:
+            worker.remove = lambda: None
+            with patch.object(db, "session", worker):
+                worker_query = worker.get(Query, query_id)
+                assert worker_query.extra[QUERY_EARLY_CANCEL_KEY] is True
+                with app.test_request_context():
+                    with pytest.raises(RuntimeError, match="killed") as caught:
+                        TrinoEngineSpec.execute_with_cursor(
+                            cursor, "SELECT 1", worker_query
+                        )
+                    handle_query_error(caught.value, worker_query)
+
+    commit = session.commit
+    armed = True
+
+    def commit_then_worker_runs() -> None:
+        nonlocal armed
+        commit()
+        if armed:
+            # Right after the stop publishes the early-cancel flag.
+            armed = False
+            run_worker()
+
+    mocker.patch.object(session, "commit", side_effect=commit_then_worker_runs)
+
+    QueryDAO.stop_query(CLIENT_ID)
+
+    assert killed.is_set()
+    assert _committed(session_engine, query_id).status == QueryStatus.STOPPED
+
+
+def test_trino_early_cancel_keeps_failure_that_predates_it(
+    mocker: MockerFixture,
+    app: Any,
+    session: Session,
+    session_engine: Engine,
+    query_id: int,
+) -> None:
+    """A failure committed before the stop published its flag stays FAILED."""
+    from superset.daos.query import QueryDAO
+
+    _use_trino(mocker)
+    query = session.get(Query, query_id)
+    query.extra_json = "{}"
+    session.commit()
+
+    commit = session.commit
+    armed = True
+
+    def worker_fails_then_commit() -> None:
+        nonlocal armed
+        if armed:
+            # The statement fails on its own, after stop_query's first check
+            # but before the early-cancel flag is published.
+            armed = False
+            _worker_commits(
+                session_engine,
+                query_id,
+                status=QueryStatus.FAILED,
+                error_message="line 1:8: Column 'x' cannot be resolved",
+                end_time=2.0,
+            )
+        commit()
+
+    mocker.patch.object(session, "commit", side_effect=worker_fails_then_commit)
+
+    QueryDAO.stop_query(CLIENT_ID)
+
+    query = _committed(session_engine, query_id)
+    assert query.status == QueryStatus.FAILED
+    assert query.error_message == "line 1:8: Column 'x' cannot be resolved"
