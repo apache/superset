@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import os
 import uuid
+from collections.abc import Hashable
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
@@ -493,16 +494,45 @@ def test_semantic_view_query_endpoint_returns_error(
     assert "query" not in response.json["result"][0]
 
 
-def test_semantic_view_get_extra_cache_keys() -> None:
-    """Test SemanticView get_extra_cache_keys method."""
-    from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
+@pytest.mark.parametrize("version", [None, "producer-v1", "producer-v2"])
+def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
+    """Keep NULL normalization and producer guarantees in the result identity."""
+    from superset.common.query_object import QueryObject
 
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = version
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
-    with patch.dict(
-        "superset.semantic_layers.models.registry", {"fixture": ProviderLayer}
-    ):
-        result: list[Any] = view.get_extra_cache_keys({})
-    assert result == [view.metadata_generation]
+    query: QueryObject = QueryObject(
+        columns=["category"],
+        filters=[{"col": "category", "op": "IN", "val": ["a", "<NULL>"]}],
+    )
+    with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
+        composed_key: str = query.cache_key(
+            extra_cache_keys=view.get_extra_cache_keys({})
+        )
+        expected: list[Hashable] = [
+            view.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
+        if version is not None:
+            expected.append(("semantic-result-version", "fixture", version))
+        assert view.get_extra_cache_keys({}) == expected
+        assert composed_key != query.cache_key(extra_cache_keys=expected[1:])
+        assert composed_key != query.cache_key(
+            extra_cache_keys=[expected[0], *expected[2:]]
+        )
+        assert composed_key != query.cache_key(extra_cache_keys=[])
+        if version is not None:
+            assert composed_key != query.cache_key(
+                extra_cache_keys=[("semantic-result-version", "fixture", version)]
+            )
+            assert composed_key != query.cache_key(
+                extra_cache_keys=["semantic-null-filters-v1"]
+            )
+        assert composed_key == query.cache_key(
+            extra_cache_keys=view.get_extra_cache_keys({})
+        )
+    provider.assert_not_called()
 
 
 def test_semantic_view_perm() -> None:
@@ -2634,6 +2664,22 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert "category" in caplog.text
 
 
+def test_semantic_view_data_row_offset_capability(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """Expose the optional bounded-offset contract through existing metadata."""
+    declared: frozenset[SemanticViewFeature] = frozenset(
+        {SemanticViewFeature.ROW_OFFSET, SemanticViewFeature.GROUP_LIMIT}
+    )
+    mock_implementation.features = declared
+
+    data: ExplorableData = semantic_view.data
+
+    assert data["semantic_view_features"] == ["GROUP_LIMIT", "ROW_OFFSET"]
+    assert SemanticViewFeature.ROW_OFFSET.value == "ROW_OFFSET"
+
+
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])
 def test_values_fallback_translates_provider_completeness_error(
     mock_implementation: MagicMock,
@@ -2675,9 +2721,13 @@ def test_result_generation_reads_class_without_provider_construction(
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         assert view.result_cache_version == version
-        assert view.get_extra_cache_keys({}) == [view.metadata_generation] + (
-            [] if version is None else [("semantic-result-version", "fixture", version)]
-        )
+        expected: list[Hashable] = [
+            view.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
+        if version is not None:
+            expected.append(("semantic-result-version", "fixture", version))
+        assert view.get_extra_cache_keys({}) == expected
     provider.assert_not_called()
 
 

@@ -26,6 +26,7 @@ from flask_caching.backends.rediscache import RedisCache
 from superset_core.semantic_layers.types import (
     AggregationType,
     SemanticQuery,
+    SemanticRequest,
     SemanticResult,
 )
 
@@ -171,7 +172,9 @@ def test_same_client_fence_rejects_paused_writer(takeover_at: str) -> None:
     fresh_meta: ViewMeta = replace(meta, timeout=120)
     query: SemanticQuery = build_semantic_query()
     stale_result: SemanticResult = build_semantic_result()
-    fresh_result: SemanticResult = replace(stale_result, requests=["fresh"])
+    fresh_result: SemanticResult = replace(
+        stale_result, requests=[SemanticRequest(type="SQL", definition="fresh")]
+    )
 
     def replace_owner() -> None:
         lease_key: str = next(
@@ -192,7 +195,9 @@ def test_same_client_fence_rejects_paused_writer(takeover_at: str) -> None:
         query,
         ContainmentCapabilities(),
     )
-    assert lookup.candidates[0].result.requests == ["fresh"]
+    assert lookup.candidates[0].result.requests == [
+        SemanticRequest(type="SQL", definition="fresh")
+    ]
     descriptor: CachedEntry = lookup.candidates[0].entry
     assert descriptor.timeout == 120
     assert client.timeouts[f"data:{descriptor.value_key}"] == 120
@@ -723,7 +728,7 @@ def test_cached_entry_shape_is_pinned_to_the_identity_version() -> None:
         "timeout",
         "write_nonce",
     )
-    assert IDENTITY_FORMAT_VERSION == "v4"
+    assert IDENTITY_FORMAT_VERSION == "v5"
 
 
 def test_store_surfaces_existence_check_failure_as_store_error() -> None:
@@ -851,7 +856,10 @@ def test_split_store_stale_overwrite_is_a_miss_and_pruned(contained: bool) -> No
     meta: ViewMeta = build_view_meta()
     query: SemanticQuery = build_semantic_query()
     requested: SemanticQuery = replace(query, limit=1) if contained else query
-    fresh: SemanticResult = replace(build_semantic_result(), requests=["fresh"])
+    fresh: SemanticResult = replace(
+        build_semantic_result(),
+        requests=[SemanticRequest(type="SQL", definition="fresh")],
+    )
 
     def takeover() -> None:
         lease_key: str = next(iter(leases.values))

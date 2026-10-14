@@ -922,7 +922,8 @@ class SemanticView(AuditMixinNullable, Model):
 
     def get_extra_cache_keys(self, query_obj: QueryObjectDict) -> list[Hashable]:
         discriminator: tuple[str, str] | None = self.result_cache_discriminator
-        keys: list[Hashable] = [self.metadata_generation]
+        # Separate cached pre-normalization results during rolling deployments.
+        keys: list[Hashable] = [self.metadata_generation, "semantic-null-filters-v1"]
         if discriminator is not None:
             keys.append(("semantic-result-version", *discriminator))
         return keys
