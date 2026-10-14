@@ -85,6 +85,7 @@ dependencies = [
     "msgpack>=1.2.3, <1.3",
     "nh3>=0.3.7, <0.4",
     "numpy>=1.23.5, <2.5",
+    "openpyxl>=3.1.5, <4",
     "packaging",
     # --------------------------
     # pandas and related (wanting pandas[performance] without numba as it's 100+MB and not needed)

@@ -665,6 +665,7 @@ openapi-spec-validator==0.7.1
 openpyxl==3.1.5
     # via
     #   -c requirements/base-constraint.txt
+    #   apache-superset
     #   pandas
 opensearch-py==2.8.0
     # via elasticsearch-dbapi
