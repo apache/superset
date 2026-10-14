@@ -560,16 +560,20 @@ test('renders and selects within a 500-metric runtime schema', async () => {
   expect(selectedTag(largeMetricEnum[42])).toBeTruthy();
 
   // largeRuntimeSchema's dimensions field depends on metrics, so the pick
-  // schedules a refresh — wait for it so the dedupe/apply path is exercised
+  // schedules a refresh — wait for that metric's request, since an earlier
+  // mount-time refresh with empty runtime data must not end this test while
+  // the metric's debounce is queued. Exercise the dedupe/apply path
   // at 500-metric scale rather than ending before the debounce elapses.
   await waitFor(
     () => {
-      const refreshes = mockedPost.mock.calls.filter(
-        ([{ endpoint, jsonPayload }]) =>
-          endpoint === '/api/v1/semantic_layer/layer-1/schema/runtime' &&
-          (jsonPayload as { runtime_data?: unknown })?.runtime_data,
-      );
-      expect(refreshes.length).toBeGreaterThanOrEqual(1);
+      expect(mockedPost).toHaveBeenCalledWith({
+        endpoint: '/api/v1/semantic_layer/layer-1/schema/runtime',
+        jsonPayload: {
+          runtime_data: expect.objectContaining({
+            metrics: [largeMetricEnum[42]],
+          }),
+        },
+      });
     },
     { timeout: 10000 },
   );
