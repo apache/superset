@@ -84,8 +84,10 @@ only when all five conditions hold:
 3. the connection stores a **complete** credential — a half-filled one is ignored
    rather than half-applied;
 4. the current principal is an embedded guest **and** `EMBEDDED_SUPERSET` is enabled;
-5. the connection actually uses OAuth2, keeping this a fallback for the per-user flow
-   rather than a second identity on an ordinary connection.
+5. the connection has an OAuth2 client configured **and** `impersonate_user` enabled,
+   keeping this a fallback for the per-user flow rather than a second identity on an
+   ordinary connection. Deployment-wide client configuration is checked independently
+   of request context so restored async guests use the same credential.
 
 Condition 4 checks the feature flag explicitly rather than relying on
 `get_current_guest_user_if_guest()`, which is a bare `isinstance` check. A `GuestUser`
@@ -100,11 +102,11 @@ no credential for them*. See **Refusing rather than falling back** below.
 
 ### Refusing rather than falling back
 
-`_get_sqla_engine` applies the fallback *instead of* impersonation. When neither arm is
-taken, the connection is made with the URL's own username and password — so an embedded
-viewer on an OAuth2 connection with impersonation off, or with no (or a half-filled)
-credential, would silently query as whatever service account the connection was built
-with. Neither the viewer nor the dashboard author can see that has happened.
+`_get_sqla_engine` applies the fallback *instead of* impersonation. An embedded viewer
+on a per-user OAuth2 connection with no (or a half-filled) credential must not query
+as the connection's base account. Neither the viewer nor the dashboard author can see
+that identity change. Connections with impersonation disabled retain their ordinary
+service-account behavior and do not use the fallback.
 
 With `EMBEDDED_CREDENTIAL_FALLBACK` on, that case raises a
 `CONNECTION_ACCESS_DENIED_ERROR` instead. The refusal is scoped to the flag so that a
@@ -112,9 +114,12 @@ deployment which has not opted in keeps its existing behaviour.
 
 The connection dialog removes the ways to reach that state in the first place: the
 section is offered only when both flags are on *and* the connection uses OAuth2, a
-half-filled credential is rejected on save, and a credential saved with impersonation
-off raises an inline warning. The backend refusal is the backstop for the paths that do
-not go through the dialog.
+half-filled effective credential is rejected on save while both flags are enabled,
+and a credential saved with impersonation off raises an inline warning explaining that
+it is inactive. Form edits replace the stored credential before completeness is checked.
+Disabling either flag leaves stored credentials intact and skips completeness checks,
+allowing unrelated edits to imported connections. The backend refusal is the backstop
+for the paths that do not go through the dialog.
 
 ### Cache identity
 
@@ -132,6 +137,11 @@ unconditionally — this is correctness, not a caching preference. The key comes
 stored credential rather than from `g.user.username`, which a guest token's minter
 controls. All guests on the connection share one entry, which is correct: they run as one
 database user, and guest-token RLS already separates them.
+
+A guest with missing or incomplete credentials contributes a separate
+`embedded_credentials_missing` marker. That partition cannot reuse logged-in or
+configured-fallback cache entries or async tasks, so warming the cache does not bypass
+the refusal at engine creation.
 
 ### Why impersonation is skipped, not extended
 
@@ -178,13 +188,14 @@ What that does and does not mean:
   dashboard's configuration. This changes only which credential the query runs under.
 - **It is not reachable by a logged-in user.** Conditions 1–5 are evaluated on every
   engine creation, and the engine cache cannot leak a guest engine to a logged-in user.
-- **An embedded viewer cannot reach the base credential either.** Previously a guest on
-  an OAuth2 connection with no applicable credential connected with the URL's own
+- **An embedded viewer on a per-user OAuth2 connection cannot reach the base credential
+  either.** Previously a guest with no applicable credential connected with the URL's own
   username and password. With the flag on, that is refused. See *Refusing rather than
   falling back* above.
 - **Guest results do not cross into logged-in results.** The fallback contributes its own
   cache identity, so a shared DATA-cache entry — or a shared async task — cannot serve a
-  logged-in user rows fetched under the guest credential, or the reverse. See *Cache
+  logged-in user rows fetched under the guest credential, or the reverse. Guests without
+  credentials also receive a separate partition. See *Cache
   identity* above.
 - **The credential is never exposed.** The password, PEM private key, and optional
   passphrase are in Snowflake's `encrypted_extra_sensitive_fields`, so they mask to
@@ -210,8 +221,8 @@ does not let a token holder choose an identity.
   `EMBEDDED_CREDENTIAL_FALLBACK` and `EMBEDDED_SUPERSET` are on and the connection uses
   OAuth2.
 - **New validation** rejecting an incomplete `embedded_credentials` on
-  `POST`/`PUT /api/v1/database/` and on `validate_parameters`. Import is deliberately not
-  tightened, so existing exports still load.
+  `POST`/`PUT /api/v1/database/` and on `validate_parameters` while both embedding flags
+  are enabled. Import is deliberately not tightened, so existing exports still load.
 
 No database migration: the credential lives in the existing `encrypted_extra` column.
 

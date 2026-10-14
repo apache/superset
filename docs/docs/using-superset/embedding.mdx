@@ -149,7 +149,14 @@ With both flags on, engines that support it (currently Snowflake) show an **Embe
 guest credentials** section in the connection dialog — but only on a connection that
 actually uses OAuth2, either through per-connection client information or a
 deployment-wide client in `DATABASE_OAUTH2_CLIENTS`. On any other connection the
-section is hidden, because the credential would never be read.
+section is hidden, because the credential would never be read. Fallback requires
+**Impersonate logged in user** under *Advanced → Security*; the section remains
+available before enabling it so you can configure credentials during setup.
+
+Configure the Snowflake OAuth2 scopes explicitly to match your integration. For
+example, `session:role:ANALYST refresh_token` selects the `ANALYST` role and requests a
+refresh token. Omitting a role scope uses the user's default role; the dialog does not
+prefill a scope or require a specific role scope.
 
 Choose **Password** or **Key pair**. For key-pair authentication, enter the Snowflake
 username, its PEM private key, and an optional passphrase; register the corresponding
@@ -157,17 +164,19 @@ public key with that Snowflake user. The credential is stored encrypted. Passwor
 private keys, and passphrases are masked on read, while the username stays visible so an
 administrator can see which database user embedded queries run as. A key pair supplied
 here applies only to embedded guests; the connection's ordinary credential is still used
-for connection tests and background work.
+for connection tests, alerts, and reports. Guest queries restored by
+`GLOBAL_ASYNC_QUERIES` use the same fallback as synchronous guest queries.
 
 The credential must be complete: a username with no password or private key, or the
-reverse, is rejected when the connection is saved rather than stored and silently
-ignored. Clearing every field removes the credential.
+reverse, is rejected when both embedding flags are enabled. Validation uses the
+edited credential, so an incomplete imported credential can be completed or cleared.
+While either flag is disabled, the stored credential is preserved and does not block
+unrelated edits. Clearing every field removes the credential.
 
-Turn on **Impersonate logged in user** under *Advanced → Security* as well. The fallback
-works without it, but with it off logged-in users also query with the connection's own
-credential instead of their individual OAuth2 identity, which defeats the point of a
-per-user OAuth2 connection. The dialog warns when a credential is set and impersonation
-is off.
+After connecting, turn on **Impersonate logged in user** under *Advanced → Security*
+and save. Until it is enabled, the embedded credential is inactive and the connection
+keeps its ordinary service-account behavior. The dialog warns when a credential is
+set and impersonation is off.
 
 Understand what this grants before enabling it:
 
@@ -181,14 +190,16 @@ Understand what this grants before enabling it:
 - **The guest token's `username` claim is never used to connect.** Whoever mints the
   token controls that claim, so it is deliberately kept out of the connection identity.
 - **An embedded viewer never silently falls back to the connection's base credential.**
-  With this flag on, a guest on an OAuth2 connection that has no applicable credential —
+  With this flag on, a guest on a per-user OAuth2 connection with impersonation enabled
+  that has no applicable credential —
   none configured, or one that is incomplete — is refused with an error rather than
   connected as whichever account the connection URL carries. Deployments that leave the
   flag off keep their existing behaviour.
 - **Guest results are cached separately.** Queries run under the fallback credential get
   their own cache identity, so an embedded viewer and a logged-in user never share a
   cached result (or, with `GLOBAL_ASYNC_QUERIES`, a deduplicated query task) for the same
-  chart.
+  chart. Missing or incomplete credentials also receive a separate cache key, so a
+  warm logged-in cache cannot bypass the missing-credential refusal.
 - Turning the flag back off is a kill switch, not a deletion: the stored credential stops
   being offered and stops being used, but is preserved.
 

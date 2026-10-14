@@ -874,6 +874,7 @@ def test_parameters_json_schema_has_encrypted_extra() -> None:
     assert schema is not None
     oauth2_client_info = schema["properties"]["oauth2_client_info"]
     assert oauth2_client_info["x-encrypted-extra"] is True
+    assert "default" not in oauth2_client_info
 
 
 def test_parameters_json_schema_keeps_oauth2_client_info_optional() -> None:

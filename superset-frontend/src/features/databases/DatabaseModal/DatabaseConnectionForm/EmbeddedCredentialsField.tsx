@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { Input, Collapse, Form, FormItem } from '@superset-ui/core/components';
@@ -48,10 +48,8 @@ const HELP_TEXT = t(
 );
 
 const IMPERSONATION_WARNING = t(
-  '"Impersonate logged in user" is off under Advanced → Security. Embedded ' +
-    'viewers will use the credential below, but logged-in users will query ' +
-    "with this connection's own credential instead of their individual OAuth2 " +
-    'identity.',
+  'Embedded guest credentials are inactive until "Impersonate logged in user" ' +
+    'is enabled under Advanced → Security.',
 );
 
 interface EmbeddedCredentials {
@@ -95,12 +93,11 @@ const asString = (value: unknown): string =>
   typeof value === 'string' ? value : '';
 
 /**
- * Does this connection authenticate users individually via OAuth2?
+ * Does this connection have an OAuth2 client configured?
  *
- * Mirrors `Database.is_oauth2_enabled` on the backend, which is condition 5 of
- * the fallback gate: a credential saved on a connection that does not use
- * OAuth2 would never be read. The per-connection half is live form state (the
- * admin may be filling the OAuth2 section right now, so `parameters` is checked
+ * The field remains available before impersonation is enabled so credentials
+ * can be configured during creation. The per-connection half is live form state (the
+ * admin may be filling the OAuth2 section during setup, so `parameters` is checked
  * ahead of the stored blob); the deployment-wide half -- a client in
  * `DATABASE_OAUTH2_CLIENTS` -- is knowable only server-side and arrives through
  * the schema property's `default`.
@@ -128,7 +125,9 @@ export const EmbeddedCredentialsField = ({
   getValidation,
   validationErrors,
 }: FieldPropTypes) => {
-  const deriveEmbeddedCredentials = (): EmbeddedCredentials => {
+  const deriveEmbeddedCredentials = (
+    blankAuthMethod: EmbeddedCredentials['auth_method'] = 'password',
+  ): EmbeddedCredentials => {
     // The in-flight form value wins over the stored blob. Switching the
     // configuration method to SQLAlchemy URI and back re-mounts this field
     // while `parameters.embedded_credentials` still holds what was typed;
@@ -142,7 +141,11 @@ export const EmbeddedCredentialsField = ({
 
     return {
       username: asString(source.username),
-      auth_method: source.auth_method === 'keypair' ? 'keypair' : 'password',
+      auth_method: Object.keys(source).length
+        ? source.auth_method === 'keypair'
+          ? 'keypair'
+          : 'password'
+        : blankAuthMethod,
       // On edit these are the backend's masks. They are posted back verbatim
       // and `unmask_encrypted_extra` restores the stored secrets.
       password: asString(source.password),
@@ -152,8 +155,9 @@ export const EmbeddedCredentialsField = ({
   };
 
   const [embeddedCredentials, setEmbeddedCredentials] =
-    useState<EmbeddedCredentials>(deriveEmbeddedCredentials);
+    useState<EmbeddedCredentials>(() => deriveEmbeddedCredentials());
   const [activeKeys, setActiveKeys] = useState<string[]>([]);
+  const databaseIdRef = useRef(db?.id);
 
   // Serialized so the effect below keys off the *value*: the reducer hands back
   // a fresh object on every keystroke, which as a raw dependency would re-sync
@@ -163,10 +167,17 @@ export const EmbeddedCredentialsField = ({
   );
 
   useEffect(() => {
-    setEmbeddedCredentials(deriveEmbeddedCredentials());
+    const databaseChanged = databaseIdRef.current !== db?.id;
+    databaseIdRef.current = db?.id;
+    // Clearing the parent credential must not reset a blank form's selector.
+    setEmbeddedCredentials(previous =>
+      deriveEmbeddedCredentials(
+        databaseChanged ? 'password' : previous.auth_method,
+      ),
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps -- re-sync only when
-    // one of the two sources changes, mirroring OAuth2ClientField.
-  }, [db?.masked_encrypted_extra, typedCredentials]);
+    // the connection or one of the two sources changes.
+  }, [db?.id, db?.masked_encrypted_extra, typedCredentials]);
 
   const errorMessage = asString(validationErrors?.embedded_credentials);
 
@@ -274,15 +285,8 @@ export const EmbeddedCredentialsField = ({
                 </Alert>
               )}
               {/*
-                The fallback is applied *instead of* impersonation, so the
-                credential still works with impersonation off -- but then
-                logged-in users fall back to the connection's own credential
-                too, which is the opposite of what this section promises. Warn
-                rather than block. During create the Advanced tab is not
-                rendered until after a successful connect and
-                `impersonate_user` starts undefined, so this reads "not yet
-                set" as off; that matches the default the connection will be
-                saved with.
+                During creation the Advanced tab appears after connecting.
+                Allow configuration here and explain the activation prerequisite.
               */}
               {hasCredential && !db?.impersonate_user && (
                 <Alert

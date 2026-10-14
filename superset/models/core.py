@@ -738,7 +738,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         effective_username = self.get_impersonation_username(sqlalchemy_url)
 
-        oauth2_config = self.get_oauth2_config()
+        embedded_fallback = self.embedded_fallback_applies()
+        # Embedded guests do not use OAuth2 tokens or redirect URLs, including when
+        # a worker restores their identity without a request context.
+        oauth2_config = None if embedded_fallback else self.get_oauth2_config()
         access_token = (
             get_oauth2_access_token(
                 oauth2_config,
@@ -752,14 +755,14 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         masked_url = self.get_password_masked_url(sqlalchemy_url)
         logger.debug("Database._get_sqla_engine(). Masked URL: %s", str(masked_url))
 
-        if self.embedded_fallback_applies():
+        if embedded_fallback:
             embedded_credentials = self.get_embedded_fallback_credentials()
             if embedded_credentials is None:
                 # Falling through to the base credential here is the failure mode this
                 # whole feature exists to prevent: an embedded viewer would silently
                 # query as whichever user the connection URL carries. That happens on
-                # an OAuth2 connection with impersonation off, or with no (or a
-                # half-filled) credential configured -- none of which the viewer or
+                # a per-user OAuth2 connection with no (or a half-filled)
+                # credential configured -- none of which the viewer or
                 # the dashboard author can see. Refuse instead, with a message an
                 # administrator can act on.
                 raise SupersetErrorException(
@@ -1665,8 +1668,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         1. the deployment opted in via ``EMBEDDED_CREDENTIAL_FALLBACK``;
         2. the engine opted in via ``supports_embedded_credential_fallback``;
         3. the current principal is an embedded guest, and embedding is enabled;
-        4. the connection actually uses OAuth2, so that this stays a fallback for the
-           per-user flow rather than a second identity on an ordinary connection.
+        4. the connection uses per-user OAuth2 with impersonation enabled, rather
+           than an ordinary service-account connection.
 
         Split out from :meth:`get_embedded_fallback_credentials` so that the two
         callers cannot drift: the credential lookup adds the stored-credential
@@ -1680,6 +1683,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         if not self.db_engine_spec.supports_embedded_credential_fallback:
             return False
 
+        if not self.impersonate_user:
+            return False
+
         # `get_current_guest_user_if_guest` is a bare isinstance check with no feature
         # flag behind it. A `GuestUser` can only reach `g` via the guest-token request
         # loader, which is itself gated -- but a security boundary should not rest on
@@ -1690,7 +1696,30 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         if security_manager.get_current_guest_user_if_guest() is None:
             return False
 
-        return self.is_oauth2_enabled()
+        # Snowflake disables its OAuth2 flow outside requests for alerts and reports.
+        # A restored guest in an async worker still needs the embedded credential,
+        # so check deployment-wide client configuration independently of that flow.
+        if (
+            self.db_engine_spec.supports_oauth2
+            and self.db_engine_spec.engine_name in app.config["DATABASE_OAUTH2_CLIENTS"]
+        ):
+            return True
+
+        client_info = self.get_encrypted_extra().get("oauth2_client_info")
+        if not isinstance(client_info, dict) or not client_info:
+            return False
+
+        # Validate the stored client without resolving the unused redirect URL.
+        # The ordinary OAuth2 flow still resolves it through get_oauth2_config().
+        try:
+            client_info = self.db_engine_spec.resolve_oauth2_client_info(
+                self, client_info
+            ).copy()
+            client_info.pop("redirect_uri", None)
+            OAuth2ClientConfigSchema(exclude=("redirect_uri",)).load(client_info)
+        except ValidationError:
+            return False
+        return True
 
     def get_embedded_fallback_credentials(self) -> dict[str, str] | None:
         """

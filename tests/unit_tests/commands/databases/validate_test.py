@@ -27,6 +27,7 @@ from superset.commands.database.validate import ValidateDatabaseParametersComman
 from superset.constants import PASSWORD_MASK
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 
 def test_command(mocker: MockerFixture) -> None:
@@ -906,6 +907,7 @@ def test_ssh_tunnel_missing_message_is_interpolated(
         {"auth_method": "keypair", "privatekey_body": "-----BEGIN-----"},
     ],
 )
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_incomplete_embedded_credentials_from_the_dialog(
     mocker: MockerFixture,
     credentials: dict[str, str],
@@ -941,6 +943,7 @@ def test_incomplete_embedded_credentials_from_the_dialog(
     assert error.extra["invalid"] == ["embedded_credentials"]
 
 
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_incomplete_embedded_credentials_from_the_api(mocker: MockerFixture) -> None:
     """
     A direct API caller posts the credential inside ``masked_encrypted_extra``.
@@ -981,6 +984,7 @@ def test_incomplete_embedded_credentials_from_the_api(mocker: MockerFixture) -> 
         None,
     ],
 )
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_complete_or_absent_embedded_credentials_pass(
     mocker: MockerFixture,
     credentials: dict[str, str] | None,
@@ -995,3 +999,64 @@ def test_complete_or_absent_embedded_credentials_pass(
         "parameters": {"embedded_credentials": credentials},
     }
     ValidateDatabaseParametersCommand(properties).run()
+
+
+@pytest.mark.parametrize(
+    "credentials",
+    [
+        {"username": "embedded_svc", "password": PASSWORD_MASK},
+        {
+            "username": "embedded_svc",
+            "auth_method": "keypair",
+            "privatekey_body": PASSWORD_MASK,
+        },
+        "",
+        {},
+        None,
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_credential_edits_replace_an_imported_partial_value(
+    mocker: MockerFixture, credentials: dict[str, str] | str | None
+) -> None:
+    """Validate the edited value rather than the stale imported credential."""
+    from superset.databases.schemas import DatabaseValidateParametersSchema
+
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    properties = DatabaseValidateParametersSchema().load(
+        {
+            "engine": "snowflake",
+            "configuration_method": "dynamic_form",
+            "parameters": {"embedded_credentials": credentials},
+            "masked_encrypted_extra": json.dumps(
+                {"embedded_credentials": {"username": "embedded_svc"}}
+            ),
+        }
+    )
+    ValidateDatabaseParametersCommand(properties).run()
+
+
+@pytest.mark.parametrize(
+    "disabled_flag", ["EMBEDDED_CREDENTIAL_FALLBACK", "EMBEDDED_SUPERSET"]
+)
+def test_disabled_embedded_credentials_do_not_block_parameter_validation(
+    mocker: MockerFixture, disabled_flag: str
+) -> None:
+    """A hidden partial credential must not block testing an unrelated edit."""
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={
+            "EMBEDDED_CREDENTIAL_FALLBACK": True,
+            "EMBEDDED_SUPERSET": True,
+            disabled_flag: False,
+        },
+    )
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    ValidateDatabaseParametersCommand(
+        {
+            "engine": "snowflake",
+            "masked_encrypted_extra": json.dumps(
+                {"embedded_credentials": {"username": "embedded_svc"}}
+            ),
+        }
+    ).run()

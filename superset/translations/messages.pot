@@ -146,9 +146,6 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-msgid "\"Impersonate logged in user\" is off under Advanced → Security. Embedded viewers will use the credential below, but logged-in users will query with this connection's own credential instead of their individual OAuth2 identity."
-msgstr ""
-
 #, python-format
 msgid "% calculation"
 msgstr ""
@@ -5873,6 +5870,9 @@ msgstr ""
 msgid "Embedded guest credentials"
 msgstr ""
 
+msgid "Embedded guest credentials are inactive until \"Impersonate logged in user\" is enabled under Advanced → Security."
+msgstr ""
+
 msgid "Embedded guest credentials are incomplete. Provide a username and either a password or a private key, or clear them to leave embedded viewers unconfigured."
 msgstr ""
 
@@ -6054,6 +6054,9 @@ msgstr ""
 
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
+msgstr ""
+
+msgid "Enter the scopes allowed by your Snowflake integration, for example session:role:ANALYST refresh_token. Without a role scope, Snowflake uses the user's default role."
 msgstr ""
 
 msgid "Enter the unique project id for your database."

@@ -25,18 +25,26 @@ assists people when migrating to a new version.
 ## Next
 
 - `EMBEDDED_CREDENTIAL_FALLBACK` (new, off by default) changes behaviour for embedded
-  guests on database connections that authenticate users individually via OAuth2. With
+  guests on database connections that authenticate users individually via OAuth2 with
+  **Impersonate logged in user** enabled. Ordinary service-account connections retain
+  their existing behavior, even with a deployment-wide OAuth2 client configured. With
   the flag on, a guest whose request has no applicable embedded credential — none
-  configured on the connection, or one missing its username or password — is refused
+  configured on the connection, or one missing its username, password, or private key
+  required by the selected authentication method — is refused
   with a `CONNECTION_ACCESS_DENIED_ERROR` instead of connecting with the credential in
   the connection's own SQLAlchemy URI. Queries that do run under an embedded credential
-  also get their own cache identity, so they no longer share a DATA-cache entry (or,
+  get their own cache identity, including a separate partition for guests without
+  credentials, so they no longer share a DATA-cache entry (or,
   under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
   per-user result; existing cached entries for such charts are effectively invalidated
   for guests. A half-filled `embedded_credentials` is rejected by
   `POST`/`PUT /api/v1/database/` and by `validate_parameters` rather than stored and
-  ignored; asset import is unchanged. Deployments that leave the flag off are
-  unaffected.
+  ignored while both embedding flags are enabled; asset import is unchanged. Validation
+  uses edited credentials rather than stale stored values, and disabling either flag
+  preserves stored credentials without blocking unrelated edits. Restored async guest
+  queries use the same credential as synchronous queries. Snowflake OAuth2 scope is
+  configured explicitly; a role scope selects that role, and omitting it uses the
+  user's default role. Deployments that leave the fallback flag off are unaffected.
 
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,

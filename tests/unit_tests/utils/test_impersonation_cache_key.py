@@ -238,3 +238,31 @@ def test_the_engine_spec_owns_the_embedded_cache_key(feature_flag_mock):
         ),
     ):
         assert _run(database)["impersonation_key"] == "tenant:acme"
+
+
+@patch("superset.utils.cache_keys.feature_flag_manager")
+def test_unconfigured_embedded_guest_cannot_read_a_warm_logged_in_cache(
+    feature_flag_mock: Mock,
+) -> None:
+    """Missing fallback credentials get a separate result and async task key."""
+    from superset.common.query_object import QueryObject
+
+    feature_flag_mock.is_feature_enabled.return_value = False
+    database = Database(database_name="d", sqlalchemy_uri="sqlite://")
+    query_object = QueryObject(columns=["region"], metrics=["count"])
+    query_object.datasource = Mock(database=database, uid="1__table")
+    with patch.object(Database, "get_embedded_fallback_credentials", return_value=None):
+        with patch.object(Database, "embedded_fallback_applies", return_value=False):
+            logged_in_key = query_object.cache_key()
+        warmed_cache = {logged_in_key: ["logged-in rows"]}
+        with patch.object(Database, "embedded_fallback_applies", return_value=True):
+            guest_key = query_object.cache_key()
+            assert _run(database) == {"embedded_credentials_missing": True}
+        assert guest_key not in warmed_cache
+        with patch.object(
+            Database,
+            "get_embedded_fallback_credentials",
+            return_value={"username": "missing", "password": "pw"},
+        ):
+            configured_key = query_object.cache_key()
+    assert len({guest_key, logged_in_key, configured_key}) == 3

@@ -251,21 +251,32 @@ class ValidateDatabaseParametersCommand(BaseCommand):
         The connection dialog validates *before* it folds `x-encrypted-extra`
         parameters into `masked_encrypted_extra`, so the value arrives under
         `parameters` from the dialog and under `masked_encrypted_extra` from a direct
-        API caller. Both are checked.
+        API caller. An explicit form value replaces the stored value, including
+        when the credential is cleared. Disabled fields must not block edits.
         """
+        if not (
+            is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+            and is_feature_enabled("EMBEDDED_SUPERSET")
+        ):
+            return None
+
         parameters = self._properties.get("parameters") or {}
-        candidates = [parameters.get(EMBEDDED_CREDENTIALS_KEY)]
-
-        try:
-            encrypted_extra = json.loads(
-                self._properties.get("masked_encrypted_extra") or "{}"
+        if EMBEDDED_CREDENTIALS_KEY in parameters:
+            credentials = parameters[EMBEDDED_CREDENTIALS_KEY]
+        else:
+            try:
+                encrypted_extra = json.loads(
+                    self._properties.get("masked_encrypted_extra") or "{}"
+                )
+            except json.JSONDecodeError:
+                encrypted_extra = {}
+            credentials = (
+                encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY)
+                if isinstance(encrypted_extra, dict)
+                else None
             )
-        except json.JSONDecodeError:
-            encrypted_extra = {}
-        if isinstance(encrypted_extra, dict):
-            candidates.append(encrypted_extra.get(EMBEDDED_CREDENTIALS_KEY))
 
-        if not any(embedded_credentials_incomplete(value) for value in candidates):
+        if not embedded_credentials_incomplete(credentials):
             return None
 
         return SupersetError(

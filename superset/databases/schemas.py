@@ -278,7 +278,9 @@ def api_encrypted_extra_validator(value: str | None) -> None:
     Adds the embedded-credential completeness check on top of the shared JSON
     checks. A half-filled credential is ignored at query time
     (`Database.get_embedded_fallback_credentials`), so storing one leaves a
-    security-relevant setting that reads as configured and never applies.
+    security-relevant setting that reads as configured and never applies. When
+    either embedding flag is disabled, preserve the hidden setting without
+    checking completeness so an imported partial value cannot block unrelated edits.
 
     Deliberately a separate function rather than a change to
     `encrypted_extra_validator`, which also backs the import schemas: tightening
@@ -286,7 +288,10 @@ def api_encrypted_extra_validator(value: str | None) -> None:
     """
     encrypted_extra_validator(value)
 
-    if not value:
+    if not value or not (
+        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+        and is_feature_enabled("EMBEDDED_SUPERSET")
+    ):
         return
 
     if embedded_credentials_incomplete(json.loads(value).get(EMBEDDED_CREDENTIALS_KEY)):
@@ -533,7 +538,8 @@ class DatabaseValidateParametersSchema(Schema):
     )
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
-        validate=api_encrypted_extra_validator,
+        # The command validates the effective credential after applying form edits.
+        validate=encrypted_extra_validator,
         allow_none=True,
     )
     server_cert = fields.String(

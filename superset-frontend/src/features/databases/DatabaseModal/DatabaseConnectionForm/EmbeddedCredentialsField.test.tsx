@@ -233,6 +233,59 @@ test('renders empty fields when no credential is stored', () => {
   expect(getByTestId('embedded-credentials-password')).toHaveValue('');
 });
 
+test('keeps a blank key-pair selection when the parent clears the credential', () => {
+  const db = {
+    ...defaultProps.db,
+    masked_encrypted_extra: JSON.stringify({
+      oauth2_client_info: OAUTH2_CLIENT_INFO,
+    }),
+  };
+  const { getByText, getByTestId, getByRole, queryByTestId, rerender } = render(
+    <EmbeddedCredentialsField {...defaultProps} db={db} />,
+  );
+  fireEvent.click(getByText('Embedded guest credentials'));
+  fireEvent.click(getByText('Key pair'));
+  expect(mockChangeMethods.onParametersChange).toHaveBeenLastCalledWith({
+    target: { name: 'embedded_credentials', value: '' },
+  });
+
+  rerender(
+    <EmbeddedCredentialsField
+      {...defaultProps}
+      db={
+        {
+          ...db,
+          parameters: { embedded_credentials: '' },
+        } as unknown as DatabaseObject
+      }
+    />,
+  );
+  expect(getByRole('radio', { name: 'Key pair' })).toBeChecked();
+  expect(getByTestId('embedded-credentials-private-key')).toBeInTheDocument();
+  expect(
+    queryByTestId('embedded-credentials-password'),
+  ).not.toBeInTheDocument();
+
+  fireEvent.change(getByTestId('embedded-credentials-username'), {
+    target: { value: 'embedded_svc' },
+  });
+  expect(mockChangeMethods.onParametersChange).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      target: expect.objectContaining({
+        value: expect.objectContaining({ auth_method: 'keypair' }),
+      }),
+    }),
+  );
+
+  rerender(<EmbeddedCredentialsField {...defaultProps} db={db} />);
+  expect(getByTestId('embedded-credentials-username')).toHaveValue('');
+  expect(getByRole('radio', { name: 'Key pair' })).toBeChecked();
+  rerender(
+    <EmbeddedCredentialsField {...defaultProps} db={{ ...db, id: 2 }} />,
+  );
+  expect(getByRole('radio', { name: 'Password' })).toBeChecked();
+});
+
 test.each([
   ['the literal string "null"', 'null'],
   ['malformed JSON', 'not json'],
@@ -388,7 +441,7 @@ test('warns when impersonation is off and a credential is set', () => {
 
   expect(
     getByTestId('embedded-credentials-impersonation-warning'),
-  ).toHaveTextContent('Impersonate logged in user');
+  ).toHaveTextContent('inactive until "Impersonate logged in user" is enabled');
 });
 
 test('warns about impersonation for a key-pair credential too', () => {

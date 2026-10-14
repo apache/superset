@@ -24,6 +24,7 @@ from marshmallow import fields, Schema, ValidationError
 from pytest_mock import MockerFixture
 
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
     from superset.databases.schemas import DatabaseParametersSchemaMixin
@@ -645,6 +646,7 @@ def test_encrypted_extra_validator_rejects_non_dict_top_level_value(
         {"auth_method": "keypair", "privatekey_body": "-----BEGIN-----"},
     ],
 )
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_masked_encrypted_extra_rejects_a_half_filled_embedded_credential(
     credentials: dict[str, str],
 ) -> None:
@@ -687,6 +689,7 @@ def test_masked_encrypted_extra_rejects_a_half_filled_embedded_credential(
         {"oauth2_client_info": {"id": "client-id"}},
     ],
 )
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
 def test_masked_encrypted_extra_accepts_complete_or_absent_credentials(
     encrypted_extra: dict[str, Any],
 ) -> None:
@@ -707,7 +710,7 @@ def test_import_accepts_a_half_filled_embedded_credential() -> None:
     """
     Test that import is deliberately not tightened.
 
-    The check lives on `masked_encrypted_extra_validator` rather than on
+    The check lives on `api_encrypted_extra_validator` rather than on
     `encrypted_extra_validator`, which also backs the import schemas: rejecting
     this on import would refuse existing exports.
     """
@@ -891,3 +894,35 @@ def test_validate_parameters_schema_accepts_server_host_key() -> None:
         loaded["ssh_tunnel"]["server_host_key"]
         == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA"
     )
+
+
+@pytest.mark.parametrize(
+    "disabled_flag", ["EMBEDDED_CREDENTIAL_FALLBACK", "EMBEDDED_SUPERSET"]
+)
+@pytest.mark.parametrize(
+    "schema_name",
+    ["DatabasePostSchema", "DatabasePutSchema", "DatabaseTestConnectionSchema"],
+)
+def test_disabled_embedded_credentials_survive_unrelated_api_edits(
+    mocker: MockerFixture, disabled_flag: str, schema_name: str
+) -> None:
+    """Save and connection-test schemas preserve partial imports while hidden."""
+    from superset.databases import schemas
+
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={
+            "EMBEDDED_CREDENTIAL_FALLBACK": True,
+            "EMBEDDED_SUPERSET": True,
+            disabled_flag: False,
+        },
+    )
+    stored = json.dumps({"embedded_credentials": {"username": "embedded_svc"}})
+    loaded = getattr(schemas, schema_name)().load(
+        {
+            "database_name": "renamed",
+            "sqlalchemy_uri": "snowflake://user:pw@account/db",
+            "masked_encrypted_extra": stored,
+        }
+    )
+    assert loaded["masked_encrypted_extra"] == stored

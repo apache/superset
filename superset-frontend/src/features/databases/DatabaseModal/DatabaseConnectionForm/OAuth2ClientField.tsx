@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Input, Collapse, Form, FormItem } from '@superset-ui/core/components';
 import {
@@ -127,23 +127,24 @@ export const OAuth2ClientField = ({
     return null;
   }
 
-  const handleChange = (key: any) => (e: any) => {
-    const updatedInfo = {
-      ...oauth2ClientInfo,
-      [key]: e.target.value,
-    };
+  const handleChange =
+    (key: keyof OAuth2ClientInfo) => (e: ChangeEvent<HTMLInputElement>) => {
+      const updatedInfo = {
+        ...oauth2ClientInfo,
+        [key]: e.target.value,
+      };
 
-    setOauth2ClientInfo(updatedInfo);
+      setOauth2ClientInfo(updatedInfo);
 
-    const event: CustomParametersChangeType = {
-      target: {
-        type: 'object',
-        name: 'oauth2_client_info',
-        value: updatedInfo,
-      },
+      const event: CustomParametersChangeType = {
+        target: {
+          type: 'object',
+          name: 'oauth2_client_info',
+          value: updatedInfo,
+        },
+      };
+      changeMethods.onParametersChange(event);
     };
-    changeMethods.onParametersChange(event);
-  };
 
   return (
     <Collapse
@@ -184,7 +185,18 @@ export const OAuth2ClientField = ({
                   onChange={handleChange('token_request_uri')}
                 />
               </FormItem>
-              <FormItem label={LABELS.SCOPE}>
+              <FormItem
+                label={LABELS.SCOPE}
+                help={
+                  db?.engine === Engines.Snowflake
+                    ? t(
+                        'Enter the scopes allowed by your Snowflake integration, ' +
+                          'for example session:role:ANALYST refresh_token. ' +
+                          "Without a role scope, Snowflake uses the user's default role.",
+                      )
+                    : undefined
+                }
+              >
                 <Input
                   data-test="client-scope"
                   value={oauth2ClientInfo.scope}

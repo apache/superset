@@ -129,14 +129,12 @@ class SnowflakeParametersSchema(Schema):
     warehouse = fields.Str(required=True)
     # Unlike GSheets, the endpoints cannot be defaulted: they live on the customer's
     # own Snowflake account (`https://<account>.snowflakecomputing.com/oauth/...`),
-    # so there is no URI that would be right for every deployment. `scope` can be,
-    # since a refresh token is what makes an OAuth2 connection usable beyond the
-    # first hour.
+    # so there is no URI that would be right for every deployment. The scope is
+    # configured explicitly to match the integration's permitted session role.
     oauth2_client_info = EncryptedString(
         required=False,
         metadata={
             "description": "OAuth2 client information",
-            "default": {"scope": "refresh_token"},
         },
         allow_none=True,
     )
