@@ -24,6 +24,20 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
+  UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
+  which every semantic provider must render; previously NULL rows could be
+  omitted. Update provider adapters before, or together with, the host/SDK
+  upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
+  members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
+  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
+  operands return query validation errors. Semantic result keys include a
+  filter-protocol version, and chart-backed annotation results also receive a new
+  cache discriminator: expect a one-time cold cache after upgrading. See the
+  [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
+  for NULL value typing, mandatory `OrFilter` rendering and guarded loading on
+  older SDKs.
+
 - `SEMANTIC_LAYER_CONTAINMENT_CACHE` is off by default; opted-in providers can
   reuse cached semantic-view results for narrower queries. Containment keys include
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
@@ -187,6 +201,16 @@ reattached to a reachable container by layout repair.
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
 
+### Table and AG Grid server pagination for semantic views
+
+Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`
+capability to enable Server pagination. Missing capability metadata disables
+the control with an explanation; SQL datasets are unchanged. Saved pagination
+settings are not rewritten. Users can explicitly turn off an unsupported
+saved setting; provider errors remain authoritative until that edit.
+Extension providers must use a compatible core version before declaring the
+new capability.
+
 ### Graph null category colors
 
 Graph charts label SQL `NULL` categories as `<NULL>` and share their colors with
@@ -257,6 +281,14 @@ label as the custom color key, for example:
   before starting this code, with scheduling paused and active work/queued retries drained
   as described below. Keep web and worker versions aligned. Before rollback, replace `NONE`
   formats with a supported format and account for losing explicit executor/policy settings.
+
+### Semantic provider error handling
+
+Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
+(formerly HTTP 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
+failures. Worker control timeouts and host input-validation errors retain their
+existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
 
 ### Semantic-view Table charts without a temporal axis
 
@@ -1337,15 +1369,16 @@ that don't touch SQLAlchemy directly.
 
 `MEDIAN`, `STDDEV_SAMP`, and `VAR_SAMP` are now available anywhere a metric
 aggregate is chosen (every chart type, SQL Lab, MCP), not only in Pivot
-Table's controls. Support is opt-in per database engine *spec class*,
-verified against a live instance before being enabled: Postgres, MySQL
-(`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and Redshift (inherits
-Postgres's support, not yet separately verified) ship enabled in this
-release. Engine specs that subclass one of those (e.g. MariaDB, Aurora
-MySQL/Postgres, TimescaleDB) inherit the same support, on the same
-not-yet-independently-verified basis. Picking one of these aggregates on a
-database that has not opted in returns a clear "not supported on this
-database" error rather than a failed query. See
+Table's controls. Support is opt-in per database engine *spec class*:
+Postgres, MySQL (`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and
+Redshift (inherits Postgres's support) were verified against a live
+instance; Databricks and Snowflake (both `MEDIAN`/`STDDEV_SAMP`/`VAR_SAMP`)
+were confirmed against each vendor's own documented SQL function reference,
+not yet against a live instance. Engine specs that subclass one of these
+(e.g. MariaDB, Aurora MySQL/Postgres, TimescaleDB) inherit the same support,
+on the same verification basis as their parent. Picking one of these
+aggregates on a database that has not opted in returns a clear "not
+supported on this database" error rather than a failed query. See
 `docs/sip/median-stddev-variance-aggregates.md` for the full design
 rationale, including why this is safe to add without reintroducing the
 totals/subtotals correctness bug fixed by #41184 (SIP-216).
