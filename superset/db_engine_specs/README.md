@@ -608,6 +608,7 @@ class MyDatabaseEngineSpec(BaseEngineSpec):
 
         # Recommended fields
         "logo": "mydatabase.svg",  # Logo file in docs/static/img/databases/
+        "logo_dark": "mydatabase-dark.svg",  # Optional variant for dark theme
         "homepage_url": "https://mydatabase.example.com/",
         "default_port": 5432,
 

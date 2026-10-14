@@ -40,12 +40,12 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 252,
-      "description_chars": 2037,
+      "description_chars": 2235,
       "entry_bytes": {
-        "structured": 7981,
-        "text_only": 5305
+        "structured": 8222,
+        "text_only": 5546
       },
-      "input_schema_bytes": 2911,
+      "input_schema_bytes": 2951,
       "output_schema_bytes": 2660
     },
     "commit_canvas_draft": {
@@ -407,14 +407,14 @@
         "openWorldHint": false,
         "readOnlyHint": true
       },
-      "compact_description_chars": 210,
-      "description_chars": 606,
+      "compact_description_chars": 252,
+      "description_chars": 773,
       "entry_bytes": {
-        "structured": 3420,
-        "text_only": 1743
+        "structured": 3709,
+        "text_only": 1914
       },
       "input_schema_bytes": 886,
-      "output_schema_bytes": 1661
+      "output_schema_bytes": 1779
     },
     "get_chart_data": {
       "annotations": {
@@ -504,10 +504,10 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 73,
-      "description_chars": 1007,
+      "description_chars": 1094,
       "entry_bytes": {
-        "structured": 3741,
-        "text_only": 2028
+        "structured": 3829,
+        "text_only": 2116
       },
       "input_schema_bytes": 716,
       "output_schema_bytes": 1697
@@ -520,10 +520,10 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 271,
-      "description_chars": 865,
+      "description_chars": 952,
       "entry_bytes": {
-        "structured": 4618,
-        "text_only": 1872
+        "structured": 4706,
+        "text_only": 1960
       },
       "input_schema_bytes": 713,
       "output_schema_bytes": 2730
@@ -1459,12 +1459,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 552195,
-      "text_only": 227535
+      "structured": 552901,
+      "text_only": 228123
     },
     "compact_catalog_bytes": {
-      "structured": 495055,
-      "text_only": 170395
+      "structured": 495256,
+      "text_only": 170478
     },
     "largest_entry": {
       "structured": {

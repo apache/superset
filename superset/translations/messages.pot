@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 11:06+0300\n"
+"POT-Creation-Date: 2026-10-14 09:22+0300\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,7 +146,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% calculation"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of parent"
 msgstr ""
 
@@ -174,7 +174,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, no-python-format
+#, python-format
 msgid "% of total"
 msgstr ""
 
@@ -986,6 +986,9 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr ""
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid "A semantic query filter is invalid. Check its operator and values, then try again."
 msgstr ""
 
 msgid "A semantic view's provider query is produced when the chart runs and returned with its data."
@@ -1928,9 +1931,6 @@ msgid "An error occurred while parsing the key."
 msgstr ""
 
 msgid "An error occurred while pruning logs "
-msgstr ""
-
-msgid "An error occurred while refreshing the configuration schema"
 msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
@@ -4137,6 +4137,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr ""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not enrich the controls for this widget; showing the default form. See the server logs for details."
 msgstr ""
 
@@ -4161,6 +4165,9 @@ msgid "Could not load metadata for this configuration; showing the default form.
 msgstr ""
 
 msgid "Could not parse the CSS to convert @import rules. Check for syntax errors and try again."
+msgstr ""
+
+msgid "Could not refresh metadata. Check the connection details and your permissions."
 msgstr ""
 
 #, python-format
@@ -7581,6 +7588,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr ""
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr ""
 
@@ -8412,6 +8422,9 @@ msgstr ""
 msgid "Loaded from cache"
 msgstr ""
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr ""
 
@@ -8514,6 +8527,10 @@ msgid "Lower Threshold"
 msgstr ""
 
 msgid "Lower bound of the color scale. When both start and end are set, the legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -8976,6 +8993,9 @@ msgid "Missing URL parameters"
 msgstr ""
 
 msgid "Mixed Chart"
+msgstr ""
+
+msgid "Mixed cache"
 msgstr ""
 
 msgid "Modified"
@@ -12289,6 +12309,9 @@ msgstr ""
 msgid "Semantic Views"
 msgstr ""
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr ""
 
@@ -12315,6 +12338,12 @@ msgstr ""
 
 msgid "Semantic layer updated"
 msgstr ""
+
+#, python-format
+msgid "Semantic source is used by %(count)s dependent asset and cannot be deleted."
+msgid_plural "Semantic source is used by %(count)s dependent assets and cannot be deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Semantic view could not be created."
 msgstr ""
@@ -13710,6 +13739,10 @@ msgstr ""
 msgid "The X-axis is not on the filters list which will prevent it from being used in time range filters in dashboards. Would you like to add it to the filters list?"
 msgstr ""
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid "The affected charts or dashboards changed. Review the updated impact and type DELETE again to continue."
 msgstr ""
 
@@ -14271,6 +14304,9 @@ msgid "The semantic layer could not verify that this query result is complete. R
 msgstr ""
 
 msgid "The semantic layer returned only part of this query result. Narrow the time range or selected dimensions, or request a smaller explicit row limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic query is invalid. Check its fields and options, then try again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -15047,6 +15083,15 @@ msgstr ""
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid "This semantic provider cannot apply the requested offset. Turn off pagination or use a supported limit and offset."
+msgstr ""
+
+msgid "This semantic provider does not support this query. Remove unsupported filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 msgid "This session has encountered an interruption, and some controls may not work as intended. If you are the developer of this app, please check that the guest token is being generated correctly."
 msgstr ""
 
@@ -15498,6 +15543,9 @@ msgid "Tuesday"
 msgstr ""
 
 msgid "Tukey"
+msgstr ""
+
+msgid "Turn off server pagination"
 msgstr ""
 
 msgid "Turn off the logarithmic axis before stacking bars"

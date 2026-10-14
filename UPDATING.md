@@ -24,6 +24,25 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
+  UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
+  which every semantic provider must render; previously NULL rows could be
+  omitted. Update provider adapters before, or together with, the host/SDK
+  upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
+  members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
+  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
+  operands return query validation errors. Semantic result keys include a
+  filter-protocol version, and chart-backed annotation results also receive a new
+  cache discriminator: expect a one-time cold cache after upgrading. See the
+  [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
+  for NULL value typing, mandatory `OrFilter` rendering and guarded loading on
+  older SDKs.
+
+- `SEMANTIC_LAYER_CONTAINMENT_CACHE` is off by default; opted-in providers can
+  reuse cached semantic-view results for narrower queries. Containment keys include
+  the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
+  `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
+
 - Address validation refuses additional non-global address forms. Addresses in
   the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
   address and refused when that address is unsafe. Local-use translation
@@ -59,6 +78,7 @@ assists people when migrating to a new version.
   MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for
   saved and unsaved charts). This changes chart cache keys for dashboard-filtered
   queries once, so expect a cold chart cache right after deploying.
+
 - Semantic-layer configuration Save and Reload metadata increment a database-backed
   cache generation. Apply the `c179af013f48` migration before deploying the updated
   application; existing semantic chart caches become cold once on upgrade.
@@ -181,6 +201,31 @@ reattached to a reachable container by layout repair.
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
 
+### Table and AG Grid server pagination for semantic views
+
+Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`
+capability to enable Server pagination. Missing capability metadata disables
+the control with an explanation; SQL datasets are unchanged. Saved pagination
+settings are not rewritten. Users can explicitly turn off an unsupported
+saved setting; provider errors remain authoritative until that edit.
+Extension providers must use a compatible core version before declaring the
+new capability.
+
+### Graph null category colors
+
+Graph charts label SQL `NULL` categories as `<NULL>` and share their colors with
+other charts using that label. Move any `label_colors["N/A"]` setting intended for
+SQL NULL to `label_colors["<NULL>"]`; `N/A` continues to identify the literal value.
+
+The literal string `<NULL>` is quoted as `"<NULL>"` to keep it separate from SQL
+NULL. Quoted forms of that literal are also escaped to avoid collisions; other
+quoted labels keep their existing display and color keys. Use the displayed
+label as the custom color key, for example:
+
+```json
+{"<NULL>": "#e53935", "\"<NULL>\"": "#123456"}
+```
+
 ### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
 
 - The migration creates an empty versioned document in the existing `key_value` table
@@ -236,6 +281,14 @@ reattached to a reachable container by layout repair.
   before starting this code, with scheduling paused and active work/queued retries drained
   as described below. Keep web and worker versions aligned. Before rollback, replace `NONE`
   formats with a supported format and account for losing explicit executor/policy settings.
+
+### Semantic provider error handling
+
+Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
+(formerly HTTP 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
+failures. Worker control timeouts and host input-validation errors retain their
+existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
 
 ### Semantic-view Table charts without a temporal axis
 

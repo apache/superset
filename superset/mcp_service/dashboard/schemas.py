@@ -2905,8 +2905,9 @@ class ApplyFilterValueSpec(BaseModel):
     values: List[FilterSelectValue] | None = Field(
         None,
         description=(
-            "Values to select, for a filter_select filter. Pass an empty "
-            "list to clear the filter's current selection."
+            "Values to select, for a filter_select filter; each must exist "
+            "in the filter's column. Pass an empty list to clear the "
+            "filter's current selection."
         ),
     )
     time_range: str | None = Field(
