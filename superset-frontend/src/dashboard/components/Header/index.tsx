@@ -107,7 +107,7 @@ import { RefreshButton } from '../RefreshButton';
 
 type DashboardPropertiesUpdate = {
   slug?: string;
-  description?: string;
+  description?: string | null;
   jsonMetadata?: string;
   certifiedBy?: string;
   certificationDetails?: string;
@@ -128,7 +128,7 @@ type DashboardInfoState = RootState['dashboardInfo'] & {
   dash_share_perm?: boolean;
   is_managed_externally?: boolean;
   slug?: string;
-  description?: string;
+  description?: string | null;
   last_modified_time?: number;
   certified_by?: string;
   certification_details?: string;
