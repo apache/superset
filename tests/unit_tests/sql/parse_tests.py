@@ -2778,6 +2778,9 @@ LATERAL generate_series(1, value) AS i;
         ("SELECT * FROM t WHERE ROWNUM >= 5", "oracle", None),
         ("SELECT * FROM t WHERE ROWNUM <= :n", "oracle", None),
         ("SELECT * FROM t WHERE t.rownum <= 5", "oracle", None),
+        # A quoted "rownum" is a column of that name, not the pseudocolumn.
+        ('SELECT * FROM t WHERE "rownum" <= 5', "oracle", None),
+        ('SELECT * FROM t WHERE "ROWNUM" <= 5', "oracle", None),
         ("SELECT * FROM t WHERE x = 1", "oracle", None),
         ("SELECT * FROM (SELECT * FROM t WHERE ROWNUM <= 5)", "oracle", None),
         ("SELECT a FROM t WHERE ROWNUM <= 5 UNION SELECT a FROM u", "oracle", None),
@@ -3316,6 +3319,11 @@ def test_set_limit_value_oracle_rownum(sql: str, expected: str) -> None:
             "SELECT a.cccccccccccccccccccccccccccccc, "
             "b.cccccccccccccccccccccccccccccc FROM a, b",
             ["c" * 30, "c" * 28 + "_2"],
+        ),
+        # The limit is in bytes: "ç" takes two, so the stem keeps 14 of them.
+        (
+            "SELECT a.ççççççççççççççç, b.ççççççççççççççç FROM a, b",
+            ["ç" * 15, "ç" * 14 + "_2"],
         ),
         ("SELECT n FROM t", ["n"]),
     ],

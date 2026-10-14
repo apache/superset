@@ -1030,11 +1030,14 @@ def _oracle_name_key(identifier: exp.Identifier) -> str:
 def _unique_oracle_alias(identifier: exp.Identifier, taken: set[str]) -> exp.Identifier:
     """
     Return a `_2`, `_3`, ... variant of the identifier that isn't taken yet.
+
+    The limit is in bytes, so a multibyte name is cut on a character boundary.
     """
     suffix = 2
     while True:
         tail = f"_{suffix}"
-        stem = identifier.name[: ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH - len(tail)]
+        budget = ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH - len(tail)
+        stem = identifier.name.encode()[:budget].decode(errors="ignore")
         alias = exp.to_identifier(stem + tail, quoted=identifier.quoted)
         if _oracle_name_key(alias) not in taken:
             return alias
@@ -2230,6 +2233,8 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if (
                 isinstance(rownum, exp.Column)
                 and not rownum.table
+                # A quoted "rownum" is a column of that name, not the pseudocolumn.
+                and not rownum.this.quoted
                 and rownum.name.upper() == "ROWNUM"
                 and isinstance(bound, exp.Literal)
                 and bound.is_int
