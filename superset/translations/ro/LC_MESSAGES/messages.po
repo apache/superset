@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -10408,6 +10408,9 @@ msgstr "Date încărcate cache-uite"
 msgid "Loaded from cache"
 msgstr "Încărcat din cache"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn, tr]
 #, fuzzy
@@ -11113,6 +11116,9 @@ msgstr "Parametri URL lipsă"
 msgid "Mixed Chart"
 msgstr "Grafic Mixt"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Modificat"
 
@@ -11805,6 +11811,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "Nu null"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "Nu este setat"
@@ -14328,6 +14337,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Salvează interogare"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
 #, fuzzy
@@ -15148,6 +15162,9 @@ msgstr "Vizualizare semantică"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "Vizualizări semantice"
+
+msgid "Semantic cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]

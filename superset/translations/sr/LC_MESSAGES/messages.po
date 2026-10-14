@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr\n"
@@ -11802,6 +11802,9 @@ msgstr "Учитани подаци кеширани"
 msgid "Loaded from cache"
 msgstr "Учитано из кеша"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Учитавање"
 
@@ -12582,6 +12585,9 @@ msgstr "Недостају URL параметри"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Mixed Chart"
 msgstr "Мешовити графикон"
+
+msgid "Mixed cache"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -13376,6 +13382,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Not null"
 msgstr "Није null"
+
+msgid "Not previewed yet"
+msgstr ""
 
 # uk]
 msgid "Not set"
@@ -16332,6 +16341,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Сачувај упит"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr "Безбедно сачувајте овај API кључ"
 
@@ -17219,6 +17233,9 @@ msgstr "Семантички поглед"
 
 msgid "Semantic Views"
 msgstr "Семантички погледи"
+
+msgid "Semantic cache"
+msgstr ""
 
 msgid "Semantic layer"
 msgstr "Семантички слој"

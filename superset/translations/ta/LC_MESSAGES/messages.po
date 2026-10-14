@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -9648,6 +9648,9 @@ msgstr "ஏற்றப்பட்ட தரவு கேச் (cache) செ�
 msgid "Loaded from cache"
 msgstr "கேச் (cache)-லிருந்து ஏற்றப்பட்டது"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "ஏற்றுகிறது..."
@@ -10271,6 +10274,9 @@ msgstr "URL அளவுருக்கள் இல்லை"
 
 msgid "Mixed Chart"
 msgstr "கலப்பு சார்ட் (Mixed Chart)"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "மாற்றப்பட்டது"
@@ -10908,6 +10914,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "காலியாக இல்லை (Not null)"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "அமைக்கப்படவில்லை"
@@ -13243,6 +13252,11 @@ msgstr ""
 msgid "Save query"
 msgstr "வினவலைச் சேமி"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr ""
 
@@ -13945,6 +13959,9 @@ msgid "Semantic View"
 msgstr ""
 
 msgid "Semantic Views"
+msgstr ""
+
+msgid "Semantic cache"
 msgstr ""
 
 #, fuzzy

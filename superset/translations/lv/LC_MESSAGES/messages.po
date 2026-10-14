@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -9747,6 +9747,9 @@ msgstr "Ielādētie dati kešoti"
 msgid "Loaded from cache"
 msgstr "Ielādēts no kešatmiņas"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "Ielādē..."
@@ -10410,6 +10413,9 @@ msgstr "Trūkst URL parametru"
 msgid "Mixed Chart"
 msgstr "Jaukta diagramma"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Mainīts"
 
@@ -11062,6 +11068,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "Nav tukšs"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "Nav iestatīts"
@@ -13483,6 +13492,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Saglabāt vaicājumu"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14238,6 +14252,9 @@ msgstr "Semantiskais skats"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "Semantiskie skati"
+
+msgid "Semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer"

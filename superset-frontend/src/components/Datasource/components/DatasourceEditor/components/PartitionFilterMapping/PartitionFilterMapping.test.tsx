@@ -1267,3 +1267,105 @@ test('a self-mapping the owner can save through reads as a warning', () => {
   expect(explicit).toHaveTextContent(/mapped onto itself/);
   expect(explicit).toHaveClass('ant-typography-danger');
 });
+
+test('a mapping onto an unsaved column says so instead of previewing', async () => {
+  // The endpoint belongs to the *saved* dataset and resolves the column names
+  // against its persisted columns, while the editor validates against its
+  // unsaved state. Syncing a column from source and mapping onto it before
+  // saving therefore had the editor accept it while the preview reported that
+  // the column does not exist -- a valid candidate shown as broken.
+  fetchMock.post(PREVIEW_URL, {
+    body: { result: { valid: true, emitted_predicate: 'dt_epoch = 1' } },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'synced_at', is_dttm: true }}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'synced_at',
+        partition_column: 'dt_epoch',
+        // `synced_at` is not among them: it has been synced from source but
+        // not saved.
+        columns: [{ column_name: 'event_time' }, { column_name: 'dt_epoch' }],
+      }}
+      value="unix_timestamp(:value)"
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    await screen.findByText(/Save the dataset to preview/),
+  ).toBeInTheDocument();
+  // Said rather than asked: no request is made *for this column*. Asserted on
+  // the body rather than on an empty history, because a neighbouring test's
+  // 500ms debounce can still land in this window under a full-directory run.
+  expect(
+    fetchMock.callHistory
+      .calls(PREVIEW_URL)
+      .map(call => String(call.options?.body ?? ''))
+      .filter(body => body.includes('synced_at')),
+  ).toHaveLength(0);
+  // And it is a warning, not an error: nothing is wrong with the mapping.
+  expect(screen.getByText('Not previewed yet')).toBeInTheDocument();
+});
+
+test('a mapping onto saved columns still previews', async () => {
+  // The other half: supplying the column list must not suppress the ordinary
+  // case.
+  fetchMock.post(PREVIEW_URL, {
+    body: { result: { valid: true, emitted_predicate: 'dt_epoch = 1' } },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        columns: [{ column_name: 'event_time' }, { column_name: 'dt_epoch' }],
+      }}
+      value="unix_timestamp(:value)"
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(await screen.findByText('dt_epoch = 1')).toBeInTheDocument();
+});
+
+test('the unsaved notice is not reported as a failed verdict', async () => {
+  // `unsaved` is not a verdict -- the preview has not asked. Reporting `false`
+  // would have the dataset banner claim nothing mirrors on the strength of a
+  // question nobody answered.
+  const onPreviewVerdict = jest.fn();
+  fetchMock.post(PREVIEW_URL, {
+    body: { result: { valid: true, emitted_predicate: 'dt_epoch = 1' } },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'synced_at', is_dttm: true }}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'synced_at',
+        partition_column: 'dt_epoch',
+        columns: [{ column_name: 'dt_epoch' }],
+      }}
+      value="unix_timestamp(:value)"
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+      onPreviewVerdict={onPreviewVerdict}
+    />,
+  );
+
+  expect(
+    await screen.findByText(/Save the dataset to preview/),
+  ).toBeInTheDocument();
+  expect(onPreviewVerdict).not.toHaveBeenCalledWith(false);
+});

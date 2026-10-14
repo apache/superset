@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -9042,6 +9042,9 @@ msgstr ""
 msgid "Loaded from cache"
 msgstr ""
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr ""
 
@@ -9650,6 +9653,9 @@ msgid "Missing URL parameters"
 msgstr ""
 
 msgid "Mixed Chart"
+msgstr ""
+
+msgid "Mixed cache"
 msgstr ""
 
 msgid "Modified"
@@ -10277,6 +10283,9 @@ msgid "Not in this dataset, so viewers will not see: %s"
 msgstr ""
 
 msgid "Not null"
+msgstr ""
+
+msgid "Not previewed yet"
 msgstr ""
 
 msgid "Not set"
@@ -12562,6 +12571,11 @@ msgstr ""
 msgid "Save query"
 msgstr ""
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr ""
 
@@ -13227,6 +13241,9 @@ msgid "Semantic View"
 msgstr ""
 
 msgid "Semantic Views"
+msgstr ""
+
+msgid "Semantic cache"
 msgstr ""
 
 msgid "Semantic layer"

@@ -109,6 +109,20 @@ export default function PartitionMappingSection({
     operator: previewOperatorFor(item),
     isMonotonic,
     enabled: state === 'mapped',
+    // The endpoint belongs to the saved dataset and resolves these names
+    // against its persisted columns. `datasource.columns` is the set the modal
+    // opened with -- the editor never writes it back -- so a column only
+    // synced from source is absent here, and asking would report it missing.
+    //
+    // No list at all means no information, which falls back to asking: that is
+    // the behaviour every caller had before, and suppressing a preview on an
+    // absence would be a worse failure than the one this avoids.
+    columnsAreSaved:
+      datasource.columns === undefined ||
+      [columnName, datasource.partition_column].every(
+        name =>
+          !name || datasource.columns!.some(col => col.column_name === name),
+      ),
   });
 
   // Reported rather than read upward, because the transform the preview judges
@@ -125,7 +139,14 @@ export default function PartitionMappingSection({
     if (state !== 'mapped') {
       return;
     }
-    onPreviewVerdict?.(loading || !preview ? null : preview.valid);
+    // `unsaved` is not a verdict: the preview has not asked. Reporting `false`
+    // would have the dataset banner claim nothing mirrors on the strength of a
+    // question nobody answered.
+    onPreviewVerdict?.(
+      loading || !preview || preview.reason === 'unsaved'
+        ? null
+        : preview.valid,
+    );
   }, [state, loading, preview, onPreviewVerdict]);
 
   if (state === 'none' || state === 'partition') {
@@ -332,7 +353,8 @@ export default function PartitionMappingSection({
           type={
             preview.reason === 'operator' ||
             preview.reason === 'resolution' ||
-            preview.reason === 'offset'
+            preview.reason === 'offset' ||
+            preview.reason === 'unsaved'
               ? 'warning'
               : 'error'
           }
@@ -341,7 +363,9 @@ export default function PartitionMappingSection({
           message={
             preview.reason === 'parse'
               ? t("Can't parse transform")
-              : t('Filters will not be mirrored')
+              : preview.reason === 'unsaved'
+                ? t('Not previewed yet')
+                : t('Filters will not be mirrored')
           }
           description={preview.error}
         />

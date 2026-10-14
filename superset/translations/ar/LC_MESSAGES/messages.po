@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -10668,6 +10668,9 @@ msgstr "تم تخزين البيانات المحملة مؤقتًا"
 msgid "Loaded from cache"
 msgstr "تم تحميله من ذاكرة التخزين المؤقت"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "جارٍ التحميل…"
@@ -11394,6 +11397,9 @@ msgstr "معلمات URL المفقودة"
 msgid "Mixed Chart"
 msgstr "مخطط مختلط"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "تم التعديل"
 
@@ -12082,6 +12088,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "ليست خالية"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr ""
@@ -14665,6 +14674,11 @@ msgstr ""
 msgid "Save query"
 msgstr "حفظ الاستعلام"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15487,6 +15501,9 @@ msgstr "العرض الدلالي"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "العروض الدلالية"
+
+msgid "Semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -14370,6 +14370,9 @@ msgstr "로드된 데이터가 캐시됨"
 msgid "Loaded from cache"
 msgstr "캐시에서 로드됨"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "로그인"
@@ -15439,6 +15442,9 @@ msgstr "주석"
 msgid "Mixed Chart"
 msgstr "차트 이동"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "수정됨"
 
@@ -16419,6 +16425,9 @@ msgstr ""
 #, fuzzy
 msgid "Not null"
 msgstr "Null이 아님"
+
+msgid "Not previewed yet"
+msgstr ""
 
 #, fuzzy
 msgid "Not set"
@@ -20179,6 +20188,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Query 저장"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -21223,6 +21237,9 @@ msgstr "시맨틱 뷰"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "시맨틱 뷰"
+
+msgid "Semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer"

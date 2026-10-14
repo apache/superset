@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -10693,6 +10693,9 @@ msgstr "加载的數據已缓存"
 msgid "Loaded from cache"
 msgstr "從缓存中加载"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "加载中..."
@@ -11445,6 +11448,9 @@ msgstr "缺失URL参數"
 msgid "Mixed Chart"
 msgstr "混合圖表"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "已修改"
 
@@ -12169,6 +12175,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "非空"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr ""
@@ -14822,6 +14831,11 @@ msgstr ""
 msgid "Save query"
 msgstr "保存查詢"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15641,6 +15655,9 @@ msgstr "語義視圖"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "語義視圖"
+
+msgid "Semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer"

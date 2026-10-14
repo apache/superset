@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -9933,6 +9933,9 @@ msgstr "Načtená data uložena do mezipaměti"
 msgid "Loaded from cache"
 msgstr "Načteno z mezipaměti"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "Načítání..."
@@ -10605,6 +10608,9 @@ msgstr "Chybí parametry URL"
 msgid "Mixed Chart"
 msgstr "Smíšený graf"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Změněno"
 
@@ -11270,6 +11276,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "Není null"
+
+msgid "Not previewed yet"
+msgstr ""
 
 #, fuzzy
 msgid "Not set"
@@ -13732,6 +13741,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Uložit dotaz"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14517,6 +14531,9 @@ msgstr "Sémantický pohled"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "Sémantické pohledy"
+
+msgid "Semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer"

@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -9711,6 +9711,9 @@ msgstr "Geladene Daten zwischengespeichert"
 msgid "Loaded from cache"
 msgstr "Aus Zwischenspeicher geladen"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Lädt"
 
@@ -10346,6 +10349,9 @@ msgstr "Fehlende URL-Parameter"
 
 msgid "Mixed Chart"
 msgstr "Gemischtes Diagramm"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Geändert"
@@ -10997,6 +11003,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "Nicht NULL"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "Nicht festgelegt"
@@ -13425,6 +13434,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Abfrage speichern"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr "Diesen API-Schlüssel sicher abspeichern"
 
@@ -14161,6 +14175,9 @@ msgstr "Semantische Sicht"
 
 msgid "Semantic Views"
 msgstr "Semantische Sichten"
+
+msgid "Semantic cache"
+msgstr ""
 
 msgid "Semantic layer"
 msgstr "Semantische Schicht"

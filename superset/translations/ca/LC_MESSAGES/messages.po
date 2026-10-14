@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -10282,6 +10282,9 @@ msgstr "Dades carregades en memòria cau"
 msgid "Loaded from cache"
 msgstr "Carregat des de memòria cau"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "Carregant..."
@@ -10979,6 +10982,9 @@ msgstr "Falten paràmetres URL"
 msgid "Mixed Chart"
 msgstr "Gràfic Mixt"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Modificat"
 
@@ -11652,6 +11658,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "No nul"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr ""
@@ -14165,6 +14174,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Desar consulta"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14972,6 +14986,9 @@ msgstr "Vista semàntica"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "Vistes semàntiques"
+
+msgid "Semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer"

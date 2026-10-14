@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -12127,6 +12127,9 @@ msgstr "Dati caricati memorizzati nella cache"
 msgid "Loaded from cache"
 msgstr "Caricato dalla cache"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Caricamento"
 
@@ -12996,6 +12999,9 @@ msgstr "Parametri URL mancanti"
 msgid "Mixed Chart"
 msgstr "Grafico misto"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Modificato"
 
@@ -13745,6 +13751,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "Non null"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "Non impostato"
@@ -16856,6 +16865,11 @@ msgstr ""
 msgid "Save query"
 msgstr "query condivisa"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 msgid "Save this API key securely"
@@ -17726,6 +17740,9 @@ msgstr "Vista semantica"
 # sr_Latn]
 msgid "Semantic Views"
 msgstr "Viste semantiche"
+
+msgid "Semantic cache"
+msgstr ""
 
 msgid "Semantic layer"
 msgstr "Livello semantico"

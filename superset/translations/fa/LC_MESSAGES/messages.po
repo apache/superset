@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -10345,6 +10345,9 @@ msgstr "داده‌های بارگذاری‌شده در کش ذخیره شد"
 msgid "Loaded from cache"
 msgstr "از کش بارگذاری شد"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "در حال بارگذاری..."
@@ -11058,6 +11061,9 @@ msgstr "پارامترهای URL گم شده‌اند"
 msgid "Mixed Chart"
 msgstr "نمودار ترکیبی"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "ویرایش شده"
 
@@ -11731,6 +11737,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "غیر خالی"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr ""
@@ -14264,6 +14273,11 @@ msgstr ""
 msgid "Save query"
 msgstr "ذخیره کوئری"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15069,6 +15083,9 @@ msgstr "نمای معنایی"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "نماهای معنایی"
+
+msgid "Semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer"

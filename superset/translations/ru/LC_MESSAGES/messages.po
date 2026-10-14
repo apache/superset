@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -9606,6 +9606,9 @@ msgstr "Данные загружены в кэш"
 msgid "Loaded from cache"
 msgstr "Загружено из кэша"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Загрузка"
 
@@ -10257,6 +10260,9 @@ msgstr "Отсутствующие параметры URL"
 msgid "Mixed Chart"
 msgstr "Смешанная диаграмма"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Изменено"
 
@@ -10899,6 +10905,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "Не пусто"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "Не задано"
@@ -13291,6 +13300,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Сохранить запрос"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 #, fuzzy
 msgid "Save this API key securely"
 msgstr "Безопасно сохранить этот ключ API"
@@ -13998,6 +14012,9 @@ msgstr "Представление аннотаций"
 
 msgid "Semantic Views"
 msgstr "Представления аннотаций"
+
+msgid "Semantic cache"
+msgstr ""
 
 msgid "Semantic layer"
 msgstr "Слой аннотаций"

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -9066,6 +9066,9 @@ msgstr "読み込まれたデータがキャッシュされました"
 msgid "Loaded from cache"
 msgstr "キャッシュから読み込みました"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "読み込み中..."
 
@@ -9676,6 +9679,9 @@ msgstr "URLパラメータがありません"
 
 msgid "Mixed Chart"
 msgstr "混合チャート"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "更新日"
@@ -10300,6 +10306,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "NULLではない"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "未設定"
@@ -12594,6 +12603,11 @@ msgstr ""
 msgid "Save query"
 msgstr "クエリを保存"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 msgid "Save this API key securely"
 msgstr "この API キーを安全に保管してください"
 
@@ -13258,6 +13272,9 @@ msgstr "セマンティックビュー"
 
 msgid "Semantic Views"
 msgstr "セマンティックビュー"
+
+msgid "Semantic cache"
+msgstr ""
 
 msgid "Semantic layer"
 msgstr "セマンティックレイヤー"

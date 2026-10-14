@@ -37,6 +37,13 @@ export interface PartitionMappingDatasource {
   partition_mapped_column?: string | null;
   partition_value_transform_default?: string | null;
   /**
+   * The dataset's columns *as saved*. `DatasourceEditor` never writes
+   * `columns` back onto its `datasource` state -- the props-sync effect
+   * re-seeds the two column collections instead -- so this stays the set the
+   * modal opened with, which is what the preview endpoint resolves against.
+   */
+  columns?: { column_name?: string }[];
+  /**
    * The backend's own read of the stored mapping. Only `evaluable` is read
    * here, and only to stop the banner claiming a mirror the last probe of the
    * stored transform refused -- the rest of the summary is Explore's.
@@ -61,6 +68,7 @@ export interface PartitionMappingPreview {
     | 'operator'
     | 'resolution'
     | 'offset'
+    | 'unsaved'
     | 'engine'
     | 'type'
     | 'unconfigured';

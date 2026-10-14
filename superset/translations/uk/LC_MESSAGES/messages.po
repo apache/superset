@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-13 15:19+0000\n"
+"POT-Creation-Date: 2026-10-14 13:52+0000\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -9755,6 +9755,9 @@ msgstr "Завантажені дані закешовано"
 msgid "Loaded from cache"
 msgstr "Завантажено з кешу"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "Завантаження..."
@@ -10415,6 +10418,9 @@ msgstr "Бракує параметра в посиланні"
 msgid "Mixed Chart"
 msgstr "Змішана діаграма"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Змінено"
 
@@ -11066,6 +11072,9 @@ msgstr ""
 
 msgid "Not null"
 msgstr "Не порожній"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr "Не вказано"
@@ -13486,6 +13495,11 @@ msgstr ""
 msgid "Save query"
 msgstr "Зберегти запит"
 
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14240,6 +14254,9 @@ msgstr "Семантичний вигляд"
 #, fuzzy
 msgid "Semantic Views"
 msgstr "Семантичні вигляди"
+
+msgid "Semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Semantic layer"
