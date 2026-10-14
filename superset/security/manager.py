@@ -4989,8 +4989,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ``catalog_access`` / ``schema_access`` fallthroughs in the
             database+table / query branch are bypassed and every referenced
             table must resolve to a registered Superset dataset the user
-            has ``datasource_access`` on (or owns). Call sites that execute
-            or return raw row data (SQL Lab, MetaDB) set this to True.
+            has ``datasource_access`` on; editorship/ownership of the
+            dataset is not sufficient here (it is accepted only on the
+            non-strict path). Call sites that execute or return raw row
+            data (SQL Lab, MetaDB, MCP ``execute_sql``, alert/report
+            queries) set this to True.
             The default (False) preserves the historical semantics for
             chart-data, dataset CRUD, ``/table_metadata/``, and
             ``/select_star/``.

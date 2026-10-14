@@ -26,7 +26,8 @@ assists people when migrating to a new version.
 
 - Dataset editorship no longer authorizes raw SQL on the underlying table.
   Under the strict dataset-match scoping used by SQL Lab raw queries, MetaDB,
-  and the MCP `execute_sql` tool (`raise_for_access(force_dataset_match=True)`,
+  the MCP `execute_sql` tool, and alert/report query execution
+  (`raise_for_access(force_dataset_match=True)`,
   introduced in #40409), access to a referenced table now requires
   `datasource_access` on a registered dataset for that table — being an
   *editor* (owner) of such a dataset is no longer sufficient. A principal who
