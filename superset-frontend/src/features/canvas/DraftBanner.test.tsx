@@ -26,6 +26,7 @@ import {
 import DraftBanner from './DraftBanner';
 
 const commitEndpoint = 'glob:*/api/v1/canvas/draft/commit';
+const draftEndpoint = 'glob:*/api/v1/canvas/draft';
 
 beforeEach(() => {
   fetchMock.removeRoutes();
@@ -76,11 +77,21 @@ test('publishing is held while a layout change is still saving', () => {
 });
 
 test('discarding deletes the draft', async () => {
-  fetchMock.delete('glob:*/api/v1/canvas/draft', { result: 'deleted' });
+  fetchMock.delete(draftEndpoint, { result: 'deleted' });
   const onClose = renderBanner();
 
   fireEvent.click(screen.getByRole('button', { name: 'Discard' }));
 
+  // The request itself, not just the close: the banner closes after any
+  // resolved action, so asserting only `onClose` passes even when nothing is
+  // sent and the draft survives.
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+  const [call] = fetchMock.callHistory.calls();
+  expect(call.options.method?.toUpperCase()).toBe('DELETE');
+  expect(call.url).toContain('/api/v1/canvas/draft');
+  expect(
+    (call.options.headers as Record<string, string>)['x-canvas-draft'],
+  ).toBe('tok-123');
   await waitFor(() => expect(onClose).toHaveBeenCalled());
 });
 
@@ -142,7 +153,7 @@ test('discarding is held while a layout change is still saving', () => {
   // A discard landing between a save's read and its write-back would delete
   // the draft and then have it recreated by that save, so the token still
   // opens changes the user was told were discarded.
-  fetchMock.delete('glob:*/api/v1/canvas/draft', { result: 'deleted' });
+  fetchMock.delete(draftEndpoint, { result: 'deleted' });
   renderBanner(true);
 
   const discard = screen.getByRole('button', { name: 'Discard' });

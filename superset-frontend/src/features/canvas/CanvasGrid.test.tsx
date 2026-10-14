@@ -17,7 +17,12 @@
  * under the License.
  */
 import type { canvas as canvasApi } from '@apache-superset/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from 'spec/helpers/testing-library';
 import { canvas } from 'src/core';
 import CanvasGrid, { emptyScopeValues, ScopeValues } from './CanvasGrid';
 import { CanvasDefinitionResult, CanvasSettings } from './types';
@@ -231,4 +236,58 @@ test('an editable canvas gets a handle per placed widget', () => {
   expect(screen.getAllByRole('button', { name: 'Resize widget' })).toHaveLength(
     Object.keys(result.placements).length,
   );
+});
+
+/**
+ * jsdom carries none of the properties a gesture needs on its own
+ * `PointerEvent`, so these are built on `MouseEvent` with the pointer id added
+ * -- the same shape `CanvasGridSurface.test.tsx` uses.
+ */
+class TestPointerEvent extends MouseEvent {
+  pointerId: number;
+
+  constructor(type: string, init: MouseEventInit = {}) {
+    super(type, { bubbles: true, cancelable: true, ...init });
+    this.pointerId = 1;
+  }
+}
+
+const dragRight = (handle: HTMLElement, dx: number) =>
+  [
+    new TestPointerEvent('pointerdown', { button: 0, clientX: 0, clientY: 0 }),
+    new TestPointerEvent('pointermove', { clientX: dx, clientY: 0 }),
+    new TestPointerEvent('pointerup', { clientX: dx, clientY: 0 }),
+  ].forEach(event => fireEvent(handle, event));
+
+beforeAll(() => {
+  // jsdom lays nothing out, so every grid is told it is 1000px wide.
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+    configurable: true,
+    get: () => 1000,
+  });
+  // jsdom has no pointer capture; the gesture only needs it not to throw.
+  HTMLElement.prototype.setPointerCapture = jest.fn();
+  HTMLElement.prototype.releasePointerCapture = jest.fn();
+});
+
+test('a nested grid resizes against its own column count, not the root', () => {
+  // 'c1' sits in group 'g', which declares 12 columns against the root's 24.
+  // Handing the root count to the nested surface would let 'c1' grow to 24,
+  // and would halve the column pitch so the same drag reported twice the
+  // movement.
+  const place = jest.fn();
+  renderGrid(emptyScopeValues(), jest.fn(), result, place, true);
+
+  const group = screen.getByRole('region', { name: 'group' });
+  dragRight(
+    within(group).getAllByRole('button', { name: 'Resize widget' })[0],
+    2000,
+  );
+
+  expect(place).toHaveBeenCalledWith('c1', {
+    col: 1,
+    row: 1,
+    colSpan: 12,
+    rowSpan: 1,
+  });
 });

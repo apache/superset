@@ -368,6 +368,26 @@ test('a write landing mid-gesture does not move the ground under the pointer', (
   });
 });
 
+test('a click on a handle does not revert a write that landed mid-hold', () => {
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+
+  // Pressed and released with no movement, so the gesture resolves back to
+  // where 'kpi' was grabbed.
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+
+  // While the button is held, a draft poll or another editor's resize moves
+  // 'kpi'. Committing the unmoved gesture now would write row 1 back over it.
+  onPlace.replace({
+    ...placements,
+    kpi: { col: 1, row: 9, colSpan: 6, rowSpan: 4 },
+  });
+
+  pointer(handle, 'pointerup', { clientX: 0, clientY: 0 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
 test('a widget with no resolved placement renders, with no handles', () => {
   // Still a child of the grid, so it stays mounted; it just has nowhere to be
   // dragged from, so it gets no handles while its sibling keeps its own.

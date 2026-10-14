@@ -280,12 +280,23 @@ export default function CanvasGridSurface({
     [width, columns, gap, rowUnit, constraints],
   );
 
+  /**
+   * Persists `next` for `nodeId`, where `from` is the placement the gesture
+   * resolved against.
+   *
+   * Both no-op checks matter. A gesture that moved nothing resolves back to
+   * `from`, and sending that would write the geometry the widget had when it
+   * was grabbed over anything that landed while the button was held -- a plain
+   * click on a handle would revert a draft poll or another editor's resize.
+   * Comparing with the current placement then drops a gesture that happens to
+   * land exactly where the widget already sits.
+   */
   const commit = useCallback(
-    (nodeId: string, next: GridPlacement | undefined) => {
+    (nodeId: string, next: GridPlacement | undefined, from: GridPlacement) => {
       const placement = placements[nodeId];
-      if (next && placement && !samePlacement(next, placement)) {
-        onPlace(nodeId, next);
-      }
+      if (!next || !placement) return;
+      if (samePlacement(next, from) || samePlacement(next, placement)) return;
+      onPlace(nodeId, next);
     },
     [onPlace, placements],
   );
@@ -342,6 +353,7 @@ export default function CanvasGridSurface({
         event.clientX - current.startX,
         event.clientY - current.startY,
       ),
+      current.origin,
     );
   };
 
@@ -401,6 +413,7 @@ export default function CanvasGridSurface({
         kind === 'move'
           ? movedPlacement(placement, delta, columns)
           : resizedPlacement(placement, delta, columns, constraints[nodeId]),
+        placement,
       );
     };
 
