@@ -287,9 +287,18 @@ class ResetPasswordWithTokenCommand(BaseCommand):
             return None
         payload: dict[str, Any] = CODEC.decode(entry.value)
 
-        # Lock the account row so two different valid tokens for the same user
-        # cannot both pass the fingerprint check: the second waits here and then
-        # sees the first one's new password hash.
+        # Consume before checking the account, so only one of several
+        # concurrent requests for the same token proceeds and a superseded
+        # token is gone too.
+        if not KeyValueDAO.consume_entry(TOKEN_RESOURCE, key):
+            return None
+
+        # Two different valid tokens for the same user must not both pass the
+        # fingerprint check, so the account is read only now. Where row locks
+        # exist, the second request waits on this row lock; on SQLite, which
+        # ignores ``FOR UPDATE``, it already waited on the delete above for the
+        # database write lock. Either way it reads the first one's committed
+        # password hash and the token comes out stale.
         user_model = security_manager.user_model
         user = (
             db.session.query(user_model)
@@ -298,13 +307,9 @@ class ResetPasswordWithTokenCommand(BaseCommand):
             .with_for_update()
             .one_or_none()
         )
-        stale = not password_recovery.is_eligible(user) or not hmac.compare_digest(
+        if not password_recovery.is_eligible(user) or not hmac.compare_digest(
             password_recovery.account_fingerprint(user),
             str(payload.get("fingerprint", "")),
-        )
-        # Consume before deciding, so a superseded token is also gone and only
-        # one of several concurrent requests for the same token proceeds.
-        consumed = KeyValueDAO.consume_entry(TOKEN_RESOURCE, key)
-        if stale or not consumed:
+        ):
             return None
         return user

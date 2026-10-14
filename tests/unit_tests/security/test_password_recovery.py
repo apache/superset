@@ -553,6 +553,41 @@ def test_failed_password_write_keeps_the_token(
     assert _password_works(user.username, NEW_PASSWORD)
 
 
+def test_reset_checks_the_account_after_taking_the_token(
+    recovery_enabled: None,
+    users: dict[str, User],
+    sent_emails: list[dict[str, str]],
+) -> None:
+    """Two resets racing with different tokens for one account: on SQLite,
+    where ``FOR UPDATE`` is a no-op, the other reset can commit a new password
+    after this one looked its token up but before it takes the token (the
+    write lock the delete waits for). The account must be checked after the
+    token is consumed, so this reset sees that password and is refused rather
+    than overwriting it."""
+    user = users["db"]
+    _issue_token(user, sent_emails)
+    _clear_cooldowns()
+    token = _issue_token(user, sent_emails)
+    concurrent_password = "Concurrent-Passw0rd!"  # noqa: S105
+    consume = KeyValueDAO.consume_entry
+
+    def consume_after_a_concurrent_reset(resource: KeyValueResource, key: Any) -> bool:
+        db.session.query(User).filter(User.id == user.id).update(
+            {"password": generate_password_hash(concurrent_password)},
+            synchronize_session=False,
+        )
+        return consume(resource, key)
+
+    with patch.object(
+        KeyValueDAO, "consume_entry", side_effect=consume_after_a_concurrent_reset
+    ):
+        with pytest.raises(PasswordRecoveryInvalidTokenError):
+            ResetPasswordWithTokenCommand(token, NEW_PASSWORD).run()
+
+    assert _password_works(user.username, concurrent_password)
+    assert not _password_works(user.username, NEW_PASSWORD)
+
+
 def test_consume_entry_has_exactly_one_winner(
     recovery_enabled: None,
     users: dict[str, User],
