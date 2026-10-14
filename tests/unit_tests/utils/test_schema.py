@@ -36,6 +36,11 @@ def test_validate_query_context_metadata_accepts_complete_payload() -> None:
     validate_query_context_metadata(VALID_QUERY_CONTEXT)
 
 
+def test_validate_query_context_metadata_skips_empty_string() -> None:
+    """An empty string is treated as an absent query_context, as before."""
+    validate_query_context_metadata("")
+
+
 def test_validate_query_context_metadata_rejects_invalid_json() -> None:
     """Malformed JSON is still rejected (parity with the plain validate_json)."""
     with pytest.raises(ValidationError):

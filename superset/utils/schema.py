@@ -103,14 +103,16 @@ def validate_query_context_metadata(value: Union[bytes, bytearray, str]) -> None
         key holding a list
     :param value: an object that should be parseable to a query_context JSON object
     """
+    if not value:
+        return
     try:
         parsed = json.loads(value)
     except json.JSONDecodeError as ex:
         raise ValidationError("JSON not valid") from ex
     if not is_query_context_metadata_complete(parsed):
         raise ValidationError(
-            "query_context must be a JSON object with a non-empty "
-            "'datasource' key and a 'queries' key holding a list"
+            "query_context must be a JSON object with a 'datasource' object "
+            "carrying a valid 'id' and 'type', and a 'queries' list of objects"
         )
 
 
