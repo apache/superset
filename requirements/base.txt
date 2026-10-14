@@ -430,6 +430,7 @@ url-normalize==2.2.1
 urllib3==2.8.0
     # via
     #   -r requirements/base.in
+    #   apache-superset (pyproject.toml)
     #   requests
     #   requests-cache
 vine==5.1.0
@@ -444,6 +445,7 @@ wcwidth==0.2.13
 werkzeug==3.1.9
     # via
     #   -r requirements/base.in
+    #   apache-superset (pyproject.toml)
     #   flask
     #   flask-appbuilder
     #   flask-cors

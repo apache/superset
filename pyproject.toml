@@ -119,8 +119,10 @@ dependencies = [
     # newer pandas needs 0.9+
     "tabulate>=0.10.0, <1.0",
     "typing-extensions>=4.16.0, <5",
+    "urllib3>=2.8.0, <3", # declare floor so metadata-only installs get the CVE-2026-97687/97689/97688 fix; requests alone allows >=1.26
     "waitress; sys_platform == 'win32'",
     "watchdog>=6.0.0",
+    "werkzeug>=3.1.9, <4", # declare floor so metadata-only installs get the CVE-2026-102598 fix; flask alone allows >=3.1.0
     "wtforms>=3.2.2, <4",
     "wtforms-json",
     "xlsxwriter>=3.2.9, <3.3",
