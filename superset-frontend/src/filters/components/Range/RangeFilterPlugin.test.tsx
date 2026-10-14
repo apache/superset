@@ -831,3 +831,104 @@ test('flags a column whose aggregates are not numeric', () => {
   );
   expect(screen.getByText('Chosen non-numeric column')).toBeInTheDocument();
 });
+
+test.each([
+  SingleValueType.Minimum,
+  SingleValueType.Maximum,
+  SingleValueType.Exact,
+])('optional semantic single-value mode %s accepts Clear All', mode => {
+  const props = semanticRangeProps();
+  const setDataMask = jest.fn();
+  const element = (value: [number | null, number | null]) => (
+    <RangeFilterPlugin
+      {...props}
+      formData={{
+        ...props.formData,
+        enableSingleValue: mode,
+        enableEmptyFilter: false,
+      }}
+      filterState={{ value }}
+      setDataMask={setDataMask}
+    />
+  );
+  const { rerender } = render(element([5, 5]));
+  rerender(element([null, null]));
+  expect(screen.getByRole('spinbutton')).toHaveValue('');
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {},
+      filterState: expect.objectContaining({
+        value: [null, null],
+        validateStatus: undefined,
+      }),
+    }),
+  );
+  expect(
+    screen.queryByText('Please provide a valid min or max value'),
+  ).not.toBeInTheDocument();
+});
+
+test.each([
+  SingleValueType.Minimum,
+  SingleValueType.Maximum,
+  SingleValueType.Exact,
+])('required semantic single-value mode %s rejects Clear All', mode => {
+  const props = semanticRangeProps();
+  const setDataMask = jest.fn();
+  const element = (value: [number | null, number | null]) => (
+    <RangeFilterPlugin
+      {...props}
+      formData={{
+        ...props.formData,
+        enableSingleValue: mode,
+        enableEmptyFilter: true,
+      }}
+      filterState={{ value }}
+      setDataMask={setDataMask}
+    />
+  );
+  const { rerender } = render(element([5, 5]));
+  rerender(element([null, null]));
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: {},
+      filterState: expect.objectContaining({ validateStatus: 'error' }),
+    }),
+  );
+  expect(
+    screen.getByText('Please provide a valid min or max value'),
+  ).toBeInTheDocument();
+});
+
+test.each([
+  ['an empty SQL column', []],
+  ['an all-null SQL column', [{ min: null, max: null }]],
+])('saved Slider mode falls back to usable inputs for %s', (_label, data) => {
+  const setDataMask = jest.fn();
+  render(
+    <RangeFilterPlugin
+      {...(transformProps({
+        ...rangeProps,
+        queriesData: [{ ...rangeProps.queriesData[0], rowcount: 0, data }],
+        formData: {
+          ...rangeProps.formData,
+          rangeDisplayMode: RangeDisplayMode.Slider,
+          defaultValue: undefined,
+        },
+        filterState: { value: [null, null] },
+      } as unknown as ChartProps) as PluginFilterRangeProps)}
+      setDataMask={setDataMask}
+    />,
+  );
+  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  const [lower, upper] = screen.getAllByRole('spinbutton');
+  expect(lower).toBeInTheDocument();
+  expect(upper).toBeInTheDocument();
+  fireEvent.change(lower, { target: { value: '-3' } });
+  fireEvent.blur(lower);
+  expect(setDataMask).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      extraFormData: { filters: [{ col: 'SP_POP_TOTL', op: '>=', val: -3 }] },
+    }),
+  );
+});

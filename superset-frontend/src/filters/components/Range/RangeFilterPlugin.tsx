@@ -181,6 +181,19 @@ const validateRange = (
     return { isValid: false, errorMessage: requiredError };
   }
 
+  // Allow empty ranges if enableEmptyFilter is false
+  if (!enableEmptyFilter && inputMin === null && inputMax === null) {
+    return { isValid: true, errorMessage: null };
+  }
+
+  // If enableEmptyFilter is true, at least one value is required
+  if (enableEmptyFilter && inputMin === null && inputMax === null) {
+    return {
+      isValid: false,
+      errorMessage: requiredError,
+    };
+  }
+
   // Single value validation
   if (enableSingleValue !== undefined) {
     const isSingleMin =
@@ -203,19 +216,6 @@ const validateRange = (
   }
 
   // Range validation
-  // Allow empty ranges if enableEmptyFilter is false
-  if (!enableEmptyFilter && inputMin === null && inputMax === null) {
-    return { isValid: true, errorMessage: null };
-  }
-
-  // If enableEmptyFilter is true, at least one value is required
-  if (enableEmptyFilter && inputMin === null && inputMax === null) {
-    return {
-      isValid: false,
-      errorMessage: requiredError,
-    };
-  }
-
   // Check relationship between min and max when both are provided
   if (inputMin !== null && inputMax !== null && inputMin > inputMax) {
     return {
@@ -280,9 +280,10 @@ export default function RangeFilterPlugin(props: PluginFilterRangeProps) {
     formData;
 
   // Get the display mode from formData
-  const rangeDisplayMode = manualBounds
-    ? RangeDisplayMode.Input
-    : formData?.rangeDisplayMode || RangeDisplayMode.SliderAndInput;
+  const rangeDisplayMode =
+    manualBounds || min === undefined || max === undefined
+      ? RangeDisplayMode.Input
+      : formData?.rangeDisplayMode || RangeDisplayMode.SliderAndInput;
 
   const minIndex = 0;
   const maxIndex = 1;

@@ -17,6 +17,7 @@
  * under the License.
  */
 import fetchMock from 'fetch-mock';
+import { GenericDataType } from '@apache-superset/core/common';
 import { supersetGetCache } from 'src/utils/cachedSupersetGet';
 import {
   fetchSemanticViewStructure,
@@ -92,3 +93,22 @@ test.each([undefined, null])(
     expect(structure.semantic_selection_version).toBeUndefined();
   },
 );
+
+test.each([
+  'bigint',
+  'integer',
+  'smallint',
+  'tinyint',
+  'numeric',
+  'numeric(10,2)',
+  'real',
+  'BIGINT',
+  'INTEGER',
+])('preserves SQL numeric dimension %s in the shared column metadata', type => {
+  expect(semanticViewDimensionsToColumns([{ name: 'amount', type }])).toEqual([
+    expect.objectContaining({
+      column_name: 'amount',
+      type_generic: GenericDataType.Numeric,
+    }),
+  ]);
+});
