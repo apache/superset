@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-14 13:52+0000\n"
+"POT-Creation-Date: 2026-10-14 20:29+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -1154,6 +1154,13 @@ msgid ""
 msgstr ""
 
 msgid ""
+"A filter value containing a quote or a backslash is not mirrored on this "
+"database: the driver and the database do not agree on how to write it "
+"into a query, so the transform would be evaluated at a value the filter "
+"does not compare. Filters whose values carry neither still mirror."
+msgstr ""
+
+msgid ""
 "A full URL pointing to the location of the built plugin (could be hosted "
 "on a CDN for example)"
 msgstr "指向內置插件位置的完整 URL（例如，可以托管在 CDN 上）"
@@ -1302,6 +1309,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "可重複使用的資料集將與您的圖表一同儲存。"
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -5251,6 +5263,10 @@ msgstr ""
 #, fuzzy, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "不能連接到資料庫\"%(database)s\""
+
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "無法獲取所有保存的圖表"
@@ -10821,6 +10837,10 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
+msgstr ""
+
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "閥值下限必須比閥值上限小"
 
@@ -15695,6 +15715,15 @@ msgstr "注释層類型"
 msgid "Semantic layer updated"
 msgstr "注释已更新。"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+
 #, fuzzy
 msgid "Semantic view could not be created."
 msgstr "無法創建數據集。"
@@ -18409,6 +18438,11 @@ msgid ""
 "limit, then retry. Result pagination is not supported yet."
 msgstr ""
 
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
 msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
@@ -19548,6 +19582,19 @@ msgstr "這部分有錯誤"
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -20144,6 +20191,9 @@ msgstr "星期二"
 #, fuzzy
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off server pagination"
+msgstr ""
 
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""

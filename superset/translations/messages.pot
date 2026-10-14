@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 13:52+0000\n"
+"POT-Creation-Date: 2026-10-14 20:29+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -954,6 +954,9 @@ msgstr ""
 msgid "A filter value carrying a UTC offset is not mirrored: a transform is evaluated in the database's own time frame, so the mirrored predicate could ask for a partition the matching rows are not in. Write the bound without an offset to mirror this filter."
 msgstr ""
 
+msgid "A filter value containing a quote or a backslash is not mirrored on this database: the driver and the database do not agree on how to write it into a query, so the transform would be evaluated at a value the filter does not compare. Filters whose values carry neither still mirror."
+msgstr ""
+
 msgid "A full URL pointing to the location of the built plugin (could be hosted on a CDN for example)"
 msgstr ""
 
@@ -1048,6 +1051,9 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr ""
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid "A semantic query filter is invalid. Check its operator and values, then try again."
 msgstr ""
 
 msgid "A semantic view's provider query is produced when the chart runs and returned with its data."
@@ -14427,6 +14433,9 @@ msgstr ""
 msgid "The semantic layer returned only part of this query result. Narrow the time range or selected dimensions, or request a smaller explicit row limit, then retry. Result pagination is not supported yet."
 msgstr ""
 
+msgid "The semantic query is invalid. Check its fields and options, then try again."
+msgstr ""
+
 msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
@@ -15212,6 +15221,12 @@ msgid "This section contains validation errors"
 msgstr ""
 
 msgid "This semantic layer has no dependent semantic views."
+msgstr ""
+
+msgid "This semantic provider cannot apply the requested offset. Turn off pagination or use a supported limit and offset."
+msgstr ""
+
+msgid "This semantic provider does not support this query. Remove unsupported filters or grouping and try again."
 msgstr ""
 
 msgid "This semantic view does not support server pagination."
@@ -18318,22 +18333,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid ""
-"A semantic query filter is invalid. Check its operator and values, then try "
-"again."
-msgstr ""
-
-msgid "The semantic query is invalid. Check its fields and options, then try again."
-msgstr ""
-
-msgid ""
-"This semantic provider cannot apply the requested offset. Turn off pagination"
-" or use a supported limit and offset."
-msgstr ""
-
-msgid ""
-"This semantic provider does not support this query. Remove unsupported "
-"filters or grouping and try again."
 msgstr ""

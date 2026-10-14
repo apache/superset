@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 13:52+0000\n"
+"POT-Creation-Date: 2026-10-14 20:29+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -1133,6 +1133,13 @@ msgid ""
 msgstr ""
 
 msgid ""
+"A filter value containing a quote or a backslash is not mirrored on this "
+"database: the driver and the database do not agree on how to write it "
+"into a query, so the transform would be evaluated at a value the filter "
+"does not compare. Filters whose values carry neither still mirror."
+msgstr ""
+
+msgid ""
 "A full URL pointing to the location of the built plugin (could be hosted "
 "on a CDN for example)"
 msgstr ""
@@ -1269,6 +1276,11 @@ msgstr ""
 "kauwhata."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -5073,6 +5085,10 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Kāore i taea te hono ki te pātengi raraunga: \"%(database)s\""
+
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
 
 msgid "Could not fetch all saved charts"
 msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
@@ -10334,6 +10350,10 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
+msgstr ""
+
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Me iti ake te paepae raro i te paepae runga"
 
@@ -14952,6 +14972,16 @@ msgstr "Momo papa tohu"
 msgid "Semantic layer updated"
 msgstr "Kua whakahouhia te tauira tohu"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 #, fuzzy
 msgid "Semantic view could not be created."
 msgstr "Kāore i taea te hanga i te rārangi raraunga."
@@ -17623,6 +17653,11 @@ msgid ""
 "limit, then retry. Result pagination is not supported yet."
 msgstr ""
 
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
 msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
@@ -18784,6 +18819,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -19357,6 +19405,9 @@ msgstr "Tūrei"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off server pagination"
+msgstr ""
 
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""

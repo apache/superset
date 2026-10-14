@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 13:52+0000\n"
+"POT-Creation-Date: 2026-10-14 20:29+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -1287,6 +1287,13 @@ msgid ""
 "without an offset to mirror this filter."
 msgstr ""
 
+msgid ""
+"A filter value containing a quote or a backslash is not mirrored on this "
+"database: the driver and the database do not agree on how to write it "
+"into a query, so the transform would be evaluated at a value the filter "
+"does not compare. Filters whose values carry neither still mirror."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid ""
 "A full URL pointing to the location of the built plugin (could be hosted "
@@ -1440,6 +1447,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Skup podataka za ponovnu upotrebu biće sačuvan uz vaš grafikon."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -5859,6 +5871,10 @@ msgstr ""
 #, python-format
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nije moguće povezati se sa bazom podataka: \"%(database)s\""
+
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -11948,6 +11964,10 @@ msgid ""
 "legend uses this fixed range instead of the automatic data range."
 msgstr ""
 
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk, zh, zh_TW]
 msgid "Lower threshold must be lower than upper threshold"
 msgstr "Donji prag mora biti manji od gornjeg praga"
@@ -17271,6 +17291,17 @@ msgstr "Tip semantičkog sloja"
 msgid "Semantic layer updated"
 msgstr "Semantički sloj ažuriran"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 msgid "Semantic view could not be created."
 msgstr "Semantički pogled nije mogao biti kreiran."
 
@@ -20247,6 +20278,11 @@ msgid ""
 "limit, then retry. Result pagination is not supported yet."
 msgstr ""
 
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
 msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
@@ -21488,6 +21524,19 @@ msgstr "Ovaj odeljak sadrži greške validacije"
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "This session has encountered an interruption, and some controls may not "
@@ -22157,6 +22206,9 @@ msgstr "Utorak"
 
 msgid "Tukey"
 msgstr "Tukey"
+
+msgid "Turn off server pagination"
+msgstr ""
 
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
