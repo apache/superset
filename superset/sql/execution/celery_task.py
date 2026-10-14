@@ -290,6 +290,8 @@ def _store_results_in_backend(
 
             write_success = results_backend.set(key, compressed, cache_timeout)
             if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
+                if write_success:
+                    _discard_stored_results(query, key)
                 return
             if not write_success:
                 logger.error(
@@ -429,6 +431,34 @@ def _commit_query_unless_stopped(query: Query) -> bool:
             return False
     db.session.commit()  # pylint: disable=consider-using-transaction
     return True
+
+
+def _discard_stored_results(query: Query, key: str | None) -> None:
+    """
+    Delete results stored for a query that a stop has since won.
+
+    The key is never published, so the blob would only occupy the results
+    backend until it expires. A failed delete is logged and does not change the
+    STOPPED outcome.
+    """
+    if not key or not results_backend:
+        return
+    try:
+        deleted = results_backend.delete(key)
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "Query %s: Failed to delete results of stopped query, key: %s",
+            str(query.id),
+            key,
+            exc_info=True,
+        )
+        return
+    if not deleted:
+        logger.warning(
+            "Query %s: Results of stopped query were not deleted, key: %s",
+            str(query.id),
+            key,
+        )
 
 
 def _stopped_query_payload(query: Query) -> dict[str, Any]:
@@ -618,12 +648,16 @@ def _publish_query_result(
         return payload
 
     # Serialization and backend writes can outlive the last execution check.
+    # Read the stored key first: a stop reloads the row and drops it.
+    stored_key = query.results_key
     if _make_check_stopped_fn(query, preserve_pending=True)():
+        _discard_stored_results(query, stored_key)
         return _stopped_query_payload(query)
 
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS
     if not _commit_query_unless_stopped(query):
+        _discard_stored_results(query, stored_key)
         return _stopped_query_payload(query)
 
     return payload
