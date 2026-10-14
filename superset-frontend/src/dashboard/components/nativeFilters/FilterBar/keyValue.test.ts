@@ -16,6 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+// These helpers moved to the dashboard query layer during the Zustand/
+// TanStack migration; the coverage is unchanged.
 import fetchMock from 'fetch-mock';
 import { logging } from '@apache-superset/core/utils';
 import {
@@ -23,7 +25,7 @@ import {
   createFilterKey,
   getFilterValue,
   getPermalinkValue,
-} from './keyValue';
+} from 'src/dashboard/queries/filterStateApi';
 
 jest.mock('@apache-superset/core/utils', () => ({
   logging: { error: jest.fn() },

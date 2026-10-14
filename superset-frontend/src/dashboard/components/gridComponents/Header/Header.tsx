@@ -16,11 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, memo } from 'react';
+import { useState, useCallback, useRef, memo } from 'react';
 import cx from 'classnames';
 import { css, styled } from '@apache-superset/core/theme';
 import PopoverDropdown from '@superset-ui/core/components/PopoverDropdown';
 import { EditableTitle } from '@superset-ui/core/components';
+import {
+  flagTitleUnsavedChanges,
+  resetTitleDirtyFlag,
+} from 'src/dashboard/util/flagTitleUnsavedChanges';
 import { Draggable } from 'src/dashboard/components/dnd/DragDroppable';
 import DragHandle from 'src/dashboard/components/dnd/DragHandle';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
@@ -206,6 +210,20 @@ function Header({
     [handleUpdateMeta],
   );
 
+  // Flag unsaved changes on keystroke so Save enables while typing the title,
+  // and clear the flag when editing ends.
+  const titleDirtyRef = useRef<boolean | undefined>(undefined);
+  const handleTitleChange = useCallback(
+    (value: string) =>
+      flagTitleUnsavedChanges(component.meta.text ?? '', value, titleDirtyRef),
+    [component.meta.text],
+  );
+  const handleTitleEditingChange = useCallback((isEditing: boolean) => {
+    if (!isEditing) {
+      resetTitleDirtyFlag(titleDirtyRef);
+    }
+  }, []);
+
   const handleDeleteComponent = useCallback((): void => {
     deleteComponent(id, parentId);
   }, [deleteComponent, id, parentId]);
@@ -275,6 +293,8 @@ function Header({
                 title={component.meta.text}
                 canEdit={editMode}
                 onSaveTitle={handleChangeText}
+                onChange={handleTitleChange}
+                onEditingChange={handleTitleEditingChange}
                 showTooltip={false}
               />
               {!editMode && !embeddedMode && (

@@ -24,11 +24,21 @@ import {
   TimeGranularity,
   VizType,
 } from '@superset-ui/core';
+import type { DataMaskStateWithId } from '@superset-ui/core';
 import * as redux from 'redux';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
 import * as chartStateConverter from '../../../util/chartStateConverter';
 import { sliceEntitiesForChart as sliceEntities } from 'spec/fixtures/mockSliceEntities';
+import {
+  useDashboardInfoStore,
+  useDashboardSlicesStore,
+  useDashboardStateStore,
+  useNativeFiltersStore,
+  type FilterEntry,
+} from 'src/dashboard/stores';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
+import type { DashboardInfo, Slice } from 'src/dashboard/types';
 import mockDatasource from 'spec/fixtures/mockDatasource';
 import chartQueries, {
   sliceId as queryId,
@@ -114,11 +124,53 @@ const defaultState = {
   },
 };
 
+// The component reads dashboardInfo/dataMask/filters from Zustand, so every
+// render helper has to seed those stores — not just Redux `initialState`.
+type SeedState = {
+  sliceEntities?: { slices?: Record<number, Slice> };
+  dataMask?: DataMaskStateWithId;
+  nativeFilters?: { filters?: Record<string, FilterEntry> };
+  dashboardState?: {
+    expandedSlices?: Record<number, boolean>;
+    expandAllSlices?: boolean;
+    datasetsStatus?: string;
+  };
+  dashboardInfo?: DashboardInfo;
+};
+
+function seedStores(initialState: SeedState) {
+  useDashboardSlicesStore
+    .getState()
+    .setSlices(
+      (initialState.sliceEntities?.slices ?? {}) as unknown as Record<
+        number,
+        Slice
+      >,
+    );
+  useDataMaskStore.setState({ dataMask: initialState.dataMask ?? {} });
+  useNativeFiltersStore.setState({
+    filters: initialState.nativeFilters?.filters ?? {},
+  });
+  useDashboardStateStore.setState({
+    expandedSlices: initialState.dashboardState?.expandedSlices ?? {},
+    expandAllSlices: initialState.dashboardState?.expandAllSlices ?? false,
+    datasetsStatus: initialState.dashboardState?.datasetsStatus,
+  });
+  useDashboardInfoStore.setState({
+    dashboardInfo: (initialState.dashboardInfo ?? {}) as DashboardInfo,
+  });
+}
+
 function setup(
   overrideProps: Record<string, unknown> = {},
   overrideState: Record<string, unknown> = {},
   currentDatasets: DashboardDatasetsContextValue | null = null,
 ) {
+  const initialState = {
+    ...defaultState,
+    ...overrideState,
+  } as unknown as SeedState;
+  seedStores(initialState);
   const chart = <Chart {...props} {...overrideProps} />;
   return render(
     currentDatasets ? (
@@ -131,7 +183,7 @@ function setup(
     {
       useRedux: true,
       useRouter: true,
-      initialState: { ...defaultState, ...overrideState },
+      initialState,
     },
   );
 }
@@ -149,6 +201,11 @@ function setupDuringUnrelatedAutoRefresh(
   overrideProps: Record<string, unknown> = {},
   overrideState: Record<string, unknown> = {},
 ) {
+  const initialState = {
+    ...defaultState,
+    ...overrideState,
+  } as unknown as SeedState;
+  seedStores(initialState);
   return render(
     <AutoRefreshProvider>
       <StartAutoRefreshFor chartIds={refreshingChartIds} />
@@ -157,7 +214,7 @@ function setupDuringUnrelatedAutoRefresh(
     {
       useRedux: true,
       useRouter: true,
-      initialState: { ...defaultState, ...overrideState },
+      initialState,
     },
   );
 }

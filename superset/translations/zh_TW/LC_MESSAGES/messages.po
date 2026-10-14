@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -2381,9 +2381,6 @@ msgstr "更新值時出錯。"
 msgid "An error occurred while pruning logs "
 msgstr "精简日誌時出錯 "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3426,6 +3423,9 @@ msgstr "CVAS (create view as select)查詢不是 SELECT 語句。"
 msgid "Cache Timeout (seconds)"
 msgstr "缓存超時（秒）"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -4413,6 +4413,9 @@ msgstr "折叠數據面板"
 msgid "Collapse row"
 msgstr "折叠行"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "摺疊設定"
 
@@ -5151,6 +5154,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -5181,6 +5189,12 @@ msgstr "計數"
 
 msgid "Country"
 msgstr "國家"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "國家颜色方案"
@@ -6670,6 +6684,9 @@ msgstr "這個數據集没有返回預覽數據"
 #, fuzzy
 msgid "Discard"
 msgstr "取消"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "顯示名稱"
@@ -8250,6 +8267,12 @@ msgstr "載入圖表資料失敗。"
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8325,6 +8348,9 @@ msgstr "保存交叉篩選作用域失敗"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "保存交叉篩選作用域失敗"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -8510,6 +8536,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "過濾您的圖表"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "過濾器預設值"
 
@@ -8555,6 +8587,10 @@ msgstr "過濾您的圖表"
 
 msgid "Filters"
 msgstr "過濾"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9471,11 +9507,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "包含要與 %s 一起傳送的描述"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "包括系列名稱作為軸"
 
 msgid "Include time"
 msgstr "包含時間"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 #, fuzzy
 msgid "Increase"
@@ -9786,6 +9829,9 @@ msgstr "無效的结果類型：%(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "無效的滚動類型：%(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 #, fuzzy
 msgid "Invalid state."
@@ -10496,6 +10542,9 @@ msgstr "加载的數據已缓存"
 
 msgid "Loaded from cache"
 msgstr "從缓存中加载"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Loading"
@@ -11235,6 +11284,9 @@ msgstr "缺失URL参數"
 #, fuzzy
 msgid "Mixed Chart"
 msgstr "混合圖表"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "已修改"
@@ -12130,6 +12182,9 @@ msgstr "一個或多個指標顯示"
 #, fuzzy
 msgid "One or more annotation layers failed loading."
 msgstr "一個或多個注释層加载失敗。"
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "一個或多個列已存在"
@@ -13136,6 +13191,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "預覽"
 
@@ -13587,6 +13647,9 @@ msgstr "重新加载"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "重新載入 SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -14341,6 +14404,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL 查詢"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL 表達式"
@@ -15346,6 +15414,9 @@ msgstr "語義視圖"
 msgid "Semantic Views"
 msgstr "語義視圖"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "注释層"
@@ -15903,6 +15974,9 @@ msgstr "顯示標記"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "顯示總計"
@@ -16158,9 +16232,6 @@ msgstr "抱歉，出了點問題。請稍後再試。"
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "抱歉，獲取資料庫訊息時出錯：%s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "抱歉，這個看板在獲取圖表時發生錯誤："
-
 msgid "Sorry, An error occurred"
 msgstr "抱歉，發生錯誤"
 
@@ -16179,6 +16250,9 @@ msgstr "抱歉，出了點問題。請稍後再試。"
 #, fuzzy
 msgid "Sorry, something went wrong. Please try again."
 msgstr "抱歉，出了點問題。請稍後再試。"
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "抱歉，出了點問題。請稍後再試。"
@@ -16439,6 +16513,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -17199,6 +17278,10 @@ msgid ""
 "used in time range filters in dashboards. Would you like to add it to the"
 " filters list?"
 msgstr "X 軸不在篩選器清單中，這將導致無法在儀表板的時間範圍篩選器中使用它。您想要將其加入篩選器清單嗎？"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -18040,6 +18123,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 #, fuzzy
 msgid "The service url of the layer"
 msgstr "在圖表上顯示系列值"
@@ -18708,6 +18806,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -19803,6 +19913,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "無法計算此日期差異"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "無法連接到名為\\%(catalog_name)s\\的目錄。"
@@ -20459,6 +20572,9 @@ msgstr "數值格式"
 #, fuzzy
 msgid "Value and Percentage"
 msgstr "值和百分比"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "值邊界"
@@ -21785,6 +21901,9 @@ msgid ""
 "updated automatically. Run the query by clicking on the \"Update chart\" "
 "button or"
 msgstr "您已更新了控制面板中的值，但圖表未自動更新。請點擊 \"更新圖表\" 按钮運行查詢或"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

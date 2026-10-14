@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -2221,10 +2221,6 @@ msgstr "Произошла ошибка при парсинге ключа"
 msgid "An error occurred while pruning logs "
 msgstr "Произошла ошибка при удалении журналов "
 
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Произошла ошибка при обновлении схемы конфигурации"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3195,6 +3191,9 @@ msgstr "CVAS (CREATE VIEW AS SELECT) не является SELECT-запросо
 msgid "Cache Timeout (seconds)"
 msgstr "Время жизни кэша (секунды)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -4068,6 +4067,9 @@ msgstr "Свернуть панель данных"
 msgid "Collapse row"
 msgstr "Свернуть строку"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Свернуть настройки"
 
@@ -4724,6 +4726,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Не удалось обнаружить хост: \"%(host)s\"."
@@ -4747,6 +4754,12 @@ msgstr "Количество"
 
 msgid "Country"
 msgstr "Страна"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Цветовая схема страны"
@@ -6095,6 +6108,9 @@ msgstr "Отключает переход к детализации для эт�
 
 msgid "Discard"
 msgstr "Отменить изменения"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Отображаемое имя"
@@ -7468,6 +7484,12 @@ msgstr "Не удалось загрузить данные"
 msgid "Failed to load columns for %s %s"
 msgstr "Не удалось загрузить столбцы %s %s"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7534,6 +7556,9 @@ msgstr "Не удалось сохранить область действия �
 
 msgid "Failed to save cross-filters setting"
 msgstr "Не удалось сохранить настройку кросс-фильтров"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Не удалось установить локальную тему: некорректная JSON-конфигурация"
@@ -7683,6 +7708,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Поиск"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Фильтр имеет значение по умолчанию"
 
@@ -7724,6 +7755,10 @@ msgstr "Поиск"
 
 msgid "Filters"
 msgstr "Фильтры"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Фильтры и элементы управления"
@@ -8523,11 +8558,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Добавьте описание, которое будет отправлено вместе с отчетом %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Включить имена категорий в качестве оси"
 
 msgid "Include time"
 msgstr "Включить время"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Рост"
@@ -8787,6 +8829,9 @@ msgstr "Недопустимый тип ответа: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Некорректное значение rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Некорректное состояние"
@@ -9410,6 +9455,9 @@ msgstr "Данные загружены в кэш"
 
 msgid "Loaded from cache"
 msgstr "Загружено из кэша"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 msgid "Loading"
 msgstr "Загрузка"
@@ -10048,6 +10096,9 @@ msgstr "Отсутствующие параметры URL"
 
 msgid "Mixed Chart"
 msgstr "Смешанная диаграмма"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Изменено"
@@ -10845,6 +10896,9 @@ msgstr "Выберите одну или несколько мер для ото
 
 msgid "One or more annotation layers failed loading."
 msgstr "Не удалось загрузить один или несколько слоев аннотаций."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Один или несколько столбцов уже существуют"
@@ -11749,6 +11803,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Предпросмотр"
 
@@ -12138,6 +12197,9 @@ msgstr "Обновить"
 
 msgid "Reload SQL Lab"
 msgstr "Перезагрузить SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -12837,6 +12899,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL-запрос"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Выражение SQL"
@@ -13704,6 +13771,9 @@ msgstr "Представление аннотаций"
 msgid "Semantic Views"
 msgstr "Представления аннотаций"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Слой аннотаций"
 
@@ -14182,6 +14252,9 @@ msgstr "Показать итог"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Показать общий итог"
 
@@ -14426,9 +14499,6 @@ msgstr "Что-то пошло не так"
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "К сожалению, произошла ошибка при получении информации о базе данных: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Произошла ошибка при загрузке сохраненных диаграмм: "
-
 msgid "Sorry, An error occurred"
 msgstr "Извините, произошла ошибка"
 
@@ -14443,6 +14513,9 @@ msgstr "Извините, что-то пошло не так. Встраиван
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Извините, произошла ошибка. Пожалуйста, попробуйте еще раз."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Извините, что-то пошло не так. Попробуйте еще раз позже."
@@ -14672,6 +14745,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15342,6 +15420,10 @@ msgid ""
 msgstr ""
 "Ось X отсутствует в списке фильтров, что не позволит использовать ее для "
 "фильтрации по времени в дашбордах. Хотите добавить ее в список фильтров?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -16165,6 +16247,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Служебный URL-адрес слоя"
 
@@ -16813,6 +16910,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17799,6 +17908,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Не удалось вычислить разницу между датами"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Не удалось подключиться к каталогу \"%(catalog_name)s\""
@@ -18381,6 +18493,9 @@ msgstr "Формат значения"
 
 msgid "Value and Percentage"
 msgstr "Значение и процентная доля"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Ограничения для значения"
@@ -19645,6 +19760,9 @@ msgstr ""
 "Вы обновили значения в панели управления, но диаграмма не была обновлена "
 "автоматически. Сделайте запрос, нажав на кнопку \"Обновить диаграмму\" "
 "или"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 #, python-format
 msgid ""

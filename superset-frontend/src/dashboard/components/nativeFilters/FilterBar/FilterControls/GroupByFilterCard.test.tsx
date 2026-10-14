@@ -30,23 +30,30 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import { useDataMaskStore } from 'src/dataMask/useDataMaskStore';
 import GroupByFilterCard, {
   applyColumnAllowlist,
   createLabelSortComparator,
+  mapDatasetColumnsToOptions,
 } from './GroupByFilterCard';
 
-jest.mock('src/dashboard/actions/chartCustomizationActions', () => ({
-  ...jest.requireActual('src/dashboard/actions/chartCustomizationActions'),
-  setPendingChartCustomization: jest.fn(() => ({ type: 'MOCK_SET_PENDING' })),
+jest.mock('src/dashboard/stores', () => ({
+  ...jest.requireActual('src/dashboard/stores'),
+  setPendingChartCustomization: jest.fn(),
 }));
 
-jest.mock('src/components/MessageToasts/actions', () => ({
-  ...jest.requireActual('src/components/MessageToasts/actions'),
-  addDangerToast: jest.fn(() => ({ type: 'MOCK_DANGER_TOAST' })),
-}));
+const mockedAddDangerToast = jest.fn();
 
-const mockedAddDangerToast = addDangerToast as unknown as jest.Mock;
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: (Component: any) => Component,
+  useToasts: () => ({
+    addDangerToast: mockedAddDangerToast,
+    addSuccessToast: jest.fn(),
+    addInfoToast: jest.fn(),
+    addWarningToast: jest.fn(),
+  }),
+}));
 
 const apple: LabeledValue = { value: 'a', label: 'Apple' };
 const banana: LabeledValue = { value: 'b', label: 'Banana' };
@@ -138,6 +145,7 @@ afterEach(() => {
   fetchMock.removeRoutes();
   fetchMock.clearHistory();
   mockedAddDangerToast.mockClear();
+  useDataMaskStore.setState({ dataMask: {} });
 });
 
 test('fetches the bare dataset endpoint with no query projection', async () => {
@@ -232,7 +240,7 @@ test('normalizes legacy datasetId shapes: plain number, string, and {value} obje
  */
 
 const { setPendingChartCustomization } = jest.requireMock(
-  'src/dashboard/actions/chartCustomizationActions',
+  'src/dashboard/stores',
 );
 
 test('semantic-view target lists only the view dimensions under an id collision', async () => {
@@ -464,6 +472,9 @@ test('keeps an applied selection that a narrowed allowlist excludes, with its la
   // The viewer grouped by 'state' before the builder narrowed the allowlist to
   // ['country']. The applied selection is kept (not silently dropped) and
   // still renders with its verbose label rather than the raw column name.
+  useDataMaskStore.setState({
+    dataMask: { 'cc-1': { id: 'cc-1', filterState: { value: ['state'] } } },
+  });
   render(
     <GroupByFilterCard
       customizationItem={{
@@ -471,15 +482,7 @@ test('keeps an applied selection that a narrowed allowlist excludes, with its la
         controlValues: { columnsAllowlist: ['country'] },
       }}
     />,
-    {
-      useRedux: true,
-      initialState: {
-        ...initialState,
-        dataMask: {
-          'cc-1': { id: 'cc-1', filterState: { value: ['state'] } },
-        },
-      },
-    },
+    { useRedux: true, initialState },
   );
 
   expect(await screen.findByText('State')).toBeInTheDocument();
@@ -531,4 +534,20 @@ test('shows no message while at least one allowed column remains', async () => {
   await userEvent.click(await screen.findByRole('combobox'));
   expect(await screen.findByText('Country')).toBeInTheDocument();
   expect(screen.queryByText(allowlistGoneMessage)).not.toBeInTheDocument();
+});
+
+test('mapDatasetColumnsToOptions drops non-filterable columns and prefers verbose_name', () => {
+  const options = mapDatasetColumnsToOptions([
+    { column_name: 'region', verbose_name: 'Region', filterable: true },
+    { column_name: 'secret', filterable: false },
+    { column_name: 'amount' },
+  ]);
+  expect(options).toEqual([
+    { label: 'Region', value: 'region' },
+    { label: 'amount', value: 'amount' },
+  ]);
+});
+
+test('mapDatasetColumnsToOptions returns [] for undefined columns', () => {
+  expect(mapDatasetColumnsToOptions(undefined)).toEqual([]);
 });

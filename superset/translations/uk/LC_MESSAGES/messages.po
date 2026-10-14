@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -2282,9 +2282,6 @@ msgstr "Не вдалося розібрати ключ."
 msgid "An error occurred while pruning logs "
 msgstr "Не вдалося очистити журнали "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3248,6 +3245,9 @@ msgstr ""
 msgid "Cache Timeout (seconds)"
 msgstr "Тривалість кешу (у секундах)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -4130,6 +4130,9 @@ msgstr "Згорнути панель даних"
 msgid "Collapse row"
 msgstr "Згорнути рядок"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Згорнути параметри"
 
@@ -4800,6 +4803,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Не вдалося розпізнати вузол: «%(host)s»."
@@ -4823,6 +4831,12 @@ msgstr "Кількість"
 
 msgid "Country"
 msgstr "Країна"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Кольорова схема країни"
@@ -6211,6 +6225,9 @@ msgstr "Вимикає функцію деталізації для цієї б�
 
 msgid "Discard"
 msgstr "Відкинути"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Імʼя на загал"
@@ -7602,6 +7619,12 @@ msgstr "Не вдалося завантажити дані діаграми."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7669,6 +7692,9 @@ msgstr "Не вдалося зберегти межі перехресного �
 
 msgid "Failed to save cross-filters setting"
 msgstr "Не вдалося зберегти налаштування перехресних фільтрів"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Не вдалося вказати місцеву тему: неправильні налаштування JSON"
@@ -7824,6 +7850,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Відфільтрувати діаграми"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Фільтр має початкове значення"
 
@@ -7863,6 +7895,10 @@ msgstr "Пошук діаграм"
 
 msgid "Filters"
 msgstr "Фільтри"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Фільтри та контролі"
@@ -8662,11 +8698,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Додайте опис, що надсилатиметься разом із %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Додати назву рядів як вісь"
 
 msgid "Include time"
 msgstr "Додати час"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Ріст"
@@ -8926,6 +8969,9 @@ msgstr "Неправильний тип результату: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Неправильний ковзний тип: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Неправильний стан."
@@ -9558,6 +9604,9 @@ msgstr "Завантажені дані закешовано"
 
 msgid "Loaded from cache"
 msgstr "Завантажено з кешу"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 #, fuzzy
 msgid "Loading"
@@ -10205,6 +10254,9 @@ msgstr "Бракує параметра в посиланні"
 
 msgid "Mixed Chart"
 msgstr "Змішана діаграма"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Змінено"
@@ -11009,6 +11061,9 @@ msgstr "Які показники показувати"
 
 msgid "One or more annotation layers failed loading."
 msgstr "Не вдалося завантажити один або кілька шарів анотацій."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Один або кілька стовпців вже існують"
@@ -11923,6 +11978,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Огляд"
 
@@ -12321,6 +12381,9 @@ msgstr "Перезавантажити"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Перезавантажити SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13031,6 +13094,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Запит SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Вираз SQL"
@@ -13945,6 +14013,9 @@ msgstr "Семантичний вигляд"
 msgid "Semantic Views"
 msgstr "Семантичні вигляди"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Анотаційний шар"
@@ -14451,6 +14522,9 @@ msgstr "Показати підсумки"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Показати підсумок"
 
@@ -14703,9 +14777,6 @@ msgstr "Щось не так."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "На жаль, трапилась помилка одержання інформації про базу даних: %s"
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "На жаль, трапилась помилка одержання збережених діаграм: "
-
 msgid "Sorry, An error occurred"
 msgstr "На жаль, трапилась помилка"
 
@@ -14720,6 +14791,9 @@ msgstr "Отакої, щось не так. Вбудовування немож�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Отакої, щось не так. Спробуйте ще раз."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Отакої, щось не так. Спробуйте ще раз пізніше."
@@ -14949,6 +15023,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15642,6 +15721,10 @@ msgid ""
 msgstr ""
 "Бракує осі X у переліку фільтрів, тому її не можна використовувати для "
 "фільтрування проміжків часу у звіті. Додати її до переліку фільтрів?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -16463,6 +16546,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Службове посилання шару"
 
@@ -17115,6 +17213,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18117,6 +18227,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Неможливо порахувати таку різницю між датами"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Не вдалося підʼєднатися до каталогу з назвою «%(catalog_name)s»."
@@ -18706,6 +18819,9 @@ msgstr "Формат значення"
 
 msgid "Value and Percentage"
 msgstr "Значення та відсоток"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Межі значення"
@@ -19992,6 +20108,9 @@ msgid ""
 msgstr ""
 "Ви оновили значення в панелі керування, але діаграма не оновився "
 "автоматично. Запустіть запит, натиснувши кнопку «Оновити діаграму», або"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

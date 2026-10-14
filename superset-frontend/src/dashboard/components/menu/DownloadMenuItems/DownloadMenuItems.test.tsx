@@ -34,6 +34,8 @@ import {
 } from '@superset-ui/core';
 import downloadAsImage from 'src/utils/downloadAsImage';
 import downloadAsPdf from 'src/utils/downloadAsPdf';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import { useDownloadMenuItems } from '.';
 
 jest.mock('src/utils/downloadAsImage', () => ({
@@ -205,14 +207,14 @@ test('Export Images to Excel is hidden when the webdriver is not enabled', () =>
 
 test('Export Images to Excel is hidden when export storage is not configured', () => {
   enableWebDriverScreenshot();
+  useDashboardInfoStore.setState({
+    dashboardInfo: {
+      common: { conf: { EXCEL_EXPORT_STORAGE_CONFIGURED: false } },
+    } as unknown as DashboardInfo,
+  });
   render(<MenuWrapper />, {
     useRedux: true,
-    initialState: {
-      ...loggedInState,
-      dashboardInfo: {
-        common: { conf: { EXCEL_EXPORT_STORAGE_CONFIGURED: false } },
-      },
-    },
+    initialState: loggedInState,
   });
 
   expect(screen.getByText('Export Data to Excel')).toBeInTheDocument();

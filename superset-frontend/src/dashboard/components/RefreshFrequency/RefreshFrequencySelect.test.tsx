@@ -19,6 +19,8 @@
 import { t } from '@apache-superset/core/translation';
 import { useState } from 'react';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
+import type { DashboardInfo } from 'src/dashboard/types';
 import {
   CUSTOM_REFRESH_FREQUENCY,
   getRefreshFrequencyOptions,
@@ -32,6 +34,10 @@ import {
 // it with jest.fn so a test can register a translation and observe it. The
 // default lives in a hoisted function declaration: the factory runs before
 // module-level bindings initialize (transitive imports call t() at load time).
+afterEach(() => {
+  useDashboardInfoStore.setState(useDashboardInfoStore.getInitialState());
+});
+
 function mockTranslate(str: string, ...args: unknown[]): string {
   return str.replace(/%s/g, () => String(args.shift()));
 }
@@ -192,19 +198,22 @@ test('the configured intervals are read from the bootstrapped store when no dash
 });
 
 test('the hydrated dashboard config wins over the bootstrapped one', () => {
+  // The hydrated dashboard config lives in the dashboardInfo store, not Redux.
+  useDashboardInfoStore.setState({
+    dashboardInfo: {
+      common: {
+        conf: {
+          DASHBOARD_AUTO_REFRESH_INTERVALS: [
+            [0, "Don't refresh"],
+            [600, '10 minutes'],
+          ],
+        },
+      },
+    } as unknown as DashboardInfo,
+  });
   render(<RefreshFrequencySelect value={0} onChange={jest.fn()} />, {
     useRedux: true,
     initialState: {
-      dashboardInfo: {
-        common: {
-          conf: {
-            DASHBOARD_AUTO_REFRESH_INTERVALS: [
-              [0, "Don't refresh"],
-              [600, '10 minutes'],
-            ],
-          },
-        },
-      },
       common: { conf: { DASHBOARD_AUTO_REFRESH_INTERVALS: INTERVALS } },
     },
   });

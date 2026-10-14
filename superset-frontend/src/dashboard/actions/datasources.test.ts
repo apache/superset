@@ -16,11 +16,25 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
 import { SupersetClient } from '@superset-ui/core';
 import type { RootState } from 'src/dashboard/types';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import { fetchDatasourceMetadata } from './datasources';
 
 const sourceKey = '2__semantic_view';
+
+// Wrap the store action so the test can assert the exact refresh sequence the
+// thunk requests, independent of how the store reconciles it.
+const spyUpdateSemanticDataset = () => {
+  const spy = jest.fn(useDashboardInfoStore.getState().updateSemanticDataset);
+  useDashboardInfoStore.setState({ updateSemanticDataset: spy });
+  return spy;
+};
+
+afterEach(() => {
+  useDashboardInfoStore.setState(useDashboardInfoStore.getInitialState());
+});
 
 test('adding a semantic Table source refreshes its metadata despite a cached source', async () => {
   const source = {
@@ -32,6 +46,7 @@ test('adding a semantic Table source refreshes its metadata despite a cached sou
   const get = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
     json: source,
   } as unknown as Awaited<ReturnType<typeof SupersetClient.get>>);
+  const updateSemanticDataset = spyUpdateSemanticDataset();
   const dispatch = jest.fn(action => action);
   const getState = () =>
     ({
@@ -43,13 +58,12 @@ test('adding a semantic Table source refreshes its metadata despite a cached sou
   expect(get).toHaveBeenCalledWith({
     endpoint: `/fetch_datasource_metadata?datasourceKey=${sourceKey}`,
   });
-  expect(dispatch).toHaveBeenCalledWith(
-    expect.objectContaining({
-      type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
-      dashboardId: 1,
-      sourceKey,
-      dataset: { ...source, uid: sourceKey },
-    }),
+  expect(updateSemanticDataset).toHaveBeenCalledWith(
+    1,
+    sourceKey,
+    { ...source, uid: sourceKey },
+    expect.any(String),
+    false,
   );
   get.mockRestore();
 });
@@ -62,18 +76,15 @@ test('a provider response omitting the source cannot prove its temporal columns'
       columns: [{ column_name: 'country', is_dttm: false }],
     },
   } as unknown as Awaited<ReturnType<typeof SupersetClient.get>>);
+  const updateSemanticDataset = spyUpdateSemanticDataset();
   const dispatch = jest.fn(action => action);
   const getState = () => ({ datasources: {} }) as unknown as RootState;
 
   await fetchDatasourceMetadata(sourceKey, 1)(dispatch, getState);
 
-  expect(
-    dispatch.mock.calls.filter(
-      ([action]) => action.type === 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
-    ),
-  ).toEqual([
-    [expect.objectContaining({ sourceKey, dataset: null })],
-    [expect.objectContaining({ sourceKey, dataset: null })],
+  expect(updateSemanticDataset.mock.calls).toEqual([
+    [1, sourceKey, null, expect.any(String), true],
+    [1, sourceKey, null, expect.any(String), false],
   ]);
   expect(dispatch).not.toHaveBeenCalledWith(
     expect.objectContaining({ type: 'SET_DATASOURCE' }),
@@ -85,30 +96,15 @@ test('failed semantic metadata fetch settles the request without claiming proof'
   const get = jest
     .spyOn(SupersetClient, 'get')
     .mockRejectedValue(new Error('metadata unavailable'));
+  const updateSemanticDataset = spyUpdateSemanticDataset();
   const dispatch = jest.fn(action => action);
   const getState = () => ({ datasources: {} }) as unknown as RootState;
 
   await fetchDatasourceMetadata(sourceKey, 1)(dispatch, getState);
 
-  expect(
-    dispatch.mock.calls.filter(
-      ([action]) => action.type === 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
-    ),
-  ).toEqual([
-    [
-      expect.objectContaining({
-        sourceKey,
-        dataset: null,
-        isRefreshStart: true,
-      }),
-    ],
-    [
-      expect.objectContaining({
-        sourceKey,
-        dataset: null,
-        isRefreshStart: false,
-      }),
-    ],
+  expect(updateSemanticDataset.mock.calls).toEqual([
+    [1, sourceKey, null, expect.any(String), true],
+    [1, sourceKey, null, expect.any(String), false],
   ]);
   get.mockRestore();
 });

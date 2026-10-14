@@ -17,12 +17,11 @@
  * under the License.
  */
 import { memo, useCallback, useMemo } from 'react';
-import { useDispatch } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { useTruncation } from '@superset-ui/core';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { Icons } from '@superset-ui/core/components/Icons';
-import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import { setDirectPathToChild } from 'src/dashboard/stores';
 import { List } from '@superset-ui/core/components/List';
 import {
   DependencyItem,
@@ -39,10 +38,9 @@ const DependencyValue = ({
   dependency,
   hasSeparator,
 }: DependencyValueProps) => {
-  const dispatch = useDispatch();
   const handleClick = useCallback(() => {
-    dispatch(setDirectPathToChild([dependency.id]));
-  }, [dependency.id, dispatch]);
+    setDirectPathToChild([dependency.id]);
+  }, [dependency.id]);
   return (
     <span>
       {hasSeparator && <span>, </span>}

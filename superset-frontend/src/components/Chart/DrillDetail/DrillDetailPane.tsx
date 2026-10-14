@@ -49,7 +49,7 @@ import Table, {
   ColumnsType,
   TableSize,
 } from '@superset-ui/core/components/Table';
-import { RootState } from 'src/dashboard/types';
+import { useDashboardInfoStore } from 'src/dashboard/stores';
 import { usePermissions } from 'src/hooks/usePermissions';
 import { useToasts } from 'src/components/MessageToasts/withToasts';
 import { safeStringify } from 'src/utils/safeStringify';
@@ -107,9 +107,7 @@ export default function DrillDetailPane({
     Record<string, TimeFormatting>
   >({});
 
-  const dashboardId = useSelector<RootState, number>(
-    ({ dashboardInfo }) => dashboardInfo.id,
-  );
+  const dashboardId = useDashboardInfoStore(s => s.dashboardInfo.id);
 
   const SAMPLES_ROW_LIMIT = useSelector(
     (state: { common: { conf: JsonObject } }) =>

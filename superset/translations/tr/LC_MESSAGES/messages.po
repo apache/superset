@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 15:15-0300\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -2323,12 +2323,6 @@ msgstr "Bir hata anahtarı parlarken gerçekleşti."
 msgid "An error occurred while pruning logs "
 msgstr "Bir hata, girişleri yaparken gerçekleşti"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
-# sr_Latn]
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Yapılandırma şeması yenilenirken bir hata oluştu"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3339,6 +3333,9 @@ msgstr "CVAS (Seçim olarak görünür) sorgu, bir SE ifadesi değildir."
 msgid "Cache Timeout (seconds)"
 msgstr "Önbellek Zamanaşımı (saniye)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -4256,6 +4253,9 @@ msgstr "Colalt Data Panel"
 msgid "Collapse row"
 msgstr "Collap row"
 
+msgid "Collapse rows by default"
+msgstr ""
+
 msgid "Collapse settings"
 msgstr "Ayarları daralt"
 
@@ -4951,6 +4951,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "hostnameyi çözemez: \"  %(host)s \"."
@@ -4974,6 +4979,12 @@ msgstr "Say"
 
 msgid "Country"
 msgstr "Ülke"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Country Color Scheme"
@@ -6425,6 +6436,9 @@ msgstr "Bu veritabanı için ayrıntılı bir özellik için matkapları ayırt 
 
 msgid "Discard"
 msgstr "Discard"
+
+msgid "Discard changes?"
+msgstr ""
 
 msgid "Display Name"
 msgstr "Ekran Adı"
@@ -7917,6 +7931,12 @@ msgstr "Grafik verileri yüklemek için başarısız oldu."
 msgid "Failed to load columns for %s %s"
 msgstr "%s %s için sütunlar yüklenemedi"
 
+msgid "Failed to load dashboard properties"
+msgstr ""
+
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7987,6 +8007,9 @@ msgstr "Cross-filter scoping kurtarmak için başarısız oldu"
 #, fuzzy
 msgid "Failed to save cross-filters setting"
 msgstr "Çapraz filtrelemeyi etkinleştir"
+
+msgid "Failed to save filter changes"
+msgstr ""
 
 msgid "Failed to set local theme: Invalid JSON configuration"
 msgstr "Yerel temayı kurmak için başarısız oldu: Invalid JSON yapılandırma"
@@ -8145,6 +8168,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Grafikleri filtrele"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtrenin default değeri var"
 
@@ -8188,6 +8217,10 @@ msgstr "Grafiklerinizi filtreleyin"
 
 msgid "Filters"
 msgstr "Filtreler"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9030,11 +9063,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s ile gönderilecek açıklamayı ekleyin"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Bir eksen olarak seri adı ekleyin"
 
 msgid "Include time"
 msgstr "Zaman ekle"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Arttırmak"
@@ -9305,6 +9345,9 @@ msgstr "Invalid result type:   %(result_type)s "
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Invalid rolling type:   %(type)s "
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Invalid state."
@@ -9978,6 +10021,9 @@ msgstr "Yüklenen veriler cachelendi"
 
 msgid "Loaded from cache"
 msgstr "Cacheden yüklendi"
+
+msgid "Loaded from semantic cache"
+msgstr ""
 
 msgid "Loading"
 msgstr "Yükleniyor…"
@@ -10660,6 +10706,9 @@ msgstr "Eksik URL parametreleri"
 
 msgid "Mixed Chart"
 msgstr "Karma Grafik"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Düzenleme"
@@ -11505,6 +11554,9 @@ msgstr "Bir veya birçok metrik görüntülemek için"
 
 msgid "One or more annotation layers failed loading."
 msgstr "Bir veya daha fazla annotasyon tabakaları yüklemedi."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Bir veya daha fazla sütun zaten var"
@@ -12446,6 +12498,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Öpün"
 
@@ -12860,6 +12917,9 @@ msgstr "Reload"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab'ı Yeniden Yükle"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13589,6 +13649,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL Sorgusu"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL ifade"
@@ -14574,6 +14639,9 @@ msgstr "Semantik Görünüm"
 msgid "Semantic Views"
 msgstr "Semantik Görünümler"
 
+msgid "Semantic cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15120,6 +15188,9 @@ msgstr "Show summary Özet"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "Toplamı göster"
@@ -15373,9 +15444,6 @@ msgstr "Bir şey yanlış gitti."
 msgid "Sorry there was an error fetching database information: %s"
 msgstr "Üzgünüm veritabanı bilgileri getiriyor:   %s "
 
-msgid "Sorry there was an error fetching saved charts: "
-msgstr "Üzgünüm, kaydedilen grafikler getiren bir hata vardı:"
-
 msgid "Sorry, An error occurred"
 msgstr "Üzgünüm, Bir hata oluştu"
 
@@ -15390,6 +15458,9 @@ msgstr "Üzgünüm, bir şey yanlış gitti. Gömülülık devre dışı bırak�
 
 msgid "Sorry, something went wrong. Please try again."
 msgstr "Üzgünüm, bir şey yanlış gitti. Lütfen tekrar deneyin."
+
+msgid "Sorry, something went wrong. The changes could not be saved."
+msgstr ""
 
 msgid "Sorry, something went wrong. Try again later."
 msgstr "Üzgünüm, bir şey yanlış gitti. Daha sonra tekrar deneyin."
@@ -15630,6 +15701,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16359,6 +16435,10 @@ msgid ""
 msgstr ""
 "X-axis, panolarda zaman aralık filtrelerinde kullanılmasını engelleyecek "
 "filtreler listesinde değildir. Filtre listesine eklemek ister misiniz?"
+
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
 
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
@@ -17187,6 +17267,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Servis tabakanın URL'si"
 
@@ -17885,6 +17980,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18904,6 +19011,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Böyle bir tarihi delta hesaplamak için kullanılamaz"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "\"  %(catalog_name)s \" olarak adlandırılabilir."
@@ -19529,6 +19639,9 @@ msgstr "Değer Biçimi"
 
 msgid "Value and Percentage"
 msgstr "Değer ve Yüzde"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Değer sınırları"
@@ -20820,6 +20933,9 @@ msgstr ""
 "Kontrol panelindeki değerleri güncellediniz, ancak grafik otomatik olarak"
 " güncellenmedi. \"Güncel grafikler\" düğmesine tıklayarak sorguyu "
 "çalıştırın veya"
+
+msgid "You will lose all changes since your last save. This cannot be undone."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]

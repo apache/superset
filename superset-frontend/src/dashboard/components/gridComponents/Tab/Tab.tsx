@@ -31,7 +31,19 @@ import { css, styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 
 import { EditableTitle, EmptyState } from '@superset-ui/core/components';
-import { setEditMode, onRefresh } from 'src/dashboard/actions/dashboardState';
+import {
+  flagTitleUnsavedChanges,
+  resetTitleDirtyFlag,
+} from 'src/dashboard/util/flagTitleUnsavedChanges';
+import { onRefresh } from 'src/dashboard/actions/dashboardState';
+import {
+  useDashboardLayout,
+  useLastRefreshTime,
+  useTabActivationTime,
+  setEditMode,
+  useCanEditDashboard,
+  useDashboardInfo,
+} from 'src/dashboard/stores';
 import getChartIdsFromComponent from 'src/dashboard/util/getChartIdsFromComponent';
 import DashboardComponent from 'src/dashboard/containers/DashboardComponent';
 import AnchorLink from 'src/dashboard/components/AnchorLink';
@@ -47,7 +59,7 @@ import {
 } from 'src/dashboard/components/dnd/DragDroppable';
 import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import { selectIsDashboardVersionPreviewActive } from 'src/features/versionHistory/reducer';
-import type { LayoutItem, RootState } from 'src/dashboard/types';
+import type { LayoutItem } from 'src/dashboard/types';
 import type {
   DropResult,
   DragItem,
@@ -153,9 +165,7 @@ interface DragDropChildProps {
 
 const Tab = (props: TabProps): ReactElement => {
   const dispatch = useDispatch();
-  const canEdit = useSelector(
-    (state: RootState) => state.dashboardInfo.dash_edit_perm,
-  );
+  const canEdit = useCanEditDashboard();
   // The empty-state call to action offers a route into edit mode; during a
   // version preview the grid gate blocks its activation, but it would still
   // render as a live-looking link that silently does nothing. Withhold the
@@ -164,16 +174,10 @@ const Tab = (props: TabProps): ReactElement => {
     selectIsDashboardVersionPreviewActive,
   );
   const canEnterEditMode = canEdit && !isVersionPreviewActive;
-  const dashboardLayout = useSelector(
-    (state: RootState) => state.dashboardLayout.present,
-  );
-  const lastRefreshTime = useSelector(
-    (state: RootState) => state.dashboardState.lastRefreshTime,
-  );
-  const tabActivationTime = useSelector(
-    (state: RootState) => state.dashboardState.tabActivationTimes?.[props.id],
-  );
-  const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
+  const dashboardLayout = useDashboardLayout();
+  const lastRefreshTime = useLastRefreshTime();
+  const tabActivationTime = useTabActivationTime(props.id);
+  const dashboardInfo = useDashboardInfo();
   const isAutoRefreshing = useIsAutoRefreshing();
   const isRefreshInFlight = useIsRefreshInFlight();
 
@@ -245,6 +249,26 @@ const Tab = (props: TabProps): ReactElement => {
       }
     },
     [props.updateComponents, props.component],
+  );
+
+  const titleDirtyRef = useRef<boolean | undefined>(undefined);
+  const handleTitleChange = useCallback(
+    (value: string) =>
+      flagTitleUnsavedChanges(
+        props.component.meta.text ?? '',
+        value,
+        titleDirtyRef,
+      ),
+    [props.component.meta.text],
+  );
+  const handleTitleEditingChange = useCallback(
+    (isEditing: boolean) => {
+      props.onTabTitleEditingChange(isEditing);
+      if (!isEditing) {
+        resetTitleDirtyFlag(titleDirtyRef);
+      }
+    },
+    [props.onTabTitleEditingChange],
   );
 
   const handleDrop = useCallback(
@@ -358,7 +382,7 @@ const Tab = (props: TabProps): ReactElement => {
                         {t('You can add the components in the')}{' '}
                         <button
                           type="button"
-                          onClick={() => dispatch(setEditMode(true))}
+                          onClick={() => setEditMode(true)}
                           css={css`
                             appearance: none;
                             border: none;
@@ -454,7 +478,6 @@ const Tab = (props: TabProps): ReactElement => {
         isHighlighted,
         dashboardId,
         embeddedMode,
-        onTabTitleEditingChange,
       } = props;
       return (
         <TabTitleContainer
@@ -468,9 +491,10 @@ const Tab = (props: TabProps): ReactElement => {
             placeholder={component.meta.placeholder}
             canEdit={editMode}
             onSaveTitle={handleChangeText}
+            onChange={handleTitleChange}
             showTooltip={false}
             editing={editMode && isFocused}
-            onEditingChange={onTabTitleEditingChange}
+            onEditingChange={handleTitleEditingChange}
           />
           {!editMode && !embeddedMode && (
             <AnchorLink
@@ -496,8 +520,9 @@ const Tab = (props: TabProps): ReactElement => {
       props.isFocused,
       props.isHighlighted,
       props.dashboardId,
-      props.onTabTitleEditingChange,
       handleChangeText,
+      handleTitleChange,
+      handleTitleEditingChange,
     ],
   );
 
