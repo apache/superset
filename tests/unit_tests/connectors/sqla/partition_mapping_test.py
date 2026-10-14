@@ -39,6 +39,7 @@ from superset.connectors.sqla.partition_mapping import (
     _probe_cache_key,
     _reads_as_temporal,
     _render_literal,
+    BARE_WALL_CLOCK_KEYWORDS,
     build_mirrored_predicates,
     build_probe_sql,
     contains_executable_comment,
@@ -47,8 +48,6 @@ from superset.connectors.sqla.partition_mapping import (
     drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
-    BARE_WALL_CLOCK_KEYWORDS,
-    NON_DETERMINISTIC_FUNCTIONS,
     find_non_deterministic_functions,
     grain_bucket_width,
     GRAIN_BUCKET_WIDTHS,
@@ -62,6 +61,7 @@ from superset.connectors.sqla.partition_mapping import (
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
     mirrorable_operators,
+    NON_DETERMINISTIC_FUNCTIONS,
     parse_error_detail,
     placeholder_is_executable,
     probe_sql_is_evaluable,
@@ -2596,17 +2596,55 @@ def test_a_failed_probe_records_that_it_does_not_mirror(app: Flask) -> None:
         assert known_mirror_verdict(database, None, None, "no_such_fn(:value)") is False
 
 
-def test_a_probe_that_returns_null_does_not_mirror_either(app: Flask) -> None:
+def test_a_probe_that_returns_null_leaves_the_verdict_alone(app: Flask) -> None:
     """
-    The transform evaluated and gave nothing to build a predicate from, so the
-    query carries no mirror -- which is the same claim, reached differently.
+    A `NULL` is this input's answer, not the transform's. The verdict is keyed
+    without the values -- see the test below -- so recording one input's `NULL`
+    against the whole transform is the same category error the type-mismatch
+    decline already avoids.
+
+    The filter itself still gets no mirror: that is the caller's own `NULL`
+    guard, which is per request and where it belongs.
     """
     database = _database_returning([None])
 
     with app.app_context():
         evaluate_transform(database, None, None, "lower(:value)", ["x"])
 
-        assert known_mirror_verdict(database, None, None, "lower(:value)") is False
+        assert known_mirror_verdict(database, None, None, "lower(:value)") is True
+
+
+def test_a_null_for_one_input_does_not_outlive_itself(app: Flask) -> None:
+    """
+    The reason it matters that a `NULL` is not a withdrawal: a *failed* probe
+    is deliberately not cached, so the next chart re-probes and re-records --
+    but a `NULL` is a successful probe and is cached, so the false verdict
+    outlived every later hit.
+
+    `NULLIF(:value, 0)` is the shape: `n = 2` probes to 2, `n = 0` probes to
+    `NULL`, and `n = 2` again is served from cache. Explore hid the glyph and
+    the editor said filters were not mirrored while the query went on pruning.
+    """
+    transform = "NULLIF(:value, 0)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        """`NULLIF('0', 0)` is NULL; `NULLIF('2', 0)` is 2."""
+        value = None if "'0'" in sql else 2
+        return pd.DataFrame([[value]], columns=["v0"])
+
+    database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, transform, ["2"]) == [2]
+        assert known_mirror_verdict(database, None, None, transform) is True
+
+        # The input that answers NULL.
+        assert evaluate_transform(database, None, None, transform, ["0"]) == [None]
+
+        # ...and the first input again, now served from the probe cache.
+        assert evaluate_transform(database, None, None, transform, ["2"]) == [2]
+        assert known_mirror_verdict(database, None, None, transform) is True
 
 
 def test_one_filter_s_verdict_answers_for_the_next(app: Flask) -> None:

@@ -1042,8 +1042,7 @@ def find_non_deterministic_functions(transform: str, engine: str) -> set[str]:
     # functions and so are invisible to the walk above. See
     # `BARE_WALL_CLOCK_KEYWORDS`.
     found |= {
-        name.upper()
-        for name in BARE_WALL_CLOCK_KEYWORDS & statement.get_column_names()
+        name.upper() for name in BARE_WALL_CLOCK_KEYWORDS & statement.get_column_names()
     }
     return found | _find_niladic_calls(statement)
 
@@ -1712,6 +1711,17 @@ def _run_probe(
     One place rather than one per `return`, because every way out of `_probe`
     is a verdict and the next reader of `known_mirror_verdict` cannot tell the
     difference between "declined" and "never asked".
+
+    The verdict is about the *transform*: whether the engine evaluated it at
+    all. A ``NULL`` among the results is not that -- it is this input's answer,
+    and `NULLIF(:value, 0)` returning ``NULL`` for ``n = 0`` says nothing about
+    the same transform on ``n = 2``. Counting it withdrew the promise for the
+    whole transform, and nothing restored it: a *failed* probe is deliberately
+    not cached, so the next chart re-probes and re-records, but a ``NULL`` is a
+    successful probe and *is* cached -- so the false verdict outlived every
+    later hit, and the editor reported a working mapping as not mirroring
+    while the query went on pruning. The per-input skip still happens where it
+    belongs, in the caller's own ``NULL`` guard.
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
     record_mirror_verdict(
@@ -1719,7 +1729,7 @@ def _run_probe(
         catalog,
         schema,
         transform,
-        mirrors=values is not None and not any(value is None for value in values),
+        mirrors=values is not None,
     )
     return values
 
@@ -2282,10 +2292,9 @@ def drop_unmapped_value_transforms(
             # transform without the declaration is a valid partial update. Read
             # as a change, it failed the exemption and wrote both fields back
             # as null -- the loss the exemption exists to prevent.
-            monotonic_echoes = (
-                "partition_transform_is_monotonic" not in column
-                or bool(is_monotonic) == bool(stored_monotonic)
-            )
+            monotonic_echoes = "partition_transform_is_monotonic" not in column or bool(
+                is_monotonic
+            ) == bool(stored_monotonic)
             transform_echoes = (
                 "partition_value_transform" not in column
                 or transform == stored_transform
