@@ -1078,6 +1078,29 @@ def test_unmask_encrypted_extra_embedded_credentials() -> None:
     assert unmasked["embedded_credentials"]["password"] == "embedded_pw"  # noqa: S105
 
 
+def test_embedded_keypair_secrets_are_masked_and_restored() -> None:
+    """A saved PEM key and passphrase stay encrypted across connection edits."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    original = json.dumps(
+        {
+            "embedded_credentials": {
+                "username": "embedded_svc",
+                "auth_method": "keypair",
+                "privatekey_body": "private PEM key",
+                "privatekey_pass": "key passphrase",
+            }
+        }
+    )
+    masked = SnowflakeEngineSpec.mask_encrypted_extra(original)
+    assert masked is not None
+    masked_credentials = json.loads(masked)["embedded_credentials"]
+    assert masked_credentials["username"] == "embedded_svc"
+    assert masked_credentials["privatekey_body"] == "XXXXXXXXXX"
+    assert masked_credentials["privatekey_pass"] == "XXXXXXXXXX"  # noqa: S105
+    assert SnowflakeEngineSpec.unmask_encrypted_extra(original, masked) == original
+
+
 def test_update_params_from_encrypted_extra_prefers_the_fallback_over_keypair(
     mocker: MockerFixture,
 ) -> None:

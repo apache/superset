@@ -17,14 +17,17 @@
  * under the License.
  */
 
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Input, Collapse, Form, FormItem } from '@superset-ui/core/components';
+import { Radio } from '@superset-ui/core/components/Radio';
 import { CustomParametersChangeType, FieldPropTypes } from '../../types';
 
 const LABELS = {
   USERNAME: t('Username'),
   PASSWORD: t('Password'),
+  PRIVATE_KEY: t('Private key (PEM)'),
+  PRIVATE_KEY_PASSPHRASE: t('Private key passphrase (optional)'),
 };
 
 // Stated here rather than only in the docs: an admin who reads this as a
@@ -40,6 +43,9 @@ const HELP_TEXT = t(
 interface EmbeddedCredentials {
   username: string;
   password: string;
+  auth_method: 'password' | 'keypair';
+  privatekey_body: string;
+  privatekey_pass: string;
 }
 
 export const EmbeddedCredentialsField = ({
@@ -68,9 +74,13 @@ export const EmbeddedCredentialsField = ({
 
     return {
       username: credentials?.username || '',
+      auth_method:
+        credentials?.auth_method === 'keypair' ? 'keypair' : 'password',
       // On edit this is the backend's mask. It is posted back verbatim and
-      // `unmask_encrypted_extra` restores the stored password.
+      // `unmask_encrypted_extra` restores the stored secrets.
       password: credentials?.password || '',
+      privatekey_body: credentials?.privatekey_body || '',
+      privatekey_pass: credentials?.privatekey_pass || '',
     };
   };
 
@@ -83,23 +93,43 @@ export const EmbeddedCredentialsField = ({
     // the stored blob changes, mirroring OAuth2ClientField.
   }, [db?.masked_encrypted_extra]);
 
-  const handleChange = (key: keyof EmbeddedCredentials) => (e: any) => {
-    const updated = {
-      ...embeddedCredentials,
-      [key]: e.target.value,
-    };
-
+  const updateCredentials = (updated: EmbeddedCredentials) => {
     setEmbeddedCredentials(updated);
 
+    const selectedCredentials =
+      updated.auth_method === 'keypair'
+        ? {
+            username: updated.username,
+            auth_method: updated.auth_method,
+            privatekey_body: updated.privatekey_body,
+            ...(updated.privatekey_pass && {
+              privatekey_pass: updated.privatekey_pass,
+            }),
+          }
+        : {
+            username: updated.username,
+            auth_method: updated.auth_method,
+            password: updated.password,
+          };
     const event: CustomParametersChangeType = {
       target: {
         type: 'object',
         name: 'embedded_credentials',
-        value: updated,
+        value: selectedCredentials,
       },
     };
     changeMethods.onParametersChange(event);
   };
+
+  const handleChange =
+    (key: 'username' | 'password' | 'privatekey_body' | 'privatekey_pass') =>
+    (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      const updated = {
+        ...embeddedCredentials,
+        [key]: e.target.value,
+      };
+      updateCredentials(updated);
+    };
 
   return (
     <Collapse
@@ -116,14 +146,48 @@ export const EmbeddedCredentialsField = ({
                   onChange={handleChange('username')}
                 />
               </FormItem>
-              <FormItem label={LABELS.PASSWORD}>
-                <Input
-                  data-test="embedded-credentials-password"
-                  type="password"
-                  value={embeddedCredentials.password}
-                  onChange={handleChange('password')}
-                />
+              <FormItem label={t('Authentication method')}>
+                <Radio.Group
+                  value={embeddedCredentials.auth_method}
+                  onChange={({ target: { value } }) =>
+                    updateCredentials({
+                      ...embeddedCredentials,
+                      auth_method: value,
+                    })
+                  }
+                >
+                  <Radio value="password">{t('Password')}</Radio>
+                  <Radio value="keypair">{t('Key pair')}</Radio>
+                </Radio.Group>
               </FormItem>
+              {embeddedCredentials.auth_method === 'keypair' ? (
+                <>
+                  <FormItem label={LABELS.PRIVATE_KEY}>
+                    <Input.TextArea
+                      data-test="embedded-credentials-private-key"
+                      value={embeddedCredentials.privatekey_body}
+                      onChange={handleChange('privatekey_body')}
+                    />
+                  </FormItem>
+                  <FormItem label={LABELS.PRIVATE_KEY_PASSPHRASE}>
+                    <Input
+                      data-test="embedded-credentials-key-passphrase"
+                      type="password"
+                      value={embeddedCredentials.privatekey_pass}
+                      onChange={handleChange('privatekey_pass')}
+                    />
+                  </FormItem>
+                </>
+              ) : (
+                <FormItem label={LABELS.PASSWORD}>
+                  <Input
+                    data-test="embedded-credentials-password"
+                    type="password"
+                    value={embeddedCredentials.password}
+                    onChange={handleChange('password')}
+                  />
+                </FormItem>
+              )}
             </Form>
           ),
         },

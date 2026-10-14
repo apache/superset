@@ -756,12 +756,18 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # through impersonation would let whoever mints the token choose the
             # connection identity.
             #
-            # The credential goes on the URL rather than into `connect_args` so that
-            # the engine cache key below -- which has no user component -- differs
-            # from the one a logged-in user produces.
-            sqlalchemy_url = sqlalchemy_url.set(
+            # The fallback username goes on the URL; the key-pair credential is
+            # attached to connect_args by the engine spec. Both URL and engine kwargs
+            # participate in the cache key below, keeping guest and OAuth engines
+            # separate even when they use the same Snowflake username.
+            sqlalchemy_url = URL.create(
+                drivername=sqlalchemy_url.drivername,
                 username=embedded_credentials["username"],
-                password=embedded_credentials["password"],
+                password=embedded_credentials.get("password"),
+                host=sqlalchemy_url.host,
+                port=sqlalchemy_url.port,
+                database=sqlalchemy_url.database,
+                query=sqlalchemy_url.query,
             )
         elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
@@ -1639,8 +1645,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
 
         1. the deployment opted in via ``EMBEDDED_CREDENTIAL_FALLBACK``;
         2. the engine opted in via ``supports_embedded_credential_fallback``;
-        3. the connection stores a *complete* credential -- a half-filled one is
-           ignored rather than half-applied;
+        3. the connection stores a *complete* password or key-pair credential -- a
+           half-filled one is ignored rather than half-applied;
         4. the current principal is an embedded guest, and embedding is enabled;
         5. the connection actually uses OAuth2, so that this stays a fallback for the
            per-user flow rather than a second identity on an ordinary connection.
@@ -1664,15 +1670,39 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         if not self.is_oauth2_enabled():
             return None
 
-        credentials = self.get_encrypted_extra().get("embedded_credentials") or {}
+        credentials = self.get_encrypted_extra().get("embedded_credentials")
+        return self._validated_embedded_credentials(credentials)
+
+    @staticmethod
+    def _validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
+        """Return a complete embedded password or key-pair credential."""
         if not isinstance(credentials, dict):
             return None
 
         username = credentials.get("username")
-        password = credentials.get("password")
-        if not username or not password:
+        if not isinstance(username, str) or not username:
             return None
 
+        auth_method = credentials.get("auth_method", "password")
+        if auth_method == "keypair":
+            privatekey_body = credentials.get("privatekey_body")
+            privatekey_pass = credentials.get("privatekey_pass", "")
+            if (
+                not isinstance(privatekey_body, str)
+                or not privatekey_body
+                or not isinstance(privatekey_pass, str)
+            ):
+                return None
+            return {
+                "username": username,
+                "auth_method": "keypair",
+                "privatekey_body": privatekey_body,
+                "privatekey_pass": privatekey_pass,
+            }
+
+        password = credentials.get("password")
+        if auth_method != "password" or not isinstance(password, str) or not password:
+            return None
         return {"username": username, "password": password}
 
     def is_oauth2_enabled(self) -> bool:

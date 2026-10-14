@@ -60,13 +60,16 @@ The workarounds available today are all worse:
 
 ## Proposed change
 
-Let a single connection carry a username and password used **only** when the requesting
-principal is an embedded guest. Logged-in users continue to authenticate per-user via
-OAuth2, with no route by which they can reach the stored credential.
+Let a single connection carry a username and either a password or a PEM private key used
+**only** when the requesting principal is an embedded guest. Logged-in users continue to
+authenticate per-user via OAuth2, with no route by which they can reach the stored
+credential.
 
 The credential is stored per-connection in the existing `encrypted_extra` column
-(`embedded_credentials: {username, password}`) and configured through the connection
-dialog like any other connection secret. It is **not** configured in `superset_config.py`:
+(`embedded_credentials: {username, password}` or
+`{username, auth_method: "keypair", privatekey_body, privatekey_pass}`) and configured
+through the connection dialog like any other connection secret. The passphrase is
+optional. It is **not** configured in `superset_config.py`:
 operators manage connections in the UI, and a credential in config could not be scoped
 to one connection.
 
@@ -91,9 +94,11 @@ security boundary should not rest on that implication.
 
 ### Why impersonation is skipped, not extended
 
-On the fallback path `Database._get_sqla_engine` sets the credential on the SQLAlchemy
-URL and does **not** call `impersonate_user`. That is deliberate and load-bearing twice
-over:
+On the fallback path `Database._get_sqla_engine` sets the configured username on the
+SQLAlchemy URL, adds its password there when password authentication is selected, and
+does **not** call `impersonate_user`. For key-pair authentication, the Snowflake engine
+spec converts the stored PEM key into `connect_args.private_key`. Skipping impersonation
+is deliberate and load-bearing twice over:
 
 1. An engine that opts in sets its OAuth2 authenticator during impersonation whether or
    not a token exists. Skipping impersonation is what lets the stored credential
@@ -104,9 +109,9 @@ over:
    connection identity. A test pins this specifically: a token minted with
    `ACCOUNTADMIN` does not reach the connection.
 
-The credential goes on the URL rather than into `connect_args` so that the per-process
-engine cache key — which has no user component — differs between a guest and a
-logged-in user. A test asserts the two produce distinct cache entries.
+The engine cache key includes both the URL and the final engine kwargs. A password
+changes the URL; a PEM key changes `connect_args`. Tests assert that a guest and a
+logged-in user produce distinct cache entries.
 
 ## Security model
 
@@ -132,11 +137,11 @@ What that does and does not mean:
   dashboard's configuration. This changes only which credential the query runs under.
 - **It is not reachable by a logged-in user.** Conditions 1–5 are evaluated on every
   engine creation, and the engine cache cannot leak a guest engine to a logged-in user.
-- **The credential is never exposed.** `$.embedded_credentials.password` is in
-  Snowflake's `encrypted_extra_sensitive_fields`, so it masks to `XXXXXXXXXX` on read
-  and is restored from storage when the mask is re-saved. The username is deliberately
-  left visible so an administrator can audit which database user embedded queries run
-  as.
+- **The credential is never exposed.** The password, PEM private key, and optional
+  passphrase are in Snowflake's `encrypted_extra_sensitive_fields`, so they mask to
+  `XXXXXXXXXX` on read and are restored from storage when the mask is re-saved. The
+  username is deliberately left visible so an administrator can audit which database
+  user embedded queries run as.
 
 The honest summary: this is the same trust decision an operator makes today when they
 point a connection at a service account, narrowed to apply only to embedded guests and
@@ -149,8 +154,8 @@ does not let a token holder choose an identity.
 - **New engine-spec attribute** `BaseEngineSpec.supports_embedded_credential_fallback`,
   default `False`; `SnowflakeEngineSpec` overrides it to `True`.
 - **New `Database` method** `get_embedded_fallback_credentials()`.
-- **New `encrypted_extra` key** `embedded_credentials`, with
-  `$.embedded_credentials.password` added to Snowflake's sensitive-field paths.
+- **New `encrypted_extra` key** `embedded_credentials`, supporting password and key-pair
+  credentials, with their secrets added to Snowflake's sensitive-field paths.
 - **New connection-dialog field** for engines that opt in, rendered only when the
   feature flag is on.
 
@@ -194,6 +199,7 @@ reversible and connection export/import round-trips unchanged.
    auditing warehouse activity can tell shared-credential queries from per-user ones
    from the Superset side?
 3. **The Snowflake handshake itself is unverified.** Everything up to the connection URL
-   is proven by test; whether Snowflake accepts the credential on a connection whose
-   client is configured for OAuth2 needs an account with an OAuth2 security integration.
+   and engine kwargs is proven by test. Whether Snowflake accepts the credential on a
+   connection whose client is configured for OAuth2 needs an account with an OAuth2
+   security integration.
    Confirmation from anyone who has one would be welcome.

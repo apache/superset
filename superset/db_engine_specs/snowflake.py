@@ -147,8 +147,9 @@ class SnowflakeParametersSchema(Schema):
         required=False,
         metadata={
             "description": (
-                "Credentials used only for embedded guest requests. Every embedded "
-                "viewer of this connection queries as this one Snowflake user; "
+                "Password or PEM key pair used only for embedded guest requests. "
+                "Every embedded viewer of this connection queries as this one "
+                "Snowflake user; "
                 "logged-in users are unaffected and continue to use OAuth2."
             ),
         },
@@ -270,6 +271,8 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         # The username is deliberately left visible: an admin needs to be able to see
         # which Snowflake user embedded queries run as without having to re-enter it.
         "$.embedded_credentials.password": "Embedded Fallback Password",
+        "$.embedded_credentials.privatekey_body": "Embedded Fallback Private Key",
+        "$.embedded_credentials.privatekey_pass": "Embedded Fallback Key Passphrase",
     }
 
     _time_grain_expressions = {
@@ -715,12 +718,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         if connect_args.get("authenticator") == "oauth":
             return
 
-        # The embedded fallback path skips impersonation, so `authenticator` is unset
-        # and this method still runs. A connection that also carries key-pair auth
-        # would otherwise attach its private key alongside the fallback credential,
-        # giving the driver two ways to authenticate and making which one wins a
-        # driver detail. The explicitly configured guest credential takes precedence.
-        if database.get_embedded_fallback_credentials():
+        # The guest path skips impersonation, leaving `authenticator` unset. Apply
+        # only its selected credential so a connection's ordinary key-pair auth is
+        # never layered on top of the embedded guest credential.
+        if embedded_credentials := database.get_embedded_fallback_credentials():
+            if embedded_credentials.get("auth_method") == "keypair":
+                params.setdefault("connect_args", {})["private_key"] = (
+                    SnowflakeEngineSpec._load_private_key(embedded_credentials)
+                )
             return
 
         if not database.encrypted_extra:
@@ -736,26 +741,9 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
             return
         connect_args = params.setdefault("connect_args", {})
         if auth_method == "keypair":
-            privatekey_body = auth_params.get("privatekey_body", None)
-            key = None
-            if privatekey_body:
-                key = privatekey_body.encode()
-            else:
-                with open(auth_params["privatekey_path"], "rb") as key_temp:
-                    key = key_temp.read()
-            privatekey_pass = auth_params.get("privatekey_pass", None)
-            password = privatekey_pass.encode() if privatekey_pass is not None else None
-            p_key = serialization.load_pem_private_key(
-                key,
-                password=password,
-                backend=default_backend(),
+            connect_args["private_key"] = SnowflakeEngineSpec._load_private_key(
+                auth_params
             )
-            pkb = p_key.private_bytes(
-                encoding=serialization.Encoding.DER,
-                format=serialization.PrivateFormat.PKCS8,
-                encryption_algorithm=serialization.NoEncryption(),
-            )
-            connect_args["private_key"] = pkb
         else:
             allowed_extra_auths = app.config["ALLOWED_EXTRA_AUTHENTICATIONS"].get(
                 "snowflake", {}
@@ -768,3 +756,25 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
                     f"must be listed in 'ALLOWED_EXTRA_AUTHENTICATIONS' config"
                 )
             connect_args["auth"] = snowflake_auth(**auth_params)
+
+    @staticmethod
+    def _load_private_key(auth_params: dict[str, Any]) -> bytes:
+        """Convert a PEM private key into the bytes required by Snowflake."""
+        if privatekey_body := auth_params.get("privatekey_body"):
+            key = privatekey_body.encode()
+        else:
+            with open(auth_params["privatekey_path"], "rb") as key_file:
+                key = key_file.read()
+
+        privatekey_pass = auth_params.get("privatekey_pass")
+        password = privatekey_pass.encode() if privatekey_pass else None
+        private_key = serialization.load_pem_private_key(
+            key,
+            password=password,
+            backend=default_backend(),
+        )
+        return private_key.private_bytes(
+            encoding=serialization.Encoding.DER,
+            format=serialization.PrivateFormat.PKCS8,
+            encryption_algorithm=serialization.NoEncryption(),
+        )
