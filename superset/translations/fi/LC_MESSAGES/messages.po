@@ -16105,9 +16105,6 @@ msgstr "Merkin koko"
 msgid "Markers"
 msgstr "Merkit"
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-#, fuzzy
 msgid "Markup type"
 msgstr "Merkintätyyppi"
 
