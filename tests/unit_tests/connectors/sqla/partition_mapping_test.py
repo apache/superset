@@ -3119,6 +3119,38 @@ def test_a_changed_transform_on_an_unmapped_column_is_still_dropped(
     assert columns[0]["partition_value_transform"] is None
 
 
+@pytest.mark.parametrize(
+    "entry",
+    [
+        # The transform echoed, the declaration simply absent.
+        {"id": 7, "partition_value_transform": "unix_timestamp(:value)"},
+        # And the reverse: the declaration echoed, the transform absent.
+        {"id": 7, "partition_transform_is_monotonic": True},
+    ],
+)
+def test_a_partial_echo_counts_as_unchanged(entry: dict[str, Any]) -> None:
+    """
+    `_upsert_columns` writes only the keys an entry carries, so a payload
+    echoing one of the two fields is a valid partial update. Read as a change,
+    it failed the exemption and both fields were written back as null -- the
+    same unrecoverable loss the exemption exists to prevent.
+    """
+    columns = [dict(entry)]
+
+    assert (
+        drop_unmapped_value_transforms(
+            columns,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time2",
+            names_by_id={7: "event_time"},
+            stored_by_name={"event_time": ("unix_timestamp(:value)", True)},
+        )
+        == []
+    )
+    assert columns[0] == entry
+
+
 def test_a_caller_that_cannot_see_storage_keeps_the_stricter_behaviour() -> None:
     """
     `stored_by_name` is optional, and omitting it drops an unmapped column's

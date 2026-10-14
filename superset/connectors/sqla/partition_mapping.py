@@ -2242,9 +2242,20 @@ def drop_unmapped_value_transforms(
             continue
         if stored_by_name is not None and name in stored_by_name:
             stored_transform, stored_monotonic = stored_by_name[name]
-            if transform == stored_transform and bool(is_monotonic) == bool(
-                stored_monotonic
-            ):
+            # A key the entry does not carry is unchanged, not `False`:
+            # `_upsert_columns` writes only the keys present, so echoing the
+            # transform without the declaration is a valid partial update. Read
+            # as a change, it failed the exemption and wrote both fields back
+            # as null -- the loss the exemption exists to prevent.
+            monotonic_echoes = (
+                "partition_transform_is_monotonic" not in column
+                or bool(is_monotonic) == bool(stored_monotonic)
+            )
+            transform_echoes = (
+                "partition_value_transform" not in column
+                or transform == stored_transform
+            )
+            if transform_echoes and monotonic_echoes:
                 # An echo, not an introduction. See `stored_by_name`.
                 continue
         column["partition_value_transform"] = None
