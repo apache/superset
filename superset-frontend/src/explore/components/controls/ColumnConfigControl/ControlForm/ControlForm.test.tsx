@@ -79,7 +79,8 @@ test('commits displayed default when clicking default option without initial val
     jest.advanceTimersByTime(100);
   });
 
-  expect(onChange).toHaveBeenCalledTimes(1);
+  expect(onChange).toHaveBeenCalledTimes(2);
+  expect(onChange).toHaveBeenLastCalledWith({ horizontalAlign: 'right' });
 
   jest.useRealTimers();
 });

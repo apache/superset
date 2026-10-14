@@ -119,12 +119,7 @@ export function ControlFormItem({
               hovered={hovered}
             />
           )}
-          <Control
-            {...props}
-            value={value}
-            {...(controlType === 'RadioButtonControl' ? { initialValue } : {})}
-            onChange={handleChange}
-          />
+          <Control {...props} value={value} onChange={handleChange} />
         </>
       )}
     </div>
