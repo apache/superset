@@ -109,7 +109,7 @@
     "@types/lodash": "^4.17.25",
     "@types/react": "*",
     "@types/tinycolor2": "*",
-    "typescript": "^5.0.0"
+    "typescript": "^7.0.2"
   },
   "peerDependencies": {
     "@emotion/cache": "^11.4.0",
