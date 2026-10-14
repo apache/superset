@@ -669,3 +669,84 @@ test('lists datasets through the combined datasource API when semantic layers ar
     window.featureFlags = {} as never;
   }
 });
+
+const lastRequestQuery = (pattern: RegExp) => {
+  const urls = listRequestUrls(pattern);
+  const url = urls[urls.length - 1];
+  const query = new URL(url, 'http://localhost').searchParams.get('q');
+  return rison.decode(query!) as {
+    filters?: RisonFilter[];
+    order_column?: string;
+    order_direction?: string;
+  };
+};
+
+test('name filter reaches the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    const searchContainer = await screen.findByTestId(
+      'search-filter-container',
+    );
+    const searchInput = within(searchContainer).getByRole('textbox');
+    await userEvent.type(searchInput, 'sales{enter}');
+
+    await waitFor(
+      () => {
+        const { filters = [] } = lastRequestQuery(
+          /\/api\/v1\/datasource\/\?q=/,
+        );
+        expect(
+          filters.some(
+            filter =>
+              filter.col === 'table_name' &&
+              filter.opr === 'ct' &&
+              filter.value === 'sales',
+          ),
+        ).toBe(true);
+      },
+      { timeout: 5000 },
+    );
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+test('sorting reaches the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    const table = await screen.findByTestId('listview-table');
+    const nameHeader = within(table).getByRole('columnheader', {
+      name: /Name/i,
+    });
+    await waitFor(() => {
+      expect(
+        listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+    const callsBeforeSort = listRequestUrls(
+      /\/api\/v1\/datasource\/\?q=/,
+    ).length;
+
+    await userEvent.click(nameHeader);
+
+    await waitFor(
+      () => {
+        expect(
+          listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+        ).toBeGreaterThan(callsBeforeSort);
+        expect(
+          lastRequestQuery(/\/api\/v1\/datasource\/\?q=/).order_column,
+        ).toBe('table_name');
+      },
+      { timeout: 5000 },
+    );
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});

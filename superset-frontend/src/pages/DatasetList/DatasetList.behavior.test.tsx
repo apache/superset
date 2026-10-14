@@ -166,8 +166,12 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
     ),
   );
   expect(addDangerToast).toHaveBeenCalledTimes(1);
+  // The list is fetched from the same /api/v1/dataset/?q= path the bulk delete
+  // uses, so count only the DELETE requests.
   expect(
-    fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_BULK_DELETE),
+    fetchMock.callHistory.calls(API_ENDPOINTS.DATASET_BULK_DELETE, {
+      method: 'DELETE',
+    }),
   ).toHaveLength(1);
   expect(
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/?q=*'),
