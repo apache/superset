@@ -114,9 +114,15 @@ export default function MatrixifyDimensionControl(
   }, [datasource]);
 
   // Load dimension values when dimension changes (members mode, or all mode with A-Z/Z-A sort)
+  const selectionVersion: string | undefined =
+    datasource?.type === 'semantic_view'
+      ? formData?.semantic_selection_version
+      : undefined;
   const isAllWithMetric = selectionMode === 'all' && allSortBy === 'metric';
   useEffect(() => {
     setSuggestionsDisabled(false);
+    // An aborted load skips its own reset, so clear it before any early return.
+    setLoadingValues(false);
     if (
       !value?.dimension ||
       !datasource ||
@@ -140,9 +146,14 @@ export default function MatrixifyDimensionControl(
     const { signal } = controller;
 
     const loadDimensionValues = async () => {
+      const params = new URLSearchParams();
+      if (selectionVersion) {
+        params.set('semantic_selection_version', selectionVersion);
+      }
+      const query = params.toString();
       const endpoint = `/api/v1/datasource/${
         datasource.type
-      }/${datasource.id}/column/${encodeURIComponent(value.dimension)}/values/`;
+      }/${datasource.id}/column/${encodeURIComponent(value.dimension)}/values/${query ? `?${query}` : ''}`;
 
       setLoadingValues(true);
 
@@ -195,9 +206,9 @@ export default function MatrixifyDimensionControl(
           onChange(updatedValue);
         }
       } catch (error) {
-        setValueOptions([]);
+        if (!signal.aborted) setValueOptions([]);
       } finally {
-        setLoadingValues(false);
+        if (!signal.aborted) setLoadingValues(false);
       }
     };
 
@@ -206,7 +217,13 @@ export default function MatrixifyDimensionControl(
     return () => {
       controller.abort();
     };
-  }, [value?.dimension, datasource, selectionMode, allSortBy]);
+  }, [
+    value?.dimension,
+    datasource,
+    selectionMode,
+    allSortBy,
+    selectionVersion,
+  ]);
 
   // Convert topNValue to number for consistent comparison
   const topNValueNum = useMemo(() => {

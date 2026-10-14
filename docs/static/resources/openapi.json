@@ -1991,6 +1991,17 @@
             "description": "Amount of rows in result set",
             "type": "integer"
           },
+          "semantic_cache_status": {
+            "description": "Semantic containment cache provenance of this query: HIT when every semantic query behind it was served from containment, MISS when none was, MIXED when only some were (for example a time-comparison offset).",
+            "enum": [
+              "HIT",
+              "MISS",
+              "MIXED",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
           "stacktrace": {
             "description": "Stacktrace if there was an error",
             "nullable": true,
@@ -25583,6 +25594,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "description": "Identity version from the saved or explicitly initialized field selections. Required for versioned semantic views; never infer it from current datasource metadata for legacy selections.",
+            "in": "query",
+            "name": "semantic_selection_version",
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -25614,7 +25633,7 @@
                       "type": "array"
                     },
                     "suggestions_status": {
-                      "description": "Suggestions are disabled for versioned semantic views; enter values manually.",
+                      "description": "Selection provenance is missing or stale for this versioned semantic view; reselect fields or enter values manually.",
                       "enum": [
                         "unavailable_versioned_view"
                       ],
@@ -34095,6 +34114,62 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic layer has dependent assets"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -34424,6 +34499,62 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A semantic view has dependent assets"
+          },
           "422": {
             "$ref": "#/components/responses/422"
           }
@@ -34529,6 +34660,62 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic view has dependent assets"
           },
           "422": {
             "$ref": "#/components/responses/422"
