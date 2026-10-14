@@ -1184,7 +1184,6 @@ url-normalize==2.2.1
 urllib3==2.8.0
     # via
     #   -c requirements/base-constraint.txt
-    #   apache-superset
     #   botocore
     #   clickhouse-connect
     #   crate
@@ -1226,7 +1225,6 @@ websockets==15.0.1
 werkzeug==3.1.9
     # via
     #   -c requirements/base-constraint.txt
-    #   apache-superset
     #   flask
     #   flask-appbuilder
     #   flask-cors
