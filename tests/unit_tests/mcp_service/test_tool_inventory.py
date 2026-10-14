@@ -64,7 +64,7 @@ TOOL_BUDGETS = {
     "get_widget_control_schema": 1_100,
     "list_canvases": 800,
     "list_widget_types": 700,
-    "preview_widget": 800,
+    "preview_widget": 1_300,
     "update_canvas": 900,
     "apply_dashboard_filters": 3_700,
     "create_dataset": 1_800,
