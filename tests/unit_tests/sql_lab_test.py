@@ -751,7 +751,7 @@ def test_get_sql_results_keeps_committed_work_when_stop_races_commit(
     )
 
     sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
-    with Session(engine, expire_on_commit=False) as session:
+    with Session(engine) as session:
         query = Query(
             id=123,
             client_id="commit-race",

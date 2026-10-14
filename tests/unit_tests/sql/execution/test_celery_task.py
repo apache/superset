@@ -1145,7 +1145,7 @@ def test_execute_sql_task_stopped(
     assert result["status"] == QueryStatusEnum.STOPPED
 
 
-@pytest.mark.parametrize("stop_intent", ["executor", "early", "status"])
+@pytest.mark.parametrize("stop_intent", ["early", "status"])
 def test_cancelled_impala_cursor_is_not_finalized_as_success(
     mocker: MockerFixture,
     app_context: None,
@@ -1159,7 +1159,6 @@ def test_cancelled_impala_cursor_is_not_finalized_as_success(
     from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
     from superset.db_engine_specs.impala import ImpalaEngineSpec
     from superset.sql.execution import celery_task
-    from superset.sql.execution.executor import SQLExecutor
 
     mock_query.sql = "SELECT 1"
     mock_query.database = mock_database
@@ -1178,9 +1177,7 @@ def test_cancelled_impala_cursor_is_not_finalized_as_success(
 
     def stop_before_poll() -> str:
         """Stop after dispatch, before handle_cursor checks the intent."""
-        if stop_intent == "executor":
-            assert SQLExecutor._cancel_query(mock_database, mock_query)
-        elif stop_intent == "early":
+        if stop_intent == "early":
             mock_query.extra[QUERY_EARLY_CANCEL_KEY] = True
         else:
             mock_query.status = QueryStatusEnum.STOPPED
@@ -1503,7 +1500,7 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
     "stop_checkpoint",
     ["serialization", "backend_write", "backend_failure", "backend_error"],
 )
-def test_impala_stop_during_result_finalization_stays_stopped(
+def test_stop_during_result_finalization_stays_stopped(
     mocker: MockerFixture,
     app_context: None,
     mock_query: MagicMock,
@@ -1512,17 +1509,9 @@ def test_impala_stop_during_result_finalization_stays_stopped(
     stop_checkpoint: str,
 ) -> None:
     """A stop during result processing must not become a successful query."""
-    from superset.constants import QUERY_CANCEL_KEY
-    from superset.db_engine_specs.impala import ImpalaEngineSpec
     from superset.sql.execution import celery_task
-    from superset.sql.execution.executor import SQLExecutor
 
     mock_query.database = mock_database
-    mock_database.db_engine_spec = ImpalaEngineSpec
-    mock_query.extra = {QUERY_CANCEL_KEY: "0123456789abcdef:fedcba9876543210"}
-    mock_query.set_extra_json_key.side_effect = lambda key, value: (
-        mock_query.extra.update({key: value})
-    )
     mocker.patch.object(celery_task, "_get_query", return_value=mock_query)
     mocker.patch.object(
         celery_task,
@@ -1531,12 +1520,10 @@ def test_impala_stop_during_result_finalization_stays_stopped(
     )
     backend = mocker.patch.object(celery_task, "results_backend", MagicMock())
     mocker.patch.object(celery_task, "_serialize_payload", return_value=b"results")
-    post = mocker.patch("superset.db_engine_specs.impala.requests.post")
 
     def record_stop() -> None:
-        """Deliver a stop after the post-execution check has passed."""
-        assert SQLExecutor._cancel_query(mock_database, mock_query)
-        assert mock_query.status == QueryStatusEnum.STOPPED
+        """Another request commits a stop after the post-execution check."""
+        mock_query.status = QueryStatusEnum.STOPPED
         mock_query.end_time = 1234.5
 
     def serialize(result_set: MagicMock) -> tuple[list[object], list[object]]:
@@ -1567,7 +1554,6 @@ def test_impala_stop_during_result_finalization_stays_stopped(
         backend.set.assert_not_called()
     else:
         backend.set.assert_called_once()
-    post.assert_not_called()
 
 
 @pytest.mark.parametrize("stopped", [False, True])
@@ -1670,7 +1656,7 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
             raise SoftTimeLimitExceeded()
         raise RuntimeError("Result processing failed")
 
-    with Session(engine, expire_on_commit=False) as session:
+    with Session(engine) as session:
         query = Query(
             id=123,
             client_id="task-stop",
@@ -1821,7 +1807,7 @@ def test_stop_cannot_be_overwritten_by_terminal_metadata(
         return check_then_stop
 
     mocker.patch.object(celery_task, "_make_check_stopped_fn", side_effect=make_check)
-    with Session(engine, expire_on_commit=False) as session:
+    with Session(engine) as session:
         query = Query(
             id=123,
             client_id="stop-race",
@@ -1912,7 +1898,7 @@ def test_stop_during_mutation_commit_does_not_mask_committed_work(
     conn = setup_mock_raw_connection(mock_database)
     conn.commit.side_effect = deliver_stop
     sql = "INSERT INTO users VALUES (1)"
-    with Session(engine, expire_on_commit=False) as session:
+    with Session(engine) as session:
         query = Query(
             id=123,
             client_id="commit-race",
@@ -2028,7 +2014,7 @@ def test_failure_after_stop_raced_commit_reports_failed_not_stopped(
         },
     )
 
-    with Session(engine, expire_on_commit=False) as session:
+    with Session(engine) as session:
         query = Query(
             id=123,
             client_id="commit-race-failure",

@@ -88,7 +88,13 @@ def _handle_query_error(
         so a stop recorded after that commit lost the race and must not mask
         the failure
     """
-    timed_out = query.status == QueryStatus.TIMED_OUT
+    # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler).
+    # Kept as an enum: after the commit below the expired attribute reloads as str.
+    status = (
+        QueryStatus.TIMED_OUT
+        if query.status == QueryStatus.TIMED_OUT
+        else QueryStatus.FAILED
+    )
     if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
         return _stopped_query_payload(query)
 
@@ -97,8 +103,7 @@ def _handle_query_error(
         msg = f"{prefix_message} {str(ex)}".strip()
         query.error_message = msg
         query.tmp_table_name = None
-        # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler)
-        query.status = QueryStatus.TIMED_OUT if timed_out else QueryStatus.FAILED
+        query.status = status
 
         if not query.end_time:
             query.end_time = now_as_float()
@@ -112,9 +117,7 @@ def _handle_query_error(
             db.session.commit()  # pylint: disable=consider-using-transaction
         elif not _commit_query_unless_stopped(query):
             return _stopped_query_payload(query)
-        payload.update(
-            {"status": query.status.value, "error": msg, "errors": errors_payload}
-        )
+        payload.update({"status": status.value, "error": msg, "errors": errors_payload})
         if app.config.get("SHOW_STACKTRACE"):
             if stacktrace := traceback.format_exc():
                 payload["stacktrace"] = stacktrace
