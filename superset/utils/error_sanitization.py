@@ -168,9 +168,7 @@ def sanitize_error_message(
     return str(GENERIC_ERROR_MESSAGE)
 
 
-def redact_sensitive_query_fields(
-    results: list[dict[str, Any]], required: bool | None = None
-) -> None:
+def redact_sensitive_query_fields(results: list[dict[str, Any]]) -> None:
     """
     Redact generated SQL, stacktraces and raw errors from query results in place.
 
@@ -186,12 +184,14 @@ def redact_sensitive_query_fields(
     stripped the SQL for guests since CVE-2025-55673, and the samples endpoint
     must apply the same rule.
 
-    `required` lets a caller that has already resolved the sanitization decision
-    thread it in so the principal is not looked up again (``None`` computes it).
+    The sanitization decision is resolved once here -- ``is_sanitization_required``
+    fails closed for a guest whose principal can't be resolved -- and threaded
+    into the error sanitization, so a result is never half-redacted (its
+    ``stacktrace`` popped while the raw ``error`` leaks). The call is a no-op for
+    principals that don't require sanitization, so callers invoke it
+    unconditionally.
     """
-    if required is None:
-        required = is_sanitization_required()
-    if not required:
+    if not is_sanitization_required():
         return
 
     # pylint: disable=import-outside-toplevel
@@ -203,7 +203,7 @@ def redact_sensitive_query_fields(
             result.pop("query", None)
         result.pop("stacktrace", None)
         if result.get("error"):
-            result["error"] = sanitize_error_message(result["error"], required=required)
+            result["error"] = sanitize_error_message(result["error"], required=True)
 
 
 def sanitize_superset_error(
