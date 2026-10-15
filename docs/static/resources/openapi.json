@@ -27343,6 +27343,9 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "422": {
+            "description": "Query could not be stopped; includes query if already complete\\n"
+          },
           "500": {
             "$ref": "#/components/responses/500"
           }
