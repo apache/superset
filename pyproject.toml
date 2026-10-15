@@ -34,8 +34,10 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
 ]
 dependencies = [
-    # no bounds for apache-superset-core until we have a stable version
-    "apache-superset-core",
+    # Floor only (no upper bound while apache-superset-core is pre-1.0).
+    # The floor keeps pip from resolving an older PyPI release whose pins
+    # conflict with Superset's (0.1.0 requires sqlalchemy<2.0).
+    "apache-superset-core>=0.1.1",
     "backoff>=1.8.0",
     # cachetools is used directly by ``superset.db_engine_specs.aws_iam`` (TTLCache).
     # It used to be installed transitively via ``google-auth`` (<2.53), but
