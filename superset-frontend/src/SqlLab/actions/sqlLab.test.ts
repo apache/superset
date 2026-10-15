@@ -2250,3 +2250,22 @@ test('postStopQuery retains the error toast for an unsupported stop', async () =
   ]);
   post.mockRestore();
 });
+
+test('postStopQuery keeps the error toast when a target commit wins before publication', async () => {
+  const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({
+    status: 422,
+    json: async () => ({
+      message: 'Could not cancel query',
+      query: { ...queryFixture, id: queryId, state: 'running' },
+    }),
+  });
+  const store = mockStore(initialState);
+  await store.dispatch(actions.postStopQuery({ ...queryFixture, id: queryId }));
+  expect(store.getActions()).toEqual([
+    expect.objectContaining({
+      type: ADD_TOAST,
+      payload: expect.objectContaining({ toastType: ToastType.Danger }),
+    }),
+  ]);
+  post.mockRestore();
+});
