@@ -1296,20 +1296,16 @@ test('automatic axis title margin adjustment changes X axis margin when title is
       exploreActions.setControlValue('x_axis_title', 'X Axis Label'),
     );
 
-    // Wait a bit to ensure useEffect has run
+    // Should call setControlValue since margin is less than 30, once the
+    // debounced margin effect settles
     await waitFor(() => {
-      expect(
-        screen.queryByTestId('query-error-tooltip-trigger'),
-      ).not.toBeInTheDocument();
+      expect(setControlValueSpy).toHaveBeenCalledWith(
+        'x_axis_title_margin',
+        30,
+        undefined,
+        { programmatic: true },
+      );
     });
-
-    // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith(
-      'x_axis_title_margin',
-      30,
-      undefined,
-      { programmatic: true },
-    );
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -1400,20 +1396,16 @@ test('automatic axis title margin adjustment changes Y axis margin when title is
       exploreActions.setControlValue('y_axis_title', 'Y Axis Label'),
     );
 
-    // Wait a bit to ensure useEffect has run
+    // Should call setControlValue since margin is less than 30, once the
+    // debounced margin effect settles
     await waitFor(() => {
-      expect(
-        screen.queryByTestId('query-error-tooltip-trigger'),
-      ).not.toBeInTheDocument();
+      expect(setControlValueSpy).toHaveBeenCalledWith(
+        'y_axis_title_margin',
+        30,
+        undefined,
+        { programmatic: true },
+      );
     });
-
-    // Should call setControlValue since margin is less than 30
-    expect(setControlValueSpy).toHaveBeenCalledWith(
-      'y_axis_title_margin',
-      30,
-      undefined,
-      { programmatic: true },
-    );
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
@@ -1730,5 +1722,60 @@ test('does not request datasource metadata when an unrelated control changes', (
     expect(fetchMetadataSpy).not.toHaveBeenCalled();
   } finally {
     getChartControlPanelRegistry().remove('table');
+  }
+});
+
+test('automatic axis title margin adjustment ignores a transient empty value from a quick clear-and-retype', async () => {
+  setupTableChartControlPanel();
+  try {
+    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+    const initialState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        form_data: {
+          datasource: '1__table',
+          viz_type: VizType.Table,
+          metrics: [],
+        },
+        controls: {
+          ...reduxState.explore.controls,
+          x_axis_title: { value: 'X Axis Label' },
+          x_axis_title_margin: { value: 75 }, // a custom margin above the default 30
+        },
+      },
+    };
+
+    const store = createStore(initialState, reducerIndex);
+    renderWithRouter({ initialState, store: store as Store });
+
+    // Clear any calls from initial render
+    setControlValueSpy.mockClear();
+
+    // TextControl now reports edits via useDeferredValue instead of a fixed
+    // debounce, so a quick clear-and-retype (deleting a title and
+    // immediately typing a replacement) can briefly pass an empty value
+    // through here before the retyped value settles. The margin effect
+    // must react to the settled value only, not this transient one, or it
+    // would zero out a custom margin and then bump it back to 30, losing
+    // the original 75.
+    store.dispatch(exploreActions.setControlValue('x_axis_title', ''));
+    store.dispatch(
+      exploreActions.setControlValue('x_axis_title', 'X Axis Label Redone'),
+    );
+
+    // Give the debounced margin effect more than its window to settle.
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    expect(setControlValueSpy).not.toHaveBeenCalledWith(
+      'x_axis_title_margin',
+      expect.anything(),
+      undefined,
+      { programmatic: true },
+    );
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+    jest.restoreAllMocks();
   }
 });
