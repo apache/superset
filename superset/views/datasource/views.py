@@ -125,15 +125,16 @@ def _repoints_sql(
     database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
+    requested_template_params: str | None,
 ) -> bool:
     """
     Would the request change what the SQL on ``datasource`` reads?
 
     Supplying ``sql`` aims the dataset at whatever that SQL reads, converting
     a physical dataset on the way. Unchanged SQL still lands somewhere new
-    when the connection, catalog or schema it resolves unqualified names
-    against moves, which ``UpdateDatasetCommand._validate_sql_access`` gates
-    on changed SQL text alone and so does not yet cover.
+    when the connection, the catalog or schema it resolves unqualified names
+    against, or the params its Jinja renders with change, as in
+    ``UpdateDatasetCommand._validate_sql_access``.
     """
     if not isinstance(datasource, SqlaTable) or not requested_sql:
         return False
@@ -142,10 +143,26 @@ def _repoints_sql(
         or requested_sql != datasource.sql
         or (requested_table.schema, requested_table.catalog)
         != (datasource.schema or None, datasource.catalog or None)
+        or (requested_template_params or None) != (datasource.template_params or None)
     )
 
 
-def _requested_target(datasource_dict: dict[str, Any]) -> tuple[str | None, Table]:
+def _parse_template_params(template_params: str | None) -> dict[str, Any]:
+    """
+    Parse template params for the SQL access check. Malformed or non-dict
+    JSON yields an empty dict, so the check runs against the SQL rendered
+    without params.
+    """
+    try:
+        params = json.loads(template_params) if template_params else {}
+    except json.JSONDecodeError:
+        return {}
+    return params if isinstance(params, dict) else {}
+
+
+def _requested_target(
+    datasource_dict: dict[str, Any],
+) -> tuple[str | None, Table, str | None]:
     """The SQL and table a save aims the dataset at.
 
     ``update_from_object`` applies an omitted key as ``None``, so the request
@@ -162,12 +179,16 @@ def _requested_target(datasource_dict: dict[str, Any]) -> tuple[str | None, Tabl
             raise ValueError(field)
         return value
 
-    return string("sql"), Table(
-        # ``Table`` is annotated for a table that exists, but an omitted
-        # ``table_name`` lands as ``None`` and has to be compared as one.
-        cast(str, string("table_name")),
-        string("schema") or None,
-        string("catalog") or None,
+    return (
+        string("sql"),
+        Table(
+            # ``Table`` is annotated for a table that exists, but an omitted
+            # ``table_name`` lands as ``None`` and has to be compared as one.
+            cast(str, string("table_name")),
+            string("schema") or None,
+            string("catalog") or None,
+        ),
+        string("template_params"),
     )
 
 
@@ -177,6 +198,7 @@ def _authorize_repoint(
     database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
+    requested_template_params: str | None,
 ) -> FlaskResponse | None:
     """Authorise the target a save aims ``datasource`` at.
 
@@ -193,7 +215,11 @@ def _authorize_repoint(
         datasource, database_changed, requested_sql, requested_table
     )
     repoints_sql = _repoints_sql(
-        datasource, database_changed, requested_sql, requested_table
+        datasource,
+        database_changed,
+        requested_sql,
+        requested_table,
+        requested_template_params,
     )
     if not (repoints_table or repoints_sql):
         return None
@@ -218,6 +244,7 @@ def _authorize_repoint(
                 sql=requested_sql,
                 catalog=requested_table.catalog,
                 schema=requested_table.schema,
+                template_params=_parse_template_params(requested_template_params),
                 allow_dataset_editorship=False,
             )
     except SupersetSecurityException as ex:
@@ -261,7 +288,9 @@ class Datasource(BaseSupersetView):
 
         database_changed = database_id != orm_datasource.database_id
         try:
-            requested_sql, requested_table = _requested_target(datasource_dict)
+            requested_sql, requested_table, requested_template_params = (
+                _requested_target(datasource_dict)
+            )
         except ValueError as ex:
             return json_error_response(
                 _("The `%(field)s` field must be a string.", field=str(ex)),
@@ -274,6 +303,7 @@ class Datasource(BaseSupersetView):
             database_changed,
             requested_sql,
             requested_table,
+            requested_template_params,
         ):
             return error
 

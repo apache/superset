@@ -5017,8 +5017,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ``force_dataset_match`` it leaves the catalog/schema
             fallthroughs and parsing rules untouched. Call sites that bind a
             dataset to a table or SQL the user supplies (dataset create,
-            update, legacy ``/datasource/save/`` and import) or run a stored
-            SQL Lab query through chart-data set this to False, since a
+            update, legacy ``/datasource/save/`` and import) or authorize a
+            stored SQL Lab query (chart-data, the Explore GET and the explore
+            form-data step) set this to False, since a
             dataset named after an arbitrary table is a decoy any
             dataset-creating principal can make. Ignored when
             ``force_dataset_match`` is True, which never accepts editorship.
@@ -5387,8 +5388,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     # strict scoping (SQL Lab raw queries, MetaDB, MCP
                     # ``execute_sql``, alert/report queries) and for callers
                     # that pass ``allow_dataset_editorship=False`` (binding a
-                    # dataset to a table or SQL, chart-data on a SQL Lab
-                    # query) editorship is deliberately excluded:
+                    # dataset to a table or SQL, chart-data or Explore on a
+                    # SQL Lab query) editorship is deliberately excluded:
                     # returning raw rows from the underlying warehouse table
                     # must follow the user's live data-access grants, not
                     # editorship of a same-named dataset. Any principal able to

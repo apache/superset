@@ -23,6 +23,7 @@ from typing import Any, cast, Optional
 from uuid import UUID
 
 from flask_appbuilder.models.sqla import Model
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -56,6 +57,7 @@ from superset.exceptions import (
 )
 from superset.models.core import Database
 from superset.sql.parse import Table
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -154,6 +156,16 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             and self._properties[field] != getattr(self._model, field)
             for field in ("catalog", "schema", "table_name")
         )
+        # Unchanged SQL still reads something new when the connection, the
+        # catalog or schema that unqualified names resolve against, or the
+        # params its Jinja renders with change. Empty values are compared as
+        # ``None`` so a client echoing ``""`` for an unset field is no change.
+        sql_context_changed = database_changed or any(
+            field in self._properties
+            and (self._properties[field] or None)
+            != (getattr(self._model, field) or None)
+            for field in ("catalog", "schema", "template_params")
+        )
 
         catalog, schema, table = self._resolve_catalog_schema_table(db, exceptions)
 
@@ -191,7 +203,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         ):
             self._validate_table_access(db, table, exceptions)
 
-        self._validate_sql_access(db, catalog, schema, exceptions)
+        self._validate_sql_access(db, catalog, schema, sql_context_changed, exceptions)
 
     def _get_new_database_connection(
         self, database_id: int | None, exceptions: list[ValidationError]
@@ -277,31 +289,59 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         db: Database,
         catalog: str | None,
         schema: str | None,
+        sql_context_changed: bool,
         exceptions: list[ValidationError],
     ) -> None:
-        """Validate SQL query access if SQL is being updated."""
+        """
+        Validate access to what the dataset's SQL reads after the update.
+
+        Runs when the SQL text changes, or when the SQL is kept but the
+        context it resolves against changes (see ``sql_context_changed``).
+        """
         # we know we have a valid model
         self._model = cast(SqlaTable, self._model)
 
-        sql = self._properties.get("sql")
-        if sql and sql != self._model.sql:
-            try:
-                security_manager.raise_for_access(
-                    database=db,
-                    sql=sql,
-                    catalog=catalog,
-                    schema=schema,
-                    allow_dataset_editorship=False,
+        sql = self._properties.get("sql", self._model.sql)
+        if not sql or (sql == self._model.sql and not sql_context_changed):
+            return
+        try:
+            security_manager.raise_for_access(
+                database=db,
+                sql=sql,
+                catalog=catalog,
+                schema=schema,
+                template_params=self._get_template_params(),
+                allow_dataset_editorship=False,
+            )
+        except SupersetSecurityException as ex:
+            exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+        except SupersetParseError as ex:
+            exceptions.append(
+                ValidationError(
+                    f"Invalid SQL: {ex.error.message}",
+                    field_name="sql",
                 )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            except SupersetParseError as ex:
-                exceptions.append(
-                    ValidationError(
-                        f"Invalid SQL: {ex.error.message}",
-                        field_name="sql",
-                    )
-                )
+            )
+        except TemplateError as ex:
+            exceptions.append(ValidationError(f"Invalid SQL: {ex}", field_name="sql"))
+
+    def _get_template_params(self) -> dict[str, Any]:
+        """
+        Return the template params the dataset's SQL renders with after the
+        update, so a Jinja-templated query is checked against the tables it
+        really reads. Malformed or non-dict JSON yields an empty dict and the
+        check runs against the SQL rendered without params.
+        """
+        # we know we have a valid model
+        self._model = cast(SqlaTable, self._model)
+        raw = self._properties.get("template_params", self._model.template_params)
+        if not raw or not isinstance(raw, str):
+            return {}
+        try:
+            params = json.loads(raw)
+        except json.JSONDecodeError:
+            return {}
+        return params if isinstance(params, dict) else {}
 
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model

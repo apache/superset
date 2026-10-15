@@ -83,10 +83,14 @@ def _authorize_datasource(
         # the query at all. The author bypass returns before the generic
         # ``datasource`` perm check at the tail of ``raise_for_access``,
         # so this does not weaken anything for anyone else.
+        #
+        # Editorship stays off for everyone else: a dataset named after a
+        # table the query reads is a decoy any dataset creator can make.
         security_manager.raise_for_access(
             query=datasource,
             datasource=datasource,
             allow_query_authorship_bypass=True,
+            allow_dataset_editorship=False,
         )
     else:
         security_manager.raise_for_access(datasource=datasource)
