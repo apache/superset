@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { FC, Fragment, useCallback, useEffect, useState } from 'react';
+import { FC, Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import { omit } from 'lodash-es';
@@ -28,22 +28,32 @@ import {
   ensureIsArray,
   getClientErrorObject,
   JsonObject,
+  QueryData,
   QueryFormData,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { styled, type SupersetTheme } from '@apache-superset/core/theme';
-import { Loading } from '@superset-ui/core/components';
-import { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
+import { Button, Loading, Tabs } from '@superset-ui/core/components';
+import CodeSyntaxHighlighter, {
+  SupportedLanguage,
+} from '@superset-ui/core/components/CodeSyntaxHighlighter';
+import { CopyToClipboard } from 'src/components';
 import { getChartDataRequest } from 'src/components/Chart/chartAction';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
 import type { ChartState } from 'src/explore/types';
 import type { RootState } from 'src/views/store';
 import SemanticRequestView from './SemanticRequestView';
 
+const MAX_HIGHLIGHTED_RESPONSE_BYTES = 100 * 1024;
+
 interface Props {
   latestQueryFormData: QueryFormData;
   ownState?: JsonObject;
   chartId?: number;
+  queriesResponse?: QueryData[] | null;
+  chartUpdateStartTime?: number;
+  chartUpdateEndTime?: number | null;
+  showResponse?: boolean;
 }
 
 type Result = {
@@ -70,10 +80,64 @@ const ViewQueryModalContainer = styled.div`
   gap: ${({ theme }: { theme: SupersetTheme }) => theme.sizeUnit * 4}px;
 `;
 
+const LargeResponseContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
+
+  pre {
+    margin: 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
+`;
+
+const StatsGrid = styled.dl`
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: ${({ theme }) => theme.sizeUnit * 3}px
+    ${({ theme }) => theme.sizeUnit * 6}px;
+  margin: 0;
+
+  dt {
+    color: ${({ theme }) => theme.colorTextSecondary};
+  }
+
+  dd {
+    margin: 0;
+  }
+`;
+
+const getResponseStats = (queriesResponse: QueryData[] | null) => {
+  const responses = queriesResponse ?? [];
+  const compactResponse =
+    queriesResponse === null ? null : JSON.stringify(responses);
+  const returnedRows = responses.reduce((total, response) => {
+    const { data } = response as JsonObject;
+    return total + (Array.isArray(data) ? data.length : 0);
+  }, 0);
+  const cachedQueries = responses.filter(
+    response => (response as JsonObject).is_cached === true,
+  ).length;
+
+  return {
+    cachedQueries,
+    queryCount: responses.length,
+    responseBytes:
+      compactResponse === null ? null : new Blob([compactResponse]).size,
+    returnedRows,
+    compactResponse,
+  };
+};
+
 const ViewQueryModal: FC<Props> = ({
   latestQueryFormData,
   ownState,
   chartId,
+  queriesResponse,
+  chartUpdateStartTime,
+  chartUpdateEndTime,
+  showResponse = false,
 }) => {
   const isSemanticView =
     new DatasourceKey(latestQueryFormData.datasource).type ===
@@ -81,10 +145,11 @@ const ViewQueryModal: FC<Props> = ({
   const chartState = useSelector<RootState, ChartState | undefined>(
     state => state.charts?.[chartId ?? latestQueryFormData.slice_id ?? 0],
   );
-  const queriesResponse = chartState?.queriesResponse;
+  const semanticQueriesResponse = chartState?.queriesResponse;
   const [result, setResult] = useState<Result[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeTabKey, setActiveTabKey] = useState('query');
 
   const loadChartData = useCallback(
     (resultType: string) => {
@@ -127,50 +192,41 @@ const ViewQueryModal: FC<Props> = ({
     }
   }, [isSemanticView, loadChartData]);
 
-  if (isSemanticView) {
-    const reportState = getSemanticReportState(queriesResponse);
-    const noRequestMessage = t('No provider query is available for this run.');
-    const chartError =
-      chartState?.chartStatus === 'failed' ? chartState.chartAlert : null;
-    return (
-      <ViewQueryModalContainer>
-        {chartError && !queriesResponse?.some(entry => entry.error) && (
-          <Alert type="error" message={chartError} closable={false} />
-        )}
-        {reportState === 'not-run'
-          ? !chartError && (
-              <Alert
-                type="info"
-                message={t(
-                  'The provider query will be available after the chart runs.',
-                )}
-              />
-            )
-          : queriesResponse?.map((entry, index) => (
-              <Fragment key={index}>
-                {entry.error && (
-                  <Alert type="error" message={entry.error} closable={false} />
-                )}
-                {entry.query && (
-                  <SemanticRequestView requestText={entry.query} />
-                )}
-                {!entry.error && !entry.query && (
-                  <Alert type="info" message={noRequestMessage} />
-                )}
-              </Fragment>
-            ))}
-      </ViewQueryModalContainer>
-    );
-  }
-
-  if (isLoading) {
-    return <Loading />;
-  }
-  if (error) {
-    return <pre>{error}</pre>;
-  }
-
-  return (
+  const reportState = getSemanticReportState(semanticQueriesResponse);
+  const noRequestMessage = t('No provider query is available for this run.');
+  const chartError =
+    chartState?.chartStatus === 'failed' ? chartState.chartAlert : null;
+  const queryContent = isSemanticView ? (
+    <ViewQueryModalContainer>
+      {chartError && !semanticQueriesResponse?.some(entry => entry.error) && (
+        <Alert type="error" message={chartError} closable={false} />
+      )}
+      {reportState === 'not-run'
+        ? !chartError && (
+            <Alert
+              type="info"
+              message={t(
+                'The provider query will be available after the chart runs.',
+              )}
+            />
+          )
+        : semanticQueriesResponse?.map((entry, index) => (
+            <Fragment key={index}>
+              {entry.error && (
+                <Alert type="error" message={entry.error} closable={false} />
+              )}
+              {entry.query && <SemanticRequestView requestText={entry.query} />}
+              {!entry.error && !entry.query && (
+                <Alert type="info" message={noRequestMessage} />
+              )}
+            </Fragment>
+          ))}
+    </ViewQueryModalContainer>
+  ) : isLoading ? (
+    <Loading />
+  ) : error ? (
+    <pre>{error}</pre>
+  ) : (
     <ViewQueryModalContainer>
       {result.map((item, index) => (
         // Static API response data - index is appropriate for keys
@@ -188,6 +244,122 @@ const ViewQueryModal: FC<Props> = ({
         </Fragment>
       ))}
     </ViewQueryModalContainer>
+  );
+
+  const responseStats = useMemo(
+    () =>
+      queriesResponse === undefined ? null : getResponseStats(queriesResponse),
+    [queriesResponse],
+  );
+
+  const serializedResponse = useMemo(() => {
+    if (
+      !showResponse ||
+      activeTabKey !== 'response' ||
+      !queriesResponse?.length ||
+      !responseStats
+    ) {
+      return null;
+    }
+
+    return JSON.stringify(queriesResponse, null, 2);
+  }, [activeTabKey, queriesResponse, responseStats, showResponse]);
+
+  if (queriesResponse === undefined || responseStats === null) {
+    return queryContent;
+  }
+
+  const {
+    cachedQueries,
+    compactResponse,
+    queryCount,
+    responseBytes,
+    returnedRows,
+  } = responseStats;
+  const isLargeResponse =
+    responseBytes != null && responseBytes > MAX_HIGHLIGHTED_RESPONSE_BYTES;
+  const duration =
+    chartUpdateStartTime != null && chartUpdateEndTime != null
+      ? Math.max(0, chartUpdateEndTime - chartUpdateStartTime)
+      : null;
+  const items = [
+    {
+      key: 'query',
+      label: t('Query'),
+      children: queryContent,
+    },
+    ...(showResponse
+      ? [
+          {
+            key: 'response',
+            label: t('Response'),
+            children: queriesResponse?.length ? (
+              isLargeResponse ? (
+                <LargeResponseContainer>
+                  <CopyToClipboard
+                    text={compactResponse ?? ''}
+                    shouldShowText={false}
+                    copyNode={
+                      <Button buttonStyle="secondary" buttonSize="small">
+                        {t('Copy')}
+                      </Button>
+                    }
+                  />
+                  <pre data-test="query-inspector-response-plain">
+                    {serializedResponse}
+                  </pre>
+                </LargeResponseContainer>
+              ) : (
+                <CodeSyntaxHighlighter language="json" showLineNumbers>
+                  {serializedResponse ?? ''}
+                </CodeSyntaxHighlighter>
+              )
+            ) : (
+              <p>{t('No response data is available yet.')}</p>
+            ),
+          },
+        ]
+      : []),
+    {
+      key: 'stats',
+      label: t('Stats'),
+      children: (
+        <StatsGrid data-test="query-inspector-stats">
+          <dt>{t('Queries')}</dt>
+          <dd>{queryCount}</dd>
+          <dt>{t('Returned rows')}</dt>
+          <dd>{returnedRows}</dd>
+          <dt>{t('Cached queries')}</dt>
+          <dd>{cachedQueries}</dd>
+          <dt>{t('Response size')}</dt>
+          <dd>
+            {responseBytes == null
+              ? t('Not available')
+              : t('%s bytes', responseBytes.toLocaleString())}
+          </dd>
+          <dt
+            title={t(
+              'Time from chart update start until rendering completes; this is not query execution time.',
+            )}
+          >
+            {t('Chart load time')}
+          </dt>
+          <dd>
+            {duration == null ? t('Not available') : t('%s ms', duration)}
+          </dd>
+        </StatsGrid>
+      ),
+    },
+  ];
+
+  return (
+    <Tabs
+      fullHeight
+      allowOverflow={false}
+      activeKey={activeTabKey}
+      onChange={setActiveTabKey}
+      items={items}
+    />
   );
 };
 
