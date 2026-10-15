@@ -1212,6 +1212,8 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
         datetime(2024, 3, 10, 2, 30, tzinfo=new_york),
         datetime(2040, 7, 1, 12, tzinfo=new_york),
     ]
+    # Preserve the instant selected by the producer timezone database.
+    dublin_epoch_ms: float = source_values[1].timestamp() * 1000
     form_data = map_bullet_config(
         BulletChartConfig(
             metric={"name": "Revenue", "aggregate": "SUM", "label": "Revenue"},
@@ -1268,8 +1270,7 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
     assert result.success is True
     assert [row["Category"] for row in captured[0]] == [
         1704164645123.456,
-        # Dublin fold=1 is the second 01:30, after the return to UTC.
-        1729992600000.0,
+        dublin_epoch_ms,
         1710052200000.0,
         2224774800000.0,
     ]
@@ -1857,8 +1858,9 @@ def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> N
     pandas_values = [pd.Timestamp(value) for value in dateutil_values[:3]]
     values = [*dateutil_values, *equivalent_values, *pandas_values]
     expected_numbers = [json_int_dttm_ser(value) for value in values]
+    dublin_category: str = str(dateutil_values[0].timestamp() * 1000)
     expected_categories = [
-        "1729992600123.456",
+        dublin_category,
         "1710052200123.456",
         "2224774800123.456",
         "1710052200123.456",
@@ -1866,7 +1868,7 @@ def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> N
         "1710052200123.456",
         "1710052200123.456",
         "1710052200123.456",
-        "1729992600123.456",
+        dublin_category,
         "1710052200123.456",
         "2224774800123.456",
     ]

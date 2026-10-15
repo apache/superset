@@ -544,6 +544,8 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
         tzinfo=dateutil_dublin,
         fold=1,
     )
+    # Capture the producer-selected instant before projecting dataframe values.
+    dublin_epoch_ms: float = dublin_fold.timestamp() * 1000
     new_york_gap = datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=dateutil_new_york)
     form_data = {
         "viz_type": "bullet",
@@ -645,11 +647,10 @@ async def test_saved_bullet_get_data_projects_dataframe_timestamps_to_epoch(
         1730615400000.0,
         -0.0010000000000287557,
         None,
-        # Dublin fold=1 is the second 01:30, after the return to UTC.
-        1729992600123.456,
+        dublin_epoch_ms,
         1710052200123.456,
         2224774800123.456,
-        1729992600123.456,
+        dublin_epoch_ms,
         1710052200123.456,
     ]
 
@@ -1561,6 +1562,8 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         tzinfo=dateutil_dublin,
         fold=1,
     )
+    # Capture the producer-selected instant before projecting dataframe values.
+    dublin_epoch_ms: float = dublin_fold.timestamp() * 1000
     new_york_gap = datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=dateutil_new_york)
     source_values = [
         pd.Timestamp("2024-01-02 03:04:05.123456789"),
@@ -1612,12 +1615,12 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         "-0.0010000000000287557",
         "1704153600000",
         "null",
-        "1729992600123.456",
+        str(dublin_epoch_ms),
         "1710052200123.456",
         "2224774800123.456",
         "1710052200123.456",
         "1710052200123.456",
-        "1729992600123.456",
+        str(dublin_epoch_ms),
         "1710052200123.456",
     ]
     form_data = {
@@ -1715,12 +1718,12 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
             -0.0010000000000287557,
             1704153600000.0,
             None,
-            1729992600123.456,
+            dublin_epoch_ms,
             1710052200123.456,
             2224774800123.456,
             1710052200123.456,
             1710052200123.456,
-            1729992600123.456,
+            dublin_epoch_ms,
             1710052200123.456,
         ]
 

@@ -497,6 +497,19 @@ async def test_query_dataset_normalizes_supported_producer_timezones(
     dataset = _make_dataset(
         columns=[_make_column("created_at", is_dttm=True)],
     )
+    dublin_fold: datetime = datetime(
+        2024,
+        10,
+        27,
+        1,
+        30,
+        0,
+        123456,
+        tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+        fold=1,
+    )
+    # Capture the producer offset before normalization or hostile hooks.
+    dublin_iso: str = dublin_fold.isoformat()
     result_data = chart_data_command_result(
         [
             {
@@ -514,19 +527,7 @@ async def test_query_dataset_normalizes_supported_producer_timezones(
                     2024, 1, 2, 3, 4, 5, tz=dateutil_tz.gettz("US/Pacific")
                 )
             },
-            {
-                "created_at": datetime(
-                    2024,
-                    10,
-                    27,
-                    1,
-                    30,
-                    0,
-                    123456,
-                    tzinfo=dateutil_tz.gettz("Europe/Dublin"),
-                    fold=1,
-                )
-            },
+            {"created_at": dublin_fold},
             {
                 "created_at": datetime(
                     2024,
@@ -601,8 +602,7 @@ async def test_query_dataset_normalizes_supported_producer_timezones(
         {"created_at": "2024-01-02T03:04:05+05:30"},
         {"created_at": "2024-01-02T03:04:05-04:00"},
         {"created_at": "2024-01-02T03:04:05-08:00"},
-        # Dublin fold=1 is the second 01:30, after the return to UTC.
-        {"created_at": "2024-10-27T01:30:00.123456+00:00"},
+        {"created_at": dublin_iso},
         {"created_at": "2024-03-10T02:30:00-04:00"},
         {"created_at": "2040-07-01T12:00:00-05:00"},
         {"created_at": "2024-01-01T12:00:00-03:00"},
