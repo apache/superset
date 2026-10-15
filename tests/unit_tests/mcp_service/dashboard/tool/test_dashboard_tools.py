@@ -21,18 +21,20 @@ Unit tests for MCP dashboard tools (list_dashboards, get_dashboard_info)
 
 import logging
 from importlib import import_module
-from typing import Any
-from unittest.mock import Mock, patch
+from typing import Any, cast
+from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
-from fastmcp import Client
+from fastmcp import Client, Context
 from fastmcp.exceptions import ToolError
 from jsonschema import validate
 
+from superset.dashboards.permalink.types import DashboardPermalinkValue
 from superset.mcp_service.app import mcp
 from superset.mcp_service.dashboard.schemas import (
     DashboardError,
     DashboardInfo,
+    DashboardInfoWithFilterValues,
     DEFAULT_GET_DASHBOARD_INFO_COLUMNS,
     ListDashboardsRequest,
 )
@@ -1898,3 +1900,514 @@ async def test_dashboard_filter_values_for_both_access_branches(
         }
         assert "secret_region" not in str(response.structured_content)
     assert response.structured_content["is_permalink_state"] is use_permalink
+
+
+def _discovery_info(**values: Any) -> DashboardInfoWithFilterValues:
+    """Validate dashboard fixtures through the same public JSON schema."""
+    return DashboardInfoWithFilterValues.model_validate(values)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("include_choices", [False, True])
+async def test_dashboard_discovery_projection_does_not_query(
+    mcp_server: Any, include_choices: bool
+) -> None:
+    """Metadata-only and projected-out choice calls never schedule queries."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+
+    info = _discovery_info(id=1, dashboard_title="Sales")
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "_lookup_dashboard",
+            return_value=(info, DashboardLookupResult(result=info)),
+        ),
+        patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"),
+        patch(
+            "superset.mcp_service.dashboard.filter_values.validate_discovery_configuration"
+        ) as validate_config,
+        patch(
+            "superset.mcp_service.dashboard.filter_values.discover_filter_values"
+        ) as discover,
+        patch("superset.mcp_service.dashboard.filter_values._execute") as query,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "include_filter_values": include_choices,
+                        "select_columns": ["id"],
+                    }
+                },
+            )
+    assert result.structured_content == {"id": 1}
+    assert validate_config.call_count == int(include_choices)
+    discover.assert_not_called()
+    query.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "state_kind", ["matched", "mismatched", "expired", "malformed"]
+)
+async def test_dashboard_discovery_uses_only_matching_raw_snapshot(
+    mcp_server: Any, state_kind: str
+) -> None:
+    """Viewer redaction remains public while authorized raw masks hydrate choices."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+    from superset.mcp_service.dashboard.schemas import (
+        FilterValueDiscovery,
+        NativeFilterAvailableValues,
+        NativeFilterValueSummary,
+    )
+
+    native_filter = NativeFilterValueSummary(
+        id="region", name="Region", filter_type="filter_select"
+    )
+    info = _discovery_info(
+        id=1, uuid="board-uuid", slug="sales", native_filters=[native_filter]
+    )
+    state = {"dataMask": {"region": {"filterState": {"value": ["EMEA"]}}}}
+    value = {
+        "dashboardId": "board-uuid" if state_kind != "mismatched" else "other-uuid",
+        "state": "bad-state" if state_kind == "malformed" else state,
+    }
+    lookup = DashboardLookupResult(
+        result=info,
+        permalink_key="snapshot",
+        permalink_value=None
+        if state_kind == "expired"
+        else cast("DashboardPermalinkValue", value),
+    )
+    discovered = native_filter.model_copy(
+        update={
+            "available_values": NativeFilterAvailableValues(
+                status="complete", values=["Europe, Middle East & Africa"]
+            )
+        }
+    )
+    with (
+        patch.object(
+            get_dashboard_info_module, "_lookup_dashboard", return_value=(info, lookup)
+        ),
+        patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug") as authorize,
+        patch(
+            "superset.mcp_service.dashboard.filter_values.validate_discovery_configuration"
+        ) as validate_config,
+        patch(
+            "superset.mcp_service.dashboard.filter_values.discover_filter_values",
+            return_value=(
+                [discovered],
+                FilterValueDiscovery(total_filter_count=1, offset=0),
+            ),
+        ) as discover,
+        patch(
+            "superset.mcp_service.dashboard.permalink.user_can_view_data_model_metadata",
+            return_value=False,
+        ),
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "permalink_key": "snapshot",
+                        "include_filter_values": True,
+                    }
+                },
+            )
+    authorize.assert_called_once_with("1")
+    kwargs = discover.call_args.kwargs
+    assert kwargs["snapshot_state"] == (state if state_kind == "matched" else None)
+    assert kwargs["state_error"] == (
+        None if state_kind == "matched" else "state_invalid"
+    )
+    assert isinstance(kwargs["started_at"], float)
+    validate_config.assert_called_once_with(
+        authorize.return_value,
+        validate_config.call_args.args[1],
+        started_at=kwargs["started_at"],
+    )
+    assert kwargs["discovery_context"] is validate_config.return_value
+    payload = result.structured_content
+    assert payload["native_filters"][0]["targets"] == []
+    assert payload["native_filters"][0]["available_values"]["values"] == [
+        "Europe, Middle East & Africa"
+    ]
+    assert payload["filter_value_discovery"]["scope"] == "filter_selection"
+    if state_kind == "matched":
+        assert "dataMask" not in payload["filter_state"]
+        assert payload["filter_state"]["native_filter_values"][0]["value"] == ["EMEA"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("state", [None, {}, {"dataMask": None}])
+async def test_scoped_dashboard_discovery_does_not_fall_back_to_defaults(
+    mcp_server: Any,
+    state: dict[str, Any] | None,
+) -> None:
+    """Scoped calls with no snapshot retain a per-filter state_missing refusal."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+    from superset.mcp_service.dashboard.schemas import FilterValueDiscovery
+    from superset.mcp_service.dashboard_scope import DashboardScope
+
+    info = _discovery_info(id=1)
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "_lookup_dashboard",
+            return_value=(info, DashboardLookupResult(result=info)),
+        ),
+        patch.object(
+            get_dashboard_info_module,
+            "get_request_dashboard_scope",
+            return_value=DashboardScope(dashboard_id=1, chart_filters={}),
+        ),
+        patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"),
+        patch(
+            "superset.mcp_service.dashboard.filter_values.validate_discovery_configuration"
+        ),
+        patch(
+            "superset.mcp_service.dashboard.filter_values.discover_filter_values",
+            return_value=([], FilterValueDiscovery(total_filter_count=0, offset=0)),
+        ) as discover,
+    ):
+        async with Client(mcp_server) as client:
+            request: dict[str, Any] = {"identifier": 1, "include_filter_values": True}
+            if state is not None:
+                request["filter_state"] = state
+            await client.call_tool("get_dashboard_info", {"request": request})
+    assert discover.call_args.kwargs["state_error"] == "state_missing"
+    assert discover.call_args.kwargs["snapshot_state"] is None
+
+
+@pytest.mark.parametrize("permalink", [False, True])
+@pytest.mark.parametrize(
+    ("state", "reason"),
+    [
+        ({}, "state_missing"),
+        ({"dataMask": None}, "state_missing"),
+        ({"activeTabs": ["tab-1"]}, "state_missing"),
+        ({"filters": []}, "state_missing"),
+        ({"dataMask": []}, "state_invalid"),
+        ({"dataMask": "invalid"}, "state_invalid"),
+        ({"dataMask": {}}, None),
+        ({"dataMask": {"region": {"filterState": {"value": ["EMEA"]}}}}, None),
+    ],
+)
+def test_scoped_discovery_snapshot_requires_dictionary_mask(
+    permalink: bool, state: dict[str, Any], reason: str | None
+) -> None:
+    """Both state sources require raw selection masks under dashboard scope."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+    from superset.mcp_service.dashboard_scope import DashboardScope
+
+    info = _discovery_info(id=1)
+    inputs: dict[str, Any] = {"identifier": 1, "include_filter_values": True}
+    lookup = DashboardLookupResult(result=info)
+    if permalink:
+        inputs["permalink_key"] = "snapshot"
+        lookup = DashboardLookupResult(
+            result=info,
+            permalink_key="snapshot",
+            permalink_value=cast(
+                "DashboardPermalinkValue", {"dashboardId": "1", "state": state}
+            ),
+        )
+    else:
+        inputs["filter_state"] = state
+    with patch.object(
+        get_dashboard_info_module,
+        "get_request_dashboard_scope",
+        return_value=DashboardScope(dashboard_id=1, chart_filters={}),
+    ):
+        assert get_dashboard_info_module._discovery_snapshot(
+            GetDashboardInfoRequest.model_validate(inputs), info, lookup
+        ) == (state if reason is None else None, reason)
+
+
+@pytest.mark.parametrize("kind", ["expired", "mismatched", "malformed", "null"])
+def test_scoped_invalid_snapshot_does_not_become_missing(kind: str) -> None:
+    """A scoped request does not disguise invalid source state as omitted state."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+    from superset.mcp_service.dashboard_scope import DashboardScope
+
+    info = _discovery_info(id=1)
+    inputs: dict[str, Any] = {"identifier": 1, "include_filter_values": True}
+    lookup = DashboardLookupResult(result=info)
+    if kind == "null":
+        inputs["filter_state"] = None
+    else:
+        inputs["permalink_key"] = "snapshot"
+        lookup = DashboardLookupResult(
+            result=info,
+            permalink_key="snapshot",
+            permalink_value=None
+            if kind == "expired"
+            else cast(
+                "DashboardPermalinkValue",
+                {
+                    "dashboardId": "2" if kind == "mismatched" else "1",
+                    "state": "invalid" if kind == "malformed" else {},
+                },
+            ),
+        )
+    with patch.object(
+        get_dashboard_info_module,
+        "get_request_dashboard_scope",
+        return_value=DashboardScope(dashboard_id=1, chart_filters={}),
+    ):
+        assert get_dashboard_info_module._discovery_snapshot(
+            GetDashboardInfoRequest.model_validate(inputs), info, lookup
+        ) == (None, "state_invalid")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "private_error",
+    [
+        "Unknown native filter ID: missing",
+        "Target column secret_metric requires a numeric scalar",
+        "Filter private_parent must be an ancestor of child",
+    ],
+)
+async def test_dashboard_discovery_configuration_failure_is_validation_error(
+    mcp_server: Any,
+    private_error: str,
+) -> None:
+    """Invalid configured IDs fail before the discovery helper can query."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+
+    info = _discovery_info(id=1)
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "_lookup_dashboard",
+            return_value=(info, DashboardLookupResult(result=info)),
+        ),
+        patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug"),
+        patch(
+            "superset.mcp_service.dashboard.filter_values.validate_discovery_configuration",
+            side_effect=ValueError(private_error),
+        ),
+        patch(
+            "superset.mcp_service.dashboard.filter_values.discover_filter_values"
+        ) as discover,
+    ):
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "get_dashboard_info",
+                {
+                    "request": {
+                        "identifier": 1,
+                        "include_filter_values": True,
+                        "filter_value_requests": [{"filter_id": "missing"}],
+                    }
+                },
+            )
+    assert result.structured_content["error_type"] == "invalid_request"
+    assert result.structured_content["error"] == (
+        "Invalid native filter discovery request. Check configured filter IDs, "
+        "request modes, scalar types, and proposed parent selections."
+    )
+    discover.assert_not_called()
+
+
+def test_discovery_size_contract_applies_with_general_guard_disabled(app: Any) -> None:
+    """Tool-side finalization removes whole scalars without middleware."""
+    from superset.mcp_service.dashboard.schemas import (
+        FilterValueDiscovery,
+        NativeFilterAvailableValues,
+        NativeFilterValueSummary,
+    )
+
+    info = _discovery_info(
+        id=1,
+        native_filters=[
+            NativeFilterValueSummary(
+                id="region",
+                name="Region",
+                filter_type="filter_select",
+                available_values=NativeFilterAvailableValues(
+                    status="complete", values=["é" * 22_000]
+                ),
+            )
+        ],
+        filter_value_discovery=FilterValueDiscovery(total_filter_count=1, offset=0),
+    )
+    with patch.dict(app.config, {"MCP_RESPONSE_SIZE_CONFIG": {"enabled": False}}):
+        result = get_dashboard_info_module._serialize_info(
+            info, ["id", "native_filters", "filter_value_discovery"]
+        )
+    options = result["native_filters"][0]["available_values"]
+    assert options["values"] == []
+    assert options["status"] == "truncated"
+    assert options["reason"] == "response_limit"
+    assert info.native_filters[0].available_values is not None
+    assert info.native_filters[0].available_values.values == ["é" * 22_000]
+
+
+@pytest.mark.parametrize("key", [None, ""])
+def test_supplied_empty_discovery_permalink_never_uses_defaults(
+    key: str | None,
+) -> None:
+    """Invalid supplied snapshot controls are distinct from omitted controls."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+
+    info = _discovery_info(id=1)
+    request = GetDashboardInfoRequest.model_validate(
+        {"identifier": 1, "include_filter_values": True, "permalink_key": key}
+    )
+    assert get_dashboard_info_module._discovery_snapshot(
+        request, info, DashboardLookupResult(result=info)
+    ) == (None, "state_invalid")
+
+
+def test_omitted_discovery_snapshot_survives_model_roundtrip() -> None:
+    """Client serialization must not turn default hydration into invalid null state."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+
+    info = _discovery_info(id=1)
+    request = GetDashboardInfoRequest.model_validate(
+        GetDashboardInfoRequest.model_validate(
+            {"identifier": 1, "include_filter_values": True}
+        ).model_dump()
+    )
+    with patch.object(
+        get_dashboard_info_module, "get_request_dashboard_scope", return_value=None
+    ):
+        assert get_dashboard_info_module._discovery_snapshot(
+            request, info, DashboardLookupResult(result=info)
+        ) == (None, None)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("redirect", [False, True])
+async def test_discovery_oauth_errors_preserve_authentication_guidance(
+    mcp_server: Any, redirect: bool
+) -> None:
+    """Authentication handoffs must not become internal/query failure responses."""
+    from superset.exceptions import OAuth2Error, OAuth2RedirectError
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+
+    error = (
+        OAuth2RedirectError(
+            "https://oauth.example.test/authorize",
+            "tab",
+            "https://superset.example.test",
+        )
+        if redirect
+        else OAuth2Error("provider error")
+    )
+    info = _discovery_info(id=1)
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "_lookup_dashboard",
+            return_value=(info, DashboardLookupResult(result=info)),
+        ),
+        patch.object(
+            get_dashboard_info_module, "_enrich_filter_values", side_effect=error
+        ),
+        patch.object(Context, "error", new_callable=AsyncMock) as log_error,
+    ):
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1, "include_filter_values": True}},
+            )
+    assert response.structured_content["error_type"] == (
+        "OAuth2Redirect" if redirect else "OAuth2Error"
+    )
+    log_error.assert_awaited_once()
+    assert f"error_type={type(error).__name__}" in log_error.call_args.args[0]
+    if redirect:
+        assert (
+            "https://oauth.example.test/authorize"
+            in response.structured_content["error"]
+        )
+        assert "authorize access, then retry" in response.structured_content["error"]
+    else:
+        assert "OAuth2 authentication error" in response.structured_content["error"]
+
+
+@pytest.mark.asyncio
+async def test_discovery_unexpected_failure_logs_exception_class(
+    mcp_server: Any,
+) -> None:
+    """Generic public error mapping keeps the original exception class in logs."""
+    from superset.mcp_service.dashboard.permalink import DashboardLookupResult
+
+    info = _discovery_info(id=1)
+    with (
+        patch.object(
+            get_dashboard_info_module,
+            "_lookup_dashboard",
+            return_value=(info, DashboardLookupResult(result=info)),
+        ),
+        patch.object(
+            get_dashboard_info_module,
+            "_enrich_filter_values",
+            side_effect=RuntimeError("unexpected fixture failure"),
+        ),
+        patch.object(Context, "error", new_callable=AsyncMock) as log_error,
+    ):
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_dashboard_info",
+                {"request": {"identifier": 1, "include_filter_values": True}},
+            )
+    assert response.structured_content["error_type"] == "InternalError"
+    log_error.assert_awaited_once()
+    assert "error_type=RuntimeError" in log_error.call_args.args[0]
+
+
+def test_discovery_metadata_bounding_uses_configured_list_limit(app: Any) -> None:
+    """The tool-side guard honors operator chart-list limits with exact choices."""
+    from superset.mcp_service.dashboard.schemas import (
+        FilterValueDiscovery,
+        NativeFilterAvailableValues,
+        NativeFilterValueSummary,
+    )
+
+    info = _discovery_info(
+        id=1,
+        charts=[
+            {"id": number, "slice_name": "x" * 500, "description": "y" * 500}
+            for number in range(8)
+        ],
+        native_filters=[
+            NativeFilterValueSummary(
+                id="region",
+                name="Region",
+                filter_type="filter_select",
+                available_values=NativeFilterAvailableValues(
+                    status="complete", values=["France"]
+                ),
+            )
+        ],
+        filter_value_discovery=FilterValueDiscovery(total_filter_count=1, offset=0),
+    )
+    with patch.dict(
+        app.config,
+        {
+            "MCP_RESPONSE_SIZE_CONFIG": {
+                "enabled": False,
+                "max_bytes": 4000,
+                "max_list_items": 2,
+            }
+        },
+    ):
+        response = get_dashboard_info_module._serialize_info(
+            info, ["id", "charts", "native_filters", "filter_value_discovery"]
+        )
+    assert len(response["charts"]) == 2
+    assert response["native_filters"][0]["available_values"]["values"] == ["France"]
+    assert len(info.charts) == 8

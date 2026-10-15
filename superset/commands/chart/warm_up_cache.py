@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-
+from collections.abc import Mapping
 from typing import Any, cast, Optional, Union
 
 from superset.commands.base import BaseCommand
@@ -71,6 +71,22 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         # Apply dashboard filters if dashboard_id is provided
         if dashboard_filters := self._get_dashboard_filters(chart.id):
+            # These filters enter after QueryObjectFactory has stripped private
+            # discovery flags from the saved chart query.
+            if any(
+                isinstance(predicate, Mapping) and "is_literal" in predicate
+                for predicate in dashboard_filters
+            ):
+                dashboard_filters = [
+                    {
+                        key: value
+                        for key, value in predicate.items()
+                        if key != "is_literal"
+                    }
+                    if isinstance(predicate, Mapping) and "is_literal" in predicate
+                    else predicate
+                    for predicate in dashboard_filters
+                ]
             for query in query_context.queries:
                 query.filter = (
                     cast(list[QueryObjectFilterClause], dashboard_filters)

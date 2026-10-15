@@ -81,8 +81,9 @@ TOOL_BUDGETS = {
     "get_compatible_metrics": 1_500,
     "get_dashboard_data": 2_400,
     "get_dashboard_datasets": 1_100,
-    # Independent prose/instruction budgets: 3,178 bytes plus snapshot headroom.
-    "get_dashboard_info": 3_300,
+    # Includes bounded dropdown discovery/proposal schemas: 4,926 bytes,
+    # with an explicit 5,000-byte budget for the full snapshot guidance.
+    "get_dashboard_info": 5_000,
     "get_dashboard_layout": 1_600,
     "get_database_info": 1_400,
     "get_dataset_info": 2_400,

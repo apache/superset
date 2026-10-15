@@ -17,15 +17,140 @@
 
 """Tests for MCP response caching middleware."""
 
-from unittest.mock import MagicMock, patch
+from types import SimpleNamespace
+from typing import Any
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from superset.mcp_service.caching import (
     _build_caching_settings,
+    _bypass_dashboard_scoped_calls,
     _version_cache_prefix,
     MCP_RESPONSE_CACHE_NAMESPACE,
 )
+from superset.utils import json
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("identifier_alias", ["identifier", "id", "dashboard_id"])
+@pytest.mark.parametrize("request_encoding", ["object", "json", "flat"])
+@pytest.mark.parametrize("tool_name", ["get_dashboard_info", "call_tool", "invoke"])
+@pytest.mark.parametrize("scoped", [False, True])
+async def test_filter_discovery_bypasses_response_cache(
+    identifier_alias: str, request_encoding: str, tool_name: str, scoped: bool
+) -> None:
+    """A warm response cache cannot skip discovery's fresh authorization."""
+    request: dict[str, Any] = {identifier_alias: 7, "include_filter_values": True}
+    arguments: dict[str, Any] = (
+        request
+        if request_encoding == "flat"
+        else {"request": json.dumps(request) if request_encoding == "json" else request}
+    )
+    if tool_name != "get_dashboard_info":
+        arguments = {"name": "get_dashboard_info", "arguments": arguments}
+    context = SimpleNamespace(
+        message=SimpleNamespace(name=tool_name, arguments=arguments)
+    )
+    cached_call = AsyncMock(return_value={"secret": "old authorized choices"})
+    middleware = SimpleNamespace(on_call_tool=cached_call)
+    call_next = AsyncMock(side_effect=[{"values": ["authorized"]}, PermissionError])
+    scope = SimpleNamespace(has_constraints=False) if scoped else None
+    with patch(
+        "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+        return_value=scope,
+    ):
+        _bypass_dashboard_scoped_calls(middleware, proxy_name="invoke")
+        assert await middleware.on_call_tool(context, call_next) == {
+            "values": ["authorized"]
+        }
+        with pytest.raises(PermissionError):
+            await middleware.on_call_tool(context, call_next)
+    # Neither the cache read nor the write path can run, even with no active
+    # scope constraints, and a revoked grant is checked on the second call.
+    cached_call.assert_not_called()
+    assert call_next.await_count == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("include", [None, False])
+async def test_filter_metadata_preserves_response_cache(include: bool | None) -> None:
+    """Ordinary dashboard metadata keeps its existing cache policy."""
+    request = {"identifier": 7}
+    if include is not None:
+        request["include_filter_values"] = include
+    context = SimpleNamespace(
+        message=SimpleNamespace(
+            name="get_dashboard_info", arguments={"request": request}
+        )
+    )
+    cached_call = AsyncMock(return_value={"id": 7})
+    middleware = SimpleNamespace(on_call_tool=cached_call)
+    call_next = AsyncMock()
+    with patch(
+        "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+        return_value=None,
+    ):
+        _bypass_dashboard_scoped_calls(middleware)
+        assert await middleware.on_call_tool(context, call_next) == {"id": 7}
+    cached_call.assert_awaited_once_with(context, call_next)
+    call_next.assert_not_called()
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("proxy_name", [None, "call_tool"])
+@pytest.mark.parametrize("scoped", [False, True])
+async def test_filter_discovery_real_cache_rechecks_changed_access(
+    proxy_name: str | None, scoped: bool
+) -> None:
+    """Actual FastMCP cache hits cannot replay authorized values after revocation."""
+    from fastmcp import Client, FastMCP
+    from fastmcp.exceptions import ToolError
+    from fastmcp.server.middleware.caching import ResponseCachingMiddleware
+
+    from superset.mcp_service.server import _apply_tool_search_transform
+
+    middleware = _bypass_dashboard_scoped_calls(ResponseCachingMiddleware())
+    server = FastMCP("filter-discovery-cache-test", middleware=[middleware])
+    allowed = True
+    query_calls = 0
+
+    @server.tool
+    def get_dashboard_info(request: dict[str, Any]) -> dict[str, Any]:
+        """Simulate fresh native authorization on each data-bearing call."""
+        nonlocal query_calls
+        assert request["include_filter_values"] is True
+        query_calls += 1
+        if not allowed:
+            raise ToolError("Access denied")
+        return {"values": ["authorized choice"]}
+
+    if proxy_name:
+        _apply_tool_search_transform(
+            server, {"enabled": True, "call_tool_name": proxy_name}
+        )
+    arguments: dict[str, Any] = {
+        "request": {"dashboard_id": 7, "include_filter_values": True}
+    }
+    if proxy_name:
+        arguments = {"name": "get_dashboard_info", "arguments": arguments}
+    scope = SimpleNamespace(has_constraints=False) if scoped else None
+    with patch(
+        "superset.mcp_service.dashboard_scope.get_request_dashboard_scope",
+        return_value=scope,
+    ):
+        async with Client(server) as client:
+            first = await client.call_tool(
+                proxy_name or "get_dashboard_info", arguments
+            )
+            assert first.data == {"values": ["authorized choice"]}
+            allowed = False
+            second = await client.call_tool(
+                proxy_name or "get_dashboard_info", arguments, raise_on_error=False
+            )
+            assert second.is_error
+            assert "authorized choice" not in str(second.content)
+    assert query_calls == 2
 
 
 def test_version_cache_prefix_appends_response_contract_namespace() -> None:

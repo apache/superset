@@ -1509,3 +1509,126 @@ def test_refusals_never_suggest_clearing_dashboard_filters() -> None:
     )
     offending = [text for text in texts if forbidden.search(text)]
     assert offending == []
+
+
+@pytest.mark.parametrize("chart_filters", [{}, {"3": {"filters": [CLIENT_A]}}])
+@pytest.mark.parametrize("identifier", [7, "7", "active-dashboard", "snapshot"])
+def test_dropdown_scope_requires_same_dashboard_even_without_chart_filters(
+    chart_filters: dict[str, Any], identifier: int | str
+) -> None:
+    """Choices use authorized dropdown context independently of chart row scope."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+
+    board = SimpleNamespace(
+        id=DASHBOARD_ID, uuid="active-uuid", slug="active-dashboard"
+    )
+    request = GetDashboardInfoRequest.model_validate(
+        {"identifier": identifier, "include_filter_values": True}
+    )
+    signature = inspect.Signature(
+        [inspect.Parameter("request", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
+    )
+    with (
+        scope_header(encode(scope_payload(chart_filters))),
+        patch(
+            "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug", return_value=board
+        ) as access,
+    ):
+        args, kwargs = apply_call_dashboard_scope(
+            "get_dashboard_info", signature, (), {"request": request}
+        )
+    assert args == ()
+    assert kwargs["request"] is request
+    access.assert_called_once_with(identifier)
+    assert request.filter_state is None
+
+
+@pytest.mark.parametrize("chart_filters", [{}, {"3": {"filters": [CLIENT_A]}}])
+def test_dropdown_scope_rejects_other_dashboard(chart_filters: dict[str, Any]) -> None:
+    """An empty chart_filter_map does not make discovery scope-neutral."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+
+    request = GetDashboardInfoRequest.model_validate(
+        {"identifier": 8, "include_filter_values": True}
+    )
+    signature = inspect.Signature(
+        [inspect.Parameter("request", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
+    )
+    with (
+        scope_header(encode(scope_payload(chart_filters))),
+        patch(
+            "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+            return_value=SimpleNamespace(id=8),
+        ),
+        pytest.raises(MCPDashboardScopeError, match="same accessible active dashboard"),
+    ):
+        apply_call_dashboard_scope("get_dashboard_info", signature, (request,), {})
+
+
+def test_dropdown_scope_uses_real_dashboard_authorization() -> None:
+    """The gate traverses DAO.raise_for_access, even when a lookup finds the row."""
+    from superset.exceptions import SupersetSecurityException
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+    from superset.models.dashboard import Dashboard
+
+    board = Mock(id=DASHBOARD_ID)
+    board.raise_for_access.side_effect = SupersetSecurityException(Mock())
+    request = GetDashboardInfoRequest.model_validate(
+        {
+            "identifier": "12345678-1234-1234-1234-123456789012",
+            "include_filter_values": True,
+        }
+    )
+    signature = inspect.Signature(
+        [inspect.Parameter("request", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
+    )
+    with (
+        scope_header(encode(scope_payload({}))),
+        patch.object(Dashboard, "get", return_value=board),
+        patch(
+            "superset.mcp_service.dashboard.permalink.get_dashboard_permalink",
+            return_value=None,
+        ),
+        pytest.raises(MCPDashboardScopeError, match="same accessible active dashboard"),
+    ):
+        apply_call_dashboard_scope("get_dashboard_info", signature, (request,), {})
+    board.raise_for_access.assert_called_once_with()
+
+
+def test_metadata_dashboard_info_keeps_neutral_scope_behavior() -> None:
+    """Metadata remains readable without discovery's dashboard/snapshot gate."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardInfoRequest
+
+    request = GetDashboardInfoRequest.model_validate({"identifier": 8})
+    signature = inspect.Signature(
+        [inspect.Parameter("request", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
+    )
+    with (
+        scope_header(encode(scope_payload({"3": {"filters": [CLIENT_A]}}))),
+        patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug") as access,
+    ):
+        args, kwargs = apply_call_dashboard_scope(
+            "get_dashboard_info", signature, (request,), {}
+        )
+    assert args == (request,)
+    assert kwargs == {}
+    access.assert_not_called()
+
+
+def test_dropdown_scope_reads_json_request_form() -> None:
+    """JSON request forms cannot route discovery through the neutral branch."""
+    signature = inspect.Signature(
+        [inspect.Parameter("request", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
+    )
+    request = json.dumps({"id": 8, "include_filter_values": True})
+    with (
+        scope_header(encode(scope_payload({}))),
+        patch(
+            "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
+            return_value=SimpleNamespace(id=8),
+        ),
+        pytest.raises(MCPDashboardScopeError, match="same accessible active dashboard"),
+    ):
+        apply_call_dashboard_scope(
+            "get_dashboard_info", signature, (), {"request": request}
+        )
