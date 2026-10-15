@@ -1028,3 +1028,26 @@ def test_legacy_nested_oversized_integer_matches_sync() -> None:
         result, _result_set(["value"], [(value,)]).to_pandas_df()
     )
     assert type(result["value"][0]["a"]) is int
+
+
+def test_nested_sidecar_rejects_unknown_type_tag() -> None:
+    """Unknown sidecar extensions are rejected rather than guessed as scalars."""
+    import base64
+
+    import msgpack
+
+    from superset.sql.execution.serialization import deserialize_nested_columns
+
+    data = msgpack.dumps([msgpack.ExtType(99, b"unknown")], use_bin_type=True)
+    with pytest.raises(ValueError, match="Unsupported nested SQL type tag"):
+        deserialize_nested_columns({"value": base64.b64encode(data).decode("ascii")})
+
+
+def test_decode_legacy_records_without_column_metadata() -> None:
+    """Legacy records can supply their own column names without metadata."""
+    from superset.sql.execution.executor import _decode_async_statement_data
+
+    pd.testing.assert_frame_equal(
+        _decode_async_statement_data({"data": [{"value": 1}]}),
+        pd.DataFrame({"value": [1]}),
+    )
