@@ -261,6 +261,35 @@ fetchMock.get(
   { name: tabsEndpoint },
 );
 
+// Global Alerts & Reports configuration (SIP-209) and "Run As" user pickers.
+const configurationEndpoint = 'glob:*/api/v1/report/configuration/';
+const runAsEndpoint = 'glob:*/api/v1/report/related/run_as?*';
+const runAlertQueryAsEndpoint =
+  'glob:*/api/v1/report/related/run_alert_query_as?*';
+const mockReportConfiguration = {
+  alerts_attach_reports: true,
+  alert_minimum_interval: 0,
+  report_minimum_interval: 0,
+  limit_recipients_to_users: false,
+  allowed_email_domains: [],
+};
+fetchMock.get(
+  configurationEndpoint,
+  { result: mockReportConfiguration },
+  { name: configurationEndpoint },
+);
+const runAsUsers = {
+  count: 2,
+  result: [
+    { value: 1, text: 'Superset Admin', extra: { email: 'admin@example.com' } },
+    { value: 2, text: 'Gamma User', extra: { email: 'gamma@example.com' } },
+  ],
+};
+fetchMock.get(runAsEndpoint, runAsUsers, { name: runAsEndpoint });
+fetchMock.get(runAlertQueryAsEndpoint, runAsUsers, {
+  name: runAlertQueryAsEndpoint,
+});
+
 // Chart detail endpoint — called by getChartVisualizationType when a chart is selected
 fetchMock.get('glob:*/api/v1/chart/*', {
   result: { viz_type: 'table' },
@@ -1706,6 +1735,49 @@ test('submit includes include_cta false after unchecking the checkbox', async ()
   fetchMock.removeRoute('put-include-cta');
 }, 45000);
 
+test('keeps the link choice when an existing alert turns attachments off', async () => {
+  fetchMock.put(
+    'glob:*/api/v1/report/1',
+    { id: 1, result: {} },
+    { name: 'put-attachment-free-link' },
+  );
+
+  render(<AlertReportModal {...generateMockedProps(false, true, false)} />, {
+    useRedux: true,
+  });
+  await waitFor(() => {
+    expect(
+      screen.queryAllByRole('img', { name: /check-circle/i }),
+    ).toHaveLength(5);
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+
+  const checkbox = await screen.findByRole('checkbox', {
+    name: /include a link back to superset/i,
+  });
+  await userEvent.click(checkbox);
+  await userEvent.click(
+    screen.getByRole('switch', { name: 'Include attachment' }),
+  );
+  expect(checkbox).toBeInTheDocument();
+  expect(checkbox).not.toBeChecked();
+
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await waitFor(() => {
+    expect(
+      fetchMock.callHistory.calls('put-attachment-free-link'),
+    ).toHaveLength(1);
+  });
+  const [call] = fetchMock.callHistory.calls('put-attachment-free-link');
+  const body = JSON.parse(call.options.body as string);
+  expect(body.report_format).toBe('NONE');
+  expect(body.include_cta).toBe(false);
+  expect(body).not.toHaveProperty('chart');
+  expect(body).not.toHaveProperty('dashboard');
+
+  fetchMock.removeRoute('put-attachment-free-link');
+}, 45000);
+
 test('edit mode submit uses PUT and excludes read-only fields', async () => {
   // Mock payload returns id:1, so updateResource PUTs to /api/v1/report/1
   fetchMock.put(
@@ -3105,4 +3177,360 @@ test('hides retry options and resets state when Enable Retries is toggled off', 
     expect(screen.queryByText('Send Failed Reports')).not.toBeInTheDocument();
     expect(screen.queryByText('Failure Notifications')).not.toBeInTheDocument();
   });
+});
+
+const adminUser = {
+  userId: 1,
+  firstName: 'Superset',
+  lastName: 'Admin',
+  email: 'admin@example.com',
+  username: 'admin',
+  roles: { Admin: [] },
+  permissions: {},
+};
+
+const gammaUser = { ...adminUser, roles: { Gamma: [] } };
+
+test('Run As fields default to the current user for admins on new alerts', async () => {
+  render(<AlertReportModal {...generateMockedProps(false)} alert={null} />, {
+    useRedux: true,
+    initialState: { user: adminUser },
+  });
+
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  const runAs = await screen.findByRole('combobox', { name: /^run as:/i });
+  expect(runAs).toBeEnabled();
+  expect(
+    within(screen.getByTestId('run-as-field')).getByText('Superset Admin'),
+  ).toBeInTheDocument();
+  await userEvent.click(screen.getByTestId('alert-condition-panel'));
+  expect(
+    screen.getByRole('combobox', { name: 'Run alert query as type' }),
+  ).toBeEnabled();
+});
+
+test('non-admins cannot search for users or choose executor rules', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} alert={null} />, {
+    useRedux: true,
+    initialState: { user: gammaUser },
+  });
+
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  expect(
+    await screen.findByText('Content and permissions'),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('combobox', { name: 'Run as type' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('combobox', { name: /^run as:/i }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('combobox', { name: 'Run alert query as type' }),
+  ).not.toBeInTheDocument();
+});
+
+test('editing a legacy schedule preserves the application default executor', async () => {
+  // Edit mode: the mocked schedule payload has no run_as (legacy executor).
+  render(<AlertReportModal {...generateMockedProps(false, true)} />, {
+    useRedux: true,
+    initialState: { user: adminUser },
+  });
+
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  expect(await screen.findByText('Application default')).toBeInTheDocument();
+});
+
+test('shows the operator Run as tooltip', async () => {
+  render(<AlertReportModal {...generateMockedProps(false, true)} />, {
+    useRedux: true,
+    initialState: {
+      user: adminUser,
+      common: {
+        conf: {
+          ALERT_REPORTS_RUN_AS_TOOLTIP:
+            'Uses the internal System report account.',
+        },
+      },
+    },
+  });
+
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  await userEvent.hover(
+    within(screen.getByTestId('run-as-field')).getByRole('button', {
+      name: 'Show info tooltip',
+    }),
+  );
+  expect(
+    await screen.findByText(/Uses the internal System report account\./),
+  ).toBeInTheDocument();
+});
+
+test('admins can return a specific user to the application default', async () => {
+  render(<AlertReportModal {...generateMockedProps(false)} alert={null} />, {
+    useRedux: true,
+    initialState: { user: adminUser },
+  });
+
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Run as type',
+  });
+  expect(
+    within(screen.getByTestId('run-as-field')).getByText('Specific user'),
+  ).toBeInTheDocument();
+  await userEvent.click(typePicker);
+  await userEvent.click(await screen.findByText('Application default'));
+
+  expect(
+    screen
+      .getByTestId('run-as-field')
+      .querySelector(selectedValueSelector('Application default')),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('combobox', { name: /^run as:/i }),
+  ).not.toBeInTheDocument();
+});
+
+test('alerts toggle attachment controls and restore their selected format', async () => {
+  render(<AlertReportModal {...generateMockedProps(false)} alert={null} />, {
+    useRedux: true,
+    initialState: { user: adminUser },
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  const toggle = screen.getByRole('switch', { name: 'Include attachment' });
+  expect(toggle).toBeChecked();
+  const format = screen.getByRole('combobox', { name: /select format/i });
+  await userEvent.click(format);
+  expect(screen.queryByText('No attachment')).not.toBeInTheDocument();
+  await userEvent.click(await screen.findByText('Send as PDF'));
+  await userEvent.click(toggle);
+  expect(
+    screen.queryByRole('combobox', { name: 'Select content type' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('combobox', { name: /select format/i }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(toggle);
+  expect(screen.getByText('Send as PDF')).toBeInTheDocument();
+});
+
+test('admins can choose only a specific user or application default', async () => {
+  render(<AlertReportModal {...generateMockedProps(false)} alert={null} />, {
+    useRedux: true,
+    initialState: { user: adminUser },
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Run as type',
+  });
+  await userEvent.click(typePicker);
+  expect(await screen.findAllByText('Specific user')).not.toHaveLength(0);
+  expect(await screen.findByText('Application default')).toBeInTheDocument();
+  expect(
+    screen.queryByText('Creator, if still an editor'),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('combobox', { name: /^run as:/i }),
+  ).toBeInTheDocument();
+  await userEvent.click(screen.getByTestId('alert-condition-panel'));
+  expect(screen.getByText('Same as "Run as"')).toBeInTheDocument();
+});
+
+test('non-admins are warned and can take over both alert executors', async () => {
+  fetchMock.put(
+    'glob:*/api/v1/report/1',
+    { id: 1, result: {} },
+    { name: 'take-over' },
+  );
+  render(<AlertReportModal {...generateMockedProps(false, true)} />, {
+    useRedux: true,
+    initialState: { user: gammaUser },
+  });
+  expect(
+    screen.queryByText(
+      /Changing the attachment content or recipients requires/,
+    ),
+  ).not.toBeInTheDocument();
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  expect(
+    await screen.findByText(
+      /Changing the attachment content or recipients requires updating it to execute with your permissions/,
+    ),
+  ).toBeInTheDocument();
+  expect(
+    screen.getByText(
+      /Changing the alert condition requires its query to execute with your permissions/,
+    ),
+  ).toBeInTheDocument();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Execute using my permissions' }),
+  );
+  expect(
+    screen.queryByText(
+      /Changing the attachment content or recipients requires/,
+    ),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByText(/Changes take effect when you save/),
+  ).toBeInTheDocument();
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('take-over')).toHaveLength(1),
+  );
+  const [call] = fetchMock.callHistory.calls('take-over');
+  expect(JSON.parse(call.options.body as string)).toMatchObject({
+    run_as: gammaUser.userId,
+    run_as_type: 'fixed_user',
+    run_alert_query_as: gammaUser.userId,
+    run_alert_query_as_type: 'fixed_user',
+  });
+});
+
+test('an alert without an asset can save only while attachments are off', async () => {
+  fetchMock.get('glob:*/api/v1/report/90', {
+    result: {
+      ...generateMockPayload(true),
+      id: 90,
+      dashboard: null,
+      chart: null,
+      report_format: 'NONE',
+    },
+  });
+  fetchMock.put(
+    'glob:*/api/v1/report/90',
+    { id: 90, result: {} },
+    { name: 'save-no-asset' },
+  );
+  render(
+    <AlertReportModal
+      {...generateMockedProps(false, true)}
+      alert={{ ...validAlert, id: 90 }}
+    />,
+    {
+      useRedux: true,
+      initialState: { user: adminUser },
+    },
+  );
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  const toggle = screen.getByRole('switch', { name: 'Include attachment' });
+  expect(toggle).not.toBeChecked();
+  expect(
+    screen.queryByRole('combobox', { name: 'Select content type' }),
+  ).not.toBeInTheDocument();
+  await userEvent.click(toggle);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled(),
+  );
+  await userEvent.click(toggle);
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /save/i })).toBeEnabled(),
+  );
+  await userEvent.click(screen.getByRole('button', { name: /save/i }));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('save-no-asset')).toHaveLength(1),
+  );
+  const [call] = fetchMock.callHistory.calls('save-no-asset');
+  const payload = JSON.parse(call.options.body as string);
+  expect(payload.report_format).toBe('NONE');
+  expect(payload).not.toHaveProperty('dashboard');
+  expect(payload).not.toHaveProperty('chart');
+  expect(payload).not.toHaveProperty('extra');
+});
+
+test('an attachment-free alert cannot select a missing content executor', async () => {
+  fetchMock.get('glob:*/api/v1/report/91', {
+    result: {
+      ...generateMockPayload(true),
+      id: 91,
+      chart: null,
+      dashboard: null,
+      report_format: 'NONE',
+      run_as: null,
+      run_as_type: null,
+      run_alert_query_as: {
+        id: adminUser.userId,
+        first_name: adminUser.firstName,
+        last_name: adminUser.lastName,
+      },
+      run_alert_query_as_type: 'fixed_user',
+    },
+  });
+  render(
+    <AlertReportModal
+      {...generateMockedProps(false, true)}
+      alert={{ ...validAlert, id: 91 }}
+    />,
+    { useRedux: true, initialState: { user: adminUser } },
+  );
+
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  const typePicker = await screen.findByRole('combobox', {
+    name: 'Run as type',
+  });
+  await userEvent.click(typePicker);
+  await userEvent.click(await screen.findByText('Specific user'));
+
+  await waitFor(() =>
+    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled(),
+  );
+});
+
+test('reports always show content controls without an attachment toggle', async () => {
+  render(<AlertReportModal {...generateMockedProps(true)} alert={null} />, {
+    useRedux: true,
+    initialState: { user: adminUser },
+  });
+  await userEvent.click(screen.getByTestId('contents-panel'));
+  expect(
+    screen.queryByRole('switch', { name: 'Include attachment' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('combobox', { name: 'Select content type' }),
+  ).toBeInTheDocument();
+});
+
+test('global attachment policy hides both the alert toggle and attachment controls', async () => {
+  fetchMock.removeRoute(configurationEndpoint);
+  fetchMock.get(
+    configurationEndpoint,
+    {
+      result: { ...mockReportConfiguration, alerts_attach_reports: false },
+    },
+    { name: configurationEndpoint },
+  );
+  try {
+    render(<AlertReportModal {...generateMockedProps(false)} alert={null} />, {
+      useRedux: true,
+      initialState: { user: adminUser },
+    });
+    await userEvent.click(screen.getByTestId('contents-panel'));
+    await screen.findByText(
+      'No attachment will be generated. Saved attachment settings are retained.',
+    );
+    expect(
+      screen.queryByRole('switch', { name: 'Include attachment' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('combobox', { name: 'Select content type' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('checkbox', {
+        name: /include a link back to superset/i,
+      }),
+    ).toBeInTheDocument();
+  } finally {
+    fetchMock.removeRoute(configurationEndpoint);
+    fetchMock.get(
+      configurationEndpoint,
+      { result: mockReportConfiguration },
+      { name: configurationEndpoint },
+    );
+  }
 });

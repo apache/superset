@@ -20,18 +20,33 @@
 import { FC } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { extendedDayjs } from '../../utils/dates';
+import type { CacheSource } from './types';
 
 interface Props {
   cachedTimestamp?: string;
+  cacheSource?: CacheSource;
 }
-export const TooltipContent: FC<Props> = ({ cachedTimestamp }) => {
+export const TooltipContent: FC<Props> = ({
+  cachedTimestamp,
+  cacheSource = 'result',
+}) => {
+  const loadedText =
+    cacheSource === 'semantic'
+      ? {
+          timestamped: t('Loaded from semantic cache'),
+          untimed: t('Loaded from semantic cache'),
+        }
+      : {
+          timestamped: t('Loaded data cached'),
+          untimed: t('Loaded from cache'),
+        };
   const cachedText = cachedTimestamp ? (
     <span>
-      {t('Loaded data cached')}
+      {loadedText.timestamped}
       <b> {extendedDayjs.utc(cachedTimestamp).fromNow()}</b>
     </span>
   ) : (
-    t('Loaded from cache')
+    loadedText.untimed
   );
 
   return (
