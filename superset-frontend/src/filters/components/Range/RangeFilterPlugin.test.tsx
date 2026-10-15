@@ -932,3 +932,51 @@ test.each([
     }),
   );
 });
+
+test.each(
+  [
+    SingleValueType.Minimum,
+    SingleValueType.Maximum,
+    SingleValueType.Exact,
+  ].flatMap(mode => [false, true].map(required => ({ mode, required }))),
+)(
+  'SQL single-value mode $mode validates cleared input with required=$required',
+  async ({ mode, required }) => {
+    const setDataMask = jest.fn();
+    const props = transformProps({
+      ...rangeProps,
+      formData: {
+        ...rangeProps.formData,
+        datasource: '3__table',
+        enableSingleValue: mode,
+        enableEmptyFilter: required,
+      },
+    } as unknown as ChartProps) as PluginFilterRangeProps;
+    render(<RangeFilterPlugin {...props} setDataMask={setDataMask} />);
+    await userEvent.clear(screen.getByRole('spinbutton'));
+    if (required) {
+      expect(setDataMask).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          extraFormData: {},
+          filterState: expect.objectContaining({ validateStatus: 'error' }),
+        }),
+      );
+      expect(
+        screen.getByText('Please provide a valid min or max value'),
+      ).toBeInTheDocument();
+    } else {
+      expect(setDataMask).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          extraFormData: {},
+          filterState: expect.objectContaining({
+            value: [null, null],
+            validateStatus: undefined,
+          }),
+        }),
+      );
+      expect(
+        screen.queryByText('Please provide a valid min or max value'),
+      ).not.toBeInTheDocument();
+    }
+  },
+);
