@@ -9065,7 +9065,7 @@ msgstr "Pusta kolumna"
 msgid "Get the last date by the date unit."
 msgstr "Uzyskaj ostatnią datę według jednostki czasu."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Podaj określoną datę święta"
 
 msgid "Give access to multiple catalogs in a single database connection."
