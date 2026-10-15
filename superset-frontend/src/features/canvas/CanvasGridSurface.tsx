@@ -60,6 +60,13 @@ interface Gesture {
   pointerId: number;
   startX: number;
   startY: number;
+  /**
+   * Page scroll when the widget was grabbed. Pointer coordinates are relative
+   * to the viewport, so scrolling mid-gesture moves the content under a still
+   * pointer; without this the drag would report no movement at all.
+   */
+  startScrollX: number;
+  startScrollY: number;
   dx: number;
   dy: number;
   /**
@@ -71,6 +78,12 @@ interface Gesture {
    */
   origin: GridPlacement;
 }
+
+/** A gesture's movement over the page content, scrolling included. */
+const travelled = (gesture: Gesture, clientX: number, clientY: number) => ({
+  dx: clientX - gesture.startX + (window.scrollX - gesture.startScrollX),
+  dy: clientY - gesture.startY + (window.scrollY - gesture.startScrollY),
+});
 
 const Grid = styled.div<GridMetrics>`
   display: grid;
@@ -142,28 +155,50 @@ const Interactive = styled.div`
        handles of every widget nested inside it. */
     & > .canvas-handle {
       opacity: 0;
+      /*
+       * Transparent is not absent: without this a hidden handle still wins
+       * the hit test over whatever it happens to sit above.
+       */
+      pointer-events: none;
       transition: opacity ${theme.motionDurationMid};
     }
 
     &:hover > .canvas-handle,
     & > .canvas-handle:focus-visible {
       opacity: 1;
+      pointer-events: auto;
     }
   `}
 `;
 
-/** Vertical step between a container's handles and its children's. */
+/** Step between a container's handles and its children's, in size units. */
 const HANDLE_STEP = 8;
-/** Beyond this, nesting stops pushing handles further down the widget. */
-const MAX_HANDLE_STEPS = 3;
+/** Size units a handle itself needs, so an offset can leave room for it. */
+const HANDLE_BOX = 7;
 
-const handleTop = (theme: { sizeUnit: number }, depth: number) =>
-  theme.sizeUnit * (1 + Math.min(depth, MAX_HANDLE_STEPS) * HANDLE_STEP);
+/**
+ * How far a nested grid's handles sit from the widget's edge.
+ *
+ * Nesting steps the offset so a container's handle never lands exactly on its
+ * child's, but it is clamped to the widget's own rendered box: pushing past
+ * that would put the handle over the *next* widget, where it would take
+ * presses meant for that one.
+ */
+const handleOffset = (
+  sizeUnit: number,
+  depth: number,
+  extent: number,
+): number => {
+  const room = Math.max(sizeUnit, extent - sizeUnit * HANDLE_BOX);
+  return Math.min(sizeUnit * (1 + depth * HANDLE_STEP), room);
+};
 
-const Grip = styled.button<{ depth: number }>`
-  ${({ theme, depth }) => css`
+const Grip = styled.button<{ depth: number; extent: number }>`
+  ${({ theme, depth, extent }) => css`
     position: absolute;
-    top: ${handleTop(theme, depth)}px;
+    top: ${handleOffset(theme.sizeUnit, depth, extent)}px;
+    /* Deeper handles above shallower ones: the innermost wins a shared spot. */
+    z-index: ${3 + depth};
     /*
      * Clear of a widget's own controls, which sit at the top right corner and
      * are 8 units wide (see WithQuery's .canvas-widget-controls): the grip is
@@ -171,7 +206,6 @@ const Grip = styled.button<{ depth: number }>`
      * the menu.
      */
     right: ${theme.sizeUnit * 9}px;
-    z-index: 3;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -189,12 +223,19 @@ const Grip = styled.button<{ depth: number }>`
   `}
 `;
 
-const ResizeCorner = styled.button`
-  ${({ theme }) => css`
+const ResizeCorner = styled.button<{ depth: number; extent: number }>`
+  ${({ theme, depth, extent }) => css`
     position: absolute;
     right: 0;
-    bottom: 0;
-    z-index: 3;
+    /*
+     * Stepped like the grip: a container's box ends where its last child's
+     * does, and the container's corner paints later, so sharing the pixel
+     * would make the child's corner unreachable.
+     */
+    bottom: ${
+      depth === 0 ? 0 : handleOffset(theme.sizeUnit, depth - 1, extent)
+    }px;
+    z-index: ${3 + depth};
     width: ${theme.sizeUnit * 4}px;
     height: ${theme.sizeUnit * 4}px;
     padding: 0;
@@ -336,6 +377,8 @@ export default function CanvasGridSurface({
         pointerId: event.pointerId,
         startX: event.clientX,
         startY: event.clientY,
+        startScrollX: window.scrollX,
+        startScrollY: window.scrollY,
         dx: 0,
         dy: 0,
         origin,
@@ -345,11 +388,7 @@ export default function CanvasGridSurface({
   const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
     const { current } = live;
     if (!current || current.pointerId !== event.pointerId) return;
-    update({
-      ...current,
-      dx: event.clientX - current.startX,
-      dy: event.clientY - current.startY,
-    });
+    update({ ...current, ...travelled(current, event.clientX, event.clientY) });
   };
 
   const onPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
@@ -359,15 +398,10 @@ export default function CanvasGridSurface({
     // From the release event's own position: the pointer can travel between
     // the last move event and the release, and the drop belongs where the
     // user let go.
+    const { dx, dy } = travelled(current, event.clientX, event.clientY);
     commit(
       current.nodeId,
-      targetOf(
-        current.nodeId,
-        current.kind,
-        current.origin,
-        event.clientX - current.startX,
-        event.clientY - current.startY,
-      ),
+      targetOf(current.nodeId, current.kind, current.origin, dx, dy),
       current.origin,
     );
   };
@@ -481,6 +515,11 @@ export default function CanvasGridSurface({
       )}
       {childIds.map(childId => {
         const dragging = gesture?.nodeId === childId;
+        const placed = placements[childId];
+        // Rows plus the gaps between them: how tall this widget renders.
+        const extent = placed
+          ? placed.rowSpan * rowUnit + (placed.rowSpan - 1) * gap
+          : 0;
         return (
           <GridItem
             key={childId}
@@ -499,6 +538,7 @@ export default function CanvasGridSurface({
                   <Grip
                     type="button"
                     depth={depth}
+                    extent={extent}
                     className="canvas-handle"
                     aria-label={t('Move widget')}
                     data-test="canvas-drag-handle"
@@ -510,6 +550,8 @@ export default function CanvasGridSurface({
                   </Grip>
                   <ResizeCorner
                     type="button"
+                    depth={depth}
+                    extent={extent}
                     className="canvas-handle"
                     aria-label={t('Resize widget')}
                     data-test="canvas-resize-handle"

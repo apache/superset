@@ -291,3 +291,24 @@ test('a nested grid resizes against its own column count, not the root', () => {
     rowSpan: 1,
   });
 });
+
+test("a nested resize honours the widget's declared minimum span", () => {
+  // 'c1' declares minColSpan 2 and starts at 6 of the group's 12 columns.
+  // Dragging its corner well past the left edge must stop at 2, not 1: this
+  // is what fails if `layoutConstraints` never reaches the nested surface.
+  const place = jest.fn();
+  renderGrid(emptyScopeValues(), jest.fn(), result, place, true);
+
+  const group = screen.getByRole('region', { name: 'group' });
+  dragRight(
+    within(group).getAllByRole('button', { name: 'Resize widget' })[0],
+    -2000,
+  );
+
+  expect(place).toHaveBeenCalledWith('c1', {
+    col: 1,
+    row: 1,
+    colSpan: 2,
+    rowSpan: 1,
+  });
+});

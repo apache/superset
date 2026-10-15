@@ -222,7 +222,14 @@ def test_definition_reports_no_edit_without_route_write_permission(
     object editor whose role lacks the route permission is told not to offer
     editing -- otherwise its saves would 403.
     """
-    mocker.patch("superset.canvas.api.security_manager.can_access", return_value=False)
+    # Denies only `can_write`, so this still fails if production is changed to
+    # check a different permission on Canvas.
+    mocker.patch(
+        "superset.canvas.api.security_manager.can_access",
+        side_effect=lambda permission, view: not (
+            permission == "can_write" and view == "Canvas"
+        ),
+    )
 
     response = client.get(URL)
 

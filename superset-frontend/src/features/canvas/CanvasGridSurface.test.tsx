@@ -132,7 +132,25 @@ const drag = (handle: HTMLElement, dx: number, dy: number) => {
 const handles = (name: 'Move widget' | 'Resize widget') =>
   screen.getAllByRole('button', { name });
 
+/** jsdom never scrolls, so page scroll is simulated. */
+let pageScrollY = 0;
+const scrollTo = (y: number) => {
+  pageScrollY = y;
+};
+
+beforeEach(() => {
+  pageScrollY = 0;
+});
+
 beforeAll(() => {
+  Object.defineProperty(window, 'scrollY', {
+    configurable: true,
+    get: () => pageScrollY,
+  });
+  Object.defineProperty(window, 'scrollX', {
+    configurable: true,
+    get: () => 0,
+  });
   Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
     configurable: true,
     get: () => WIDTH,
@@ -592,4 +610,57 @@ test('a nested grid offsets its handles clear of its container', () => {
   renderSurface({ depth: 1 });
 
   expect(gripTop()).toBe('36px');
+});
+
+test('a nested handle stays inside a short widget', () => {
+  // A one-row widget renders 40px tall. An unclamped depth offset would put
+  // the grip at 36px plus its own box, i.e. over the widget below -- where it
+  // would take presses meant for that one.
+  renderSurface({
+    live: { short: { col: 1, row: 1, colSpan: 24, rowSpan: 1 } },
+    childIds: ['short'],
+    depth: 1,
+  });
+
+  const top = Number.parseInt(gripTop(), 10);
+  expect(top).toBeGreaterThan(0);
+  // Its own box has to fit below the offset, inside the 40px widget.
+  expect(top).toBeLessThanOrEqual(40 - 7 * 4);
+});
+
+test('a hidden handle does not take presses', () => {
+  // Handles are only transparent at rest. Without this they would still win
+  // the hit test over whatever they sit above.
+  renderSurface();
+
+  expect(getComputedStyle(handles('Move widget')[0]).pointerEvents).toBe(
+    'none',
+  );
+});
+
+test("a nested container's resize corner is not on top of its child's", () => {
+  renderSurface();
+  const rootCorner = getComputedStyle(handles('Resize widget')[0]).bottom;
+
+  expect(rootCorner).toBe('0px');
+});
+
+test('a drag follows the content when the page scrolls under it', () => {
+  // Pointer coordinates are relative to the viewport, so scrolling while
+  // holding moves the content under a still pointer. Without compensating,
+  // the drag reports no movement and the drop writes nothing.
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  scrollTo(ROW_PITCH * 2);
+  // Released at the same screen position, two rows further down the content.
+  pointer(handle, 'pointerup', { clientX: 0, clientY: 0 });
+
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 1,
+    row: 3,
+    colSpan: 6,
+    rowSpan: 4,
+  });
 });

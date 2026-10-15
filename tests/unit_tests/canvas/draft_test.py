@@ -247,10 +247,18 @@ def test_draft_payload_reports_whether_the_caller_may_edit(
 
     draft = CreateCanvasDraftCommand(7).run()
 
-    mocker.patch(f"{DRAFT}.security_manager.can_access", return_value=True)
+    # Granting every permission would pass whichever one production checks, so
+    # each case allows exactly one.
+    allowed = mocker.patch(f"{DRAFT}.security_manager.can_access")
+    allowed.side_effect = lambda permission, view: (
+        permission == "can_write" and view == "Canvas"
+    )
     assert draft_payload(draft)["canEdit"] is True
     # Also present on the unresolved payload the create response returns.
     assert draft_payload(draft, resolved=False)["canEdit"] is True
 
-    mocker.patch(f"{DRAFT}.security_manager.can_access", return_value=False)
+    # Read-only on Canvas: enough to open the draft, not to change it.
+    allowed.side_effect = lambda permission, view: (
+        permission == "can_read" and view == "Canvas"
+    )
     assert draft_payload(draft)["canEdit"] is False
