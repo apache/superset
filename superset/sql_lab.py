@@ -148,7 +148,13 @@ def handle_query_error(
         with db.session.no_autoflush:
             db.session.refresh(query, attribute_names=["status"])
         if query.status == QueryStatus.STOPPED:
-            _discard_unpublished_results(query.id, unpublished_results_key)
+            # A publish commit can apply and still raise, so the stopped row
+            # may already reference the results: delete them only if it does
+            # not.
+            with db.session.no_autoflush:
+                db.session.refresh(query, attribute_names=["results_key"])
+            if query.results_key != unpublished_results_key:
+                _discard_unpublished_results(query.id, unpublished_results_key)
             payload.update({"status": query.status})
             return payload
 

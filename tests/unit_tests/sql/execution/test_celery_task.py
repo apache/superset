@@ -2312,6 +2312,118 @@ def test_commit_that_applies_and_raises_keeps_referenced_results(
         assert key in stored
     engine.dispose()
 
+@pytest.mark.parametrize("stop_at", ["before_stop_check", "before_failed_commit"])
+def test_stop_after_an_applied_publish_keeps_referenced_results(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    stop_at: str,
+) -> None:
+    """
+    Test that when the publish commit reaches the database and then raises, and
+    a stop lands while the error is handled, the stop wins without deleting the
+    results the committed row references, whichever stop check sees it.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'applied-publish.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": MagicMock()})
+
+    def stop() -> None:
+        """Commit a stop from another session, as the stop request does."""
+        with Session(engine) as stop_session:
+            stopped_query = stop_session.get(Query, 123)
+            assert stopped_query is not None
+            stopped_query.status = QueryStatusEnum.STOPPED
+            stop_session.commit()
+
+    def extract_errors(*args: Any, **kwargs: Any) -> list[Any]:
+        """Stop after the handler's first check, before its guarded commit."""
+        stop()
+        return []
+
+    if stop_at == "before_failed_commit":
+        mock_database.db_engine_spec.extract_errors.side_effect = extract_errors
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="applied-publish",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        published = False
+
+        @event.listens_for(session, "after_flush")
+        def published_flush(flushing_session: Any, context: Any) -> None:
+            nonlocal published
+            published = query.results_key is not None
+
+        do_commit = engine.dialect.do_commit
+        applied_commit = False
+
+        def lose_acknowledgement(dbapi_connection: Any) -> None:
+            """Raise after the database committed the published row."""
+            nonlocal applied_commit
+            do_commit(dbapi_connection)
+            if published and not applied_commit:
+                applied_commit = True
+                if stop_at == "before_stop_check":
+                    stop()
+                raise RuntimeError("Commit acknowledgement lost")
+
+        mocker.patch.object(
+            engine.dialect, "do_commit", side_effect=lose_acknowledgement
+        )
+
+        payload = celery_task.execute_sql_task(123, query.sql)
+
+        assert applied_commit
+        assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatusEnum.STOPPED
+            assert persisted.results_key == key
+        backend.delete.assert_not_called()
+        assert key in stored
+    engine.dispose()
+
+
 
 @pytest.mark.parametrize("stopped", [False, True])
 def test_finalization_stop_check_preserves_pending_metadata(

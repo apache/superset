@@ -1526,6 +1526,125 @@ def test_get_sql_results_commit_that_applies_and_raises_keeps_results(  # noqa: 
 
 
 @pytest.mark.parametrize("return_results", [False, True])
+def test_get_sql_results_stop_after_an_applied_publish_keeps_results(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    return_results: bool,
+) -> None:
+    """
+    Test that when the publish commit reaches the database and then raises, and
+    a stop lands while the error is handled, the stop wins without deleting the
+    results the committed row references.
+    """
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine, event
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'applied-publish.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_run_async = False
+    database.cache_timeout = 100
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+
+    def execute_query(*args: Any, **kwargs: Any) -> MagicMock:
+        """Commit the pre-execution metadata as execute_query does."""
+        sql_lab.db.session.commit()
+        return MagicMock(size=1, columns=[])
+
+    mocker.patch.object(sql_lab, "execute_query", side_effect=execute_query)
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    mocker.patch.object(sql_lab, "_serialize_payload", return_value=b"data")
+    mocker.patch("backoff._sync.time.sleep")
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(sql_lab, "results_backend", backend)
+    mocker.patch.dict(app.config, {"STATS_LOGGER": MagicMock(), "SQL_MAX_ROW": 0})
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="applied-publish",
+            database_id=1,
+            sql="SELECT 1",
+            executed_sql="SELECT 1",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        published = False
+
+        @event.listens_for(session, "after_flush")
+        def published_flush(flushing_session: Any, context: Any) -> None:
+            nonlocal published
+            published = (
+                query.status == QueryStatus.SUCCESS and query.results_key is not None
+            )
+
+        do_commit = engine.dialect.do_commit
+        applied_commit = False
+
+        def lose_acknowledgement(dbapi_connection: Any) -> None:
+            """Raise after the published row commits and a stop lands."""
+            nonlocal applied_commit
+            do_commit(dbapi_connection)
+            if published and not applied_commit:
+                applied_commit = True
+                with Session(engine) as stop_session:
+                    stopped_query = stop_session.get(Query, 123)
+                    assert stopped_query is not None
+                    stopped_query.status = QueryStatus.STOPPED
+                    stop_session.commit()
+                raise RuntimeError("Commit acknowledgement lost")
+
+        mocker.patch.object(
+            engine.dialect, "do_commit", side_effect=lose_acknowledgement
+        )
+
+        payload = sql_lab.get_sql_results(
+            123, query.sql, return_results=return_results, store_results=True
+        )
+
+        assert applied_commit
+        assert payload is not None
+        assert payload["status"] == QueryStatus.STOPPED
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatus.STOPPED
+            assert persisted.results_key == key
+        backend.delete.assert_not_called()
+        assert key in stored
+    engine.dispose()
+
+
+@pytest.mark.parametrize("return_results", [False, True])
 @pytest.mark.parametrize("failure", ["after_failed_commit", "failed_commit"])
 def test_get_sql_results_deletes_results_only_without_committed_failure(  # noqa: C901
     mocker: MockerFixture,
