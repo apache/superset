@@ -425,10 +425,17 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         The base implementation puts the username and, for password authentication,
         the password on the URL. A key pair cannot go there: the driver takes it as
         DER bytes in ``connect_args``.
+
+        Guests run with the fallback user's default role, not the connection's
+        ``role``: the connection form always writes one into the URI, and a
+        least-privilege fallback user -- or a programmatic access token restricted
+        to its own role -- is not granted it, so Snowflake would refuse the session.
         """
         url, engine_kwargs = super().apply_embedded_credentials(
             database, credentials, url, engine_kwargs
         )
+        url = url.difference_update_query(["role"])
+        engine_kwargs.get("connect_args", {}).pop("role", None)
 
         if credentials.get("auth_method") == "keypair":
             engine_kwargs.setdefault("connect_args", {})["private_key"] = (

@@ -1266,3 +1266,36 @@ def test_extended_aggregation_func_median_uses_native_snowflake_syntax() -> None
 
     for aggregate in ("STDDEV_SAMP", "VAR_SAMP"):
         assert SnowflakeEngineSpec.get_extended_aggregation_func(aggregate) is not None
+
+
+def test_embedded_guest_runs_with_the_fallback_users_default_role(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the connection's role is dropped on the embedded login.
+
+    The connection form always writes a role into the URI. A least-privilege
+    fallback user, or a token restricted to its own role, is not granted it, so
+    Snowflake would refuse the session; without a role it uses the fallback
+    user's default role. The warehouse and database are kept.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    url = make_url(
+        "snowflake://svc_user:svc_pass@xy12345/ANALYTICS_DB"
+        "?role=ANALYST&warehouse=COMPUTE_WH"
+    )
+    engine_kwargs: dict[str, Any] = {"connect_args": {"role": "ANALYST"}}
+
+    url, engine_kwargs = SnowflakeEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(),
+        {"username": "embedded_svc", "password": "embedded_pw"},
+        url,
+        engine_kwargs,
+    )
+
+    assert url.username == "embedded_svc"
+    assert "role" not in url.query
+    assert "role" not in engine_kwargs["connect_args"]
+    assert url.query["warehouse"] == "COMPUTE_WH"
+    assert url.database == "ANALYTICS_DB"
