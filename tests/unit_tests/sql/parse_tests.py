@@ -1942,6 +1942,57 @@ def test_druid_parses_json_value_returning(sql: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT JSON_VALUE(h, '$.a' RETURNING BIGINT) AS x FROM t",
+        "SELECT JSON_VALUE(h, CONCAT('$.', d) RETURNING BIGINT) AS x FROM t",
+    ],
+)
+def test_postgres_parses_json_value_returning(sql: str) -> None:
+    """
+    Regression for #36954: the same ``JSON_VALUE ... RETURNING <type>`` clause
+    failed for Postgres with "Error parsing near 'returning'". sqlglot parses it
+    for the Postgres dialect since 30.23.0 and keeps the JSON path as written, so
+    this pins both against a future upgrade.
+    """
+    formatted = SQLScript(sql, "postgresql").format()
+    assert "RETURNING BIGINT" in formatted
+    assert "$." in formatted
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [
+        "MATCH",
+        "MATCH_ANY",
+        "MATCH_ALL",
+        "MATCH_PHRASE",
+        "MATCH_PHRASE_PREFIX",
+        "MATCH_PHRASE_EDGE",
+        "MATCH_REGEXP",
+    ],
+)
+def test_doris_parses_full_text_search_operators(operator: str) -> None:
+    """
+    Regression for #36770: Doris full-text search operators failed in SQL Lab
+    with "Invalid expression / Unexpected token". sqlglot parses them for the
+    Doris dialect since 30.23.0, so this pins them against a future upgrade.
+    """
+    sql = f"SELECT * FROM t WHERE c {operator} 'word1 word2'"  # noqa: S608
+    assert f"c {operator} 'word1 word2'" in SQLScript(sql, "pydoris").format()
+
+
+def test_doris_parses_match_with_analyzer() -> None:
+    """
+    Doris also takes a parenthesized operand and ``USING ANALYZER`` after it.
+    """
+    sql = "SELECT * FROM t WHERE c NOT MATCH_ANY ('x') USING ANALYZER 'standard'"
+    formatted = SQLScript(sql, "pydoris").format()
+    assert "MATCH_ANY (" in formatted
+    assert "USING ANALYZER 'standard'" in formatted
+
+
+@pytest.mark.parametrize(
     "engine",
     ["oracle", "postgresql", "trino", "presto", "hive", "base"],
 )
