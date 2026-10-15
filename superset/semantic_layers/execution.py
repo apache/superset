@@ -59,7 +59,7 @@ logger: logging.Logger = logging.getLogger(__name__)
 
 
 def configured_namespace() -> str:
-    """Validate the optional workspace namespace consistently across host caches."""
+    """Return SEMANTIC_LAYER_CACHE_NAMESPACE as a string, nonblank if set."""
     configured: Any = current_app.config.get("SEMANTIC_LAYER_CACHE_NAMESPACE", "")
     configured = configured() if callable(configured) else configured
     if not isinstance(configured, str) or (configured and not configured.strip()):
