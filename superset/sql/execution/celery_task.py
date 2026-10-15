@@ -81,12 +81,24 @@ def _handle_query_error(
 ) -> dict[str, Any]:
     """Handle error while processing the SQL query."""
     payload = payload or {}
+    if query.status != QueryStatus.TIMED_OUT and _has_committed_stop(query):
+        # A successful cancel committed STOPPED before the statement it killed
+        # raised here. The stop is terminal, so it is not rewritten as FAILED.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        payload.update({"status": QueryStatus.STOPPED.value})
+        return payload
+
     msg = f"{prefix_message} {str(ex)}".strip()
     query.error_message = msg
     query.tmp_table_name = None
-    # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler)
-    if query.status != QueryStatus.TIMED_OUT:
-        query.status = QueryStatus.FAILED
+    # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler).
+    # Kept as an enum: after the commit below the expired attribute reloads as str.
+    status = (
+        QueryStatus.TIMED_OUT
+        if query.status == QueryStatus.TIMED_OUT
+        else QueryStatus.FAILED
+    )
+    query.status = status
 
     if not query.end_time:
         query.end_time = now_as_float()
@@ -106,15 +118,25 @@ def _handle_query_error(
         query.set_extra_json_key("errors", errors_payload)
 
     db.session.commit()  # pylint: disable=consider-using-transaction
-    payload.update(
-        {"status": query.status.value, "error": msg, "errors": errors_payload}
-    )
+    payload.update({"status": status.value, "error": msg, "errors": errors_payload})
     if app.config.get("SHOW_STACKTRACE"):
         if stacktrace := traceback.format_exc():
             payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
         payload["link"] = troubleshooting_link
     return payload
+
+
+def _has_committed_stop(query: Query) -> bool:
+    """
+    Read the committed status without flushing the worker's pending changes.
+
+    The locking read sees a stop committed by another session even under
+    REPEATABLE READ, and holds the row until the caller ends the transaction.
+    """
+    with db.session.no_autoflush:
+        db.session.refresh(query, attribute_names=["status"], with_for_update=True)
+    return query.status == QueryStatus.STOPPED
 
 
 def _serialize_payload(payload: dict[Any, Any]) -> bytes:

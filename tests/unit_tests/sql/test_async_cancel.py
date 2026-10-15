@@ -165,3 +165,74 @@ def test_async_cancel_preserves_stop_committed_while_preparing(
     prepare.assert_called_once_with(running_query)
     commit.assert_called_once_with()
     get_engine.assert_not_called()
+
+
+def _commit_stop_from_another_session(engine: Engine, query_id: int) -> None:
+    """Commit the stop the way a web process's successful cancel does."""
+    with Session(engine) as stopper:
+        stopper.query(Query).filter_by(id=query_id).update(
+            {Query.status: QueryStatus.STOPPED, Query.end_time: 2.0}
+        )
+        stopper.commit()
+
+
+@pytest.mark.parametrize("stopper", ["executor_cancel", "other_session", "none"])
+@pytest.mark.parametrize("timed_out", [False, True])
+def test_worker_error_after_committed_stop_keeps_stopped(
+    mocker: MockerFixture,
+    session: Session,
+    session_engine: Engine,
+    running_query: Query,
+    stopper: str,
+    timed_out: bool,
+) -> None:
+    """
+    A statement killed by a successful cancel raises in the Celery worker after
+    STOPPED is committed. The worker's error path keeps STOPPED; a timeout and
+    an error with no stop are still recorded as TIMED_OUT and FAILED.
+    """
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    from superset.sql.execution import celery_task
+
+    query_id = running_query.id
+    mocker.patch.object(BaseEngineSpec, "has_implicit_cancel", return_value=False)
+    mocker.patch.object(BaseEngineSpec, "prepare_cancel_query")
+    mocker.patch.object(BaseEngineSpec, "cancel_query", return_value=True)
+    mocker.patch.object(Database, "get_sqla_engine")
+    mocker.patch.object(Database, "get_raw_connection")
+    mocker.patch.object(celery_task, "security_manager")
+    mocker.patch.object(celery_task, "now_as_float", return_value=3.0)
+
+    def kill_running_statement(**kwargs: object) -> None:
+        """Stop the query, then fail the way the killed statement does."""
+        if stopper == "executor_cancel":
+            handle = SQLExecutor(running_query.database)._create_async_handle(query_id)
+            assert handle.cancel()
+        elif stopper == "other_session":
+            _commit_stop_from_another_session(session_engine, query_id)
+        if timed_out:
+            raise SoftTimeLimitExceeded()
+        raise RuntimeError("Query was killed")
+
+    mocker.patch.object(
+        celery_task, "execute_sql_with_cursor", side_effect=kill_running_statement
+    )
+
+    payload = celery_task.execute_sql_task(query_id, "SELECT 1")
+
+    committed = _committed(session_engine, query_id)
+    if timed_out:
+        expected = QueryStatus.TIMED_OUT
+    elif stopper == "none":
+        expected = QueryStatus.FAILED
+    else:
+        expected = QueryStatus.STOPPED
+    assert payload is not None
+    assert payload["status"] == expected.value
+    assert committed.status == expected
+    if expected == QueryStatus.STOPPED:
+        assert committed.error_message is None
+        assert committed.end_time is not None
+    else:
+        assert committed.error_message

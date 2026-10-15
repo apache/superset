@@ -1268,6 +1268,59 @@ def test_stop_with_partial_results_skips_success_finalization(
     store.assert_not_called()
 
 
+@pytest.mark.parametrize("stop_intent", ["early", "status"])
+@pytest.mark.parametrize(
+    ("sql", "select_as_cta"),
+    [
+        ("UPDATE users SET name = 'x' WHERE id = 1", False),
+        ("SELECT * FROM users", True),
+    ],
+    ids=["update", "ctas"],
+)
+def test_stop_seen_during_execution_skips_mutation_commit(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    stop_intent: str,
+    sql: str,
+    select_as_cta: bool,
+) -> None:
+    """A stopped UPDATE or CTAS returns STOPPED without committing its work."""
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.sql.execution import celery_task
+
+    from .conftest import setup_mock_raw_connection
+
+    mock_query.sql = sql
+    mock_query.select_as_cta = select_as_cta
+    mock_query.database = mock_database
+    mocker.patch.object(celery_task, "_get_query", return_value=mock_query)
+    mocker.patch.object(celery_task, "db")
+    finalize = mocker.spy(celery_task, "_finalize_successful_query")
+
+    def stop_during_execution(**kwargs: Any) -> list[tuple[str, None, float, int]]:
+        """Record the stop while the statement runs; it still reports a rowcount."""
+        if stop_intent == "early":
+            mock_query.extra[QUERY_EARLY_CANCEL_KEY] = True
+        else:
+            mock_query.status = QueryStatusEnum.STOPPED
+        return [(sql, None, 1.0, 1)]
+
+    mocker.patch.object(
+        celery_task, "execute_sql_with_cursor", side_effect=stop_during_execution
+    )
+    conn = setup_mock_raw_connection(mock_database)
+
+    payload = celery_task._execute_sql_statements(123, sql, None)
+
+    assert payload is not None
+    assert payload["status"] == QueryStatusEnum.STOPPED
+    assert mock_query.status == QueryStatusEnum.STOPPED
+    conn.commit.assert_not_called()
+    finalize.assert_not_called()
+
+
 def test_execute_sql_task_with_mutation(
     mocker: MockerFixture,
     app_context: None,
