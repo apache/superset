@@ -16,7 +16,14 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo, FC, ReactElement, type ReactNode } from 'react';
+import {
+  useMemo,
+  useRef,
+  FC,
+  ReactElement,
+  type KeyboardEvent,
+  type ReactNode,
+} from 'react';
 
 import { t } from '@apache-superset/core/translation';
 import { styled, useTheme, SupersetTheme } from '@apache-superset/core/theme';
@@ -77,6 +84,8 @@ const onClick = (
   runQuery();
 };
 
+type ButtonAction = 'run' | 'stop';
+
 const StyledButton = styled.span`
   button {
     line-height: 13px;
@@ -109,6 +118,32 @@ const RunQueryActionButton = ({
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
+  const currentAction: ButtonAction = shouldShowStopBtn ? 'stop' : 'run';
+
+  // The label can switch between Stop and Run while a pointer or key is held
+  // down, and the browser dispatches the click against whatever the button
+  // shows at release time. Remember the action the gesture started on so a
+  // press that began on Stop can never run the query.
+  const gestureActionRef = useRef<ButtonAction | null>(null);
+
+  const captureGestureAction = () => {
+    gestureActionRef.current = currentAction;
+  };
+
+  const onKeyDownCapture = (event: KeyboardEvent<HTMLSpanElement>) => {
+    if (!event.repeat && (event.key === 'Enter' || event.key === ' ')) {
+      captureGestureAction();
+    }
+  };
+
+  const handleClick = () => {
+    const gestureAction = gestureActionRef.current ?? currentAction;
+    gestureActionRef.current = null;
+    if (gestureAction !== currentAction) {
+      return;
+    }
+    onClick(shouldShowStopBtn, runQuery, stopQuery, logAction);
+  };
 
   const ButtonComponent: FC<QueryButtonProps> = overlayCreateAsMenu
     ? (DropdownButton as FC)
@@ -133,12 +168,13 @@ const RunQueryActionButton = ({
   );
 
   return (
-    <StyledButton>
+    <StyledButton
+      onPointerDownCapture={captureGestureAction}
+      onKeyDownCapture={onKeyDownCapture}
+    >
       <ButtonComponent
         data-test="run-query-action"
-        onClick={() =>
-          onClick(shouldShowStopBtn, runQuery, stopQuery, logAction)
-        }
+        onClick={handleClick}
         disabled={isDisabled}
         tooltip={
           (!isDisabled &&

@@ -177,3 +177,92 @@ test('renders the caret icon with a color that contrasts with the primary button
   const caretIcon = container.querySelector('[data-test="down"]');
   expect(caretIcon).toHaveStyle({ color: supersetTheme.colorTextLightSolid });
 });
+
+const renderGestureButton = (props: Partial<RunQueryActionButtonProps>) => {
+  const runQuery = jest.fn();
+  const stopQuery = jest.fn();
+  const store = mockStore(initialState);
+  const element = (queryState: string) => (
+    <RunQueryActionButton
+      {...defaultProps}
+      {...props}
+      queryState={queryState}
+      runQuery={runQuery}
+      stopQuery={stopQuery}
+    />
+  );
+  const utils = render(element('running'), { useRedux: true, store });
+  const switchTo = (queryState: string) => utils.rerender(element(queryState));
+  return { ...utils, runQuery, stopQuery, switchTo };
+};
+
+test('a pointer gesture that starts on Stop does not run the query after it finishes', () => {
+  const { getByRole, getByText, runQuery, stopQuery, switchTo } =
+    renderGestureButton({});
+  const button = getByRole('button');
+  expect(getByText('Stop')).toBeInTheDocument();
+
+  fireEvent.pointerDown(button);
+  fireEvent.mouseDown(button);
+  switchTo('success');
+  expect(getByText('Run')).toBeInTheDocument();
+  fireEvent.pointerUp(button);
+  fireEvent.mouseUp(button);
+  fireEvent.click(button);
+
+  expect(runQuery).not.toHaveBeenCalled();
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('a Space key press that starts on Stop does not run the query after it finishes', () => {
+  const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
+  const button = getByRole('button');
+
+  fireEvent.keyDown(button, { key: ' ', code: 'Space' });
+  switchTo('success');
+  fireEvent.keyDown(button, { key: ' ', code: 'Space', repeat: true });
+  fireEvent.keyUp(button, { key: ' ', code: 'Space' });
+  fireEvent.click(button);
+
+  expect(runQuery).not.toHaveBeenCalled();
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('a pointer gesture that starts on Stop does not run the query with the CTAS dropdown', () => {
+  const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton({
+    overlayCreateAsMenu: ctasMenu,
+  });
+  const mainButton = getAllByRole('button')[0];
+
+  fireEvent.pointerDown(mainButton);
+  switchTo('success');
+  fireEvent.click(mainButton);
+
+  expect(runQuery).not.toHaveBeenCalled();
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('a pointer gesture that starts and ends on Stop stops the query', () => {
+  const { getByRole, runQuery, stopQuery } = renderGestureButton({});
+  const button = getByRole('button');
+
+  fireEvent.pointerDown(button);
+  fireEvent.click(button);
+
+  expect(stopQuery).toHaveBeenCalledTimes(1);
+  expect(runQuery).not.toHaveBeenCalled();
+});
+
+test('a new gesture after the query finishes runs the query', () => {
+  const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
+  const button = getByRole('button');
+
+  fireEvent.pointerDown(button);
+  switchTo('success');
+  fireEvent.click(button);
+  fireEvent.pointerDown(button);
+  fireEvent.click(button);
+
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
