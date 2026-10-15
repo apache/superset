@@ -640,3 +640,132 @@ def test_parse_filters_rejects_malformed_values_on_known_columns(
 ) -> None:
     with pytest.raises(ValueError, match="Invalid value for filter column"):
         GetCombinedDatasourceListCommand._parse_filters([bad_filter])
+
+
+@pytest.mark.parametrize(
+    ("filters", "expected"),
+    [
+        (_Filters(), False),
+        (_Filters(editors_filter=31), True),
+        (_Filters(certified_filter=True), True),
+        # A semantic view is not certified, so "not certified" can match it.
+        (_Filters(certified_filter=False), False),
+        # Schema keeps the exception settled in #43829: a leftover Schema chip is
+        # dropped when the Source is chosen explicitly.
+        (_Filters(schema_filter="main"), False),
+        (_Filters(changed_by_filter=48), False),
+    ],
+)
+def test_contradicts_semantic_source_marks_filters_views_cannot_satisfy(
+    filters: _Filters, expected: bool
+) -> None:
+    assert filters.contradicts_semantic_source is expected
+
+
+def test_resolve_source_type_explicit_semantic_layer_with_editors_is_empty() -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={},
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    # Source="Semantic layer" AND Editor=X: no semantic view has editors, so the
+    # honest result is empty, not every view with the Editor chip still lit.
+    source_type = command._resolve_source_type(
+        source_type="semantic_layer",
+        sql_filter=None,
+        type_filter=None,
+        dataset_only=True,
+        contradicts_semantic_source=True,
+    )
+
+    assert source_type == "empty"
+
+
+def test_resolve_source_type_explicit_database_ignores_the_contradiction() -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={},
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    source_type = command._resolve_source_type(
+        source_type="database",
+        sql_filter=None,
+        type_filter=None,
+        dataset_only=True,
+        contradicts_semantic_source=True,
+    )
+
+    assert source_type == "database"
+
+
+@pytest.mark.parametrize(
+    "dataset_filter",
+    [
+        {"col": "editors", "opr": "rel_m_m", "value": 31},
+        {"col": "id", "opr": "dataset_is_certified", "value": True},
+    ],
+)
+def test_run_explicit_semantic_layer_with_dataset_filter_returns_empty(
+    dataset_filter: dict[str, Any],
+) -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={
+            "filters": [
+                {"col": "source_type", "opr": "eq", "value": "semantic_layer"},
+                dataset_filter,
+            ]
+        },
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    with patch(
+        "superset.commands.datasource.list.DatasourceDAO.paginate_combined_query"
+    ) as paginate_mock:
+        result = command.run()
+
+    assert result == {"count": 0, "result": []}
+    paginate_mock.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "kept_filter",
+    [
+        # "not certified" matches semantic views, which are never certified.
+        {"col": "id", "opr": "dataset_is_certified", "value": False},
+        # changed_by applies to semantic views too.
+        {"col": "changed_by", "opr": "rel_o_m", "value": 48},
+        # The Schema exception from #43829 stays.
+        {"col": "schema", "opr": "eq", "value": "main"},
+    ],
+)
+def test_run_explicit_semantic_layer_keeps_views_for_compatible_filters(
+    kept_filter: dict[str, Any],
+) -> None:
+    command = GetCombinedDatasourceListCommand(
+        args={
+            "filters": [
+                {"col": "source_type", "opr": "eq", "value": "semantic_layer"},
+                kept_filter,
+            ]
+        },
+        can_read_datasets=True,
+        can_read_semantic_views=True,
+    )
+
+    with (
+        patch.object(
+            GetCombinedDatasourceListCommand,
+            "_build_combined_query",
+            return_value="combined",
+        ) as build_mock,
+        patch(
+            "superset.commands.datasource.list.DatasourceDAO.paginate_combined_query",
+            return_value=(0, []),
+        ),
+    ):
+        command.run()
+
+    assert build_mock.call_args.args[0] == "semantic_layer"

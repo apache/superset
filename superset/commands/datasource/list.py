@@ -92,6 +92,17 @@ class _Filters:
             or self.certified_filter is True
         )
 
+    @property
+    def contradicts_semantic_source(self) -> bool:
+        """Whether an explicit ``Source = Semantic layer`` cannot satisfy a filter.
+
+        These are the dataset-only filters that, combined with that Source,
+        resolve to an empty result. ``schema`` is deliberately left out: a
+        leftover Schema chip is dropped when the Source is chosen explicitly,
+        which is the rule settled for it in #43829.
+        """
+        return self.editors_filter is not None or self.certified_filter is True
+
 
 def _relation_id(col: str, value: Any) -> int:
     """Coerce a relation filter value to an id, as the canonical endpoint does."""
@@ -149,6 +160,7 @@ class GetCombinedDatasourceListCommand(BaseCommand):
                 parsed.sql_filter,
                 parsed.type_filter,
                 parsed.dataset_only,
+                parsed.contradicts_semantic_source,
             )
 
         if source_type == "empty":
@@ -267,11 +279,14 @@ class GetCombinedDatasourceListCommand(BaseCommand):
         sql_filter: bool | None,
         type_filter: str | None,
         dataset_only: bool = False,
+        contradicts_semantic_source: bool = False,
     ) -> str:
         """Narrow source_type based on access flags, sql filter, and type filter.
 
         ``dataset_only`` is true when a filter is set that no semantic view can
-        match (see ``_Filters.dataset_only``).
+        match (see ``_Filters.dataset_only``). ``contradicts_semantic_source``
+        is the subset of those filters that an explicit ``Source = Semantic
+        layer`` must not drop (see ``_Filters.contradicts_semantic_source``).
 
         Returns one of: "database", "semantic_layer", "all", or "empty".
         "empty" signals that the caller should short-circuit and return no results
@@ -320,6 +335,11 @@ class GetCombinedDatasourceListCommand(BaseCommand):
             if dataset_only or sql_filter is not None:
                 return "empty"
             return "semantic_layer"
+        # Source="Semantic layer" AND a filter no semantic view can satisfy
+        # (Editor, Certified = Yes) is empty under AND semantics; dropping the
+        # filter would list every view with its chip still lit.
+        if source_type == "semantic_layer" and contradicts_semantic_source:
+            return "empty"
         # An explicit source_type selection ("database" or "semantic_layer") always
         # wins. This prevents e.g. Type="Semantic View" from overriding an explicit
         # Source="Database" filter and showing inconsistent results.
