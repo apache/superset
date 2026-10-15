@@ -544,7 +544,48 @@ def test_encrypted_extra_sensitive_field_paths_from_dict(
         if masked_encrypted_extra:
             encrypted_extra_sensitive_fields = masked_encrypted_extra
 
-    assert DictFieldsSpec.encrypted_extra_sensitive_field_paths() == expected_result
+    assert DictFieldsSpec.encrypted_extra_sensitive_field_paths() == (
+        expected_result | ALWAYS_MASKED_PATHS
+    )
+
+
+# Masked for every engine, whatever it declares: `Database` reads both blocks from
+# any connection's `encrypted_extra`.
+ALWAYS_MASKED_PATHS = {
+    "$.oauth2_client_info.secret",
+    "$.embedded_credentials.password",
+    "$.embedded_credentials.privatekey_body",
+    "$.embedded_credentials.privatekey_pass",
+}
+
+
+def test_secrets_are_masked_for_an_engine_that_declares_no_sensitive_fields() -> None:
+    """
+    The OAuth2 client secret and embedded credential are masked regardless.
+
+    An engine with no sensitive fields of its own, or a deployment override that
+    fails to load, must not return either in clear.
+    """
+
+    class NoSensitiveFieldsSpec(BaseEngineSpec):
+        encrypted_extra_sensitive_fields: set[str] = set()
+
+    masked_text = NoSensitiveFieldsSpec.mask_encrypted_extra(
+        json.dumps(
+            {
+                "oauth2_client_info": {"id": "client", "secret": "s3cret"},
+                "embedded_credentials": {"username": "svc", "password": "pw"},
+            }
+        )
+    )
+    assert masked_text is not None
+    masked = json.loads(masked_text)
+
+    assert masked["oauth2_client_info"] == {"id": "client", "secret": "XXXXXXXXXX"}
+    assert masked["embedded_credentials"] == {
+        "username": "svc",
+        "password": "XXXXXXXXXX",
+    }
 
 
 def test_impersonate_user_backwards_compatible(mocker: MockerFixture) -> None:

@@ -820,14 +820,16 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         Returns a set of JSONPath expressions for fields that should be masked
         in the ``masked_encrypted_extra`` JSON.
 
-        The OAuth2 client secret is always included, since
-        ``Database.get_oauth2_config`` reads ``oauth2_client_info`` from the
-        ``encrypted_extra`` of any database regardless of its engine, so engine
-        specs that override ``encrypted_extra_sensitive_fields`` cannot
-        accidentally expose it.
+        The OAuth2 client secret and the embedded fallback credential's secrets are
+        always included: ``Database`` reads both blocks from the ``encrypted_extra``
+        of any database regardless of its engine, so engine specs that override
+        ``encrypted_extra_sensitive_fields`` cannot accidentally expose them.
         """
         return set(cls.encrypted_extra_sensitive_fields) | {
-            "$.oauth2_client_info.secret"
+            "$.oauth2_client_info.secret",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.password",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.privatekey_body",
+            f"$.{EMBEDDED_CREDENTIALS_KEY}.privatekey_pass",
         }
 
     @classmethod

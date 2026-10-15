@@ -17,7 +17,7 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, redefined-outer-name
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Optional, TYPE_CHECKING
 
 import pytest
 from marshmallow import fields, Schema, ValidationError
@@ -804,7 +804,13 @@ def test_import_schema_allows_masked_fields_for_existing_db(
     from superset.databases.schemas import ImportV1DatabaseSchema
 
     mock_session = mocker.patch("superset.databases.schemas.db.session")
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
     mock_existing_db = mocker.MagicMock()
+    mock_existing_db.db_engine_spec = BigQueryEngineSpec
+    mock_existing_db.encrypted_extra = json.dumps(
+        {"credentials_info": {"private_key": "stored-key"}}
+    )
     mock_session = mocker.patch("superset.databases.schemas.db.session")
     mock_session.query.return_value.filter_by.return_value.first.return_value = (
         mock_existing_db
@@ -1011,3 +1017,159 @@ def test_api_rejects_malformed_embedded_credentials(credentials: Any) -> None:
             }
         )
     assert "masked_encrypted_extra" in excinfo.value.messages
+
+
+_CLIENT = {
+    "id": "client",
+    "secret": "secret",
+    "scope": "refresh_token",
+    "authorization_request_uri": "https://oauth.example/authorize",
+    "token_request_uri": "https://oauth.example/token",
+}
+_CREDENTIALS = {"username": "embedded_svc", "password": "embedded_pw"}
+
+
+@pytest.mark.parametrize(
+    "impersonate_user,client,global_client,credentials,expect_error",
+    [
+        # sc-126624 case 4: impersonation off -> every viewer on the base account.
+        (False, _CLIENT, False, _CREDENTIALS, True),
+        # sc-126624 case 1: no OAuth2 client -> the credential never applies.
+        (True, None, False, _CREDENTIALS, True),
+        (True, _CLIENT, False, _CREDENTIALS, False),
+        # A deployment-wide client counts as OAuth2 on the connection.
+        (True, None, True, _CREDENTIALS, False),
+        # A cleared credential is "no credential", wherever it is saved.
+        (False, None, False, {"username": "", "password": ""}, False),
+    ],
+)
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_credentials_need_oauth2_and_impersonation(
+    mocker: MockerFixture,
+    impersonate_user: bool,
+    client: Optional[dict[str, str]],
+    global_client: bool,
+    credentials: dict[str, str],
+    expect_error: bool,
+) -> None:
+    """A credential that could never apply is refused instead of saved."""
+    from flask import current_app
+
+    from superset.databases.schemas import DatabasePostSchema
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    mocker.patch.object(SqliteEngineSpec, "supports_embedded_credential_fallback", True)
+    mocker.patch.object(SqliteEngineSpec, "supports_oauth2", True)
+    mocker.patch.dict(
+        current_app.config,
+        {"DATABASE_OAUTH2_CLIENTS": {"SQLite": _CLIENT} if global_client else {}},
+    )
+    extra: dict[str, Any] = {"embedded_credentials": credentials}
+    if client:
+        extra["oauth2_client_info"] = client
+    payload = {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "sqlite://",
+        "impersonate_user": impersonate_user,
+        "masked_encrypted_extra": json.dumps(extra),
+    }
+
+    if expect_error:
+        with pytest.raises(ValidationError) as excinfo:
+            DatabasePostSchema().load(payload)
+        assert "Impersonate logged in user" in str(excinfo.value.messages)
+    else:
+        DatabasePostSchema().load(payload)
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_credentials_requirement_skips_engines_without_the_fallback() -> None:
+    """On an engine that has not opted in the credential is inert; not refused."""
+    from superset.databases.schemas import DatabasePostSchema
+
+    DatabasePostSchema().load(
+        {
+            "database_name": "test_db",
+            "sqlalchemy_uri": "sqlite://",
+            "impersonate_user": False,
+            "masked_encrypted_extra": json.dumps(
+                {"embedded_credentials": _CREDENTIALS}
+            ),
+        }
+    )
+
+
+@pytest.mark.parametrize("stored_impersonate_user", [True, False])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_embedded_credentials_requirement_uses_stored_impersonation_on_update(
+    mocker: MockerFixture, stored_impersonate_user: bool
+) -> None:
+    """An update that omits impersonate_user is judged by the stored setting."""
+    from superset.databases.schemas import DatabasePutSchema
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import Database
+
+    mocker.patch.object(SqliteEngineSpec, "supports_embedded_credential_fallback", True)
+    stored = Database(
+        sqlalchemy_uri="sqlite://", impersonate_user=stored_impersonate_user
+    )
+    mocker.patch("superset.databases.schemas.db.session.get", return_value=stored)
+    payload = {
+        "masked_encrypted_extra": json.dumps(
+            {"embedded_credentials": _CREDENTIALS, "oauth2_client_info": _CLIENT}
+        )
+    }
+
+    if stored_impersonate_user:
+        DatabasePutSchema(database_id=1).load(payload)
+    else:
+        with pytest.raises(ValidationError):
+            DatabasePutSchema(database_id=1).load(payload)
+
+
+@pytest.mark.parametrize(
+    "stored_encrypted_extra",
+    [None, json.dumps({"oauth2_client_info": {"id": "client"}})],
+)
+def test_import_schema_asks_for_masks_an_existing_db_cannot_reveal(
+    mocker: MockerFixture, stored_encrypted_extra: Optional[str]
+) -> None:
+    """
+    Overwriting a connection asks for secrets it has no stored value for.
+
+    A connection promoted by a dashboard bundle exists without its OAuth2 client
+    or embedded credential. Importing its database export over it used to store
+    the mask itself as the secret (QA OEF-SECRET-04).
+    """
+    from superset.databases.schemas import ImportV1DatabaseSchema
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    existing = mocker.MagicMock()
+    existing.db_engine_spec = SqliteEngineSpec
+    existing.encrypted_extra = stored_encrypted_extra
+    mock_session = mocker.patch("superset.databases.schemas.db.session")
+    mock_session.query.return_value.filter_by.return_value.first.return_value = existing
+
+    with pytest.raises(ValidationError) as excinfo:
+        ImportV1DatabaseSchema().load(
+            {
+                "database_name": "promoted",
+                "sqlalchemy_uri": "sqlite://",
+                "uuid": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+                "masked_encrypted_extra": json.dumps(
+                    {
+                        "oauth2_client_info": {"id": "client", "secret": "XXXXXXXXXX"},
+                        "embedded_credentials": {
+                            "username": "svc",
+                            "password": "XXXXXXXXXX",
+                        },
+                    }
+                ),
+                "extra": {},
+                "version": "1.0.0",
+            }
+        )
+
+    messages = str(excinfo.value.messages)
+    assert "$.oauth2_client_info.secret" in messages
+    assert "$.embedded_credentials.password" in messages

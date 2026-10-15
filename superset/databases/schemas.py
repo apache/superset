@@ -464,14 +464,19 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             return
 
         engine_spec = BaseEngineSpec
+        stored = (
+            db.session.get(Database, self.database_id)
+            if self.database_id is not None
+            else None
+        )
         if sqlalchemy_uri := data.get("sqlalchemy_uri"):
             engine_spec = Database(sqlalchemy_uri=sqlalchemy_uri).db_engine_spec
-        elif (database_id := self.database_id) is not None:
-            if database := db.session.get(Database, database_id):
-                engine_spec = database.db_engine_spec
+        elif stored:
+            engine_spec = stored.db_engine_spec
 
+        credentials = encrypted_extra[EMBEDDED_CREDENTIALS_KEY]
         if embedded_credentials_incomplete(
-            encrypted_extra[EMBEDDED_CREDENTIALS_KEY],
+            credentials,
             engine_spec.validate_embedded_credentials,
         ):
             raise ValidationError(
@@ -482,6 +487,35 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
                 ),
                 field_name="masked_encrypted_extra",
             )
+
+        # A credential only applies to a per-user OAuth2 connection with
+        # impersonation on (`Database.embedded_fallback_applies`). Anywhere else
+        # it would save and silently do nothing -- or, with impersonation off,
+        # leave every viewer on the connection's own account while the setting
+        # reads as configured -- so refuse it rather than store it.
+        if (
+            engine_spec.supports_embedded_credential_fallback
+            and engine_spec.validate_embedded_credentials(credentials) is not None
+        ):
+            impersonate_user = data.get(
+                "impersonate_user", stored.impersonate_user if stored else False
+            )
+            client_info = encrypted_extra.get("oauth2_client_info")
+            has_oauth2_client = bool(isinstance(client_info, dict) and client_info) or (
+                engine_spec.supports_oauth2
+                and engine_spec.engine_name
+                in current_app.config["DATABASE_OAUTH2_CLIENTS"]
+            )
+            if not (impersonate_user and has_oauth2_client):
+                raise ValidationError(
+                    _(
+                        "Embedded guest credentials only apply to connections that "
+                        'use OAuth2 with "Impersonate logged in user" turned on. '
+                        "Configure OAuth2 client information and turn on "
+                        "impersonation, or clear the embedded credentials."
+                    ),
+                    field_name="masked_encrypted_extra",
+                )
 
 
 def rename_encrypted_extra(
@@ -1191,25 +1225,35 @@ class ImportV1DatabaseSchema(Schema):
                 "File contains both `encrypted_extra` and `masked_encrypted_extra`"
             )
 
-        if db.session.query(Database).filter_by(uuid=data["uuid"]).first():
-            # Existing DB: sensitive values will be revealed from existing
-            # encrypted_extra in import_database()
-            return
-
         masked_encrypted_extra = json.loads(data["masked_encrypted_extra"])
 
-        # Determine engine spec from sqlalchemy_uri to get sensitive fields
-        sqlalchemy_uri = data["sqlalchemy_uri"]
-        url = make_url_safe(sqlalchemy_uri)
-        backend = url.get_backend_name()
-        driver = url.get_driver_name()
-        db_engine_spec = get_engine_spec(backend, driver=driver)
+        if existing := db.session.query(Database).filter_by(uuid=data["uuid"]).first():
+            # Existing DB: masked values are revealed from its stored
+            # encrypted_extra in import_database(). Any the stored payload has no
+            # value for -- e.g. a connection promoted without its OAuth2 client or
+            # embedded credential -- would otherwise be stored as the mask itself,
+            # so ask for those like a new DB.
+            db_engine_spec = existing.db_engine_spec
+            masked_fields = json.unrevealable_masked_fields(
+                json.loads(existing.encrypted_extra)
+                if existing.encrypted_extra
+                else None,
+                masked_encrypted_extra,
+                db_engine_spec.encrypted_extra_sensitive_field_paths(),
+            )
+        else:
+            # Determine engine spec from sqlalchemy_uri to get sensitive fields
+            sqlalchemy_uri = data["sqlalchemy_uri"]
+            url = make_url_safe(sqlalchemy_uri)
+            backend = url.get_backend_name()
+            driver = url.get_driver_name()
+            db_engine_spec = get_engine_spec(backend, driver=driver)
 
-        # Check if any sensitive field is still masked
-        masked_fields = get_masked_fields(
-            masked_encrypted_extra,
-            db_engine_spec.encrypted_extra_sensitive_field_paths(),
-        )
+            # Check if any sensitive field is still masked
+            masked_fields = get_masked_fields(
+                masked_encrypted_extra,
+                db_engine_spec.encrypted_extra_sensitive_field_paths(),
+            )
 
         if masked_fields:
             encrypted_extra_fields = db_engine_spec.encrypted_extra_sensitive_fields
