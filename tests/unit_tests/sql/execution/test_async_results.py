@@ -99,6 +99,7 @@ def _store_and_read(
     query.id = 1
     query.status = "success"
     query.error_message = None
+    query.extra = {}
     query.to_dict.return_value = {"id": 1}
 
     database = MagicMock()
