@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 11:06+0300\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -2190,6 +2190,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Pri načítavaní názvov funkciuí došlo k chybe."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 
@@ -2657,6 +2661,9 @@ msgstr "Opravdu chcete zmazať vybrané %s?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Opravdu chcete zmazať vybrané anotace?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Opravdu chcete zmazať vybrané grafy?"
 
@@ -2757,6 +2764,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Šipka"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Priradiť sadu parametrov ako"
@@ -3270,6 +3280,9 @@ msgstr "Dotaz CVAS (create view as select) nie je príkazom SELECT."
 msgid "Cache Timeout (seconds)"
 msgstr "Časový limit mezipameti (sekundy)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -3401,6 +3414,24 @@ msgstr "Nemožno vkládat priečinka do predvolených priečinkov"
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Nemožno spracovať časový reťazec [%(human_readable)s]"
+
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
 
 msgid "Captcha"
 msgstr "Captcha"
@@ -3588,6 +3619,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "Zmena tejto nástenky je zakázána"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "Zmena tohoto grafu je zakázána"
@@ -4170,6 +4204,9 @@ msgstr "Sbalit dátový panel"
 
 msgid "Collapse row"
 msgstr "Sbalit riadok"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Zbaliť nastavenie"
@@ -4819,6 +4856,11 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nemožno sa pripojiť k databázy: „%(database)s“"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nepodarilo sa načítať všetky uložené grafy"
 
@@ -4871,6 +4913,12 @@ msgstr "Počet"
 
 msgid "Country"
 msgstr "Zeme"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Barevné schéma zeme"
@@ -5915,6 +5963,12 @@ msgstr "Opravdu zmazať vše?"
 msgid "Delete annotation"
 msgstr "Zmazať anotaci"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -5987,6 +6041,13 @@ msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "Smazána %(num)d vrstva anotací"
 msgstr[1] "Smazány %(num)d vrstvy anotací"
 msgstr[2] "Zmazané %(num)d vrstev anotací"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6476,6 +6537,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Koncept"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -7731,6 +7798,9 @@ msgstr "Nepodarilo sa načítať data grafu."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7953,6 +8023,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrovať grafy"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filter má predvolený hodnotu"
 
@@ -7994,6 +8070,10 @@ msgstr "Filtrujte svoje grafy"
 
 msgid "Filters"
 msgstr "Filtre"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -8823,6 +8903,10 @@ msgstr "Zahrnúť názov série ako osu"
 msgid "Include time"
 msgstr "Zahrnúť čas"
 
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
+
 msgid "Increase"
 msgstr "Zvýšit"
 
@@ -9097,6 +9181,9 @@ msgstr "Neplatný typ výsledku: %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Neplatný rolling_type: %(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 msgid "Invalid state."
 msgstr "Neplatný stav."
 
@@ -9174,6 +9261,9 @@ msgstr "Problém 1000 - Sada dat je príliš velká na dotazovanie."
 
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problém 1001 - Databáza je pod neobvyklou záteží."
+
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
 
 msgid ""
 "It won't be removed even if empty. It won't be shown in chart editing "
@@ -10856,6 +10946,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Nebyly nalezeny žiadne záznamy"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Žiadne výsledky"
 
@@ -11229,6 +11323,9 @@ msgstr "Jedna alebo viac metrik k zobrazenie"
 msgid "One or more annotation layers failed loading."
 msgstr "Načítavanie jedné alebo viac vrstev anotací zlyhalo."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Jeden alebo viac stĺpcov již existuje"
 
@@ -11312,6 +11409,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11891,6 +11991,9 @@ msgstr "Výška každé série v pixelech"
 msgid "Pixels"
 msgstr "Pixely"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Prostý"
 
@@ -12160,6 +12263,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Náhľad"
 
@@ -12255,6 +12363,9 @@ msgstr "Verejne a súkromne zdieľané hárky"
 #, fuzzy
 msgid "Publicly shared sheets only"
 msgstr "Iba verejne zdieľané hárky"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Zveřejneno"
@@ -12567,6 +12678,9 @@ msgstr "Znovu načítať"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Znovu načítať SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13287,6 +13401,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL dotaz"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL výraz"
@@ -14734,6 +14853,12 @@ msgstr "Zobraziť souhrn"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Zobraziť celkovo"
 
@@ -14964,6 +15089,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -15243,6 +15371,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15959,6 +16092,12 @@ msgstr "Anotace bola aktualizována"
 msgid "The background color of the charts."
 msgstr "Farba pozadí grafů."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16206,6 +16345,9 @@ msgstr "Zobrazovaný názov vaší nástenky"
 
 msgid "The distance between cells, in pixels"
 msgstr "Vzdálenost mezi bunkami v pixelech"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -16772,6 +16914,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "URL služby vrstvy"
 
@@ -16993,6 +17150,9 @@ msgstr ""
 msgid "Theme could not be updated."
 msgstr ""
 
+msgid "Theme does not exist"
+msgstr ""
+
 #, fuzzy
 msgid "Theme imported"
 msgstr "Téma importováno"
@@ -17179,6 +17339,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr ""
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Pri mazanie %s došlo k problému"
 
@@ -17205,6 +17369,10 @@ msgstr "Pri mazanie vybraných %s došlo k problému: %s"
 #, python-format
 msgid "There was an issue deleting the selected annotations: %s"
 msgstr "Pri mazanie vybraných anotací došlo k problému: %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17412,12 +17580,22 @@ msgstr ""
 "Môže to být buď IP adresa (např. 127.0.0.1), alebo názov domény (např. "
 "mojedatabaze.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Tento graf aplikuje krížové filtre na grafy, jejichž sady dat obsahují "
 "stĺpce sa stejným názvom."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Tento graf bol cezunut do iného rozsahu filtra."
@@ -17440,6 +17618,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17591,9 +17781,15 @@ msgstr "Táto sada dat je spravována externe a nemožno ji upravovať v Superse
 msgid "This defines the element to be plotted on the chart"
 msgstr "Toto definuje prvek, ktorý sa má vykreslit v grafu"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 #, fuzzy
@@ -17773,6 +17969,9 @@ msgstr ""
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Toto heslo je príliš bežné; zvoľte si ťažšie uhádnuteľné heslo."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -17880,6 +18079,9 @@ msgid_plural "This may be triggered by:"
 msgstr[0] "To bolo spustené:"
 msgstr[1] "To môže být spustené:"
 msgstr[2] "To môže být spustené:"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18461,6 +18663,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Nemožno vypočítať takovou časovou deltu"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Nemožno sa pripojiť ke katalogu s názvom „%(catalog_name)s“."
@@ -18772,6 +18977,9 @@ msgstr "Nepojmenovaná sada dat"
 msgid "Untitled Query"
 msgstr "Nepojmenovaný dotaz"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -18783,6 +18991,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Nepojmenovaný dotaz"
+
+msgid "Untitled tab"
+msgstr ""
 
 #, fuzzy
 msgid "Unverified"
@@ -19078,6 +19289,9 @@ msgstr "Formát hodnoty"
 
 msgid "Value and Percentage"
 msgstr "Hodnota a procento"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Hranica hodnoty"
@@ -20680,6 +20894,9 @@ msgstr[2] ""
 
 msgid "cannot be empty"
 msgstr "nesmí být prázdne"
+
+msgid "canvases"
+msgstr ""
 
 #, fuzzy
 msgid "cell bar"

@@ -23,6 +23,10 @@
       "types": "./lib/authentication/index.d.ts",
       "default": "./lib/authentication/index.js"
     },
+    "./canvas": {
+      "types": "./lib/canvas/index.d.ts",
+      "default": "./lib/canvas/index.js"
+    },
     "./chat": {
       "types": "./lib/chat/index.d.ts",
       "default": "./lib/chat/index.js"

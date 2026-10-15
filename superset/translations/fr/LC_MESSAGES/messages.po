@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-13 11:06+0300\n"
 "PO-Revision-Date: 2025-06-26 15:34+0200\n"
 "Last-Translator: \n"
 "Language: fr\n"
@@ -2175,6 +2175,10 @@ msgid "An error occurred while fetching function names."
 msgstr "Une erreur s'est produite lors de la recherche des noms de fonctions."
 
 #, python-format
+msgid "An error occurred while fetching modifiers: %s"
+msgstr ""
+
+#, python-format
 msgid "An error occurred while fetching row level security subject values: %s"
 msgstr ""
 "Une erreur s'est produite lors de la récupération des entrée de sécurité "
@@ -2653,6 +2657,9 @@ msgstr "Voulez-vous vraiment supprimer les %s sélectionnés?"
 msgid "Are you sure you want to delete the selected annotations?"
 msgstr "Voulez-vous vraiment supprimer les annotations sélectionnées?"
 
+msgid "Are you sure you want to delete the selected canvases?"
+msgstr ""
+
 msgid "Are you sure you want to delete the selected charts?"
 msgstr "Voulez-vous vraiment supprimer les graphiques sélectionnés?"
 
@@ -2756,6 +2763,9 @@ msgstr ""
 
 msgid "Arrow"
 msgstr "Flèche"
+
+msgid "Ask the chat to add widgets to it."
+msgstr ""
 
 msgid "Assign a set of parameters as"
 msgstr "Affecter un jeu de paramètres à."
@@ -3270,6 +3280,9 @@ msgstr "La requête CVAS (create view as select) n'est pas une instruction SELEC
 msgid "Cache Timeout (seconds)"
 msgstr "Délai d'inactivité et reprise du cache (secondes)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -3407,6 +3420,24 @@ msgstr "Impossible d'imbriquer les dossiers dans les dossiers par défaut."
 #, python-format
 msgid "Cannot parse time string [%(human_readable)s]"
 msgstr "Impossible d'analyser la chaîne de temps [%(human_readable)s]"
+
+msgid "Canvas"
+msgstr ""
+
+msgid "Canvas could not be created."
+msgstr ""
+
+msgid "Canvas could not be deleted."
+msgstr ""
+
+msgid "Canvas could not be updated."
+msgstr ""
+
+msgid "Canvas parameters are invalid."
+msgstr ""
+
+msgid "Canvases"
+msgstr ""
 
 msgid "Captcha"
 msgstr "Captcha"
@@ -3595,6 +3626,9 @@ msgstr ""
 
 msgid "Changing this Dashboard is forbidden"
 msgstr "Modifier ce tableau de bord est interdit"
+
+msgid "Changing this canvas is forbidden"
+msgstr ""
 
 msgid "Changing this chart is forbidden"
 msgstr "Modifier ce graphique est interdit"
@@ -4176,6 +4210,9 @@ msgstr "Réduire le panneau de données"
 
 msgid "Collapse row"
 msgstr "Réduire la ligne"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Réduire les paramètres"
@@ -4820,6 +4857,11 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Impossible de se connecter à la base de données : « %(database)s »"
 
+msgid ""
+"Could not enrich the controls for this widget; showing the default form. "
+"See the server logs for details."
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Impossible de récupérer tous les graphiques sauvegardés"
 
@@ -4871,6 +4913,12 @@ msgstr "Nombre"
 
 msgid "Country"
 msgstr "Pays"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Schéma de couleurs de pays"
@@ -5901,6 +5949,12 @@ msgstr "Vraiment tout effacer?"
 msgid "Delete annotation"
 msgstr "Supprimer l'annotation"
 
+msgid "Delete canvas"
+msgstr ""
+
+msgid "Delete canvas?"
+msgstr ""
+
 msgid "Delete component"
 msgstr ""
 
@@ -5966,6 +6020,12 @@ msgid "Deleted %(num)d annotation layer"
 msgid_plural "Deleted %(num)d annotation layers"
 msgstr[0] "%(num)d couche d'annotation supprimée"
 msgstr[1] "%(num)d couches d'annotation supprimées"
+
+#, python-format
+msgid "Deleted %(num)d canvas"
+msgid_plural "Deleted %(num)d canvases"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "Deleted %(num)d chart"
@@ -6444,6 +6504,12 @@ msgstr ""
 
 msgid "Draft"
 msgstr "Brouillon"
+
+msgid "Draft discarded"
+msgstr ""
+
+msgid "Draft published"
+msgstr ""
 
 #, python-format
 msgid "Drag %s folder"
@@ -7670,6 +7736,9 @@ msgstr "Échec du chargement des données du graphique."
 msgid "Failed to load columns for %s %s"
 msgstr "Échec lors du chargement des colonnes pour %s %s"
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7892,6 +7961,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrer les graphiques"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Le filtre a une valeur par défaut"
 
@@ -7932,6 +8007,10 @@ msgstr "Filtrer vos graphiques"
 
 msgid "Filters"
 msgstr "Filtres"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filtres et contrôles"
@@ -8763,6 +8842,10 @@ msgstr "Inclure le nom de la série comme axe"
 msgid "Include time"
 msgstr "Inclure l'heure"
 
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
+
 msgid "Increase"
 msgstr "Augmenter"
 
@@ -9031,6 +9114,9 @@ msgstr "Type de résultat invalide : %(result_type)s"
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Le rolling_type est invalide: %(type)s"
 
+msgid "Invalid semantic result cache version"
+msgstr ""
+
 msgid "Invalid state."
 msgstr "État invalide."
 
@@ -9107,6 +9193,9 @@ msgstr "Problème 1000 - Le jeu de données est trop volumineux pour être inter
 
 msgid "Issue 1001 - The database is under an unusual load."
 msgstr "Problème 1001 - La base de données est soumise à une charge inhabituelle."
+
+msgid "It was published, discarded or expired, or it belongs to someone else."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -10754,6 +10843,10 @@ msgstr ""
 msgid "No records found"
 msgstr "Aucun enregistrement n'a été trouvé"
 
+#, python-format
+msgid "No renderer for widget type \"%s\""
+msgstr ""
+
 msgid "No results"
 msgstr "Aucun résultat"
 
@@ -11127,6 +11220,9 @@ msgstr "Une ou plusieurs mesures à afficher"
 msgid "One or more annotation layers failed loading."
 msgstr "Le chargement d'une ou plusieurs couches d'annotations a échoué."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Une ou plusieurs colonnes existent déjà"
 
@@ -11217,6 +11313,9 @@ msgstr ""
 msgid ""
 "Only the first %s values are listed. Type to search all of them, or enter"
 " a value that is not listed."
+msgstr ""
+
+msgid "Only you can see these changes until you publish them."
 msgstr ""
 
 msgid "Oops! An error occurred!"
@@ -11790,6 +11889,9 @@ msgstr "Hauteur des pixels de chaque série"
 msgid "Pixels"
 msgstr "Pixels"
 
+msgid "Placements you edited were changed since your revision."
+msgstr ""
+
 msgid "Plain"
 msgstr "Simple"
 
@@ -12060,6 +12162,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Prévisualisation"
 
@@ -12154,6 +12261,9 @@ msgstr "Feuilles partagées publiquement et privées"
 # sr_Latn]
 msgid "Publicly shared sheets only"
 msgstr "Uniquement les feuilles partagées publiquement"
+
+msgid "Publish"
+msgstr ""
 
 msgid "Published"
 msgstr "Publié"
@@ -12460,6 +12570,9 @@ msgstr "Recharger"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Reload SQL Lab"
 msgstr "Recharger SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13180,6 +13293,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Requête SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expression SQL"
@@ -14605,6 +14723,12 @@ msgstr "Afficher le résumé"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
+msgid "Show the published canvas"
+msgstr ""
+
 msgid "Show total"
 msgstr "Afficher le total"
 
@@ -14840,6 +14964,9 @@ msgid ""
 "after you opened it. Saving now would undo those changes, so it was "
 "cancelled. Copy your edits, close this dialog, and reopen the dataset to "
 "reapply them."
+msgstr ""
+
+msgid "Something went wrong"
 msgstr ""
 
 msgid ""
@@ -15117,6 +15244,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15825,6 +15957,12 @@ msgstr "Cette annotation a été modifiée"
 msgid "The background color of the charts."
 msgstr "La couleur de fond des graphiques."
 
+msgid "The canvas changed since this draft started; start a new draft."
+msgstr ""
+
+msgid "The canvas changed too much since your revision; reload it."
+msgstr ""
+
 msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
@@ -16084,6 +16222,9 @@ msgstr "Le nom d'affichage de votre tableau de bord"
 
 msgid "The distance between cells, in pixels"
 msgstr "La distance entre les cellules, en pixels"
+
+msgid "The draft changed since your revision; reload it."
+msgstr ""
 
 msgid ""
 "The duration of time in seconds before the cache is invalidated. Set to "
@@ -16695,6 +16836,21 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "L'URL du service de la couche"
 
@@ -16924,6 +17080,9 @@ msgstr ""
 msgid "Theme could not be updated."
 msgstr ""
 
+msgid "Theme does not exist"
+msgstr ""
+
 msgid "Theme imported"
 msgstr "Thème importé"
 
@@ -17114,6 +17273,10 @@ msgid "There was an issue cancelling the task: %s"
 msgstr "Il y a eu un problème lors de l'annulation de la tâche : %s"
 
 #, python-format
+msgid "There was an issue creating the canvas: %s"
+msgstr ""
+
+#, python-format
 msgid "There was an issue deleting %s"
 msgstr "Il y a eu un problème lors de la suppression de %s"
 
@@ -17144,6 +17307,10 @@ msgid "There was an issue deleting the selected annotations: %s"
 msgstr ""
 "Il y a eu un problème lors de la suppression des annotations "
 "sélectionnées : %s"
+
+#, python-format
+msgid "There was an issue deleting the selected canvases: %s"
+msgstr ""
 
 #, python-format
 msgid "There was an issue deleting the selected charts: %s"
@@ -17364,12 +17531,22 @@ msgstr ""
 "Cela peut être soit une adresse IP (ex 127.0.0.1) ou un nom de domaine "
 "(ex mydatabase.com)."
 
+msgid "This canvas does not exist, or you do not have access to it"
+msgstr ""
+
+msgid "This canvas is empty"
+msgstr ""
+
 msgid ""
 "This chart applies cross-filters to charts whose datasets contain columns"
 " with the same name."
 msgstr ""
 "Ce graphique applique des filtres croisés aux graphiques dont les jeux de"
 " données contiennent des colonnes du même nom."
+
+#, python-format
+msgid "This chart could not be drawn: %s"
+msgstr ""
 
 msgid "This chart has been moved to a different filter scope."
 msgstr "Ce graphique a été déplacé vers un autre champ de filtrage."
@@ -17395,6 +17572,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17544,9 +17733,15 @@ msgstr ""
 msgid "This defines the element to be plotted on the chart"
 msgstr "Ceci définit l'élément à tracer sur le graphique"
 
+msgid "This deletes the canvas for everyone. The widgets on it are not deleted."
+msgstr ""
+
 msgid ""
 "This dimension is not compatible with the current selections. Select a "
 "compatible dimension."
+msgstr ""
+
+msgid "This draft is no longer available"
 msgstr ""
 
 msgid ""
@@ -17734,6 +17929,9 @@ msgstr ""
 "Ce mot de passe est trop courant ; veuillez en choisir un moins facile à "
 "deviner."
 
+msgid "This placement has no data binding."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -17840,6 +18038,9 @@ msgid "This was triggered by:"
 msgid_plural "This may be triggered by:"
 msgstr[0] "Cela a été déclenché par :"
 msgstr[1] "Ceci peut être déclenché par :"
+
+msgid "This widget is unavailable"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -18414,6 +18615,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Impossible de calculer un delta de date comme celui-ci"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Impossible de se connecter au catalogue « %(catalog_name)s »."
@@ -18723,6 +18927,9 @@ msgstr "Jeu de données sans titre"
 msgid "Untitled Query"
 msgstr "Requête sans titre"
 
+msgid "Untitled canvas"
+msgstr ""
+
 msgid "Untitled chart"
 msgstr ""
 
@@ -18734,6 +18941,9 @@ msgstr ""
 
 msgid "Untitled query"
 msgstr "Requête sans titre"
+
+msgid "Untitled tab"
+msgstr ""
 
 msgid "Unverified"
 msgstr "Non vérifié"
@@ -19026,6 +19236,9 @@ msgstr "Format de la valeur"
 
 msgid "Value and Percentage"
 msgstr "Valeur et pourcentage"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Limites de valeur"
@@ -20681,6 +20894,9 @@ msgstr[1] ""
 
 msgid "cannot be empty"
 msgstr "ne peut pas être vide"
+
+msgid "canvases"
+msgstr ""
 
 msgid "cell bar"
 msgstr "barre de la cellule"

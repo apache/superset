@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from . import (  # noqa: F401
+    canvas,
     core,
     dynamic_plugins,
     purge_audit_log,
