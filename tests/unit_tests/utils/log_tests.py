@@ -25,10 +25,14 @@ from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
+from superset.constants import PASSWORD_MASK
+from superset.utils import json
 from superset.utils.log import (
+    collect_request_payload,
     DBEventLogger,
     get_logger_from_status,
     get_object_ids_from_view_args,
+    redact_request_payload,
 )
 
 
@@ -183,3 +187,99 @@ def test_log_this_with_context_derives_object_id_despite_outer_decorator(
 
     payload = mock_log.call_args[1]
     assert payload["dashboard_id"] == 42
+
+
+def test_redact_request_payload_masks_secrets_at_any_depth() -> None:
+    """Every secret a database request can carry is masked; the rest is kept."""
+    payload = {
+        "database_name": "warehouse",
+        "sqlalchemy_uri": "snowflake://svc:base-pw@account/DB?role=R",
+        "masked_encrypted_extra": '{"embedded_credentials": {"password": "pat"}}',
+        "parameters": {
+            "username": "svc",
+            "password": "base-pw",
+            "embedded_credentials": {"username": "emb", "password": "emb-pw"},
+            "oauth2_client_info": {"id": "client", "secret": "client-secret"},
+        },
+        "ssh_tunnel": {
+            "server_address": "bastion",
+            "username": "tunnel",
+            "private_key": "PEM",
+            "private_key_password": "key-pass",
+        },
+        "passwords": '{"databases/db.yaml": "import-pw"}',
+        "encrypted_extra_secrets": '{"databases/db.yaml": {"$.secret": "s"}}',
+        "events": '[{"event_name": "x"}]',
+    }
+
+    redacted = redact_request_payload(payload)
+
+    assert redacted["database_name"] == "warehouse"
+    assert redacted["sqlalchemy_uri"] == (
+        f"snowflake://svc:{PASSWORD_MASK}@account/DB?role=R"
+    )
+    assert redacted["masked_encrypted_extra"] == PASSWORD_MASK
+    assert redacted["parameters"] == {
+        "username": "svc",
+        "password": PASSWORD_MASK,
+        "embedded_credentials": {"username": "emb", "password": PASSWORD_MASK},
+        "oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK},
+    }
+    assert redacted["ssh_tunnel"] == {
+        "server_address": "bastion",
+        "username": "tunnel",
+        "private_key": PASSWORD_MASK,
+        "private_key_password": PASSWORD_MASK,
+    }
+    assert redacted["passwords"] == PASSWORD_MASK
+    assert redacted["encrypted_extra_secrets"] == PASSWORD_MASK
+    assert redacted["events"] == payload["events"]
+    for secret in ("base-pw", "pat", "emb-pw", "client-secret", "PEM", "key-pass"):
+        assert secret not in json.dumps(redacted)
+
+
+@pytest.mark.parametrize(
+    "uri,expected",
+    [
+        ("sqlite://", "sqlite://"),
+        ("postgresql://user@host/db", "postgresql://user@host/db"),
+        ("not a uri", PASSWORD_MASK),
+    ],
+)
+def test_redact_request_payload_keeps_uris_without_a_password(
+    uri: str, expected: str
+) -> None:
+    """A URI with no password is kept; one that won't parse is masked whole."""
+    assert redact_request_payload({"sqlalchemy_uri": uri}) == {
+        "sqlalchemy_uri": expected
+    }
+
+
+def test_redact_request_payload_leaves_empty_secrets_alone() -> None:
+    """An empty value has nothing to hide and is kept as sent."""
+    payload: dict[str, Any] = {
+        "password": "",
+        "masked_encrypted_extra": None,
+        "passwords": {},
+    }
+
+    assert redact_request_payload(payload) == payload
+
+
+def test_collect_request_payload_never_carries_a_typed_secret() -> None:
+    """The request payload that event-log rows are built from is redacted."""
+    body = {
+        "database_name": "warehouse",
+        "masked_encrypted_extra": json.dumps(
+            {"embedded_credentials": {"username": "emb", "password": "typed-pw"}}
+        ),
+        "parameters": {"password": "typed-base-pw"},
+    }
+    with current_app.test_request_context(
+        "/api/v1/database/1", method="PUT", json=body
+    ):
+        payload = collect_request_payload()
+
+    assert payload["database_name"] == "warehouse"
+    assert "typed-pw" not in json.dumps(payload)
+    assert "typed-base-pw" not in json.dumps(payload)
