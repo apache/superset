@@ -136,6 +136,7 @@ export type ColumnType =
   | MetricColumnType;
 
 export interface Props {
+  semanticSelectionVersion?: string;
   adhocFilter: AdhocFilter;
   onChange: (filter: AdhocFilter) => void;
   options: ColumnType[];
@@ -602,6 +603,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   // `props.datasource`, whose identity the parent does not guarantee.
   const datasourceType = props.datasource?.type;
   const datasourceId = props.datasource?.id;
+  // This marker belongs to the selections, never to freshly fetched metadata.
+  const selectionVersion =
+    datasourceType === 'semantic_view' && !props.adhocFilter.isExtra
+      ? props.semanticSelectionVersion
+      : undefined;
 
   const loadComparatorOptions = useCallback(
     async (search: string): Promise<SelectOptionsTypePage> => {
@@ -620,6 +626,9 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       }
       if (search) {
         params.set('q', search);
+      }
+      if (selectionVersion) {
+        params.set('semantic_selection_version', selectionVersion);
       }
       const query = params.toString();
 
@@ -686,6 +695,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       canSuggestComparatorValues,
       datasourceType,
       datasourceId,
+      selectionVersion,
       arrayElements,
     ],
   );
@@ -703,7 +713,13 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     comparatorRequestRef.current += 1;
     setSuggestionsUnavailable(false);
     setSuggestionsDisabled(false);
-  }, [subjectString, arrayElements]);
+  }, [
+    subjectString,
+    arrayElements,
+    datasourceType,
+    datasourceId,
+    selectionVersion,
+  ]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
@@ -809,6 +825,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             }
           >
             <SelectWithLabel
+              key={JSON.stringify([
+                datasourceType,
+                datasourceId,
+                subjectString,
+                selectionVersion,
+              ])}
               ref={comparatorSelectRef}
               css={css`
                 margin-top: ${theme.marginXS}px;
