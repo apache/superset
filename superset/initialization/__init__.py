@@ -21,7 +21,7 @@ import logging
 import os
 import sys
 import warnings
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, TYPE_CHECKING
 
 import wtforms_json
 from colorama import Fore, Style
@@ -164,8 +164,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         class AppContextTask(task_base):  # type: ignore
             # pylint: disable=too-few-public-methods
             abstract = True
-            _superset_app_context_task = True
-            _superset_task_base = task_base
+            _superset_app_context_task: ClassVar[bool] = True
+            _superset_task_base: ClassVar[type] = task_base
 
             # Grab each call into the task and set up an app context, unless
             # one is already active on this thread (e.g. Celery eager mode

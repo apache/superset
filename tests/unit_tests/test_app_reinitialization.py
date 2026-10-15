@@ -32,24 +32,26 @@ tests that rebuild the app themselves; the next test module builds a fresh one.
 import gc
 import weakref
 
+from superset.app import SupersetApp
 from superset.extensions import celery_app
 from tests.unit_tests.conftest import build_app
 
 
 def test_reinitializing_the_app_does_not_chain_celery_task_classes() -> None:
-    """
+    """Re-initializing wraps the original Celery task base, not the wrapper.
+
     ``configure_celery`` wraps the Celery task base in an ``AppContextTask``
     that pushes its app's context. A second initialization must wrap the
     original base again, not wrap the previous wrapper, or every app ever
     initialized stays reachable through the task class hierarchy.
     """
     build_app()
-    depth_after_first = len(celery_app.Task.__mro__)
+    depth_after_first: int = len(celery_app.Task.__mro__)
 
     build_app()
 
     assert len(celery_app.Task.__mro__) == depth_after_first
-    wrappers = [
+    wrappers: list[type] = [
         cls
         for cls in celery_app.Task.__mro__
         if "_superset_app_context_task" in vars(cls)
@@ -58,13 +60,16 @@ def test_reinitializing_the_app_does_not_chain_celery_task_classes() -> None:
 
 
 def test_previous_app_is_collectable_after_reinitialization() -> None:
-    first = build_app()
-    first_ref = weakref.ref(first)
+    """The app from a previous initialization is garbage-collectable."""
+    first: SupersetApp = build_app()
+    first_ref: weakref.ReferenceType[SupersetApp] = weakref.ref(first)
 
     build_app()
     del first
     gc.collect()
 
-    retained = first_ref()
-    referrers = sorted({type(ref).__qualname__ for ref in gc.get_referrers(retained)})
+    retained: SupersetApp | None = first_ref()
+    referrers: list[str] = sorted(
+        {type(ref).__qualname__ for ref in gc.get_referrers(retained)}
+    )
     assert retained is None, f"previous app still referenced by {referrers}"
