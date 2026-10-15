@@ -3318,10 +3318,12 @@ def test_embedded_fallback_credential_requires_an_oauth2_connection(
     from superset.models.core import Database
 
     _become_guest(mocker)
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
 
     database = Database(
         database_name="snowflake_db",
         sqlalchemy_uri="snowflake://svc_user:svc_pass@xy12345/ANALYTICS_DB",
+        impersonate_user=True,
         encrypted_extra=json.dumps(
             {
                 "embedded_credentials": {
@@ -3333,6 +3335,13 @@ def test_embedded_fallback_credential_requires_an_oauth2_connection(
     )
 
     assert database.get_embedded_fallback_credentials() is None
+
+    # Supplying only the missing OAuth2 client makes this connection eligible.
+    database.encrypted_extra = _embedded_snowflake_database().encrypted_extra
+    assert database.get_embedded_fallback_credentials() == {
+        "username": "embedded_svc",
+        "password": "embedded_pw",
+    }
 
 
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
@@ -3349,6 +3358,7 @@ def test_embedded_fallback_credential_requires_engine_opt_in(
     database = Database(
         database_name="pg_db",
         sqlalchemy_uri="postgresql://svc_user:svc_pass@localhost/db",
+        impersonate_user=True,
         encrypted_extra=json.dumps(
             {
                 "oauth2_client_info": {
@@ -3368,6 +3378,15 @@ def test_embedded_fallback_credential_requires_engine_opt_in(
 
     assert not database.db_engine_spec.supports_embedded_credential_fallback
     assert database.get_embedded_fallback_credentials() is None
+
+    # The engine opt-in is the only condition preventing fallback here.
+    mocker.patch.object(
+        database.db_engine_spec, "supports_embedded_credential_fallback", True
+    )
+    assert database.get_embedded_fallback_credentials() == {
+        "username": "embedded_svc",
+        "password": "embedded_pw",
+    }
 
 
 @pytest.mark.parametrize(
