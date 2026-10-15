@@ -54,7 +54,8 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   process.env.REDIS_SSL_CERTFILE = '/certs/client.pem';
   process.env.REDIS_SSL_KEYFILE = '/certs/client.key';
   process.env.REDIS_SSL_CERT_REQS = 'NONE';
-  process.env.REDIS_SENTINELS = 's1:26380, s2 ,[::1]:26381,bad:port';
+  process.env.REDIS_SENTINELS =
+    's1:26380, s2 ,[::1]:26381,bad:port,toobig:70000';
   process.env.REDIS_SENTINEL_MASTER = 'mymaster';
   process.env.REDIS_SENTINEL_PASSWORD = 'sentinel-pwd';
   process.env.STATSD_HOST = '15.15.15.15';

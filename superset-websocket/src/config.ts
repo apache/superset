@@ -175,7 +175,7 @@ function toSentinelNodes(s: string): SentinelNode[] {
       '',
     );
     const port = hasPort ? Number(entry.slice(sep + 1)) : 26379;
-    if (!host || !Number.isInteger(port) || port <= 0) {
+    if (!host || !Number.isInteger(port) || port <= 0 || port > 65535) {
       console.warn(`Ignoring invalid sentinel address "${entry}".`);
       return [];
     }
