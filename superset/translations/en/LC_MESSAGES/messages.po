@@ -1694,6 +1694,9 @@ msgstr ""
 msgid "All filters"
 msgstr ""
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr ""
 
@@ -1790,6 +1793,12 @@ msgid "Alternate the row background color to make rows easier to scan."
 msgstr ""
 
 msgid "Always filter main datetime column"
+msgstr ""
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
 msgstr ""
 
 msgid "An Error Occurred"
@@ -2599,6 +2608,8 @@ msgstr ""
 msgid "Back to all"
 msgstr ""
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr ""
 
@@ -2800,6 +2811,9 @@ msgid "Bubble size"
 msgstr ""
 
 msgid "Bubble size number format"
+msgstr ""
+
+msgid "Bubble-size metric must be nonnegative"
 msgstr ""
 
 msgid "Bucket break points"
@@ -3983,6 +3997,9 @@ msgid "Columns to read"
 msgstr ""
 
 msgid "Columns to show in the tooltip."
+msgstr ""
+
+msgid "Columns viewers can choose to group charts by."
 msgstr ""
 
 msgid "Combine metrics"
@@ -6701,6 +6718,9 @@ msgstr ""
 msgid "Expand settings"
 msgstr ""
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -6712,6 +6732,12 @@ msgid "Experimental"
 msgstr ""
 
 msgid "Expired"
+msgstr ""
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
 msgid "Explore"
@@ -7549,6 +7575,13 @@ msgstr ""
 msgid "GeoJson Settings"
 msgstr ""
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr ""
 
@@ -7641,6 +7674,9 @@ msgid "Group name"
 msgstr ""
 
 msgid "Group remaining as \"Others\""
+msgstr ""
+
+msgid "Groupable columns"
 msgstr ""
 
 msgid "Grouping"
@@ -7750,6 +7786,8 @@ msgstr ""
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr ""
 
@@ -7787,10 +7825,16 @@ msgstr ""
 msgid "Huge"
 msgstr ""
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr ""
 
 msgid "ISO 8601"
+msgstr ""
+
+msgid "ISO suffix / abbreviation"
 msgstr ""
 
 msgid "Icon URL"
@@ -8563,6 +8607,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -8595,6 +8644,9 @@ msgid "Left value"
 msgstr ""
 
 msgid "Legacy"
+msgstr ""
+
+msgid "Legacy ISO values"
 msgstr ""
 
 msgid "Legend"
@@ -9030,6 +9082,11 @@ msgid "Marker size"
 msgstr ""
 
 msgid "Markers"
+msgstr ""
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
 msgstr ""
 
 msgid "Markup type"
@@ -9501,6 +9558,12 @@ msgid ""
 "details"
 msgstr ""
 
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
+
 msgid "Multiplier"
 msgstr ""
 
@@ -9970,6 +10033,10 @@ msgid "Not found"
 msgstr ""
 
 msgid "Not in"
+msgstr ""
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
 msgstr ""
 
 msgid "Not null"
@@ -11341,6 +11408,12 @@ msgid "Refreshing charts"
 msgstr ""
 
 msgid "Refreshing columns"
+msgstr ""
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
 msgstr ""
 
 msgid "Register"
@@ -12851,6 +12924,7 @@ msgstr ""
 msgid "Select values"
 msgstr ""
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -13475,6 +13549,7 @@ msgstr ""
 msgid "Slider and range input"
 msgstr ""
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr ""
 
@@ -14510,6 +14585,11 @@ msgid "The column to be used as the target of the edge."
 msgstr ""
 
 msgid "The column was deleted or renamed in the database."
+msgstr ""
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
 msgstr ""
 
 msgid "The configuration for the map layers"
@@ -16791,6 +16871,17 @@ msgstr ""
 msgid "Unpin from top"
 msgstr ""
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "Unsafe link blocked"
 msgstr ""
 
@@ -16807,6 +16898,9 @@ msgstr ""
 
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
+msgstr ""
+
+msgid "Unsupported country or region_format for typed geographic chart"
 msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."

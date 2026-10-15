@@ -91,6 +91,7 @@ def test_restore_dashboard_slug_conflict_raises(app_context: None) -> None:
     dashboard.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     dashboard.slug = "q1-report"
     dashboard.id = 42
+    dashboard.json_metadata = "{}"
 
     with (
         patch(
@@ -120,6 +121,7 @@ def test_restore_dashboard_no_slug_conflict_when_no_active_collision(
     dashboard.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     dashboard.slug = "q1-report"
     dashboard.id = 42
+    dashboard.json_metadata = "{}"
 
     with (
         patch(
@@ -148,6 +150,7 @@ def test_restore_dashboard_skips_conflict_check_when_no_slug(
     dashboard.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
     dashboard.slug = None
     dashboard.id = 42
+    dashboard.json_metadata = "{}"
 
     with (
         patch(

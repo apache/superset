@@ -22,7 +22,7 @@ from datetime import datetime
 from unittest.mock import ANY, patch
 
 import pytest
-from flask_appbuilder.security.sqla.models import PermissionView
+from flask_appbuilder.security.sqla.models import PermissionView, Role
 from sqlalchemy.sql.elements import TextClause
 
 from superset import db, security_manager
@@ -108,6 +108,29 @@ def _gamma_granted(*pvms: tuple[str, str]) -> Iterator[None]:
             security_manager.del_permission_view_menu(
                 pvm.permission.name, pvm.view_menu.name
             )
+        db.session.commit()
+
+
+@contextmanager
+def _gamma_without(*pvms: tuple[str, str]) -> Iterator[None]:
+    """Temporarily remove named Gamma grants to test a missing permission."""
+    gamma: Role | None = security_manager.find_role("Gamma")
+    assert gamma is not None
+    removed: list[PermissionView] = []
+    for permission, view_menu in pvms:
+        pvm: PermissionView | None = security_manager.find_permission_view_menu(
+            permission, view_menu
+        )
+        if pvm is not None and pvm in gamma.permissions:
+            security_manager.del_permission_role(gamma, pvm)
+            removed.append(pvm)
+    db.session.commit()
+    try:
+        yield
+    finally:
+        db.session.rollback()
+        for pvm in removed:
+            security_manager.add_permission_role(gamma, pvm)
         db.session.commit()
 
 
@@ -644,13 +667,10 @@ class TestDatasourceApi(SupersetTestCase):
     @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_combined_list_gamma_without_semantic_view_read_gets_none(self):
         """Without can_read on SemanticView the semantic-layer slice is empty."""
-        gamma = security_manager.find_role("Gamma")
-        assert gamma is not None
-        read_pvm = security_manager.find_permission_view_menu(
-            "can_read", "SemanticView"
-        )
-        assert read_pvm is None or read_pvm not in gamma.permissions
-        with _semantic_views("layer") as (view,):
+        with (
+            _gamma_without(("can_read", "SemanticView")),
+            _semantic_views("layer") as (view,),
+        ):
             layer_perm = view.semantic_layer.perm
             assert layer_perm is not None
             with _gamma_granted(("datasource_access", layer_perm)):

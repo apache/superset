@@ -46,3 +46,18 @@ test('passes the groupby through as query columns', () => {
   expect(query.columns).toEqual(['state']);
   expect(query.metrics).toEqual(['sum__num']);
 });
+
+test('forwards explicit ordering and row limit to the query', () => {
+  const [query] = buildQuery({
+    datasource: '5__table',
+    viz_type: 'bullet',
+    metric: 'Revenue',
+    groupby: ['Region'],
+    orderby: [['Revenue', false]],
+    row_limit: 25,
+  }).queries;
+  expect(query.columns).toEqual(['Region']);
+  expect(query.metrics).toEqual(['Revenue']);
+  expect(query.orderby).toEqual([['Revenue', false]]);
+  expect(query.row_limit).toBe(25);
+});

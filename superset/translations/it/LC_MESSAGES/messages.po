@@ -2253,6 +2253,9 @@ msgstr "Tutte le dimensioni"
 msgid "All filters"
 msgstr "Tutti i filtri"
 
+msgid "All groupable columns"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
 # zh, zh_TW]
@@ -2382,6 +2385,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "Filtra sempre sulla colonna temporale principale"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "Errore"
@@ -3457,6 +3466,8 @@ msgstr "Torna a tutto"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -3761,6 +3772,9 @@ msgstr "Grandezza della bolla"
 
 msgid "Bubble size number format"
 msgstr "Formato numero dimensione bolle"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -5354,6 +5368,9 @@ msgstr "Colonne da leggere"
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 msgid "Columns to show in the tooltip."
 msgstr "Colonne da mostrare nel suggerimento."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combina metriche"
@@ -8956,6 +8973,9 @@ msgstr "Espandi la riga da modificare"
 msgid "Expand settings"
 msgstr "Espandi impostazioni"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -8976,6 +8996,12 @@ msgstr "Sperimentale"
 
 msgid "Expired"
 msgstr "Scaduto"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Esplora"
@@ -10116,6 +10142,13 @@ msgstr "Colonna GeoJson"
 msgid "GeoJson Settings"
 msgstr "Impostazioni GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -10248,6 +10281,9 @@ msgstr "Nome del gruppo"
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Group remaining as \"Others\""
 msgstr "Raggruppa i rimanenti come \"Altri\""
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "Raggruppamento"
@@ -10399,6 +10435,8 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Ospite"
 
@@ -10463,6 +10501,9 @@ msgstr ""
 msgid "Huge"
 msgstr "Enorme"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -10474,6 +10515,9 @@ msgstr "Codici ISO 3166-2"
 # uk, zh, zh_TW]
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "URL icona"
@@ -11559,6 +11603,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -11606,6 +11655,9 @@ msgstr "Valore sinistro"
 # uk, zh, zh_TW]
 msgid "Legacy"
 msgstr "Eredità"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -12216,6 +12268,11 @@ msgstr "Marcatori"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Tipo di markup"
 
@@ -12874,6 +12931,12 @@ msgstr ""
 "Sono accettati più formati, guarda la libreria Python geopy.points per "
 "maggiori dettagli"
 
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
+
 msgid "Multiplier"
 msgstr "Moltiplicatore"
 
@@ -13438,6 +13501,10 @@ msgstr "Non trovato"
 
 msgid "Not in"
 msgstr "Non in"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Non null"
@@ -15366,6 +15433,12 @@ msgstr "Aggiornamento grafii"
 
 msgid "Refreshing columns"
 msgstr "Aggiornamento colonne"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Registrazione"
@@ -17338,6 +17411,7 @@ msgstr "Seleziona valori"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -18222,6 +18296,7 @@ msgstr "Grafico a torta"
 msgid "Slider and range input"
 msgstr "Dispositivo di scorrimento e input intervallo"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -19624,6 +19699,11 @@ msgstr "La colonna da usare come destinazione del bordo."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "La colonna è stata cancellata o rinominata nel database."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "La configurazione dei livelli della mappa"
@@ -22980,6 +23060,17 @@ msgstr "Rimuovi dal pannello dei risultati"
 msgid "Unpin from top"
 msgstr "Rimuovi dalla parte superiore"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 msgid "Unsafe link blocked"
 msgstr "Collegamento non sicuro bloccato"
@@ -23007,6 +23098,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Tipo di clausola non supportato: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]

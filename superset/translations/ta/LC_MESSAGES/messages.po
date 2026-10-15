@@ -1838,6 +1838,9 @@ msgstr "பரிமாணமா (Is dimension)"
 msgid "All filters"
 msgstr "அனைத்து வடிகட்டிகள்"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "அனைத்து பேனல்கள் (panels)"
 
@@ -1947,6 +1950,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "எப்போதும் முக்கிய தேதியிடப்பட்ட (datetime) நெடுவரிசையை வடிகட்டவும்"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "ஒரு பிழை ஏற்பட்டது"
@@ -2823,6 +2832,8 @@ msgstr "பின்செல்"
 msgid "Back to all"
 msgstr "அனைத்திற்கும் திரும்பு"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "பின்னணி (Backend)"
 
@@ -3050,6 +3061,9 @@ msgstr "குமிழி அளவு"
 
 msgid "Bubble size number format"
 msgstr "குமிழி அளவு எண் வடிவம்"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "பக்கெட் முறிவுப் புள்ளிகள் (Bucket break points)"
@@ -4325,6 +4339,9 @@ msgstr "வாசிக்க வேண்டிய நெடுவரிசை�
 
 msgid "Columns to show in the tooltip."
 msgstr "உதவிக்குறிப்பில் காட்ட வேண்டிய நெடுவரிசைகள்."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "அளவீடுகளை இணைக்கவும்"
@@ -7216,6 +7233,9 @@ msgstr "வரிசையை விரிவாக்கு"
 msgid "Expand settings"
 msgstr "அமைப்புகளை விரிவாக்கு"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7229,6 +7249,12 @@ msgid "Experimental"
 msgstr "சோதனைநிலை (Experimental)"
 
 msgid "Expired"
+msgstr ""
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
 msgid "Explore"
@@ -8118,6 +8144,13 @@ msgstr "GeoJson நெடுவரிசை"
 msgid "GeoJson Settings"
 msgstr "GeoJson அமைப்புகள்"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8217,6 +8250,9 @@ msgstr "குழுவின் பெயர்"
 
 msgid "Group remaining as \"Others\""
 msgstr "மீதமுள்ளவற்றை \"ஏனையவை\" என குழுவாக்கு"
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "குழுவாக்கம்"
@@ -8327,6 +8363,8 @@ msgstr "கிடைமட்ட சீரமைப்பு"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "ஹோஸ்ட் (Host)"
 
@@ -8366,11 +8404,17 @@ msgstr ""
 msgid "Huge"
 msgstr "மிகப்பெரியது"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 குறியீடுகள்"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "ஐகான் URL"
@@ -9161,6 +9205,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -9194,6 +9243,9 @@ msgstr "இடது மதிப்பு"
 
 msgid "Legacy"
 msgstr "பாரம்பரிய (Legacy)"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "விளக்கக் குறிப்பு (Legend)"
@@ -9643,6 +9695,11 @@ msgstr "மார்க்கர் அளவு"
 
 msgid "Markers"
 msgstr "மார்க்கர்கள்"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "மார்க்கப் வகை"
@@ -10121,6 +10178,12 @@ msgid ""
 "Multiple formats accepted, look the geopy.points Python library for more "
 "details"
 msgstr "பல வடிவங்கள் ஏற்கப்படுகின்றன."
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "பெருக்கி (Multiplier)"
@@ -10601,6 +10664,10 @@ msgstr "முடிவுகள் எதுவும் காணப்பட�
 
 msgid "Not in"
 msgstr "இதில் இல்லை"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "காலியாக இல்லை (Not null)"
@@ -12011,6 +12078,12 @@ msgstr "சார்ட்டுகளைப் புதுப்பிக்�
 
 msgid "Refreshing columns"
 msgstr "நெடுவரிசைகளைப் புதுப்பிக்கிறது"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "பதிவு செய்"
@@ -13566,6 +13639,7 @@ msgstr "பயனர்களைத் தேர்ந்தெடு"
 msgid "Select values"
 msgstr "மதிப்புகளைத் தேர்ந்தெடு"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14237,6 +14311,7 @@ msgstr "ஸ்லைடர்"
 msgid "Slider and range input"
 msgstr "ஸ்லைடர் மற்றும் வரம்பு உள்ளீடு"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "ஸ்லக் (Slug)"
 
@@ -15332,6 +15407,11 @@ msgstr "விளிம்பின் இலக்காகப் பயன்�
 
 msgid "The column was deleted or renamed in the database."
 msgstr "தரவுத்தளத்தில் நெடுவரிசை நீக்கப்பட்டது அல்லது மறுபெயரிடப்பட்டது."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "வரைபட அடுக்குகளுக்கான உள்ளமைப்பு"
@@ -17782,6 +17862,17 @@ msgstr "முடிவு பலகத்தில் (result panel) பின�
 msgid "Unpin from top"
 msgstr ""
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "Unsafe link blocked"
 msgstr ""
 
@@ -17799,6 +17890,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "ஆதரிக்கப்படாத நிபந்தனை வகை: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
 msgstr ""

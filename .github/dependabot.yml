@@ -11,7 +11,10 @@ updates:
         patterns: ["*"]
       codeql:
         patterns:
-          - github/codeql-action/*
+          - "github/codeql-action/*"
+      gh-actions:
+        patterns:
+          - "actions/*"
     cooldown:
       default-days: 7
 
@@ -122,6 +125,7 @@ updates:
           - "oxfmt"
           - "oxlint"
           - "oxlint-tsgolint"
+          - "react-resize-detector"
     open-pull-requests-limit: 10
     versioning-strategy: increase
     cooldown:

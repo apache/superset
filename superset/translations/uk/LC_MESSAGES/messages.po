@@ -1900,6 +1900,9 @@ msgstr "Виміри"
 msgid "All filters"
 msgstr "Усі фільтри"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Усі панелі"
 
@@ -2008,6 +2011,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "Завжди фільтрувати основну колонку дати/часу"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "Трапилась помилка"
@@ -2872,6 +2881,8 @@ msgstr "Назад"
 msgid "Back to all"
 msgstr "Назад до всіх"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Рушій"
 
@@ -3100,6 +3111,9 @@ msgstr "Розмір бульбашок"
 
 msgid "Bubble size number format"
 msgstr "Числовий формат розміру бульбашки"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Точки розбиття на сегменти"
@@ -4373,6 +4387,9 @@ msgstr "Стовпці, які читати"
 
 msgid "Columns to show in the tooltip."
 msgstr "Стовпці, які показувати у підказках."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Поєднати показники"
@@ -7298,6 +7315,9 @@ msgstr "Розгорнути рядок"
 msgid "Expand settings"
 msgstr "Розгорнути параметри"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7315,6 +7335,12 @@ msgstr "Експериментальне"
 #, fuzzy
 msgid "Expired"
 msgstr "Дослідити"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Дослідити"
@@ -8212,6 +8238,13 @@ msgstr "Стовпець GeoJSON"
 msgid "GeoJson Settings"
 msgstr "Параметри GeoJSON"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Геокод"
 
@@ -8307,6 +8340,9 @@ msgstr "Назва групи"
 
 msgid "Group remaining as \"Others\""
 msgstr "Згрупувати решту як «Інші»"
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "Групування"
@@ -8417,6 +8453,8 @@ msgstr "Горизонтальне вирівнювання"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Вузол"
 
@@ -8456,11 +8494,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Величезний"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Коди ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "Посилання на піктограму"
@@ -9260,6 +9304,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -9293,6 +9342,9 @@ msgstr "Ліве значення"
 
 msgid "Legacy"
 msgstr "Застаріле"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Легенда"
@@ -9767,6 +9819,11 @@ msgstr "Розмір маркера"
 
 msgid "Markers"
 msgstr "Маркери"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Тип розмітки"
@@ -10268,6 +10325,12 @@ msgstr ""
 "Підтримується декілька форматів. Детальніше перегляньте бібліотеку Python"
 " geopy.points"
 
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
+
 msgid "Multiplier"
 msgstr "Множник"
 
@@ -10759,6 +10822,10 @@ msgstr "Діаграму не знайдено"
 
 msgid "Not in"
 msgstr "Не в"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Не порожній"
@@ -12223,6 +12290,12 @@ msgstr "Оновити діаграми"
 
 msgid "Refreshing columns"
 msgstr "Оновлення стовпців"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Реєстрація"
@@ -13846,6 +13919,7 @@ msgstr "Вибрати користувачів"
 msgid "Select values"
 msgstr "Вибрати значення"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14547,6 +14621,7 @@ msgstr "Повзунок"
 msgid "Slider and range input"
 msgstr "Повзунок і смужка діапазону"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Хвостик"
 
@@ -15714,6 +15789,11 @@ msgstr "Стовпець, який використовується як кін�
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Стовпець вилучено або перейменовано у базі даних."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Налаштування шарів карти"
@@ -18327,6 +18407,17 @@ msgstr "Прикріпити до панелі результатів"
 msgid "Unpin from top"
 msgstr "Відкріпити зверху"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -18346,6 +18437,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Непідтримуваний тип виразу: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
 msgstr "Непідтримуваний тип файлу. Використайте CSV, Excel або стовпчикові файли."

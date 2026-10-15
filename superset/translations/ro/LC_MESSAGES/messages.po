@@ -1992,6 +1992,9 @@ msgstr "Toate dimensiunile"
 msgid "All filters"
 msgstr "Toate filtrele"
 
+msgid "All groupable columns"
+msgstr ""
+
 msgid "All panels"
 msgstr "Toate panourile"
 
@@ -2105,6 +2108,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "Filtrează întotdeauna coloana principală de dată/timp"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "A Apărut o Eroare"
@@ -3038,6 +3047,8 @@ msgstr "Înapoi"
 msgid "Back to all"
 msgstr "Înapoi la toate"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -3282,6 +3293,9 @@ msgstr "Dimensiune bulă"
 
 msgid "Bubble size number format"
 msgstr "Format număr dimensiune bulă"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 msgid "Bucket break points"
 msgstr "Puncte de întrerupere compartiment"
@@ -4635,6 +4649,9 @@ msgstr "Coloane de citit"
 
 msgid "Columns to show in the tooltip."
 msgstr "Coloane de afișat în tooltip."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Combină indicatori"
@@ -7770,6 +7787,9 @@ msgstr "Extindeți rândul pentru editare"
 msgid "Expand settings"
 msgstr "Extinde setările"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7789,6 +7809,12 @@ msgstr "Experimental"
 #, fuzzy
 msgid "Expired"
 msgstr "Expirat"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Explorează"
@@ -8751,6 +8777,13 @@ msgstr "Coloană GeoJson"
 msgid "GeoJson Settings"
 msgstr "Setări GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8856,6 +8889,9 @@ msgstr "Numele grupului"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
+
+msgid "Groupable columns"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, lv, ru, sr, sr_Latn, uk]
@@ -8979,6 +9015,8 @@ msgstr "Aliniere orizontală"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Gazdă"
 
@@ -9020,11 +9058,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Uriaș"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Coduri ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # it, ja, lv, ru, sk, sr, sr_Latn, uk]
@@ -9907,6 +9951,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -9942,6 +9991,9 @@ msgstr "Valoare stângă"
 
 msgid "Legacy"
 msgstr "Moștenit"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Legendă"
@@ -10438,6 +10490,11 @@ msgstr "Dimensiune marker"
 
 msgid "Markers"
 msgstr "Markeri"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Tip markup"
@@ -10973,6 +11030,12 @@ msgstr ""
 "Mai multe formate acceptate, consultă biblioteca Python geopy.points "
 "pentru mai multe detalii"
 
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
+
 msgid "Multiplier"
 msgstr "Multiplicator"
 
@@ -11501,6 +11564,10 @@ msgstr "Negăsit"
 
 msgid "Not in"
 msgstr "Nu în"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nu null"
@@ -13021,6 +13088,12 @@ msgstr "Actualizare grafice"
 
 msgid "Refreshing columns"
 msgstr "Actualizare coloane"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 msgid "Register"
 msgstr "Înregistrare"
@@ -14750,6 +14823,7 @@ msgstr "Selectează utilizatori"
 msgid "Select values"
 msgstr "Selectează valori"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -15510,6 +15584,7 @@ msgstr "Glisor"
 msgid "Slider and range input"
 msgstr "Glisor și intrare interval"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -16747,6 +16822,11 @@ msgstr "Coloana de folosit ca țintă a muchiei."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Coloana a fost ștearsă sau redenumită în baza de date."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Configurația pentru straturile hărții"
@@ -19546,6 +19626,17 @@ msgstr "Desprinde din panoul de rezultate"
 msgid "Unpin from top"
 msgstr "Desprinde din vârf"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19565,6 +19656,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Tip de clauză neacceptat: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]

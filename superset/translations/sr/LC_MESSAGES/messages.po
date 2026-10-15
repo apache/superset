@@ -2203,6 +2203,9 @@ msgstr "Све димензије"
 msgid "All filters"
 msgstr "Сви филтери"
 
+msgid "All groupable columns"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "All panels"
 msgstr "Сви панели"
@@ -2338,6 +2341,12 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
 msgid "Always filter main datetime column"
 msgstr "Увек филтрирај главну колону датума и времена"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "An Error Occurred"
@@ -3409,6 +3418,8 @@ msgid "Back to all"
 msgstr "Назад на све"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Бекенд"
 
@@ -3692,6 +3703,9 @@ msgstr "Величина мехурића"
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid "Bubble size number format"
 msgstr "Формат броја величине мехурића"
+
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Bucket break points"
@@ -5244,6 +5258,9 @@ msgstr "Колоне за читање"
 # ru, uk]
 msgid "Columns to show in the tooltip."
 msgstr "Колоне за приказ у облачићу."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Combine metrics"
@@ -8856,6 +8873,9 @@ msgstr "Прошири ред за измену"
 msgid "Expand settings"
 msgstr "Прошири подешавања"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -8874,6 +8894,12 @@ msgstr "Експериментално"
 
 msgid "Expired"
 msgstr "Истекло"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -9950,6 +9976,13 @@ msgstr "GeoJson колона"
 msgid "GeoJson Settings"
 msgstr "GeoJson подешавања"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -10067,6 +10100,9 @@ msgstr "Назив групе"
 # lv, ru, sk, uk]
 msgid "Group remaining as \"Others\""
 msgstr "Групиши преостале као \"Остало\""
+
+msgid "Groupable columns"
+msgstr ""
 
 # ru, uk]
 msgid "Grouping"
@@ -10208,6 +10244,8 @@ msgstr "Хоризонтално поравнање"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Хост"
 
@@ -10259,12 +10297,18 @@ msgstr ""
 msgid "Huge"
 msgstr "Огроман"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "ISO 3166-2 Codes"
 msgstr "ISO 3166-2 кодови"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 # lv, ru, sk, uk]
 msgid "Icon URL"
@@ -11260,6 +11304,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -11299,6 +11348,9 @@ msgstr "Лева вредност"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Legacy"
 msgstr "Застарело"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Legend"
@@ -11854,6 +11906,11 @@ msgid "Markers"
 msgstr "Маркери"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
+
 msgid "Markup type"
 msgstr "Тип маркуп-а"
 
@@ -12457,6 +12514,12 @@ msgid ""
 msgstr ""
 "Више формата је прихваћено, погледајте Python библиотеку geopy.points за "
 "више детаља"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Multiplier"
@@ -13068,6 +13131,10 @@ msgstr "Није пронађено"
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Not in"
 msgstr "Није у"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Not null"
@@ -14871,6 +14938,12 @@ msgstr "Освежавање графикона"
 # de, es, fa, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]
 msgid "Refreshing columns"
 msgstr "Освежавање колона"
+
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
 
 # uk]
 msgid "Register"
@@ -16835,6 +16908,7 @@ msgid "Select values"
 msgstr "Изаберите вредности"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -17638,6 +17712,7 @@ msgstr "Клизач"
 msgid "Slider and range input"
 msgstr "Клизач и унос опсега"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -19013,6 +19088,11 @@ msgstr "Колона која се користи као одредиште гр
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "The column was deleted or renamed in the database."
 msgstr "Колона је обрисана или преименована у бази података."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
 msgid "The configuration for the map layers"
@@ -22032,6 +22112,17 @@ msgstr "Откачи са панела резултата"
 msgid "Unpin from top"
 msgstr "Откачи са врха"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -22054,6 +22145,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Неподржани тип клаузе: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # ru, sk, uk]
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
