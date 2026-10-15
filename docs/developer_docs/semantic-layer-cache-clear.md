@@ -80,9 +80,9 @@ the layer's configuration must preserve its operation identity too. Keep
 existing expiries and prune retired dictionary generations to bound memory.
 Providers without local metadata caches may carry the token onward; this does
 not clear vendor or warehouse server caches.
-Until a provider honours this hook in its caches, it cannot promise complete
-metadata reload support. Provider adoption must accompany host deployment for
-complete invalidation.
+Until a provider honours the supplied factory token in its caches, it cannot
+promise complete metadata reload support. Provider adoption must accompany host
+deployment for complete invalidation.
 
 Host result, annotation-source, compatibility and value-suggestion cache keys
 include the captured generation (`SemanticView.metadata_generation` on the host
