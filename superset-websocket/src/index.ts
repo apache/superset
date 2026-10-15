@@ -154,11 +154,42 @@ if (startServer) {
 
 const readPem = (path: string): string => readFileSync(path, 'utf8');
 
+const buildTlsOptions = (baseConfig: RedisConfig): ConnectionOptions => {
+  const tlsOpts: ConnectionOptions = {
+    checkServerIdentity: (
+      hostname: string,
+      cert: PeerCertificate,
+    ): Error | undefined => {
+      // Note, the cert chain will have been verified already. the role of this method is to
+      // validate that at least one of the SAN's (or subject) of the server's cert matches the provided hostname
+      if (baseConfig.validateHostname) {
+        return checkServerIdentity(hostname, cert);
+      }
+    },
+  };
+  if (baseConfig.sslCertReqs === 'none') {
+    tlsOpts.rejectUnauthorized = false;
+  }
+  if (baseConfig.sslCaCerts) {
+    // Supplying `ca` replaces Node's default trust store, so the public roots
+    // are re-added to keep public and private CAs usable together.
+    tlsOpts.ca = [...rootCertificates, readPem(baseConfig.sslCaCerts)];
+  }
+  if (baseConfig.sslCertfile) {
+    tlsOpts.cert = readPem(baseConfig.sslCertfile);
+  }
+  if (baseConfig.sslKeyfile) {
+    tlsOpts.key = readPem(baseConfig.sslKeyfile);
+  }
+  return tlsOpts;
+};
+
 /**
  * Translate the `redis` config into ioredis options, covering the same modes as
  * the Python coordination backend: standalone or Sentinel (`sentinels` set),
- * each optionally over TLS. In Sentinel mode TLS applies to the resolved master
- * only; the sentinel nodes are reached in plaintext, as on the Python side.
+ * each optionally over TLS. In Sentinel mode `ssl` secures the connection to the
+ * resolved master and `sentinelSsl` the connections to the sentinel nodes, both
+ * using the same CA, client certificate and verification settings.
  */
 export const buildRedisOpts = (baseConfig: RedisConfig) => {
   const redisOpts: RedisOptions = { db: baseConfig.db };
@@ -192,39 +223,18 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
     redisOpts.password = baseConfig.password;
   }
 
-  if (baseConfig.ssl) {
-    const tlsOpts: ConnectionOptions = {
-      checkServerIdentity: (
-        hostname: string,
-        cert: PeerCertificate,
-      ): Error | undefined => {
-        // Note, the cert chain will have been verified already. the role of this method is to
-        // validate that at least one of the SAN's (or subject) of the server's cert matches the provided hostname
-        if (baseConfig.validateHostname) {
-          return checkServerIdentity(hostname, cert);
-        }
-      },
-    };
-    if (baseConfig.sslCertReqs === 'none') {
-      tlsOpts.rejectUnauthorized = false;
+  if (baseConfig.ssl || baseConfig.sentinelSsl) {
+    const tlsOpts = buildTlsOptions(baseConfig);
+    if (baseConfig.ssl) {
+      redisOpts.tls = tlsOpts;
+      // ioredis ignores `tls` for the Sentinel-resolved master (connecting in
+      // plaintext) unless this flag is set.
+      if (redisOpts.sentinels) {
+        redisOpts.enableTLSForSentinelMode = true;
+      }
     }
-    if (baseConfig.sslCaCerts) {
-      // Supplying `ca` replaces Node's default trust store, so the public roots
-      // are re-added to keep public and private CAs usable together.
-      tlsOpts.ca = [...rootCertificates, readPem(baseConfig.sslCaCerts)];
-    }
-    if (baseConfig.sslCertfile) {
-      tlsOpts.cert = readPem(baseConfig.sslCertfile);
-    }
-    if (baseConfig.sslKeyfile) {
-      tlsOpts.key = readPem(baseConfig.sslKeyfile);
-    }
-    redisOpts.tls = tlsOpts;
-    // ioredis ignores `tls` for the Sentinel-resolved master (connecting in
-    // plaintext) unless this flag is set. Sentinel nodes are unaffected: they
-    // only use TLS when `sentinelTLS` is set.
-    if (redisOpts.sentinels) {
-      redisOpts.enableTLSForSentinelMode = true;
+    if (baseConfig.sentinelSsl && redisOpts.sentinels) {
+      redisOpts.sentinelTLS = tlsOpts;
     }
   }
 
