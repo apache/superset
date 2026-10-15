@@ -362,3 +362,68 @@ test('a plain MouseEvent click matches the released pointer, not another held pr
   expect(runQuery).toHaveBeenCalledTimes(1);
   expect(stopQuery).not.toHaveBeenCalled();
 });
+
+test('plain clicks consume multiple touch releases in release order', () => {
+  const {
+    onQuery: runQuery,
+    onStop: stopQuery,
+    finishQuery,
+  } = renderGestureButton();
+  const button = screen.getByRole('button');
+  pointerEvent('pointerdown', button, 7, 'touch');
+  finishQuery();
+  pointerEvent('pointerdown', button, 8, 'touch');
+  pointerEvent('pointerup', button, 7, 'touch');
+  pointerEvent('pointerup', button, 8, 'touch');
+  mouseClick(button);
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('a plain Run click without a preceding press runs once', () => {
+  const {
+    onQuery: runQuery,
+    onStop: stopQuery,
+    finishQuery,
+  } = renderGestureButton();
+  const button = screen.getByRole('button');
+  finishQuery();
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('three Run press and plain click cycles run three times', () => {
+  const {
+    onQuery: runQuery,
+    onStop: stopQuery,
+    finishQuery,
+  } = renderGestureButton();
+  const button = screen.getByRole('button');
+  finishQuery();
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    pointerEvent('pointerdown', button, 7, 'touch');
+    pointerEvent('pointerup', button, 7, 'touch');
+    mouseClick(button);
+  }
+  expect(runQuery).toHaveBeenCalledTimes(3);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('detail-zero clicks bypass the queue of released Stop presses', () => {
+  const {
+    onQuery: runQuery,
+    onStop: stopQuery,
+    finishQuery,
+  } = renderGestureButton();
+  const button = screen.getByRole('button');
+  pointerEvent('pointerdown', button, 7, 'touch');
+  finishQuery();
+  pointerEvent('pointerup', button, 7, 'touch');
+  fireEvent.click(button, { detail: 0 });
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});

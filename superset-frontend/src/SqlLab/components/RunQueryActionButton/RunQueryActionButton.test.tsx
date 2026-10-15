@@ -667,3 +667,56 @@ test.each(['plain', 'CTAS'])(
     expect(stopQuery).not.toHaveBeenCalled();
   },
 );
+
+test('plain clicks consume multiple touch releases in release order', () => {
+  const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
+  const button = getByRole('button');
+  const finishQuery = () => switchTo('success');
+  pointerEvent('pointerdown', button, 7, 'touch');
+  finishQuery();
+  pointerEvent('pointerdown', button, 8, 'touch');
+  pointerEvent('pointerup', button, 7, 'touch');
+  pointerEvent('pointerup', button, 8, 'touch');
+  mouseClick(button);
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('a plain Run click without a preceding press runs once', () => {
+  const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
+  const button = getByRole('button');
+  const finishQuery = () => switchTo('success');
+  finishQuery();
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('three Run press and plain click cycles run three times', () => {
+  const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
+  const button = getByRole('button');
+  const finishQuery = () => switchTo('success');
+  finishQuery();
+  for (let cycle = 0; cycle < 3; cycle += 1) {
+    pointerEvent('pointerdown', button, 7, 'touch');
+    pointerEvent('pointerup', button, 7, 'touch');
+    mouseClick(button);
+  }
+  expect(runQuery).toHaveBeenCalledTimes(3);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('detail-zero clicks bypass the queue of released Stop presses', () => {
+  const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
+  const button = getByRole('button');
+  const finishQuery = () => switchTo('success');
+  pointerEvent('pointerdown', button, 7, 'touch');
+  finishQuery();
+  pointerEvent('pointerup', button, 7, 'touch');
+  fireEvent.click(button, { detail: 0 });
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
