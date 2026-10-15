@@ -81,6 +81,42 @@ export function getCategories(fd: QueryFormData, data: JsonObject[]) {
   return categories;
 }
 
+type Categories = Record<string, { color: JsonValue; enabled: boolean }>;
+
+/**
+ * Rebuilds the legend categories for a new response while keeping the
+ * enabled state the viewer chose for categories that are still present.
+ * Returns `previous` unchanged when the set of categories is the same, so
+ * callers can skip the state update.
+ */
+export function reconcileCategories(
+  previous: Categories,
+  next: Categories,
+): Categories {
+  const previousKeys = Object.keys(previous);
+  const nextKeys = Object.keys(next);
+  if (
+    previousKeys.length === nextKeys.length &&
+    nextKeys.every(key => key in previous)
+  ) {
+    return previous;
+  }
+  const reconciled: Categories = {};
+  nextKeys.forEach(key => {
+    reconciled[key] = {
+      ...next[key],
+      enabled: previous[key]?.enabled ?? true,
+    };
+  });
+  // Same rule as toggling the legend: never leave every category hidden.
+  if (Object.values(reconciled).every(category => !category.enabled)) {
+    Object.values(reconciled).forEach(category => {
+      category.enabled = true;
+    });
+  }
+  return reconciled;
+}
+
 export type CategoricalDeckGLContainerProps = {
   datasource: Datasource;
   formData: QueryFormData;
@@ -124,16 +160,28 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     props.payload.form_data,
   );
   const [viewport, setViewport] = useState(getAdjustedViewport());
+  const featuresRef = useRef(props.payload.data.features);
 
   useEffect(() => {
+    const features = props.payload.data.features || [];
     if (props.payload.form_data !== stateFormData) {
-      const features = props.payload.data.features || [];
       const categories = getCategories(props.formData, features);
 
       setViewport(getAdjustedViewport());
       setStateFormData(props.payload.form_data);
       setCategories(categories);
+    } else if (props.payload.data.features !== featuresRef.current) {
+      // A dashboard auto-refresh keeps the chart mounted and swaps in new
+      // data without a new form_data, so new categories are merged into the
+      // legend here instead of being filtered out as unknown.
+      setCategories(previous =>
+        reconcileCategories(
+          previous as Categories,
+          getCategories(props.formData, features),
+        ),
+      );
     }
+    featuresRef.current = props.payload.data.features;
   }, [getAdjustedViewport, props, stateFormData]);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
