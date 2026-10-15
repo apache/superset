@@ -2473,8 +2473,36 @@ def test_expand_scrollable_content_js_unrolls_ag_grid_and_css_scroll() -> None:
     # *before* its child is expanded, so a single querySelectorAll pass
     # skips it -- see test_expand_scrollable_content_resolves_nested_ancestor_clip
     # below for the real-browser reproduction.
-    assert "changedInPass" in EXPAND_SCROLLABLE_CONTENT_JS
-    assert "passes < 5" in EXPAND_SCROLLABLE_CONTENT_JS
+    #
+    # Pinned as one exact block rather than independent substring checks: as
+    # @aminghadersohi found by mutation-testing the original two asserts
+    # (`"changedInPass" in ...` / `"passes < 5" in ...`), both tokens can
+    # survive edits that still break convergence -- e.g. seeding
+    # `changedInPass = false` (the loop body never runs) or adding a second,
+    # tighter cap alongside the existing one (back to a single effective
+    # pass) -- because neither mutation removes either literal token from
+    # the string. An exact match of the whole control-flow block catches
+    # any single-character change to it, including both of those.
+    expected_fixed_point_loop = (
+        "    let changedInPass = true;\n"
+        "    let passes = 0;\n"
+        "    while (changedInPass && passes < 5) {\n"
+        "        changedInPass = false;\n"
+        "        passes += 1;\n"
+        f"        document.querySelectorAll('{GENERIC_SCROLLABLE_DESCENDANT_SELECTOR}')"
+        ".forEach(\n"
+        "            (el) => {\n"
+        "                if (el.scrollHeight > el.clientHeight) {\n"
+        "                    el.style.overflow = 'visible';\n"
+        "                    el.style.height = 'auto';\n"
+        "                    el.style.maxHeight = 'none';\n"
+        "                    changedInPass = true;\n"
+        "                }\n"
+        "            }\n"
+        "        );\n"
+        "    }\n"
+    )
+    assert expected_fixed_point_loop in EXPAND_SCROLLABLE_CONTENT_JS
 
 
 def test_expand_scrollable_content_resolves_nested_ancestor_clip() -> None:
