@@ -151,9 +151,21 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # setup properly
         task_base = celery_app.Task
 
+        # ``celery_app`` is a process-wide singleton, so a second initialization
+        # in the same process (the unit suite builds one app per test module)
+        # finds the wrapper installed by the previous one. Wrap the original
+        # base again instead of wrapping the wrapper: a chain of wrappers keeps
+        # every app ever initialized reachable through the task class
+        # hierarchy, and the suite's memory then grows with every module. Only
+        # this method installs the marked wrapper, so one level is unwrapped.
+        if "_superset_app_context_task" in vars(task_base):
+            task_base = task_base._superset_task_base
+
         class AppContextTask(task_base):  # type: ignore
             # pylint: disable=too-few-public-methods
             abstract = True
+            _superset_app_context_task = True
+            _superset_task_base = task_base
 
             # Grab each call into the task and set up an app context, unless
             # one is already active on this thread (e.g. Celery eager mode
