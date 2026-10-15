@@ -2178,6 +2178,11 @@ def test_get_schema_names(
     assert TrinoEngineSpec.get_schema_names(inspector) == expected
 
 
+def _show_catalogs_connection(inspector: MagicMock) -> MagicMock:
+    """The connection ``get_catalog_names`` opens to run ``SHOW CATALOGS``."""
+    return inspector.engine.connect.return_value.__enter__.return_value
+
+
 @pytest.mark.parametrize(
     "rows,expected",
     [
@@ -2195,7 +2200,7 @@ def test_get_catalog_names(
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     inspector = mocker.MagicMock()
-    conn = inspector.engine.connect.return_value.__enter__.return_value
+    conn = _show_catalogs_connection(inspector)
     conn.execute.return_value = rows
 
     assert TrinoEngineSpec.get_catalog_names(Mock(), inspector) == expected
@@ -2255,7 +2260,7 @@ def test_get_catalog_names_does_not_map_sqlalchemy_wrapped_permission_denied(
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
     inspector = mocker.MagicMock()
-    conn = inspector.engine.connect.return_value.__enter__.return_value
+    conn = _show_catalogs_connection(inspector)
     conn.execute.side_effect = _driver_error_wrapped_by_sqlalchemy(
         TrinoUserError({"message": "Access Denied: Cannot execute query"})
     )
@@ -2590,6 +2595,51 @@ def test_cancel_query_rejects_malformed_query_id(malformed_id: str) -> None:
     cursor_mock.execute.assert_not_called()
 
 
+def _run_execute_with_cursor(
+    app: Any,
+    cursor: MagicMock,
+    execute: Any,
+    g_values: dict[str, Any] | None = None,
+) -> None:
+    """
+    Run ``execute_with_cursor`` inside a request context, with
+    ``TrinoEngineSpec.execute`` (which runs in the worker thread) replaced by
+    ``execute`` as a mock side effect. ``g_values`` are set on ``g`` first.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    with (
+        app.test_request_context("/some/place/"),
+        patch.object(TrinoEngineSpec, "execute", side_effect=execute),
+        patch.dict("superset.config.DISALLOWED_SQL_FUNCTIONS", {}, clear=True),
+    ):
+        for key, value in (g_values or {}).items():
+            setattr(g, key, value)
+        TrinoEngineSpec.execute_with_cursor(
+            cursor=cursor,
+            sql="SELECT 1 FROM foo",
+            query=MagicMock(),
+        )
+
+
+def _record_query_ids_seen_by_handle_cursor(
+    mocker: MockerFixture,
+) -> list[str | None]:
+    """
+    Replace ``handle_cursor`` and record ``cursor.query_id`` at the moment it is
+    called, which is what the main thread hands to progress polling.
+    """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    observed: list[str | None] = []
+    mocker.patch.object(
+        TrinoEngineSpec,
+        "handle_cursor",
+        side_effect=lambda cursor, query: observed.append(cursor.query_id),
+    )
+    return observed
+
+
 def test_execute_with_cursor_shares_mutable_g_state_across_threads(
     app, mocker: MockerFixture
 ) -> None:
@@ -2602,30 +2652,18 @@ def test_execute_with_cursor_shares_mutable_g_state_across_threads(
     same object on both sides, so a mutation made in the worker thread is
     visible to the request thread.
     """
-    from superset.db_engine_specs.trino import TrinoEngineSpec
-
-    mock_cursor = mocker.MagicMock()
-    mock_cursor.query_id = "existing-query-id"
-    mocker.patch.object(TrinoEngineSpec, "handle_cursor")
+    _record_query_ids_seen_by_handle_cursor(mocker)
+    mock_cursor = mocker.MagicMock(query_id="existing-query-id")
+    shared_state = {"count": 0}
 
     def _mutate_in_worker(*args: Any, **kwargs: Any) -> None:
         g.shared_state["count"] += 1
 
-    with app.test_request_context("/some/place/"):
-        shared_state = {"count": 0}
-        g.shared_state = shared_state
+    _run_execute_with_cursor(
+        app, mock_cursor, _mutate_in_worker, g_values={"shared_state": shared_state}
+    )
 
-        with (
-            patch.object(TrinoEngineSpec, "execute", side_effect=_mutate_in_worker),
-            patch.dict("superset.config.DISALLOWED_SQL_FUNCTIONS", {}, clear=True),
-        ):
-            TrinoEngineSpec.execute_with_cursor(
-                cursor=mock_cursor,
-                sql="SELECT 1 FROM foo",
-                query=mocker.MagicMock(),
-            )
-
-        assert shared_state["count"] == 1
+    assert shared_state["count"] == 1
 
 
 @pytest.mark.parametrize("exception", [RuntimeError("boom"), MemoryError("oom")])
@@ -2638,25 +2676,11 @@ def test_execute_with_cursor_reraises_worker_exception_before_query_id(
     because the worker's ``finally`` sets the execute event, so ``handle_cursor``
     is still called (with no query ID yet) instead of spinning forever.
     """
-    from superset.db_engine_specs.trino import TrinoEngineSpec
+    observed_query_ids = _record_query_ids_seen_by_handle_cursor(mocker)
+    mock_cursor = mocker.MagicMock(query_id=None)
 
-    mock_cursor = mocker.MagicMock()
-    mock_cursor.query_id = None
-    observed_query_ids: list[str | None] = []
-    mocker.patch.object(
-        TrinoEngineSpec,
-        "handle_cursor",
-        side_effect=lambda cursor, query: observed_query_ids.append(cursor.query_id),
-    )
-
-    with app.test_request_context("/some/place/"):
-        with patch.object(TrinoEngineSpec, "execute", side_effect=exception):
-            with pytest.raises(type(exception)) as exc_info:
-                TrinoEngineSpec.execute_with_cursor(
-                    cursor=mock_cursor,
-                    sql="SELECT 1 FROM foo",
-                    query=mocker.MagicMock(),
-                )
+    with pytest.raises(type(exception)) as exc_info:
+        _run_execute_with_cursor(app, mock_cursor, exception)
 
     assert exc_info.value is exception
     assert observed_query_ids == [None]
@@ -2670,30 +2694,16 @@ def test_execute_with_cursor_reraises_worker_exception_after_query_id(
     handling sees that real ID and the worker's exception is still re-raised
     in the calling thread once the cursor has been handled.
     """
-    from superset.db_engine_specs.trino import TrinoEngineSpec
-
-    mock_cursor = mocker.MagicMock()
-    mock_cursor.query_id = None
-    observed_query_ids: list[str | None] = []
-    mocker.patch.object(
-        TrinoEngineSpec,
-        "handle_cursor",
-        side_effect=lambda cursor, query: observed_query_ids.append(cursor.query_id),
-    )
+    observed_query_ids = _record_query_ids_seen_by_handle_cursor(mocker)
+    mock_cursor = mocker.MagicMock(query_id=None)
     failure = RuntimeError("boom")
 
     def _fail_after_query_id(*args: Any, **kwargs: Any) -> None:
         mock_cursor.query_id = "myQueryId"
         raise failure
 
-    with app.test_request_context("/some/place/"):
-        with patch.object(TrinoEngineSpec, "execute", side_effect=_fail_after_query_id):
-            with pytest.raises(RuntimeError) as exc_info:
-                TrinoEngineSpec.execute_with_cursor(
-                    cursor=mock_cursor,
-                    sql="SELECT 1 FROM foo",
-                    query=mocker.MagicMock(),
-                )
+    with pytest.raises(RuntimeError) as exc_info:
+        _run_execute_with_cursor(app, mock_cursor, _fail_after_query_id)
 
     assert exc_info.value is failure
     assert observed_query_ids == ["myQueryId"]
@@ -2711,24 +2721,15 @@ def test_execute_with_cursor_swallows_base_exception_from_worker(
     nothing is stored in the result dict and ``execute_with_cursor`` returns
     normally as though the query had succeeded.
     """
-    from superset.db_engine_specs.trino import TrinoEngineSpec
+    observed_query_ids = _record_query_ids_seen_by_handle_cursor(mocker)
+    mock_cursor = mocker.MagicMock(query_id="myQueryId")
 
-    mock_cursor = mocker.MagicMock()
-    mock_cursor.query_id = "myQueryId"
-    mocker.patch.object(TrinoEngineSpec, "handle_cursor")
+    # No exception escapes, although the worker died. SystemExit is used rather
+    # than KeyboardInterrupt: once this is fixed and the error is re-raised, a
+    # KeyboardInterrupt would abort the whole pytest session, not fail one test.
+    _run_execute_with_cursor(app, mock_cursor, SystemExit)
 
-    with app.test_request_context("/some/place/"):
-        with (
-            patch.object(TrinoEngineSpec, "execute", side_effect=KeyboardInterrupt),
-            patch.dict("superset.config.DISALLOWED_SQL_FUNCTIONS", {}, clear=True),
-        ):
-            result = TrinoEngineSpec.execute_with_cursor(
-                cursor=mock_cursor,
-                sql="SELECT 1 FROM foo",
-                query=mocker.MagicMock(),
-            )
-
-    assert result is None
+    assert observed_query_ids == ["myQueryId"]
 
 
 def test_update_params_from_encrypted_extra_malformed_json_reraises() -> None:
@@ -2745,7 +2746,9 @@ def test_update_params_from_encrypted_extra_malformed_json_reraises() -> None:
         TrinoEngineSpec.update_params_from_encrypted_extra(database, {})
 
 
-def _oauth2_database_for_trino(mocker: MockerFixture) -> MagicMock:
+def _oauth2_database_for_trino(
+    mocker: MockerFixture, oauth2_config: OAuth2ClientConfig
+) -> MagicMock:
     """
     A mocked ``Database`` that reports OAuth2 as enabled but uses the real
     ``TrinoEngineSpec.needs_oauth2``, so the 401 detection under test is
@@ -2756,20 +2759,12 @@ def _oauth2_database_for_trino(mocker: MockerFixture) -> MagicMock:
     database = mocker.MagicMock(id=1)
     database.is_oauth2_enabled.return_value = True
     database.db_engine_spec = TrinoEngineSpec
-    database.get_oauth2_config.return_value = OAuth2ClientConfig(
-        id="client-id",
-        secret="client-secret",  # noqa: S106
-        scope="scope",
-        redirect_uri="http://localhost:8088/api/v1/database/oauth2/",
-        authorization_request_uri="https://idp.example.com/authorize",
-        token_request_uri="https://idp.example.com/token",  # noqa: S106
-        request_content_type="json",
-    )
+    database.get_oauth2_config.return_value = oauth2_config
     return database
 
 
 def test_expired_token_is_refreshed_and_query_retried(
-    app, mocker: MockerFixture
+    app, mocker: MockerFixture, oauth2_config: OAuth2ClientConfig
 ) -> None:
     """
     A Trino 401 raised before the query has made progress (token expired) is
@@ -2778,7 +2773,7 @@ def test_expired_token_is_refreshed_and_query_retried(
     """
     from superset.utils.oauth2 import execute_with_oauth2_retry
 
-    database = _oauth2_database_for_trino(mocker)
+    database = _oauth2_database_for_trino(mocker, oauth2_config)
     refresh = mocker.patch(
         "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
     )
@@ -2795,7 +2790,7 @@ def test_expired_token_is_refreshed_and_query_retried(
 
 
 def test_expired_token_mid_query_restarts_oauth2_without_replay(
-    app, mocker: MockerFixture
+    app, mocker: MockerFixture, oauth2_config: OAuth2ClientConfig
 ) -> None:
     """
     A Trino 401 raised after the query already made progress (token expired
@@ -2805,7 +2800,7 @@ def test_expired_token_mid_query_restarts_oauth2_without_replay(
     """
     from superset.utils.oauth2 import execute_with_oauth2_retry
 
-    database = _oauth2_database_for_trino(mocker)
+    database = _oauth2_database_for_trino(mocker, oauth2_config)
     refresh = mocker.patch("superset.utils.oauth2.refresh_oauth2_token")
     mocker.patch("superset.utils.oauth2.db")
     operation = mocker.Mock(side_effect=HttpError("error 401: Unauthorized"))
