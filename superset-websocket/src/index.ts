@@ -220,6 +220,12 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
       tlsOpts.key = readPem(baseConfig.sslKeyfile);
     }
     redisOpts.tls = tlsOpts;
+    // ioredis ignores `tls` for the Sentinel-resolved master (connecting in
+    // plaintext) unless this flag is set. Sentinel nodes are unaffected: they
+    // only use TLS when `sentinelTLS` is set.
+    if (redisOpts.sentinels) {
+      redisOpts.enableTLSForSentinelMode = true;
+    }
   }
 
   return redisOpts;

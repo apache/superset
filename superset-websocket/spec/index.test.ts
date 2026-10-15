@@ -349,7 +349,7 @@ describe('server', () => {
         password: 'master-pwd',
       });
     });
-    test('it applies TLS to the master in Sentinel mode', () => {
+    test('it applies TLS to the master, not the sentinels, in Sentinel mode', () => {
       const opts = server.buildRedisOpts(
         redisConfig({
           ssl: true,
@@ -358,7 +358,10 @@ describe('server', () => {
         }),
       );
       expect(opts.tls).toEqual({ checkServerIdentity: expect.anything() });
-      expect(opts).not.toHaveProperty('enableTLSForSentinelMode');
+      // Without this flag ioredis connects to the master in plaintext.
+      expect(opts.enableTLSForSentinelMode).toBe(true);
+      // Sentinel nodes themselves stay plaintext.
+      expect(opts).not.toHaveProperty('sentinelTLS');
     });
     test('it requires a master name in Sentinel mode', () => {
       expect(() =>
