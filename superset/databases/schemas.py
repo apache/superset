@@ -1109,6 +1109,17 @@ class ImportV1DatabaseSchema(Schema):
 
         return data
 
+    def __init__(self, *args: Any, overwrites_existing: bool = True, **kwargs: Any):
+        """
+        :param overwrites_existing: whether the import can overwrite a database
+            that already exists. Dashboard, chart, dataset and query imports
+            reuse it -- its masked secrets are never applied, so there is nothing
+            to ask for (an overwrite that still needs one is refused by
+            ``import_database``).
+        """
+        super().__init__(*args, **kwargs)
+        self.overwrites_existing = overwrites_existing
+
     database_name = fields.String(required=True)
     sqlalchemy_uri = fields.String(required=True)
     password = fields.String(allow_none=True)
@@ -1228,6 +1239,8 @@ class ImportV1DatabaseSchema(Schema):
         masked_encrypted_extra = json.loads(data["masked_encrypted_extra"])
 
         if existing := db.session.query(Database).filter_by(uuid=data["uuid"]).first():
+            if not self.overwrites_existing:
+                return
             # Existing DB: masked values are revealed from its stored
             # encrypted_extra in import_database(). Any the stored payload has no
             # value for -- e.g. a connection promoted without its OAuth2 client or

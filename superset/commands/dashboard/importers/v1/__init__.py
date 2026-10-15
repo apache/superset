@@ -79,7 +79,8 @@ class ImportDashboardsCommand(ImportModelsCommand):
         "charts/": ImportV1ChartSchema(),
         "dashboards/": ImportV1DashboardSchema(),
         "datasets/": ImportV1DatasetSchema(),
-        "databases/": ImportV1DatabaseSchema(),
+        # Related databases are reused rather than overwritten.
+        "databases/": ImportV1DatabaseSchema(overwrites_existing=False),
         "themes/": ImportV1ThemeSchema(),
     }
     import_error = DashboardImportError
