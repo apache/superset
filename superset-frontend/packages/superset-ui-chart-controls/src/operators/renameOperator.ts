@@ -25,7 +25,11 @@ import {
   getXAxisLabel,
 } from '@superset-ui/core';
 import { PostProcessingFactory } from './types';
-import { getMetricOffsetsMap, isTimeComparison } from './utils';
+import {
+  extractExtraMetrics,
+  getMetricOffsetsMap,
+  isTimeComparison,
+} from './utils';
 import { TIME_COMPARISON_SEPARATOR } from './utils/constants';
 
 export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
@@ -33,6 +37,18 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
   queryObject,
 ) => {
   const metrics = ensureIsArray(queryObject.metrics);
+  // `queryObject` here is the base query object, before the "Sort By" extra
+  // metric (see extractExtraMetrics) is appended for the final request. That
+  // metric is still pivoted and offset-mapped like any other (see
+  // timeComparePivotOperator), so it has to count here too: otherwise a
+  // single-value-metric query with the sort metric labeled like a time
+  // offset (e.g. "1 year ago") gets its `metricWithOffset` column renamed to
+  // the bare offset label, colliding with that metric's own unrenamed base
+  // column of the same name.
+  const extraMetricLabels = extractExtraMetrics(formData)
+    .map(getMetricLabel)
+    .filter(label => !metrics.some(metric => getMetricLabel(metric) === label));
+  const metricCountWithExtras = metrics.length + extraMetricLabels.length;
   const columns = ensureIsArray(
     queryObject.series_columns || queryObject.columns,
   );
@@ -75,7 +91,9 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
               : [formData.comparison_type, metricOnly, metricWithOffset].join(
                   TIME_COMPARISON_SEPARATOR,
                 ),
-            metrics.length > 1 ? `${metricOnly}, ${offsetLabel}` : offsetLabel,
+            metricCountWithExtras > 1
+              ? `${metricOnly}, ${offsetLabel}`
+              : offsetLabel,
           ]);
         },
       );
@@ -87,7 +105,7 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
         ComparisonType.Percentage,
         ComparisonType.Ratio,
       ].includes(formData.comparison_type) &&
-      metrics.length === 1 &&
+      metricCountWithExtras === 1 &&
       renamePairs.length === 0
     ) {
       renamePairs.push([getMetricLabel(metrics[0]), null]);

@@ -37,6 +37,7 @@ import {
   getNumberFormatter,
   getXAxisLabel,
   isDefined,
+  isAdhocMetricSimple,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
@@ -452,6 +453,14 @@ export default function transformProps(
   // name. A single-metric chart with `truncate_metric` drops the metric part
   // from its value columns, which is fine: only sort-only metrics need
   // resolving, and those always keep it.
+  // `label_map` is built from the cached DataFrame's final columns, after
+  // every post-processing operator (including Prophet) has run, so a
+  // forecast's `<metric>, <dims>__yhat`/`__yhat_lower`/`__yhat_upper`
+  // columns have the same `[metric, ...dims]` shape and would otherwise be
+  // mistaken for one of the metric's own pivoted columns. Those are excluded
+  // the same way they are hidden from the rendered series (see
+  // extractForecastSeriesContext usage above), so the sort key never
+  // depends on the forecast trend or confidence bounds.
   const pivotedColumnsOf = (metricLabel: string): string[] =>
     Object.entries(labelMap)
       .filter(
@@ -463,7 +472,9 @@ export default function transformProps(
           // the metric label
           parts.length === groupBy.length + 1 &&
           parts[0] === metricLabel &&
-          !derivedComparisonSeries.has(column),
+          !derivedComparisonSeries.has(column) &&
+          extractForecastSeriesContext(column).type ===
+            ForecastSeriesEnum.Observation,
       )
       .map(([column]) => column);
   // rebasedData's keys have already been through rebaseForecastDatum, which
@@ -481,7 +492,8 @@ export default function transformProps(
     seriesType === EchartsTimeseriesSeriesType.Scatter && size
       ? getMetricLabel(size)
       : undefined;
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
+  const extraMetrics = extractExtraMetrics(chartProps.rawFormData);
+  const extraMetricLabels = extraMetrics
     .map(getMetricLabel)
     .flatMap(label =>
       label === sizeMetricLabel
@@ -544,12 +556,49 @@ export default function transformProps(
               column !== xAxisLabel && !extraMetricLabels.includes(column),
           )
         : [];
+    const baseColumn = verboseMap[xAxisSort] ?? xAxisSort;
+    // A Difference/Percentage/Ratio comparison drops the metric's own base
+    // column (see the `compare` post-processing operator's
+    // `drop_original_columns`) and replaces it with one
+    // `<metric>, <offset>` column per configured offset (see
+    // renameOperator), so when that metric is also the sort target, its
+    // base column is gone from `dataColumns` and the renamed comparison
+    // column(s) have to be summed instead. Guarded on the base column being
+    // missing so an "actual values" comparison, which keeps it, is
+    // unaffected. Scoped to no dimensions: combining a dimension pivot with
+    // a comparison produces a column shape not accounted for here, a
+    // pre-existing limitation this does not attempt to fix.
+    const comparisonColumnsOf = (metricLabel: string): string[] =>
+      groupBy.length === 0 && !dataColumns.has(metricLabel)
+        ? ensureIsArray(timeCompare).map(offset => `${metricLabel}, ${offset}`)
+        : [];
     const sumOfColumns = [
-      verboseMap[xAxisSort] ?? xAxisSort,
+      baseColumn,
       ...pivotedColumnsOf(xAxisSort),
       ...truncatedMetricColumns,
+      ...comparisonColumnsOf(baseColumn),
     ].filter(column => dataColumns.has(column));
-    return sumOfColumns.length ? { sumOfColumns } : undefined;
+    if (!sumOfColumns.length) {
+      return undefined;
+    }
+    // The ungrouped MIN/MAX of a metric equals the MIN/MAX of its
+    // per-dimension MIN/MAX values, the same way the ungrouped SUM equals
+    // the sum of its per-dimension sums, so a simple MIN/MAX metric rolls
+    // up the same way across the pivoted columns above. Other aggregates
+    // (AVG, COUNT DISTINCT, ...) are not decomposable this way from
+    // already-aggregated values and keep the Sum default (see
+    // XAxisSortBySumOfColumns), a known limitation for those.
+    const sortMetric = [...ensureIsArray(metrics), ...extraMetrics].find(
+      candidate => getMetricLabel(candidate) === xAxisSort,
+    );
+    const aggregation =
+      isAdhocMetricSimple(sortMetric) &&
+      (sortMetric.aggregate === 'MIN' || sortMetric.aggregate === 'MAX')
+        ? (SortSeriesType[
+            sortMetric.aggregate === 'MIN' ? 'Min' : 'Max'
+          ] as SortSeriesType)
+        : undefined;
+    return { sumOfColumns, ...(aggregation && { aggregation }) };
   };
   const xAxisSortSeries = resolveXAxisSortSeries();
   const rawXAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];

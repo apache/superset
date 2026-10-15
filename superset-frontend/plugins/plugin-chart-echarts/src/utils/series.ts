@@ -602,11 +602,25 @@ export function sortAndFilterSeries(
 }
 
 /**
- * Sum of a specific set of columns, used to order the rows of a multi-series
- * chart by one metric once dimensions have pivoted that metric into a column
- * per series.
+ * Sum (or, for a decomposable aggregate like MIN/MAX, the matching rollup)
+ * of a specific set of columns, used to order the rows of a multi-series
+ * chart by one metric once dimensions have pivoted that metric into a
+ * column per series.
+ *
+ * `aggregation` lets the rollup match the underlying metric's own
+ * aggregate function when that recovers the correct ungrouped value: the
+ * ungrouped MIN/MAX of a column equals the MIN/MAX of its per-dimension
+ * MIN/MAX values, the same way the ungrouped SUM equals the sum of its
+ * per-dimension sums. It defaults to Sum (correct for SUM and COUNT, and
+ * the prior behavior for every other case). AVG and COUNT DISTINCT are not
+ * decomposable this way from already-aggregated values and are not
+ * special-cased here: ordering by one of those with dimensions set remains
+ * a known limitation.
  */
-export type XAxisSortBySumOfColumns = { sumOfColumns: string[] };
+export type XAxisSortBySumOfColumns = {
+  sumOfColumns: string[];
+  aggregation?: SortSeriesType;
+};
 
 /**
  * How the rows (one per x-axis value) of a multi-series chart are ordered:
@@ -632,7 +646,8 @@ export function sortRows(
     ? new Set(xAxisSortSeries.sumOfColumns)
     : undefined;
   const aggregation: SortSeriesType = sumOfColumns
-    ? SortSeriesType.Sum
+    ? ((xAxisSortSeries as XAxisSortBySumOfColumns).aggregation ??
+      SortSeriesType.Sum)
     : (xAxisSortSeries as SortSeriesType);
   const sortedRows = rows.map((row, idx) => {
     let sortKey: DataRecordValue = '';
