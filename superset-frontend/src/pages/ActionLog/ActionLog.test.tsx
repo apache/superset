@@ -107,6 +107,27 @@ test('JSON column opens a tree modal for object payloads', async () => {
   expect(dialog).toHaveTextContent('/superset/welcome/');
 });
 
+test('JSON trigger styling does not depend on data-test attributes', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });
+  fetchMock.get(logEndpoint, {
+    result: [{ ...mockLogs[0], json: '{"path":"/superset/welcome/"}' }],
+    count: 1,
+  });
+  renderActionLog();
+
+  const trigger = (
+    await screen.findByText('{"path":"/superset/welcome/"}')
+  ).closest('[role="button"]') as HTMLElement;
+  // Production builds strip data-test, so the ellipsis must survive without it
+  trigger.removeAttribute('data-test');
+
+  expect(trigger).toHaveStyle({
+    'white-space': 'nowrap',
+    'text-overflow': 'ellipsis',
+  });
+});
+
 test('JSON column keeps plain text for non-JSON payloads', async () => {
   fetchMock.removeRoutes();
   fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });

@@ -51,7 +51,7 @@ export type ActionLogObject = {
 const PAGE_SIZE = 25;
 
 const JsonCellTrigger = styled.div`
-  [data-test='span-modal-trigger'] {
+  > [role='button'] {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
