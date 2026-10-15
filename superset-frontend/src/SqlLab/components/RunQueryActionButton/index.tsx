@@ -125,14 +125,20 @@ const RunQueryActionButton = ({
   // shows at release time. Remember the action the gesture started on so a
   // press that began on Stop can never run the query.
   const gestureActionRef = useRef<ButtonAction | null>(null);
+  const keyboardActionRef = useRef<ButtonAction | null>(null);
 
   const captureGestureAction = () => {
     gestureActionRef.current = currentAction;
   };
 
   const onKeyDownCapture = (event: KeyboardEvent<HTMLSpanElement>) => {
-    if (!event.repeat && (event.key === 'Enter' || event.key === ' ')) {
-      captureGestureAction();
+    if (event.key === 'Enter' || event.key === ' ') {
+      if (!event.repeat) {
+        keyboardActionRef.current = currentAction;
+      }
+      // Enter auto-repeat generates more clicks after the first consumes the
+      // pending gesture. Keep those clicks tied to the original key press.
+      gestureActionRef.current = keyboardActionRef.current ?? currentAction;
     }
   };
 

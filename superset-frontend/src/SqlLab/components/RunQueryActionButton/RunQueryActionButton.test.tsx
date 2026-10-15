@@ -266,3 +266,67 @@ test('a new gesture after the query finishes runs the query', () => {
   expect(runQuery).toHaveBeenCalledTimes(1);
   expect(stopQuery).not.toHaveBeenCalled();
 });
+
+const expectHeldEnterNotToRun = (props: Partial<RunQueryActionButtonProps>) => {
+  const { getAllByRole, runQuery, stopQuery, switchTo } =
+    renderGestureButton(props);
+  const button = getAllByRole('button')[0];
+
+  // Native buttons click on every Enter keydown, including auto-repeat.
+  fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
+  fireEvent.click(button, { detail: 0 });
+  expect(stopQuery).toHaveBeenCalledTimes(1);
+  switchTo('success');
+  for (let repeat = 0; repeat < 2; repeat += 1) {
+    fireEvent.keyDown(button, { key: 'Enter', code: 'Enter', repeat: true });
+    fireEvent.click(button, { detail: 0 });
+  }
+  fireEvent.keyUp(button, { key: 'Enter', code: 'Enter' });
+
+  expect(runQuery).not.toHaveBeenCalled();
+  expect(stopQuery).toHaveBeenCalledTimes(1);
+
+  fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
+  fireEvent.click(button, { detail: 0 });
+  fireEvent.keyUp(button, { key: 'Enter', code: 'Enter' });
+  expect(runQuery).toHaveBeenCalledTimes(1);
+};
+
+test('held Enter on Stop does not run SQL after completion', () => {
+  expectHeldEnterNotToRun({});
+});
+
+test('held Enter on the CTAS Stop button does not run SQL after completion', () => {
+  expectHeldEnterNotToRun({ overlayCreateAsMenu: ctasMenu });
+});
+
+test('held Space on the CTAS Stop button does not run SQL after completion', () => {
+  const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton({
+    overlayCreateAsMenu: ctasMenu,
+  });
+  const button = getAllByRole('button')[0];
+
+  // Space repeats keydown but clicks only when the key is released.
+  fireEvent.keyDown(button, { key: ' ', code: 'Space' });
+  fireEvent.keyDown(button, { key: ' ', code: 'Space', repeat: true });
+  switchTo('success');
+  fireEvent.keyDown(button, { key: ' ', code: 'Space', repeat: true });
+  fireEvent.keyUp(button, { key: ' ', code: 'Space' });
+  fireEvent.click(button, { detail: 0 });
+
+  expect(runQuery).not.toHaveBeenCalled();
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('a Run gesture does not stop a newly running query', () => {
+  const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
+  switchTo('success');
+  const button = getByRole('button');
+
+  fireEvent.pointerDown(button);
+  switchTo('running');
+  fireEvent.click(button);
+
+  expect(runQuery).not.toHaveBeenCalled();
+  expect(stopQuery).not.toHaveBeenCalled();
+});
