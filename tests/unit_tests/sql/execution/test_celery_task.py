@@ -771,6 +771,76 @@ def test_store_results_in_backend_payload_too_large(
     assert exc_info.value.error.error_type == SupersetErrorType.RESULT_TOO_LARGE_ERROR
 
 
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize("text_length", [1, 9, 17])
+@pytest.mark.parametrize("bytes_over_limit", [0, 1])
+def test_store_results_in_backend_raw_arrow_size_boundary(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    mock_result_set: MagicMock,
+    use_msgpack: bool,
+    text_length: int,
+    bytes_over_limit: int,
+) -> None:
+    """Count raw IPC plus all metadata, with exact limits and Base64 padding."""
+    from superset.sql.execution.celery_task import (
+        _serialize_payload,
+        _serialize_result_set,
+        _store_results_in_backend,
+        BYTES_IN_MB,
+    )
+    from superset.sql.execution.serialization import serialize_nested_columns
+    from superset.utils.core import zlib_decompress
+
+    backend = mocker.patch("superset.sql.execution.celery_task.results_backend")
+    backend.set.return_value = True
+    mocker.patch("superset.results_backend_use_msgpack", use_msgpack)
+    mocker.patch("superset.sql.execution.celery_task.uuid.uuid4", return_value="key")
+    mock_result_set.pa_table = pa.table({"text": ["x" * text_length]})
+    data, columns = _serialize_result_set(mock_result_set)
+    payload = {
+        "query": {"resultsKey": "key"},
+        "statements": [
+            {"data": None, "columns": []},
+            {
+                "data": data,
+                "columns": columns,
+                "nested_columns_msgpack": serialize_nested_columns(
+                    {"nested": [{"value": "x"}]}
+                ),
+            },
+            {"data": data, "columns": columns},
+        ],
+        "metadata": "x" * 1000,
+    }
+    serialized = _serialize_payload(payload)
+    expected_size = len(serialized)
+    if isinstance(data, str):
+        expected_size -= 2 * (len(data) - len(base64.b64decode(data)))
+    mocker.patch.dict(
+        current_app.config,
+        {"SQLLAB_PAYLOAD_MAX_MB": (expected_size - bytes_over_limit) / BYTES_IN_MB},
+    )
+
+    if bytes_over_limit:
+        with pytest.raises(SupersetErrorException) as exc_info:
+            _store_results_in_backend(mock_query, payload, mock_database)
+        assert (
+            exc_info.value.error.error_type == SupersetErrorType.RESULT_TOO_LARGE_ERROR
+        )
+        backend.set.assert_not_called()
+        assert mock_query.results_key is None
+    else:
+        _store_results_in_backend(mock_query, payload, mock_database)
+        backend.set.assert_called_once()
+        assert (
+            zlib_decompress(backend.set.call_args.args[1], decode=False) == serialized
+        )
+        assert mock_query.results_key == "key"
+
+
 def test_store_results_in_backend_default_cache_timeout(
     mocker: MockerFixture,
     app_context: None,

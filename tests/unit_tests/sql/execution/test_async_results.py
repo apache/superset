@@ -34,6 +34,7 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from superset_core.queries.types import QueryStatus
 
@@ -129,6 +130,32 @@ def _store_and_read(
         "superset.sql.execution.executor.db.session.query"
     ).return_value.filter_by.return_value.one_or_none.return_value = query
     return SQLExecutor(database)._create_async_handle(query.id).get_result()
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize("statement_count", [1, 2])
+def test_async_text_payload_limit_excludes_base64_overhead(
+    mocker: MockerFixture,
+    app_context: None,
+    use_msgpack: bool,
+    statement_count: int,
+) -> None:
+    """Eight MiB of text fits a ten MiB limit in either backend transport."""
+    mocker.patch.dict(current_app.config, {"SQLLAB_PAYLOAD_MAX_MB": 10})
+    text = "x" * (8 * 1024 * 1024 // statement_count)
+    sql = "; ".join(["SELECT text"] * statement_count)
+    result = _store_and_read(
+        mocker,
+        sql,
+        [_select("SELECT text", ["text"], [(text,)])] * statement_count,
+        write_msgpack=use_msgpack,
+    )
+
+    assert result.status == QueryStatus.SUCCESS
+    assert len(result.statements) == statement_count
+    for statement in result.statements:
+        assert statement.data is not None
+        assert statement.data["text"].tolist() == [text]
 
 
 @pytest.mark.parametrize("use_msgpack", [True, False])

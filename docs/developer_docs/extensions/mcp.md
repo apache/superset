@@ -44,6 +44,12 @@ Arrow string representation for the entire affected column, not Python objects.
 This fallback also applies to scalar subclasses and datetimes with other timezone
 implementations (for example, `zoneinfo.ZoneInfo`).
 
+For these async results, `SQLLAB_PAYLOAD_MAX_MB` counts the uncompressed payload
+with raw Arrow IPC bytes instead of their Base64 representation. The remaining
+payload metadata and nested-value sidecars still count toward the limit. The
+stored JSON payload remains Base64-encoded and compressed; storage encoding
+overhead alone does not cause an otherwise in-limit Arrow result to be rejected.
+
 Legacy JSON-record results and untyped nested sidecars remain readable, but types
 already converted to strings or floats cannot be recovered; rerun those queries
 for typed results. Cached SQL results are rebuilt as DataFrames; an unreadable

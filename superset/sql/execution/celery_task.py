@@ -249,6 +249,17 @@ def _store_results_in_backend(
             # Check payload size limit
             if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
                 serialized_payload_size = len(serialized_payload)
+                for statement in payload.get("statements", []):
+                    if isinstance(data := statement.get("data"), str):
+                        # JSON wraps Arrow in Base64. Count the raw IPC bytes,
+                        # retaining all envelope metadata, without allocating
+                        # another decoded copy just to determine its size.
+                        arrow_size = (
+                            len(data) // 4 * 3
+                            - data.endswith("=")
+                            - data.endswith("==")
+                        )
+                        serialized_payload_size -= len(data) - arrow_size
                 max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
                 if serialized_payload_size > max_bytes:
