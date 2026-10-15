@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 06:02+0000\n"
+"POT-Creation-Date: 2026-10-15 06:36+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: th\n"
@@ -1598,6 +1598,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "ชุดข้อมูลที่นำกลับมาใช้ใหม่ได้จะถูกบันทึกพร้อมกับแผนภูมิของคุณ"
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -3383,9 +3388,6 @@ msgstr "เกิดข้อผิดพลาดขณะแยกวิเค
 msgid "An error occurred while pruning logs "
 msgstr "เกิดข้อผิดพลาดขณะตัดแต่งบันทึก "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -5021,6 +5023,9 @@ msgstr "คิวรี CVAS (สร้างวิวจากการเล�
 #, fuzzy
 msgid "Cache Timeout (seconds)"
 msgstr "หมดเวลาแคช (วินาที)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
@@ -7545,6 +7550,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "ไม่สามารถเชื่อมต่อกับฐานข้อมูล: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -7584,6 +7593,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy, python-format
@@ -7618,6 +7632,12 @@ msgstr "จำนวน"
 #, fuzzy
 msgid "Country"
 msgstr "ประเทศ"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -12648,6 +12668,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "กรองแผนภูมิ"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -12704,6 +12730,10 @@ msgstr "ค่าตัวกรอง (คำนึงถึงตัวพิ�
 msgid "Filter value is required"
 msgstr "จำเป็นต้องระบุค่าตัวกรอง"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -12726,6 +12756,10 @@ msgstr "กรองแผนภูมิของคุณ"
 #, fuzzy
 msgid "Filters"
 msgstr "ตัวกรอง"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -14104,6 +14138,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "รวมคำอธิบายที่จะส่งพร้อมกับ %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -14115,6 +14152,10 @@ msgstr "รวมชื่อชุดข้อมูลเป็นแกน"
 #, fuzzy
 msgid "Include time"
 msgstr "รวมเวลา"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, ru, sk, sl, uk]
@@ -15636,6 +15677,9 @@ msgstr "แคชข้อมูลที่โหลดแล้ว"
 msgid "Loaded from cache"
 msgstr "โหลดจากแคชแล้ว"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 #, fuzzy
@@ -15829,6 +15873,10 @@ msgstr "ค่าเกณฑ์ต่ำ"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -16740,6 +16788,9 @@ msgstr "ไม่พบพารามิเตอร์ URL"
 #, fuzzy
 msgid "Mixed Chart"
 msgstr "แผนภูมิผสม"
+
+msgid "Mixed cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -19638,6 +19689,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -20349,6 +20405,9 @@ msgstr "โหลดใหม่"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "โหลด SQL Lab ใหม่"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -23018,6 +23077,9 @@ msgstr "มุมมองเชิงความหมาย"
 msgid "Semantic Views"
 msgstr "มุมมองเชิงความหมาย"
 
+msgid "Semantic cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -23076,6 +23138,15 @@ msgstr "ประเภทของชั้นคำอธิบายประ
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "อัปเดตเทมเพลตคำอธิบายประกอบแล้ว"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -25789,6 +25860,10 @@ msgstr ""
 "ซึ่งจะทำให้ไม่สามารถใช้ในตัวกรองช่วงเวลาในแดชบอร์ดได้ "
 "ต้องการเพิ่มลงในรายการตัวกรองหรือไม่?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -26979,6 +27054,11 @@ msgid ""
 "The semantic layer returned only part of this query result. Narrow the "
 "time range or selected dimensions, or request a smaller explicit row "
 "limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -28432,6 +28512,19 @@ msgstr "ส่วนนี้มีข้อผิดพลาดในการ
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 #, fuzzy
@@ -29333,6 +29426,9 @@ msgstr "วันอังคาร"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -29482,6 +29578,9 @@ msgstr ""
 #, fuzzy
 msgid "Unable to calculate such a date delta"
 msgstr "ไม่สามารถคำนวณผลต่างวันที่ดังกล่าวได้"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]

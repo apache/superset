@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 06:02+0000\n"
+"POT-Creation-Date: 2026-10-15 06:36+0000\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1308,6 +1308,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -2480,9 +2485,6 @@ msgstr "حدث خطأ أثناء تحليل المفتاح."
 msgid "An error occurred while pruning logs "
 msgstr "حدث خطأ أثناء تقليم السجلات "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3517,6 +3519,9 @@ msgstr "استعلام CVAS (إنشاء طريقة عرض كتحديد) ليس �
 
 msgid "Cache Timeout (seconds)"
 msgstr "مهلة ذاكرة التخزين المؤقت (بالثواني)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -5181,6 +5186,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "تعذر الاتصال بقاعدة البيانات: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "تعذر جلب جميع المخططات المحفوظة"
 
@@ -5210,6 +5219,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "تعذر حل اسم المضيف: \"%(host)s\"."
@@ -5236,6 +5250,12 @@ msgstr "عد"
 
 msgid "Country"
 msgstr "بلد"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "نظام ألوان البلد"
@@ -8577,6 +8597,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "مخططات التصفية"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "يحتوي عامل التصفية على قيمة افتراضية"
 
@@ -8607,6 +8633,10 @@ msgstr "قيمة الفلتر (حساس لحالة الأحرف)"
 msgid "Filter value is required"
 msgstr "قيمة التصفية مطلوبة"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "لا يمكن أن تكون قائمة قيم التصفية فارغة"
 
@@ -8618,6 +8648,10 @@ msgstr "تصفية الرسوم البيانية الخاصة بك"
 
 msgid "Filters"
 msgstr "مرشحات"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -9505,11 +9539,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr ""
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "قم بتضمين اسم السلسلة كمحور"
 
 msgid "Include time"
 msgstr "قم بتضمين الوقت"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "زيادة"
@@ -10484,6 +10525,9 @@ msgstr "تم تخزين البيانات المحملة مؤقتًا"
 msgid "Loaded from cache"
 msgstr "تم تحميله من ذاكرة التخزين المؤقت"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "جارٍ التحميل…"
@@ -10600,6 +10644,10 @@ msgstr "الحد الأدنى"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -11196,6 +11244,9 @@ msgstr "معلمات URL المفقودة"
 
 msgid "Mixed Chart"
 msgstr "مخطط مختلط"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "تم التعديل"
@@ -13039,6 +13090,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "استطلاع"
 
@@ -13467,6 +13523,9 @@ msgstr "إعادة تحميل"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "إعادة تحميل SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -15217,6 +15276,9 @@ msgstr "العرض الدلالي"
 msgid "Semantic Views"
 msgstr "العروض الدلالية"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "طبقة التعليقات التوضيحية"
@@ -15252,6 +15314,20 @@ msgstr "نوع طبقة التعليق التوضيحي"
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "تم تحديث قالب التعليق التوضيحي"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -17041,6 +17117,10 @@ msgstr ""
 " فلاتر النطاق الزمني في لوحات المعلومات. هل ترغب في إضافته إلى قائمة "
 "الفلاتر؟"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -17945,6 +18025,11 @@ msgid ""
 "The semantic layer returned only part of this query result. Narrow the "
 "time range or selected dimensions, or request a smaller explicit row "
 "limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -19045,6 +19130,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -19634,6 +19732,9 @@ msgstr "يوم الثلاثاء"
 msgid "Tukey"
 msgstr "توكي"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -19744,6 +19845,9 @@ msgstr ""
 #, fuzzy
 msgid "Unable to calculate such a date delta"
 msgstr "تعذر حساب فارق التاريخ هذا"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."

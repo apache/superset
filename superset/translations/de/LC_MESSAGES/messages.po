@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 06:02+0000\n"
+"POT-Creation-Date: 2026-10-15 06:36+0000\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -1136,6 +1136,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -2234,9 +2239,6 @@ msgstr "Beim Parsen des Schlüssels ist ein Fehler aufgetreten."
 msgid "An error occurred while pruning logs "
 msgstr "Beim Kürzen von Protokollen ist ein Fehler aufgetreten "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Beim Aktualisieren des Konfigurationsschemas ist ein Fehler aufgetreten"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3218,6 +3220,9 @@ msgstr "CVAS-Abfrage (Create View as Select) ist keine SELECT-Anweisung."
 
 msgid "Cache Timeout (seconds)"
 msgstr "Cache-Timeout (Sekunden)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 msgid ""
 "Cache data separately for each user based on their data access roles and "
@@ -4755,6 +4760,10 @@ msgstr ""
 "Es konnte keine Verbindung zur Datenbank \"%(database)s\" hergestellt "
 "werden."
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nicht alle gespeicherten Diagramme konnten abgerufen werden"
 
@@ -4784,6 +4793,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Hostname konnte nicht aufgelöst werden: \"%(host)s\"."
@@ -4809,6 +4823,12 @@ msgstr "Anzahl"
 
 msgid "Country"
 msgstr "Land"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Länderfarbschema"
@@ -7780,6 +7800,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Diagramme filtern"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filter hat den Standardwert"
 
@@ -7809,6 +7835,10 @@ msgstr "Filterwert (Groß-/Kleinschreibung beachten)"
 msgid "Filter value is required"
 msgstr "Filterwert ist erforderlich"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "Filterwertliste darf nicht leer sein"
 
@@ -7820,6 +7850,10 @@ msgstr "Filtern Sie Ihre Diagramme"
 
 msgid "Filters"
 msgstr "Filter"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filter und Bedienelemente"
@@ -8630,11 +8664,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Beschreibung beilegen, die mitgeschickt wird %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Zeitreihennamen als Achse einschließen"
 
 msgid "Include time"
 msgstr "Zeit einschließen"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Anstieg"
@@ -9527,6 +9568,9 @@ msgstr "Geladene Daten zwischengespeichert"
 msgid "Loaded from cache"
 msgstr "Aus Zwischenspeicher geladen"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Lädt"
 
@@ -9631,6 +9675,10 @@ msgstr "Unterer Schwellenwert"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10149,6 +10197,9 @@ msgstr "Fehlende URL-Parameter"
 
 msgid "Mixed Chart"
 msgstr "Gemischtes Diagramm"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Geändert"
@@ -11896,6 +11947,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Vorschau"
 
@@ -12285,6 +12341,9 @@ msgstr "Neu laden"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab neu laden"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13891,6 +13950,9 @@ msgstr "Semantische Sicht"
 msgid "Semantic Views"
 msgstr "Semantische Sichten"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Semantische Schicht"
 
@@ -13917,6 +13979,16 @@ msgstr "Semantischer Schichtentyp"
 
 msgid "Semantic layer updated"
 msgstr "Semantische Schicht aktualisiert"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Semantic view could not be created."
 msgstr "Semantische Schicht konnte nicht erstellt werden."
@@ -15560,6 +15632,10 @@ msgstr ""
 "Zeitbereichsfiltern in Dashboards verwendet werden kann. Möchten Sie sie "
 "zur Filterliste hinzufügen?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -16434,6 +16510,11 @@ msgid ""
 "The semantic layer returned only part of this query result. Narrow the "
 "time range or selected dimensions, or request a smaller explicit row "
 "limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -17501,6 +17582,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -18040,6 +18134,9 @@ msgstr "Dienstag"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -18128,6 +18225,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "Es ist nicht möglich, ein solches Datumsdelta zu berechnen"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."

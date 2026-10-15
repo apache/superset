@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 06:02+0000\n"
+"POT-Creation-Date: 2026-10-15 06:36+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1140,6 +1140,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -2232,9 +2237,6 @@ msgstr "திறவுகோலை (key) பாகுபடுத்தும�
 msgid "An error occurred while pruning logs "
 msgstr "பதிவுகளை (logs) நீக்கும்போது ஒரு பிழை ஏற்பட்டது "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3189,6 +3191,9 @@ msgstr "CVAS வினவல் ஒரு SELECT கூற்று அல்ல
 
 msgid "Cache Timeout (seconds)"
 msgstr "கேச் (Cache) காலாவதி நேரம் (விநாடிகள்)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 msgid ""
 "Cache data separately for each user based on their data access roles and "
@@ -4731,6 +4736,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "\"%(database)s\" தரவுத்தளத்துடன் இணைக்க முடியவில்லை"
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "சேமிக்கப்பட்ட அனைத்து சார்ட்டுகளையும் பெற முடியவில்லை"
 
@@ -4759,6 +4768,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "\"%(host)s\" ஹோஸ்ட் பெயரைத் தீர்க்க முடியவில்லை."
@@ -4782,6 +4796,12 @@ msgstr "எண்ணிக்கை (Count)"
 
 msgid "Country"
 msgstr "நாடு"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "நாட்டின் வண்ணத் திட்டம்"
@@ -7747,6 +7767,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "சார்ட்டுகளை வடிகட்டு"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "வடிகட்டி இயல்புநிலை மதிப்பைக் கொண்டுள்ளது"
 
@@ -7777,6 +7803,10 @@ msgstr "வடிகட்டி மதிப்பு (எழுத்து �
 msgid "Filter value is required"
 msgstr "வடிகட்டி மதிப்பு தேவை"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "வடிகட்டி மதிப்புப் பட்டியல் காலியாக இருக்கக்கூடாது"
 
@@ -7788,6 +7818,10 @@ msgstr "உங்கள் சார்ட்டுகளை வடிகட்�
 
 msgid "Filters"
 msgstr "வடிகட்டிகள்"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "வடிகட்டிகள் மற்றும் கட்டுப்பாடுகள்"
@@ -8581,11 +8615,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s உடன் அனுப்பப்பட வேண்டிய விளக்கத்தைச் சேர்க்கவும்"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "தொடரின் பெயரை ஒரு அச்சாகச் சேர்"
 
 msgid "Include time"
 msgstr "நேரத்தைச் சேர்"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "அதிகரிப்பு"
@@ -9464,6 +9505,9 @@ msgstr "ஏற்றப்பட்ட தரவு கேச் (cache) செ�
 msgid "Loaded from cache"
 msgstr "கேச் (cache)-லிருந்து ஏற்றப்பட்டது"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "ஏற்றுகிறது..."
@@ -9570,6 +9614,10 @@ msgstr "குறைந்த வரம்பு (Lower Threshold)"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10074,6 +10122,9 @@ msgstr "URL அளவுருக்கள் இல்லை"
 
 msgid "Mixed Chart"
 msgstr "கலப்பு சார்ட் (Mixed Chart)"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "மாற்றப்பட்டது"
@@ -11737,6 +11788,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "முன்னோட்டம்"
 
@@ -12129,6 +12185,9 @@ msgstr "மீண்டும் ஏற்று (Reload)"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL லேப்"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13676,6 +13735,9 @@ msgstr ""
 msgid "Semantic Views"
 msgstr ""
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "சிறுகுறிப்பு அடுக்கு"
@@ -13711,6 +13773,16 @@ msgstr "சிறுகுறிப்பு அடுக்கின் வக�
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "சிறுகுறிப்பு டெம்ப்ளேட் புதுப்பிக்கப்பட்டது"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -15314,6 +15386,10 @@ msgstr ""
 "X-அச்சு வடிகட்டி பட்டியலில் இல்லை. நேர வரம்பு வடிகட்டிகளில் பயன்படுத்த "
 "அதைச் சேர்க்க விரும்புகிறீர்களா?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -16071,6 +16147,11 @@ msgid ""
 "The semantic layer returned only part of this query result. Narrow the "
 "time range or selected dimensions, or request a smaller explicit row "
 "limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -17039,6 +17120,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -17561,6 +17655,9 @@ msgstr "செவ்வாய்"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -17651,6 +17748,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "அத்தகைய தேதி வித்தியாசத்தைக் கணக்கிட முடியவில்லை"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."

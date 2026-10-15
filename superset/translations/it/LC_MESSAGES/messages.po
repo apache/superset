@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 06:02+0000\n"
+"POT-Creation-Date: 2026-10-15 06:36+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1397,6 +1397,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -2698,9 +2703,6 @@ msgstr "Si è verificato un errore durante l'analisi della chiave."
 msgid "An error occurred while pruning logs "
 msgstr "Si è verificato un errore durante l'eliminazione dei log "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Si è verificato un errore nell'aggiornare lo schema di configurazione"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -3945,6 +3947,9 @@ msgstr "La query CVAS (create view as select) non è un'istruzione SELECT."
 # tr, uk, zh, zh_TW]
 msgid "Cache Timeout (seconds)"
 msgstr "Timeout cache (secondi)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -5899,6 +5904,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Impossibile connettersi al database: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Non posso connettermi al server"
 
@@ -5930,6 +5939,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -5958,6 +5972,12 @@ msgstr "Conteggio"
 
 msgid "Country"
 msgstr "Nazione"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -9591,6 +9611,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtra grafici"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -9626,6 +9652,10 @@ msgstr "Valore filtro (case sensitive)"
 msgid "Filter value is required"
 msgstr "Valore del filtro obbligatorio"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "La lista valore filtro non può essere vuota"
 
@@ -9637,6 +9667,10 @@ msgstr "Controlli del filtro"
 
 msgid "Filters"
 msgstr "Filtri"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filtri e controlli"
@@ -10742,6 +10776,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Includi la descrizione da inviare con %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -10753,6 +10790,10 @@ msgstr "Includi il nome della serie come asse"
 # zh, zh_TW]
 msgid "Include time"
 msgstr "Includere il tempo"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Aumenta"
@@ -11943,6 +11984,9 @@ msgstr "Dati caricati memorizzati nella cache"
 msgid "Loaded from cache"
 msgstr "Caricato dalla cache"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Caricamento"
 
@@ -12080,6 +12124,10 @@ msgstr ""
 "Limite inferiore della scala di colori. Quando sono impostati sia "
 "l'inizio che la fine, la legenda utilizza questo intervallo fisso invece "
 "dell'intervallo automatico dei dati."
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -12798,6 +12846,9 @@ msgstr "Parametri URL mancanti"
 
 msgid "Mixed Chart"
 msgstr "Grafico misto"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Modificato"
@@ -15003,6 +15054,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -15501,6 +15557,9 @@ msgstr "Ricarica"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Reload SQL Lab"
 msgstr "Ricarica SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -17456,6 +17515,9 @@ msgstr "Vista semantica"
 msgid "Semantic Views"
 msgstr "Viste semantiche"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Livello semantico"
 
@@ -17482,6 +17544,16 @@ msgstr "Tipo di livello semantico"
 
 msgid "Semantic layer updated"
 msgstr "Livello semantico aggiornato"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Semantic view could not be created."
 msgstr "La vista semantica non può essere creata."
@@ -19564,6 +19636,10 @@ msgstr ""
 "nei filtri per intervallo di tempo nei dashboard. Desideri aggiungerlo "
 "all'elenco dei filtri?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -20647,6 +20723,11 @@ msgid ""
 "The semantic layer returned only part of this query result. Narrow the "
 "time range or selected dimensions, or request a smaller explicit row "
 "limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -21929,6 +22010,19 @@ msgstr "Questa sezione contiene errori di convalida"
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -22640,6 +22734,9 @@ msgstr "Martedì"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -22747,6 +22844,9 @@ msgstr ""
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Unable to calculate such a date delta"
 msgstr "Impossibile calcolare tale delta di date"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,

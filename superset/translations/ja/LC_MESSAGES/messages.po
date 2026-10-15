@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 06:02+0000\n"
+"POT-Creation-Date: 2026-10-15 06:36+0000\n"
 "PO-Revision-Date: 2024-05-14 13:30+0900\n"
 "Last-Translator: Yuri Umezaki <bungoume@gmail.com>\n"
 "Language: ja\n"
@@ -1059,6 +1059,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -2072,9 +2077,6 @@ msgstr "キーの解析中にエラーが発生しました。"
 msgid "An error occurred while pruning logs "
 msgstr "ログの削除(プルーニング)中にエラーが発生しました "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "構成スキーマの更新中にエラーが発生しました"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -2958,6 +2960,9 @@ msgstr "CVAS (CREATE VIEW AS SELECT) クエリがSELECTステートメントで�
 
 msgid "Cache Timeout (seconds)"
 msgstr "キャッシュの有効期限 (秒)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 msgid ""
 "Cache data separately for each user based on their data access roles and "
@@ -4393,6 +4398,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "データベース「%(database)s」に接続できませんでした"
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "保存済みチャートをすべて取得できませんでした"
 
@@ -4420,6 +4429,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "ホスト名「%(host)s」を解決できませんでした。"
@@ -4443,6 +4457,12 @@ msgstr "カウント (件数)"
 
 msgid "Country"
 msgstr "国"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "国別の配色"
@@ -7225,6 +7245,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "チャートをフィルター"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "フィルターに既定値あり"
 
@@ -7252,6 +7278,10 @@ msgstr "フィルター値 (大文字小文字を区別)"
 msgid "Filter value is required"
 msgstr "フィルター値は必須です"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "フィルター値リストを空にすることはできません"
 
@@ -7263,6 +7293,10 @@ msgstr "チャートを絞り込む"
 
 msgid "Filters"
 msgstr "フィルター"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "フィルターとコントロール"
@@ -8012,11 +8046,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s と一緒に送信する説明文を含める"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "系列名を軸として含める"
 
 msgid "Include time"
 msgstr "時間を含める"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "増加"
@@ -8882,6 +8923,9 @@ msgstr "読み込まれたデータがキャッシュされました"
 msgid "Loaded from cache"
 msgstr "キャッシュから読み込みました"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "読み込み中..."
 
@@ -8986,6 +9030,10 @@ msgstr "下限しきい値"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -9479,6 +9527,9 @@ msgstr "URLパラメータがありません"
 
 msgid "Mixed Chart"
 msgstr "混合チャート"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "更新日"
@@ -11095,6 +11146,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "プレビュー"
 
@@ -11482,6 +11538,9 @@ msgstr "再読み込み"
 
 msgid "Reload SQL Lab"
 msgstr "SQL Labを再読み込み"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -12988,6 +13047,9 @@ msgstr "セマンティックビュー"
 msgid "Semantic Views"
 msgstr "セマンティックビュー"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "セマンティックレイヤー"
 
@@ -13014,6 +13076,15 @@ msgstr "セマンティックレイヤーの種類"
 
 msgid "Semantic layer updated"
 msgstr "セマンティックレイヤーを更新しました"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
 
 msgid "Semantic view could not be created."
 msgstr "セマンティックビューを作成できませんでした。"
@@ -14545,6 +14616,10 @@ msgid ""
 " filters list?"
 msgstr "X軸がフィルターリストに含まれていないため、ダッシュボードの時間範囲フィルターで使用できません。フィルターリストに追加しますか？"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -15260,6 +15335,11 @@ msgid ""
 "The semantic layer returned only part of this query result. Narrow the "
 "time range or selected dimensions, or request a smaller explicit row "
 "limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -16170,6 +16250,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -16668,6 +16761,9 @@ msgstr "火曜日"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -16756,6 +16852,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "指定された期間差を計算できません"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."

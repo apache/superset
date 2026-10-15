@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-09 06:02+0000\n"
+"POT-Creation-Date: 2026-10-15 06:36+0000\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1506,6 +1506,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "재사용 가능한 데이터셋이 차트와 함께 저장됩니다."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -3074,10 +3079,6 @@ msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였
 msgid "An error occurred while pruning logs "
 msgstr "로그를 정리하는 중 오류가 발생했습니다 "
 
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "데이터 베이스 목록을 가져오는 도중 에러가 발생하였습니다."
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -4576,6 +4577,9 @@ msgstr "CVAS (create view as select) 쿼리가 SELECT 구문이 아닙니다."
 #, fuzzy
 msgid "Cache Timeout (seconds)"
 msgstr "캐시 만료 시간(초)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -6899,6 +6903,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "데이터베이스에 연결할 수 없습니다: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -6932,6 +6940,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -6963,6 +6976,12 @@ msgstr "컬럼 추가"
 #, fuzzy
 msgid "Country"
 msgstr "컬럼 추가"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -11410,6 +11429,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "차트 수정"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11453,6 +11478,10 @@ msgstr "필터 값 (대소문자 구분)"
 msgid "Filter value is required"
 msgstr "데이터소스"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -11472,6 +11501,10 @@ msgstr "차트 필터링"
 
 msgid "Filters"
 msgstr "필터"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -12758,6 +12791,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s와 함께 전송될 설명 포함"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -12768,6 +12804,10 @@ msgstr "시리즈 이름을 축으로 포함"
 #, fuzzy
 msgid "Include time"
 msgstr "종료 시간"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 #, fuzzy
 msgid "Increase"
@@ -14187,6 +14227,9 @@ msgstr "로드된 데이터가 캐시됨"
 msgid "Loaded from cache"
 msgstr "캐시에서 로드됨"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "로그인"
@@ -14370,6 +14413,10 @@ msgstr "하한 임계값"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -15242,6 +15289,9 @@ msgstr "주석"
 #, fuzzy
 msgid "Mixed Chart"
 msgstr "차트 이동"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "수정됨"
@@ -17979,6 +18029,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "데이터 미리보기"
 
@@ -18607,6 +18662,9 @@ msgstr "생성자"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab 다시 로드"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -20954,6 +21012,9 @@ msgstr "시맨틱 뷰"
 msgid "Semantic Views"
 msgstr "시맨틱 뷰"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "주석 레이어"
@@ -20989,6 +21050,15 @@ msgstr "주석 레이어"
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "주석 레이어"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -23478,6 +23548,10 @@ msgid ""
 " filters list?"
 msgstr "X축이 필터 목록에 없어 대시보드의 시간 범위 필터에서 사용할 수 없습니다. 필터 목록에 추가하시겠습니까?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -24649,6 +24723,11 @@ msgid ""
 "The semantic layer returned only part of this query result. Narrow the "
 "time range or selected dimensions, or request a smaller explicit row "
 "limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -26053,6 +26132,19 @@ msgstr "이 섹션에 유효성 검사 오류가 있습니다"
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -26889,6 +26981,9 @@ msgstr "화요일"
 msgid "Tukey"
 msgstr "Query 공유"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -27036,6 +27131,9 @@ msgstr ""
 #, fuzzy
 msgid "Unable to calculate such a date delta"
 msgstr "이러한 날짜 차이를 계산할 수 없습니다"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
