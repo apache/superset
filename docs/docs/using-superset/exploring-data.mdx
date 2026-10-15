@@ -24,6 +24,14 @@ The following information about each flight is given:
 - Information about the origin and destination.
 - The distance between the origin and destination, in kilometers (km).
 
+### Stopping a SQL Lab query
+
+For a cancellable running query, SQL Lab records Stop before sending engine
+cancellation, so cancellation-related failures do not replace the stopped outcome.
+A query that already finished keeps its success, failure, or timeout outcome; the
+Stop API returns HTTP 422 in that case. Stopping cannot undo database changes
+that have already committed.
+
 ### Semantic Table time grains
 
 For a Table chart backed by a semantic view, Time Grain applies when grouping by

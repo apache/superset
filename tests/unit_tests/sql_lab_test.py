@@ -221,6 +221,7 @@ def test_execute_sql_statement_exceeds_payload_limit(
 
     # Mock db.session.refresh to avoid AttributeError during session refresh
     mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.commit_query_unless_stopped", return_value=True)
 
     # Mock the results backend to avoid "Results backend is not configured" error
     mocker.patch("superset.sql_lab.results_backend", return_value=True)
@@ -322,6 +323,7 @@ def test_execute_sql_statements_rejects_client_file_transfer(
 
     mocker.patch("superset.sql_lab.get_query", return_value=query)
     mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.commit_query_unless_stopped", return_value=True)
 
     with pytest.raises(SupersetDisallowedClientFileTransferException) as excinfo:
         execute_sql_statements(
@@ -494,6 +496,7 @@ def test_execute_sql_statements_raises_when_mutator_strips_all_statements(
 
     mocker.patch("superset.sql_lab.get_query", return_value=query)
     mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.commit_query_unless_stopped", return_value=True)
     mocker.patch("superset.sql_lab.results_backend", return_value=True)
 
     with pytest.raises(SupersetErrorException):
@@ -538,6 +541,7 @@ def test_execute_sql_statements_raises_when_mutator_strips_single_block(
 
     mocker.patch("superset.sql_lab.get_query", return_value=query)
     mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+    mocker.patch("superset.sql_lab.commit_query_unless_stopped", return_value=True)
     mocker.patch("superset.sql_lab.results_backend", return_value=True)
 
     with pytest.raises(SupersetErrorException):
@@ -2386,10 +2390,12 @@ def test_get_sql_results_preserves_stop_during_postgres_cancellation(
             stopped.end_time = 1234.5
             stop_session.commit()
 
+    cursor_cancelled = False
+
     def cancelled_cursor(*args: Any, **kwargs: Any) -> None:
         """Simulate Postgres raising after the running statement is cancelled."""
-        if stop_timing == "cursor":
-            stop()
+        nonlocal cursor_cancelled
+        cursor_cancelled = True
         raise QueryCanceled("canceling statement due to user request")
 
     def extract_errors(*args: Any, **kwargs: Any) -> list[Any]:
@@ -2417,6 +2423,19 @@ def test_get_sql_results_preserves_stop_during_postgres_cancellation(
         worker_session.add(query)
         worker_session.commit()
         mocker.patch.object(sql_lab.db, "session", worker_session)
+        refresh = worker_session.refresh
+
+        def refresh_then_stop(*args: Any, **kwargs: Any) -> None:
+            """Commit after the cancelled cursor's handler reads its status."""
+            refresh(*args, **kwargs)
+            if (
+                stop_timing == "cursor"
+                and cursor_cancelled
+                and kwargs.get("attribute_names") == ["status"]
+            ):
+                stop()
+
+        mocker.patch.object(worker_session, "refresh", side_effect=refresh_then_stop)
         payload = sql_lab.get_sql_results(123, query.sql, return_results=return_results)
         execute_cursor.assert_called_once()
         with Session(engine) as observer:
@@ -2434,6 +2453,7 @@ def test_get_sql_results_preserves_stop_during_postgres_cancellation(
 @pytest.mark.parametrize("terminal_write", ["success", "backend_failure"])
 def test_legacy_terminal_write_preserves_concurrent_stop(
     mocker: MockerFixture,
+    request: pytest.FixtureRequest,
     app: SupersetApp,
     app_context: None,
     tmp_path: Any,
@@ -2442,7 +2462,7 @@ def test_legacy_terminal_write_preserves_concurrent_stop(
     """Neither result publication nor a cache failure may overwrite a Stop."""
     from unittest.mock import PropertyMock
 
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine, event
 
     from superset import sql_lab
     from superset.models.sql_lab import Query
@@ -2474,11 +2494,26 @@ def test_legacy_terminal_write_preserves_concurrent_stop(
             stop_session.commit()
 
     def store(*args: Any) -> bool:
-        """A failed backend write returns after Stop has committed."""
-        if terminal_write == "backend_failure":
+        """Return a failure before racing Stop with its terminal write."""
+        return terminal_write != "backend_failure"
+
+    stop_attempted = False
+
+    def stop_before_failure(
+        target: Query, value: str, old_value: Any, initiator: Any
+    ) -> None:
+        """Commit after any preliminary refresh, before FAILED is flushed."""
+        nonlocal stop_attempted
+        if (
+            terminal_write == "backend_failure"
+            and value == QueryStatus.FAILED
+            and not stop_attempted
+        ):
+            stop_attempted = True
             stop()
-            return False
-        return True
+
+    event.listen(Query.status, "set", stop_before_failure)
+    request.addfinalizer(lambda: event.remove(Query.status, "set", stop_before_failure))
 
     mocker.patch.object(PostgresEngineSpec, "get_cancel_query_id", return_value=42)
     backend = MagicMock()
@@ -2518,6 +2553,7 @@ def test_legacy_terminal_write_preserves_concurrent_stop(
         payload = sql_lab.get_sql_results(
             123, query.sql, return_results=False, store_results=True
         )
+        backend.set.assert_called_once()
         with Session(engine) as observer:
             persisted = observer.get(Query, 123)
             assert persisted is not None
@@ -2528,4 +2564,60 @@ def test_legacy_terminal_write_preserves_concurrent_stop(
         assert payload == {"query_id": 123, "status": QueryStatus.STOPPED}
         if terminal_write == "success":
             backend.delete.assert_called_once_with(backend.set.call_args.args[0])
+    engine.dispose()
+
+
+def test_legacy_startup_preserves_stop_before_running_write(
+    mocker: MockerFixture,
+    app_context: None,
+    tmp_path: Any,
+) -> None:
+    """A Stop between the startup read and RUNNING write prevents dispatch."""
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine
+
+    from superset import sql_lab
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'startup-stop.db'}")
+    Query.__table__.create(engine)
+    database = MagicMock()
+    database.db_engine_spec = PostgresEngineSpec
+    database.allow_run_async = False
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+
+    def stop() -> None:
+        """Commit after the worker's initial status check."""
+        with Session(engine) as stop_session:
+            stopped = stop_session.get(Query, 123)
+            assert stopped is not None
+            stopped.status = QueryStatus.STOPPED
+            stopped.end_time = 1234.5
+            stop_session.commit()
+
+    mocker.patch.object(PostgresEngineSpec, "patch", side_effect=stop)
+    parse = mocker.patch.object(
+        sql_lab,
+        "SQLScript",
+        side_effect=AssertionError("Stopped query reached parsing"),
+    )
+    with Session(engine) as worker_session:
+        worker_session.add(
+            Query(
+                id=123, client_id="startup", database_id=1, status=QueryStatus.PENDING
+            )
+        )
+        worker_session.commit()
+        mocker.patch.object(sql_lab.db, "session", worker_session)
+        payload = sql_lab.execute_sql_statements(
+            123, "SELECT 1", True, False, None, False, None
+        )
+        assert payload == {"query_id": 123, "status": QueryStatus.STOPPED}
+        parse.assert_not_called()
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatus.STOPPED
+            assert persisted.end_time == 1234.5
     engine.dispose()

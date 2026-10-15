@@ -145,8 +145,11 @@ def test_legacy_cancel_error_preserves_committed_stop(
             stop_session.commit()
         return []
 
+    cursor_cancelled = False
+
     def execute(cursor: Any, sql: str, query: Query) -> None:
         """Cancel a statement observed running on an independent connection."""
+        nonlocal cursor_cancelled
         pid = cursor.connection.get_backend_pid()
         with ThreadPoolExecutor(max_workers=1) as pool:
             running = pool.submit(cursor.execute, sql)
@@ -166,14 +169,13 @@ def test_legacy_cancel_error_preserves_committed_stop(
                     time.sleep(0.01)
                 else:
                     pytest.fail("Postgres statement did not start")
-                if stop_timing == "cursor":
-                    stop()
                 function = "pg_terminate_backend" if terminate else "pg_cancel_backend"
                 assert canceller.execute(
                     text(f"SELECT {function}(:pid)"), {"pid": pid}
                 ).scalar()
             with pytest.raises(OperationalError) as error:
                 running.result(timeout=10)
+            cursor_cancelled = True
             raise error.value
 
     @contextmanager
@@ -194,11 +196,28 @@ def test_legacy_cancel_error_preserves_committed_stop(
     monkeypatch.setattr(Query, "database", PropertyMock(return_value=database))
     monkeypatch.setattr(PostgresEngineSpec, "execute_with_cursor", execute)
     monkeypatch.setattr(sql_lab, "warm_and_release_connection", lambda *args: None)
-    monkeypatch.setattr(sql_lab, "_extract_errors", stop)
+    monkeypatch.setattr(
+        sql_lab,
+        "_extract_errors",
+        lambda *args, **kwargs: stop() if stop_timing == "error_handler" else [],
+    )
     monkeypatch.setattr(sql_lab.security_manager, "find_user", lambda _: None)
     with app.test_request_context(), Session(engine) as worker_session:
         monkeypatch.setattr(worker_session, "remove", lambda: None, raising=False)
         monkeypatch.setattr(sql_lab.db, "session", worker_session)
+        refresh = worker_session.refresh
+
+        def refresh_then_stop(*args: Any, **kwargs: Any) -> None:
+            """Commit after the cancelled cursor's handler reads its status."""
+            refresh(*args, **kwargs)
+            if (
+                stop_timing == "cursor"
+                and cursor_cancelled
+                and kwargs.get("attribute_names") == ["status"]
+            ):
+                stop()
+
+        monkeypatch.setattr(worker_session, "refresh", refresh_then_stop)
         monkeypatch.setitem(app.config, "STATS_LOGGER", MagicMock())
         monkeypatch.setitem(app.config, "DISALLOWED_SQL_FUNCTIONS", {})
         worker_session.add(
@@ -228,3 +247,152 @@ def test_legacy_cancel_error_preserves_committed_stop(
             worker_session.rollback()
             worker_session.query(Query).filter_by(id=123).delete()
             worker_session.commit()
+
+
+@pytest.mark.parametrize("delay_ms", [0, 20, 100])
+@pytest.mark.parametrize("terminate", [False, True], ids=["cancel", "terminate"])
+@pytest.mark.parametrize("caller", ["dao", "async_handle"])
+def test_stop_request_precedes_postgres_cancellation_failure(
+    engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    delay_ms: int,
+    terminate: bool,
+    caller: str,
+) -> None:
+    """The production Stop entry points must publish intent before cancellation."""
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+    from contextlib import contextmanager
+    from threading import Event
+    from typing import Any
+    from unittest.mock import MagicMock, PropertyMock
+
+    from sqlalchemy import text
+    from sqlalchemy.orm import scoped_session, Session, sessionmaker
+
+    from superset import sql_lab
+    from superset.daos.query import QueryDAO
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.executor import SQLExecutor
+    from tests.integration_tests.test_app import app
+
+    with engine.begin() as connection:
+        connection.execute(
+            text("CREATE TABLE IF NOT EXISTS dbs (id INTEGER PRIMARY KEY)")
+        )
+        connection.execute(
+            text("CREATE TABLE IF NOT EXISTS ab_user (id INTEGER PRIMARY KEY)")
+        )
+        connection.execute(text("INSERT INTO dbs VALUES (1) ON CONFLICT DO NOTHING"))
+        connection.execute(
+            text("INSERT INTO ab_user VALUES (7) ON CONFLICT DO NOTHING")
+        )
+    Query.__table__.create(engine, checkfirst=True)
+    sessions = scoped_session(sessionmaker(bind=engine))
+    executing = Event()
+    finished = Event()
+    backend_pid: list[int] = []
+
+    @contextmanager
+    def raw_connection(**kwargs: Any) -> Iterator[Any]:
+        """Open a real target connection, distinct from metadata sessions."""
+        connection = engine.raw_connection()
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+    def execute(cursor: Any, sql: str, query: Query) -> None:
+        """Expose the executing backend to the independent Stop request."""
+        backend_pid.append(cursor.connection.get_backend_pid())
+        executing.set()
+        cursor.execute(sql)
+
+    def cancel(cursor: Any, query: Query, cancel_query_id: str) -> bool:
+        """Let the worker finish before the Stop request resumes after cancel."""
+        function = "pg_terminate_backend" if terminate else "pg_cancel_backend"
+        cursor.execute(f"SELECT {function}(%s)", (int(cancel_query_id),))
+        assert cursor.fetchone()[0]
+        time.sleep(delay_ms / 1000)
+        # Include the schedule where even a zero-delay request is descheduled
+        # after cancel. This makes the race reproducible, not scheduler-dependent.
+        assert finished.wait(10)
+        return True
+
+    database = MagicMock()
+    database.db_engine_spec = PostgresEngineSpec
+    database.allow_run_async = False
+    database.get_default_schema_for_query.return_value = "public"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    database.get_raw_connection = raw_connection
+    database.get_sqla_engine.return_value.__enter__.return_value = engine
+    monkeypatch.setattr(Query, "database", PropertyMock(return_value=database))
+    monkeypatch.setattr(PostgresEngineSpec, "execute_with_cursor", execute)
+    monkeypatch.setattr(PostgresEngineSpec, "cancel_query", cancel)
+    monkeypatch.setattr(sql_lab, "warm_and_release_connection", lambda *args: None)
+    monkeypatch.setattr(sql_lab.security_manager, "find_user", lambda _: None)
+    monkeypatch.setattr(sql_lab.db, "session", sessions)
+    monkeypatch.setattr("superset.daos.query.get_user_id", lambda: 7)
+    monkeypatch.setitem(app.config, "STATS_LOGGER", MagicMock())
+    monkeypatch.setitem(app.config, "DISALLOWED_SQL_FUNCTIONS", {})
+
+    def work() -> dict[str, Any] | None:
+        """Run the legacy worker with a thread-local metadata session."""
+        try:
+            with app.test_request_context():
+                return sql_lab.get_sql_results(124, "SELECT pg_sleep(30)", True)
+        finally:
+            sessions.remove()
+            finished.set()
+
+    with app.test_request_context():
+        sessions.add(
+            Query(
+                id=124,
+                client_id="prod-stop",
+                user_id=7,
+                database_id=1,
+                sql="SELECT pg_sleep(30)",
+                status="pending",
+            )
+        )
+        sessions.commit()
+        try:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                worker = pool.submit(work)
+                assert executing.wait(10)
+                with engine.connect().execution_options(
+                    isolation_level="AUTOCOMMIT"
+                ) as observer:
+                    deadline = time.monotonic() + 10
+                    while time.monotonic() < deadline:
+                        if observer.execute(
+                            text(
+                                "SELECT wait_event = 'PgSleep' FROM pg_stat_activity "
+                                "WHERE pid = :pid"
+                            ),
+                            {"pid": backend_pid[0]},
+                        ).scalar():
+                            break
+                        time.sleep(0.01)
+                    else:
+                        pytest.fail("Postgres statement did not start")
+                if caller == "dao":
+                    stopped = QueryDAO.stop_query("prod-stop")
+                    assert stopped.status == "stopped"
+                else:
+                    assert SQLExecutor._cancel_async_query(124, database)
+                payload = worker.result(timeout=10)
+            with Session(engine) as observer_session:
+                persisted = observer_session.get(Query, 124)
+                assert persisted is not None
+                assert persisted.status == "stopped"
+                assert persisted.error_message is None
+                assert persisted.end_time is not None
+            assert payload is not None
+            assert payload["status"] == "stopped"
+        finally:
+            sessions.rollback()
+            sessions.query(Query).filter_by(id=124).delete()
+            sessions.commit()
+            sessions.remove()

@@ -1445,9 +1445,14 @@ class SQLExecutor:
             return False
 
         with db.session.no_autoflush:
+            end_time = now_as_float()
+            if not set_query_stopped(query, end_time):
+                return False
+            # Commit before engine cancellation can wake the Celery worker.
+            db.session.commit()  # pylint: disable=consider-using-transaction
             if not SQLExecutor._cancel_query(database, query):
                 return False
-            return set_query_stopped(query, now_as_float())
+            return set_query_stopped(query, end_time)
 
     @staticmethod
     def _cancel_query(database: Database, query: Any) -> bool:

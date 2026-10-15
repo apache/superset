@@ -3531,3 +3531,62 @@ def test_stop_seen_between_autocommit_statements_ends_stopped(
             assert observer.get(Query, 123).status == QueryStatusEnum.STOPPED
         conn.commit.assert_not_called()
     engine.dispose()
+
+
+@pytest.mark.parametrize("stop_before_read", [False, True])
+def test_celery_startup_preserves_stop_before_running_write(
+    mocker: MockerFixture,
+    app_context: None,
+    tmp_path: Path,
+    mock_database: MagicMock,
+    stop_before_read: bool,
+) -> None:
+    """Celery startup must not replace a committed Stop with RUNNING."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'celery-startup.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+
+    def stop() -> None:
+        """Commit after retrieval but before the startup status write."""
+        with Session(engine) as stop_session:
+            stopped = stop_session.get(Query, 123)
+            assert stopped is not None
+            stopped.status = QueryStatusEnum.STOPPED
+            stopped.end_time = 1234.5
+            stop_session.commit()
+
+    if not stop_before_read:
+        mock_database.db_engine_spec.patch.side_effect = stop
+    parse = mocker.patch.object(
+        celery_task,
+        "SQLScript",
+        side_effect=AssertionError("Stopped query reached parsing"),
+    )
+    with Session(engine) as worker_session:
+        worker_session.add(
+            Query(
+                id=123,
+                client_id="startup",
+                database_id=1,
+                status=QueryStatusEnum.PENDING,
+            )
+        )
+        worker_session.commit()
+        if stop_before_read:
+            stop()
+        mocker.patch.object(celery_task.db, "session", worker_session)
+        payload = celery_task._execute_sql_statements(123, "SELECT 1", None)
+        assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
+        parse.assert_not_called()
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatusEnum.STOPPED
+            assert persisted.end_time == 1234.5
+    engine.dispose()

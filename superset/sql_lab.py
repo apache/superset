@@ -505,10 +505,8 @@ def execute_sql_statements(  # noqa: C901
     # picked it up). Honor it here, mirroring the per-block stopped-check
     # further down, instead of unconditionally overwriting it back to
     # RUNNING and dispatching the statement anyway.
-    #
-    # Startup still has a check-to-write window: a stop committed between
-    # this read and the RUNNING commit below can be missed. The terminal
-    # publication guard does not serialize dispatch against early stops.
+    # The guarded RUNNING write below also honors a stop committed after
+    # this preliminary read.
     if query.status == QueryStatus.STOPPED:
         payload.update({"status": query.status})
         return payload
@@ -523,7 +521,9 @@ def execute_sql_statements(  # noqa: C901
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
-    db.session.commit()
+    if not commit_query_unless_stopped(query):
+        db.session.commit()
+        return {"query_id": query_id, "status": QueryStatus.STOPPED}
 
     parsed_script = SQLScript(rendered_query, engine=db_engine_spec.engine)
 

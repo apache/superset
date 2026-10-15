@@ -169,7 +169,7 @@ def set_query_stopped(query: Query, end_time: float) -> bool:
 
 
 def commit_query_unless_stopped(query: Query) -> bool:
-    """Atomically guard terminal metadata writes against a concurrent stop."""
+    """Atomically guard execution metadata writes against a concurrent stop."""
     with db.session.no_autoflush:
         # The conditional write acquires the row's write lock until commit.
         # A separate status read cannot protect the subsequent ORM flush.

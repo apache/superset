@@ -30,6 +30,7 @@ from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.daos.query import QueryDAO
 from superset.models.core import Database
 from superset.models.sql_lab import Query
+from superset.sql.execution.utils import set_query_stopped
 
 
 @pytest.mark.parametrize(
@@ -43,7 +44,7 @@ def test_stop_query_preserves_concurrently_committed_terminal_result(
     terminal_status: QueryStatus,
     early_cancel: bool,
 ) -> None:
-    """A worker commits while engine cancellation is in flight in another session."""
+    """A worker completes after the stop read but before its guarded write."""
     engine = create_engine(f"sqlite:///{tmp_path / 'stop.db'}")
     Query.__table__.create(engine)
     with Session(engine) as stop_session:
@@ -60,7 +61,7 @@ def test_stop_query_preserves_concurrently_committed_terminal_result(
         mocker.patch("superset.daos.query.db.session", stop_session)
         mocker.patch("superset.daos.query.get_user_id", return_value=7)
 
-        def cancel(loaded_query: Query) -> bool:
+        def stop_after_completion(loaded_query: Query, end_time: float) -> bool:
             """Publish a terminal result after the stop read, before its commit."""
             assert loaded_query.status == QueryStatus.RUNNING
             if early_cancel:
@@ -73,13 +74,14 @@ def test_stop_query_preserves_concurrently_committed_terminal_result(
                 completed.end_time = 1234.5
                 completed.extra_json = '{"worker": true}'
                 worker_session.commit()
-            return True
+            return set_query_stopped(loaded_query, end_time)
 
-        cancel_query = mocker.patch(
-            "superset.daos.query.sql_lab.cancel_query", side_effect=cancel
+        mocker.patch(
+            "superset.daos.query.set_query_stopped", side_effect=stop_after_completion
         )
+        cancel_query = mocker.patch("superset.daos.query.sql_lab.cancel_query")
         QueryDAO.stop_query("stop-race")
-        cancel_query.assert_called_once_with(query)
+        cancel_query.assert_not_called()
 
     with Session(engine) as verify_session:
         completed = verify_session.get(Query, 123)
@@ -91,6 +93,7 @@ def test_stop_query_preserves_concurrently_committed_terminal_result(
     engine.dispose()
 
 
+@pytest.mark.parametrize("completion_timing", ["before_stop", "during_preparation"])
 @pytest.mark.parametrize("engine_name", ["trino", "impala"])
 @pytest.mark.parametrize("caller", ["dao", "async_handle"])
 @pytest.mark.parametrize(
@@ -103,6 +106,7 @@ def test_engine_early_cancel_preserves_concurrently_committed_terminal_metadata(
     engine_name: str,
     caller: str,
     terminal_status: QueryStatus,
+    completion_timing: str,
 ) -> None:
     """Real engine preparation must not flush stale extra over a worker's result."""
     from superset.db_engine_specs.impala import ImpalaEngineSpec
@@ -136,10 +140,8 @@ def test_engine_early_cancel_preserves_concurrently_committed_terminal_metadata(
         mocker.patch("superset.daos.query.db.session", stop_session)
         mocker.patch("superset.daos.query.get_user_id", return_value=7)
 
-        def prepare_after_worker_commit(loaded_query: Query) -> None:
-            """Complete in a second session after the stop has loaded RUNNING."""
-            assert loaded_query.status == QueryStatus.RUNNING
-            assert loaded_query.extra == {"initial": True}
+        def complete() -> None:
+            """Publish an outcome whose target effects finished independently."""
             with Session(engine) as worker_session:
                 completed = worker_session.get(Query, 123)
                 assert completed is not None
@@ -148,15 +150,36 @@ def test_engine_early_cancel_preserves_concurrently_committed_terminal_metadata(
                 completed.end_time = 1234.5
                 completed.extra_json = '{"columns": [{"name": "worker"}], "errors": []}'
                 worker_session.commit()
+
+        def stop_after_worker_commit(loaded_query: Query, end_time: float) -> bool:
+            """Complete after the stop read, before its initial guarded write."""
+            assert loaded_query.status == QueryStatus.RUNNING
+            complete()
+            return set_query_stopped(loaded_query, end_time)
+
+        def prepare_after_stop(loaded_query: Query) -> None:
+            """A durable result wins while early cancellation is being prepared."""
+            assert loaded_query.status == QueryStatus.STOPPED
+            complete()
             prepare_cancel(loaded_query)
 
-        mocker.patch.object(
-            engine_spec, "prepare_cancel_query", side_effect=prepare_after_worker_commit
+        prepare = mocker.patch.object(
+            engine_spec, "prepare_cancel_query", side_effect=prepare_after_stop
         )
+        if completion_timing == "before_stop":
+            mocker.patch(
+                "superset.daos.query.set_query_stopped",
+                side_effect=stop_after_worker_commit,
+            )
+            mocker.patch(
+                "superset.sql.execution.utils.set_query_stopped",
+                side_effect=stop_after_worker_commit,
+            )
         if caller == "dao":
             QueryDAO.stop_query("engine-stop-race")
         else:
             assert SQLExecutor._cancel_async_query(123, query.database) is False
+        assert prepare.call_count == int(completion_timing == "during_preparation")
 
     with Session(engine) as verify_session:
         completed = verify_session.get(Query, 123)
@@ -210,12 +233,12 @@ def test_engine_early_cancel_commits_with_guarded_stop(
         mocker.patch("superset.daos.query.get_user_id", return_value=7)
 
         def prepare_without_commit(loaded_query: Query) -> None:
-            """Preparation stages intent without making it separately visible."""
+            """Preparation stages early intent after the stop becomes visible."""
             prepare_cancel(loaded_query)
             with Session(engine) as observer:
                 stored = observer.get(Query, 123)
                 assert stored is not None
-                assert stored.status == QueryStatus.RUNNING
+                assert stored.status == QueryStatus.STOPPED
                 assert stored.extra == {"initial": True}
 
         mocker.patch.object(
@@ -321,7 +344,7 @@ def test_stop_query_commits_stop_with_early_cancel(
 
 
 @pytest.mark.parametrize("caller", ["api", "async_handle"])
-@pytest.mark.parametrize("finish_during_cancel", [False, True])
+@pytest.mark.parametrize("finish_before_stop", [False, True])
 @pytest.mark.parametrize(
     "terminal_status", [QueryStatus.SUCCESS, QueryStatus.FAILED, QueryStatus.TIMED_OUT]
 )
@@ -330,7 +353,7 @@ def test_stop_reports_concurrently_finished_query(
     app_context: None,
     tmp_path: Path,
     caller: str,
-    finish_during_cancel: bool,
+    finish_before_stop: bool,
     terminal_status: QueryStatus,
 ) -> None:
     """A finished query is not reported as cancelled, including a lost stop race."""
@@ -345,7 +368,7 @@ def test_stop_reports_concurrently_finished_query(
             client_id="finished-stop",
             user_id=7,
             database_id=1,
-            status=QueryStatus.RUNNING if finish_during_cancel else terminal_status,
+            status=QueryStatus.RUNNING if finish_before_stop else terminal_status,
         )
         stop_session.add(query)
         stop_session.commit()
@@ -354,22 +377,25 @@ def test_stop_reports_concurrently_finished_query(
         payload = {"id": "finished-stop", "state": terminal_status.lower()}
         mocker.patch.object(Query, "to_dict", return_value=payload)
 
-        def cancel(*args: object) -> bool:
-            """Commit the worker's terminal outcome during engine cancellation."""
-            assert finish_during_cancel
+        def stop_after_completion(loaded_query: Query, end_time: float) -> bool:
+            """Commit the terminal outcome before the guarded stop write."""
+            assert finish_before_stop
             with Session(engine) as worker_session:
                 completed = worker_session.get(Query, 123)
                 assert completed is not None
                 completed.status = terminal_status
                 worker_session.commit()
-            return True
+            return set_query_stopped(loaded_query, end_time)
 
-        cancel_query = mocker.patch(
-            "superset.daos.query.sql_lab.cancel_query", side_effect=cancel
+        mocker.patch(
+            "superset.daos.query.set_query_stopped", side_effect=stop_after_completion
         )
-        cancel_async = mocker.patch.object(
-            SQLExecutor, "_cancel_query", side_effect=cancel
+        mocker.patch(
+            "superset.sql.execution.utils.set_query_stopped",
+            side_effect=stop_after_completion,
         )
+        cancel_query = mocker.patch("superset.daos.query.sql_lab.cancel_query")
+        cancel_async = mocker.patch.object(SQLExecutor, "_cancel_query")
         if caller == "api":
             with current_app.test_request_context(json={"client_id": "finished-stop"}):
                 response = inspect.unwrap(QueryRestApi.stop_query)(QueryRestApi())
@@ -380,9 +406,8 @@ def test_stop_reports_concurrently_finished_query(
             }
         else:
             assert SQLExecutor._cancel_async_query(123, mocker.Mock()) is False
-        assert cancel_query.call_count + cancel_async.call_count == int(
-            finish_during_cancel
-        )
+        cancel_query.assert_not_called()
+        cancel_async.assert_not_called()
         assert stop_session.get(Query, 123).status == terminal_status
     engine.dispose()
 

@@ -83,13 +83,18 @@ class QueryDAO(BaseDAO[Query]):
             return query
 
         with db.session.no_autoflush:
+            end_time = now_as_float()
+            if not set_query_stopped(query, end_time):
+                return query
+            # Cancellation can wake the worker immediately. Publish stop intent
+            # before signalling the engine, not in the decorator's later commit.
+            db.session.commit()  # pylint: disable=consider-using-transaction
             if not sql_lab.cancel_query(query):
                 raise SupersetCancelQueryException("Could not cancel query")
 
-            # Engine cancellation can outlive a worker's terminal commit. The
-            # conditional write must win the row lock before any staged
-            # early-cancel flag is flushed by the transaction decorator.
-            set_query_stopped(query, now_as_float())
+            # Engine preparation can stage early-cancel metadata. Merge it only
+            # if no durable terminal outcome has superseded this stop.
+            set_query_stopped(query, end_time)
         return query
 
 

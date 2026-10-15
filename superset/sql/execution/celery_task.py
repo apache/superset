@@ -584,7 +584,9 @@ def _execute_sql_statements(
     query.status = QueryStatus.RUNNING
     query.start_running_time = now_as_float()
     execution_start_time = now_as_float()
-    db.session.commit()  # pylint: disable=consider-using-transaction
+    if not _commit_query_unless_stopped(query):
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        return {"query_id": query_id, "status": QueryStatus.STOPPED}
 
     # Parse original SQL (from user) to preserve before transformations
     original_script = SQLScript(query.sql, engine=db_engine_spec.engine)
