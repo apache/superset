@@ -1048,13 +1048,20 @@ def _deduplicate_oracle_output_names(query: exp.Expression) -> None:
     """
     Rename repeated output columns so the query can be wrapped on Oracle.
 
-    Oracle rejects `SELECT * FROM (<query>)` when the query returns two columns
-    with the same name, as in `SELECT a.id, b.id FROM a JOIN b ...`, with
+    Before 12c the row limit wraps the query in `SELECT * FROM (<query>) WHERE
+    ROWNUM <= n`, and Oracle 11g rejects that wrapper when the query returns two
+    columns with the same name, as in `SELECT a.id, b.id FROM a JOIN b ...`, with
     "ORA-00918: column ambiguously defined". The second and later copies get a
-    `_2`, `_3`, ... suffix instead. Star projections are left alone, since their
-    names aren't known without the schema. A set operation takes its column
-    names from its leftmost query, so that is the one renamed, and parentheses
-    around the query are looked through.
+    `_2`, `_3`, ... suffix instead. A set operation takes its column names from
+    its leftmost query, so that is the one renamed, and parentheses around the
+    query are looked through.
+
+    Two shapes are left as they are and still fail with ORA-00918 once wrapped:
+    qualified stars such as `a.*, b.*` or `a.*, b.id`, whose names aren't known
+    without the schema (a bare `*` over a join works), and a repeated expression
+    without an alias, such as `SELECT 1 + 1, 1 + 1`, which Oracle names after its
+    text. Neither ran before 12c without this rewrite either, since `FETCH FIRST`
+    fails there, and listing the columns with aliases avoids both.
     """
     while isinstance(query, (exp.SetOperation, exp.Subquery)):
         query = query.this
@@ -2311,8 +2318,9 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # by filtering the original query on `ROWNUM` from outside. `ROWNUM` is
         # assigned after the inner `ORDER BY` runs, so the first `n` rows are
         # still the top `n`. SQLAlchemy uses the same rewrite for pre-12c
-        # servers. Later releases keep `FETCH FIRST`, because the wrapper rejects
-        # duplicate output column names (ORA-00918) that `FETCH FIRST` accepts.
+        # servers. The wrapper rejects duplicate output column names (ORA-00918)
+        # on 11g and 23ai alike, so they are renamed first, and later releases
+        # keep `FETCH FIRST`, which accepts them.
         if method == LimitMethod.WRAP_ROWNUM:
             inner = self._parsed.copy()
             # Keep CTEs at statement level rather than inside the derived table.
