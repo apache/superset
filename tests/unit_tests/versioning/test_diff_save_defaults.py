@@ -100,8 +100,8 @@ def _paths(records: list[ChangeRecord]) -> list[list[Any]]:
 def test_first_full_save_records_only_the_user_changes() -> None:
     """Rebeca's repro: a dashboard created from Explore's Save modal, then
     saved once with a new title, slug and description."""
-    pre = _dashboard(None)
-    post = _dashboard(
+    pre: dict[str, Any] = _dashboard(None)
+    post: dict[str, Any] = _dashboard(
         _FIRST_SAVE_METADATA,
         dashboard_title="Flights overview",
         slug="flights",
@@ -109,7 +109,7 @@ def test_first_full_save_records_only_the_user_changes() -> None:
         position_json=json.dumps(_CHART_LAYOUT),
     )
 
-    records = diff_dashboard(pre, post, fields=_FIELDS)
+    records: list[ChangeRecord] = diff_dashboard(pre, post, fields=_FIELDS)
 
     assert sorted(r.path[0] for r in records if r.kind == "field") == [
         "dashboard_title",
@@ -123,7 +123,7 @@ def test_first_full_save_records_only_the_user_changes() -> None:
 
 def test_first_full_save_from_empty_metadata_records_nothing() -> None:
     """The same defaults filled into an existing ``{}`` blob."""
-    records = diff_dashboard(
+    records: list[ChangeRecord] = diff_dashboard(
         _dashboard({}), _dashboard(_FIRST_SAVE_METADATA), fields=_FIELDS
     )
 
@@ -131,10 +131,12 @@ def test_first_full_save_from_empty_metadata_records_nothing() -> None:
 
 
 def test_absent_key_set_to_a_non_default_value_is_recorded() -> None:
-    pre = _dashboard({})
-    post = _dashboard({"refresh_frequency": 300, "cross_filters_enabled": False})
+    pre: dict[str, Any] = _dashboard({})
+    post: dict[str, Any] = _dashboard(
+        {"refresh_frequency": 300, "cross_filters_enabled": False}
+    )
 
-    records = diff_dashboard(pre, post, fields=_FIELDS)
+    records: list[ChangeRecord] = diff_dashboard(pre, post, fields=_FIELDS)
 
     assert [(r.path, r.operation, r.from_value, r.to_value) for r in records] == [
         (["json_metadata", "cross_filters_enabled"], "add", None, False),
@@ -143,10 +145,12 @@ def test_absent_key_set_to_a_non_default_value_is_recorded() -> None:
 
 
 def test_default_changed_later_is_recorded() -> None:
-    pre = _dashboard({"refresh_frequency": 0, "label_colors": {}})
-    post = _dashboard({"refresh_frequency": 60, "label_colors": {"a": "#fff"}})
+    pre: dict[str, Any] = _dashboard({"refresh_frequency": 0, "label_colors": {}})
+    post: dict[str, Any] = _dashboard(
+        {"refresh_frequency": 60, "label_colors": {"a": "#fff"}}
+    )
 
-    records = diff_dashboard(pre, post, fields=_FIELDS)
+    records: list[ChangeRecord] = diff_dashboard(pre, post, fields=_FIELDS)
 
     assert _paths(records) == [
         ["json_metadata", "label_colors", "a"],
@@ -155,10 +159,10 @@ def test_default_changed_later_is_recorded() -> None:
 
 
 def test_value_changed_back_to_default_is_recorded() -> None:
-    pre = _dashboard({"refresh_frequency": 60})
-    post = _dashboard({"refresh_frequency": 0})
+    pre: dict[str, Any] = _dashboard({"refresh_frequency": 60})
+    post: dict[str, Any] = _dashboard({"refresh_frequency": 0})
 
-    records = diff_dashboard(pre, post, fields=_FIELDS)
+    records: list[ChangeRecord] = diff_dashboard(pre, post, fields=_FIELDS)
 
     assert [(r.path, r.from_value, r.to_value) for r in records] == [
         (["json_metadata", "refresh_frequency"], 60, 0)
@@ -169,10 +173,10 @@ def test_null_cross_filters_turned_on_is_recorded() -> None:
     """A stored null is not a missing key: the frontend reads a null
     ``cross_filters_enabled`` as disabled, so saving ``True`` enables
     cross-filters."""
-    pre = _dashboard({"cross_filters_enabled": None})
-    post = _dashboard({"cross_filters_enabled": True})
+    pre: dict[str, Any] = _dashboard({"cross_filters_enabled": None})
+    post: dict[str, Any] = _dashboard({"cross_filters_enabled": True})
 
-    records = diff_dashboard(pre, post, fields=_FIELDS)
+    records: list[ChangeRecord] = diff_dashboard(pre, post, fields=_FIELDS)
 
     assert [(r.path, r.from_value, r.to_value) for r in records] == [
         (["json_metadata", "cross_filters_enabled"], None, True)
@@ -182,10 +186,10 @@ def test_null_cross_filters_turned_on_is_recorded() -> None:
 def test_null_key_set_to_its_default_is_recorded() -> None:
     """Only a missing key is exempt. A stored null (reachable through
     import) is kept as a change, erring towards recording too much."""
-    pre = _dashboard({"refresh_frequency": None})
-    post = _dashboard({"refresh_frequency": 0})
+    pre: dict[str, Any] = _dashboard({"refresh_frequency": None})
+    post: dict[str, Any] = _dashboard({"refresh_frequency": 0})
 
-    records = diff_dashboard(pre, post, fields=_FIELDS)
+    records: list[ChangeRecord] = diff_dashboard(pre, post, fields=_FIELDS)
 
     assert [(r.path, r.from_value, r.to_value) for r in records] == [
         (["json_metadata", "refresh_frequency"], None, 0)
@@ -195,10 +199,12 @@ def test_null_key_set_to_its_default_is_recorded() -> None:
 def test_default_match_is_type_strict() -> None:
     """``1 == True`` and ``False == 0`` in Python; neither is the default
     for its key, so both are recorded."""
-    pre = _dashboard({})
-    post = _dashboard({"cross_filters_enabled": 1, "refresh_frequency": False})
+    pre: dict[str, Any] = _dashboard({})
+    post: dict[str, Any] = _dashboard(
+        {"cross_filters_enabled": 1, "refresh_frequency": False}
+    )
 
-    records = diff_dashboard(pre, post, fields=_FIELDS)
+    records: list[ChangeRecord] = diff_dashboard(pre, post, fields=_FIELDS)
 
     assert [(r.path, r.to_value) for r in records] == [
         (["json_metadata", "cross_filters_enabled"], 1),
@@ -209,10 +215,10 @@ def test_default_match_is_type_strict() -> None:
 def test_keys_outside_the_defaults_are_unchanged() -> None:
     """Only the save path's own defaults are exempt; another key going from
     absent to empty is still recorded."""
-    pre = _dashboard({})
-    post = _dashboard({"stagger_refresh": False, "filter_scopes": {}})
+    pre: dict[str, Any] = _dashboard({})
+    post: dict[str, Any] = _dashboard({"stagger_refresh": False, "filter_scopes": {}})
 
-    records = diff_dashboard(pre, post, fields=_FIELDS)
+    records: list[ChangeRecord] = diff_dashboard(pre, post, fields=_FIELDS)
 
     assert sorted(r.path[1] for r in records) == ["filter_scopes", "stagger_refresh"]
 
@@ -220,11 +226,11 @@ def test_keys_outside_the_defaults_are_unchanged() -> None:
 def test_chart_save_without_conditional_formatting_lists_only_user_edits() -> None:
     """Rebeca's chart repro, as saved once the Conditional Formatting control
     no longer writes ``[]`` on mount: name, subtitle and show-metric-name."""
-    pre = {
+    pre: dict[str, str] = {
         "slice_name": "Flights",
         "params": json.dumps({"viz_type": "big_number_total"}),
     }
-    post = {
+    post: dict[str, str] = {
         "slice_name": "Flights total",
         "params": json.dumps(
             {
@@ -235,7 +241,7 @@ def test_chart_save_without_conditional_formatting_lists_only_user_edits() -> No
         ),
     }
 
-    records = diff_slice(pre, post, fields=["slice_name"])
+    records: list[ChangeRecord] = diff_slice(pre, post, fields=["slice_name"])
 
     assert sorted(tuple(r.path) for r in records) == [
         ("params", "show_metric_name"),
@@ -248,7 +254,7 @@ def test_chart_params_keep_recording_absent_to_empty() -> None:
     """Chart params have no save-default table: SC-115766 deliberately
     records an empty or default value unless Explore's hydration evidence
     covers it, so the fix for charts is in the control, not here."""
-    records = diff_slice_params(
+    records: list[ChangeRecord] = diff_slice_params(
         json.dumps({"viz_type": "big_number_total"}),
         json.dumps({"viz_type": "big_number_total", "conditional_formatting": []}),
     )
