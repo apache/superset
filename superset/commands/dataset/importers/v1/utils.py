@@ -248,6 +248,22 @@ def validate_catalog(config: dict[str, Any]) -> None:
         raise MultiCatalogDisabledValidationError()
 
 
+def _table_binding(
+    dataset: SqlaTable,
+) -> tuple[int | None, str | None, str | None, str, bool]:
+    """
+    Return what a dataset reads from: its database, catalog, schema, table
+    name, and whether it is virtual.
+    """
+    return (
+        dataset.database_id,
+        dataset.catalog or None,
+        dataset.schema or None,
+        dataset.table_name,
+        bool(dataset.sql),
+    )
+
+
 def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
     """
     Return a dataset's template params as a dict for the access check.
@@ -517,6 +533,10 @@ def import_dataset(  # noqa: C901
     # should we also load data into the dataset?
     data_uri = config.get("data")
 
+    # Snapshot the binding before the import mutates ``existing`` in place, so
+    # a physical rebinding can be told apart from an unchanged re-import.
+    previous_binding = _table_binding(existing) if existing else None
+
     # import recursively to include columns and metrics
     try:
         dataset = SqlaTable.import_from_dict(config, recursive=True, sync=sync)
@@ -585,6 +605,22 @@ def import_dataset(  # noqa: C901
     if not ignore_permissions:
         try:
             security_manager.raise_for_access(datasource=dataset)
+            # The datasource check accepts editorship of the dataset itself,
+            # and an overwrite or restore only requires editorship of the row
+            # being replaced. Without this check an editor could re-import a
+            # ``SELECT 1`` decoy as a physical dataset over an arbitrary
+            # table. A physical dataset that is new or bound to a different
+            # table must be authorized by data access on that table.
+            if not dataset.sql and _table_binding(dataset) != previous_binding:
+                security_manager.raise_for_access(
+                    database=dataset.database,
+                    table=Table(
+                        dataset.table_name,
+                        dataset.schema or None,
+                        dataset.catalog or None,
+                    ),
+                    allow_dataset_editorship=False,
+                )
             # For virtual datasets, also validate access to the tables the
             # SQL references, matching the create and update commands.
             if dataset.sql:
