@@ -1,17 +1,20 @@
 {
-  "name": "@superset-ui/eslint-plugin-icons",
+  "name": "@superset-ui/lint-plugin-i18n-strings",
   "version": "1.0.0",
-  "description": "Warns about direct usage of Ant Design icons",
+  "description": "Warns about translation variables",
   "keywords": [],
   "license": "Apache-2.0",
   "author": "Apache",
   "type": "module",
-  "main": "index.ts",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {},
   "peerDependencies": {
-    "eslint": ">=0.8.0"
+    "@oxlint/plugins": "*",
+    "@types/estree": "*",
+    "jest": "*",
+    "oxlint": "*"
   }
 }
