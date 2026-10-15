@@ -54,7 +54,7 @@ import { debounce, isEqual, isObjectLike, omit, pick } from 'lodash-es';
 import { Resizable } from 're-resizable';
 import { useHistory } from 'react-router-dom';
 import type { Action, Location } from 'history';
-import { ActionButton, Tooltip } from '@superset-ui/core/components';
+import { ActionButton, Constants, Tooltip } from '@superset-ui/core/components';
 import { usePluginContext } from 'src/components';
 import { Global } from '@emotion/react';
 import { Icons } from '@superset-ui/core/components/Icons';
@@ -428,6 +428,19 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   /** set while the chart state of a popped history entry is being applied */
   const restoringFromHistory = useRef(false);
   const restoreTarget = useSelector(selectRestoreTarget, shallowEqual);
+  /**
+   * Axis title text no longer only settles on a debounce timer (TextControl
+   * now uses useDeferredValue), so a transient intermediate value -- e.g. a
+   * title cleared and immediately replaced -- can reach here mid-edit. These
+   * debounce the resulting margin adjustment so a fleeting empty/non-empty
+   * value doesn't clobber a margin the user already customized.
+   */
+  const xAxisTitleMarginTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
+  const yAxisTitleMarginTimeoutRef = useRef<ReturnType<
+    typeof setTimeout
+  > | null>(null);
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(
@@ -799,39 +812,58 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         }
       }
 
-      // Automatically set axis title margins when titles are added or removed
+      // Automatically set axis title margins when titles are added or removed.
+      // Debounced (see xAxisTitleMarginTimeoutRef above): only the value that's
+      // still current once the debounce elapses gets applied, so a value that's
+      // merely passing through on its way to something else is ignored.
       if (changedControlKeys.includes('x_axis_title')) {
-        const xAxisTitle = props.controls.x_axis_title?.value || '';
-        const currentMargin = Number(
-          props.controls.x_axis_title_margin?.value ?? 0,
-        );
-
-        if (xAxisTitle && currentMargin < 30) {
-          props.actions.setControlValue('x_axis_title_margin', 30, undefined, {
-            programmatic: true,
-          });
-        } else if (!xAxisTitle && currentMargin !== 0) {
-          props.actions.setControlValue('x_axis_title_margin', 0, undefined, {
-            programmatic: true,
-          });
+        if (xAxisTitleMarginTimeoutRef.current) {
+          clearTimeout(xAxisTitleMarginTimeoutRef.current);
         }
+        xAxisTitleMarginTimeoutRef.current = setTimeout(() => {
+          const xAxisTitle = props.controls.x_axis_title?.value || '';
+          const currentMargin = Number(
+            props.controls.x_axis_title_margin?.value ?? 0,
+          );
+
+          if (xAxisTitle && currentMargin < 30) {
+            props.actions.setControlValue(
+              'x_axis_title_margin',
+              30,
+              undefined,
+              { programmatic: true },
+            );
+          } else if (!xAxisTitle && currentMargin !== 0) {
+            props.actions.setControlValue('x_axis_title_margin', 0, undefined, {
+              programmatic: true,
+            });
+          }
+        }, Constants.FAST_DEBOUNCE);
       }
 
       if (changedControlKeys.includes('y_axis_title')) {
-        const yAxisTitle = props.controls.y_axis_title?.value || '';
-        const currentMargin = Number(
-          props.controls.y_axis_title_margin?.value ?? 0,
-        );
-
-        if (yAxisTitle && currentMargin < 30) {
-          props.actions.setControlValue('y_axis_title_margin', 30, undefined, {
-            programmatic: true,
-          });
-        } else if (!yAxisTitle && currentMargin !== 0) {
-          props.actions.setControlValue('y_axis_title_margin', 0, undefined, {
-            programmatic: true,
-          });
+        if (yAxisTitleMarginTimeoutRef.current) {
+          clearTimeout(yAxisTitleMarginTimeoutRef.current);
         }
+        yAxisTitleMarginTimeoutRef.current = setTimeout(() => {
+          const yAxisTitle = props.controls.y_axis_title?.value || '';
+          const currentMargin = Number(
+            props.controls.y_axis_title_margin?.value ?? 0,
+          );
+
+          if (yAxisTitle && currentMargin < 30) {
+            props.actions.setControlValue(
+              'y_axis_title_margin',
+              30,
+              undefined,
+              { programmatic: true },
+            );
+          } else if (!yAxisTitle && currentMargin !== 0) {
+            props.actions.setControlValue('y_axis_title_margin', 0, undefined, {
+              programmatic: true,
+            });
+          }
+        }, Constants.FAST_DEBOUNCE);
       }
 
       // this should also be handled by the actions that are actually changing the controls
@@ -843,6 +875,18 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       }
     }
   }, [props.controls, props.ownState]);
+
+  useEffect(
+    () => () => {
+      if (xAxisTitleMarginTimeoutRef.current) {
+        clearTimeout(xAxisTitleMarginTimeoutRef.current);
+      }
+      if (yAxisTitleMarginTimeoutRef.current) {
+        clearTimeout(yAxisTitleMarginTimeoutRef.current);
+      }
+    },
+    [],
+  );
 
   // A restore queries the controls it just applied, so they are the last
   // queried ones - otherwise the chart would be reported as stale.
