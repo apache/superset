@@ -250,7 +250,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         exceptions: list[ValidationError],
     ) -> None:
         try:
-            security_manager.raise_for_access(database=new_db_connection, table=table)
+            security_manager.raise_for_access(
+                database=new_db_connection,
+                table=table,
+                allow_dataset_editorship=False,
+            )
         except SupersetSecurityException as ex:
             exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
         else:
@@ -260,7 +264,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self, db: Database, table: Table, exceptions: list[ValidationError]
     ) -> None:
         try:
-            security_manager.raise_for_access(database=db, table=table)
+            security_manager.raise_for_access(
+                database=db,
+                table=table,
+                allow_dataset_editorship=False,
+            )
         except SupersetSecurityException as ex:
             exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
 

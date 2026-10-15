@@ -166,6 +166,51 @@ def test_update_dataset_sql_access_ignores_dataset_editorship(
     assert raise_for_access.call_args.kwargs["allow_dataset_editorship"] is False
 
 
+def test_update_dataset_virtual_to_physical_ignores_dataset_editorship(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Converting a virtual dataset to a physical one must be authorized by data
+    access on the table it binds to. The dataset being converted is itself a
+    dataset registered under that table's name, so accepting editorship would
+    let a ``SELECT 1`` decoy named after a table become a physical dataset
+    over the real one.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "customer_pii"
+    mock_dataset.sql = "SELECT 1"
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    UpdateDatasetCommand(1, {"sql": None}).run()
+
+    raise_for_access.assert_called_once_with(
+        database=mock_database,
+        table=Table("customer_pii", "public", "catalog"),
+        allow_dataset_editorship=False,
+    )
+
+
 def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     """
     Test that updating a dataset with SQL to an unauthorized schema raises an error.
@@ -319,6 +364,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
 
     mock_raise_for_access.assert_called_once()
     assert mock_raise_for_access.call_args.kwargs["database"] is mock_new_database
+    assert mock_raise_for_access.call_args.kwargs["allow_dataset_editorship"] is False
     assert result == mock_dataset
     _, update_kwargs = mock_dataset_dao.update.call_args
     assert update_kwargs["attributes"]["database"] is mock_new_database
@@ -371,6 +417,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     raise_for_access.assert_called_once_with(
         database=mock_database,
         table=Table("restricted_table", "public", "catalog"),
+        allow_dataset_editorship=False,
     )
     assert any(
         "You don't have access to the table" in str(exc)

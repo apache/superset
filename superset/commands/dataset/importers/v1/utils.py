@@ -600,6 +600,7 @@ def import_dataset(  # noqa: C901
                     # references once the params are applied, so they are
                     # forwarded rather than left to default to empty.
                     template_params=_get_template_params(dataset),
+                    allow_dataset_editorship=False,
                 )
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex

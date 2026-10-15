@@ -662,6 +662,7 @@ def test_save_rejects_sql_repoint_without_access(
         sql=payload["sql"],
         catalog=None,
         schema=payload["schema"],
+        allow_dataset_editorship=False,
     )
     mock_get_database_by_id.assert_not_called()
 
@@ -692,12 +693,13 @@ def test_save_checks_both_table_and_sql_on_cross_database_repoint(
     )
 
     assert mock_security_manager.raise_for_access.call_args_list == [
-        call(database=new_database, table=ANY),
+        call(database=new_database, table=ANY, allow_dataset_editorship=False),
         call(
             database=new_database,
             sql="SELECT * FROM secret_table",
             catalog=None,
             schema="public",
+            allow_dataset_editorship=False,
         ),
     ]
 

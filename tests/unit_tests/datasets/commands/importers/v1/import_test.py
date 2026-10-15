@@ -703,6 +703,9 @@ def test_import_dataset_virtual_sql_check_receives_template_params(
         call for call in raise_for_access.call_args_list if call.kwargs.get("sql")
     )
     assert sql_call.kwargs["template_params"] == {"flag": True}
+    # A dataset named after a referenced table must not stand in for data
+    # access to it.
+    assert sql_call.kwargs["allow_dataset_editorship"] is False
     # Empty strings in the export payload must not be forwarded verbatim.
     assert sql_call.kwargs["schema"] is None
 

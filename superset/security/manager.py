@@ -5015,11 +5015,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             in the database+table / query branch; only ``datasource_access``
             (or the catalog/schema grants) does. Unlike
             ``force_dataset_match`` it leaves the catalog/schema
-            fallthroughs and parsing rules untouched. Call sites that
-            authorize new SQL a user supplies (virtual dataset create/update)
-            or run a stored SQL Lab query through chart-data set this to
-            False, since a dataset named after an arbitrary table is a decoy
-            any dataset-creating principal can make. Ignored when
+            fallthroughs and parsing rules untouched. Call sites that bind a
+            dataset to a table or SQL the user supplies (dataset create,
+            update, legacy ``/datasource/save/`` and import) or run a stored
+            SQL Lab query through chart-data set this to False, since a
+            dataset named after an arbitrary table is a decoy any
+            dataset-creating principal can make. Ignored when
             ``force_dataset_match`` is True, which never accepts editorship.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
@@ -5381,13 +5382,13 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     # ``datasource_access`` on a registered dataset is always
                     # sufficient. Editorship of the dataset is accepted only on
                     # the non-strict path (``/table_metadata/``,
-                    # ``/select_star/``, physical dataset checks), where it is
-                    # the dataset-owner "explore your own dataset" grant from
-                    # #20382. Under strict scoping (SQL Lab raw queries, MetaDB,
-                    # MCP ``execute_sql``, alert/report queries) and for callers
-                    # that pass ``allow_dataset_editorship=False`` (virtual
-                    # dataset SQL, chart-data on a SQL Lab query) editorship is
-                    # deliberately excluded:
+                    # ``/select_star/``), where it is the dataset-owner
+                    # "explore your own dataset" grant from #20382. Under
+                    # strict scoping (SQL Lab raw queries, MetaDB, MCP
+                    # ``execute_sql``, alert/report queries) and for callers
+                    # that pass ``allow_dataset_editorship=False`` (binding a
+                    # dataset to a table or SQL, chart-data on a SQL Lab
+                    # query) editorship is deliberately excluded:
                     # returning raw rows from the underlying warehouse table
                     # must follow the user's live data-access grants, not
                     # editorship of a same-named dataset. Any principal able to
