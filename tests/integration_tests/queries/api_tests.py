@@ -586,7 +586,7 @@ class TestQueryApi(SupersetTestCase):
         query = self.insert_query(
             get_example_database().id,
             self.get_user("admin").id,
-            "finished-stop",
+            "done-stop",
             sql="SELECT 1",
             status=QueryStatus.SUCCESS,
         )
