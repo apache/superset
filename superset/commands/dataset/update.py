@@ -283,6 +283,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     sql=sql,
                     catalog=catalog,
                     schema=schema,
+                    allow_dataset_editorship=False,
                 )
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))

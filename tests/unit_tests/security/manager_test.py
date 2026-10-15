@@ -4164,6 +4164,47 @@ def test_raise_for_access_editorship_denied_in_strict_mode(
     sm.raise_for_access(query=query)
 
 
+def test_raise_for_access_editorship_opt_out_keeps_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    ``allow_dataset_editorship=False`` (virtual dataset create/update,
+    chart-data on a SQL Lab query) must not accept editorship of a
+    same-named dataset, which any dataset-creating principal can set up as a
+    decoy. Unlike ``force_dataset_match`` it must keep the ``schema_access``
+    fallthrough, so a schema grant still authorizes the SQL.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    can_access = mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=True)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    # The user edits a decoy dataset named after the table but holds no
+    # datasource_access on it.
+    SqlaTable.query_datasources_by_name.return_value = [
+        mocker.MagicMock(perm=f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)")
+    ]
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM dbo.foo",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, allow_dataset_editorship=False)
+
+    # A schema grant still authorizes the table on this path.
+    can_access.side_effect = lambda permission_name, _view_name: (
+        permission_name == "schema_access"
+    )
+    sm.raise_for_access(query=query, allow_dataset_editorship=False)
+
+
 def test_get_datasources_accessible_by_user_schema_access(
     mocker: MockerFixture,
     app_context: None,

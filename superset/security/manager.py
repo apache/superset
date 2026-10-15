@@ -4972,6 +4972,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         template_params: Optional[dict[str, Any]] = None,
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
+        allow_dataset_editorship: bool = True,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -5009,6 +5010,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             access, and a query's SQL may be templated such that the
             tables actually touched depend on parameters supplied at
             request time.
+        :param allow_dataset_editorship: When False, editorship of a dataset
+            registered for a referenced table does not authorize that table
+            in the database+table / query branch; only ``datasource_access``
+            (or the catalog/schema grants) does. Unlike
+            ``force_dataset_match`` it leaves the catalog/schema
+            fallthroughs and parsing rules untouched. Call sites that
+            authorize new SQL a user supplies (virtual dataset create/update)
+            or run a stored SQL Lab query through chart-data set this to
+            False, since a dataset named after an arbitrary table is a decoy
+            any dataset-creating principal can make. Ignored when
+            ``force_dataset_match`` is True, which never accepts editorship.
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5368,11 +5380,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for datasource_ in datasources:
                     # ``datasource_access`` on a registered dataset is always
                     # sufficient. Editorship of the dataset is accepted only on
-                    # the non-strict path (chart-data, dataset CRUD,
-                    # ``/table_metadata/``, ``/select_star/``), where it is the
-                    # dataset-owner "explore your own dataset" grant from
+                    # the non-strict path (``/table_metadata/``,
+                    # ``/select_star/``, physical dataset checks), where it is
+                    # the dataset-owner "explore your own dataset" grant from
                     # #20382. Under strict scoping (SQL Lab raw queries, MetaDB,
-                    # MCP ``execute_sql``) editorship is deliberately excluded:
+                    # MCP ``execute_sql``, alert/report queries) and for callers
+                    # that pass ``allow_dataset_editorship=False`` (virtual
+                    # dataset SQL, chart-data on a SQL Lab query) editorship is
+                    # deliberately excluded:
                     # returning raw rows from the underlying warehouse table
                     # must follow the user's live data-access grants, not
                     # editorship of a same-named dataset. Any principal able to
@@ -5383,7 +5398,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     if self.can_access(
                         "datasource_access",
                         datasource_.perm or "",
-                    ) or (not force_dataset_match and self.is_editor(datasource_)):
+                    ) or (
+                        allow_dataset_editorship
+                        and not force_dataset_match
+                        and self.is_editor(datasource_)
+                    ):
                         # access to any datasource is sufficient
                         break
                 else:

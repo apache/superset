@@ -71,6 +71,45 @@ def _validate_virtual_dataset(
     return command
 
 
+def test_create_dataset_sql_access_ignores_dataset_editorship() -> None:
+    """
+    Virtual dataset SQL must be authorized by data access, not by editorship
+    of a dataset named after a referenced table. Otherwise a ``SELECT 1``
+    decoy named after a table would let its creator read the real table.
+    """
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.backend = "postgresql"
+    mock_database.db_engine_spec.engine = "postgresql"
+    mock_database.get_default_catalog.return_value = None
+
+    with (
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.get_database_by_id",
+            return_value=mock_database,
+        ),
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch(
+            "superset.commands.dataset.create.security_manager.raise_for_access"
+        ) as raise_for_access,
+        patch("superset.commands.dataset.create.populate_subjects"),
+    ):
+        CreateDatasetCommand(
+            {
+                "database": 1,
+                "schema": "public",
+                "table_name": "test_virtual_dataset",
+                "sql": "SELECT * FROM public.customer_pii",
+            }
+        ).validate()
+
+    raise_for_access.assert_called_once()
+    assert raise_for_access.call_args.kwargs["allow_dataset_editorship"] is False
+
+
 def test_create_dataset_schema_derived_from_single_schema_query() -> None:
     """A single explicit query schema replaces the SQL Lab dropdown schema."""
     command = _validate_virtual_dataset(

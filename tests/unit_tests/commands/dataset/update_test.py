@@ -124,6 +124,48 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_dataset_dao.update.assert_called_once()
 
 
+def test_update_dataset_sql_access_ignores_dataset_editorship(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Updating a virtual dataset's SQL must be authorized by data access, not
+    by editorship of a dataset named after a referenced table (including the
+    dataset being edited). Otherwise a ``SELECT 1`` decoy named after a table
+    could be repointed at the real table by its editor.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "customer_pii"
+    mock_dataset.sql = "SELECT 1"
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    UpdateDatasetCommand(1, {"sql": "SELECT * FROM public.customer_pii"}).run()
+
+    raise_for_access.assert_called_once()
+    assert raise_for_access.call_args.kwargs["allow_dataset_editorship"] is False
+
+
 def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     """
     Test that updating a dataset with SQL to an unauthorized schema raises an error.
