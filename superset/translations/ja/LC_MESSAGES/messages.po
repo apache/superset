@@ -2412,7 +2412,7 @@ msgid "Archive selected dashboards?"
 msgstr "選択したダッシュボードをアーカイブしますか？"
 
 msgid "Archived"
-msgstr "アーカイブ日"
+msgstr "アーカイブ済み"
 
 #, python-format
 msgid "Archived %s item(s)"
@@ -7466,10 +7466,10 @@ msgid "Force date format"
 msgstr "日付形式を強制"
 
 msgid "Force disabled"
-msgstr "強制を無効"
+msgstr "強制的に無効"
 
 msgid "Force enabled"
-msgstr "強制を有効"
+msgstr "強制的に有効"
 
 msgid "Force refresh"
 msgstr "強制更新"
@@ -10075,7 +10075,7 @@ msgid ""
 " channel from the dropdown, or copy its id from Slack (channel name, View"
 " channel details, the id is at the bottom)."
 msgstr ""
-"Slack チャンネル ID ではありません: %(invalid)s。Superset は report の添付ファイルを "
+"Slack チャンネル ID ではありません: %(invalid)s。Supersetはレポートの添付ファイルを "
 "files_upload_v2 を使ってアップロードしますが、これはチャンネル名ではなくチャンネル ID "
 "を受け付けます。そのため、名前が正常に保存されても配信されません。ドロップダウンからチャンネルを選択するか、Slack から ID "
 "をコピーしてください（チャンネル名 > チャンネル詳細を表示 > ID は一番下にあります）。"
