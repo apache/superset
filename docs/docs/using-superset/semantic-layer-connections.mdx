@@ -64,6 +64,6 @@ while dependent choices are loading.
 
 When adding a semantic view, Superset asks the provider to look up its name with
 the submitted configuration before saving it. If lookup fails or returns no view,
-Superset reports that the view may not exist or the semantic layer may be
+the API reports that the view may not exist or the semantic layer may be
 unreachable, and does not add it. Other valid views in the same request can still
 be added. This check does not guarantee that later queries will succeed.

@@ -131,7 +131,12 @@ class CreateSemanticViewCommand(BaseCommand):
                 name, configuration
             )
         except Exception as ex:  # pylint: disable=broad-except
-            logger.warning("Semantic view lookup failed: %s", type(ex).__name__)
+            logger.warning(
+                "Semantic view lookup failed for layer %s, view %s: %s",
+                layer_uuid,
+                name,
+                type(ex).__name__,
+            )
             view = None
         if view is None:
             raise SemanticViewInvalidError(

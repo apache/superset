@@ -533,6 +533,13 @@ def test_create_semantic_view_lookup_failure(
     assert error.value.__suppress_context__
     assert "secret" not in caplog.text
     assert all(record.exc_info is None for record in caplog.records)
+    if failure is not None:
+        assert caplog.messages == [
+            "Semantic view lookup failed for layer layer-uuid, view orders: "
+            f"{type(failure).__name__}"
+        ]
+    else:
+        assert caplog.messages == []
     dao.validate_uniqueness.assert_not_called()
     dao.create.assert_not_called()
 
