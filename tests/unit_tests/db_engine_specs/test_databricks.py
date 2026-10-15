@@ -81,6 +81,7 @@ def test_dialect_supports_installed_sqlalchemy(mocker: MockerFixture) -> None:
             "host": "localhost",
             "port": 443,
             "database": "default",
+            "encryption": False,
         }
     )
     native_url, native_connect_args = DatabricksNativeEngineSpec.adjust_engine_params(
@@ -117,6 +118,7 @@ def test_databricks_native_adjust_engine_params() -> None:
             "host": "localhost",
             "port": 443,
             "database": "default",
+            "encryption": False,
         }
     )
     assert uri_str == "databricks+connector://token:test-token@localhost:443/default"
@@ -133,6 +135,23 @@ def test_databricks_native_adjust_engine_params() -> None:
     assert "catalog" not in args_default
     assert args_default["schema"] == "default"
     assert args_default["http_path"] == "/sql/1.0/warehouses/test"
+
+    # Test fallback to "default" schema when connection has no database or schema
+    url_no_db_schema, args_no_db_schema = (
+        DatabricksNativeEngineSpec.adjust_engine_params(
+            make_url(
+                "databricks+connector://token:test-token@localhost:443/"
+                "?catalog=main&http_path=/sql/1.0/warehouses/test"
+            ),
+            connect_args={},
+        )
+    )
+    assert url_no_db_schema.query["catalog"] == "main"
+    assert url_no_db_schema.query["schema"] == "default"
+    assert url_no_db_schema.query["http_path"] == "/sql/1.0/warehouses/test"
+    assert args_no_db_schema["catalog"] == "main"
+    assert args_no_db_schema["schema"] == "default"
+    assert args_no_db_schema["http_path"] == "/sql/1.0/warehouses/test"
 
     # Test catalog on a connection with no configured catalog (dataset creation
     # with the server default catalog from `get_default_catalog`): the URI

@@ -223,6 +223,9 @@ def test_main_ascii_stdout_markdown_report(
             engine_name: str = "ASCII MD Engine"
             metadata: dict[str, Any] = {
                 "description": "An engine spec for ascii markdown testing",
+                "categories": ["DatabaseCategory.OTHER"],
+                "pypi_packages": ["ascii_pkg"],
+                "connection_string": "ascii://localhost",
             }
         """,
     )
@@ -242,3 +245,4 @@ def test_main_ascii_stdout_markdown_report(
 
     decoded = buffer.getvalue().decode("utf-8")
     assert "ASCII MD Engine" in decoded
+    assert "✓" in decoded

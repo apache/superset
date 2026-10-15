@@ -1042,7 +1042,6 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
             and catalog != original_catalog
         )
 
-        effective_catalog = catalog or original_catalog
         if schema:
             effective_schema = schema
         elif not is_catalog_changing:
@@ -1063,7 +1062,7 @@ class DatabricksNativeEngineSpec(DatabricksDynamicBaseEngineSpec):
         )
 
         query_dict = dict(uri.query)
-        if effective_catalog:
+        if effective_catalog := catalog or original_catalog:
             query_dict["catalog"] = effective_catalog
             adjusted_connect_args["catalog"] = effective_catalog
         else:
