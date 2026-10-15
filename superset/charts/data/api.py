@@ -553,18 +553,10 @@ class ChartDataRestApi(ChartRestApi):
                 ):
                     query["timing"] = query_result.timing.as_public_dict()
 
-            # Redact the generated SQL, stacktraces and raw driver errors from
-            # guest (embedded) responses. Guests see the SQL only when their
-            # guest-token role has "can view query on Dashboard" (the permission
-            # the frontend uses to expose the "View query" action); stacktraces
-            # and driver errors stay redacted regardless, as those leak details
-            # of the deployment itself. The helper resolves the guest-sanitization
-            # decision (failing closed for a guest whose principal can't be
-            # resolved) and is a no-op otherwise, so it can be called
-            # unconditionally. The same
-            # helper redacts the ``/datasource/samples`` (Drill to detail) and
-            # legacy ``/api/v1/query/`` responses so the guest-facing query
-            # endpoints cannot diverge.
+            # Guest (embedded) responses drop the generated SQL unless the guest
+            # role has "can view query on Dashboard", and always drop stacktraces
+            # and raw driver errors; a no-op for other principals. See
+            # ``redact_sensitive_query_fields``.
             redact_sensitive_query_fields(queries)
 
             payload: dict[str, Any] = {"result": queries}

@@ -179,11 +179,10 @@ def redact_sensitive_query_fields(results: list[dict[str, Any]]) -> None:
     to expose the "View query" action. ``stacktrace`` and raw driver ``error``
     text describe the deployment itself and are redacted for guests regardless.
 
-    Shared by every endpoint that returns query-context payloads --
-    ``/api/v1/chart/data``, ``/datasource/samples`` (Drill to detail) and the
-    legacy ``/api/v1/query/`` -- so they cannot diverge: the chart-data response
-    has stripped the SQL for guests since CVE-2025-55673, and the other
-    endpoints must apply the same rule.
+    Used by ``/api/v1/chart/data``, ``/datasource/samples`` (Drill to detail)
+    and the legacy ``/api/v1/query/``, which all return query-context payloads
+    to embedded guests, so the three apply one rule: the chart-data response has
+    stripped the SQL for guests since CVE-2025-55673.
 
     The sanitization decision is resolved once here -- ``is_sanitization_required``
     fails closed for a guest whose principal can't be resolved -- and threaded
