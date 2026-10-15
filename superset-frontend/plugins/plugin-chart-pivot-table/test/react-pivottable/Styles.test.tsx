@@ -42,9 +42,18 @@ test('sticky-positions the row-label column and its corner header cell(s) so the
   const rowLabelStyle = getComputedStyle(rowLabelCell as Element);
   expect(rowLabelStyle.position).toBe('sticky');
   expect(rowLabelStyle.left).toBe('0px');
-  // A frozen label is width-capped so a long unbroken value can't cover
-  // every metric cell in a narrow chart.
-  expect(rowLabelStyle.maxWidth).toBe('50%');
+  // `overflow-wrap: anywhere` is what keeps a long unbroken label from
+  // covering every metric cell in a narrow chart: it lets the browser's
+  // table auto-layout count the column's wrapped (not full unbroken)
+  // width as a candidate, so the column no longer has to grow to fit the
+  // whole value on one line. `max-width` is deliberately NOT set here --
+  // on a table cell under table-layout: auto it's a no-op in a real
+  // browser (measured in Chrome, @aminghadersohi on #43917), even though
+  // jsdom's getComputedStyle would have reported it as declared. jsdom
+  // doesn't run real layout, so it can't verify the actual width effect;
+  // only the declared property is checkable here.
+  expect(rowLabelStyle.maxWidth).toBe('');
+  expect(rowLabelStyle.overflowWrap).toBe('anywhere');
 
   // The corner cells above the frozen row-label column (the column
   // attribute name cell in each column-header row and the row-attribute

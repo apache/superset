@@ -171,9 +171,15 @@ export const Styles = styled.div<{
       left: 0;
       z-index: 1;
       background-color: ${theme.colorBgBase};
-      /* Cap the frozen label so a long unbroken value can't grow wider
-       * than the scroll area and cover every metric cell. */
-      max-width: 50%;
+      /* max-width is a no-op on a table cell under the default
+       * table-layout: auto (measured in real Chrome -- @aminghadersohi,
+       * #43917): a percentage can't resolve against a column whose own
+       * width is itself content-derived, and even a fixed px value is only
+       * a sizing hint the auto algorithm is free to exceed. overflow-wrap:
+       * anywhere is what actually limits how wide a long unbroken value
+       * pushes this column: it lets the auto-layout algorithm count the
+       * column's wrapped (not full unbroken) width as a candidate, so it
+       * no longer has to grow to fit the whole value on one line. */
       overflow-wrap: anywhere;
     }
 
