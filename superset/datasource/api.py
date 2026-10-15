@@ -45,10 +45,12 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
-from superset.semantic_layers.access import (
-    SemanticLayersDisabledError,
-)
+from superset.semantic_layers.access import SemanticLayersDisabledError
 from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
+)
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
@@ -238,9 +240,10 @@ class DatasourceRestApi(BaseSupersetApi):
               type: string
             name: q
             description: >-
-              Optional case-insensitive substring; only values containing it are
-              returned. Lets the client search the full column rather than the
-              truncated first page.
+              Optional substring search for SQL dataset columns and text semantic
+              dimensions. Semantic non-text dimensions return the bounded page
+              without server-side search. Case sensitivity follows the datasource
+              or semantic provider.
           - in: query
             schema:
               type: string
@@ -371,6 +374,8 @@ class DatasourceRestApi(BaseSupersetApi):
                 selection_version=selection_version,
                 force=force,
             )
+        except (SemanticLayerQueryRejectedError, SemanticLayerExecutionError) as ex:
+            return self.response(ex.status, message=ex.message)
         except QueryObjectValidationError as ex:
             # Validation errors can quote dataset SQL; embedded guests get the
             # same generic text as the chart-data API.
