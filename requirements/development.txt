@@ -1064,7 +1064,7 @@ sqlalchemy==2.0.52
     #   starrocks
     #   testcontainers
     #   ydb-sqlalchemy
-sqlalchemy-bigquery==1.17.2
+sqlalchemy-bigquery==1.17.3
     # via apache-superset
 sqlalchemy-cockroachdb==2.0.4
     # via apache-superset
