@@ -488,6 +488,7 @@ def test_normalize_dttm_col_timezone_with_tz_aware_values() -> None:
     normalize_dttm_col(df, dttm_cols)
 
     assert is_datetime64_dtype(df["date_col"])
+    assert df["date_col"][0].tzinfo is None
     assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 01:00:00"
     assert df["date_col"][1].strftime("%Y-%m-%d %H:%M:%S") == "2020-07-01 02:00:00"
 
