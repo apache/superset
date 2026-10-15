@@ -64,6 +64,7 @@ export enum VizType {
   Timeseries = 'echarts_timeseries',
   Tree = 'tree_chart',
   Treemap = 'treemap_v2',
+  UniverSheet = 'univer_sheet',
   Waterfall = 'waterfall',
   WordCloud = 'word_cloud',
   WorldMap = 'world_map',

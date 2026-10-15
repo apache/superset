@@ -1,0 +1,44 @@
+{
+  "name": "@superset-ui/plugin-chart-univer",
+  "version": "0.20.3",
+  "description": "Superset Chart - Excel-like spreadsheet powered by Univer",
+  "keywords": [
+    "superset"
+  ],
+  "homepage": "https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-univer#readme",
+  "bugs": {
+    "url": "https://github.com/apache/superset/issues"
+  },
+  "license": "Apache-2.0",
+  "author": "Superset",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/apache/superset.git",
+    "directory": "superset-frontend/plugins/plugin-chart-univer"
+  },
+  "files": [
+    "esm",
+    "lib"
+  ],
+  "sideEffects": [
+    "*.css"
+  ],
+  "main": "lib/index.js",
+  "module": "esm/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@univerjs/preset-sheets-core": "1.0.4",
+    "@univerjs/presets": "1.0.4",
+    "lodash-es": "^4.18.1"
+  },
+  "peerDependencies": {
+    "@apache-superset/core": "*",
+    "@superset-ui/chart-controls": "*",
+    "@superset-ui/core": "*",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "rxjs": "^7.8.1"
+  }
+}
