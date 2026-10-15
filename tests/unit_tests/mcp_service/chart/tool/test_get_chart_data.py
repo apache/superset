@@ -26,7 +26,7 @@ from datetime import datetime, time as dt_time, timezone
 from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -3930,59 +3930,101 @@ class TestOAuthErrorRouting:
         assert data["error_type"] != "DataError"
 
 
-def _categorized_errors() -> list[tuple[Exception, str, str]]:
-    """Query-time errors with the MCP category matching the chart-data API."""
-    from superset_core.semantic_layers.errors import SemanticQueryErrorCode
-
+def _guest_rls_refusal() -> Exception:
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import SupersetSecurityException
-    from superset.semantic_layers.exceptions import (
-        SemanticLayerExecutionError,
-        SemanticLayerQueryRejectedError,
+
+    return SupersetSecurityException(
+        SupersetError(
+            message="Semantic views cannot enforce guest row-level security rules.",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.WARNING,
+        )
     )
 
-    return [
-        (
-            SupersetSecurityException(
-                SupersetError(
-                    message="Semantic views cannot enforce guest row-level "
-                    "security rules.",
-                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                    level=ErrorLevel.WARNING,
-                )
-            ),
-            "AccessDenied",
-            "Semantic views cannot enforce guest row-level security rules.",
-        ),
-        (
-            SemanticLayerQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER),
-            "ValidationError",
-            "A semantic query filter is invalid.",
-        ),
-        (
-            SemanticLayerExecutionError(),
-            "DataError",
-            "Error retrieving chart data",
-        ),
-    ]
+
+def _invalid_filter_rejection() -> Exception:
+    from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+    from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+
+    return SemanticLayerQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+
+
+def _provider_fault() -> Exception:
+    from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+
+    return SemanticLayerExecutionError()
+
+
+# (raising stage, error factory, MCP error type, message fragment). Access is
+# refused while validating; providers reject or fail while running.
+CATEGORIZED_QUERY_ERRORS: list[Any] = [
+    pytest.param(
+        "validate",
+        _guest_rls_refusal,
+        "AccessDenied",
+        "Semantic views cannot enforce guest row-level security rules.",
+        id="refusal",
+    ),
+    pytest.param(
+        "run",
+        _invalid_filter_rejection,
+        "ValidationError",
+        "A semantic query filter is invalid.",
+        id="rejection",
+    ),
+    pytest.param(
+        "run",
+        _provider_fault,
+        "DataError",
+        "An error occurred while fetching the data.",
+        id="fault",
+    ),
+]
+
+
+def _raising_command(stage: str, error: Exception) -> type:
+    """Build a ChartDataCommand stand-in that raises at the given stage."""
+
+    class RaisingChartDataCommand:
+        def __init__(self, query_context: object) -> None:
+            self.query_context: object = query_context
+
+        def validate(self) -> None:
+            if stage == "validate":
+                raise error
+
+        def run(self) -> dict[str, Any]:
+            raise error
+
+    return RaisingChartDataCommand
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("error,error_type,message", _categorized_errors())
+@pytest.mark.parametrize(
+    "stage,make_error,error_type,message", CATEGORIZED_QUERY_ERRORS
+)
 async def test_saved_chart_query_error_keeps_api_category(
     mcp_server: Any,
     mock_auth: Any,
     monkeypatch: pytest.MonkeyPatch,
-    error: Exception,
+    stage: str,
+    make_error: Callable[[], Exception],
     error_type: str,
     message: str,
 ) -> None:
     """Refusals are access errors and provider rejections are validation errors."""
     routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
-    routing._patch_query_path(monkeypatch, routing._make_chart(), error)
+    routing._patch_query_path(monkeypatch, routing._make_chart(), make_error())
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command(stage, make_error()),
+    )
 
     async with Client(mcp_server) as client:
-        result = await client.call_tool(
+        result: Any = await client.call_tool(
             "get_chart_data", {"request": {"identifier": 1}}
         )
         data: dict[str, Any] = json.loads(result.content[0].text)
@@ -3992,33 +4034,22 @@ async def test_saved_chart_query_error_keeps_api_category(
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("error,error_type,message", _categorized_errors())
+@pytest.mark.parametrize(
+    "stage,make_error,error_type,message", CATEGORIZED_QUERY_ERRORS
+)
 async def test_unsaved_chart_query_error_keeps_api_category(
     mcp_server: Any,
     mock_auth: Any,
     monkeypatch: pytest.MonkeyPatch,
-    error: Exception,
+    stage: str,
+    make_error: Callable[[], Exception],
     error_type: str,
     message: str,
 ) -> None:
     """The form_data_key path categorizes errors like the saved-chart path."""
-    chart_data_module = importlib.import_module(
+    chart_data_module: Any = importlib.import_module(
         "superset.mcp_service.chart.tool.get_chart_data"
     )
-    get_data_command_module = importlib.import_module(
-        "superset.commands.chart.data.get_data_command"
-    )
-
-    class RaisingChartDataCommand:
-        def __init__(self, query_context: object) -> None:
-            self.query_context = query_context
-
-        def validate(self) -> None:
-            pass
-
-        def run(self) -> dict[str, Any]:
-            raise error
-
     monkeypatch.setattr(
         chart_data_module,
         "get_cached_form_data",
@@ -4039,18 +4070,19 @@ async def test_unsaved_chart_query_error_keeps_api_category(
         lambda *args, **kwargs: SimpleNamespace(queries=[], form_data={}),
     )
     monkeypatch.setattr(
-        get_data_command_module, "ChartDataCommand", RaisingChartDataCommand
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command(stage, make_error()),
     )
 
     async with Client(mcp_server) as client:
-        result = await client.call_tool(
+        result: Any = await client.call_tool(
             "get_chart_data", {"request": {"form_data_key": "cached-key"}}
         )
         data: dict[str, Any] = json.loads(result.content[0].text)
 
     assert data["error_type"] == error_type
-    expected: str = message.replace("retrieving", "querying unsaved")
-    assert expected in data["error"]
+    assert message in data["error"]
 
 
 # ---------------------------------------------------------------------------

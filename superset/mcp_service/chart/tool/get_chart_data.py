@@ -127,7 +127,7 @@ def _is_expected_json_load_error(exc: Exception) -> bool:
 
 
 def _access_denied_error(exc: SupersetSecurityException) -> ChartError:
-    """Report a query-time refusal as an access error, as the chart-data API does."""
+    """Report a query-time refusal in the category of the chart-data API's 403."""
     return ChartError(error=bounded_exception_message(exc), error_type="AccessDenied")
 
 

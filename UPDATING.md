@@ -338,6 +338,13 @@ Connector/C this also verifies the server hostname, so the switch needs
 host. A Doris FE on its default self-signed certificate fails to connect once
 the switch is on.
 
+### MCP get_chart_data error categories
+
+`get_chart_data` returns `AccessDenied` when a query is refused for access, and
+`ValidationError` when a semantic layer provider rejects the query, matching the
+chart-data API's 403 and 400. Both were previously reported as `DataError`.
+Clients that matched on `DataError` for these cases should handle the new types.
+
 ### Empty MCP chart previews
 
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
