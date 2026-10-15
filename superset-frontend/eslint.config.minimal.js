@@ -120,7 +120,6 @@ export default [
       '**/spec/**',
       '**/__tests__/**',
       '**/__mocks__/**',
-      'cypress-base/**',
     ],
     rules: {
       'theme-colors/no-literal-colors': 'off',

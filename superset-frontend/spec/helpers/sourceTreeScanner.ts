@@ -27,7 +27,6 @@ const ALWAYS_SKIP_SEGMENTS = new Set([
   'build',
   'coverage',
   '__mocks__',
-  'cypress-base',
   'playwright',
 ]);
 

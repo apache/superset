@@ -136,6 +136,7 @@ export type ColumnType =
   | MetricColumnType;
 
 export interface Props {
+  semanticSelectionVersion?: string;
   adhocFilter: AdhocFilter;
   onChange: (filter: AdhocFilter) => void;
   options: ColumnType[];
@@ -403,6 +404,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   const [loadedOptionCount, setLoadedOptionCount] = useState(0);
   const [optionsTruncated, setOptionsTruncated] = useState(false);
   const [suggestionsUnavailable, setSuggestionsUnavailable] = useState(false);
+  const [suggestionsDisabled, setSuggestionsDisabled] = useState(false);
   // Identity of the newest suggestions request. A slow response that loses
   // the race -- a failing fetch resolving after a newer search succeeded, or
   // after the column changed -- must not stamp its outcome over the current
@@ -547,15 +549,17 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     // months-long 500 on every semantic view went unreported. Likewise a capped
     // list reads as the whole set, so an absent value looks like a value that
     // does not exist. Each note is only shown when it applies.
-    helperText: suggestionsUnavailable
-      ? t('Suggestions could not be loaded. You can still type a value.')
-      : optionsTruncated
-        ? t(
-            'Only the first %s values are listed. Type to search all of them, ' +
-              'or enter a value that is not listed.',
-            loadedOptionCount,
-          )
-        : undefined,
+    helperText: suggestionsDisabled
+      ? t('Suggestions are unavailable for this view. Enter a value manually.')
+      : suggestionsUnavailable
+        ? t('Suggestions could not be loaded. You can still type a value.')
+        : optionsTruncated
+          ? t(
+              'Only the first %s values are listed. Type to search all of them, ' +
+                'or enter a value that is not listed.',
+              loadedOptionCount,
+            )
+          : undefined,
     mode:
       operatorId && MULTI_OPERATORS.has(operatorId as Operators)
         ? ('multiple' as const)
@@ -599,6 +603,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
   // `props.datasource`, whose identity the parent does not guarantee.
   const datasourceType = props.datasource?.type;
   const datasourceId = props.datasource?.id;
+  // This marker belongs to the selections, never to freshly fetched metadata.
+  const selectionVersion =
+    datasourceType === 'semantic_view' && !props.adhocFilter.isExtra
+      ? props.semanticSelectionVersion
+      : undefined;
 
   const loadComparatorOptions = useCallback(
     async (search: string): Promise<SelectOptionsTypePage> => {
@@ -618,6 +627,9 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       if (search) {
         params.set('q', search);
       }
+      if (selectionVersion) {
+        params.set('semantic_selection_version', selectionVersion);
+      }
       const query = params.toString();
 
       try {
@@ -626,6 +638,11 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             `/api/v1/datasource/${datasourceType}/${datasourceId}` +
             `/column/${encodeURIComponent(col)}/values/${query ? `?${query}` : ''}`,
         });
+        if (isCurrent()) {
+          setSuggestionsDisabled(
+            json.suggestions_status === 'unavailable_versioned_view',
+          );
+        }
         const data = json.result.map((suggestion: unknown) => {
           // Complex column values arrive as JS arrays or objects: whole arrays
           // for MULTI_VALUE columns (e.g. [5, 6, 7]) and Map/Tuple objects for
@@ -678,6 +695,7 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
       canSuggestComparatorValues,
       datasourceType,
       datasourceId,
+      selectionVersion,
       arrayElements,
     ],
   );
@@ -694,7 +712,14 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
     // previous column must not resurface the note after this reset.
     comparatorRequestRef.current += 1;
     setSuggestionsUnavailable(false);
-  }, [subjectString, arrayElements]);
+    setSuggestionsDisabled(false);
+  }, [
+    subjectString,
+    arrayElements,
+    datasourceType,
+    datasourceId,
+    selectionVersion,
+  ]);
 
   useEffect(() => {
     if (isFeatureEnabled(FeatureFlag.EnableAdvancedDataTypes)) {
@@ -800,6 +825,12 @@ const AdhocFilterEditPopoverSimpleTabContent: FC<Props> = props => {
             }
           >
             <SelectWithLabel
+              key={JSON.stringify([
+                datasourceType,
+                datasourceId,
+                subjectString,
+                selectionVersion,
+              ])}
               ref={comparatorSelectRef}
               css={css`
                 margin-top: ${theme.marginXS}px;

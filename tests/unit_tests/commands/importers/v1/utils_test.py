@@ -510,6 +510,40 @@ class TestLoadConfigsNonMappingYaml:
         assert len(exceptions) == 1
         assert "databases/malformed.yaml" in exceptions[0].messages
 
+    def test_unparseable_yaml_is_reported_as_validation_error(
+        self, session: Session
+    ) -> None:
+        """YAML that ``load_yaml`` cannot parse raises a ValidationError
+        *before* ``config`` is assigned. The ``except ValidationError``
+        handler's ``isinstance(config, dict)`` diagnostic must not then crash
+        with an UnboundLocalError (regression for SUPERSET-PYTHON-176W)."""
+        from superset.commands.importers.v1.utils import load_configs
+        from superset.databases.schemas import ImportV1DatabaseSchema
+        from superset.models.core import Database
+
+        engine = session.get_bind()
+        Database.metadata.create_all(engine)  # pylint: disable=no-member
+
+        # An unterminated quoted scalar raises yaml.scanner.ScannerError,
+        # mirroring the malformed chart YAML seen in the Sentry report.
+        contents = {"databases/malformed.yaml": 'key: "unterminated string'}
+        exceptions: list[ValidationError] = []
+
+        configs = load_configs(
+            contents,
+            {"databases/": ImportV1DatabaseSchema()},
+            {},
+            exceptions,
+            {},
+            {},
+            {},
+            {},
+        )
+
+        assert configs == {}
+        assert len(exceptions) == 1
+        assert "databases/malformed.yaml" in exceptions[0].messages
+
 
 class TestDatabaseConnectionIdentityUnchanged:
     """Stored database secrets (password, SSH tunnel key) may only be

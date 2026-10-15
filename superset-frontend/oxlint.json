@@ -314,7 +314,6 @@
   ],
   "ignorePatterns": [
     "packages/generator-superset/**/*",
-    "cypress-base/**",
     "**/node_modules/**",
     "build/**",
     "**/dist/**",

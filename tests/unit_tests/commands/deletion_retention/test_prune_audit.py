@@ -739,7 +739,31 @@ def test_evidence_drain_skips_scope_lookup_but_rechecks_under_lock() -> None:
     ] == [row_id]
 
 
-def test_repeat_query_uses_lag_without_ctes() -> None:
+def test_only_the_evidence_category_opts_out_of_the_locked_scope_lookup() -> None:
+    """Wire the opt-out to the one category whose predicates take no scope."""
+    mock_delete: MagicMock
+    with patch.dict(current_app.config, {EVIDENCE_RETENTION_KEY: 3650}):
+        with patch.object(
+            prune_audit, "_delete_batch", return_value=(0, 0)
+        ) as mock_delete:
+            prune_audit.run_prune()
+    # Both entity-partitioned categories must keep the scope lookup: without it
+    # the coordination-locked re-check drops its entity narrowing and rescans
+    # whole history while holding the lock.
+    assert [
+        (type(call.args[1]), call.kwargs["needs_entity_scope"])
+        for call in mock_delete.call_args_list
+    ] == [
+        (prune_audit._DuplicateRecheck, True),
+        (prune_audit._OperationalRecheck, True),
+        (prune_audit._EvidenceRecheck, False),
+    ]
+
+
+@pytest.mark.parametrize(
+    "dialect", [postgresql.dialect(), mysql.dialect(), sqlite.dialect()]
+)
+def test_repeat_query_uses_lag_without_ctes(dialect: Any) -> None:
     """Keep the measured derived-table shape without materialized group self-joins."""
     table: sa.Table = prune_audit.PurgeAuditLog.__table__
     query: sa.sql.Select = sa.select(table.c.id).where(
@@ -747,10 +771,15 @@ def test_repeat_query_uses_lag_without_ctes() -> None:
             table, datetime(2026, 1, 1), scope_entities=[("chart", "entity")]
         )
     )
-    sql: str = str(query.compile(dialect=postgresql.dialect())).lower()
+    sql: str = str(query.compile(dialect=dialect)).lower()
     assert "with " not in sql
     assert "lag(" in sql
     assert "dense_rank(" not in sql
+    # The point of the shape: every LAG shares one named window, so the
+    # engine makes a single ordered pass instead of one per column.
+    assert sql.count("window w as (") == 1
+    assert sql.count("over w") == 5
+    assert "over (partition" not in sql
 
 
 @pytest.mark.parametrize("count", [1, 2, prune_audit.MAX_BATCH_SIZE])
