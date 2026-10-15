@@ -129,7 +129,7 @@ def test_contribution_query_depends_on_totals(mocker: MockerFixture) -> None:
     dep_call = next(c for c in scheduled if c["args"][0] == {"query": 1})
     assert dep_call["kwargs"]["options"].depends_on == [totals_call["task"]]
     assert dep_call["args"][3] is True  # requires_totals
-    assert dep_call["kwargs"]["is_totals_prerequisite"] is False
+    assert "is_totals_prerequisite" not in dep_call["kwargs"]
     assert dep_call["kwargs"]["options"].task_key == "key-1"
 
 

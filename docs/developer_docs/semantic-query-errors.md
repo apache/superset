@@ -57,6 +57,9 @@ its validation and translation steps into `QueryObjectValidationError`, so
 chart-data requests receive HTTP 400 instead of HTTP 500. This conversion does
 not surround provider metadata discovery or query execution. Malformed timezone
 metadata remains a server error rather than a query validation refusal.
+This mapper boundary does not govern earlier schema loading: dimension discovery
+can fail there with HTTP 400, while metric discovery failures in the mapper remain
+HTTP 500.
 
 An asynchronous totals-prerequisite query whose payload is marked FAILED fails
 its task with that payload's error. It does not publish a cache key for dependent

@@ -178,13 +178,18 @@ def test_malformed_provider_timezone_remains_500(
     date_view.get_table.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "method,status", [("get_metrics", 500), ("get_dimensions", 400)]
+)
 def test_metadata_discovery_fault_http(
     client: FlaskClient,
     full_api_access: None,
     date_view: MagicMock,
+    method: str,
+    status: int,
 ) -> None:
-    """A metadata discovery fault stays a server error over chart-data HTTP."""
-    date_view.get_metrics.side_effect = ValueError("Metadata unavailable")
+    """Dimension discovery fails earlier in schema loading than metric discovery."""
+    getattr(date_view, method).side_effect = ValueError("Metadata unavailable")
     response: TestResponse = client.post(
         "/api/v1/chart/data",
         json={
@@ -195,7 +200,8 @@ def test_metadata_discovery_fault_http(
             "force": True,
         },
     )
-    assert response.status_code == 500
+    # Schema loading converts dimension-discovery ValueError to 400 before mapping.
+    assert response.status_code == status
     date_view.get_table.assert_not_called()
 
 

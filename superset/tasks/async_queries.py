@@ -453,7 +453,7 @@ def submit_chart_data_query_tasks(
             user_id,
             guest_token,
             _needs_prerequisite_totals(index),
-            is_totals_prerequisite=is_totals_prerequisite,
+            **({"is_totals_prerequisite": True} if is_totals_prerequisite else {}),
             options=TaskOptions(
                 task_key=task_key,
                 task_name=_task_name(index),
