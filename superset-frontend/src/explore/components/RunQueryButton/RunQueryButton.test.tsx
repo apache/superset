@@ -26,7 +26,12 @@ import {
 } from 'spec/helpers/testing-library';
 import { RunQueryButton, type RunQueryButtonProps } from './index';
 
-import { pointerEvent, keyDown, keyUp } from 'spec/helpers/runStopButton';
+import {
+  pointerEvent,
+  mouseClick,
+  keyDown,
+  keyUp,
+} from 'spec/helpers/runStopButton';
 
 const createProps = (overrides: Partial<RunQueryButtonProps> = {}) => ({
   loading: false,
@@ -290,4 +295,70 @@ test('a held Space press ignores a different key or target releasing', async () 
   keyUp(button, ' ');
   expect(run).not.toHaveBeenCalled();
   expect(stop).not.toHaveBeenCalled();
+});
+
+test.each(['mouse', 'touch'])(
+  'a %s Stop press cannot run after completion via a plain MouseEvent click',
+  async pointerType => {
+    const {
+      onQuery: runQuery,
+      onStop: stopQuery,
+      finishQuery,
+    } = renderGestureButton();
+    const button = screen.getByRole('button');
+    pointerEvent('pointerdown', button, 7, pointerType);
+    finishQuery();
+    pointerEvent('pointerup', button, 7, pointerType);
+    pointerEvent('lostpointercapture', button, 7, pointerType);
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    mouseClick(button);
+
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(stopQuery).not.toHaveBeenCalled();
+    // The MouseEvent must consume the pointer entry, not poison a later click.
+    pointerEvent('click', button, 7, pointerType);
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    fireEvent.click(button, { detail: 0 });
+    expect(runQuery).toHaveBeenCalledTimes(2);
+  },
+);
+
+test('a plain MouseEvent click consumes matching Stop intent', () => {
+  const {
+    onQuery: runQuery,
+    onStop: stopQuery,
+    finishQuery,
+  } = renderGestureButton();
+  const button = screen.getByRole('button');
+  pointerEvent('pointerdown', button, 7, 'touch');
+  pointerEvent('pointerup', button, 7, 'touch');
+  mouseClick(button);
+  expect(stopQuery).toHaveBeenCalledTimes(1);
+
+  finishQuery();
+  pointerEvent('click', button, 7, 'touch');
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(2);
+});
+
+test('a plain MouseEvent click matches the released pointer, not another held press', () => {
+  const {
+    onQuery: runQuery,
+    onStop: stopQuery,
+    finishQuery,
+  } = renderGestureButton();
+  const button = screen.getByRole('button');
+  pointerEvent('pointerdown', button, 7, 'touch');
+  finishQuery();
+  // A second pointer may press Run while the Stop pointer remains held.
+  pointerEvent('pointerdown', button, 8, 'touch');
+  pointerEvent('pointerup', button, 8, 'touch');
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(1);
+
+  pointerEvent('pointerup', button, 7, 'touch');
+  mouseClick(button);
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
 });

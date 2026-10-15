@@ -28,7 +28,12 @@ import RunQueryActionButton, {
   RunQueryActionButtonProps,
 } from 'src/SqlLab/components/RunQueryActionButton';
 
-import { pointerEvent, keyDown, keyUp } from 'spec/helpers/runStopButton';
+import {
+  pointerEvent,
+  mouseClick,
+  keyDown,
+  keyUp,
+} from 'spec/helpers/runStopButton';
 
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
@@ -585,3 +590,80 @@ test('a held Space press ignores a different key or target releasing', async () 
   expect(run).not.toHaveBeenCalled();
   expect(stop).not.toHaveBeenCalled();
 });
+
+test.each([
+  ['mouse', 'plain'],
+  ['touch', 'plain'],
+  ['mouse', 'CTAS'],
+  ['touch', 'CTAS'],
+])(
+  'a %s Stop press on the %s button cannot run after completion via a plain MouseEvent click',
+  async (pointerType, variant) => {
+    const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton(
+      {
+        overlayCreateAsMenu: variant === 'CTAS' ? ctasMenu : null,
+      },
+    );
+    const button = getAllByRole('button')[0];
+    pointerEvent('pointerdown', button, 7, pointerType);
+    switchTo('success');
+    pointerEvent('pointerup', button, 7, pointerType);
+    pointerEvent('lostpointercapture', button, 7, pointerType);
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    mouseClick(button);
+
+    expect(runQuery).not.toHaveBeenCalled();
+    expect(stopQuery).not.toHaveBeenCalled();
+    // The MouseEvent must consume the pointer entry, not poison a later click.
+    pointerEvent('click', button, 7, pointerType);
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    fireEvent.click(button, { detail: 0 });
+    expect(runQuery).toHaveBeenCalledTimes(2);
+  },
+);
+
+test.each(['plain', 'CTAS'])(
+  'a plain MouseEvent click consumes matching Stop intent on the %s button',
+  variant => {
+    const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton(
+      {
+        overlayCreateAsMenu: variant === 'CTAS' ? ctasMenu : null,
+      },
+    );
+    const button = getAllByRole('button')[0];
+    pointerEvent('pointerdown', button, 7, 'touch');
+    pointerEvent('pointerup', button, 7, 'touch');
+    mouseClick(button);
+    expect(stopQuery).toHaveBeenCalledTimes(1);
+
+    switchTo('success');
+    pointerEvent('click', button, 7, 'touch');
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    mouseClick(button);
+    expect(runQuery).toHaveBeenCalledTimes(2);
+  },
+);
+
+test.each(['plain', 'CTAS'])(
+  'a plain MouseEvent click matches the released pointer, not another held press on the %s button',
+  variant => {
+    const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton(
+      {
+        overlayCreateAsMenu: variant === 'CTAS' ? ctasMenu : null,
+      },
+    );
+    const button = getAllByRole('button')[0];
+    pointerEvent('pointerdown', button, 7, 'touch');
+    switchTo('success');
+    // A second pointer may press Run while the Stop pointer remains held.
+    pointerEvent('pointerdown', button, 8, 'touch');
+    pointerEvent('pointerup', button, 8, 'touch');
+    mouseClick(button);
+    expect(runQuery).toHaveBeenCalledTimes(1);
+
+    pointerEvent('pointerup', button, 7, 'touch');
+    mouseClick(button);
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    expect(stopQuery).not.toHaveBeenCalled();
+  },
+);

@@ -33,6 +33,13 @@ export const pointerEvent = (
     ),
   );
 
+/** Dispatch a compatibility click with no pointer identity, as a MouseEvent. */
+export const mouseClick = (target: Element) =>
+  fireEvent(
+    target,
+    new MouseEvent('click', { bubbles: true, cancelable: true, detail: 1 }),
+  );
+
 /** Emulate a native button's Enter default action unless it was prevented. */
 export const keyDown = (target: HTMLElement, key: string, repeat = false) => {
   if (fireEvent.keyDown(target, { key, repeat }) && key === 'Enter') {

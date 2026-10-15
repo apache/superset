@@ -49,6 +49,7 @@ export default function useRunStopButton(
   const currentAction: ButtonAction = isStopAction ? 'stop' : 'run';
   const pointersRef = useRef(new Map<number, PointerPress>());
   const keyRef = useRef<KeyPress | null>(null);
+  const releasedPointerRef = useRef<number | null>(null);
   const latestRef = useRef({ currentAction, onClick });
   latestRef.current = { currentAction, onClick };
 
@@ -58,9 +59,11 @@ export default function useRunStopButton(
       const press = pointers.get(event.pointerId);
       if (press && getButton(event.target) !== press.button) {
         pointers.delete(event.pointerId);
+      } else if (press) {
+        releasedPointerRef.current = event.pointerId;
       }
       // Keep matching intent until click, including across implicit capture loss
-      // and touch compatibility-event delays. Independent clicks bypass this map.
+      // and touch compatibility-event delays. Detail-zero clicks bypass this map.
     };
     const onPointerCancel = (event: globalThis.PointerEvent) => {
       pointers.delete(event.pointerId);
@@ -96,6 +99,7 @@ export default function useRunStopButton(
       document.removeEventListener('pointercancel', onPointerCancel, true);
       document.removeEventListener('keyup', onKeyUp, true);
       pointers.clear();
+      releasedPointerRef.current = null;
       keyRef.current = null;
     };
   }, []);
@@ -104,6 +108,9 @@ export default function useRunStopButton(
     onPointerDownCapture: (event: PointerEvent<HTMLElement>) => {
       const button = getButton(event.target);
       if (button && !button.disabled && event.button === 0) {
+        if (releasedPointerRef.current === event.pointerId) {
+          releasedPointerRef.current = null;
+        }
         pointersRef.current.set(event.pointerId, {
           action: currentAction,
           button,
@@ -135,18 +142,28 @@ export default function useRunStopButton(
     onClick: (event: MouseEvent<HTMLElement>) => {
       const native = event.nativeEvent as Partial<globalThis.PointerEvent>;
       const pointers = pointersRef.current;
-      // AT and HTMLElement.click() have no pointer identity. In particular,
-      // detail=0 alone cannot distinguish an AT click from a keyboard click.
-      const press =
-        native.pointerId !== undefined && native.pointerType
-          ? pointers.get(native.pointerId)
+      const button = getButton(event.target);
+      const hasPointerIdentity =
+        native.pointerId !== undefined && !!native.pointerType;
+      // Compatibility MouseEvents have no pointer identity, but their positive
+      // detail still distinguishes them from AT and HTMLElement.click(). Match
+      // the released pointer, not another pointer still held on this button.
+      const pointerId = hasPointerIdentity
+        ? native.pointerId
+        : event.detail > 0
+          ? (releasedPointerRef.current ?? undefined)
           : undefined;
+      const press =
+        pointerId !== undefined ? pointers.get(pointerId) : undefined;
       if (
         press &&
-        press.pointerType === native.pointerType &&
-        press.button === getButton(event.target)
+        (!hasPointerIdentity || press.pointerType === native.pointerType) &&
+        press.button === button
       ) {
-        if (native.pointerId !== undefined) pointers.delete(native.pointerId);
+        if (pointerId !== undefined) pointers.delete(pointerId);
+        if (releasedPointerRef.current === pointerId) {
+          releasedPointerRef.current = null;
+        }
         if (press.action !== currentAction) return;
       }
       onClick();
