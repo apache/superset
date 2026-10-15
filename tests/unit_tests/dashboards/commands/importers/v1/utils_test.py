@@ -18,6 +18,8 @@
 
 from typing import Any
 
+from superset.utils import json
+
 
 def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
     app_context: None,
@@ -120,7 +122,8 @@ def test_update_id_refs_expanded_slices_missing(  # pylint: disable=invalid-name
 
     ``expanded_slices`` is keyed by chart ID as a string and is not pruned when
     a chart leaves the dashboard, so it can name a chart that has no new ID.
-    That entry should be dropped rather than failing the import.
+    That entry should be dropped rather than failing the import, and so should a
+    key that is not a chart ID at all.
     """
     from superset.commands.dashboard.importers.v1.utils import update_id_refs
 
@@ -132,7 +135,7 @@ def test_update_id_refs_expanded_slices_missing(  # pylint: disable=invalid-name
                 "type": "CHART",
             },
         },
-        "metadata": {"expanded_slices": {"101": True, "999": False}},
+        "metadata": {"expanded_slices": {"101": True, "999": False, "abc": True}},
     }
     chart_ids = {"uuid1": 1}
     dataset_info: dict[str, dict[str, Any]] = {}  # not used
@@ -172,6 +175,60 @@ def test_update_id_refs_remaps_string_typed_chart_ids(  # pylint: disable=invali
     fixed = update_id_refs(config, chart_ids, dataset_info)
     assert fixed["metadata"]["timed_refresh_immune_slices"] == [1]
     assert fixed["metadata"]["expanded_slices"] == {"1": True}
+
+
+def test_update_id_refs_filter_scopes_and_default_filters_unresolvable(  # pylint: disable=invalid-name
+    app_context: None,
+):
+    """
+    Test that unresolvable keys in the string-keyed filter fields are dropped.
+
+    ``filter_scopes`` and ``default_filters`` are keyed by chart ID as a string,
+    and ``filter_scopes`` carries chart IDs in its ``immune`` lists. A key that
+    names no chart in the bundle was already dropped, but one that is not a
+    number at all failed the import, and a resolvable ``immune`` entry given as
+    a string was dropped instead of remapped.
+    """
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    config = {
+        "position": {
+            "CHART1": {
+                "id": "CHART1",
+                "meta": {"chartId": 101, "uuid": "uuid1"},
+                "type": "CHART",
+            },
+            "CHART2": {
+                "id": "CHART2",
+                "meta": {"chartId": 102, "uuid": "uuid2"},
+                "type": "CHART",
+            },
+        },
+        "metadata": {
+            "filter_scopes": {
+                "101": {"region": {"scope": ["ROOT_ID"], "immune": ["102", 999]}},
+                "999": {"region": {"scope": ["ROOT_ID"], "immune": []}},
+                "abc": {"region": {"scope": ["ROOT_ID"], "immune": []}},
+            },
+            "default_filters": json.dumps(
+                {
+                    "101": {"region": ["East"]},
+                    "999": {"region": ["West"]},
+                    "abc": {"region": ["North"]},
+                }
+            ),
+        },
+    }
+    chart_ids = {"uuid1": 1, "uuid2": 2}
+    dataset_info: dict[str, dict[str, Any]] = {}  # not used
+
+    fixed = update_id_refs(config, chart_ids, dataset_info)
+    assert fixed["metadata"]["filter_scopes"] == {
+        "1": {"region": {"scope": ["ROOT_ID"], "immune": [2]}}
+    }
+    assert json.loads(fixed["metadata"]["default_filters"]) == {
+        "1": {"region": ["East"]}
+    }
 
 
 def test_update_native_filter_config_scope_excluded():

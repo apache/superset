@@ -96,18 +96,18 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
         # in filter_scopes the key is the chart ID as a string; we need to update
         # them to be the new ID as a string:
         metadata["filter_scopes"] = {
-            str(id_map[int(old_id)]): columns
+            str(new_id): columns
             for old_id, columns in metadata["filter_scopes"].items()
-            if int(old_id) in id_map
+            if (new_id := _remap_legacy_chart_id(old_id, id_map)) is not None
         }
 
         # now update columns to use new IDs:
         for columns in metadata["filter_scopes"].values():
             for attributes in columns.values():
                 attributes["immune"] = [
-                    id_map[old_id]
+                    new_id
                     for old_id in attributes["immune"]
-                    if old_id in id_map
+                    if (new_id := _remap_legacy_chart_id(old_id, id_map)) is not None
                 ]
 
     if "expanded_slices" in metadata:
@@ -121,9 +121,9 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
         default_filters = json.loads(metadata["default_filters"])
         metadata["default_filters"] = json.dumps(
             {
-                str(id_map[int(old_id)]): value
+                str(new_id): value
                 for old_id, value in default_filters.items()
-                if int(old_id) in id_map
+                if (new_id := _remap_legacy_chart_id(old_id, id_map)) is not None
             }
         )
 
@@ -189,12 +189,13 @@ def update_id_refs(  # pylint: disable=too-many-locals  # noqa: C901
 def _remap_legacy_chart_id(old_id: Any, id_map: dict[int, int]) -> int | None:
     """Map one legacy integer chart ID to its new ID, or ``None``.
 
-    The integer-keyed metadata fields can hold a string rather than an int, and
-    can name a chart that is not in the bundle: nothing prunes them when a
-    chart is deleted or leaves a dashboard, and a chart in the layout is
-    skipped at import when its dataset is unresolvable. Returning ``None`` lets
-    the caller drop an unresolvable reference rather than fail the whole
-    import. The exporter coerces the same fields the same way; see
+    The legacy metadata fields can hold a string rather than an int, or a key
+    that is not a chart ID at all, and can name a chart that is not in the
+    bundle: nothing prunes them when a chart is deleted or leaves a dashboard,
+    and a chart in the layout is skipped at import when its dataset is
+    unresolvable. Returning ``None`` lets the caller drop an unresolvable
+    reference rather than fail the whole import. The exporter coerces the same
+    fields the same way; see
     ``superset.commands.dashboard.export._stabilize_chart_ids``.
     """
     try:
