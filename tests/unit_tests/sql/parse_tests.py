@@ -1942,22 +1942,22 @@ def test_druid_parses_json_value_returning(sql: str) -> None:
 
 
 @pytest.mark.parametrize(
-    "sql",
+    "path",
     [
-        "SELECT JSON_VALUE(h, '$.a' RETURNING BIGINT) AS x FROM t",
-        "SELECT JSON_VALUE(h, CONCAT('$.', d) RETURNING BIGINT) AS x FROM t",
+        "'$.a'",
+        "CONCAT('$.', d)",
     ],
 )
-def test_postgres_parses_json_value_returning(sql: str) -> None:
+def test_postgres_parses_json_value_returning(path: str) -> None:
     """
     Regression for #36954: the same ``JSON_VALUE ... RETURNING <type>`` clause
     failed for Postgres with "Error parsing near 'returning'". sqlglot parses it
     for the Postgres dialect since 30.23.0 and keeps the JSON path as written, so
     this pins both against a future upgrade.
     """
+    sql = f"SELECT JSON_VALUE(h, {path} RETURNING BIGINT) AS x FROM t"  # noqa: S608
     formatted = SQLScript(sql, "postgresql").format()
-    assert "RETURNING BIGINT" in formatted
-    assert "$." in formatted
+    assert f"JSON_VALUE(h, {path} RETURNING BIGINT)" in formatted
 
 
 @pytest.mark.parametrize(
@@ -1988,8 +1988,10 @@ def test_doris_parses_match_with_analyzer() -> None:
     """
     sql = "SELECT * FROM t WHERE c NOT MATCH_ANY ('x') USING ANALYZER 'standard'"
     formatted = SQLScript(sql, "pydoris").format()
-    assert "MATCH_ANY (" in formatted
-    assert "USING ANALYZER 'standard'" in formatted
+    assert re.search(
+        r"NOT c MATCH_ANY\s*\(\s*'x'\s*\)\s*USING ANALYZER 'standard'",
+        formatted,
+    )
 
 
 @pytest.mark.parametrize(
