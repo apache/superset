@@ -168,8 +168,10 @@ for connection tests, alerts, and reports. Guest queries restored by
 `GLOBAL_ASYNC_QUERIES` use the same fallback as synchronous guest queries.
 
 The credential must be complete: a username with no password or private key, or the
-reverse, is rejected when both embedding flags are enabled. Validation uses the
-edited credential, so an incomplete imported credential can be completed or cleared.
+reverse, is rejected when both embedding flags are enabled. A whitespace-only username
+is invalid. Validation uses the engine's credential rules and rejects malformed JSON
+or non-object credential values. It checks the edited credential, so an incomplete
+imported credential can be completed or cleared.
 While either flag is disabled, the stored credential is preserved and does not block
 unrelated edits. Clearing every field removes the credential.
 
@@ -189,6 +191,7 @@ Understand what this grants before enabling it:
   OAuth2 and have no route to the stored credential.
 - **The guest token's `username` claim is never used to connect.** Whoever mints the
   token controls that claim, so it is deliberately kept out of the connection identity.
+  Connection-mutator hooks receive the selected fallback connection username.
 - **An embedded viewer never silently falls back to the connection's base credential.**
   With this flag on, a guest on a per-user OAuth2 connection with impersonation enabled
   that has no applicable credential —
@@ -196,9 +199,9 @@ Understand what this grants before enabling it:
   connected as whichever account the connection URL carries. Deployments that leave the
   flag off keep their existing behaviour.
 - **Guest results are cached separately.** Queries run under the fallback credential get
-  their own cache identity, so an embedded viewer and a logged-in user never share a
-  cached result (or, with `GLOBAL_ASYNC_QUERIES`, a deduplicated query task) for the same
-  chart. Missing or incomplete credentials also receive a separate cache key, so a
+  their own cache partition, distinct from every logged-in username, so an embedded
+  viewer and a logged-in user never share a cached result (or, with
+  `GLOBAL_ASYNC_QUERIES`, a deduplicated query task) for the same chart. Missing or incomplete credentials also receive a separate cache key, so a
   warm logged-in cache cannot bypass the missing-credential refusal.
 - Turning the flag back off is a kill switch, not a deletion: the stored credential stops
   being offered and stops being used, but is preserved.

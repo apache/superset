@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from typing import Any
+
 import pytest
 from pytest_mock import MockerFixture
 
@@ -903,6 +905,8 @@ def test_ssh_tunnel_missing_message_is_interpolated(
         {"username": "embedded_svc"},
         {"password": "pw"},
         {"username": "embedded_svc", "password": ""},
+        {"username": "   ", "password": "pw"},
+        {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
         {"username": "embedded_svc", "auth_method": "keypair"},
         {"auth_method": "keypair", "privatekey_body": "-----BEGIN-----"},
     ],
@@ -1060,3 +1064,62 @@ def test_disabled_embedded_credentials_do_not_block_parameter_validation(
             ),
         }
     ).run()
+
+
+@pytest.mark.parametrize("source", ["parameters", "masked_encrypted_extra"])
+@pytest.mark.parametrize("credentials", ["not json", "[]", "42", [], False, 0])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_bypass_engine_rejects_malformed_embedded_credentials(
+    mocker: MockerFixture, source: str, credentials: Any
+) -> None:
+    """Snowflake's bypass cannot skip malformed embedded credential checks."""
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    value = {"embedded_credentials": credentials}
+    properties = {
+        "engine": "snowflake",
+        source: value if source == "parameters" else json.dumps(value),
+    }
+    with pytest.raises(InvalidParametersError) as excinfo:
+        ValidateDatabaseParametersCommand(properties).run()
+    error = excinfo.value.errors[0]
+    assert error.extra["invalid"] == ["embedded_credentials"]
+    assert "invalid or incomplete" in error.message
+
+
+@pytest.mark.parametrize("source", ["parameters", "masked_encrypted_extra"])
+@pytest.mark.parametrize("valid", [True, False])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_parameter_validation_uses_the_engine_credential_validator(
+    mocker: MockerFixture, source: str, valid: bool
+) -> None:
+    """Custom credentials use the query-time hook even on bypass engines."""
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    class TokenEngineSpec(SnowflakeEngineSpec):
+        @classmethod
+        def validate_embedded_credentials(
+            cls, credentials: Any
+        ) -> dict[str, str] | None:
+            if isinstance(credentials, dict) and credentials.get("token"):
+                return credentials
+            return None
+
+    mocker.patch("superset.commands.database.validate.DatabaseDAO")
+    mocker.patch(
+        "superset.commands.database.validate.get_engine_spec",
+        return_value=TokenEngineSpec,
+    )
+    credentials = (
+        {"token": "engine-token"} if valid else {"username": "svc", "password": "pw"}
+    )
+    value = {"embedded_credentials": json.dumps(credentials)}
+    properties = {
+        "engine": "snowflake",
+        source: value if source == "parameters" else json.dumps(value),
+    }
+    command = ValidateDatabaseParametersCommand(properties)
+    if valid:
+        command.run()
+    else:
+        with pytest.raises(InvalidParametersError):
+            command.run()

@@ -3111,6 +3111,8 @@ def test_embedded_keypair_is_used_only_for_a_guest(
 @pytest.mark.parametrize(
     "credentials",
     [
+        {"username": "   ", "password": "pw"},
+        {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
         {"username": "embedded_svc", "auth_method": "keypair"},
         {"auth_method": "keypair", "privatekey_body": "PEM"},
         {"username": "embedded_svc", "auth_method": "keypair", "password": "pw"},
@@ -3155,6 +3157,33 @@ def test_guest_username_from_the_token_never_reaches_the_connection(
     url = create_engine_mock.call_args[0][0]
     assert url.username == "embedded_svc"
     assert "ACCOUNTADMIN" not in url.render_as_string(hide_password=False)
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_connection_mutator_receives_the_embedded_connection_identity(
+    mocker: MockerFixture,
+) -> None:
+    """A username-forwarding hook must retain the configured guest identity."""
+    from flask import current_app
+
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite://"),
+    )
+    _become_guest(mocker, username="ACCOUNTADMIN")
+    _stub_driver_dependent_uri_validation(mocker)
+    mutator = mocker.Mock(
+        side_effect=lambda url, kwargs, username, security_manager, source: (
+            url.set(username=username),
+            kwargs,
+        )
+    )
+    mocker.patch.dict(current_app.config, {"DB_CONNECTION_MUTATOR": mutator})
+
+    _embedded_snowflake_database()._get_sqla_engine(nullpool=False)
+
+    assert mutator.call_args.args[2] == "embedded_svc"
+    assert create_engine_mock.call_args.args[0].username == "embedded_svc"
 
 
 @with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)

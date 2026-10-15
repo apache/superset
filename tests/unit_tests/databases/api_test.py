@@ -2957,3 +2957,59 @@ def test_related_objects_limits_dataset_details(
     assert payload["count"] == MAX_RELATED_DATASETS + 2
     assert len(payload["result"]) == MAX_RELATED_DATASETS
     assert can_access.call_count == MAX_RELATED_DATASETS
+
+
+@pytest.mark.parametrize("valid", [True, False])
+def test_partial_update_validates_embedded_credentials_with_the_stored_engine(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    valid: bool,
+) -> None:
+    """PUT retains engine-specific validation when the caller omits the URI."""
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    class TokenEngineSpec(SqliteEngineSpec):
+        @classmethod
+        def validate_embedded_credentials(
+            cls, credentials: Any
+        ) -> dict[str, str] | None:
+            if isinstance(credentials, dict) and credentials.get("token"):
+                return credentials
+            return None
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    mocker.patch(
+        "superset.extensions.feature_flag_manager.get_feature_flags",
+        return_value={"EMBEDDED_CREDENTIAL_FALLBACK": True, "EMBEDDED_SUPERSET": True},
+    )
+    mocker.patch.object(Database, "get_db_engine_spec", return_value=TokenEngineSpec)
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    database = Database(
+        database_name="test_db", sqlalchemy_uri="sqlite://", encrypted_extra="{}"
+    )
+    session.add(database)
+    session.commit()
+    database_id = database.id
+    credentials = (
+        {"token": "engine-token"} if valid else {"username": "svc", "password": "pw"}
+    )
+    payload = {
+        "masked_encrypted_extra": json.dumps({"embedded_credentials": credentials})
+    }
+
+    response = client.put(f"/api/v1/database/{database_id}", json=payload)
+
+    assert response.status_code == (200 if valid else 400)
+    session.expire_all()
+    stored = session.get(Database, database_id)
+    assert stored is not None
+    assert json.loads(stored.encrypted_extra) == (
+        {"embedded_credentials": credentials} if valid else {}
+    )

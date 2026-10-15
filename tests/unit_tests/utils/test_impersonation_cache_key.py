@@ -124,7 +124,7 @@ def test_embedded_fallback_keys_the_cache_without_any_caching_flag(feature_flag_
         "get_embedded_fallback_credentials",
         return_value={"username": "embedded_svc", "password": "pw"},
     ):
-        assert _run(database)["impersonation_key"] == "embedded:embedded_svc"
+        assert _run(database)["embedded_credentials_key"] == "embedded:embedded_svc"
 
 
 @patch("superset.utils.cache_keys.feature_flag_manager")
@@ -140,10 +140,10 @@ def test_embedded_fallback_key_differs_from_a_logged_in_user(feature_flag_mock):
         "get_embedded_fallback_credentials",
         return_value={"username": "embedded_svc", "password": "pw"},
     ):
-        guest_key = _run(database)["impersonation_key"]
+        guest_key = _run(database)
 
     with override_user(User(username="embedded_svc")):
-        user_key = _run(database)["impersonation_key"]
+        user_key = _run(database)
 
     # Even a logged-in account that happens to share the credential's name --
     # or a guest token claiming it -- must not collide with the guest entry.
@@ -167,9 +167,9 @@ def test_embedded_fallback_ignores_the_guest_token_username_claim(feature_flag_m
         return_value={"username": "embedded_svc", "password": "pw"},
     ):
         with override_user(User(username="ACCOUNTADMIN")):
-            key_a = _run(database)["impersonation_key"]
+            key_a = _run(database)["embedded_credentials_key"]
         with override_user(User(username="someone_else")):
-            key_b = _run(database)["impersonation_key"]
+            key_b = _run(database)["embedded_credentials_key"]
 
     assert key_a == key_b == "embedded:embedded_svc"
 
@@ -185,7 +185,7 @@ def test_query_object_cache_key_separates_guest_from_logged_in(feature_flag_mock
     """
     from superset.common.query_object import QueryObject
 
-    feature_flag_mock.is_feature_enabled.return_value = False
+    feature_flag_mock.is_feature_enabled.side_effect = _flag("CACHE_QUERY_BY_USER")
     database = Database(database_name="d", sqlalchemy_uri="sqlite://")
 
     def key_for(credentials: dict[str, str] | None) -> str:
@@ -201,7 +201,8 @@ def test_query_object_cache_key_separates_guest_from_logged_in(feature_flag_mock
             return query_object.cache_key()
 
     guest_key = key_for({"username": "embedded_svc", "password": "pw"})
-    logged_in_key = key_for(None)
+    with override_user(User(username="embedded:embedded_svc")):
+        logged_in_key = key_for(None)
 
     assert guest_key != logged_in_key
 
@@ -237,7 +238,7 @@ def test_the_engine_spec_owns_the_embedded_cache_key(feature_flag_mock):
             new_callable=lambda: property(lambda self: CustomEngineSpec),
         ),
     ):
-        assert _run(database)["impersonation_key"] == "tenant:acme"
+        assert _run(database)["embedded_credentials_key"] == "tenant:acme"
 
 
 @patch("superset.utils.cache_keys.feature_flag_manager")

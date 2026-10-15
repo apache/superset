@@ -49,8 +49,10 @@ def add_impersonation_cache_key_if_needed(
     # The engine spec owns the key material -- see
     # `BaseEngineSpec.get_embedded_credential_cache_key` for why it is keyed on the
     # configured identity rather than on `g.user.username`.
+    # A separate field prevents collisions with a logged-in username that equals
+    # the engine-provided guest key.
     if embedded_credentials := database.get_embedded_fallback_credentials():
-        cache_dict["impersonation_key"] = (
+        cache_dict["embedded_credentials_key"] = (
             database.db_engine_spec.get_embedded_credential_cache_key(
                 embedded_credentials
             )

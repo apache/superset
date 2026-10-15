@@ -276,14 +276,19 @@ class ValidateDatabaseParametersCommand(BaseCommand):
                 else None
             )
 
-        if not embedded_credentials_incomplete(credentials):
+        engine_spec = get_engine_spec(
+            self._properties["engine"], self._properties.get("driver")
+        )
+        if not embedded_credentials_incomplete(
+            credentials, engine_spec.validate_embedded_credentials
+        ):
             return None
 
         return SupersetError(
             message=__(
-                "Embedded guest credentials are incomplete. Provide a username "
-                "and either a password or a private key, or clear them to leave "
-                "embedded viewers unconfigured."
+                "Embedded guest credentials are invalid or incomplete. Provide "
+                "all required fields or clear them to leave embedded viewers "
+                "unconfigured."
             ),
             error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
             level=ErrorLevel.ERROR,

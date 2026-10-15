@@ -114,9 +114,12 @@ deployment which has not opted in keeps its existing behaviour.
 
 The connection dialog removes the ways to reach that state in the first place: the
 section is offered only when both flags are on *and* the connection uses OAuth2, a
-half-filled effective credential is rejected on save while both flags are enabled,
-and a credential saved with impersonation off raises an inline warning explaining that
-it is inactive. Form edits replace the stored credential before completeness is checked.
+malformed or incomplete effective credential is rejected on save while both flags are
+enabled, and a credential saved with impersonation off raises an inline warning
+explaining that it is inactive. Form edits replace the stored credential before
+completeness is checked. The save/test schemas and parameter-validation command use the
+engine's `validate_embedded_credentials` hook, matching query-time rules even for custom credential shapes. The default rule
+rejects whitespace-only usernames without trimming valid credential values.
 Disabling either flag leaves stored credentials intact and skips completeness checks,
 allowing unrelated edits to imported connections. The backend refusal is the backstop
 for the paths that do not go through the dialog.
@@ -132,7 +135,9 @@ RLS and no Jinja, and read each other's rows. Because that key is also the `task
 the SHARED async chart task, they would additionally dedup onto one task, letting
 whichever arrived first choose the credential for both.
 
-So a guest-run query contributes `embedded:<configured username>` to the key,
+So a guest-run query contributes the engine-provided key (by default,
+`embedded:<configured username>`) in a dedicated `embedded_credentials_key` field,
+distinct from the logged-in `impersonation_key` even when their values match. This applies
 unconditionally — this is correctness, not a caching preference. The key comes from the
 stored credential rather than from `g.user.username`, which a guest token's minter
 controls. All guests on the connection share one entry, which is correct: they run as one
@@ -159,6 +164,10 @@ is deliberate and load-bearing twice over:
    claim, so routing the fallback through impersonation would let the token choose the
    connection identity. A test pins this specifically: a token minted with
    `ACCOUNTADMIN` does not reach the connection.
+
+After applying fallback credentials, `DB_CONNECTION_MUTATOR` receives the selected
+connection username, keeping a hook that forwards that argument from reintroducing the
+guest token's username claim.
 
 The engine cache key includes both the URL and the final engine kwargs. A password
 changes the URL; a PEM key changes `connect_args`. Tests assert that a guest and a
@@ -220,7 +229,7 @@ does not let a token holder choose an identity.
 - **New connection-dialog field** for engines that opt in, rendered only when both
   `EMBEDDED_CREDENTIAL_FALLBACK` and `EMBEDDED_SUPERSET` are on and the connection uses
   OAuth2.
-- **New validation** rejecting an incomplete `embedded_credentials` on
+- **New validation** rejecting malformed or incomplete `embedded_credentials` on
   `POST`/`PUT /api/v1/database/` and on `validate_parameters` while both embedding flags
   are enabled. Import is deliberately not tightened, so existing exports still load.
 

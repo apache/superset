@@ -5873,7 +5873,7 @@ msgstr ""
 msgid "Embedded guest credentials are inactive until \"Impersonate logged in user\" is enabled under Advanced → Security."
 msgstr ""
 
-msgid "Embedded guest credentials are incomplete. Provide a username and either a password or a private key, or clear them to leave embedded viewers unconfigured."
+msgid "Embedded guest credentials are invalid or incomplete. Provide all required fields or clear them to leave embedded viewers unconfigured."
 msgstr ""
 
 msgid "Embedding deactivated."

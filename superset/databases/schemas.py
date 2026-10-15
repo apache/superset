@@ -54,6 +54,7 @@ from superset.databases.types import (  # pylint:disable=unused-import
 )
 from superset.databases.utils import embedded_credentials_incomplete, make_url_safe
 from superset.db_engine_specs import get_engine_spec
+from superset.db_engine_specs.base import BaseEngineSpec
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -271,43 +272,6 @@ def masked_encrypted_extra_validator(value: str) -> None:
     encrypted_extra_validator(value)
 
 
-def api_encrypted_extra_validator(value: str | None) -> None:
-    """
-    Validate `masked_encrypted_extra` as posted to the database API.
-
-    Adds the embedded-credential completeness check on top of the shared JSON
-    checks. A half-filled credential is ignored at query time
-    (`Database.get_embedded_fallback_credentials`), so storing one leaves a
-    security-relevant setting that reads as configured and never applies. When
-    either embedding flag is disabled, preserve the hidden setting without
-    checking completeness so an imported partial value cannot block unrelated edits.
-
-    Deliberately a separate function rather than a change to
-    `encrypted_extra_validator`, which also backs the import schemas: tightening
-    those would reject existing exports.
-    """
-    encrypted_extra_validator(value)
-
-    if not value or not (
-        is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
-        and is_feature_enabled("EMBEDDED_SUPERSET")
-    ):
-        return
-
-    if embedded_credentials_incomplete(json.loads(value).get(EMBEDDED_CREDENTIALS_KEY)):
-        raise ValidationError(
-            [
-                # Deliberately the same string the validate command returns:
-                # one translatable message for one condition.
-                _(
-                    "Embedded guest credentials are incomplete. Provide a username "
-                    "and either a password or a private key, or clear them to leave "
-                    "embedded viewers unconfigured."
-                )
-            ]
-        )
-
-
 def extra_validator(value: str) -> str:  # noqa: C901
     """
     Validate that extra is a valid JSON string, and that metadata_params
@@ -402,6 +366,8 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
     When using this mixin make sure that `sqlalchemy_uri` is not required.
     """
 
+    database_id: int | None = None
+
     engine = fields.String(
         allow_none=True, metadata={"description": "SQLAlchemy engine to use"}
     )
@@ -480,6 +446,42 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
             )
 
         return data
+
+    @validates_schema
+    def validate_embedded_credentials(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> None:
+        """Validate authored credentials with the effective connection's engine."""
+        value = data.get("masked_encrypted_extra")
+        if not value or not (
+            is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK")
+            and is_feature_enabled("EMBEDDED_SUPERSET")
+        ):
+            return
+
+        encrypted_extra = json.loads(value)
+        if EMBEDDED_CREDENTIALS_KEY not in encrypted_extra:
+            return
+
+        engine_spec = BaseEngineSpec
+        if sqlalchemy_uri := data.get("sqlalchemy_uri"):
+            engine_spec = Database(sqlalchemy_uri=sqlalchemy_uri).db_engine_spec
+        elif (database_id := self.database_id) is not None:
+            if database := db.session.get(Database, database_id):
+                engine_spec = database.db_engine_spec
+
+        if embedded_credentials_incomplete(
+            encrypted_extra[EMBEDDED_CREDENTIALS_KEY],
+            engine_spec.validate_embedded_credentials,
+        ):
+            raise ValidationError(
+                _(
+                    "Embedded guest credentials are invalid or incomplete. Provide "
+                    "all required fields or clear them to leave embedded viewers "
+                    "unconfigured."
+                ),
+                field_name="masked_encrypted_extra",
+            )
 
 
 def rename_encrypted_extra(
@@ -682,7 +684,7 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
     )
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
-        validate=api_encrypted_extra_validator,
+        validate=encrypted_extra_validator,
         allow_none=True,
     )
     extra = fields.String(
@@ -704,6 +706,11 @@ class DatabasePostSchema(DatabaseParametersSchemaMixin, Schema):
 
 
 class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
+    def __init__(self, *, database_id: int | None = None, **kwargs: Any) -> None:
+        """Keep the existing connection identity for updates without a URI."""
+        super().__init__(**kwargs)
+        self.database_id = database_id
+
     class Meta:  # pylint: disable=too-few-public-methods
         unknown = EXCLUDE
 
@@ -742,7 +749,7 @@ class DatabasePutSchema(DatabaseParametersSchemaMixin, Schema):
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
         allow_none=True,
-        validate=api_encrypted_extra_validator,
+        validate=encrypted_extra_validator,
     )
     extra = fields.String(
         metadata={"description": extra_description}, validate=extra_validator
@@ -778,7 +785,7 @@ class DatabaseTestConnectionSchema(DatabaseParametersSchemaMixin, Schema):
     )
     masked_encrypted_extra = fields.String(
         metadata={"description": encrypted_extra_description},
-        validate=api_encrypted_extra_validator,
+        validate=encrypted_extra_validator,
         allow_none=True,
     )
     server_cert = fields.String(

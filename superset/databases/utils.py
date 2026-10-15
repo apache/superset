@@ -17,6 +17,7 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 
 from sqlalchemy.engine.url import make_url, URL
@@ -176,18 +177,15 @@ def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
 
     The canonical shape is ``{username, password}`` or ``{username, auth_method:
     "keypair", privatekey_body, privatekey_pass}``; a half-filled credential is
-    ignored rather than half-applied. This is the single definition of what
-    "complete" means, reached from three directions: the query-time gate
-    (``BaseEngineSpec.validate_embedded_credentials``, which an engine may
-    override), the save-time check below, and the API schema validators. A second
-    copy of these rules would eventually reject a valid key pair for carrying no
-    password.
+    ignored rather than half-applied. Engines may override this default through
+    ``BaseEngineSpec.validate_embedded_credentials`` for both query-time and
+    authoring-time validation.
     """
     if not isinstance(credentials, dict):
         return None
 
     username = credentials.get("username")
-    if not isinstance(username, str) or not username:
+    if not isinstance(username, str) or not _is_present(username):
         return None
 
     auth_method = credentials.get("auth_method", "password")
@@ -213,35 +211,31 @@ def validated_embedded_credentials(credentials: Any) -> dict[str, str] | None:
     return {"username": username, "password": password}
 
 
-def embedded_credentials_incomplete(value: Any) -> bool:
+def embedded_credentials_incomplete(
+    value: Any,
+    validate_credentials: Callable[[Any], dict[str, str] | None],
+) -> bool:
     """
-    Does ``value`` hold an ``embedded_credentials`` entry that is only half filled?
-
-    Asks :func:`validated_embedded_credentials` rather than restating its rules, so
-    the save-time check cannot drift from the query-time one.
-
-    A credential missing a half is ignored at query time, which is the right
-    behaviour there and the wrong one at authoring time: it saves and then silently
-    does nothing. So the configuration entry points reject it up front.
+    Is an embedded credential malformed or incomplete for its engine?
 
     Absent and entirely blank values pass -- they mean "no credential configured".
     Accepts the value as a dict or as the JSON string the connection dialog posts.
-
-    Deliberately engine-agnostic: it is reached from marshmallow field validators
-    that have no connection, and therefore no engine spec, in hand. An engine that
-    overrides ``validate_embedded_credentials`` to accept a shape the canonical rule
-    rejects must also relax its own ``validate_parameters``.
+    Use the engine's query-time validator when the connection is known, keeping
+    authoring checks consistent with engine-specific credential shapes.
     """
+    if value is None or value == "":
+        return False
+
     if isinstance(value, str):
         try:
             value = json.loads(value)
         except json.JSONDecodeError:
-            # Not our error to report: the surrounding JSON validators already
-            # reject undecodable payloads with a message about the real problem.
-            return False
+            return True
 
-    if not isinstance(value, dict):
+    if value is None:
         return False
+    if not isinstance(value, dict):
+        return True
 
     # `auth_method` alone is not a credential -- the dialog writes it as soon as the
     # selector renders, so an untouched sub-form must not count as half-filled.
@@ -250,4 +244,4 @@ def embedded_credentials_incomplete(value: Any) -> bool:
     ):
         return False
 
-    return validated_embedded_credentials(value) is None
+    return validate_credentials(value) is None

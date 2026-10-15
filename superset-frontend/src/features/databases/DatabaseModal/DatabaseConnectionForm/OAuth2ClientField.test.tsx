@@ -308,6 +308,57 @@ describe('OAuth2ClientField', () => {
   });
 
   test.each([
+    ['authorization_request_uri', 'client-authorization-request-uri'],
+    ['token_request_uri', 'client-token-request-uri'],
+    ['scope', 'client-scope'],
+  ])(
+    'keeps an explicitly cleared %s empty after a parent update',
+    (field, id) => {
+      const defaults = {
+        authorization_request_uri: 'https://accounts.google.com/o/oauth2/auth',
+        token_request_uri: 'https://oauth2.googleapis.com/token',
+        scope: 'https://www.googleapis.com/auth/spreadsheets',
+      };
+      const props = {
+        ...defaultProps,
+        default_value: defaults,
+        isPublic: false,
+        db: {
+          ...defaultProps.db,
+          engine: 'gsheets',
+          masked_encrypted_extra: '{}',
+        },
+      };
+      const { getByTestId, getByText, rerender } = render(
+        <OAuth2ClientField {...props} />,
+      );
+      fireEvent.click(getByText('OAuth2 client information'));
+      expect(getByTestId(id)).not.toHaveValue('');
+
+      fireEvent.change(getByTestId(id), { target: { value: '' } });
+      const submittedInfo = { id: '', secret: '', ...defaults, [field]: '' };
+      expect(mockChangeMethods.onParametersChange).toHaveBeenLastCalledWith({
+        target: {
+          type: 'object',
+          name: 'oauth2_client_info',
+          value: submittedInfo,
+        },
+      });
+
+      rerender(
+        <OAuth2ClientField
+          {...props}
+          db={{
+            ...props.db,
+            parameters: { oauth2_client_info: submittedInfo },
+          }}
+        />,
+      );
+      expect(getByTestId(id)).toHaveValue('');
+    },
+  );
+
+  test.each([
     ['the literal string "null"', 'null'],
     ['malformed JSON', 'not json'],
     ['a JSON primitive', '42'],

@@ -2577,8 +2577,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         decided the request is one the fallback governs. The canonical shape is
         ``{username, password}`` or ``{username, auth_method: "keypair",
         privatekey_body, privatekey_pass}``; an engine whose driver needs a
-        different shape overrides this, and must then relax ``validate_parameters``
-        to match so a credential it accepts here is not rejected on save.
+        different shape overrides this. The database API and parameter-validation
+        command use the same hook when checking credentials before saving.
         """
         return validated_embedded_credentials(credentials)
 

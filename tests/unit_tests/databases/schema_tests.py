@@ -642,6 +642,8 @@ def test_encrypted_extra_validator_rejects_non_dict_top_level_value(
         {"username": "embedded_svc"},
         {"password": "pw"},
         {"username": "embedded_svc", "password": ""},
+        {"username": "   ", "password": "pw"},
+        {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
         {"username": "embedded_svc", "auth_method": "keypair"},
         {"auth_method": "keypair", "privatekey_body": "-----BEGIN-----"},
     ],
@@ -671,7 +673,7 @@ def test_masked_encrypted_extra_rejects_a_half_filled_embedded_credential(
     }
     with pytest.raises(ValidationError) as exc_info:
         schema.load(payload)
-    assert "Embedded guest credentials are incomplete" in str(exc_info.value)
+    assert "Embedded guest credentials are invalid or incomplete" in str(exc_info.value)
 
 
 @pytest.mark.parametrize(
@@ -710,7 +712,7 @@ def test_import_accepts_a_half_filled_embedded_credential() -> None:
     """
     Test that import is deliberately not tightened.
 
-    The check lives on `api_encrypted_extra_validator` rather than on
+    The check lives on `DatabaseParametersSchemaMixin` rather than on
     `encrypted_extra_validator`, which also backs the import schemas: rejecting
     this on import would refuse existing exports.
     """
@@ -926,3 +928,86 @@ def test_disabled_embedded_credentials_survive_unrelated_api_edits(
         }
     )
     assert loaded["masked_encrypted_extra"] == stored
+
+
+@pytest.mark.parametrize(
+    "schema_name",
+    ["DatabasePostSchema", "DatabasePutSchema", "DatabaseTestConnectionSchema"],
+)
+@pytest.mark.parametrize("valid", [True, False])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_api_schemas_use_the_engine_credential_validator(
+    mocker: MockerFixture, schema_name: str, valid: bool
+) -> None:
+    """Save and test endpoints accept the same credential shapes as execution."""
+    from superset.databases import schemas
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import Database
+
+    class TokenEngineSpec(SqliteEngineSpec):
+        @classmethod
+        def validate_embedded_credentials(
+            cls, credentials: Any
+        ) -> dict[str, str] | None:
+            if isinstance(credentials, dict) and credentials.get("token"):
+                return credentials
+            return None
+
+    mocker.patch.object(Database, "get_db_engine_spec", return_value=TokenEngineSpec)
+    credentials = (
+        {"token": "engine-token"} if valid else {"username": "svc", "password": "pw"}
+    )
+    payload = {
+        "database_name": "test_db",
+        "sqlalchemy_uri": "sqlite://",
+        "masked_encrypted_extra": json.dumps({"embedded_credentials": credentials}),
+    }
+    schema = getattr(schemas, schema_name)()
+    if valid:
+        assert (
+            schema.load(payload)["masked_encrypted_extra"]
+            == payload["masked_encrypted_extra"]
+        )
+    else:
+        with pytest.raises(ValidationError) as excinfo:
+            schema.load(payload)
+        assert "masked_encrypted_extra" in excinfo.value.messages
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_partial_update_uses_the_stored_engine_credential_validator(
+    mocker: MockerFixture,
+) -> None:
+    """An update without a URI still validates with the connection's engine."""
+    from superset.databases.schemas import DatabasePutSchema
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.core import Database
+
+    database = Database(sqlalchemy_uri="sqlite://")
+    mocker.patch("superset.databases.schemas.db.session.get", return_value=database)
+    validator = mocker.patch.object(
+        SqliteEngineSpec, "validate_embedded_credentials", return_value={"token": "t"}
+    )
+    payload = {
+        "masked_encrypted_extra": json.dumps({"embedded_credentials": {"token": "t"}})
+    }
+    DatabasePutSchema(database_id=1).load(payload)
+    validator.assert_called_once_with({"token": "t"})
+
+
+@pytest.mark.parametrize("credentials", ["not json", "[]", "42", [], False, 0])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_api_rejects_malformed_embedded_credentials(credentials: Any) -> None:
+    """Valid outer JSON must not hide a malformed credential value."""
+    from superset.databases.schemas import DatabasePostSchema
+
+    with pytest.raises(ValidationError) as excinfo:
+        DatabasePostSchema().load(
+            {
+                "database_name": "test_db",
+                "masked_encrypted_extra": json.dumps(
+                    {"embedded_credentials": credentials}
+                ),
+            }
+        )
+    assert "masked_encrypted_extra" in excinfo.value.messages

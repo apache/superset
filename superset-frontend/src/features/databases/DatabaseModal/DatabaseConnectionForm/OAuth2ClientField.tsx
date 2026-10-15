@@ -94,12 +94,12 @@ export const OAuth2ClientField = ({
       id: info.id || '',
       secret: info.secret || '',
       authorization_request_uri:
-        info.authorization_request_uri ||
-        defaultValue?.authorization_request_uri ||
+        info.authorization_request_uri ??
+        defaultValue?.authorization_request_uri ??
         '',
       token_request_uri:
-        info.token_request_uri || defaultValue?.token_request_uri || '',
-      scope: info.scope || defaultValue?.scope || '',
+        info.token_request_uri ?? defaultValue?.token_request_uri ?? '',
+      scope: info.scope ?? defaultValue?.scope ?? '',
     };
   };
 

@@ -2225,6 +2225,15 @@ def test_apply_embedded_credentials_sets_a_password_on_the_url(
                 "privatekey_pass": "",
             },
         ),
+        ({"username": "   ", "password": "p"}, None),
+        (
+            {"username": " \t ", "auth_method": "keypair", "privatekey_body": "PEM"},
+            None,
+        ),
+        (
+            {"username": " u ", "password": " p "},
+            {"username": " u ", "password": " p "},
+        ),
         ({"username": "u"}, None),
         ({"password": "p"}, None),
         ({"username": "u", "auth_method": "keypair"}, None),

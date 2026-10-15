@@ -33,16 +33,17 @@ assists people when migrating to a new version.
   required by the selected authentication method — is refused
   with a `CONNECTION_ACCESS_DENIED_ERROR` instead of connecting with the credential in
   the connection's own SQLAlchemy URI. Queries that do run under an embedded credential
-  get their own cache identity, including a separate partition for guests without
-  credentials, so they no longer share a DATA-cache entry (or,
-  under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
+  get a dedicated cache partition distinct from every logged-in username, including
+  a separate partition for guests without credentials, so they no longer share a
+  DATA-cache entry (or, under `GLOBAL_ASYNC_QUERIES`, a deduplicated chart task) with a logged-in user's
   per-user result; existing cached entries for such charts are effectively invalidated
-  for guests. A half-filled `embedded_credentials` is rejected by
+  for guests. A malformed or incomplete `embedded_credentials` is rejected by
   `POST`/`PUT /api/v1/database/` and by `validate_parameters` rather than stored and
   ignored while both embedding flags are enabled; asset import is unchanged. Validation
-  uses edited credentials rather than stale stored values, and disabling either flag
-  preserves stored credentials without blocking unrelated edits. Restored async guest
-  queries use the same credential as synchronous queries. Snowflake OAuth2 scope is
+  uses the engine's credential rules and edited credentials rather than stale stored
+  values, and rejects whitespace-only usernames. Disabling either flag preserves stored credentials without blocking unrelated edits. Restored async guest
+  queries use the same credential as synchronous queries. Connection-mutator hooks
+  receive the selected fallback username. Snowflake OAuth2 scope is
   configured explicitly; a role scope selects that role, and omitting it uses the
   user's default role. Deployments that leave the fallback flag off are unaffected.
 

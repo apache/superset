@@ -798,6 +798,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     engine_kwargs,
                 )
             )
+            # Hooks must receive the selected connection identity, not the
+            # username claim supplied by the guest token.
+            effective_username = sqlalchemy_url.username
         elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
                 self,
