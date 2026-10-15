@@ -18,7 +18,12 @@
  */
 import { useEffect } from 'react';
 import { act, fireEvent, render } from 'spec/helpers/testing-library';
-import { FeatureFlag, VizType } from '@superset-ui/core';
+import {
+  DatasourceType,
+  FeatureFlag,
+  TimeGranularity,
+  VizType,
+} from '@superset-ui/core';
 import * as redux from 'redux';
 
 import * as exploreUtils from 'src/explore/exploreUtils';
@@ -33,6 +38,12 @@ import {
   useAutoRefreshContext,
 } from 'src/dashboard/contexts/AutoRefreshContext';
 import Chart from './Chart';
+import {
+  DashboardDatasetsContext,
+  type DashboardDatasetsContextValue,
+} from 'src/dashboard/contexts/DashboardDatasetsContext';
+import { buildQuery as buildTableQuery } from '../../../../../plugins/plugin-chart-table/src/buildQuery';
+import type { TableChartFormData } from '../../../../../plugins/plugin-chart-table/src/types';
 
 let capturedChartContainerProps: Record<string, unknown> = {};
 jest.mock('src/components/Chart/ChartContainer', () => {
@@ -106,12 +117,23 @@ const defaultState = {
 function setup(
   overrideProps: Record<string, unknown> = {},
   overrideState: Record<string, unknown> = {},
+  currentDatasets: DashboardDatasetsContextValue | null = null,
 ) {
-  return render(<Chart {...props} {...overrideProps} />, {
-    useRedux: true,
-    useRouter: true,
-    initialState: { ...defaultState, ...overrideState },
-  });
+  const chart = <Chart {...props} {...overrideProps} />;
+  return render(
+    currentDatasets ? (
+      <DashboardDatasetsContext.Provider value={currentDatasets}>
+        {chart}
+      </DashboardDatasetsContext.Provider>
+    ) : (
+      chart
+    ),
+    {
+      useRedux: true,
+      useRouter: true,
+      initialState: { ...defaultState, ...overrideState },
+    },
+  );
 }
 
 function StartAutoRefreshFor({ chartIds }: { chartIds: number[] }) {
@@ -202,6 +224,260 @@ test('should render a SliceHeader', () => {
 test('should render a ChartContainer', () => {
   const { getByTestId } = setup();
   expect(getByTestId('chart-container')).toBeInTheDocument();
+});
+
+test('uses current semantic dimensions instead of a saved stale temporal lookup', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    {
+      dashboardId: props.dashboardId,
+      datasets: [
+        {
+          uid: '2__semantic_view',
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: true }],
+        },
+      ],
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ event_time: true });
+  expect(buildTableQuery(formData).queries[0].columns).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        label: 'event_time',
+        timeGrain: TimeGranularity.DAY,
+      }),
+    ]),
+  );
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+  expect(savedFormData.temporal_columns_lookup).toEqual({ event_time: false });
+});
+
+test('keeps a saved semantic grain when current datasource metadata is unavailable', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {},
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+  expect(savedFormData.temporal_columns_lookup).toEqual({ event_time: false });
+});
+
+test('ignores prior dashboard metadata while current datasets are loading', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'loading',
+      },
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+});
+
+test('ignores prior metadata when a completed response omits the semantic source', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['event_time'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'event_time', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    { dashboardId: props.dashboardId, datasets: [] },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toBeUndefined();
+  expect(buildTableQuery(formData).queries[0].extras?.time_grain_sqla).toBe(
+    TimeGranularity.DAY,
+  );
+});
+
+test('omits a dormant semantic grain when current metadata proves the axis non-temporal', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '2__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['orders'],
+    groupby: ['country'],
+    granularity: undefined,
+    time_grain_sqla: TimeGranularity.DAY,
+    temporal_columns_lookup: { country: true },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+      datasources: {
+        '2__semantic_view': {
+          ...mockDatasource['7__table'],
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'country', is_dttm: false }],
+        },
+      },
+      dashboardState: {
+        ...defaultState.dashboardState,
+        datasetsStatus: 'complete',
+      },
+    },
+    {
+      dashboardId: props.dashboardId,
+      datasets: [
+        {
+          uid: '2__semantic_view',
+          type: DatasourceType.SemanticView,
+          columns: [{ column_name: 'country', is_dttm: false }],
+        },
+      ],
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ country: false });
+  expect(buildTableQuery(formData).queries[0].extras).not.toHaveProperty(
+    'time_grain_sqla',
+  );
+});
+
+test('leaves saved SQL dataset lookup unchanged on dashboards', () => {
+  const savedFormData = {
+    ...chartQueries[queryId].form_data,
+    datasource: '11__table',
+    temporal_columns_lookup: { event_time: false },
+  };
+  setup(
+    {},
+    {
+      charts: {
+        ...defaultState.charts,
+        [queryId]: {
+          ...defaultState.charts[queryId],
+          form_data: savedFormData,
+        },
+      },
+    },
+  );
+
+  const formData = capturedChartContainerProps.formData as TableChartFormData;
+  expect(formData.temporal_columns_lookup).toEqual({ event_time: false });
 });
 
 const noDescriptionRenderInputs = ([undefined, false, true] as const).flatMap(
@@ -308,7 +584,11 @@ test('should call exportChart when exportCSV is clicked', async () => {
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to .CSV');
+  const exportAction = await findByText(
+    'Export to .CSV',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
@@ -341,7 +621,11 @@ test('should call exportChart with row_limit props.maxRows when exportFullCSV is
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to full .CSV');
+  const exportAction = await findByText(
+    'Export to full .CSV',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportCSV).toHaveBeenCalledTimes(1);
   expect(stubbedExportCSV).toHaveBeenCalledWith(
@@ -372,7 +656,11 @@ test('should call exportChart when exportXLSX is clicked', async () => {
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to Excel');
+  const exportAction = await findByText(
+    'Export to Excel',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
   expect(stubbedExportXLSX).toHaveBeenCalledWith(
@@ -402,7 +690,11 @@ test('should call exportChart with row_limit props.maxRows when exportFullXLSX i
   );
   fireEvent.click(getByRole('button', { name: 'More Options' }));
   fireEvent.mouseOver(getByRole('menuitem', { name: 'Download right' }));
-  const exportAction = await findByText('Export to full Excel');
+  const exportAction = await findByText(
+    'Export to full Excel',
+    {},
+    { timeout: 5000 },
+  );
   fireEvent.click(exportAction);
   expect(stubbedExportXLSX).toHaveBeenCalledTimes(1);
   expect(stubbedExportXLSX).toHaveBeenCalledWith(

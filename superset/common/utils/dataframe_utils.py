@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import datetime
+from collections.abc import Collection
 from typing import Any, Literal, TYPE_CHECKING
 
 import numpy as np
@@ -61,8 +62,13 @@ def full_outer_join_df(
 
 def df_metrics_to_num(df: pd.DataFrame, query_object: QueryObject) -> None:
     """Converting metrics to numeric when pandas.read_sql cannot"""
+    df_columns_to_num(df, query_object.metric_names)
+
+
+def df_columns_to_num(df: pd.DataFrame, columns: Collection[str]) -> None:
+    """Soft-convert the named object columns to numeric, in place."""
     for col, dtype in df.dtypes.items():
-        if dtype.type == np.object_ and col in query_object.metric_names:
+        if dtype.type == np.object_ and col in columns:
             # soft-convert a metric column to numeric only if all
             # non-null values look numeric (e.g. ClickHouse returns
             # SUM() results as strings). Leaves truly non-numeric

@@ -717,6 +717,7 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
             db.session.delete(db.session.query(SavedQuery).get(saved_query_id))
             db.session.commit()
 
+    @with_feature_flags(SEMANTIC_LAYERS=True)
     def test_create_chart_from_semantic_view(self):
         """
         Chart API: creating a chart with datasource_type="semantic_view" must

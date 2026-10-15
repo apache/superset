@@ -61,6 +61,7 @@ from werkzeug.wsgi import ClosingIterator, FileWrapper
 
 from superset import db, is_feature_enabled
 from superset.charts.schemas import ChartEntityResponseSchema
+from superset.commands.chart.exceptions import ChartNotFoundError
 from superset.commands.dashboard.copy import CopyDashboardCommand
 from superset.commands.dashboard.create import CreateDashboardCommand
 from superset.commands.dashboard.delete import (
@@ -100,6 +101,7 @@ from superset.commands.dashboard.update import (
     UpdateDashboardNativeFiltersCommand,
 )
 from superset.commands.database.exceptions import DatasetValidationError
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.distributed_lock.acquire import AcquireDistributedLock
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
@@ -180,8 +182,12 @@ from superset.models.dashboard import Dashboard
 from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestToken, GuestUser
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
+)
+from superset.semantic_layers.access import (
+    is_semantic_image_unavailable,
+    SemanticLayersDisabledError,
 )
 from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.semantic_layers.models import SemanticView
@@ -551,11 +557,7 @@ class DashboardRestApi(
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Dashboard, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Dashboard)
 
     list_select_columns = list_columns + ["changed_on", "created_on", "changed_by_fk"]
     order_columns = [
@@ -802,8 +804,7 @@ class DashboardRestApi(
                 for slc in dash.slices
                 if security_manager.can_access_chart(slc)
             ]
-        if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-            result["extra_editors"] = get_extra_editor_subject_ids(dash)
+        attach_extra_editors(result, dash)
         add_extra_log_payload(
             dashboard_id=dash.id, action=f"{self.__class__.__name__}.get"
         )
@@ -1732,7 +1733,9 @@ class DashboardRestApi(
                     write_zip_entry(
                         bundle, f"{root}/{file_name}", file_content().encode()
                     )
-            except DashboardNotFoundError:
+            except (DashboardNotFoundError, ChartNotFoundError, DatasetNotFoundError):
+                # The nested chart and dataset exports hide rows the caller
+                # cannot access, so mirror their bare 404 without naming them.
                 return self.response_404()
             except SemanticReferenceError as ex:
                 return self.response(ex.status, message=ex.message)
@@ -2371,6 +2374,8 @@ class DashboardRestApi(
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
+        if is_semantic_image_unavailable(dashboard):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         window_size = (
             kwargs["rison"].get("window_size") or DEFAULT_DASHBOARD_WINDOW_SIZE
@@ -2772,6 +2777,8 @@ class DashboardRestApi(
         # Making sure the dashboard still exists
         if not dashboard:
             return self.response_404()
+        if is_semantic_image_unavailable(dashboard):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         download_format = request.args.get("download_format", "png")
 
@@ -2877,6 +2884,8 @@ class DashboardRestApi(
         dashboard = cast(Dashboard, self.datamodel.get(pk, self._base_filters))
         if not dashboard:
             return self.response_404()
+        if is_semantic_image_unavailable(dashboard):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()
         dashboard_url = get_url_path(
@@ -3458,6 +3467,8 @@ class DashboardRestApi(
               $ref: '#/components/responses/403'
             404:
               $ref: '#/components/responses/404'
+            422:
+              $ref: '#/components/responses/422'
             500:
               $ref: '#/components/responses/500'
         """
@@ -3470,6 +3481,8 @@ class DashboardRestApi(
             dash = CopyDashboardCommand(original_dash, data).run()
         except DashboardForbiddenError:
             return self.response_403()
+        except DashboardInvalidError as ex:
+            return self.response_422(message=ex.normalized_messages())
         except DashboardCopyError:
             return self.response_400()
 
