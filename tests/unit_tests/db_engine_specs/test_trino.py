@@ -2139,8 +2139,8 @@ def test_get_table_and_view_names_do_not_map_sqlalchemy_wrapped_error(
     mocker: MockerFixture, method: str
 ) -> None:
     """
-    Characterizes current behavior. Invert if the mapping learns to look at
-    ``.orig``.
+    Documents current behavior; the intended behavior is not decided yet.
+    Update this test if the mapping learns to look at ``.orig``.
 
     The exception mapping keys on the driver exception type, but when the error
     surfaces through a real SQLAlchemy inspector it arrives wrapped in a
@@ -2227,8 +2227,8 @@ def test_get_all_schema_names_does_not_map_sqlalchemy_wrapped_permission_denied(
     trino_database: tuple[Any, MagicMock],
 ) -> None:
     """
-    Characterizes current behavior. Invert if the mapping learns to look at
-    ``.orig``.
+    Documents current behavior; the intended behavior is not decided yet.
+    Update this test if the mapping learns to look at ``.orig``.
 
     Through a real inspector, a permission failure arrives wrapped in a
     ``sqlalchemy.exc.ProgrammingError`` (driver error as ``.orig``). The
@@ -2250,8 +2250,8 @@ def test_get_catalog_names_does_not_map_sqlalchemy_wrapped_permission_denied(
     mocker: MockerFixture,
 ) -> None:
     """
-    Characterizes current behavior. Invert if the mapping learns to look at
-    ``.orig``.
+    Documents current behavior; the intended behavior is not decided yet.
+    Update this test if the mapping learns to look at ``.orig``.
 
     ``get_catalog_names`` runs ``SHOW CATALOGS`` itself and does not map
     failures at all, so a SQLAlchemy-wrapped permission error propagates with
@@ -2355,16 +2355,22 @@ def test_expand_columns_expands_deeply_nested_row() -> None:
     assert expanded[-1]["name"] == "field" + ".a" * depth
 
 
-def test_expand_columns_has_no_recursion_depth_guard() -> None:
+@pytest.mark.xfail(
+    strict=True,
+    raises=RecursionError,
+    reason="Known defect: _expand_columns has no recursion-depth guard.",
+)
+def test_expand_columns_survives_rows_nested_beyond_recursion_limit() -> None:
     """
-    Characterizes current behavior (production defect). Invert
-    when a depth guard lands.
+    Expanding a ROW nested deeper than the interpreter's recursion limit should
+    not crash column inspection for the whole table.
 
-    ``_expand_columns`` recurses once per ROW level with no maximum depth, so a
-    type nested deeper than the interpreter's recursion limit raises
-    ``RecursionError`` and would break column inspection for the whole table.
-    The type is built programmatically because ``parse_sqltype`` is itself
-    recursive and would fail first on a type string this deep.
+    Known defect, hence ``xfail(strict=True)``: ``_expand_columns`` recurses
+    once per ROW level with no maximum depth and raises ``RecursionError``. Once
+    a guard lands this test passes, strict mode turns that into a failure, and
+    the marker should be removed. The type is built programmatically because
+    ``parse_sqltype`` is itself recursive and would fail first on a string this
+    deep.
     """
     import sys
 
@@ -2377,8 +2383,9 @@ def test_expand_columns_has_no_recursion_depth_guard() -> None:
         name="field", column_name="field", type=col_type, is_dttm=False
     )
 
-    with pytest.raises(RecursionError):
-        TrinoEngineSpec._expand_columns(col)
+    expanded = TrinoEngineSpec._expand_columns(col)
+
+    assert expanded[0] == col
 
 
 # ---------------------------------------------------------------------------
@@ -2447,7 +2454,7 @@ def test_get_dbapi_mapped_exception_keeps_message(
 
 def test_trino_has_no_custom_error_patterns() -> None:
     """
-    Characterizes current behavior (production gap). Invert if Trino gains
+    Documents current behavior; update this test if Trino gains
     ``custom_errors``.
 
     Unlike ``PrestoEngineSpec``, which rewrites nine known Presto errors into
@@ -2640,17 +2647,21 @@ def _record_query_ids_seen_by_handle_cursor(
     return observed
 
 
-def test_execute_with_cursor_shares_mutable_g_state_across_threads(
+@pytest.mark.xfail(
+    strict=True,
+    raises=AssertionError,
+    reason="Known defect: g is copied shallowly into the worker thread.",
+)
+def test_execute_with_cursor_isolates_mutable_g_state_from_worker(
     app, mocker: MockerFixture
 ) -> None:
     """
-    Characterizes current behavior (production defect). Invert
-    when the copy is made isolated.
+    A mutation the worker thread makes to a value on ``g`` should not leak back
+    into the request thread's ``g``.
 
-    The worker thread rebuilds Flask's ``g`` with ``setattr(g, key, value)``
-    per attribute: a shallow copy. A mutable attribute (here a dict) is the
-    same object on both sides, so a mutation made in the worker thread is
-    visible to the request thread.
+    Known defect, hence ``xfail(strict=True)``: the worker rebuilds ``g`` with
+    ``setattr(g, key, value)`` per attribute, a shallow copy, so a mutable value
+    (here a dict) is the same object on both sides.
     """
     _record_query_ids_seen_by_handle_cursor(mocker)
     mock_cursor = mocker.MagicMock(query_id="existing-query-id")
@@ -2663,7 +2674,7 @@ def test_execute_with_cursor_shares_mutable_g_state_across_threads(
         app, mock_cursor, _mutate_in_worker, g_values={"shared_state": shared_state}
     )
 
-    assert shared_state["count"] == 1
+    assert shared_state["count"] == 0
 
 
 @pytest.mark.parametrize("exception", [RuntimeError("boom"), MemoryError("oom")])
@@ -2709,27 +2720,29 @@ def test_execute_with_cursor_reraises_worker_exception_after_query_id(
     assert observed_query_ids == ["myQueryId"]
 
 
+@pytest.mark.xfail(
+    strict=True,
+    raises=pytest.fail.Exception,
+    reason="Known defect: the worker only records Exception subclasses.",
+)
 @pytest.mark.filterwarnings("ignore::pytest.PytestUnhandledThreadExceptionWarning")
-def test_execute_with_cursor_swallows_base_exception_from_worker(
+def test_execute_with_cursor_reraises_base_exception_from_worker(
     app, mocker: MockerFixture
 ) -> None:
     """
-    Characterizes current behavior (production defect). Invert when fixed.
+    A worker that dies with a ``BaseException`` should not be reported as a
+    successful query: the error should be re-raised in the calling thread.
 
-    The worker only records ``Exception`` subclasses. A ``BaseException`` such
-    as ``KeyboardInterrupt`` or ``SystemExit`` escapes the ``except`` clause, so
-    nothing is stored in the result dict and ``execute_with_cursor`` returns
-    normally as though the query had succeeded.
+    Known defect, hence ``xfail(strict=True)``: the worker's ``except Exception``
+    does not record ``BaseException`` subclasses, so ``execute_with_cursor``
+    returns normally. ``SystemExit`` stands in for ``KeyboardInterrupt``, which
+    pytest would treat as a request to abort the whole session.
     """
-    observed_query_ids = _record_query_ids_seen_by_handle_cursor(mocker)
+    _record_query_ids_seen_by_handle_cursor(mocker)
     mock_cursor = mocker.MagicMock(query_id="myQueryId")
 
-    # No exception escapes, although the worker died. SystemExit is used rather
-    # than KeyboardInterrupt: once this is fixed and the error is re-raised, a
-    # KeyboardInterrupt would abort the whole pytest session, not fail one test.
-    _run_execute_with_cursor(app, mock_cursor, SystemExit)
-
-    assert observed_query_ids == ["myQueryId"]
+    with pytest.raises(SystemExit):
+        _run_execute_with_cursor(app, mock_cursor, SystemExit)
 
 
 def test_update_params_from_encrypted_extra_malformed_json_reraises() -> None:
