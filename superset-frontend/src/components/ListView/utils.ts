@@ -351,7 +351,12 @@ export function useListViewState<D extends object = any>({
         : 'replace';
 
     setQuery(queryParams, method);
+    // URL navigation updates the table below. Do not write the old table
+    // page back into history before that synchronization has run.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [internalFilters, pageIndex, renderCard, setQuery, sortBy, viewMode]);
 
+  useEffect(() => {
     fetchData({ pageIndex, pageSize, sortBy, filters });
   }, [fetchData, pageIndex, pageSize, sortBy, filters]);
 

@@ -954,6 +954,14 @@ function DashboardList(props: DashboardListProps) {
                 />
               )}
               <ListView<Dashboard>
+                persistence={
+                  user?.userId === undefined
+                    ? undefined
+                    : {
+                        userId: user.userId,
+                        resource: 'dashboard',
+                      }
+                }
                 bulkActions={bulkActions}
                 bulkSelectEnabled={bulkSelectEnabled}
                 cardSortSelectOptions={sortTypes}

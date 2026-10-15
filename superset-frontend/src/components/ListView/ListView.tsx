@@ -19,14 +19,7 @@
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled } from '@apache-superset/core/theme';
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  ReactNode,
-} from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, ReactNode } from 'react';
 import cx from 'classnames';
 import { Row } from 'react-table';
 import TableCollection, {
@@ -54,6 +47,9 @@ import {
   ViewModeType,
 } from './types';
 import { ListViewError, useListViewState } from './utils';
+import useListViewPersistence, {
+  type ListViewPersistenceConfig,
+} from './useListViewPersistence';
 
 const ListViewStyles = styled.div`
   ${({ theme }) => `
@@ -366,9 +362,11 @@ export interface ListViewProps<T extends object = any> {
   setMobileFiltersOpen?: (open: boolean) => void;
   /** Title for the mobile filters drawer */
   mobileFiltersDrawerTitle?: string;
+  /** Remember list settings for this user in the current browser session. */
+  persistence?: ListViewPersistenceConfig;
 }
 
-export function ListView<T extends object = any>({
+function ListViewContent<T extends object = object>({
   columns,
   data,
   count,
@@ -402,7 +400,12 @@ export function ListView<T extends object = any>({
   mobileFiltersOpen = false,
   setMobileFiltersOpen,
   mobileFiltersDrawerTitle,
-}: ListViewProps<T>) {
+  hasSavedFilters = false,
+  clearSavedFilters,
+}: ListViewProps<T> & {
+  hasSavedFilters?: boolean;
+  clearSavedFilters?: () => void;
+}) {
   const {
     getTableProps,
     getTableBodyProps,
@@ -451,13 +454,21 @@ export function ListView<T extends object = any>({
     clearFilterById: (id: string) => void;
   }>(null);
 
-  const hasActiveFilters = internalFilters.some(f => {
-    if (f.value === null || f.value === undefined || f.value === '')
-      return false;
-    if (Array.isArray(f.value))
-      return f.value.some(v => v !== null && v !== undefined && v !== '');
-    return true;
-  });
+  const hasActiveFilters =
+    hasSavedFilters ||
+    internalFilters.some(f => {
+      if (f.value === null || f.value === undefined || f.value === '')
+        return false;
+      if (Array.isArray(f.value))
+        return f.value.some(v => v !== null && v !== undefined && v !== '');
+      return true;
+    });
+
+  const clearAllFilters = () => {
+    clearSavedFilters?.();
+    filterControlsRef.current?.clearFilters();
+    gotoPage(0);
+  };
 
   // Wire the optional external filtersRef to our internal filterControlsRef.
   // useLayoutEffect fires synchronously after DOM mutations, guaranteeing the
@@ -469,12 +480,6 @@ export function ListView<T extends object = any>({
       ).current = filterControlsRef.current;
     }
   });
-
-  const handleClearFilterControls = useCallback(() => {
-    if (query.filters) {
-      filterControlsRef.current?.clearFilters();
-    }
-  }, [query.filters]);
 
   const cardViewEnabled = Boolean(renderCard);
   const [showBulkTagModal, setShowBulkTagModal] = useState<boolean>(false);
@@ -538,7 +543,7 @@ export function ListView<T extends object = any>({
                   <ClearAllButton
                     type="button"
                     disabled={!hasActiveFilters}
-                    onClick={() => filterControlsRef.current?.clearFilters()}
+                    onClick={clearAllFilters}
                   >
                     {t('Clear all')}
                   </ClearAllButton>
@@ -695,7 +700,7 @@ export function ListView<T extends object = any>({
                   description={t('Try different criteria to display results.')}
                   size="large"
                   image="filter-results.svg"
-                  buttonAction={() => handleClearFilterControls()}
+                  buttonAction={clearAllFilters}
                   buttonText={t('Clear all filters')}
                 />
               ) : (
@@ -741,7 +746,7 @@ export function ListView<T extends object = any>({
                 <ClearAllButton
                   type="button"
                   disabled={!hasActiveFilters}
-                  onClick={() => filterControlsRef.current?.clearFilters()}
+                  onClick={clearAllFilters}
                 >
                   {t('Clear all')}
                 </ClearAllButton>
@@ -751,5 +756,33 @@ export function ListView<T extends object = any>({
         </Drawer>
       )}
     </ListViewStyles>
+  );
+}
+
+/** Mount the list after its saved URL has been restored. */
+function PersistentListView<T extends object>(
+  props: ListViewProps<T> & {
+    persistence: ListViewPersistenceConfig;
+  },
+) {
+  const { restoring, ...persistenceControls } = useListViewPersistence(
+    props.persistence,
+  );
+  return restoring ? (
+    <Loading />
+  ) : (
+    <ListViewContent {...props} {...persistenceControls} />
+  );
+}
+
+export function ListView<T extends object = object>(props: ListViewProps<T>) {
+  return props.persistence ? (
+    <PersistentListView
+      key={`${props.persistence.userId}:${props.persistence.resource}`}
+      {...props}
+      persistence={props.persistence}
+    />
+  ) : (
+    <ListViewContent {...props} />
   );
 }

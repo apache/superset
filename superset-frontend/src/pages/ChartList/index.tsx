@@ -1116,6 +1116,14 @@ function ChartList(props: ChartListProps) {
           }
           return (
             <ListView<Chart>
+              persistence={
+                user?.userId === undefined
+                  ? undefined
+                  : {
+                      userId: user.userId,
+                      resource: 'chart',
+                    }
+              }
               bulkActions={bulkActions}
               bulkSelectEnabled={bulkSelectEnabled}
               cardSortSelectOptions={sortTypes}

@@ -1753,6 +1753,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           }
           return (
             <ListView<Dataset>
+              persistence={
+                user?.userId === undefined
+                  ? undefined
+                  : {
+                      userId: user.userId,
+                      resource: 'dataset',
+                    }
+              }
               className="dataset-list-view"
               columns={columns}
               data={datasets}
