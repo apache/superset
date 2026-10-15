@@ -585,8 +585,13 @@ def import_dataset(  # noqa: C901
     if not ignore_permissions:
         try:
             security_manager.raise_for_access(datasource=dataset)
-            # For virtual datasets, also validate access to the tables the
-            # SQL references, matching the create and update commands.
+            # Validate access to the underlying table(s) the dataset binds to,
+            # matching the create and update commands: the datasource-level
+            # check above still accepts editorship (#20382), so without this a
+            # decoy virtual dataset's editor could overwrite it into a physical
+            # dataset on -- or point its SQL at -- a table they have no data
+            # access to, then read it through chart-data. ``allow_editorship``
+            # is False so editorship of a same-named dataset is not accepted.
             if dataset.sql:
                 security_manager.raise_for_access(
                     database=dataset.database,
@@ -600,11 +605,19 @@ def import_dataset(  # noqa: C901
                     # references once the params are applied, so they are
                     # forwarded rather than left to default to empty.
                     template_params=_get_template_params(dataset),
-                    # Editorship of a same-named dataset must not authorize
-                    # the referenced tables here, matching the create/update
-                    # commands: otherwise importing (or overwriting) a virtual
-                    # dataset whose SQL reads a table the importer only edits a
-                    # decoy for would stand in for real data access.
+                    allow_editorship=False,
+                )
+            else:
+                # Physical dataset: validate the bound table itself, so an
+                # overwrite that converts a decoy virtual dataset into a
+                # physical one cannot bind to a table on editorship alone.
+                security_manager.raise_for_access(
+                    database=dataset.database,
+                    table=Table(
+                        dataset.table_name,
+                        dataset.schema or None,
+                        dataset.catalog or None,
+                    ),
                     allow_editorship=False,
                 )
         except SupersetSecurityException as ex:

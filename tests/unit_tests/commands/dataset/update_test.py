@@ -329,6 +329,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     raise_for_access.assert_called_once_with(
         database=mock_database,
         table=Table("restricted_table", "public", "catalog"),
+        allow_editorship=False,
     )
     assert any(
         "You don't have access to the table" in str(exc)
