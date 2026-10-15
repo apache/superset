@@ -92,6 +92,74 @@ def test_get_current_user_subject_ids_guest_user(app_context):
     mock_get_user_id.assert_not_called()
 
 
+def test_get_current_user_subject_ids_anonymous_user_gets_public_role(app_context):
+    """Anonymous users resolve to the public role's subject.
+
+    REGULAR RLS rules assigned to the public role match on these subject IDs,
+    so an empty result would silently drop those rules for logged-out viewers.
+    """
+    from flask import g
+
+    public_role = MagicMock()
+    anonymous_user = MagicMock(is_guest_user=False, is_anonymous=True)
+    g.user = anonymous_user
+
+    with (
+        patch("superset.utils.core.get_user_id", return_value=None),
+        patch(
+            "superset.security_manager.get_user_roles",
+            return_value=[public_role],
+        ) as mock_get_user_roles,
+        patch(
+            "superset.subjects.utils.subjects_from_roles",
+            return_value=[_make_subject(30, SubjectType.ROLE)],
+        ) as mock_subjects_from_roles,
+    ):
+        assert get_current_user_subject_ids() == [30]
+
+    mock_get_user_roles.assert_called_once_with(anonymous_user)
+    mock_subjects_from_roles.assert_called_once_with([public_role])
+
+
+def test_get_current_user_subject_ids_anonymous_user_without_public_role(
+    app_context,
+):
+    """Anonymous users get no subjects when no public role is configured."""
+    from flask import g
+
+    g.user = MagicMock(is_guest_user=False, is_anonymous=True)
+
+    with (
+        patch("superset.utils.core.get_user_id", return_value=None),
+        patch("superset.security_manager.get_user_roles", return_value=[]),
+        patch(
+            "superset.subjects.utils.subjects_from_roles", return_value=[]
+        ) as mock_subjects_from_roles,
+    ):
+        assert get_current_user_subject_ids() == []
+
+    mock_subjects_from_roles.assert_called_once_with([])
+
+
+def test_get_current_user_subject_ids_logged_in_user(app_context):
+    """Logged-in users resolve subjects from their user id."""
+    from flask import g
+
+    g.user = MagicMock(is_guest_user=False, is_anonymous=False)
+
+    with (
+        patch("superset.utils.core.get_user_id", return_value=7),
+        patch(
+            "superset.subjects.utils.get_user_subject_ids", return_value=[1, 2]
+        ) as mock_get_user_subject_ids,
+        patch("superset.security_manager.get_user_roles") as mock_get_user_roles,
+    ):
+        assert get_current_user_subject_ids() == [1, 2]
+
+    mock_get_user_subject_ids.assert_called_once_with(7)
+    mock_get_user_roles.assert_not_called()
+
+
 # --------------------------------------------------------------------------
 # get_or_create_role_subject
 # --------------------------------------------------------------------------
