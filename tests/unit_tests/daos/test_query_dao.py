@@ -485,6 +485,7 @@ def test_accepted_stop_reports_success_when_engine_cancel_fails(
     caller: str,
     cancel_outcome: str,
     status: QueryStatus,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """A committed stop is accepted even if engine cancellation is unavailable."""
     from superset.queries.api import QueryRestApi
@@ -516,6 +517,12 @@ def test_accepted_stop_reports_success_when_engine_cancel_fails(
         handle = SQLExecutor(mocker.Mock())._create_async_handle(123)
         assert handle.cancel() is True
     cancel.assert_called_once()
+    warning = next(
+        record
+        for record in caplog.records
+        if "engine cancellation not confirmed" in record.message
+    )
+    assert bool(warning.exc_info) is (cancel_outcome == "unreachable")
     session.expire_all()
     assert query.status == QueryStatus.STOPPED
     assert query.end_time is not None

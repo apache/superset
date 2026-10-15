@@ -1478,9 +1478,7 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
     )
 
     # Mock _store_results_in_backend to set status to FAILED without raising
-    def mock_store_results(
-        query, payload, database, durable=False, on_results_key=None
-    ):
+    def mock_store_results(query, payload, database, on_results_key=None):
         query.status = QueryStatusEnum.FAILED
 
     mocker.patch("superset.sql.execution.celery_task.results_backend", MagicMock())
@@ -2503,7 +2501,7 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
-    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.constants import QUERY_DISPATCHED_KEY, QUERY_EARLY_CANCEL_KEY
     from superset.models.sql_lab import Query
     from superset.sql.execution import celery_task
 
@@ -2587,7 +2585,10 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
         if stop_requested and not timed_out:
             assert query.status == QueryStatusEnum.STOPPED
             assert query.end_time == Decimal("1234.5")
-            assert query.extra == {QUERY_EARLY_CANCEL_KEY: True}
+            assert query.extra == {
+                QUERY_EARLY_CANCEL_KEY: True,
+                QUERY_DISPATCHED_KEY: True,
+            }
             assert query.error_message is None
         else:
             assert query.status == expected_status
@@ -2619,6 +2620,7 @@ def test_timeout_is_recorded_without_reading_a_stop(
     mock_db_session.commit.assert_called_once()
 
 
+@pytest.mark.parametrize("mutation", [False, True], ids=["select", "mutation"])
 @pytest.mark.parametrize(
     "checkpoint",
     ["success", "backend_failure", "error", "payload_load", "error_load"],
@@ -2629,6 +2631,7 @@ def test_stop_cannot_be_overwritten_by_terminal_metadata(
     mock_database: MagicMock,
     tmp_path: Path,
     checkpoint: str,
+    mutation: bool,
 ) -> None:
     """A separately committed stop must win even after the worker's last read."""
     from sqlalchemy import create_engine
@@ -2680,7 +2683,7 @@ def test_stop_cannot_be_overwritten_by_terminal_metadata(
             id=123,
             client_id="stop-race",
             database_id=1,
-            sql="SELECT 1",
+            sql="INSERT INTO users VALUES (1)" if mutation else "SELECT 1",
             status=QueryStatusEnum.RUNNING,
         )
         session.add(query)
@@ -2733,14 +2736,14 @@ def test_stop_cannot_be_overwritten_by_terminal_metadata(
 
 
 @pytest.mark.parametrize("backend_write", [None, True, False])
-def test_stop_during_mutation_commit_does_not_mask_committed_work(
+def test_stop_during_mutation_commit_discards_results(
     mocker: MockerFixture,
     app_context: None,
     mock_database: MagicMock,
     tmp_path: Path,
     backend_write: bool | None,
 ) -> None:
-    """A stop committed while the mutation commits loses to the durable write."""
+    """An accepted stop keeps STOPPED even if the mutation committed."""
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
@@ -2789,21 +2792,15 @@ def test_stop_during_mutation_commit_does_not_mask_committed_work(
             mocker.patch.object(celery_task, "_serialize_payload", return_value=b"x")
         mocker.patch.object(celery_task, "results_backend", backend)
 
-        if backend_write is False:
-            with pytest.raises(SupersetErrorException):
-                celery_task._execute_sql_statements(123, sql, None)
-            expected_status = QueryStatusEnum.FAILED
-        else:
-            payload = celery_task._execute_sql_statements(123, sql, None)
-            assert payload is not None
-            assert payload["status"] == QueryStatusEnum.SUCCESS
-            expected_status = QueryStatusEnum.SUCCESS
-
+        payload = celery_task._execute_sql_statements(123, sql, None)
+        assert payload is not None
+        assert payload["status"] == QueryStatusEnum.STOPPED
         conn.commit.assert_called_once_with()
         session.refresh(query)
-        assert query.status == expected_status
-        assert query.progress == 100
-        assert (query.results_key is not None) is bool(backend_write)
+        assert query.status == QueryStatusEnum.STOPPED
+        assert query.results_key is None
+        if backend:
+            backend.set.assert_not_called()
     engine.dispose()
 
 
@@ -2821,13 +2818,7 @@ def test_autocommit_work_finished_before_a_stop_is_committed(
     stop_intent: str,
     ctas: bool,
 ) -> None:
-    """
-    On a connection that commits each statement when it finishes, a mutation or
-    CTAS that finished before the stop was seen is committed work: it ends
-    SUCCESS. A stop the session loaded while the statements ran (the point at
-    which the engine cancels a running statement) still ends STOPPED, and so
-    does any stop before the commit inside a transaction.
-    """
+    """An accepted stop discards autocommit results even if not locally seen."""
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
@@ -2887,14 +2878,13 @@ def test_autocommit_work_finished_before_a_stop_is_committed(
             123, sql, None, on_commit=on_commit
         )
 
-        committed = autocommit and not seen
-        expected = QueryStatusEnum.SUCCESS if committed else QueryStatusEnum.STOPPED
+        expected = QueryStatusEnum.STOPPED
         assert payload is not None
         assert payload["status"] == expected
         session.refresh(query)
         assert query.status == expected
-        assert conn.commit.called is committed
-        assert on_commit.called is committed
+        assert not conn.commit.called
+        assert not on_commit.called
     engine.dispose()
 
 
@@ -2906,12 +2896,7 @@ def test_sqlite_ctas_finished_before_a_stop_is_committed(
     tmp_path: Path,
     ctas: bool,
 ) -> None:
-    """
-    On SQLite in its default transaction mode, a CTAS is durable once it
-    finishes, so a stop recorded after it finished ends SUCCESS. An INSERT
-    stays uncommitted until ``commit()``, so the same stop discards it and
-    ends STOPPED.
-    """
+    """A durable SQLite CTAS remains stopped without undoing its table."""
     from contextlib import contextmanager
 
     from sqlalchemy import create_engine, inspect
@@ -2975,7 +2960,7 @@ def test_sqlite_ctas_finished_before_a_stop_is_committed(
 
         payload = celery_task._execute_sql_statements(123, sql, None)
 
-        expected = QueryStatusEnum.SUCCESS if ctas else QueryStatusEnum.STOPPED
+        expected = QueryStatusEnum.STOPPED
         assert payload is not None
         assert payload["status"] == expected
         session.refresh(query)
@@ -2999,7 +2984,7 @@ def test_sqlite_ctas_finished_before_a_stop_is_committed(
         "connection_close_raises",
     ],
 )
-def test_failure_after_stop_raced_commit_reports_failed_not_stopped(
+def test_failure_after_stop_raced_commit_preserves_stopped(
     mocker: MockerFixture,
     app_context: None,
     mock_database: MagicMock,
@@ -3007,7 +2992,7 @@ def test_failure_after_stop_raced_commit_reports_failed_not_stopped(
     ctas: bool,
     failure: str,
 ) -> None:
-    """A post-commit failure after a lost stop race ends FAILED, not STOPPED."""
+    """Even a connection-close failure cannot overwrite an accepted stop."""
     from contextlib import contextmanager
 
     from sqlalchemy import create_engine
@@ -3085,15 +3070,14 @@ def test_failure_after_stop_raced_commit_reports_failed_not_stopped(
 
         conn.commit.assert_called_once_with()
         assert payload is not None
-        assert payload["status"] == QueryStatusEnum.FAILED
+        assert payload["status"] == QueryStatusEnum.STOPPED
         session.refresh(query)
-        assert query.status == QueryStatusEnum.FAILED
-        assert query.error_message
+        assert query.status == QueryStatusEnum.STOPPED
+        assert query.error_message is None
         assert query.results_key is None
     engine.dispose()
 
 
-@pytest.mark.parametrize("durable", [False, True], ids=["read", "committed-mutation"])
 @pytest.mark.parametrize(
     "status",
     [QueryStatusEnum.RUNNING, QueryStatusEnum.FAILED],
@@ -3103,7 +3087,6 @@ def test_publish_query_result_preserves_failure(
     mocker: MockerFixture,
     app_context: None,
     tmp_path: Path,
-    durable: bool,
     status: QueryStatusEnum,
 ) -> None:
     """
@@ -3129,7 +3112,7 @@ def test_publish_query_result_preserves_failure(
         query.rows = 1
         payload = {"status": QueryStatusEnum.SUCCESS.value, "query_id": 123}
 
-        assert celery_task._publish_query_result(query, payload, durable) is payload
+        assert celery_task._publish_query_result(query, payload) is payload
 
         session.expire_all()
         assert query.status == (
@@ -3590,3 +3573,31 @@ def test_celery_startup_preserves_stop_before_running_write(
             assert persisted.status == QueryStatusEnum.STOPPED
             assert persisted.end_time == 1234.5
     engine.dispose()
+
+
+@pytest.mark.parametrize("cancel_id", [None, "cancel-123"])
+def test_celery_records_dispatch_before_execution_without_cancel_handle(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    cancel_id: str | None,
+) -> None:
+    """A dispatched connector without a cancel ID must not claim early cancel."""
+    from superset.constants import QUERY_DISPATCHED_KEY
+    from superset.sql.execution import celery_task
+
+    from .conftest import setup_mock_raw_connection
+
+    mock_query.database = mock_database
+    mock_database.db_engine_spec.get_cancel_query_id.return_value = cancel_id
+    setup_mock_raw_connection(mock_database)
+    mocker.patch.object(celery_task, "_get_query", return_value=mock_query)
+
+    def execute(**kwargs: Any) -> list[Any]:
+        """Check dispatch metadata at the executor boundary."""
+        mock_query.set_extra_json_key.assert_any_call(QUERY_DISPATCHED_KEY, True)
+        return []
+
+    mocker.patch.object(celery_task, "execute_sql_with_cursor", side_effect=execute)
+    celery_task._execute_sql_statements(123, "SELECT 1", None)

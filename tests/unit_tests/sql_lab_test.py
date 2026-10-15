@@ -669,7 +669,7 @@ def test_get_sql_results_oauth2(mocker: MockerFixture, app) -> None:
         "connection_close_raises",
     ],
 )
-def test_get_sql_results_keeps_committed_work_when_stop_races_commit(
+def test_get_sql_results_preserves_stop_when_mutation_commits(
     mocker: MockerFixture,
     app: SupersetApp,
     app_context: None,
@@ -677,11 +677,7 @@ def test_get_sql_results_keeps_committed_work_when_stop_races_commit(
     ctas: bool,
     failure: str | None,
 ) -> None:
-    """
-    Test that a stop committed while the target database commits a mutation
-    or CTAS does not mask the committed work: the query ends SUCCESS, or
-    FAILED when a later step fails, never STOPPED.
-    """
+    """Test that a stop stays accepted even when the mutation commits."""
     from contextlib import contextmanager
     from unittest.mock import PropertyMock
 
@@ -782,7 +778,7 @@ def test_get_sql_results_keeps_committed_work_when_stop_races_commit(
         )
 
         conn.commit.assert_called_once_with()
-        expected = QueryStatus.SUCCESS if failure is None else QueryStatus.FAILED
+        expected = QueryStatus.STOPPED
         assert payload is not None
         assert payload["status"] == expected
         session.refresh(query)
@@ -900,13 +896,7 @@ def test_get_sql_results_autocommit_work_finished_before_a_stop_is_committed(
     seen: bool,
     ctas: bool,
 ) -> None:
-    """
-    Test that on a connection that commits each statement when it finishes, a
-    mutation or CTAS that finished before the stop was seen ends SUCCESS. A
-    stop the session loaded while the statement ran (the point at which the
-    engine cancels a running statement) still ends STOPPED, and so does any
-    stop before the commit inside a transaction.
-    """
+    """Test that accepted stops discard autocommit results, even if unseen."""
     from contextlib import contextmanager
     from unittest.mock import PropertyMock
 
@@ -987,14 +977,13 @@ def test_get_sql_results_autocommit_work_finished_before_a_stop_is_committed(
             on_commit=on_commit,
         )
 
-        committed = autocommit and not seen
-        expected = QueryStatus.SUCCESS if committed else QueryStatus.STOPPED
+        expected = QueryStatus.STOPPED
         assert payload is not None
         assert payload["status"] == expected
         session.refresh(query)
         assert query.status == expected
-        assert conn.commit.called is committed
-        assert on_commit.called is committed
+        assert not conn.commit.called
+        assert not on_commit.called
     engine.dispose()
 
 
@@ -1006,11 +995,7 @@ def test_get_sql_results_sqlite_ctas_finished_before_a_stop_is_committed(
     tmp_path: Any,
     ctas: bool,
 ) -> None:
-    """
-    Test that on SQLite in its default transaction mode a CTAS, durable once it
-    finishes, ends SUCCESS when a stop is recorded after it finished, while an
-    INSERT, uncommitted until ``commit()``, is discarded and ends STOPPED.
-    """
+    """Test that a stopped SQLite CTAS can still leave a committed table."""
     from contextlib import contextmanager
     from unittest.mock import PropertyMock
 
@@ -1084,7 +1069,7 @@ def test_get_sql_results_sqlite_ctas_finished_before_a_stop_is_committed(
             123, sql, True, False, None, False, None
         )
 
-        expected = QueryStatus.SUCCESS if ctas else QueryStatus.STOPPED
+        expected = QueryStatus.STOPPED
         assert payload is not None
         assert payload["status"] == expected
         session.refresh(query)
@@ -2450,6 +2435,7 @@ def test_get_sql_results_preserves_stop_during_postgres_cancellation(
     engine.dispose()
 
 
+@pytest.mark.parametrize("mutation", [False, True], ids=["select", "mutation"])
 @pytest.mark.parametrize("terminal_write", ["success", "backend_failure"])
 def test_legacy_terminal_write_preserves_concurrent_stop(
     mocker: MockerFixture,
@@ -2458,6 +2444,7 @@ def test_legacy_terminal_write_preserves_concurrent_stop(
     app_context: None,
     tmp_path: Any,
     terminal_write: str,
+    mutation: bool,
 ) -> None:
     """Neither result publication nor a cache failure may overwrite a Stop."""
     from unittest.mock import PropertyMock
@@ -2472,6 +2459,7 @@ def test_legacy_terminal_write_preserves_concurrent_stop(
     database = MagicMock()
     database.db_engine_spec = PostgresEngineSpec
     database.allow_run_async = False
+    database.allow_dml = True
     database.cache_timeout = 100
     database.get_default_schema_for_query.return_value = "public"
     database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
@@ -2524,7 +2512,7 @@ def test_legacy_terminal_write_preserves_concurrent_stop(
             id=123,
             client_id="final-stop",
             database_id=1,
-            sql="SELECT 1",
+            sql="INSERT INTO users VALUES (1)" if mutation else "SELECT 1",
             status=QueryStatus.PENDING,
         )
         worker_session.add(query)

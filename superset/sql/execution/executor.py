@@ -1456,12 +1456,17 @@ class SQLExecutor:
             try:
                 engine_cancelled = SQLExecutor._cancel_query(database, query)
             except Exception:  # pylint: disable=broad-except
-                engine_cancelled = False
-            if not engine_cancelled:
                 logger.warning(
                     "Query %s: Stop accepted; engine cancellation not confirmed",
                     query.id,
+                    exc_info=True,
                 )
+            else:
+                if not engine_cancelled:
+                    logger.warning(
+                        "Query %s: Stop accepted; engine cancellation not confirmed",
+                        query.id,
+                    )
             return set_query_stopped(query, end_time)
 
     @staticmethod

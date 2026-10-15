@@ -68,7 +68,6 @@ from superset.sql.execution.utils import (
     _discard_unreferenced_results,
     _extract_errors,
     commit_query_unless_stopped,
-    stop_seen_during_execution,
 )
 from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
@@ -108,15 +107,11 @@ def handle_query_error(
     query: Query,
     payload: Optional[dict[str, Any]] = None,
     prefix_message: str = "",
-    durable: bool = False,
     unpublished_results_key: Optional[str] = None,
 ) -> dict[str, Any]:
     """
     Local method handling error while processing the SQL
 
-    :param durable: the target database already committed the query's effects,
-        so a stop recorded after that commit lost the race and must not mask
-        the failure
     :param unpublished_results_key: key of results stored in the results
         backend that no committed query row references; the failed row keeps
         it, or it is deleted if a stop wins
@@ -126,15 +121,14 @@ def handle_query_error(
     with db.session.no_autoflush:
         # The initial read avoids processing an error for an observed stop. The
         # conditional terminal write below also covers stops committed after it.
-        if not durable:
-            db.session.refresh(query, attribute_names=["status"])
-            if query.status == QueryStatus.STOPPED:
-                db.session.refresh(query)
-                _discard_unreferenced_results(
-                    query.id, unpublished_results_key, results_backend
-                )
-                payload.update({"status": QueryStatus.STOPPED})
-                return payload
+        db.session.refresh(query, attribute_names=["status"])
+        if query.status == QueryStatus.STOPPED:
+            db.session.refresh(query)
+            _discard_unreferenced_results(
+                query.id, unpublished_results_key, results_backend
+            )
+            payload.update({"status": QueryStatus.STOPPED})
+            return payload
 
         msg = f"{prefix_message} {str(ex)}".strip()
         query.error_message = msg
@@ -161,11 +155,8 @@ def handle_query_error(
                 payload["stacktrace"] = stacktrace
         if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
             payload["link"] = troubleshooting_link
-        # Committed target effects outrank a later stop. Otherwise acquire the
-        # row's write lock conditionally before flushing any failure metadata.
-        if durable:
-            db.session.commit()
-        elif not commit_query_unless_stopped(query):
+        # Acquire the row lock before flushing any failure metadata.
+        if not commit_query_unless_stopped(query):
             _discard_unreferenced_results(
                 query.id, unpublished_results_key, results_backend
             )
@@ -245,12 +236,6 @@ def get_sql_results(  # pylint: disable=too-many-arguments
             override_user(security_manager.find_user(username)),
             db.session.no_autoflush,
         ):
-            committed = False
-
-            def mark_committed() -> None:
-                nonlocal committed
-                committed = True
-
             unpublished_results_key: Optional[str] = None
 
             def track_results_key(key: Optional[str]) -> None:
@@ -266,7 +251,6 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                     start_time=start_time,
                     expand_data=expand_data,
                     log_params=log_params,
-                    on_commit=mark_committed,
                     on_results_key=track_results_key,
                 )
             except Exception as ex:  # pylint: disable=broad-except
@@ -275,13 +259,9 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 stats_logger.incr("error_sqllab_unhandled")
                 try:
                     query = get_query(query_id=query_id)
-                    # Failures after the target commit (result serialization,
-                    # the results backend, closing the connection) cannot undo
-                    # it.
                     return handle_query_error(
                         ex,
                         query,
-                        durable=committed,
                         unpublished_results_key=unpublished_results_key,
                     )
                 except Exception:
@@ -668,32 +648,16 @@ def execute_sql_statements(  # noqa: C901
                 payload = handle_query_error(ex, query, payload, prefix_message)
                 return payload
 
-        # Commit the connection so CTA queries will create the table and any DML.
-        committed = False
+        # A recorded Stop discards results even when an autocommit statement
+        # has already changed the target database. It cannot undo those effects.
         if parsed_script.has_mutation() or query.select_as_cta:
-            # A stop recorded before the target commit wins: skip the commit
-            # so the transaction is discarded with the connection, and report
-            # STOPPED. Only a stop that lands during or after the commit loses
-            # to the committed work. Reload only the status, without flushing:
-            # a flush would hold the query row's write lock across the target
-            # commit and block a concurrent stop request until this function's
-            # last metadata commit.
-            #
-            # On a connection where each statement commits when it finishes,
-            # the work is already durable and skipping ``conn.commit()``
-            # discards nothing. Only a stop seen while the statements ran,
-            # which is when the engine cancels a running one, ends STOPPED.
-            if db_engine_spec.is_autocommit(conn):
-                stopped = stop_seen_during_execution(query)
-            else:
-                with db.session.no_autoflush:
-                    db.session.refresh(query, attribute_names=["status"])
-                stopped = query.status == QueryStatus.STOPPED
+            with db.session.no_autoflush:
+                db.session.refresh(query, attribute_names=["status"])
+            stopped = query.status == QueryStatus.STOPPED
             if stopped:
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
             conn.commit()
-            committed = True
             if on_commit:
                 on_commit()
 
@@ -701,7 +665,7 @@ def execute_sql_statements(  # noqa: C901
     # Publication below acquires the row lock before any terminal ORM flush.
     with db.session.no_autoflush:
         db.session.refresh(query, attribute_names=["status"])
-        if query.status == QueryStatus.STOPPED and not committed:
+        if query.status == QueryStatus.STOPPED:
             db.session.refresh(query)
             payload.update({"status": query.status})
             return payload
@@ -799,9 +763,7 @@ def execute_sql_statements(  # noqa: C901
                         "Failed to store query results in the results backend. "
                         "Please try again or contact your administrator."
                     )
-                    if committed:
-                        db.session.commit()
-                    elif not commit_query_unless_stopped(query):
+                    if not commit_query_unless_stopped(query):
                         db.session.commit()
                         return {"query_id": query_id, "status": QueryStatus.STOPPED}
                     raise SupersetErrorException(
@@ -826,14 +788,14 @@ def execute_sql_statements(  # noqa: C901
                 )
 
     # A stop that landed during serialization or the results backend write
-    # wins unless the target database committed: the query ends STOPPED, and
+    # wins even if the target database committed: the query ends STOPPED, and
     # the payload must say so too rather than carry the SUCCESS built above.
     # Reload only the status, without flushing, so the result fields set on
     # the success path above (rows, progress, extra "columns", select_sql,
     # end_time, results_key) stay pending for the commit below.
     with db.session.no_autoflush:
         db.session.refresh(query, attribute_names=["status"])
-    if query.status == QueryStatus.STOPPED and not committed:
+    if query.status == QueryStatus.STOPPED:
         # Discard the pending success fields, keeping the stop's end time, and
         # delete stored results the stopped row will not reference.
         with db.session.no_autoflush:
@@ -845,9 +807,7 @@ def execute_sql_statements(  # noqa: C901
         return {"query_id": query_id, "status": QueryStatus.STOPPED}
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS
-    if committed:
-        db.session.commit()
-    elif not commit_query_unless_stopped(query):
+    if not commit_query_unless_stopped(query):
         _discard_unpublished_results(query_id, stored_key, results_backend)
         if on_results_key:
             on_results_key(None)

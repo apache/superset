@@ -25,7 +25,6 @@ import pytest
         ("_extract_errors", "_extract_errors"),
         ("_discard_unreferenced_results", "_discard_unreferenced_results"),
         ("_discard_unpublished_results", "_discard_stored_results"),
-        ("stop_seen_during_execution", "stop_seen_during_execution"),
     ],
 )
 def test_execution_helpers_are_shared(legacy_name: str, celery_name: str) -> None:

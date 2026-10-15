@@ -398,15 +398,34 @@ def test_stop_request_precedes_postgres_cancellation_failure(
             sessions.remove()
 
 
+@pytest.mark.parametrize(
+    ("statement", "autocommit"),
+    [
+        ("select", False),
+        ("insert", False),
+        ("ctas", False),
+        ("insert", True),
+        ("ctas", True),
+    ],
+    ids=[
+        "select",
+        "transaction-insert",
+        "transaction-ctas",
+        "autocommit-insert",
+        "autocommit-ctas",
+    ],
+)
 @pytest.mark.parametrize("worker_path", ["legacy", "celery"])
 @pytest.mark.parametrize("caller", ["api", "async_handle"])
 @pytest.mark.parametrize("cancel_mode", ["normal", "unreachable", "no_cancel_id"])
-def test_accepted_stop_with_real_postgres_workers(
+def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
     engine: Engine,
     monkeypatch: pytest.MonkeyPatch,
     worker_path: str,
     caller: str,
     cancel_mode: str,
+    statement: str,
+    autocommit: bool,
 ) -> None:
     """Real workers discard results after an accepted, best-effort engine stop."""
     import inspect as python_inspect
@@ -440,25 +459,42 @@ def test_accepted_stop_with_real_postgres_workers(
         )
     Query.__table__.create(engine, checkfirst=True)
     sessions = scoped_session(sessionmaker(bind=engine))
-    sql = "SELECT pg_sleep(3) AS accepted_stop"
+    table_name = "accepted_stop_mutation"
+    with engine.begin() as connection:
+        connection.execute(text("DROP TABLE IF EXISTS accepted_stop_mutation"))
+        if statement == "insert":
+            connection.execute(
+                text("CREATE TABLE accepted_stop_mutation (value INTEGER)")
+            )
+    sql = {
+        "select": "SELECT pg_sleep(3) AS accepted_stop",
+        "insert": "INSERT INTO accepted_stop_mutation SELECT 1 FROM pg_sleep(3)",
+        "ctas": (
+            "CREATE TABLE accepted_stop_mutation AS SELECT 1 AS value FROM pg_sleep(3)"
+        ),
+    }[statement]
 
     @contextmanager
     def raw_connection(**kwargs: Any) -> Iterator[Any]:
         """Use a real Postgres cursor without replacing either worker's executor."""
         connection = engine.raw_connection()
+        connection.dbapi_connection.autocommit = autocommit
         try:
             yield connection
         finally:
             connection.close()
 
     database = MagicMock()
+    database.database_name = "Postgres stop regression"
     database.db_engine_spec = PostgresEngineSpec
     database.allow_run_async = False
+    database.allow_dml = True
     database.get_default_schema_for_query.return_value = "public"
     database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
     database.get_raw_connection = raw_connection
     database.get_sqla_engine.return_value.__enter__.return_value = engine
     monkeypatch.setattr(Query, "database", PropertyMock(return_value=database))
+    monkeypatch.setattr(Query, "user", PropertyMock(return_value=None))
     monkeypatch.setattr(sql_lab, "warm_and_release_connection", lambda *args: None)
     monkeypatch.setattr(sql_lab.security_manager, "find_user", lambda _: None)
     monkeypatch.setattr(sql_lab.db, "session", sessions)
@@ -467,6 +503,7 @@ def test_accepted_stop_with_real_postgres_workers(
     monkeypatch.setitem(app.config, "DISALLOWED_SQL_FUNCTIONS", {})
     backend = MagicMock()
     monkeypatch.setattr(celery_task, "results_backend", backend)
+    monkeypatch.setattr(sql_lab, "results_backend", backend)
     if cancel_mode == "no_cancel_id":
         # Model a connector using BaseEngineSpec's default (no cancel handle).
         monkeypatch.setattr(
@@ -479,7 +516,7 @@ def test_accepted_stop_with_real_postgres_workers(
             with app.test_request_context():
                 if worker_path == "celery":
                     return celery_task.execute_sql_task(125, sql)
-                return sql_lab.get_sql_results(125, sql, True)
+                return sql_lab.get_sql_results(125, sql, True, store_results=True)
         finally:
             sessions.remove()
 
@@ -558,6 +595,7 @@ def test_accepted_stop_with_real_postgres_workers(
                 stopped = verifier.get(Query, 125)
                 assert stopped is not None
                 assert stopped.status == "stopped"
+                assert stopped.to_dict()["state"] == "stopped"
                 assert stopped.end_time is not None
                 assert stopped.error_message is None
                 assert stopped.results_key is None
@@ -565,9 +603,21 @@ def test_accepted_stop_with_real_postgres_workers(
             assert payload["status"] == "stopped"
             assert "error" not in payload
             backend.set.assert_not_called()
+            # Stop accepts discarding results, not rolling back an autocommit
+            # mutation that engine cancellation could not interrupt.
+            durable = autocommit and cancel_mode != "normal"
+            with engine.connect() as observer:
+                if statement == "ctas":
+                    assert inspect(observer).has_table(table_name) is durable
+                elif statement == "insert":
+                    assert observer.execute(
+                        text("SELECT COUNT(*) FROM accepted_stop_mutation")
+                    ).scalar() == int(durable)
         finally:
             sessions.rollback()
             sessions.query(Query).filter_by(id=125).delete()
             sessions.commit()
             sessions.remove()
             unreachable.dispose()
+            with engine.begin() as connection:
+                connection.execute(text("DROP TABLE IF EXISTS accepted_stop_mutation"))

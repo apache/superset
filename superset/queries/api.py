@@ -278,7 +278,7 @@ class QueryRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             422:
               description: >
-                Query could not be stopped; includes query if already complete
+                Query already finished; includes the completed query
             500:
               $ref: '#/components/responses/500'
         """

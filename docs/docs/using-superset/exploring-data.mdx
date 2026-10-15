@@ -33,7 +33,9 @@ returns `True`. Engine cancellation is best-effort: if the engine is unreachable
 provides no cancellation handle, or rejects cancellation, its statement may run to
 completion, but SQL Lab discards its results. Stopping cannot undo database changes
 that have already committed, including changes made by a statement that continues
-running.
+running. In particular, a mutation on an autocommit connection can complete
+despite an accepted Stop; the stopped state does not mean its changes were
+rolled back.
 
 A query that already finished keeps its success, failure, or timeout outcome; the
 Stop API returns HTTP 422 and an async query handle's `cancel()` returns `False`

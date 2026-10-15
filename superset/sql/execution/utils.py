@@ -117,9 +117,9 @@ def stop_seen_during_execution(query: Query) -> bool:
 
     Engines that cancel a running statement on a stop (Hive, Impala, Presto) do
     so after loading the stop into this session, as do the checks between
-    statements. A stop the session never loaded was recorded after the
-    statements finished. The row is not read again, and attributes expired by a
-    commit count as unseen.
+    statements. Attributes expired by a commit count as unseen. This local
+    observation cannot rule out a stop committed by another session; callers
+    must also check the recorded state before publishing results.
     """
     attrs = sa.inspect(query).attrs
     if attrs.status.loaded_value == QueryStatus.STOPPED:

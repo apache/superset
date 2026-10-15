@@ -41,7 +41,11 @@ from superset import (
     security_manager,
 )
 from superset.common.db_query_status import QueryStatus
-from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
+from superset.constants import (
+    QUERY_CANCEL_KEY,
+    QUERY_DISPATCHED_KEY,
+    QUERY_EARLY_CANCEL_KEY,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetErrorException
 from superset.extensions import celery_app
@@ -84,24 +88,20 @@ def _handle_query_error(
     query: Query,
     payload: dict[str, Any] | None = None,
     prefix_message: str = "",
-    durable: bool = False,
     results_key: str | None = None,
 ) -> dict[str, Any]:
     """
     Handle error while processing the SQL query.
 
-    :param durable: the target database already committed the query's effects,
-        so a stop recorded after that commit lost the race and must not mask
-        the failure
     :param results_key: key of results stored in the results backend before the
         failure; the failed row keeps it, or it is deleted if a stop wins
     """
     # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler).
-    # A timeout is a terminal outcome the user did not cause, so like committed
-    # effects it outranks a stop recorded while the query was being killed.
+    # A timeout is a terminal outcome the user did not cause and outranks a
+    # stop recorded while the query was being killed.
     timed_out = query.status == QueryStatus.TIMED_OUT
     status = QueryStatus.TIMED_OUT if timed_out else QueryStatus.FAILED
-    final = durable or timed_out
+    final = timed_out
     # Results stored before the failure are unpublished; a stop reloads the row
     # and drops their pending key, so read it first. A rollback after a failed
     # flush has already dropped it, so prefer the key tracked at the write.
@@ -248,7 +248,6 @@ def _store_results_in_backend(
     query: Query,
     payload: dict[str, Any],
     database: Any,
-    durable: bool = False,
     on_results_key: Callable[[str], None] | None = None,
 ) -> str | None:
     """
@@ -305,7 +304,7 @@ def _store_results_in_backend(
             write_success = results_backend.set(key, compressed, cache_timeout)
             if write_success and on_results_key:
                 on_results_key(key)
-            if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
+            if _make_check_stopped_fn(query, preserve_pending=True)():
                 if write_success:
                     _discard_stored_results(query.id, key, results_backend)
                 return None
@@ -322,9 +321,7 @@ def _store_results_in_backend(
                     "Failed to store query results in the results backend. "
                     "Please try again or contact your administrator."
                 )
-                if durable:
-                    db.session.commit()  # pylint: disable=consider-using-transaction
-                elif not _commit_query_unless_stopped(query):
+                if not _commit_query_unless_stopped(query):
                     return None
                 raise SupersetErrorException(
                     SupersetError(
@@ -402,12 +399,6 @@ def execute_sql_task(
             override_user(security_manager.find_user(username)),
             db.session.no_autoflush,
         ):
-            committed = False
-
-            def mark_committed() -> None:
-                nonlocal committed
-                committed = True
-
             results_key: str | None = None
 
             def track_results_key(key: str) -> None:
@@ -424,7 +415,6 @@ def execute_sql_task(
                         query_id,
                         rendered_query,
                         start_time=start_time,
-                        on_commit=mark_committed,
                         on_results_key=track_results_key,
                     ),
                     can_retry=lambda: not query.progress,
@@ -435,12 +425,7 @@ def execute_sql_task(
                 stats_logger.incr("error_sqllab_unhandled")
                 try:
                     query = _get_query_after_error(query_id)
-                    # Failures after the target commit (result serialization,
-                    # the results backend, closing the connection) cannot undo
-                    # it.
-                    return _handle_query_error(
-                        ex, query, durable=committed, results_key=results_key
-                    )
+                    return _handle_query_error(ex, query, results_key=results_key)
                 except Exception:
                     # _handle_query_error commits last, so the failure was most
                     # likely not recorded. A commit can still apply and raise.
@@ -595,8 +580,6 @@ def _execute_sql_statements(
     parsed_script, blocks = _prepare_statement_blocks(
         rendered_query, db_engine_spec, database
     )
-    # Whether the target database committed a mutation or CTAS.
-    committed = False
     writes = parsed_script.has_mutation() or query.select_as_cta
 
     with database.get_raw_connection(
@@ -606,9 +589,11 @@ def _execute_sql_statements(
         cursor = conn.cursor()
 
         cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
+        # Dispatch does not imply the engine provides a cancellation handle.
+        query.set_extra_json_key(QUERY_DISPATCHED_KEY, True)
         if cancel_query_id is not None:
             query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
-            db.session.commit()  # pylint: disable=consider-using-transaction
+        db.session.commit()  # pylint: disable=consider-using-transaction
 
         try:
             execution_results = execute_sql_with_cursor(
@@ -640,32 +625,23 @@ def _execute_sql_statements(
                 )
             ) from ex
 
-        if writes and execution_results and db_engine_spec.is_autocommit(conn):
-            # Each finished statement is already durable and ``conn.commit()``
-            # cannot discard it. Only a stop seen while the statements ran,
-            # which is when the engine cancels a running one, ends STOPPED; a
-            # later stop lost the race to the committed work.
-            stopped = stop_tracker.seen or stop_seen_during_execution(query)
-        else:
-            # Cancelling can clear cursor.description, leaving a nonempty
-            # result list that looks like successful DML. Check intent, not
-            # just results.
-            stopped = not execution_results or check_stopped()
+        # Re-read stop intent even on autocommit connections: completed engine
+        # effects cannot be undone, but an accepted Stop still discards results.
+        # Engine polling may have observed a stop before a progress commit
+        # expired the worker's copy, so keep that observation as well.
+        stopped = stop_tracker.seen or not execution_results or check_stopped()
 
         # Commit for mutations
         if not stopped and writes:
             conn.commit()  # pylint: disable=consider-using-transaction
-            committed = True
             if on_commit:
                 on_commit()
 
-    if stopped:
+    if stopped or (writes and check_stopped()):
         return _stopped_query_payload(query)
 
-    # A stop that lands from here on is caught after the results backend write
-    # and by the guarded publish, so serialization does not re-read the row. A
-    # committed mutation or CTAS is durable: a stop recorded after the
-    # pre-commit check lost the race and must not mask the committed result.
+    # Serialization and backend writes can outlive this check. Publication
+    # uses a guarded write even if the target mutation already committed.
     total_execution_time_ms = (now_as_float() - execution_start_time) * 1000
     _finalize_successful_query(
         query, original_script, execution_results, payload, total_execution_time_ms
@@ -677,19 +653,15 @@ def _execute_sql_statements(
             query,
             payload,
             database,
-            durable=committed,
             on_results_key=on_results_key,
         )
 
-    return _publish_query_result(
-        query, payload, durable=committed, results_key=results_key
-    )
+    return _publish_query_result(query, payload, results_key=results_key)
 
 
 def _publish_query_result(
     query: Query,
     payload: dict[str, Any],
-    durable: bool = False,
     results_key: str | None = None,
 ) -> dict[str, Any]:
     """
@@ -699,13 +671,6 @@ def _publish_query_result(
         they are deleted if a stop wins. The row's own key is never deleted: a
         replayed task can load a key an earlier attempt committed.
     """
-    if durable:
-        # Committed effects outrank a stop recorded after the commit check.
-        if query.status != QueryStatus.FAILED:
-            query.status = QueryStatus.SUCCESS
-        db.session.commit()  # pylint: disable=consider-using-transaction
-        return payload
-
     # Serialization and backend writes can outlive the last execution check.
     if _make_check_stopped_fn(query, preserve_pending=True)():
         _discard_stored_results(query.id, results_key, results_backend)

@@ -94,12 +94,17 @@ class QueryDAO(BaseDAO[Query]):
             try:
                 engine_cancelled = sql_lab.cancel_query(query)
             except Exception:  # pylint: disable=broad-except
-                engine_cancelled = False
-            if not engine_cancelled:
                 logger.warning(
                     "Query %s: Stop accepted; engine cancellation not confirmed",
                     query.id,
+                    exc_info=True,
                 )
+            else:
+                if not engine_cancelled:
+                    logger.warning(
+                        "Query %s: Stop accepted; engine cancellation not confirmed",
+                        query.id,
+                    )
 
             # Engine preparation can stage early-cancel metadata. Merge it only
             # if no durable terminal outcome has superseded this stop.
