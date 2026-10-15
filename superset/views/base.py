@@ -57,7 +57,7 @@ from superset import (
 from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
-from superset.constants import SHARED_CONSTANT_LABELS
+from superset.constants import get_constant_label
 from superset.daos.theme import ThemeDAO
 from superset.dashboards.excel_export.storage import is_background_export_available
 from superset.db_engine_specs import get_available_engine_specs
@@ -456,15 +456,11 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     }
 
 
-def get_shared_constant_labels_bootstrap_data() -> dict[str, Any]:
-    collection: dict[str, str] = {}
-    translate_label = app.config.get("TRANSLATE_SHARED_CONSTANT_LABELS", False)
-
-    for value in SHARED_CONSTANT_LABELS:
-        if translate_label:
-            collection[value] = __(value)
-
-    return {"constant_labels": collection}
+def get_shared_constant_labels_bootstrap_data() -> dict[str, str]:
+    """
+    Load the shared constant labels from backend.
+    """
+    return {"constant_labels": get_constant_label()}
 
 
 def get_default_spinner_svg() -> str | None:

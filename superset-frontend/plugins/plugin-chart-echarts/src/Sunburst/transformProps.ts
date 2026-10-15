@@ -21,7 +21,7 @@ import {
   CategoricalColorNamespace,
   DataRecordValue,
   getColumnLabel,
-  getConstantLabel
+  getConstantLabel,
   getMetricLabel,
   getNumberFormatter,
   getSequentialSchemeRegistry,

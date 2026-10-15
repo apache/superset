@@ -33,6 +33,7 @@ import { BinaryQueryObjectFilterClause, VizType } from '@superset-ui/core';
 import { Menu } from '@superset-ui/core/components/Menu';
 import DrillDetailModal from '../DrillDetail/DrillDetailModal';
 import { useDrillDetailMenuItems, DrillDetailMenuItemsProps } from './index';
+import { NULL_STRING } from '@superset-ui/core';
 
 /* eslint jest/expect-expect: ["warn", { "assertFunctionNames": ["expect*"] }] */
 
@@ -83,7 +84,7 @@ const filterNull: BinaryQueryObjectFilterClause = {
   col: 'sample_column_3',
   op: '==',
   val: null as unknown as string,
-  formattedVal: '<NULL>',
+  formattedVal: NULL_STRING,
 };
 
 const MockRenderChart = ({

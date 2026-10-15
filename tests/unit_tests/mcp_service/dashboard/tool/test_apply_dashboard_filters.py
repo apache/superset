@@ -52,6 +52,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardNotFoundError,
 )
 from superset.connectors.sqla.models import SqlaTable
+from superset.constants import NULL_STRING, TRUE_STRING
 from superset.db_engine_specs.base import TimeGrain
 from superset.mcp_service.dashboard.tool.apply_dashboard_filters import (
     _SINGLE_VALUE_EXACT,
@@ -1189,7 +1190,9 @@ async def test_mixed_value_types_are_preserved(mcp_server: object) -> None:
     assert data["error"] is None
     entry = captured["state"]["dataMask"]["NATIVE_FILTER-region"]
     assert entry["extraFormData"]["filters"][0]["val"] == ["EMEA", 7, 1.5, True, None]
-    assert entry["filterState"]["label"] == "EMEA, 7, 1.5, TRUE, <NULL>"
+    assert (
+        entry["filterState"]["label"] == f"EMEA, 7, 1.5, {TRUE_STRING}, {NULL_STRING}"
+    )
 
 
 # ---------------------------------------------------------------------------

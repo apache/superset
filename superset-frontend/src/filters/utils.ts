@@ -144,10 +144,10 @@ export function getDataRecordFormatter({
     if (dtype === GenericDataType.Boolean) {
       try {
         return JSON.parse(String(value).toLowerCase())
-          ? TRUE_STRING
-          : FALSE_STRING;
+          ? getConstantLabel(TRUE_STRING)
+          : getConstantLabel(FALSE_STRING);
       } catch {
-        return FALSE_STRING;
+        return getConstantLabel(FALSE_STRING);
       }
     }
     if (typeof value === 'string') {

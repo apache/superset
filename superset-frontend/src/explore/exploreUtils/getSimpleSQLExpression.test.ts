@@ -17,7 +17,7 @@
  * under the License.
  */
 import { cleanup } from 'spec/helpers/testing-library';
-import { EMPTY_STRING, NULL_STRING } from '@superset-ui/core';
+import { getConstantLabel, EMPTY_STRING, NULL_STRING } from '@superset-ui/core';
 import { getSimpleSQLExpression } from '.';
 import { Operators } from '../constants';
 
@@ -45,7 +45,7 @@ test('Should return "" if subject is falsy', () => {
 
 test('Should return null string and empty string', () => {
   expect(getSimpleSQLExpression(params.subject, Operators.In, [null, ''])).toBe(
-    `subject ${Operators.In} (${NULL_STRING}, ${EMPTY_STRING})`,
+    `subject ${Operators.In} (${getConstantLabel(NULL_STRING)}, ${getConstantLabel(EMPTY_STRING)})`,
   );
 });
 

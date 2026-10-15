@@ -18,9 +18,11 @@
  */
 import {
   CategoricalColorNamespace,
+  getConstantLabel,
   getMetricLabel,
   DataRecord,
   DataRecordValue,
+  NULL_STRING,
   tooltipHtml,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
@@ -36,7 +38,6 @@ import {
   EchartsGraphChartProps,
 } from './types';
 import { DEFAULT_GRAPH_SERIES_OPTION } from './constants';
-import { NULL_STRING } from '../constants';
 import {
   getChartPadding,
   getColtypesMapping,
@@ -146,7 +147,7 @@ function getKeyByValue(
 /** Use the shared null label and quote literals that would collide with it. */
 function getCategoryName(columnName: string, name?: DataRecordValue) {
   if (name == null) {
-    return NULL_STRING;
+    return getConstantLabel(NULL_STRING);
   }
   const label =
     typeof name === 'boolean' ? `${columnName}: ${name}` : String(name);
