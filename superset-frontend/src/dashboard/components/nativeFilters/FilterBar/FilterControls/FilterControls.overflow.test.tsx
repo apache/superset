@@ -24,7 +24,15 @@ import type {
 } from '@superset-ui/core/components/DropdownContainer';
 import { SelectFilterPlugin } from 'src/filters/components';
 import { FilterBarOrientation } from 'src/dashboard/types';
-import { act, render, waitFor, within } from 'spec/helpers/testing-library';
+import { setDirectPathToChild } from 'src/dashboard/actions/dashboardState';
+import {
+  act,
+  createStore,
+  render,
+  waitFor,
+  within,
+} from 'spec/helpers/testing-library';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
 import FilterControls from './FilterControls';
 
@@ -73,6 +81,12 @@ const callbackRef: {
 // default reading as "no overflow" by analogy with the real sentinel.
 let mockOverflowingIndex = -1;
 
+// Stable across re-renders (unlike a `jest.fn()` created fresh inside
+// useImperativeHandle on every render) so a test can assert on the calls
+// FilterControls makes through the dropdown ref.
+const mockDropdownOpen = jest.fn();
+const mockDropdownClose = jest.fn();
+
 // Mock the DropdownContainer subpath rather than the barrel
 // `@superset-ui/core/components` — mocking the barrel triggers a
 // circular re-export chain at requireActual time
@@ -86,8 +100,8 @@ jest.mock('@superset-ui/core/components/DropdownContainer', () => {
       dropdownContainerProps.push(props);
       callbackRef.current = props.onOverflowingStateChange ?? null;
       React.useImperativeHandle(ref, () => ({
-        open: jest.fn(),
-        close: jest.fn(),
+        open: mockDropdownOpen,
+        close: mockDropdownClose,
       }));
       const notOverflowed =
         mockOverflowingIndex !== -1
@@ -223,6 +237,8 @@ beforeEach(() => {
   dropdownContainerProps.length = 0;
   callbackRef.current = null;
   mockOverflowingIndex = -1;
+  mockDropdownOpen.mockClear();
+  mockDropdownClose.mockClear();
 });
 
 test('horizontal FilterControls hands every filter to DropdownContainer as an item', async () => {
@@ -477,4 +493,75 @@ test('all 12 overflowed filters are reachable through dropdownContent', async ()
     const names = within(contentSlot).getAllByTestId('filter-control-name');
     expect(names.map(n => n.textContent)).toEqual(filters.map(f => f.name));
   });
+});
+
+test('focusing an overflowed filter opens the More filters dropdown', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'country'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'region'),
+    createSelectNativeFilter('NATIVE_FILTER-3', 'city'),
+  ];
+
+  // A real store (not just a props object) so `setDirectPathToChild` can be
+  // dispatched after mount to simulate the dashboard focusing a filter,
+  // exactly like clicking a "jump to filter" link or navigating by anchor.
+  const store = createStore(buildHorizontalState(filters), reducerIndex);
+
+  render(
+    <FilterControls
+      dataMaskSelected={buildDataMaskSelected(filters)}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[]}
+    />,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+
+  // NATIVE_FILTER-3 has overflowed into the "More filters" dropdown.
+  fireOverflow(['NATIVE_FILTER-3'], ['NATIVE_FILTER-1', 'NATIVE_FILTER-2']);
+  await waitFor(() => expect(latestProps().dropdownContent).toBeDefined());
+
+  expect(mockDropdownOpen).not.toHaveBeenCalled();
+
+  // Focusing the overflowed filter (e.g. via a direct link into the
+  // dashboard) updates `directPathToChild` to point at it.
+  act(() => {
+    store.dispatch(setDirectPathToChild(['NATIVE_FILTER-3']));
+  });
+
+  await waitFor(() => expect(mockDropdownOpen).toHaveBeenCalledTimes(1));
+});
+
+test('focusing a filter that has not overflowed does not open the dropdown', async () => {
+  const filters = [
+    createSelectNativeFilter('NATIVE_FILTER-1', 'country'),
+    createSelectNativeFilter('NATIVE_FILTER-2', 'region'),
+  ];
+
+  const store = createStore(buildHorizontalState(filters), reducerIndex);
+
+  render(
+    <FilterControls
+      dataMaskSelected={buildDataMaskSelected(filters)}
+      onFilterSelectionChange={jest.fn()}
+      onPendingCustomizationDataMaskChange={jest.fn()}
+      chartCustomizationValues={[]}
+    />,
+    { store, useRouter: true },
+  );
+
+  await waitFor(() => expect(callbackRef.current).toBeTruthy());
+
+  // NATIVE_FILTER-2 has overflowed, while NATIVE_FILTER-1 remains in the
+  // main row.
+  fireOverflow(['NATIVE_FILTER-2'], ['NATIVE_FILTER-1']);
+  await waitFor(() => expect(latestProps().dropdownContent).toBeDefined());
+
+  act(() => {
+    store.dispatch(setDirectPathToChild(['NATIVE_FILTER-1']));
+  });
+
+  expect(mockDropdownOpen).not.toHaveBeenCalled();
 });

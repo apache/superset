@@ -265,6 +265,58 @@ test('Switching tabs', async () => {
   expect(props.onChangeTab).toHaveBeenCalled();
 });
 
+test('Switching tabs shows the newly selected tab content and hides the previous one', async () => {
+  const props = createProps();
+  render(<Tabs {...props} />, {
+    useRedux: true,
+    useDnd: true,
+  });
+  const [firstTabId, , thirdTabId] = props.component.children;
+
+  // The first tab starts selected and its panel is the only one exposed
+  // to the accessibility tree.
+  let tabs = screen.getAllByRole('tab');
+  expect(tabs[0]).toHaveAttribute('aria-selected', 'true');
+  expect(tabs[2]).toHaveAttribute('aria-selected', 'false');
+  expect(screen.getByRole('tabpanel').id).toContain(firstTabId);
+
+  await userEvent.click(tabs[2]);
+
+  // After switching, the clicked tab is selected and its content panel
+  // becomes the only one exposed to the accessibility tree...
+  tabs = screen.getAllByRole('tab');
+  expect(tabs[2]).toHaveAttribute('aria-selected', 'true');
+  expect(tabs[0]).toHaveAttribute('aria-selected', 'false');
+  expect(screen.getByRole('tabpanel').id).toContain(thirdTabId);
+
+  // ...while the previously active tab's panel is hidden from it.
+  const firstPanel = screen
+    .getAllByRole('tabpanel', { hidden: true })
+    .find(panel => panel.id.includes(firstTabId));
+  expect(firstPanel).toHaveAttribute('aria-hidden', 'true');
+
+  // The selected tab's content is the one rendered as visible, which is what
+  // lets its charts pick up updates once revealed.
+  const lastContentPropsFor = (tabId: string) =>
+    (DashboardComponent as unknown as jest.Mock).mock.calls
+      .map(
+        call =>
+          call[0] as {
+            id: string;
+            renderType: string;
+            isComponentVisible?: boolean;
+          },
+      )
+      .filter(
+        componentProps =>
+          componentProps.renderType === RENDER_TAB_CONTENT &&
+          componentProps.id === tabId,
+      )
+      .at(-1);
+  expect(lastContentPropsFor(thirdTabId)?.isComponentVisible).toBe(true);
+  expect(lastContentPropsFor(firstTabId)?.isComponentVisible).not.toBe(true);
+});
+
 test.each([false, true])(
   'A childless TABS component does not register an active tab (editMode=%s)',
   editMode => {

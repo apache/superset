@@ -181,6 +181,7 @@ export interface CommonBootstrapData {
 export interface BootstrapData {
   user?: BootstrapUser;
   common: CommonBootstrapData;
+  auth_messages?: [string, string][];
   config?: {
     GUEST_TOKEN_HEADER_NAME?: string;
     GUEST_TOKEN_HEADER_MAX_BYTES?: number | null;

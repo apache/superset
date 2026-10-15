@@ -303,17 +303,17 @@ class TestBubbleSavedChartOrdering:
     def test_sort_metric_orders_descending_by_default(self, monkeypatch) -> None:
         size = self._size_metric()
         query = self._query(monkeypatch, orderby=size, row_limit=1)
-        assert query["orderby"] == [(size, False)]
+        assert query["orderby"] == [[size, False]]
 
     def test_order_desc_false_sorts_ascending(self, monkeypatch) -> None:
         size = self._size_metric()
         query = self._query(monkeypatch, orderby=size, order_desc=False)
-        assert query["orderby"] == [(size, True)]
+        assert query["orderby"] == [[size, True]]
 
     def test_sort_metric_stored_as_a_list_is_accepted(self, monkeypatch) -> None:
         size = self._size_metric()
         query = self._query(monkeypatch, orderby=[size])
-        assert query["orderby"] == [(size, False)]
+        assert query["orderby"] == [[size, False]]
 
     def test_no_sort_metric_leaves_the_query_unordered(self, monkeypatch) -> None:
         assert "orderby" not in self._query(monkeypatch)
@@ -334,7 +334,7 @@ class TestBubbleSavedChartOrdering:
 
         query = chart_helpers.build_query_dicts_from_form_data(form_data, 1, "table")[0]
 
-        assert query["orderby"] == [(size, True)]
+        assert query["orderby"] == [[size, True]]
 
     def test_the_callers_order_desc_wins_over_the_saved_flag(self, monkeypatch) -> None:
         """An explicit order_desc must not contradict the emitted orderby.
@@ -360,7 +360,7 @@ class TestBubbleSavedChartOrdering:
         )[0]
 
         assert query["order_desc"] is True
-        assert query["orderby"] == [(size, False)]
+        assert query["orderby"] == [[size, False]]
 
 
 class TestBubbleVegaLitePreview:

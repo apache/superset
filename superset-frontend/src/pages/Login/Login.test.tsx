@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  createStore,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import { Provider } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import Login from './index';
 
@@ -36,6 +42,29 @@ jest.mock('src/utils/getBootstrapData', () => ({
   default: jest.fn(() => defaultBootstrapData),
 }));
 
+const mockAddDangerToast = jest.fn((text: string) => ({
+  type: 'MOCK_TOAST',
+  text,
+}));
+const mockAddInfoToast = jest.fn((text: string) => ({
+  type: 'MOCK_TOAST',
+  text,
+}));
+const mockAddSuccessToast = jest.fn((text: string) => ({
+  type: 'MOCK_TOAST',
+  text,
+}));
+const mockAddWarningToast = jest.fn((text: string) => ({
+  type: 'MOCK_TOAST',
+  text,
+}));
+jest.mock('src/components/MessageToasts/actions', () => ({
+  addDangerToast: (text: string) => mockAddDangerToast(text),
+  addInfoToast: (text: string) => mockAddInfoToast(text),
+  addSuccessToast: (text: string) => mockAddSuccessToast(text),
+  addWarningToast: (text: string) => mockAddWarningToast(text),
+}));
+
 const mockEnsureAppRoot = jest.fn((...args: string[]) => args[0]);
 jest.mock('src/utils/pathUtils', () => ({
   ensureAppRoot: (...args: string[]) => mockEnsureAppRoot(...args),
@@ -44,6 +73,7 @@ jest.mock('src/utils/pathUtils', () => ({
 const mockGetBootstrapData = getBootstrapData as jest.Mock;
 
 beforeEach(() => {
+  jest.clearAllMocks();
   mockGetBootstrapData.mockReturnValue(defaultBootstrapData);
   mockEnsureAppRoot.mockClear();
   mockEnsureAppRoot.mockImplementation((path: string) => path);
@@ -212,6 +242,23 @@ test('should not render register button when AUTH_USER_REGISTRATION is disabled'
   expect(screen.queryByTestId('register-button')).not.toBeInTheDocument();
 });
 
+test('should not render register button for LDAP even when AUTH_USER_REGISTRATION is enabled', () => {
+  // LDAP deployments must enable AUTH_USER_REGISTRATION so FlaskAppBuilder
+  // provisions users on first login; that must not expose self-registration.
+  mockGetBootstrapData.mockReturnValue({
+    common: {
+      conf: {
+        AUTH_TYPE: 2,
+        AUTH_PROVIDERS: [],
+        AUTH_USER_REGISTRATION: true,
+      },
+    },
+  });
+  render(<Login />, { useRedux: true });
+  expect(screen.getByTestId('login-form')).toBeInTheDocument();
+  expect(screen.queryByTestId('register-button')).not.toBeInTheDocument();
+});
+
 // --- ensureAppRoot / SUPERSET_APP_ROOT tests ---
 
 test('should prefix OAuth provider URLs with application root', () => {
@@ -318,4 +365,107 @@ test('should use ensureAppRoot for all generated URLs with deep application root
   expect(
     screen.getByRole('link', { name: /Sign in with Google/ }),
   ).toHaveAttribute('href', '/my-org/superset/login/google');
+});
+
+// --- Auth flash messages ---
+
+test('should show flashed warnings as warning toasts', () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [['warning', 'Invalid login. Please try again.']],
+  });
+
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddWarningToast).toHaveBeenCalledWith(
+    'Invalid login. Please try again.',
+  );
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+});
+
+test('should clear a seeded password on an error-category auth message', async () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [],
+  });
+  const { rerender } = render(
+    <Provider store={createStore()}>
+      <Login />
+    </Provider>,
+  );
+  const password = screen.getByTestId('password-input') as HTMLInputElement;
+  await userEvent.type(password, 'wrong-secret');
+  expect(password).toHaveValue('wrong-secret');
+
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [['error', 'Invalid login. Please try again.']],
+  });
+  rerender(
+    <Provider store={createStore()}>
+      <Login />
+    </Provider>,
+  );
+
+  expect(screen.getByTestId('password-input')).toHaveValue('');
+});
+
+test('should show every drained auth message', () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [
+      ['warning', 'Invalid login. Please try again.'],
+      ['warning', 'Your session has ended. Please sign in again.'],
+    ],
+  });
+
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddWarningToast).toHaveBeenCalledTimes(2);
+  expect(mockAddWarningToast).toHaveBeenCalledWith(
+    'Your session has ended. Please sign in again.',
+  );
+});
+
+test('should not fabricate a login error without auth messages', () => {
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+  expect(mockAddInfoToast).not.toHaveBeenCalled();
+  expect(mockAddSuccessToast).not.toHaveBeenCalled();
+});
+
+test('should map success and info categories to matching toasts', () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [
+      ['success', 'Password changed.'],
+      ['message', 'Welcome back.'],
+    ],
+  });
+
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddSuccessToast).toHaveBeenCalledWith('Password changed.');
+  expect(mockAddInfoToast).toHaveBeenCalledWith('Welcome back.');
+  expect(mockAddDangerToast).not.toHaveBeenCalled();
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
+});
+
+test('should map danger and error categories to danger toasts', () => {
+  mockGetBootstrapData.mockReturnValue({
+    ...defaultBootstrapData,
+    auth_messages: [
+      ['danger', 'Login failed.'],
+      ['error', 'Something went wrong.'],
+    ],
+  });
+
+  render(<Login />, { useRedux: true });
+
+  expect(mockAddDangerToast).toHaveBeenCalledTimes(2);
+  expect(mockAddDangerToast).toHaveBeenCalledWith('Login failed.');
+  expect(mockAddDangerToast).toHaveBeenCalledWith('Something went wrong.');
+  expect(mockAddWarningToast).not.toHaveBeenCalled();
 });

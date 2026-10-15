@@ -58,6 +58,7 @@ from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
 from superset.daos.theme import ThemeDAO
+from superset.dashboards.excel_export.storage import is_background_export_available
 from superset.db_engine_specs import get_available_engine_specs
 from superset.db_engine_specs.gsheets import GSheetsEngineSpec
 from superset.extensions import cache_manager
@@ -121,6 +122,7 @@ FRONTEND_CONF_KEYS = (
     "ALERT_REPORTS_DEFAULT_CRON_VALUE",
     "ALERT_REPORTS_DEFAULT_RETENTION",
     "ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT",
+    "ALERT_REPORTS_RUN_AS_TOOLTIP",
     "NATIVE_FILTER_DEFAULT_ROW_LIMIT",
     "SUPERSET_CLIENT_RETRY_ATTEMPTS",
     "SUPERSET_CLIENT_RETRY_DELAY",
@@ -517,7 +519,8 @@ def _soft_delete_conf() -> dict[str, Any]:
 
     Resolved rather than read from config: an operator can change the window at
     runtime with ``superset deletion-retention set_window``, which persists to
-    a shared key taking precedence over the config seed. Passing the config
+    a shared key taking precedence over the config seed unless an authoritative
+    host policy is installed. Passing the config
     value through would tell users they have longer to recover an object than
     the purge task will actually allow.
 
@@ -557,6 +560,9 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     # should not expose API TOKEN to frontend
     frontend_config = {k: _get_frontend_config_value(k) for k in FRONTEND_CONF_KEYS}
+    frontend_config["EXCEL_EXPORT_STORAGE_CONFIGURED"] = (
+        is_background_export_available()
+    )
 
     frontend_config.update(_soft_delete_conf())
 

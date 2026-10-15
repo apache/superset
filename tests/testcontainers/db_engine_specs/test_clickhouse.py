@@ -47,10 +47,13 @@ import pytest
 from sqlalchemy import (
     Column,
     create_engine,
+    insert,
     inspect,
     Integer,
     MetaData,
+    String,
     Table as SATable,
+    text,
 )
 from sqlalchemy.engine import Engine
 
@@ -128,3 +131,43 @@ def test_get_columns_maps_native_types(engine: Engine) -> None:
         assert spec is not None
         assert spec.generic_type == GenericDataType.NUMERIC
         assert isinstance(spec.sqla_type, Integer)
+
+
+def test_group_by_all_groups_correctly(engine: Engine) -> None:
+    """
+    ClickHouse's `GROUP BY ALL` shorthand (group by every non-aggregated
+    SELECT column) executed for real over clickhouse-connect's HTTP driver,
+    the one Superset actually ships (apache/superset#40482 reported it
+    failing in SQL Lab, with no error text or repro steps attached).
+    Superset's own AST-based query mutation (sqlglot parse + LIMIT
+    injection) already round-trips this syntax cleanly -- this covers the
+    one layer that can't: the real driver/server actually executing it.
+    """
+    metadata = MetaData()
+    t = SATable(
+        "pilot_group_by_all",
+        metadata,
+        Column("id", Integer, primary_key=True, autoincrement=False),
+        Column("category", String(16)),
+        Column("amount", Integer),
+        MergeTree(order_by="id"),
+    )
+    metadata.create_all(engine)
+    with engine.begin() as conn:
+        conn.execute(
+            insert(t),
+            [
+                {"id": 1, "category": "a", "amount": 10},
+                {"id": 2, "category": "a", "amount": 5},
+                {"id": 3, "category": "b", "amount": 7},
+            ],
+        )
+
+        rows = conn.execute(
+            text(
+                "SELECT category, sum(amount) AS total "
+                "FROM pilot_group_by_all GROUP BY ALL ORDER BY category"
+            )
+        ).fetchall()
+
+    assert [tuple(row) for row in rows] == [("a", 15), ("b", 7)]

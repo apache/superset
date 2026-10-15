@@ -852,6 +852,9 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 inserted_rows.append(subtotal.name)
                 row_prefix_depth[subtotal.name] = level
 
+    # Metric-definition totals come from the database rollups, including in
+    # Actual Values mode. Explicit result aggregations instead reduce original
+    # grouped results below. Currency-context values keep their leaf unions.
     if (
         not result_aggregation
         and rollup_levels

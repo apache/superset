@@ -82,7 +82,7 @@ async function findDatasetIdByName(page: Page, name: string): Promise<number> {
   return body.result[0].id;
 }
 
-test.describe('Embedded Pivot Table collapse state (#33406)', () => {
+test.describe('Embedded Pivot Table collapse state', () => {
   test.describe.configure({ mode: 'serial' });
   test.setTimeout(90000);
 

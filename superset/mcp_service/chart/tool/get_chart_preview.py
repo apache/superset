@@ -36,20 +36,32 @@ from superset.mcp_service.chart.ascii_charts import (
 )
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
+    canonicalize_operation_form_data,
     find_chart_by_identifier,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+)
+from superset.mcp_service.chart.datasource_resolver import (
+    resolve_semantic_view,
+    view_not_found_error,
+)
 from superset.mcp_service.chart.preview_utils import (
-    _generate_gantt_vega_lite_preview,
-    BUBBLE_VIZ_TYPES,
-    generate_bubble_vega_lite_preview,
-    generate_gauge_ascii_preview,
-    generate_gauge_vega_lite_preview,
+    fallback_vega_lite_preview,
+    fit_ascii_frame,
+    plugin_ascii_preview,
+    plugin_table_preview,
+    plugin_unsupported_preview,
+    plugin_vega_lite_preview,
 )
 from superset.mcp_service.chart.query_result import (
+    first_query_data,
     normalize_chart_query_result,
-    query_result_failure,
+    null_data_is_empty,
 )
+from superset.mcp_service.chart.registry import plugin_for_viz_type
+from superset.mcp_service.chart.response_preflight import finalize_chart_response
 from superset.mcp_service.chart.schemas import (
     AccessibilityMetadata,
     ASCIIPreview,
@@ -62,15 +74,22 @@ from superset.mcp_service.chart.schemas import (
     URLPreview,
     VegaLitePreview,
 )
-from superset.mcp_service.chart.treemap_preview import treemap_ascii, treemap_vega_lite
 from superset.mcp_service.utils.oauth2_utils import (
     build_oauth2_redirect_message,
     OAUTH2_CONFIG_ERROR_MESSAGE,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
+
+
+def _finalize_response(
+    response: ChartPreview | ChartError,
+) -> ChartPreview | ChartError:
+    """Preflight every public preview response without changing its schema."""
+    return finalize_chart_response(response)
 
 
 class ChartLike(Protocol):
@@ -186,18 +205,11 @@ def _no_query_fields_error(chart: ChartLike) -> ChartError:
 
 
 def _preview_row_limit(form_data: dict[str, Any], fallback: int) -> int:
-    """Keep single-metric previews aligned with their frontend row limits."""
-    if form_data.get("viz_type") == "treemap_v2":
-        value = form_data.get("row_limit", 100)
-        try:
-            limit = int(value)
-        except (TypeError, ValueError, OverflowError):
-            limit = 100
-        return limit if 1 <= limit <= 10000 else 100
-    if form_data.get("viz_type") != "gauge_chart":
+    """Keep plugin previews aligned with their frontend row limits."""
+    plugin = plugin_for_viz_type(form_data.get("viz_type"))
+    if plugin is None:
         return fallback
-    value = form_data.get("row_limit", 10)
-    return value if isinstance(value, int) and 1 <= value <= 10 else 10
+    return plugin.preview_row_limit(form_data, fallback)
 
 
 def _build_chart_description(chart: ChartLike) -> str:
@@ -206,11 +218,9 @@ def _build_chart_description(chart: ChartLike) -> str:
         f"Preview of {chart.viz_type or 'chart'}: "
         f"{chart.slice_name or f'Chart {chart.id}'}"
     )
-    if chart.viz_type == "handlebars":
-        base += (
-            ". Note: Handlebars charts use browser-side template rendering; "
-            "this preview shows the raw underlying data, not the rendered template"
-        )
+    plugin = plugin_for_viz_type(chart.viz_type)
+    if plugin is not None and plugin.preview_note:
+        base += f". Note: {plugin.preview_note}"
     return base
 
 
@@ -230,6 +240,32 @@ class PreviewFormatStrategy:
         authorizes the preview query."""
         if (dashboard_id := guest_scope.guest_dashboard_id(self.chart)) is not None:
             guest_scope.authorize_query(query_context, dashboard_id, self.chart)
+
+    def _canonical_form_data(self, form_data: dict[str, Any]) -> dict[str, Any]:
+        """Bind saved-preview identity to the resolved chart and datasource."""
+        canonical = canonicalize_operation_form_data(
+            form_data,
+            datasource_id=self.chart.datasource_id,
+            datasource_type=self.chart.datasource_type,
+            chart_id=self.chart.id,
+        )
+        if self.chart.viz_type:
+            canonical["viz_type"] = self.chart.viz_type
+        return canonical
+
+    def _seed_query_context_form_data(self, query_context: Any) -> None:
+        """Seed Flask form data before saved-preview query execution."""
+        if not hasattr(query_context, "form_data") or not isinstance(
+            getattr(query_context, "queries", None), (list, tuple)
+        ):
+            return
+        from superset.charts.data.form_data import set_query_context_form_data
+
+        set_query_context_form_data(
+            query_context,
+            self.chart.datasource_id,
+            self.chart.datasource_type,
+        )
 
 
 class URLPreviewStrategy(PreviewFormatStrategy):
@@ -258,7 +294,9 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
-            form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
+            form_data = self._canonical_form_data(
+                utils_json.loads(self.chart.params) if self.chart.params else {}
+            )
 
             logger.info("Chart form_data keys: %s", list(form_data.keys()))
             logger.info("Chart viz_type: %s", self.chart.viz_type)
@@ -272,7 +310,6 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -286,29 +323,36 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
 
-            if query_failure := query_result_failure(result):
-                return query_failure
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
+            data, result_error = first_query_data(
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
-            data: list[Any] = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data") or []
-
-            if form_data.get("viz_type") == "treemap_v2":
-                ascii_chart = treemap_ascii(
-                    data, form_data, self.request.ascii_width or 80
+            ascii_chart = plugin_ascii_preview(
+                data,
+                form_data,
+                self.request.ascii_width or 80,
+                self.request.ascii_height or 20,
+            )
+            if isinstance(ascii_chart, str):
+                # Plugin renderers may ignore the frame; clip like the unsaved
+                # path so the reported width/height describe the content.
+                ascii_chart = fit_ascii_frame(
+                    ascii_chart,
+                    self.request.ascii_width or 80,
+                    self.request.ascii_height or 20,
                 )
-            elif form_data.get("viz_type") == "gauge_chart":
-                ascii_chart = generate_gauge_ascii_preview(
-                    data, form_data, self.request.ascii_width or 80
-                )
-            else:
+            if ascii_chart is None:
                 ascii_chart = generate_ascii_chart(
                     data,
                     self.chart.viz_type or "table",
@@ -343,11 +387,17 @@ class TablePreviewStrategy(PreviewFormatStrategy):
     """Generate table preview of chart data."""
 
     def generate(self) -> TablePreview | ChartError:
+        if (
+            unsupported := plugin_unsupported_preview(self.chart.viz_type, "table")
+        ) is not None:
+            return unsupported
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
 
-            form_data = utils_json.loads(self.chart.params) if self.chart.params else {}
+            form_data = self._canonical_form_data(
+                utils_json.loads(self.chart.params) if self.chart.params else {}
+            )
 
             # Check if datasource_id is None
             if self.chart.datasource_id is None:
@@ -356,7 +406,6 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                     error_type="InvalidChart",
                 )
 
-            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -370,19 +419,23 @@ class TablePreviewStrategy(PreviewFormatStrategy):
                 return _no_query_fields_error(self.chart)
 
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
 
-            if query_failure := query_result_failure(result):
-                return query_failure
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
+            data, result_error = first_query_data(
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
-            data: list[Any] = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                data = result["queries"][0].get("data") or []
+            if (plugin_preview := plugin_table_preview(data, form_data)) is not None:
+                return plugin_preview
 
             table_data = generate_ascii_table(data, 120)
 
@@ -420,27 +473,33 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
         except (ValueError, TypeError):
             return None
 
-    def _create_gantt_preview(
+    def _create_plugin_preview(
         self, data: Any, form_data: Dict[str, Any]
-    ) -> VegaLitePreview | ChartError:
-        """Build the saved-chart wrapper around the shared Gantt preview."""
-        preview = _generate_gantt_vega_lite_preview(data, form_data)
-        if isinstance(preview, ChartError):
+    ) -> VegaLitePreview | ChartError | None:
+        """Return the owning plugin's preview framed for this saved chart."""
+        preview = plugin_vega_lite_preview(data, form_data)
+        plugin = plugin_for_viz_type(form_data.get("viz_type"))
+        if not isinstance(preview, VegaLitePreview) or plugin is None:
             return preview
-        preview.specification.update(
-            {
-                "description": (
-                    "Chart preview for "
-                    f"{getattr(self.chart, 'slice_name', 'Untitled Chart')}"
-                ),
-                "width": self.request.width or 400,
-                "height": self.request.height or 300,
-            }
-        )
+        if plugin.resizes_saved_preview:
+            preview.specification.update(
+                {
+                    "description": (
+                        "Chart preview for "
+                        f"{getattr(self.chart, 'slice_name', 'Untitled Chart')}"
+                    ),
+                    "width": self.request.width or 400,
+                    "height": self.request.height or 300,
+                }
+            )
         return preview
 
     def generate(self) -> VegaLitePreview | ChartError:  # noqa: C901
         """Generate Vega-Lite JSON specification from chart data."""
+        if (
+            unsupported := plugin_unsupported_preview(self.chart.viz_type, "vega_lite")
+        ) is not None:
+            return unsupported
         try:
             # Get chart data directly using the same logic as get_chart_data tool
             # but without calling the MCP tool wrapper
@@ -469,15 +528,14 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
                         error_type="ChartNotFound",
                     )
 
-                form_data = (
+                form_data = self._canonical_form_data(
                     utils_json.loads(chart_obj.params) if chart_obj.params else {}
                 )
             else:
-                form_data = (
+                form_data = self._canonical_form_data(
                     utils_json.loads(self.chart.params) if self.chart.params else {}
                 )
 
-            form_data["viz_type"] = self.chart.viz_type or form_data.get("viz_type")
             query_context = build_query_context_from_form_data(
                 form_data,
                 chart=self.chart,
@@ -489,48 +547,46 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
 
             # Execute the query
             self._authorize_guest_query(query_context)
+            self._seed_query_context_form_data(query_context)
             command = ChartDataCommand(query_context)
             command.validate()
             result = command.run()
 
-            if query_failure := query_result_failure(result):
-                return query_failure
             result = normalize_chart_query_result(result, form_data)
             if isinstance(result, ChartError):
                 return result
+            data, result_error = first_query_data(
+                result, none_as_empty=null_data_is_empty(self.chart.viz_type)
+            )
+            if result_error is not None:
+                return result_error
+            assert data is not None
 
             # Extract data from result
-            chart_data = []
-            if result and "queries" in result and len(result["queries"]) > 0:
-                chart_data = result["queries"][0].get("data", [])
+            chart_data = data
 
-            if form_data.get("viz_type") == "treemap_v2":
-                return treemap_vega_lite(chart_data, form_data)
-            if form_data.get("viz_type") == "gauge_chart":
-                return generate_gauge_vega_lite_preview(chart_data, form_data)
-            viz_type = getattr(self.chart, "viz_type", None) or form_data.get(
-                "viz_type"
-            )
-            if viz_type == "gantt_chart":
-                return self._create_gantt_preview(chart_data, form_data)
+            plugin = plugin_for_viz_type(form_data.get("viz_type"))
+            if not chart_data and not (plugin and plugin.allows_empty_result):
+                return ChartError(
+                    error="No data available for Vega-Lite visualization",
+                    error_type="NoDataError",
+                )
+            # Plugin-owned previews share the unsaved-chart renderer, subject
+            # to the plugin's explicit empty-result contract.
+            if (
+                plugin_preview := self._create_plugin_preview(chart_data, form_data)
+            ) is not None:
+                return plugin_preview
             if not isinstance(chart_data, list):
                 return ChartError(
                     error="Chart result data is not an array of rows",
                     error_type="InvalidResultData",
                 )
-            # An empty Gantt query is still a valid interval chart and has a
-            # useful, typed Vega-Lite spec. Other chart types retain the existing
-            # explicit no-data response.
-            if not chart_data and viz_type != "gantt_chart":
-                return ChartError(
-                    error="No data available for Vega-Lite visualization",
-                    error_type="NoDataError",
-                )
-            if form_data.get("viz_type") in BUBBLE_VIZ_TYPES:
-                # Bubble's metrics live under x/y/size, which the generic
-                # spec builder below does not read — it would position the
-                # bubbles by the first two result columns instead.
-                return generate_bubble_vega_lite_preview(chart_data, form_data)
+
+            if (
+                fallback := fallback_vega_lite_preview(chart_data, form_data)
+            ) is not None:
+                return fallback
 
             # Convert Superset chart type to Vega-Lite specification
             vega_spec = self._create_vega_lite_spec(chart_data)
@@ -565,11 +621,13 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             or form_data.get("viz_type")
             or "table"
         )
-        if viz_type == "gantt_chart":
-            preview = self._create_gantt_preview(data, form_data)
-            if isinstance(preview, ChartError):
-                raise ValueError(preview.error)
-            return preview.specification
+        plugin_preview = self._create_plugin_preview(
+            data, {**form_data, "viz_type": viz_type}
+        )
+        if isinstance(plugin_preview, ChartError):
+            raise ValueError(plugin_preview.error)
+        if plugin_preview is not None:
+            return plugin_preview.specification
 
         # Get data fields and analyze types
         first_row = data[0] if data else {}
@@ -624,6 +682,7 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             "box_plot": ["box_plot"],
             "heatmap": ["heatmap", "heatmap_v2", "cal_heatmap"],
             "funnel": ["funnel"],
+            "gauge": ["gauge_chart"],
             "mixed": ["mixed_timeseries"],
             "table": ["table"],
         }
@@ -1030,6 +1089,34 @@ class VegaLitePreviewStrategy(PreviewFormatStrategy):
             },
         }
 
+    def _gauge_chart_spec(
+        self, fields: List[str], field_types: Dict[str, str] | None = None
+    ) -> Dict[str, Any]:
+        """Create gauge chart using arc marks."""
+        value_field = fields[0] if fields else "value"
+
+        return {
+            "mark": {
+                "type": "arc",
+                "innerRadius": 50,
+                "outerRadius": 80,
+                "tooltip": True,
+            },
+            "encoding": {
+                "theta": {
+                    "field": value_field,
+                    "type": "quantitative",
+                    "scale": {"range": [0, 6.28]},
+                },
+                "color": {
+                    "field": value_field,
+                    "type": "quantitative",
+                    "scale": {"scheme": "redyellowgreen"},
+                },
+                "tooltip": [{"field": f, "type": "nominal"} for f in fields[:3]],
+            },
+        }
+
     def _mixed_chart_spec(
         self, fields: List[str], field_types: Dict[str, str] | None = None
     ) -> Dict[str, Any]:
@@ -1298,24 +1385,33 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
         # Transient charts have a falsy id of 0, so skip the pre-check for them.
-        # Guests keep the existence check but skip RBAC (dashboard-authorized).
+        # Table guests keep the existence check but skip RBAC (dashboard-authorized).
         if getattr(chart, "id", None):
-            validation_result = validate_chart_dataset(
-                chart.datasource_id, check_access=not guest_scope.is_guest_read()
-            )
-            if not validation_result.is_valid:
-                await ctx.warning(
-                    "Chart found but dataset is not accessible: %s"
-                    % (validation_result.error,)
+            if chart.datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+                # Semantic IDs must not inherit a colliding table's access result.
+                if resolve_semantic_view(chart.datasource_id) is None:
+                    return ChartError(
+                        error=view_not_found_error(chart.datasource_id).message,
+                        error_type="DatasetNotAccessible",
+                    )
+            else:
+                validation_result: DatasetValidationResult = validate_chart_dataset(
+                    chart.datasource_id, check_access=not guest_scope.is_guest_read()
                 )
-                return ChartError(
-                    error=validation_result.error
-                    or "Chart's dataset is not accessible. Dataset may be deleted.",
-                    error_type="DatasetNotAccessible",
-                )
-            # Log any warnings (e.g., virtual dataset warnings)
-            for warning in validation_result.warnings:
-                await ctx.warning("Dataset warning: %s" % (warning,))
+                if not validation_result.is_valid:
+                    await ctx.warning(
+                        "Chart found but dataset is not accessible: %s"
+                        % (validation_result.error,)
+                    )
+                    return ChartError(
+                        error=validation_result.error
+                        or "Chart's dataset is not accessible. Dataset may be deleted.",
+                        error_type="DatasetNotAccessible",
+                    )
+                # Log any warnings (e.g., virtual dataset warnings)
+                warning: str
+                for warning in validation_result.warnings:
+                    await ctx.warning("Dataset warning: %s" % (warning,))
 
         # If form_data_key is provided, override chart.params with cached
         # form_data so the preview reflects what the user actually sees
@@ -1535,23 +1631,27 @@ async def get_chart_preview(
                 % (result.error_type, result.error)
             )
 
-        return result
+        return _finalize_response(result)
     except OAuth2RedirectError as ex:
         await ctx.warning(
             "Chart preview requires OAuth authentication: identifier=%s"
             % request.identifier
         )
-        return ChartError(
-            error=build_oauth2_redirect_message(ex),
-            error_type="OAUTH2_REDIRECT",
+        return _finalize_response(
+            ChartError(
+                error=build_oauth2_redirect_message(ex),
+                error_type="OAUTH2_REDIRECT",
+            )
         )
     except OAuth2Error:
         await ctx.error(
             "OAuth2 configuration error: identifier=%s" % request.identifier
         )
-        return ChartError(
-            error=OAUTH2_CONFIG_ERROR_MESSAGE,
-            error_type="OAUTH2_REDIRECT_ERROR",
+        return _finalize_response(
+            ChartError(
+                error=OAUTH2_CONFIG_ERROR_MESSAGE,
+                error_type="OAUTH2_REDIRECT_ERROR",
+            )
         )
     except (
         SupersetException,
@@ -1570,7 +1670,9 @@ async def get_chart_preview(
                 type(e).__name__,
             )
         )
-        return ChartError(
-            error=f"Failed to generate chart preview: {str(e)}",
-            error_type="InternalError",
+        return _finalize_response(
+            ChartError(
+                error=f"Failed to generate chart preview: {str(e)}",
+                error_type="InternalError",
+            )
         )

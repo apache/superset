@@ -352,7 +352,7 @@ Routes on the health blueprint, including `/health`, `/healthcheck`, `/ping`, an
 `/version`, are exempt from forced password changes. Even with
 `ENABLE_FORCE_PASSWORD_CHANGE = True`, a probe carrying a session cookie for a user
 with a pending password change receives the route's normal response rather than a
-redirect to the password-reset form. This exemption does not bypass other security
+redirect to the profile page's password change. This exemption does not bypass other security
 checks or change which version details the user may see.
 
 If the load balancer is inserting `X-Forwarded-For/X-Forwarded-Proto` headers, you should set
@@ -743,6 +743,16 @@ A companion `HASH_ALGORITHM_FALLBACKS` list (default: `["md5"]`) lets UUID looku
 :::note
 This setting affects internal Superset operations only, not user passwords or authentication tokens. Changing it in an existing deployment may invalidate cached values but does not require a database migration.
 :::
+
+## Impala Result Fetching
+
+Statements that produce no result set return no rows without attempting a fetch.
+For Impala, Superset waits for asynchronous execution to complete before checking
+for results, and propagates asynchronous database errors. If an operation is still
+pending when result fetching begins, the additional polling wait is bounded by
+`SQLLAB_TIMEOUT` (in seconds); on expiry, Superset requests cancellation and reports
+a timeout. Configure the driver's network timeout separately to bound individual
+RPC calls.
 
 ## SQL Lab Query History Pruning
 

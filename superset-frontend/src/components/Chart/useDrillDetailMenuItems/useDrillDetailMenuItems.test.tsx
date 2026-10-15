@@ -406,6 +406,32 @@ test('context menu for supported chart, dimensions, no filters', async () => {
   );
 });
 
+test('context menu for candlestick treats OHLC fields as aggregations', async () => {
+  const filters = [filterA];
+  renderMenu({
+    formData: {
+      ...defaultFormData,
+      viz_type: VizType.Candlestick,
+      metrics: undefined,
+      metric: undefined,
+      open: 'open',
+      close: 'close',
+      high: 'high',
+      low: 'low',
+    },
+    isContextMenu: true,
+    filters,
+  });
+
+  const drillToDetailMenuItem = screen
+    .getAllByRole('menuitem')
+    .find(menuItem => within(menuItem).queryByText('Drill to detail'));
+  expect(drillToDetailMenuItem).toBeDefined();
+  await expectMenuItemEnabled(drillToDetailMenuItem!);
+  await expectDrillToDetailByEnabled();
+  await expectDrillToDetailByDimension(filterA);
+});
+
 test('context menu for supported chart, dimensions, 1 filter', async () => {
   const filters = [filterA];
   renderMenu({

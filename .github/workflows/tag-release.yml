@@ -65,9 +65,14 @@ jobs:
           fetch-depth: 0
           ref: master
 
+      # Preserved because the step below checks out the release ref, which
+      # can be an arbitrary historical commit/tag -- these helpers need to
+      # keep running with the version from master regardless.
       - name: Preserve Docker flags helper
         shell: bash
-        run: cp scripts/docker-build-extra-flags.sh "$RUNNER_TEMP/docker-build-extra-flags.sh"
+        run: |
+          cp scripts/docker-build-extra-flags.sh "$RUNNER_TEMP/docker-build-extra-flags.sh"
+          cp scripts/docker_release_target.py "$RUNNER_TEMP/docker_release_target.py"
 
       - name: Setup Docker Environment
         uses: $/.github/actions/setup-docker
@@ -114,6 +119,30 @@ jobs:
           fi
           # Preserve the checked-out release Dockerfile's browser default.
           EXTRA_FLAGS="$(bash "$RUNNER_TEMP/docker-build-extra-flags.sh" "$BUILD_PRESET" "" release)"
+
+          # supersetbot's preset -> Dockerfile-target mapping tracks current
+          # master, but RELEASE above can be an arbitrary *historical* ref
+          # (this job just `git checkout`ed it), which can predate a preset's
+          # target stage -- see #44220. Ask supersetbot what it would
+          # actually run (--dry-run) and hand that, plus the Dockerfile this
+          # checkout now has, to docker_release_target.py (preserved from
+          # master above, same reasoning as the flags helper), which knows
+          # the one verified compatibility substitution and refuses to guess
+          # at anything else.
+          DRY_RUN_CMD="$(DOCKERHUB_TOKEN= supersetbot docker \
+            --preset "$BUILD_PRESET" \
+            --context "$EVENT" \
+            --context-ref "$RELEASE" $FORCE_LATEST \
+            --extra-flags "$EXTRA_FLAGS" \
+            --platform linux/amd64 \
+            --dry-run)"
+          TARGET_OVERRIDE="$(
+            printf '%s\n' "$DRY_RUN_CMD" |
+              python3 "$RUNNER_TEMP/docker_release_target.py" "$BUILD_PRESET"
+          )"
+          if [ -n "$TARGET_OVERRIDE" ]; then
+            EXTRA_FLAGS="$EXTRA_FLAGS $TARGET_OVERRIDE"
+          fi
 
           DOCKERHUB_TOKEN= supersetbot docker \
             --push \

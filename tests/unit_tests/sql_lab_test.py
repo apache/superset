@@ -17,11 +17,13 @@
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, too-many-locals
 
 import json  # noqa: TID251
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock, patch
 from urllib.parse import parse_qs, urlparse
 from uuid import UUID
 
+import pandas as pd
 import pytest
 from flask import g, has_request_context, session
 from freezegun import freeze_time
@@ -31,21 +33,68 @@ from sqlalchemy.orm import Session
 
 from superset.app import SupersetApp
 from superset.common.db_query_status import QueryStatus
+from superset.db_engine_specs import BaseEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.errors import ErrorLevel, SupersetErrorType
 from superset.exceptions import OAuth2Error, SupersetErrorException
 from superset.models.core import Database
 from superset.sql.parse import SQLStatement, Table
 from superset.sql_lab import (
+    _serialize_and_expand_data,
+    _serialize_payload,
     execute_query,
     execute_sql_statements,
     get_query,
     get_sql_results,
     SqlLabException,
 )
+from superset.utils import json as superset_json
 from superset.utils.rls import apply_rls, get_predicates_for_table
 from tests.conftest import with_config
 from tests.unit_tests.models.core_test import oauth2_client_info
+
+
+def test_sql_lab_and_view_json_normalize_decimal_nonfinite() -> None:
+    """Sync SQL Lab and its view consumer share strict Decimal projection."""
+    from superset.views.utils import _deserialize_results_payload
+
+    finite = Decimal("0.10000000000000000001")
+    result_set = MagicMock()
+    result_set.columns = [{"name": "value"}]
+    result_set.to_pandas_df.return_value = pd.DataFrame(
+        {
+            "value": pd.Series(
+                [
+                    Decimal("NaN"),
+                    Decimal("sNaN"),
+                    Decimal("Infinity"),
+                    Decimal("-Infinity"),
+                    finite,
+                ],
+                dtype=object,
+            )
+        }
+    )
+
+    data, selected_columns, all_columns, expanded_columns = _serialize_and_expand_data(
+        result_set, BaseEngineSpec()
+    )
+    assert isinstance(data, list)
+    assert [row["value"] for row in data] == [None, None, None, None, str(finite)]
+
+    payload = {
+        "data": data,
+        "selected_columns": selected_columns,
+        "columns": all_columns,
+        "expanded_columns": expanded_columns,
+    }
+    serialized = _serialize_payload(payload)
+    assert isinstance(serialized, str)
+    assert "NaN" not in serialized
+    assert "Infinity" not in serialized
+    assert _deserialize_results_payload(serialized, MagicMock()) == (
+        superset_json.loads(serialized)
+    )
 
 
 def test_execute_query(mocker: MockerFixture, app: None) -> None:
@@ -250,6 +299,45 @@ def test_execute_sql_statement_within_payload_limit(mocker: MockerFixture, app) 
         pytest.fail(
             "SupersetErrorException should not have been raised for payload within the limit"  # noqa: E501
         )
+
+
+@pytest.mark.parametrize("allow_dml", [False, True])
+def test_execute_sql_statements_rejects_client_file_transfer(
+    mocker: MockerFixture, app: SupersetApp, allow_dml: bool
+) -> None:
+    """
+    `execute_sql_statements` rejects client-side file-transfer statements
+    regardless of `allow_dml`: they perform host file I/O, not DML.
+    """
+    from superset.exceptions import SupersetDisallowedClientFileTransferException
+
+    query = mocker.MagicMock()
+    query.limit = 1
+    query.status = "RUNNING"
+    query.select_as_cta = False
+    query.database.allow_dml = allow_dml
+    query.database.allow_run_async = False
+    query.database.db_engine_spec.engine = "snowflake"
+
+    mocker.patch("superset.sql_lab.get_query", return_value=query)
+    mocker.patch("superset.sql_lab.db.session.refresh", return_value=None)
+
+    with pytest.raises(SupersetDisallowedClientFileTransferException) as excinfo:
+        execute_sql_statements(
+            query_id=1,
+            rendered_query="REMOVE @my_stage/b; PUT file:///tmp/data.csv @my_stage",
+            return_results=True,
+            store_results=False,
+            start_time=None,
+            expand_data=False,
+            log_params={},
+        )
+
+    # Sorted and comma-separated, not raw set interpolation.
+    assert excinfo.value.error.message == (
+        "SQL statement contains disallowed client-side "
+        "file-transfer command(s): PUT, REMOVE"
+    )
 
 
 def test_execute_sql_statements_mutates_before_split_by_default(

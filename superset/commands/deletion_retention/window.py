@@ -19,37 +19,47 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 from flask import current_app
 
+from superset.extensions import stats_logger_manager
 from superset.key_value.shared_entries import get_shared_value
 from superset.key_value.types import SharedKey
 
 logger: logging.Logger = logging.getLogger(__name__)
 
 _DEFAULT_RETENTION_DAYS: int = 30
+MAX_RETENTION_DAYS: int = 36500
+
+
+def _defer_invalid_window(message: str) -> int:
+    """Record invalid resolutions separately from an intentional zero disable."""
+    logger.warning(message)
+    stats_logger_manager.instance.incr("deletion_retention.invalid_window")
+    return 0
 
 
 def _config_retention_days() -> int:
     """Return a validated config fallback without breaking scheduled runs."""
-    configured = current_app.config.get(
+    configured: object = current_app.config.get(
         "SOFT_DELETE_RETENTION_DAYS", _DEFAULT_RETENTION_DAYS
     )
     try:
-        if isinstance(configured, bool):
+        if isinstance(configured, bool) or not isinstance(configured, (str, int)):
             raise ValueError
-        days = int(configured)
-        if days < 0:
+        days: int = int(configured)
+        if days > MAX_RETENTION_DAYS:
+            return _defer_invalid_window(
+                "deletion_retention: oversized config retention; skipping"
+            )
+        if days < -1:
             raise ValueError
         return days
     except (TypeError, ValueError):
-        logger.warning(
-            "deletion_retention: ignoring malformed config retention value %r; "
-            "falling back to %d days",
-            configured,
-            _DEFAULT_RETENTION_DAYS,
+        return _defer_invalid_window(
+            "deletion_retention: malformed config retention; skipping"
         )
-        return _DEFAULT_RETENTION_DAYS
 
 
 def resolve_retention_window() -> int:
@@ -57,25 +67,48 @@ def resolve_retention_window() -> int:
 
     Resolution order:
 
-    1. The per-deployment value persisted under
+    1. An installed ``SOFT_DELETE_RETENTION_DAYS_FUNC`` host policy. Its
+       result is authoritative; invalid/unavailable policy defers with zero.
+    2. The per-deployment value persisted under
        ``SharedKey.SOFT_DELETE_RETENTION_DAYS`` (read live; takes
        precedence when present).
-    2. Otherwise the ``SOFT_DELETE_RETENTION_DAYS`` config /
+    3. Otherwise the ``SOFT_DELETE_RETENTION_DAYS`` config /
        environment seed default (itself defaulting to 30).
 
-    ``0`` from either source is a meaningful "disable", so the shared
+    ``0`` from any source is a meaningful "disable", so the shared
     value is selected with an explicit ``is None`` check — never ``or``,
     which would treat ``0`` as unset. A malformed shared value is
-    rejected (logged) and the fallback is used rather than crashing the
-    scheduled task.
+    rejected (logged) and defers purge with zero rather than crashing the
+    scheduled task. Oversized integer windows also defer purge with zero rather
+    than shortening an operator's intended retention.
     """
-    if (shared := get_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS)) is not None:
-        if isinstance(shared, bool) or not isinstance(shared, int) or shared < 0:
-            logger.warning(
-                "deletion_retention: ignoring malformed shared retention value %r; "
-                "falling back to config",
-                shared,
+    policy: Callable[[], object] | None = current_app.config.get(
+        "SOFT_DELETE_RETENTION_DAYS_FUNC"
+    )
+    if policy is not None:
+        try:
+            days: object = policy()
+        except Exception:  # Host boundary: do not expose service payloads or purge.
+            return _defer_invalid_window(
+                "deletion_retention: host retention policy unavailable; skipping"
             )
-        else:
-            return shared
+        if (
+            isinstance(days, int)
+            and not isinstance(days, bool)
+            and -1 <= days <= MAX_RETENTION_DAYS
+        ):
+            return days
+        return _defer_invalid_window(
+            "deletion_retention: invalid host retention policy; skipping"
+        )
+    if (shared := get_shared_value(SharedKey.SOFT_DELETE_RETENTION_DAYS)) is not None:
+        if isinstance(shared, int) and shared > MAX_RETENTION_DAYS:
+            return _defer_invalid_window(
+                "deletion_retention: oversized shared retention; skipping"
+            )
+        if isinstance(shared, bool) or not isinstance(shared, int) or shared < -1:
+            return _defer_invalid_window(
+                "deletion_retention: malformed shared retention; skipping"
+            )
+        return shared
     return _config_retention_days()

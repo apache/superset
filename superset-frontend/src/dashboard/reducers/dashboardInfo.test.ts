@@ -22,7 +22,334 @@ import {
 } from '../actions/dashboardInfo';
 import { CLEAR_ALL_CHART_CUSTOMIZATIONS } from '../actions/chartCustomizationActions';
 import type { DashboardInfo } from '../types';
+import { DatasourceType } from '@superset-ui/core';
 import dashboardInfoReducer from './dashboardInfo';
+
+const semanticSource = {
+  uid: '2__semantic_view',
+  type: DatasourceType.SemanticView,
+  columns: [{ column_name: 'event_time', is_dttm: false }],
+};
+
+test('replaces dashboard semantic metadata after a schema refresh', () => {
+  const initial = {
+    id: 1,
+    semanticDatasets: { dashboardId: 1, datasets: [semanticSource] },
+  } as unknown as Partial<DashboardInfo>;
+  const result = dashboardInfoReducer(initial, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: [
+      {
+        ...semanticSource,
+        columns: [{ column_name: 'event_time', is_dttm: true }],
+      },
+    ],
+  });
+  expect(result.semanticDatasets?.datasets[0].columns[0].is_dttm).toBe(true);
+});
+
+test('a completed refresh omitting a source removes stale semantic metadata', () => {
+  const initial = {
+    id: 1,
+    semanticDatasets: { dashboardId: 1, datasets: [semanticSource] },
+  } as unknown as Partial<DashboardInfo>;
+  const result = dashboardInfoReducer(initial, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: [],
+  });
+  expect(result.semanticDatasets?.datasets).toEqual([]);
+});
+
+test('adding a source updates only its dashboard metadata without a reload', () => {
+  const initial = {
+    id: 1,
+    semanticDatasets: { dashboardId: 1, datasets: [] },
+  } as unknown as Partial<DashboardInfo>;
+  const result = dashboardInfoReducer(initial, {
+    type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+    dashboardId: 1,
+    sourceKey: semanticSource.uid,
+    dataset: semanticSource,
+  });
+  expect(result.semanticDatasets?.datasets).toEqual([semanticSource]);
+});
+
+test('dashboard navigation discards the previous dashboard metadata', () => {
+  const initial = {
+    id: 1,
+    semanticDatasets: { dashboardId: 1, datasets: [semanticSource] },
+  } as unknown as Partial<DashboardInfo>;
+  const result = dashboardInfoReducer(initial, {
+    type: 'HYDRATE_DASHBOARD',
+    data: { dashboardInfo: { id: 2, metadata: {} } },
+  } as unknown as Parameters<typeof dashboardInfoReducer>[1]);
+  expect(result.semanticDatasets).toBeNull();
+});
+
+test('hydration keeps a matching page-load metadata response', () => {
+  const initial = {
+    semanticDatasets: { dashboardId: 1, datasets: [semanticSource] },
+  } as unknown as Partial<DashboardInfo>;
+  const result = dashboardInfoReducer(initial, {
+    type: 'HYDRATE_DASHBOARD',
+    data: { dashboardInfo: { id: 1, metadata: {} } },
+  } as unknown as Parameters<typeof dashboardInfoReducer>[1]);
+  expect(result.semanticDatasets?.datasets).toEqual([semanticSource]);
+});
+
+test.each(['page first', 'add first'])(
+  'same-dashboard hydration rejects a pre-remount add response: %s',
+  order => {
+    const pendingAdd = dashboardInfoReducer(
+      { id: 1 },
+      {
+        type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+        dashboardId: 1,
+        sourceKey: semanticSource.uid,
+        dataset: null,
+        requestId: 'before-remount',
+        isRefreshStart: true,
+      },
+    );
+    const hydrated = dashboardInfoReducer(pendingAdd, {
+      type: 'HYDRATE_DASHBOARD',
+      data: { dashboardInfo: { id: 1, metadata: {} } },
+    } as unknown as Parameters<typeof dashboardInfoReducer>[1]);
+    const freshSource = {
+      ...semanticSource,
+      columns: [{ column_name: 'event_time', is_dttm: true }],
+    };
+    const page = {
+      type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+      dashboardId: 1,
+      datasets: [freshSource],
+      expectedGeneration: pendingAdd.semanticDatasetsGeneration,
+    };
+    const staleAdd = {
+      type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+      dashboardId: 1,
+      sourceKey: semanticSource.uid,
+      dataset: semanticSource,
+      requestId: 'before-remount',
+    };
+    const actions =
+      order === 'page first' ? [page, staleAdd] : [staleAdd, page];
+    const result = actions.reduce<ReturnType<typeof dashboardInfoReducer>>(
+      dashboardInfoReducer,
+      hydrated,
+    );
+    expect(result.semanticDatasets?.datasets).toEqual([freshSource]);
+    expect(hydrated.semanticDatasetRequests).toEqual({});
+    expect(pendingAdd.semanticDatasetRequests).toEqual({
+      [semanticSource.uid]: 'before-remount',
+    });
+  },
+);
+
+test('page metadata cannot publish before dashboard hydration', () => {
+  const initial = {};
+  expect(
+    dashboardInfoReducer(initial, {
+      type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+      dashboardId: 1,
+      datasets: [semanticSource],
+    }),
+  ).toBe(initial);
+});
+
+test('a late add response cannot revive metadata invalidated by a newer save', () => {
+  const initial = { id: 1 } as Partial<DashboardInfo>;
+  const pendingAdd = dashboardInfoReducer(initial, {
+    type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+    dashboardId: 1,
+    sourceKey: semanticSource.uid,
+    dataset: null,
+    requestId: 'add',
+    isRefreshStart: true,
+  });
+  const pendingSave = dashboardInfoReducer(pendingAdd, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: null,
+    requestId: 'save',
+    isRefreshStart: true,
+  });
+  const staleAdd = dashboardInfoReducer(pendingSave, {
+    type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+    dashboardId: 1,
+    sourceKey: semanticSource.uid,
+    dataset: semanticSource,
+    requestId: 'add',
+  });
+  expect(staleAdd.semanticDatasets).toBeNull();
+});
+
+test('two independent source refreshes both complete', () => {
+  const other = { ...semanticSource, uid: '3__semantic_view' };
+  const firstPending = dashboardInfoReducer(
+    { id: 1 },
+    {
+      type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+      dashboardId: 1,
+      sourceKey: semanticSource.uid,
+      dataset: null,
+      requestId: 'first',
+      isRefreshStart: true,
+    },
+  );
+  const secondPending = dashboardInfoReducer(firstPending, {
+    type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+    dashboardId: 1,
+    sourceKey: other.uid,
+    dataset: null,
+    requestId: 'second',
+    isRefreshStart: true,
+  });
+  const firstDone = dashboardInfoReducer(secondPending, {
+    type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+    dashboardId: 1,
+    sourceKey: semanticSource.uid,
+    dataset: semanticSource,
+    requestId: 'first',
+  });
+  const secondDone = dashboardInfoReducer(firstDone, {
+    type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+    dashboardId: 1,
+    sourceKey: other.uid,
+    dataset: other,
+    requestId: 'second',
+  });
+  expect(secondDone.semanticDatasets?.datasets).toEqual([
+    semanticSource,
+    other,
+  ]);
+});
+
+test('a save rejects an old page response but accepts a fresh request', () => {
+  const pendingSave = dashboardInfoReducer(
+    { id: 1 },
+    {
+      type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+      dashboardId: 1,
+      datasets: null,
+      requestId: 'save',
+      isRefreshStart: true,
+    },
+  );
+  const stalePage = dashboardInfoReducer(pendingSave, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: [semanticSource],
+    expectedGeneration: 0,
+  });
+  expect(stalePage.semanticDatasets).toBeNull();
+  const saved = dashboardInfoReducer(stalePage, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: [semanticSource],
+    requestId: 'save',
+  });
+  const fromPage = dashboardInfoReducer(saved, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: [],
+    expectedGeneration: 0,
+  });
+  expect(fromPage.semanticDatasets?.datasets).toEqual([semanticSource]);
+  const freshPage = dashboardInfoReducer(saved, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: [],
+    expectedGeneration: 2,
+  });
+  expect(freshPage.semanticDatasets?.datasets).toEqual([]);
+});
+
+test('an in-flight page response retains unaffected sources after an add', () => {
+  const existing = { ...semanticSource, uid: '3__semantic_view' };
+  const pendingAdd = dashboardInfoReducer(
+    { id: 1 },
+    {
+      type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+      dashboardId: 1,
+      sourceKey: semanticSource.uid,
+      dataset: null,
+      requestId: 'add',
+      isRefreshStart: true,
+    },
+  );
+  const pageWhilePending = dashboardInfoReducer(pendingAdd, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: [existing, { ...semanticSource, columns: [] }],
+    expectedGeneration: 0,
+  });
+  expect(pageWhilePending.semanticDatasets?.datasets).toEqual([existing]);
+  const added = dashboardInfoReducer(pageWhilePending, {
+    type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+    dashboardId: 1,
+    sourceKey: semanticSource.uid,
+    dataset: semanticSource,
+    requestId: 'add',
+  });
+  const page = dashboardInfoReducer(added, {
+    type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+    dashboardId: 1,
+    datasets: [existing, { ...semanticSource, columns: [] }],
+    expectedGeneration: 0,
+  });
+  expect(page.semanticDatasets?.datasets).toEqual([existing, semanticSource]);
+});
+
+test.each(['add first', 'save first'])(
+  'save and add both retain proven sources: %s',
+  order => {
+    const added = semanticSource;
+    const savedSource = { ...semanticSource, uid: '3__semantic_view' };
+    const pendingSave = dashboardInfoReducer(
+      { id: 1 },
+      {
+        type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+        dashboardId: 1,
+        datasets: null,
+        requestId: 'save',
+        isRefreshStart: true,
+      },
+    );
+    const pendingAdd = dashboardInfoReducer(pendingSave, {
+      type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+      dashboardId: 1,
+      sourceKey: added.uid,
+      dataset: null,
+      requestId: 'add',
+      isRefreshStart: true,
+    });
+    const addResult = {
+      type: 'UPDATE_DASHBOARD_SEMANTIC_DATASET',
+      dashboardId: 1,
+      sourceKey: added.uid,
+      dataset: added,
+      requestId: 'add',
+    };
+    const saveResult = {
+      type: 'REPLACE_DASHBOARD_SEMANTIC_DATASETS',
+      dashboardId: 1,
+      datasets: [savedSource],
+      requestId: 'save',
+    };
+    const first = dashboardInfoReducer(
+      pendingAdd,
+      order === 'add first' ? addResult : saveResult,
+    );
+    const final = dashboardInfoReducer(
+      first,
+      order === 'add first' ? saveResult : addResult,
+    );
+    expect(final.semanticDatasets?.datasets).toEqual([savedSource, added]);
+  },
+);
 
 const existingTheme = {
   id: 99,

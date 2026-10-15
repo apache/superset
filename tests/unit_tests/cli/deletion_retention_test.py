@@ -33,7 +33,7 @@ from uuid import UUID, uuid4
 
 import click
 import pytest
-from click.testing import CliRunner
+from click.testing import CliRunner, Result
 from pytest_mock import MockerFixture
 
 from superset.cli.deletion_retention import (
@@ -66,7 +66,7 @@ def test_group_registers_the_three_commands(app_context: None) -> None:
 # ---- set-window -----------------------------------------------------------
 
 
-@pytest.mark.parametrize("days", [30, 0, 3650])
+@pytest.mark.parametrize("days", [-1, 30, 0, 36500])
 def test_set_window_upserts_the_shared_value_and_reports_it(
     days: int, mocker: MockerFixture, app_context: None
 ) -> None:
@@ -97,10 +97,25 @@ def test_set_window_rejects_a_negative_window_before_writing(
     """A negative value is a usage error (exit 2) and nothing is written."""
     upsert = mocker.patch("superset.key_value.shared_entries.upsert_shared_value")
 
-    result = CliRunner().invoke(set_window, ["--days", "-1"])
+    result: Result = CliRunner().invoke(set_window, ["--days", "-2"])
 
     assert result.exit_code == 2
-    assert "--days must be >= 0" in result.output
+    assert "--days must be >= -1" in result.output
+    upsert.assert_not_called()
+
+
+@pytest.mark.parametrize("days", [36501, 1000000])
+def test_set_window_rejects_oversized_days_before_writing(
+    days: int, mocker: MockerFixture, app_context: None
+) -> None:
+    """Out-of-range windows never persist or report success."""
+    upsert: MagicMock = mocker.patch(
+        "superset.key_value.shared_entries.upsert_shared_value"
+    )
+    result: Result = CliRunner().invoke(set_window, ["--days", str(days)])
+    assert result.exit_code == 2
+    assert "36500" in result.output
+    assert "window set" not in result.output
     upsert.assert_not_called()
 
 
@@ -122,7 +137,12 @@ def test_set_window_rejects_missing_or_non_integer_days(
 
 @pytest.mark.parametrize(
     "days, expected",
-    [(30, "30 day(s)"), (1, "1 day(s)"), (0, "disabled")],
+    [
+        (30, "30 day(s)"),
+        (1, "1 day(s)"),
+        (0, "disabled"),
+        (-1, "immediate eligibility on the next cleanup run"),
+    ],
 )
 def test_show_window_prints_the_effective_window(
     days: int, expected: str, mocker: MockerFixture, app_context: None

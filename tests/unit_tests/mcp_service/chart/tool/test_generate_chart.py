@@ -19,6 +19,7 @@
 Unit tests for MCP generate_chart tool
 """
 
+from contextlib import nullcontext
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -42,11 +43,85 @@ from superset.mcp_service.chart.tool.generate_chart import (
     CompileResult,
     generate_chart,
 )
+from superset.mcp_service.chart.validation.pipeline import ValidationResult
 from superset.utils import json as utils_json
 
 
 class TestGenerateChart:
     """Tests for generate_chart MCP tool."""
+
+    @pytest.mark.asyncio
+    async def test_generate_chart_fastmcp_accepts_same_sunburst_metric_twice(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """The registered request boundary preserves categorical fallback mode."""
+        from fastmcp import Client
+
+        from superset.mcp_service.app import mcp
+
+        module = __import__(
+            "superset.mcp_service.chart.tool.generate_chart", fromlist=["unused"]
+        )
+        metric = {
+            "expressionType": "SIMPLE",
+            "column": {"column_name": "sales"},
+            "aggregate": "SUM",
+            "label": "SUM(sales)",
+        }
+
+        def validate(payload: dict[str, Any]) -> ValidationResult:
+            return ValidationResult(
+                is_valid=True,
+                request=GenerateChartRequest.model_validate(payload),
+                warnings={},
+            )
+
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.validation.ValidationPipeline."
+            "validate_request_with_warnings",
+            validate,
+        )
+        monkeypatch.setattr(
+            "superset.daos.dataset.DatasetDAO.find_by_id",
+            lambda *_args, **_kwargs: None,
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.chart.chart_utils.generate_explore_link",
+            lambda *_args, **_kwargs: "/explore/?form_data_key=same-metric",
+        )
+        monkeypatch.setattr(
+            "superset.mcp_service.auth.get_user_from_request",
+            lambda: Mock(id=1, username="admin", roles=[], groups=[]),
+        )
+        monkeypatch.setattr(
+            module.event_logger,
+            "log_context",
+            lambda **_kwargs: nullcontext(),
+        )
+
+        async with Client(mcp) as client:
+            result = await client.call_tool(
+                "generate_chart",
+                {
+                    "request": {
+                        "dataset_id": 7,
+                        "config": {
+                            "viz_type": "sunburst_v2",
+                            "columns": ["region"],
+                            "metric": metric,
+                            "secondary_metric": metric,
+                        },
+                        "generate_preview": True,
+                        "preview_formats": ["url"],
+                    }
+                },
+            )
+
+        payload = result.structured_content.get("result", result.structured_content)
+        assert payload["success"] is True
+        assert (
+            payload["form_data"]["metric"] == payload["form_data"]["secondary_metric"]
+        )
 
     @pytest.mark.asyncio
     async def test_generate_chart_returns_table_chart_type_label(self) -> None:
@@ -99,6 +174,63 @@ class TestGenerateChart:
             result = await generate_chart(request, ctx=ctx)
 
         assert result.chart_type_label == "table chart"
+
+    @pytest.mark.asyncio
+    async def test_generate_chart_preview_non_decimal_digit_dataset_id(self) -> None:
+        """A Unicode "digit" dataset_id (isdigit() True, isdecimal() False)
+        must route the preview-only compile-check lookup through the uuid
+        branch instead of raising out of ``int()``."""
+        request = GenerateChartRequest(
+            dataset_id="²",
+            config=TableChartConfig(
+                chart_type="table",
+                columns=[ColumnRef(name="region")],
+            ),
+            preview_formats=["url"],
+        )
+        ctx = MagicMock()
+        ctx.info = AsyncMock()
+        ctx.debug = AsyncMock()
+        ctx.warning = AsyncMock()
+        ctx.error = AsyncMock()
+        ctx.report_progress = AsyncMock()
+        validation_result = Mock(
+            is_valid=True,
+            request=request,
+            warnings={},
+            error=None,
+        )
+        mock_user = Mock()
+        mock_user.id = 1
+        mock_user.username = "admin"
+        mock_user.roles = []
+        mock_user.groups = []
+
+        with (
+            patch(
+                "superset.mcp_service.auth.get_user_from_request",
+                return_value=mock_user,
+            ),
+            patch(
+                "superset.mcp_service.chart.validation.ValidationPipeline."
+                "validate_request_with_warnings",
+                return_value=validation_result,
+            ),
+            patch(
+                "superset.mcp_service.chart.chart_utils.generate_explore_link",
+                return_value=(
+                    "http://localhost:9001/explore/?"
+                    "form_data_key=test_form_data_key_123"
+                ),
+            ),
+            patch(
+                "superset.daos.dataset.DatasetDAO.find_by_id", return_value=None
+            ) as mock_find_by_id,
+        ):
+            result = await generate_chart(request, ctx=ctx)
+
+        assert result.chart_type_label == "table chart"
+        mock_find_by_id.assert_called_once_with("²", id_column="uuid")
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("has_finite", [True, False])
@@ -1010,3 +1142,23 @@ class TestGenerateBubbleWithSqlExpressionMetric:
         assert result.semantics is not None
         assert "GDP per capita" in result.semantics.data_story
         assert "None" not in result.semantics.data_story
+
+
+@pytest.mark.asyncio
+async def test_generate_saved_chart_retains_id_after_response_size_failure() -> None:
+    """The create command succeeds even when the returned form data is oversized."""
+    config = TableChartConfig(
+        columns=[ColumnRef(name="region")],
+        column_config={"x" * 4097: {}},
+    )
+    result, _chart, create_command = await _generate_saved_chart(
+        refetch=Mock(side_effect=SQLAlchemyError("connection invalidated")),
+        config=config,
+    )
+    create_command.assert_called_once()
+    create_command.return_value.run.assert_called_once()
+    assert result.success is True
+    assert result.chart is not None
+    assert result.chart.id == 42
+    assert result.form_data == {}
+    assert result.warnings

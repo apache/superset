@@ -30,6 +30,7 @@ from jinja2.sandbox import SandboxedEnvironment
 from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql
 from sqlalchemy.dialects.postgresql import dialect
+from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.connectors.sqla.models import (
@@ -780,6 +781,36 @@ def test_user_macros_without_user_info(mocker: MockerFixture):
     assert cache.current_user_email() is None
     assert cache.current_user_roles() is None
     assert cache.current_user_rls_rules() is None
+
+
+def test_current_user_roles_rolls_back_only_on_db_error(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``get_user_roles()`` lazy-loads from ``db.session``, so a DB error caught
+    here leaves it in "pending rollback" state. This runs during SQL templating,
+    upstream of the engine build that would otherwise inherit the failed
+    transaction, so roll it back.
+
+    A non-DB failure touches no session and must not roll anything back, or it
+    would discard pending work unrelated to templating.
+    """
+    session = mocker.patch("superset.jinja_context.db").session
+
+    mocker.patch(
+        "superset.jinja_context.security_manager.get_user_roles",
+        side_effect=SQLAlchemyError("connection lost"),
+    )
+    assert ExtraCache(table=mocker.MagicMock()).current_user_roles() is None
+    session.rollback.assert_called_once()
+
+    session.reset_mock()
+    mocker.patch(
+        "superset.jinja_context.security_manager.get_user_roles",
+        side_effect=TypeError("not a DB problem"),
+    )
+    assert ExtraCache(table=mocker.MagicMock()).current_user_roles() is None
+    session.rollback.assert_not_called()
 
 
 def test_current_username_email_escaped(mocker: MockerFixture) -> None:

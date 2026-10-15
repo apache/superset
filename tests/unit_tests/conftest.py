@@ -27,6 +27,7 @@ import pytest
 from _pytest.fixtures import SubRequest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
@@ -39,11 +40,36 @@ from superset.initialization import SupersetAppInitializer
 
 
 @pytest.fixture
-def get_session(mocker: MockerFixture) -> Callable[[], Session]:
+def semantic_layers_enabled(app_context: None) -> Iterator[None]:
+    """Enable semantic behavior explicitly and restore the host hook after each test."""
+    previous: Callable[[str, bool], bool] | None = (
+        feature_flag_manager._is_feature_enabled_func
+    )
+
+    def resolve(name: str, default: bool) -> bool:
+        """Override only the semantic flag and preserve other host decisions."""
+        if name == "SEMANTIC_LAYERS":
+            return True
+        return previous(name, default) if previous else default
+
+    with patch.object(feature_flag_manager, "_is_feature_enabled_func", resolve):
+        yield
+
+
+@pytest.fixture
+def session_engine() -> Engine:
+    """
+    The engine behind ``session``; a module may override it for one test file.
+    """
+    return create_engine("sqlite://")
+
+
+@pytest.fixture
+def get_session(mocker: MockerFixture, session_engine: Engine) -> Callable[[], Session]:
     """
     Create an in-memory SQLite db.session.to test models.
     """
-    engine = create_engine("sqlite://")
+    engine = session_engine
 
     def get_session():
         Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806

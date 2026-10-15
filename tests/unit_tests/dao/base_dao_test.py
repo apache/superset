@@ -19,7 +19,7 @@
 Unit tests for BaseDAO functionality using mocks and no database operations.
 """
 
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 from sqlalchemy import Boolean, Column, Integer, String
@@ -333,6 +333,33 @@ def test_find_by_id_or_uuid_statement_error_still_returns_none():
         )
 
         assert TestDAO.find_by_id_or_uuid("not-a-uuid") is None
+
+
+def test_find_by_id_or_uuid_non_decimal_digit_treated_as_uuid():
+    """A string like "²" (superscript 2) is Unicode "digit" but not
+    "decimal": str.isdigit() is True for it, yet int() rejects it. Must be
+    routed to the uuid branch instead of crashing on int(model_id_or_uuid)."""
+
+    with (
+        patch("superset.daos.base.db") as mock_db,
+        patch("superset.daos.base.getattr") as mock_getattr,
+    ):
+        mock_session = Mock()
+        mock_db.session = mock_session
+        id_column, uuid_column = MagicMock(), MagicMock()
+        id_filter, uuid_filter = Mock(name="id_filter"), Mock(name="uuid_filter")
+        id_column.__eq__.return_value = id_filter
+        uuid_column.__eq__.return_value = uuid_filter
+        mock_getattr.side_effect = [id_column, uuid_column]
+
+        mock_query = Mock()
+        mock_session.query.return_value = mock_query
+        mock_query.filter.return_value = mock_query
+        mock_query.one_or_none.return_value = None
+
+        TestDAO.find_by_id_or_uuid("²")
+
+        mock_query.filter.assert_called_once_with(uuid_filter)
 
 
 def test_find_by_column_operational_error_propagates():
