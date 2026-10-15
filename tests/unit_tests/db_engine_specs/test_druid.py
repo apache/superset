@@ -432,6 +432,27 @@ def test_parameters_schema_reloads_emitted_parameters() -> None:
     assert loaded["encryption"] is True
 
 
+@pytest.mark.parametrize(
+    "uri",
+    [
+        "druid://user:pwd@localhost/druid/v2/sql/",
+        "druid+https://user:pwd@localhost/druid/v2/sql/",
+    ],
+)
+def test_get_parameters_from_uri_defaults_missing_port(uri: str) -> None:
+    """
+    A saved URI without a port falls back to the broker port (8082), so the
+    form's required ``port`` field still loads instead of rejecting ``None``.
+    """
+    from superset.db_engine_specs.druid import DruidEngineSpec
+
+    parameters: Any = DruidEngineSpec.get_parameters_from_uri(uri)
+    assert parameters["port"] == 8082
+
+    loaded: dict[str, Any] = DruidEngineSpec.parameters_schema.load(parameters)
+    assert loaded["port"] == 8082
+
+
 def test_default_driver_matches_pydruid_dialects() -> None:
     """
     ``/available`` only returns form parameters when the spec's default driver is

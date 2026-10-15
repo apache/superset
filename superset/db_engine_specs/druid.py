@@ -49,6 +49,10 @@ logger = logging.getLogger()
 
 _DRUID_FLOAT_SPECIAL = frozenset({"NaN", "Infinity", "-Infinity"})
 
+# Druid broker port, used when a saved URI omits the port so the form's
+# required port field still loads.
+_DRUID_DEFAULT_BROKER_PORT = 8082
+
 
 class DruidParametersSchema(Schema):
     """
@@ -255,7 +259,7 @@ class DruidEngineSpec(BasicParametersMixin, BaseEngineSpec):
             username=url.username,
             password=url.password,
             host=url.host,
-            port=url.port,
+            port=_DRUID_DEFAULT_BROKER_PORT if url.port is None else url.port,
             database=url.database or cls.sqlalchemy_uri_database,
             query=dict(url.query),
             encryption=(url.drivername or "").endswith("https"),
