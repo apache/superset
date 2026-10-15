@@ -414,6 +414,7 @@ export const renderDatasetList = (
   user: UserState,
   props: Partial<DatasetListPropsOverrides> = {},
   storeState: Partial<StoreState> = {},
+  initialEntries?: string[],
 ) => {
   const defaultStoreState = createDefaultStoreState(user);
   const storeStateWithUser = {
@@ -426,7 +427,7 @@ export const renderDatasetList = (
 
   return render(
     <Provider store={store}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={initialEntries}>
         <QueryParamProvider adapter={ReactRouter5Adapter}>
           <DatasetList user={user} {...props} />
         </QueryParamProvider>

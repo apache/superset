@@ -750,3 +750,40 @@ test('sorting reaches the combined datasource API when semantic layers are on', 
     window.featureFlags = {} as never;
   }
 });
+
+test('a saved Source = Semantic layer is not sent to the dataset API when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser, {}, {}, [
+    "/?filters=(source_type:(label:'Semantic layer',value:semantic_layer))",
+  ]);
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+  // /api/v1/dataset/ rejects source_type, so a leftover value would leave the
+  // list in an error state with no Source control to clear it.
+  expect(filters.map(filter => filter.col)).not.toContain('source_type');
+  expect(listRequestUrls(/source_type/)).toHaveLength(0);
+});
+
+test('a saved semantic-layer connection is dropped when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser, {}, {}, [
+    "/?filters=(database:(label:'Warehouse layer',value:'sl:layer-uuid-1'))",
+  ]);
+
+  await waitFor(() => {
+    const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+    expect(filters.map(filter => filter.col)).not.toContain(
+      'semantic_layer_uuid',
+    );
+  });
+  // The stale connection is cleared from the filter state too, so it neither
+  // lingers in the filter bar nor is re-sent by the next refetch.
+  await waitFor(() => {
+    const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+    expect(filters.map(filter => filter.col)).not.toContain('database');
+  });
+  expect(listRequestUrls(/semantic_layer_uuid/)).toHaveLength(0);
+});
