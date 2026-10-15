@@ -51,6 +51,7 @@ export default class EchartsSankeyChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./Sankey'),
       metadata: new ChartMetadata({
+        supportsArrowFormat: true,
         credits: ['https://echarts.apache.org'],
         category: t('Flow'),
         description: t(

@@ -26,6 +26,7 @@ import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Distribution'),
   credits: ['http://kmandov.github.io/d3-horizon-chart/'],
   description: t(

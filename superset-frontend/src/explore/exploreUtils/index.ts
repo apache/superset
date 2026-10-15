@@ -287,6 +287,23 @@ export const getQuerySettings = (
   return [vizMetadata?.parseMethod ?? 'json-bigint'];
 };
 
+/**
+ * Whether this chart type opted into the Apache Arrow wire format for its
+ * live /api/v1/chart/data requests (ChartMetadata.supportsArrowFormat). This
+ * is the entire compatibility mechanism: a viz plugin that never sets the
+ * flag always gets back `false` here, so it keeps requesting (and parsing)
+ * JSON exactly as before — this function, and everything gated on it, is a
+ * complete no-op for third-party/custom plugins.
+ */
+export const supportsArrowResultFormat = (
+  formData: Partial<QueryFormData>,
+): boolean => {
+  const vizMetadata = formData.viz_type
+    ? getChartMetadataRegistry().get(formData.viz_type)
+    : undefined;
+  return Boolean(vizMetadata?.supportsArrowFormat);
+};
+
 export const buildV1ChartDataPayload = async ({
   formData,
   force,

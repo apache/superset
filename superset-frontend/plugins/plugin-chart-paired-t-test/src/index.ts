@@ -26,6 +26,7 @@ import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Correlation'),
   description: t(
     'Table that visualizes paired t-tests, which are used to understand statistical differences between groups.',

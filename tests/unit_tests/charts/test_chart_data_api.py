@@ -1058,6 +1058,48 @@ def test_send_chart_response_does_not_project_timing_for_csv(
     assert "timing" not in query_payload
 
 
+def test_send_chart_response_arrow_returns_single_query_bytes() -> None:
+    """Mirrors the datasource query endpoint's Arrow branch
+    (DatasourceRestApi._run): a single-query Arrow result is returned as the
+    raw Arrow IPC bytes with the Arrow stream mimetype, not wrapped in JSON.
+    """
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.ARROW
+
+    arrow_bytes = b"\x00\x01\x02arrow-ipc-payload"
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": arrow_bytes}],
+    }
+
+    api = ChartDataRestApi()
+    response = api._send_chart_response(result)
+
+    assert response.status_code == 200
+    assert response.mimetype == "application/vnd.apache.arrow.stream"
+    assert response.get_data() == arrow_bytes
+
+
+def test_send_chart_response_arrow_rejects_multiple_queries() -> None:
+    """Arrow IPC bytes describe a single table; a multi-query chart has no
+    well-defined single-stream representation, so it's a 400 rather than
+    silently returning only the first query's bytes."""
+    query_context = MagicMock()
+    query_context.result_type = ChartDataResultType.FULL
+    query_context.result_format = ChartDataResultFormat.ARROW
+
+    result = {
+        "query_context": query_context,
+        "queries": [{"data": b"query-1"}, {"data": b"query-2"}],
+    }
+
+    api = ChartDataRestApi()
+    response = api._send_chart_response(result)
+
+    assert response.status_code == 400
+
+
 def _extract_filename(form_value: str) -> str | None:
     """Run _extract_export_params_from_request with a form filename value."""
     app = Flask(__name__)

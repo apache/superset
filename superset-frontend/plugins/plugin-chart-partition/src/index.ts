@@ -26,6 +26,7 @@ import exampleDark from './images/example-dark.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Part of a Whole'),
   description: t('Compare the same summarized metric across multiple groups.'),
   exampleGallery: [{ url: example, urlDark: exampleDark }],

@@ -31,6 +31,7 @@ import example2Dark from '../images/Word_Cloud_2-dark.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Ranking'),
   credits: ['https://github.com/jasondavies/d3-cloud'],
   description: t(

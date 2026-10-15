@@ -197,6 +197,7 @@ export class EchartsChartPlugin<
       ...restProps,
       metadata: new ChartMetadata({
         parseMethod: 'json',
+        supportsArrowFormat: true,
         ...metadata,
       }),
     });

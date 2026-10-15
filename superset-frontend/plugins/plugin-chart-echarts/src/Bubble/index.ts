@@ -39,6 +39,7 @@ export default class EchartsBubbleChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsBubble'),
       metadata: new ChartMetadata({
+        supportsArrowFormat: true,
         category: t('Correlation'),
         credits: ['https://echarts.apache.org'],
         description: t(

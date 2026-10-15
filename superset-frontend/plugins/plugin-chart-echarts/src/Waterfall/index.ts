@@ -53,6 +53,7 @@ export default class EchartsWaterfallChartPlugin extends ChartPlugin<
       controlPanel,
       loadChart: () => import('./EchartsWaterfall'),
       metadata: new ChartMetadata({
+        supportsArrowFormat: true,
         credits: ['https://echarts.apache.org'],
         category: t('Evolution'),
         description: t(

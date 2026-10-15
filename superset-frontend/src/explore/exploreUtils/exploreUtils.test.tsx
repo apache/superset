@@ -24,6 +24,7 @@ import {
   getSimpleSQLExpression,
   getQuerySettings,
   mountExploreUrl,
+  supportsArrowResultFormat,
 } from 'src/explore/exploreUtils';
 import { DashboardStandaloneMode } from 'src/dashboard/util/constants';
 import * as hostNamesConfig from 'src/utils/hostNamesConfig';
@@ -254,6 +255,51 @@ describe('exploreUtils', () => {
     test('defaults the parse method without a viz_type', () => {
       const [parseMethod] = getQuerySettings(formData);
       expect(parseMethod).toBe('json-bigint');
+    });
+  });
+
+  // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+  describe('supportsArrowResultFormat', () => {
+    beforeAll(() => {
+      getChartMetadataRegistry().registerValue('my_custom_arrow_viz', {
+        supportsArrowFormat: true,
+      } as unknown as ChartMetadata);
+      getChartMetadataRegistry().registerValue('my_custom_non_arrow_viz', {
+        supportsArrowFormat: false,
+      } as unknown as ChartMetadata);
+    });
+
+    afterAll(() => {
+      getChartMetadataRegistry().remove('my_custom_arrow_viz');
+      getChartMetadataRegistry().remove('my_custom_non_arrow_viz');
+    });
+
+    test('is true only for a viz type that opted in', () => {
+      expect(
+        supportsArrowResultFormat({
+          ...formData,
+          viz_type: 'my_custom_arrow_viz',
+        }),
+      ).toBe(true);
+    });
+
+    test('is false for a viz type that explicitly left it unset/false', () => {
+      expect(
+        supportsArrowResultFormat({
+          ...formData,
+          viz_type: 'my_custom_non_arrow_viz',
+        }),
+      ).toBe(false);
+    });
+
+    test('defaults to false for an unregistered viz type', () => {
+      expect(
+        supportsArrowResultFormat({ ...formData, viz_type: 'undefined_viz' }),
+      ).toBe(false);
+    });
+
+    test('defaults to false without a viz_type', () => {
+      expect(supportsArrowResultFormat(formData)).toBe(false);
     });
   });
 
