@@ -163,6 +163,10 @@ export default styled.div`
       padding: ${theme.paddingXXS}px 0px;
     }
 
+    .dt-pagination .pagination {
+      margin: 0;
+    }
+
     .dt-pagination .pagination > li {
       display: inline;
       margin: 0 ${theme.marginXXS}px;
