@@ -65,7 +65,7 @@ from superset.semantic_layers.exceptions import (
 )
 from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
-from superset.utils import csv, excel, json
+from superset.utils import csv, excel, json, univer_excel
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
     ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
@@ -651,10 +651,21 @@ class QueryContextProcessor:
                     current_app.config["CSV_EXPORT"].get("encoding", "utf-8")
                 )
             elif self._query_context.result_format == ChartDataResultFormat.XLSX:
-                excel.apply_column_types(df, coltypes)
-                result = excel.df_to_excel(
-                    df, index=include_index, **current_app.config["EXCEL_EXPORT"]
-                )
+                form_data = self._query_context.form_data
+                if univer_excel.is_univer_chart(form_data):
+                    # the spreadsheet chart exports the sheet with the user's
+                    # edits, it labels the columns itself
+                    result = univer_excel.df_to_univer_excel(
+                        df.set_axis(columns, axis=1),
+                        coltypes,
+                        form_data or {},
+                        verbose_map,
+                    )
+                else:
+                    excel.apply_column_types(df, coltypes)
+                    result = excel.df_to_excel(
+                        df, index=include_index, **current_app.config["EXCEL_EXPORT"]
+                    )
             return result or ""
 
         # QueryObject post-processing has completed before this materialization

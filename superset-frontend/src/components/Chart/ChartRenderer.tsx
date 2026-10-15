@@ -28,6 +28,7 @@ import {
   memo,
 } from 'react';
 import {
+  AppSection,
   SuperChart,
   Behavior,
   getChartMetadataRegistry,
@@ -52,6 +53,8 @@ import { useTheme } from '@apache-superset/core/theme';
 import { Logger, LOG_ACTIONS_RENDER_CHART } from 'src/logger/LogUtils';
 import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
+import { URL_PARAMS } from 'src/constants';
+import { getUrlParam } from 'src/utils/urlUtils';
 import type { Datasource, ChartStatus } from 'src/explore/types';
 import type { Dispatch } from 'redux';
 import ChartContextMenu, {
@@ -238,6 +241,17 @@ function ChartRendererComponent({
       isFeatureEnabled(FeatureFlag.DrillToDetail),
     [source, suppressContextMenu],
   );
+
+  // Tells plugins where they render, e.g. to allow editing only in Explore.
+  // Standalone Explore serves embedded charts and report screenshots.
+  const appSection = useMemo(() => {
+    if (source === ChartSource.Dashboard) {
+      return AppSection.Dashboard;
+    }
+    return getUrlParam(URL_PARAMS.standalone)
+      ? AppSection.Embedded
+      : AppSection.Explore;
+  }, [source]);
 
   const [state, setState] = useState<ChartRendererState>({
     inContextMenu: false,
@@ -581,6 +595,7 @@ function ChartRendererComponent({
           noResults={noResultsComponent}
           postTransformProps={postTransformProps}
           emitCrossFilters={emitCrossFilters}
+          appSection={appSection}
           legendState={state.legendState}
           enableNoResults={bypassNoResult}
           legendIndex={state.legendIndex}

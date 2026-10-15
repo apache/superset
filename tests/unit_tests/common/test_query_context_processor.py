@@ -191,6 +191,31 @@ def test_get_data_xlsx(
     mock_df_to_excel.assert_called_once_with(df, index=False)
 
 
+@patch("superset.common.query_context_processor.excel.df_to_excel")
+@patch("superset.common.query_context_processor.univer_excel.df_to_univer_excel")
+def test_get_data_xlsx_univer_sheet(
+    mock_df_to_univer_excel, mock_df_to_excel, processor, mock_query_context
+):
+    """The spreadsheet chart exports its sheet, with the original column names."""
+    df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
+    coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
+    form_data = {"viz_type": "univer_sheet", "univer_workbook": None}
+    mock_query_context.result_format = ChartDataResultFormat.XLSX
+    mock_query_context.form_data = form_data
+
+    mock_df_to_univer_excel.return_value = b"sheet"
+    result = processor.get_data(df, coltypes)
+    assert result == b"sheet"
+    mock_df_to_excel.assert_not_called()
+    exported_df, exported_coltypes, exported_form_data, labels = (
+        mock_df_to_univer_excel.call_args.args
+    )
+    assert list(exported_df.columns) == ["col1", "col2"]
+    assert exported_coltypes == coltypes
+    assert exported_form_data == form_data
+    assert labels == {"col1": "Column 1", "col2": "Column 2"}
+
+
 def test_get_data_json(processor, mock_query_context):
     df = pd.DataFrame({"col1": [1, 2, 3], "col2": ["a", "b", "c"]})
     coltypes = [GenericDataType.NUMERIC, GenericDataType.STRING]
