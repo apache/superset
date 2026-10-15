@@ -28,6 +28,7 @@ import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Map'),
   credits: ['https://bl.ocks.org/john-guerra'],
   description: t(

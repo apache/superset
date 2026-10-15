@@ -39,6 +39,7 @@ export {
 } from './stateConversion';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   behaviors: [
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,

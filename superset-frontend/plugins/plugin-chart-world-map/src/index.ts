@@ -28,6 +28,7 @@ import example2Dark from './images/WorldMap2-dark.jpg';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Map'),
   credits: ['http://datamaps.github.io/'],
   description: t(
