@@ -18150,3 +18150,6 @@ msgid ""
 "This semantic provider does not support this query. Remove unsupported "
 "filters or grouping and try again."
 msgstr ""
+
+msgid "Only the first %s values are listed. Enter a value manually if it is not listed."
+msgstr ""
