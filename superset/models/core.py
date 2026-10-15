@@ -801,6 +801,25 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
             # Hooks must receive the selected connection identity, not the
             # username claim supplied by the guest token.
             effective_username = sqlalchemy_url.username
+        elif self.embedded_guest_missing_oauth2_client():
+            # Impersonating a guest here would run on whatever identity the engine
+            # derives from the URL -- for Snowflake, the base account, with no error
+            # or warning.
+            raise SupersetErrorException(
+                SupersetError(
+                    message=__(
+                        "This dashboard's database connection impersonates its "
+                        "users but has no OAuth2 client information, so embedded "
+                        "viewers cannot be served. Its OAuth2 and embedded viewer "
+                        "settings may have been lost, for example when the "
+                        "dashboard was imported from another environment. An "
+                        "administrator needs to re-enter them on the database "
+                        "connection."
+                    ),
+                    error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+                    level=ErrorLevel.ERROR,
+                )
+            )
         elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(
                 self,
@@ -1680,6 +1699,28 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         here, carry on" apart from "a guest this connection has no credential for",
         which it refuses rather than serving on the base credential.
         """
+        return self._is_embedded_guest_on_impersonating_connection() and (
+            self._has_embedded_oauth2_client()
+        )
+
+    def embedded_guest_missing_oauth2_client(self) -> bool:
+        """
+        Is this an embedded guest on a connection that has lost its OAuth2 client?
+
+        Conditions 1-3 of :meth:`embedded_fallback_applies` hold and impersonation is
+        on, but no usable OAuth2 client is configured. That is the shape a connection
+        takes when its dashboard or chart is promoted by export and import: bundles
+        do not carry ``encrypted_extra``, so the copy keeps "Impersonate logged in
+        user" but loses both its OAuth2 client and its embedded viewer credential.
+        Serving the guest through impersonation would then run on whatever identity
+        the engine derives from the URL, so ``_get_sqla_engine`` refuses instead.
+        """
+        return self._is_embedded_guest_on_impersonating_connection() and not (
+            self._has_embedded_oauth2_client()
+        )
+
+    def _is_embedded_guest_on_impersonating_connection(self) -> bool:
+        """Conditions 1-3 of :meth:`embedded_fallback_applies`, plus impersonation."""
         if not is_feature_enabled("EMBEDDED_CREDENTIAL_FALLBACK"):
             return False
 
@@ -1696,9 +1737,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         if not is_feature_enabled("EMBEDDED_SUPERSET"):
             return False
 
-        if security_manager.get_current_guest_user_if_guest() is None:
-            return False
+        return security_manager.get_current_guest_user_if_guest() is not None
 
+    def _has_embedded_oauth2_client(self) -> bool:
+        """Does the connection have a usable OAuth2 client, global or stored?"""
         # Snowflake disables its OAuth2 flow outside requests for alerts and reports.
         # A restored guest in an async worker still needs the embedded credential,
         # so check deployment-wide client configuration independently of that flow.

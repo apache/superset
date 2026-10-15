@@ -2317,3 +2317,26 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+def test_update_params_from_encrypted_extra_drops_the_embedded_credential(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The fallback credential never becomes an engine kwarg.
+
+    It is read by `Database._get_sqla_engine`, not by any driver; splatting it into
+    `create_engine` kwargs would raise on every engine and leak it to the driver.
+    """
+    database = mocker.MagicMock()
+    database.encrypted_extra = json.dumps(
+        {
+            "embedded_credentials": {"username": "svc", "password": "pw"},
+            "connect_args": {"sslmode": "require"},
+        }
+    )
+    params: dict[str, Any] = {}
+
+    BaseEngineSpec.update_params_from_encrypted_extra(database, params)
+
+    assert params == {"connect_args": {"sslmode": "require"}}

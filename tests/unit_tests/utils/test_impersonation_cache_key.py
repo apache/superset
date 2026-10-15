@@ -267,3 +267,24 @@ def test_unconfigured_embedded_guest_cannot_read_a_warm_logged_in_cache(
         ):
             configured_key = query_object.cache_key()
     assert len({guest_key, logged_in_key, configured_key}) == 3
+
+
+@patch("superset.utils.cache_keys.feature_flag_manager")
+def test_a_guest_refused_for_a_missing_oauth2_client_gets_a_separate_cache_key(
+    feature_flag_mock: Mock,
+) -> None:
+    """
+    A guest refused on a promoted connection cannot read a warm logged-in entry.
+
+    The refusal happens at engine creation, which a cache hit never reaches.
+    """
+    feature_flag_mock.is_feature_enabled.return_value = False
+    database = Database(database_name="d", sqlalchemy_uri="sqlite://")
+    with (
+        patch.object(Database, "get_embedded_fallback_credentials", return_value=None),
+        patch.object(Database, "embedded_fallback_applies", return_value=False),
+        patch.object(
+            Database, "embedded_guest_missing_oauth2_client", return_value=True
+        ),
+    ):
+        assert _run(database) == {"embedded_credentials_missing": True}

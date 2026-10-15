@@ -59,10 +59,14 @@ def add_impersonation_cache_key_if_needed(
         )
         return
 
-    if database.embedded_fallback_applies():
-        # Missing credentials must not allow a warm logged-in cache entry to bypass
-        # the refusal at engine creation. Use a separate marker so it cannot collide
-        # with an engine's configured credential identity or a user's username.
+    if (
+        database.embedded_fallback_applies()
+        or database.embedded_guest_missing_oauth2_client()
+    ):
+        # Missing credentials -- or a missing OAuth2 client, as after an import --
+        # must not allow a warm logged-in cache entry to bypass the refusal at engine
+        # creation. Use a separate marker so it cannot collide with an engine's
+        # configured credential identity or a user's username.
         cache_dict["embedded_credentials_missing"] = True
         return
 

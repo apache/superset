@@ -3753,3 +3753,105 @@ def test_async_embedded_guest_without_credentials_is_refused(
         == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
     )
     create_engine_mock.assert_not_called()
+
+
+def _promoted_snowflake_database(credential_survived: bool) -> "Database":
+    """
+    A connection as dashboard/chart import leaves it.
+
+    Bundles do not carry ``encrypted_extra``, so the copy keeps "Impersonate logged
+    in user" but loses its OAuth2 client and, usually, the embedded credential.
+    """
+    database = _embedded_snowflake_database()
+    extra = database.get_encrypted_extra()
+    extra.pop("oauth2_client_info")
+    if not credential_survived:
+        extra.pop("embedded_credentials")
+    database.encrypted_extra = json.dumps(extra)
+    return database
+
+
+@pytest.mark.parametrize("credential_survived", [False, True])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_guest_on_a_promoted_connection_is_refused_with_an_actionable_message(
+    mocker: MockerFixture, credential_survived: bool
+) -> None:
+    """
+    A guest on an impersonating connection with no OAuth2 client is refused.
+
+    Serving them through impersonation would run on whatever identity the engine
+    derives from the URL -- for Snowflake, the base account -- with no error or
+    warning.
+    """
+    from superset.exceptions import SupersetErrorException
+
+    create_engine_mock = mocker.patch("superset.models.core.create_engine")
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    database = _promoted_snowflake_database(credential_survived)
+
+    assert database.embedded_guest_missing_oauth2_client()
+    assert not database.embedded_fallback_applies()
+    with pytest.raises(SupersetErrorException) as excinfo:
+        database._get_sqla_engine(nullpool=False)
+
+    error = excinfo.value.error
+    assert error.error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
+    assert "OAuth2 client information" in error.message
+    assert "imported from another environment" in error.message
+    create_engine_mock.assert_not_called()
+
+
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_logged_in_user_on_a_promoted_connection_is_not_refused(
+    mocker: MockerFixture,
+) -> None:
+    """The refusal is for embedded guests; logged-in users keep impersonation."""
+    create_engine_mock = mocker.patch(
+        "superset.models.core.create_engine", return_value=create_engine("sqlite://")
+    )
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    mocker.patch(
+        "superset.models.core.security_manager.get_current_guest_user_if_guest",
+        return_value=None,
+    )
+    _stub_driver_dependent_uri_validation(mocker)
+    database = _promoted_snowflake_database(credential_survived=False)
+
+    assert not database.embedded_guest_missing_oauth2_client()
+    database._get_sqla_engine(nullpool=False)
+
+    create_engine_mock.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "condition", ["impersonation_off", "flag_off", "engine_not_opted_in"]
+)
+def test_the_promoted_connection_refusal_needs_every_condition(
+    mocker: MockerFixture, condition: str
+) -> None:
+    """
+    Without any one condition the guest is not refused on this ground.
+
+    Impersonation off is an ordinary service-account connection; with the flag or
+    the engine opt-in off, the deployment never asked for this behaviour.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    flags = {"EMBEDDED_CREDENTIAL_FALLBACK": condition != "flag_off"}
+    mocker.patch(
+        "superset.models.core.is_feature_enabled",
+        side_effect=lambda name: flags.get(name, True),
+    )
+    mocker.patch.object(
+        SnowflakeEngineSpec,
+        "supports_embedded_credential_fallback",
+        condition != "engine_not_opted_in",
+    )
+    mocker.patch.dict(current_app.config, {"DATABASE_OAUTH2_CLIENTS": {}})
+    _become_guest(mocker)
+    database = _promoted_snowflake_database(credential_survived=False)
+    database.impersonate_user = condition != "impersonation_off"
+
+    assert not database.embedded_guest_missing_oauth2_client()
