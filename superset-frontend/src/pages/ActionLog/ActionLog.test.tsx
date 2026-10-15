@@ -88,3 +88,35 @@ test('sorting by Action sends order_column=action as a positive control', async 
     ).toBe(true),
   );
 });
+
+test('JSON column opens a tree modal for object payloads', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });
+  fetchMock.get(logEndpoint, {
+    result: [{ ...mockLogs[0], json: '{"path":"/superset/welcome/","n":1}' }],
+    count: 1,
+  });
+  renderActionLog();
+
+  await userEvent.click(
+    await screen.findByText('{"path":"/superset/welcome/","n":1}'),
+  );
+
+  const dialog = await screen.findByRole('dialog');
+  expect(dialog).toHaveTextContent('path');
+  expect(dialog).toHaveTextContent('/superset/welcome/');
+});
+
+test('JSON column keeps plain text for non-JSON payloads', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });
+  fetchMock.get(logEndpoint, {
+    result: [{ ...mockLogs[0], json: 'not json' }],
+    count: 1,
+  });
+  renderActionLog();
+
+  await userEvent.click(await screen.findByText('not json'));
+
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
