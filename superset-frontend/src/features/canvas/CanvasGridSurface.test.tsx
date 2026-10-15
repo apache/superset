@@ -44,6 +44,7 @@ const surface = (
   renderNode: (nodeId: string) => ReactNode = nodeId => (
     <div>{`widget ${nodeId}`}</div>
   ),
+  depth = 0,
 ) => (
   <CanvasGridSurface
     childIds={childIds}
@@ -53,6 +54,7 @@ const surface = (
     placements={live}
     constraints={constraints}
     editable={editable}
+    depth={depth}
     onPlace={onPlace}
     renderNode={renderNode}
   />
@@ -65,6 +67,7 @@ const renderSurface = ({
   live = placements,
   childIds = Object.keys(placements),
   renderNode,
+  depth = 0,
 }: {
   editable?: boolean;
   onPlace?: jest.Mock;
@@ -72,11 +75,17 @@ const renderSurface = ({
   live?: Record<string, GridPlacement>;
   childIds?: string[];
   renderNode?: (nodeId: string) => ReactNode;
+  depth?: number;
 } = {}) => {
   const { rerender } = render(
-    surface(live, editable, onPlace, constraints, childIds, renderNode),
+    surface(live, editable, onPlace, constraints, childIds, renderNode, depth),
   );
   return Object.assign(onPlace, {
+    /** Simulate this grid's membership changing, e.g. a node reparented. */
+    replaceChildren: (next: string[]) =>
+      rerender(
+        surface(live, editable, onPlace, constraints, next, renderNode, depth),
+      ),
     /** Simulate a write landing while a gesture is still live. */
     replace: (next: Record<string, GridPlacement>) =>
       rerender(
@@ -84,7 +93,9 @@ const renderSurface = ({
       ),
     /** Simulate editing being switched off, e.g. a publish starting. */
     setEditable: (next: boolean) =>
-      rerender(surface(live, next, onPlace, constraints, childIds, renderNode)),
+      rerender(
+        surface(live, next, onPlace, constraints, childIds, renderNode, depth),
+      ),
   });
 };
 
@@ -532,4 +543,53 @@ test('a gesture is released when its node stops being placeable', () => {
     colSpan: 24,
     rowSpan: 8,
   });
+});
+
+test('a gesture is released when its node moves to another grid', () => {
+  // The node is still placed somewhere on the canvas, so a placements-only
+  // check misses it -- but its handle has unmounted from this grid, so no
+  // up, cancel or lost-capture event can ever reach it. Left live, the
+  // one-gesture guard would block every later drag on this grid.
+  const onPlace = renderSurface();
+  pointer(handles('Move widget')[0], 'pointerdown', {
+    button: 0,
+    clientX: 0,
+    clientY: 0,
+  });
+  pointer(handles('Move widget')[0], 'pointermove', {
+    clientX: COL_PITCH * 4,
+    clientY: 0,
+  });
+  expect(screen.getByTestId('canvas-drop-preview')).toBeInTheDocument();
+
+  // A draft poll moves 'kpi' into another container: still placed, no longer
+  // a child of this grid.
+  onPlace.replaceChildren(['trend']);
+
+  expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
+  // And this grid still works.
+  drag(handles('Move widget')[0], 0, ROW_PITCH);
+  expect(onPlace).toHaveBeenCalledWith('trend', {
+    col: 1,
+    row: 6,
+    colSpan: 24,
+    rowSpan: 8,
+  });
+});
+
+const gripTop = () => getComputedStyle(handles('Move widget')[0]).top;
+
+test('a root grid puts its handles at the top of each widget', () => {
+  renderSurface();
+
+  expect(gripTop()).toBe('4px');
+});
+
+test('a nested grid offsets its handles clear of its container', () => {
+  // A container's box begins where its first child's does and its handles
+  // paint last, so sharing a position would let the container's grip swallow
+  // clicks meant for the child's.
+  renderSurface({ depth: 1 });
+
+  expect(gripTop()).toBe('36px');
 });

@@ -149,10 +149,14 @@ export default function CanvasGrid({
     [customizationScopes, values.customization],
   );
 
+  // How deeply a grid is nested, so its handles can sit clear of the handles
+  // of the widgets inside it: a container's own box starts where its first
+  // child's does, and the container's handles are painted last.
   const renderGrid = (
     childIds: string[],
     gridColumnCount: number,
     render: (nodeId: string) => ReactNode,
+    depth: number,
   ) => (
     <CanvasGridSurface
       childIds={childIds}
@@ -164,10 +168,11 @@ export default function CanvasGrid({
       editable={editable}
       onPlace={place}
       renderNode={render}
+      depth={depth}
     />
   );
 
-  function renderNode(nodeId: string): ReactNode {
+  function renderNode(nodeId: string, depth = 0): ReactNode {
     const node = definition.nodes[nodeId];
     const childIds = node.children ?? [];
     const widgetType = widgetTypes[nodeId];
@@ -179,7 +184,7 @@ export default function CanvasGrid({
           {childIds.length > 0 && (
             <Stack>
               {childIds.map(childId => (
-                <div key={childId}>{renderNode(childId)}</div>
+                <div key={childId}>{renderNode(childId, depth + 1)}</div>
               ))}
             </Stack>
           )}
@@ -201,7 +206,7 @@ export default function CanvasGrid({
       widgetType: widgetTypes[childId],
       props: definition.nodes[childId].props,
       layout: definition.nodes[childId].layout,
-      element: renderNode(childId),
+      element: renderNode(childId, depth + 1),
     }));
     const childGridColumns = gridColumns[nodeId];
     return (
@@ -232,7 +237,12 @@ export default function CanvasGrid({
           childNodes={childNodes}
           renderGrid={() =>
             childGridColumns !== undefined ? (
-              renderGrid(childIds, childGridColumns, renderNode)
+              renderGrid(
+                childIds,
+                childGridColumns,
+                childId => renderNode(childId, depth + 1),
+                depth + 1,
+              )
             ) : (
               <Stack>
                 {childNodes.map(child => (
@@ -249,7 +259,7 @@ export default function CanvasGrid({
   return (
     <CanvasDraftContext.Provider value={draftToken}>
       <div data-test="canvas-grid">
-        {renderGrid(definition.root.children, columns, renderNode)}
+        {renderGrid(definition.root.children, columns, renderNode, 0)}
       </div>
     </CanvasDraftContext.Provider>
   );

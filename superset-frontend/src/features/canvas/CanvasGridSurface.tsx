@@ -152,10 +152,18 @@ const Interactive = styled.div`
   `}
 `;
 
-const Grip = styled.button`
-  ${({ theme }) => css`
+/** Vertical step between a container's handles and its children's. */
+const HANDLE_STEP = 8;
+/** Beyond this, nesting stops pushing handles further down the widget. */
+const MAX_HANDLE_STEPS = 3;
+
+const handleTop = (theme: { sizeUnit: number }, depth: number) =>
+  theme.sizeUnit * (1 + Math.min(depth, MAX_HANDLE_STEPS) * HANDLE_STEP);
+
+const Grip = styled.button<{ depth: number }>`
+  ${({ theme, depth }) => css`
     position: absolute;
-    top: ${theme.sizeUnit}px;
+    top: ${handleTop(theme, depth)}px;
     /*
      * Clear of a widget's own controls, which sit at the top right corner and
      * are 8 units wide (see WithQuery's .canvas-widget-controls): the grip is
@@ -236,6 +244,12 @@ export interface CanvasGridSurfaceProps {
   constraints: Record<string, SpanConstraints>;
   /** Whether the user may drag and resize these widgets. */
   editable: boolean;
+  /**
+   * How deeply this grid is nested. A container's box begins where its first
+   * child's does and its handles paint last, so without an offset per level a
+   * container's grip would sit over its child's and swallow the click.
+   */
+  depth: number;
   onPlace: (nodeId: string, placement: GridPlacement) => void;
   renderNode: (nodeId: string) => ReactNode;
 }
@@ -248,6 +262,7 @@ export default function CanvasGridSurface({
   placements,
   constraints,
   editable,
+  depth,
   onPlace,
   renderNode,
 }: CanvasGridSurfaceProps) {
@@ -383,10 +398,17 @@ export default function CanvasGridSurface({
   useEffect(() => {
     const { current } = live;
     if (!current) return;
-    if (!editable || !placements[current.nodeId]) {
+    // `childIds` as well as `placements`: placements are canvas-wide, so a
+    // node moved into another container is still placed, just not here -- and
+    // its handle has unmounted, so it can never release the gesture itself.
+    if (
+      !editable ||
+      !placements[current.nodeId] ||
+      !childIds.includes(current.nodeId)
+    ) {
       update(undefined);
     }
-  }, [editable, placements, update]);
+  }, [editable, placements, childIds, update]);
 
   /**
    * Arrow keys do what dragging that handle does, one cell at a time, so the
@@ -476,6 +498,7 @@ export default function CanvasGridSurface({
                 <>
                   <Grip
                     type="button"
+                    depth={depth}
                     className="canvas-handle"
                     aria-label={t('Move widget')}
                     data-test="canvas-drag-handle"

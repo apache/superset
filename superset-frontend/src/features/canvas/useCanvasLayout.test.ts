@@ -429,3 +429,41 @@ test('saving clears after a failed write, so publishing is not blocked forever',
   await waitFor(() => expect(result.current.saving).toBe(false));
   expect(result.current.error).toBeDefined();
 });
+
+test('a failed write keeps the layout the server already acknowledged', async () => {
+  // The regression this guards: falling back to the fetched definition, which
+  // is behind every acknowledged drag, so an earlier accepted move vanished
+  // from the screen until the next poll even though the server had it.
+  const pushed: GridPlacement = { col: 1, row: 9, colSpan: 24, rowSpan: 8 };
+  fetchMock
+    .patch(
+      endpoint,
+      {
+        result: {
+          revision: 4,
+          ops: [],
+          placements: { kpi: MOVED, trend: pushed },
+        },
+      },
+      { repeat: 1 },
+    )
+    .patch(endpoint, 422);
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  // First drag is accepted; the server also pushed the trend down.
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(result.current.revision).toBe(4));
+
+  // Second drag is rejected.
+  const again: GridPlacement = { col: 13, row: 1, colSpan: 6, rowSpan: 4 };
+  act(() => result.current.place('kpi', again));
+  await waitFor(() => expect(result.current.error).toBeDefined());
+
+  // The rejected drag is undone, but the accepted one survives -- both the
+  // widget that moved and the sibling the server pushed.
+  expect(result.current.placements.kpi).toEqual(MOVED);
+  expect(result.current.placements.trend).toEqual(pushed);
+  expect(result.current.revision).toBe(4);
+});

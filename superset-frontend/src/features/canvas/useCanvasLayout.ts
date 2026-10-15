@@ -99,6 +99,10 @@ export function useCanvasLayout(
   // The definition's placements, for an optimistic view that has no newer
   // local layout to build on.
   const fetchedPlacements = useRef(result.placements);
+  // The last layout the server acknowledged, without any optimistic overlay.
+  // A failed write falls back to this rather than to the fetched definition,
+  // which may be several acknowledged drags behind.
+  const acknowledged = useRef<AppliedLayout>();
 
   useEffect(() => {
     fetched.current = revision;
@@ -111,6 +115,7 @@ export function useCanvasLayout(
     // from zero, so a revision confirmed on one surface means nothing on the
     // other.
     confirmed.current = undefined;
+    acknowledged.current = undefined;
     writing.current = false;
     queued.current.clear();
     setApplied(undefined);
@@ -146,6 +151,10 @@ export function useCanvasLayout(
           const written = json?.result as ApplyOperationsResult | undefined;
           if (!written) return;
           confirmed.current = written.revision;
+          acknowledged.current = {
+            revision: written.revision,
+            placements: written.placements,
+          };
           // Gestures queued while this write was in flight are newer than the
           // placements it resolved, so they stay on top -- otherwise the
           // widget would snap back until the follow-up request returned. The
@@ -162,7 +171,11 @@ export function useCanvasLayout(
         })
         .catch(async response => {
           queued.current.clear();
-          setApplied(undefined);
+          // Back to the last layout the server acknowledged, not to the
+          // fetched definition: dropping to the latter would make an earlier
+          // acknowledged drag vanish from the screen until the next poll,
+          // even though the server has it.
+          setApplied(acknowledged.current);
           const { status } = response ?? {};
           if (status === 409) {
             setError(
