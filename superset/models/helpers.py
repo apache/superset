@@ -5364,6 +5364,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_engine_spec=db_engine_spec,
                     db_extra=self.db_extra,
                 )
+                if op in {
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                } and not isinstance(eq, (tuple, list)):
+                    # A missing or null value (``val`` absent or ``None``)
+                    # leaves ``eq`` as ``None``. Reject it before any branch
+                    # (advanced data types, array columns, plain IN) uses it,
+                    # rather than dropping the filter, which would widen the
+                    # results.
+                    raise QueryObjectValidationError(
+                        _(
+                            "Filter value is required for the IN / NOT IN "
+                            "operator on column %(column)s",
+                            column=get_column_name(flt_col),
+                        )
+                    )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5444,6 +5460,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
                     # are in ``is_list_target``), but are element-level array ops
                     # handled by their own branch below — not IN.
+                    # Non-list values were rejected right after
+                    # ``filter_values_handler`` above.
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(

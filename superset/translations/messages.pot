@@ -6824,6 +6824,10 @@ msgstr ""
 msgid "Filter value is required"
 msgstr ""
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr ""
 

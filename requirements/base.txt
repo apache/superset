@@ -427,7 +427,7 @@ tzlocal==5.4.4
     # via celery
 url-normalize==2.2.1
     # via requests-cache
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   -r requirements/base.in
     #   requests
@@ -441,7 +441,7 @@ watchdog==6.0.0
     # via apache-superset (pyproject.toml)
 wcwidth==0.2.13
     # via prompt-toolkit
-werkzeug==3.1.6
+werkzeug==3.1.9
     # via
     #   -r requirements/base.in
     #   flask
