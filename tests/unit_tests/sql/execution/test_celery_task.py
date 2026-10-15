@@ -1949,8 +1949,8 @@ def test_discard_stored_results_logs_undeleted_results(
         backend.delete.return_value = delete_result
     mocker.patch.object(celery_task, "results_backend", backend)
 
-    with caplog.at_level("WARNING", logger=celery_task.logger.name):
-        celery_task._discard_stored_results(123, "results-key")
+    with caplog.at_level("WARNING", logger="superset.sql.execution.utils"):
+        celery_task._discard_stored_results(123, "results-key", backend)
 
     backend.delete.assert_called_once_with("results-key")
     if message is None:
@@ -1977,7 +1977,7 @@ def test_discard_unreferenced_results_without_stored_results(
     mocker.patch.object(celery_task, "results_backend", backend)
     session = mocker.patch.object(celery_task.db, "session")
 
-    celery_task._discard_unreferenced_results(123, key)
+    celery_task._discard_unreferenced_results(123, key, backend)
 
     session.rollback.assert_not_called()
     session.query.assert_not_called()

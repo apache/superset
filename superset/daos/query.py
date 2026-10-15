@@ -26,6 +26,7 @@ from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery
 from superset.queries.filters import QueryFilter
 from superset.queries.saved_queries.filters import SavedQueryFilter
+from superset.sql.execution.utils import set_query_stopped
 from superset.utils.core import get_user_id
 from superset.utils.dates import now_as_float
 from superset.utils.decorators import transaction
@@ -80,16 +81,14 @@ class QueryDAO(BaseDAO[Query]):
             )
             return
 
-        if not sql_lab.cancel_query(query):
-            raise SupersetCancelQueryException("Could not cancel query")
+        with db.session.no_autoflush:
+            if not sql_lab.cancel_query(query):
+                raise SupersetCancelQueryException("Could not cancel query")
 
-        # cancel_query() may have staged an early-cancel flag on query.extra
-        # without committing it (see its docstring/comments); the
-        # @transaction decorator commits it together with status=STOPPED
-        # below in one transaction, closing the window where another
-        # request could observe the flag set but the status still RUNNING.
-        query.status = QueryStatus.STOPPED
-        query.end_time = now_as_float()
+            # Engine cancellation can outlive a worker's terminal commit. The
+            # conditional write must win the row lock before any staged
+            # early-cancel flag is flushed by the transaction decorator.
+            set_query_stopped(query, now_as_float())
 
 
 class SavedQueryDAO(BaseDAO[SavedQuery]):

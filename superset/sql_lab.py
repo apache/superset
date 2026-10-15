@@ -55,7 +55,6 @@ from superset.exceptions import (
     SupersetDisallowedSQLTableException,
     SupersetDMLNotAllowedException,
     SupersetErrorException,
-    SupersetErrorsException,
     SupersetInvalidCTASException,
     SupersetInvalidCVASException,
     SupersetResultsBackendNotConfigureException,
@@ -63,8 +62,13 @@ from superset.exceptions import (
 from superset.extensions import celery_app, event_logger
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
-from superset.sql.execution.celery_task import stop_seen_during_execution
 from superset.sql.execution.executor import build_statement_blocks
+from superset.sql.execution.utils import (
+    _discard_stored_results as _discard_unpublished_results,
+    _discard_unreferenced_results,
+    _extract_errors,
+    stop_seen_during_execution,
+)
 from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.sqllab.utils import write_ipc_buffer
@@ -151,7 +155,9 @@ def handle_query_error(
             # A publish commit can apply and still raise, so the stopped row
             # may already reference the results: delete them only if it does
             # not.
-            _discard_unreferenced_results(query.id, unpublished_results_key)
+            _discard_unreferenced_results(
+                query.id, unpublished_results_key, results_backend
+            )
             payload.update({"status": QueryStatus.STOPPED})
             return payload
 
@@ -185,76 +191,6 @@ def handle_query_error(
     # failed row was not committed and does not reference the stored results.
     db.session.commit()
     return payload
-
-
-def _extract_errors(ex: Exception, query: Query) -> list[SupersetError]:
-    """Extract DB-specific errors (invalid column, eg)."""
-    if isinstance(ex, SupersetErrorException):
-        return [ex.error]
-    if isinstance(ex, SupersetErrorsException):
-        return ex.errors
-    return query.database.db_engine_spec.extract_errors(
-        str(ex), database_name=query.database.unique_name
-    )
-
-
-def _discard_unpublished_results(query_id: int, key: Optional[str]) -> None:
-    """
-    Delete stored results whose key no committed query row will reference.
-
-    That happens when a stop wins, or when the task cannot record its failure.
-    Nothing can read the blob before it expires. A failed delete is logged and
-    does not change the query's outcome.
-    """
-    if not key or not results_backend:
-        return
-    try:
-        deleted = results_backend.delete(key)
-    except Exception:  # pylint: disable=broad-except
-        logger.warning(
-            "Query %s: Failed to delete unpublished results, key: %s",
-            str(query_id),
-            key,
-            exc_info=True,
-        )
-        return
-    if not deleted:
-        logger.warning(
-            "Query %s: Unpublished results were not deleted, key: %s",
-            str(query_id),
-            key,
-        )
-
-
-def _discard_unreferenced_results(query_id: int, key: Optional[str]) -> None:
-    """
-    Delete stored results after a failure the task could not record, or after
-    a stop wins the error path, unless the query row references them.
-
-    A metadata commit can apply and still raise, for example when its
-    acknowledgement is lost, and a stop can then land on the row that commit
-    published. Uncommitted metadata is rolled back and the row is read again
-    in a new transaction. If that read fails, the results are kept until they
-    expire: an orphaned blob is safer than a committed row that references
-    deleted results.
-    """
-    if not key or not results_backend:
-        return
-    try:
-        db.session.rollback()
-        referenced_key = (
-            db.session.query(Query.results_key).filter(Query.id == query_id).scalar()
-        )
-    except Exception:  # pylint: disable=broad-except
-        logger.warning(
-            "Query %s: Kept results that may be referenced, key: %s",
-            str(query_id),
-            key,
-            exc_info=True,
-        )
-        return
-    if referenced_key != key:
-        _discard_unpublished_results(query_id, key)
 
 
 def get_query_backoff_handler(details: dict[Any, Any]) -> None:
@@ -367,7 +303,9 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 except Exception:
                     # handle_query_error commits last, so the failure was most
                     # likely not recorded. A commit can still apply and raise.
-                    _discard_unreferenced_results(query_id, unpublished_results_key)
+                    _discard_unreferenced_results(
+                        query_id, unpublished_results_key, results_backend
+                    )
                     raise
 
 
@@ -978,7 +916,7 @@ def execute_sql_statements(  # noqa: C901
         # delete stored results the stopped row will not reference.
         with db.session.no_autoflush:
             db.session.refresh(query)
-        _discard_unpublished_results(query_id, stored_key)
+        _discard_unpublished_results(query_id, stored_key, results_backend)
         if on_results_key:
             on_results_key(None)
         db.session.commit()

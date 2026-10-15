@@ -31,7 +31,6 @@ from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 
 import msgpack
-import sqlalchemy as sa
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
@@ -44,16 +43,20 @@ from superset import (
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import (
-    SupersetErrorException,
-    SupersetErrorsException,
-)
+from superset.exceptions import SupersetErrorException
 from superset.extensions import celery_app
 from superset.models.sql_lab import Query
 from superset.result_set import SupersetResultSet
 from superset.sql.execution.executor import (
     build_statement_blocks,
     execute_sql_with_cursor,
+)
+from superset.sql.execution.utils import (
+    _discard_stored_results,
+    _discard_unreferenced_results,
+    _extract_errors,
+    set_query_stopped,
+    stop_seen_during_execution,
 )
 from superset.sql.parse import SQLScript
 from superset.sqllab.utils import write_ipc_buffer
@@ -103,7 +106,7 @@ def _handle_query_error(
     # flush has already dropped it, so prefer the key tracked at the write.
     stored_key = results_key or query.results_key
     if not final and _make_check_stopped_fn(query, preserve_pending=True)():
-        _discard_unreferenced_results(query.id, stored_key)
+        _discard_unreferenced_results(query.id, stored_key, results_backend)
         return _stopped_query_payload(query)
 
     with db.session.no_autoflush:
@@ -134,20 +137,9 @@ def _handle_query_error(
         if final:
             db.session.commit()  # pylint: disable=consider-using-transaction
         elif not _commit_query_unless_stopped(query):
-            _discard_unreferenced_results(query.id, stored_key)
+            _discard_unreferenced_results(query.id, stored_key, results_backend)
             return _stopped_query_payload(query)
         return payload
-
-
-def _extract_errors(ex: Exception, query: Query) -> list[SupersetError]:
-    """Extract DB-specific errors."""
-    if isinstance(ex, SupersetErrorException):
-        return [ex.error]
-    if isinstance(ex, SupersetErrorsException):
-        return ex.errors
-    return query.database.db_engine_spec.extract_errors(
-        str(ex), database_name=query.database.unique_name
-    )
 
 
 def _serialize_payload(payload: dict[Any, Any]) -> bytes:
@@ -314,7 +306,7 @@ def _store_results_in_backend(
                 on_results_key(key)
             if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
                 if write_success:
-                    _discard_stored_results(query.id, key)
+                    _discard_stored_results(query.id, key, results_backend)
                 return None
             if not write_success:
                 logger.error(
@@ -451,7 +443,9 @@ def execute_sql_task(
                 except Exception:
                     # _handle_query_error commits last, so the failure was most
                     # likely not recorded. A commit can still apply and raise.
-                    _discard_unreferenced_results(query_id, results_key)
+                    _discard_unreferenced_results(
+                        query_id, results_key, results_backend
+                    )
                     raise
 
 
@@ -483,72 +477,11 @@ def _commit_query_unless_stopped(query: Query) -> bool:
     return True
 
 
-def _discard_stored_results(query_id: int, key: str | None) -> None:
-    """
-    Delete stored results whose key no committed query row will reference.
-
-    That happens when a stop wins, or when the task cannot record its failure.
-    The blob would only occupy the results backend until it expires. A failed
-    delete is logged and does not change the query's outcome.
-    """
-    if not key or not results_backend:
-        return
-    try:
-        deleted = results_backend.delete(key)
-    except Exception:  # pylint: disable=broad-except
-        logger.warning(
-            "Query %s: Failed to delete unpublished results, key: %s",
-            str(query_id),
-            key,
-            exc_info=True,
-        )
-        return
-    if not deleted:
-        logger.warning(
-            "Query %s: Unpublished results were not deleted, key: %s",
-            str(query_id),
-            key,
-        )
-
-
-def _discard_unreferenced_results(query_id: int, key: str | None) -> None:
-    """
-    Delete stored results after a failure the task could not record, or after
-    a stop wins the error path, unless the query row references them.
-
-    A metadata commit can apply and still raise, for example when its
-    acknowledgement is lost, and a stop can then land on the row that commit
-    published. Uncommitted metadata is rolled back and the row is read again
-    in a new transaction. If that read fails, the results are kept until they
-    expire: an orphaned blob is safer than a committed row that references
-    deleted results.
-    """
-    if not key or not results_backend:
-        return
-    try:
-        db.session.rollback()  # pylint: disable=consider-using-transaction
-        referenced_key = (
-            db.session.query(Query.results_key).filter(Query.id == query_id).scalar()
-        )
-    except Exception:  # pylint: disable=broad-except
-        logger.warning(
-            "Query %s: Kept results that may be referenced, key: %s",
-            str(query_id),
-            key,
-            exc_info=True,
-        )
-        return
-    if referenced_key != key:
-        _discard_stored_results(query_id, key)
-
-
 def _stopped_query_payload(query: Query) -> dict[str, Any]:
-    """Return a minimal stopped result without publishing successful results."""
-    query.status = QueryStatus.STOPPED
-    if not query.end_time:
-        query.end_time = now_as_float()
+    """Return the recorded outcome without overwriting a completed query."""
+    set_query_stopped(query, query.end_time or now_as_float())
     db.session.commit()  # pylint: disable=consider-using-transaction
-    return {"query_id": query.id, "status": QueryStatus.STOPPED.value}
+    return {"query_id": query.id, "status": query.status}
 
 
 def _make_check_stopped_fn(
@@ -573,27 +506,6 @@ def _make_check_stopped_fn(
         return stopped
 
     return check_stopped
-
-
-def stop_seen_during_execution(query: Query) -> bool:
-    """
-    Whether the session's copy of the query held a stop when execution returned.
-
-    Engines that cancel a running statement on a stop (Hive, Impala, Presto) do
-    so after loading the stop into this session, as do the checks between
-    statements. A stop the session never loaded was recorded after the
-    statements finished. The row is not read again, and attributes expired by a
-    commit count as unseen.
-    """
-    attrs = sa.inspect(query).attrs
-    if attrs.status.loaded_value == QueryStatus.STOPPED:
-        return True
-    extra_json = attrs.extra_json.loaded_value
-    return bool(
-        isinstance(extra_json, str)
-        and extra_json
-        and json.loads(extra_json).get(QUERY_EARLY_CANCEL_KEY)
-    )
 
 
 class _StopSeenTracker:
@@ -811,13 +723,13 @@ def _publish_query_result(
 
     # Serialization and backend writes can outlive the last execution check.
     if _make_check_stopped_fn(query, preserve_pending=True)():
-        _discard_stored_results(query.id, results_key)
+        _discard_stored_results(query.id, results_key, results_backend)
         return _stopped_query_payload(query)
 
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS
     if not _commit_query_unless_stopped(query):
-        _discard_stored_results(query.id, results_key)
+        _discard_stored_results(query.id, results_key, results_backend)
         return _stopped_query_payload(query)
 
     return payload
