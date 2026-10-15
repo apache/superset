@@ -327,6 +327,35 @@ test('should correctly match offsets that share a numeric prefix', () => {
   });
 });
 
+test('should not collide a sort-only metric labeled like a time offset with the renamed metric column', () => {
+  // A single displayed metric ("count(*)") with an "actual values" time
+  // comparison and a sort-only metric (queried via `timeseries_limit_metric`
+  // for `x_axis_sort`, see extractExtraMetrics) labeled exactly like the
+  // time offset, "1 year ago". Without accounting for that extra metric,
+  // `count(*)__1 year ago` would rename to the bare offset label "1 year
+  // ago", colliding with the sort metric's own unrenamed base column of the
+  // same name.
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        comparison_type: ComparisonType.Values,
+        time_compare: ['1 year ago'],
+        x_axis_sort: '1 year ago',
+        timeseries_limit_metric: '1 year ago',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'rename',
+    options: {
+      columns: { 'count(*)__1 year ago': 'count(*), 1 year ago' },
+      inplace: true,
+      level: 0,
+    },
+  });
+});
+
 test('should remove renameOperator', () => {
   expect(
     renameOperator(
