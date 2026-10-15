@@ -582,11 +582,15 @@ def stop_seen_during_execution(query: Query) -> bool:
     statements finished. The row is not read again, and attributes expired by a
     commit count as unseen.
     """
-    loaded = sa.inspect(query).dict
-    if loaded.get("status") == QueryStatus.STOPPED:
+    attrs = sa.inspect(query).attrs
+    if attrs.status.loaded_value == QueryStatus.STOPPED:
         return True
-    extra_json = loaded.get("extra_json")
-    return bool(extra_json and json.loads(extra_json).get(QUERY_EARLY_CANCEL_KEY))
+    extra_json = attrs.extra_json.loaded_value
+    return bool(
+        isinstance(extra_json, str)
+        and extra_json
+        and json.loads(extra_json).get(QUERY_EARLY_CANCEL_KEY)
+    )
 
 
 def _make_execute_fn(query: Query, db_engine_spec: Any) -> Any:

@@ -3209,3 +3209,57 @@ def test_successful_select_reads_stop_state_once_per_checkpoint(
         # the backend write and before the guarded publish.
         assert len(full_refreshes) == 1
         assert len(status_reads) == 2
+
+
+@pytest.mark.parametrize("extra_json", [None, b"{}", MagicMock(), "", "{}"])
+@pytest.mark.parametrize("mapped", [False, True])
+def test_stop_seen_during_execution_ignores_non_text_extra_json(
+    extra_json: Any,
+    mapped: bool,
+) -> None:
+    """Only loaded text JSON is decoded, including when the query is a double."""
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import stop_seen_during_execution
+
+    query_type = Query if mapped else MagicMock
+    query = query_type(status=QueryStatusEnum.RUNNING, extra_json=extra_json)
+    assert not stop_seen_during_execution(query)
+
+
+@pytest.mark.parametrize("intent", ["status", "early", "none"])
+@pytest.mark.parametrize("expired", [False, True])
+def test_stop_seen_during_execution_reads_only_loaded_attributes(
+    intent: str, expired: bool, mocker: MockerFixture
+) -> None:
+    """Expired stop attributes stay unseen without triggering a database read."""
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.sql.execution.celery_task import stop_seen_during_execution
+
+    engine = create_engine("sqlite://")
+    Query.__table__.create(engine)
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="loaded-stop",
+            database_id=1,
+            sql="SELECT 1",
+            status=(
+                QueryStatusEnum.STOPPED
+                if intent == "status"
+                else QueryStatusEnum.RUNNING
+            ),
+            extra_json=superset_json.dumps({QUERY_EARLY_CANCEL_KEY: intent == "early"}),
+        )
+        session.add(query)
+        session.flush()
+        if expired:
+            session.expire(query, ["status", "extra_json"])
+        execute = mocker.Mock()
+        event.listen(engine, "before_cursor_execute", execute)
+        assert stop_seen_during_execution(query) is (not expired and intent != "none")
+        execute.assert_not_called()
+    engine.dispose()
