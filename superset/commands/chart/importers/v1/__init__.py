@@ -59,7 +59,8 @@ class ImportChartsCommand(ImportModelsCommand):
         "annotation_layers/": ImportV1AnnotationLayerSchema(),
         "charts/": ImportV1ChartSchema(),
         "datasets/": ImportV1DatasetSchema(),
-        "databases/": ImportV1DatabaseSchema(),
+        # Related databases are reused rather than overwritten.
+        "databases/": ImportV1DatabaseSchema(overwrites_existing=False),
     }
     import_error = ChartImportError
 

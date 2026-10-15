@@ -29,6 +29,7 @@ from superset.commands.database.exceptions import (
     DatabaseExistsValidationError,
     DatabaseInvalidError,
     DatabaseRequiredFieldValidationError,
+    MissingOAuth2TokenError,
 )
 from superset.commands.database.ssh_tunnel.exceptions import (
     SSHTunnelCreateFailedError,
@@ -94,7 +95,16 @@ class CreateDatabaseCommand(BaseCommand):
         try:
             # create database and associated schema/catalog permissions
             database = self._create_database()
-            add_permissions(database)
+            try:
+                add_permissions(database)
+            except (OAuth2RedirectError, MissingOAuth2TokenError):
+                # The connection test ran on the connection's own settings, but
+                # listing catalogs and schemas runs through impersonation as the
+                # creating admin, who has no OAuth2 token yet. The connection is
+                # valid; as on update, permissions sync when access is first set
+                # up. Failing here reported a 422 while starting the OAuth2 flow
+                # had already committed the row (sc-126623).
+                pass
         except (
             SSHTunnelInvalidError,
             SSHTunnelCreateFailedError,

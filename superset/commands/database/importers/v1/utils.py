@@ -32,6 +32,7 @@ from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
+from superset.db_engine_specs import get_engine_spec
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -189,6 +190,25 @@ def import_database(  # noqa: C901
             config["encrypted_extra"] = json.dumps(revealed)
         else:
             config["encrypted_extra"] = masked_encrypted_extra
+
+        # Never store a mask as if it were the secret: the schema asks for any
+        # value that cannot be revealed, so one left here is a bug, not input.
+        engine_spec = (
+            existing.db_engine_spec
+            if existing
+            else get_engine_spec(
+                make_url_safe(config["sqlalchemy_uri"]).get_backend_name(),
+                driver=make_url_safe(config["sqlalchemy_uri"]).get_driver_name(),
+            )
+        )
+        if still_masked := json.get_masked_fields(
+            json.loads(config["encrypted_extra"]),
+            engine_spec.encrypted_extra_sensitive_field_paths(),
+        ):
+            raise ImportFailedError(
+                "Must provide value for masked_encrypted_extra field: "
+                + ", ".join(still_masked)
+            )
 
     ssh_tunnel_config = config.pop("ssh_tunnel", None)
 

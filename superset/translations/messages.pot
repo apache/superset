@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-10 10:31+0100\n"
+"POT-Creation-Date: 2026-10-14 19:13+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -2389,6 +2389,9 @@ msgid "Attribution"
 msgstr ""
 
 msgid "August"
+msgstr ""
+
+msgid "Authentication method"
 msgstr ""
 
 msgid "Authorization Request URI"
@@ -5915,6 +5918,15 @@ msgstr ""
 msgid "Embedded dashboard could not be deleted."
 msgstr ""
 
+msgid "Embedded guest credentials"
+msgstr ""
+
+msgid "Embedded guest credentials are inactive until \"Impersonate logged in user\" is enabled under Advanced → Security."
+msgstr ""
+
+msgid "Embedded guest credentials are invalid or incomplete. Provide all required fields or clear them to leave embedded viewers unconfigured."
+msgstr ""
+
 msgid "Embedding deactivated."
 msgstr ""
 
@@ -6093,6 +6105,9 @@ msgstr ""
 
 #, python-format
 msgid "Enter the required %(dbModelName)s credentials"
+msgstr ""
+
+msgid "Enter the scopes allowed by your Snowflake integration, for example session:role:ANALYST refresh_token. Without a role scope, Snowflake uses the user's default role."
 msgstr ""
 
 msgid "Enter the unique project id for your database."
@@ -8001,6 +8016,9 @@ msgid "Key"
 msgstr ""
 
 msgid "Key Prefix"
+msgstr ""
+
+msgid "Key pair"
 msgstr ""
 
 msgid "Keyboard shortcuts"
@@ -10573,6 +10591,12 @@ msgid "Private Key & Password"
 msgstr ""
 
 msgid "Private Key Password"
+msgstr ""
+
+msgid "Private key (PEM)"
+msgstr ""
+
+msgid "Private key passphrase (optional)"
 msgstr ""
 
 msgid "Proceed"
@@ -14887,6 +14911,9 @@ msgstr ""
 msgid "This dashboard will be restored to the following version:"
 msgstr ""
 
+msgid "This dashboard's database connection authenticates users individually and has no credential configured for embedded viewers, so this query cannot run."
+msgstr ""
+
 msgid "This database does not allow creating tables from queries (CTAS). Please contact your administrator for more assistance."
 msgstr ""
 
@@ -15973,6 +16000,9 @@ msgid "Use this to define a static color for all circles"
 msgstr ""
 
 msgid "Used internally to identify the plugin. Should be set to the package name from the pluginʼs package.json"
+msgstr ""
+
+msgid "Used only when a dashboard is viewed through an embedded guest token. Every embedded viewer of this connection queries as this one user, so it should be a dedicated account with the narrowest access those dashboards need. Logged-in users are unaffected and continue to authenticate individually via OAuth2."
 msgstr ""
 
 msgid "Used to summarize a set of data by grouping together multiple statistics along two axes. Examples: Sales numbers by region and month, tasks by status and assignee, active users by age and location. Not the most visually stunning visualization, but highly informative and versatile."

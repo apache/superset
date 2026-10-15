@@ -137,6 +137,17 @@ class ExportDatasetsCommand(ExportModelsCommand):
                     )
                     payload["ssh_tunnel"] = mask_password_info(ssh_tunnel_payload)
 
+                # Carry Secure Extra like the database export does: masked when
+                # it holds secrets, so a promoted dashboard keeps its OAuth2
+                # client and embedded viewer credential and the import asks for
+                # their values.
+                if encrypted_extra := model.database.encrypted_extra:
+                    masked_encrypted_extra = model.database.masked_encrypted_extra
+                    if encrypted_extra != masked_encrypted_extra:
+                        payload["masked_encrypted_extra"] = masked_encrypted_extra
+                    else:
+                        payload["encrypted_extra"] = encrypted_extra
+
                 payload["version"] = EXPORT_VERSION
 
                 yield (

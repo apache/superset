@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useEffect, useState } from 'react';
+import { ChangeEvent, useEffect, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Input, Collapse, Form, FormItem } from '@superset-ui/core/components';
 import {
@@ -42,6 +42,34 @@ interface OAuth2ClientInfo {
   scope: string;
 }
 
+/**
+ * Coerce a backend- or form-supplied value to a plain object.
+ *
+ * `masked_encrypted_extra` and the `parameters.*` entries arrive either as an
+ * object or as a JSON string -- the save-time merge in `DatabaseModal`
+ * re-serializes `parameters.*` in place -- and `masked_encrypted_extra` has
+ * historically been the literal string "null". `JSON.parse('null')` returns
+ * null and malformed JSON throws, so both are absorbed here.
+ */
+const asObject = (value: unknown): Record<string, unknown> => {
+  if (typeof value === 'string') {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(value || '{}');
+    } catch (e) {
+      // Only swallow JSON.parse's own SyntaxError; let real programmer errors
+      // (RangeError, TypeError from a broken stub, etc.) propagate.
+      if (!(e instanceof SyntaxError)) throw e;
+      return {};
+    }
+    return asObject(parsed);
+  }
+
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+};
+
 export const OAuth2ClientField = ({
   changeMethods,
   db,
@@ -49,34 +77,29 @@ export const OAuth2ClientField = ({
   isPublic = true,
 }: FieldPropTypes) => {
   const deriveOauth2ClientInfo = (): OAuth2ClientInfo => {
-    // `masked_encrypted_extra` is user/backend-supplied and historically
-    // sometimes the string "null" — JSON.parse('null') returns null, and
-    // malformed JSON throws. Defend against both so a single bad value
-    // can't crash the component.
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(db?.masked_encrypted_extra || '{}');
-    } catch (e) {
-      // Only swallow JSON.parse's own SyntaxError; let real programmer
-      // errors (RangeError, TypeError from a broken stub, etc.) propagate.
-      if (!(e instanceof SyntaxError)) throw e;
-      parsed = {};
-    }
-    const encryptedExtra =
-      parsed && typeof parsed === 'object' && !Array.isArray(parsed)
-        ? (parsed as { oauth2_client_info?: Partial<OAuth2ClientInfo> })
-        : {};
-    const info = encryptedExtra.oauth2_client_info;
+    // The in-flight form value wins over the stored blob. Switching the
+    // configuration method to SQLAlchemy URI and back re-mounts this field
+    // while `parameters.oauth2_client_info` still holds what was typed;
+    // seeding from `masked_encrypted_extra` alone would show empty inputs for
+    // a client the save payload would nonetheless carry.
+    const typed = asObject(db?.parameters?.oauth2_client_info);
+    const stored = asObject(
+      asObject(db?.masked_encrypted_extra).oauth2_client_info,
+    );
+    const info: Partial<OAuth2ClientInfo> = (
+      Object.keys(typed).length ? typed : stored
+    ) as Partial<OAuth2ClientInfo>;
+
     return {
-      id: info?.id || '',
-      secret: info?.secret || '',
+      id: info.id || '',
+      secret: info.secret || '',
       authorization_request_uri:
-        info?.authorization_request_uri ||
-        defaultValue?.authorization_request_uri ||
+        info.authorization_request_uri ??
+        defaultValue?.authorization_request_uri ??
         '',
       token_request_uri:
-        info?.token_request_uri || defaultValue?.token_request_uri || '',
-      scope: info?.scope || defaultValue?.scope || '',
+        info.token_request_uri ?? defaultValue?.token_request_uri ?? '',
+      scope: info.scope ?? defaultValue?.scope ?? '',
     };
   };
 
@@ -84,36 +107,44 @@ export const OAuth2ClientField = ({
     deriveOauth2ClientInfo,
   );
 
-  // Re-sync local state when masked_encrypted_extra changes (e.g., when the
-  // gsheets dropdown toggles back to private after we cleared stored creds).
+  // Serialized so the effect below keys off the *value*: the reducer hands back
+  // a fresh object on every keystroke, which as a raw dependency would re-sync
+  // state with itself on each one.
+  const typedClientInfo = JSON.stringify(
+    db?.parameters?.oauth2_client_info ?? null,
+  );
+
+  // Re-sync local state when either source changes (e.g., when the gsheets
+  // dropdown toggles back to private after we cleared stored creds).
   useEffect(() => {
     setOauth2ClientInfo(deriveOauth2ClientInfo());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `defaultValue` is a
     // static per-engine default that doesn't change after the form opens;
     // depending on it would cause spurious re-syncs when the parent re-renders.
-  }, [db?.masked_encrypted_extra]);
+  }, [db?.masked_encrypted_extra, typedClientInfo]);
 
   if (db?.engine === Engines.GSheet && isPublic) {
     return null;
   }
 
-  const handleChange = (key: any) => (e: any) => {
-    const updatedInfo = {
-      ...oauth2ClientInfo,
-      [key]: e.target.value,
-    };
+  const handleChange =
+    (key: keyof OAuth2ClientInfo) => (e: ChangeEvent<HTMLInputElement>) => {
+      const updatedInfo = {
+        ...oauth2ClientInfo,
+        [key]: e.target.value,
+      };
 
-    setOauth2ClientInfo(updatedInfo);
+      setOauth2ClientInfo(updatedInfo);
 
-    const event: CustomParametersChangeType = {
-      target: {
-        type: 'object',
-        name: 'oauth2_client_info',
-        value: updatedInfo,
-      },
+      const event: CustomParametersChangeType = {
+        target: {
+          type: 'object',
+          name: 'oauth2_client_info',
+          value: updatedInfo,
+        },
+      };
+      changeMethods.onParametersChange(event);
     };
-    changeMethods.onParametersChange(event);
-  };
 
   return (
     <Collapse
@@ -154,7 +185,18 @@ export const OAuth2ClientField = ({
                   onChange={handleChange('token_request_uri')}
                 />
               </FormItem>
-              <FormItem label={LABELS.SCOPE}>
+              <FormItem
+                label={LABELS.SCOPE}
+                help={
+                  db?.engine === Engines.Snowflake
+                    ? t(
+                        'Enter the scopes allowed by your Snowflake integration, ' +
+                          'for example session:role:ANALYST refresh_token. ' +
+                          "Without a role scope, Snowflake uses the user's default role.",
+                      )
+                    : undefined
+                }
+              >
                 <Input
                   data-test="client-scope"
                   value={oauth2ClientInfo.scope}
