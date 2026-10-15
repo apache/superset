@@ -175,7 +175,7 @@
     "geostyler-wfs-parser": "^3.0.1",
     "google-auth-library": "^11.1.0",
     "html2canvas": "^1.4.1",
-    "immer": "^11.1.18",
+    "immer": "^11.1.21",
     "interweave": "^13.1.1",
     "jquery": "^4.0.0",
     "js-levenshtein": "^1.1.6",
