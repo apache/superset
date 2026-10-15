@@ -1430,7 +1430,7 @@ class SQLExecutor:
     @staticmethod
     @transaction()
     def _cancel_async_query(query_id: int, database: Database) -> bool:
-        """Cancel an async query and persist intent without replacing a result."""
+        """Accept a stop with best-effort engine cancellation, or report a lost race."""
         from superset.common.db_query_status import QueryStatus as DBQueryStatus
         from superset.models.sql_lab import Query as QueryModel
         from superset.sql.execution.utils import set_query_stopped
@@ -1450,8 +1450,18 @@ class SQLExecutor:
                 return False
             # Commit before engine cancellation can wake the Celery worker.
             db.session.commit()  # pylint: disable=consider-using-transaction
-            if not SQLExecutor._cancel_query(database, query):
-                return False
+            # The handle reports the recorded stop, not whether the engine
+            # could interrupt its statement. Results from that statement are
+            # discarded if it continues running.
+            try:
+                engine_cancelled = SQLExecutor._cancel_query(database, query)
+            except Exception:  # pylint: disable=broad-except
+                engine_cancelled = False
+            if not engine_cancelled:
+                logger.warning(
+                    "Query %s: Stop accepted; engine cancellation not confirmed",
+                    query.id,
+                )
             return set_query_stopped(query, end_time)
 
     @staticmethod

@@ -28,7 +28,10 @@ assists people when migrating to a new version.
   has already finished, including when completion wins a concurrent stop request.
   The response contains `message: "Could not cancel query"` and the completed
   `query`. API clients should use that query's terminal state rather than treating
-  the response as a successful cancellation.
+  the response as a successful cancellation. A stop recorded before completion
+  returns HTTP 200 (and an async handle's `cancel()` returns `True`) even if engine
+  cancellation is unavailable or fails. The query remains stopped in SQL Lab;
+  the engine statement may continue running, with its results discarded.
 
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,

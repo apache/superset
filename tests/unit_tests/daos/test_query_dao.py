@@ -473,3 +473,49 @@ def test_winning_stop_preserves_concurrently_committed_extra(
             **({QUERY_EARLY_CANCEL_KEY: True} if early_cancel else {}),
         }
     engine.dispose()
+
+
+@pytest.mark.parametrize("caller", ["api", "async_handle"])
+@pytest.mark.parametrize("cancel_outcome", ["unsupported", "unreachable"])
+@pytest.mark.parametrize("status", [QueryStatus.PENDING, QueryStatus.RUNNING])
+def test_accepted_stop_reports_success_when_engine_cancel_fails(
+    mocker: MockerFixture,
+    app_context: None,
+    session: Session,
+    caller: str,
+    cancel_outcome: str,
+    status: QueryStatus,
+) -> None:
+    """A committed stop is accepted even if engine cancellation is unavailable."""
+    from superset.queries.api import QueryRestApi
+    from superset.sql.execution.executor import SQLExecutor
+
+    Query.__table__.create(session.get_bind())
+    query = Query(
+        id=123,
+        client_id="accept-stop",
+        user_id=7,
+        database_id=1,
+        status=status,
+    )
+    session.add(query)
+    session.commit()
+    mocker.patch("superset.daos.query.get_user_id", return_value=7)
+    cancel = mocker.Mock(return_value=False)
+    if cancel_outcome == "unreachable":
+        cancel.side_effect = RuntimeError("Engine unavailable")
+    mocker.patch("superset.daos.query.sql_lab.cancel_query", cancel)
+    mocker.patch.object(SQLExecutor, "_cancel_query", cancel)
+
+    if caller == "api":
+        with current_app.test_request_context(json={"client_id": "accept-stop"}):
+            response = inspect.unwrap(QueryRestApi.stop_query)(QueryRestApi())
+        assert response.status_code == 200
+        assert response.get_json() == {"result": "OK"}
+    else:
+        handle = SQLExecutor(mocker.Mock())._create_async_handle(123)
+        assert handle.cancel() is True
+    cancel.assert_called_once()
+    session.expire_all()
+    assert query.status == QueryStatus.STOPPED
+    assert query.end_time is not None

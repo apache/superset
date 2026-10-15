@@ -26,11 +26,18 @@ The following information about each flight is given:
 
 ### Stopping a SQL Lab query
 
-For a cancellable running query, SQL Lab records Stop before sending engine
-cancellation, so cancellation-related failures do not replace the stopped outcome.
+SQL Lab records Stop before attempting engine cancellation, so cancellation-related
+failures do not replace the stopped outcome. Once recorded, the Stop API returns
+HTTP 200, the UI shows the query as stopped, and an async query handle's `cancel()`
+returns `True`. Engine cancellation is best-effort: if the engine is unreachable,
+provides no cancellation handle, or rejects cancellation, its statement may run to
+completion, but SQL Lab discards its results. Stopping cannot undo database changes
+that have already committed, including changes made by a statement that continues
+running.
+
 A query that already finished keeps its success, failure, or timeout outcome; the
-Stop API returns HTTP 422 in that case. Stopping cannot undo database changes
-that have already committed.
+Stop API returns HTTP 422 and an async query handle's `cancel()` returns `False`
+in that case.
 
 ### Semantic Table time grains
 

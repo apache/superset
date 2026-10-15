@@ -396,3 +396,178 @@ def test_stop_request_precedes_postgres_cancellation_failure(
             sessions.query(Query).filter_by(id=124).delete()
             sessions.commit()
             sessions.remove()
+
+
+@pytest.mark.parametrize("worker_path", ["legacy", "celery"])
+@pytest.mark.parametrize("caller", ["api", "async_handle"])
+@pytest.mark.parametrize("cancel_mode", ["normal", "unreachable", "no_cancel_id"])
+def test_accepted_stop_with_real_postgres_workers(
+    engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    worker_path: str,
+    caller: str,
+    cancel_mode: str,
+) -> None:
+    """Real workers discard results after an accepted, best-effort engine stop."""
+    import inspect as python_inspect
+    import socket
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+    from contextlib import contextmanager
+    from typing import Any
+    from unittest.mock import MagicMock, PropertyMock
+
+    from sqlalchemy import text
+    from sqlalchemy.orm import scoped_session, Session, sessionmaker
+
+    from superset import sql_lab
+    from superset.models.sql_lab import Query
+    from superset.queries.api import QueryRestApi
+    from superset.sql.execution import celery_task
+    from superset.sql.execution.executor import SQLExecutor
+    from tests.integration_tests.test_app import app
+
+    with engine.begin() as connection:
+        connection.execute(
+            text("CREATE TABLE IF NOT EXISTS dbs (id INTEGER PRIMARY KEY)")
+        )
+        connection.execute(
+            text("CREATE TABLE IF NOT EXISTS ab_user (id INTEGER PRIMARY KEY)")
+        )
+        connection.execute(text("INSERT INTO dbs VALUES (1) ON CONFLICT DO NOTHING"))
+        connection.execute(
+            text("INSERT INTO ab_user VALUES (7) ON CONFLICT DO NOTHING")
+        )
+    Query.__table__.create(engine, checkfirst=True)
+    sessions = scoped_session(sessionmaker(bind=engine))
+    sql = "SELECT pg_sleep(3) AS accepted_stop"
+
+    @contextmanager
+    def raw_connection(**kwargs: Any) -> Iterator[Any]:
+        """Use a real Postgres cursor without replacing either worker's executor."""
+        connection = engine.raw_connection()
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+    database = MagicMock()
+    database.db_engine_spec = PostgresEngineSpec
+    database.allow_run_async = False
+    database.get_default_schema_for_query.return_value = "public"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    database.get_raw_connection = raw_connection
+    database.get_sqla_engine.return_value.__enter__.return_value = engine
+    monkeypatch.setattr(Query, "database", PropertyMock(return_value=database))
+    monkeypatch.setattr(sql_lab, "warm_and_release_connection", lambda *args: None)
+    monkeypatch.setattr(sql_lab.security_manager, "find_user", lambda _: None)
+    monkeypatch.setattr(sql_lab.db, "session", sessions)
+    monkeypatch.setattr("superset.daos.query.get_user_id", lambda: 7)
+    monkeypatch.setitem(app.config, "STATS_LOGGER", MagicMock())
+    monkeypatch.setitem(app.config, "DISALLOWED_SQL_FUNCTIONS", {})
+    backend = MagicMock()
+    monkeypatch.setattr(celery_task, "results_backend", backend)
+    if cancel_mode == "no_cancel_id":
+        # Model a connector using BaseEngineSpec's default (no cancel handle).
+        monkeypatch.setattr(
+            PostgresEngineSpec, "get_cancel_query_id", lambda *args: None
+        )
+
+    def work() -> dict[str, Any] | None:
+        """Run the production Celery task (including _execute_sql_statements)."""
+        try:
+            with app.test_request_context():
+                if worker_path == "celery":
+                    return celery_task.execute_sql_task(125, sql)
+                return sql_lab.get_sql_results(125, sql, True)
+        finally:
+            sessions.remove()
+
+    # Reserve a local port without listening: cancel gets a real connection
+    # refusal while the target statement continues on its existing connection.
+    with socket.socket() as unavailable, app.test_request_context():
+        unavailable.bind(("127.0.0.1", 0))
+        unreachable = create_engine(
+            engine.url.set(host="127.0.0.1", port=unavailable.getsockname()[1]),
+            connect_args={"connect_timeout": 1},
+        )
+        if cancel_mode == "unreachable":
+            database.get_sqla_engine.return_value.__enter__.return_value = unreachable
+        sessions.add(
+            Query(
+                id=125,
+                client_id="accept-stop",
+                user_id=7,
+                database_id=1,
+                sql=sql,
+                status="pending",
+            )
+        )
+        sessions.commit()
+        try:
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                worker = pool.submit(work)
+                with engine.connect().execution_options(
+                    isolation_level="AUTOCOMMIT"
+                ) as observer:
+                    deadline = time.monotonic() + 10
+                    pid = None
+                    while time.monotonic() < deadline:
+                        pid = observer.execute(
+                            text(
+                                "SELECT pid FROM pg_stat_activity "
+                                "WHERE wait_event = 'PgSleep' "
+                                "AND query LIKE '%accepted_stop%'"
+                            )
+                        ).scalar()
+                        if pid:
+                            break
+                        time.sleep(0.01)
+                    assert pid is not None, "Postgres statement did not start"
+                    if caller == "api":
+                        with app.test_request_context(
+                            json={"client_id": "accept-stop"}
+                        ):
+                            response = python_inspect.unwrap(QueryRestApi.stop_query)(
+                                QueryRestApi()
+                            )
+                        assert response.status_code == 200
+                        assert response.get_json() == {"result": "OK"}
+                    else:
+                        handle = SQLExecutor(database)._create_async_handle(125)
+                        assert handle.cancel() is True
+                    if cancel_mode != "normal":
+                        assert observer.execute(
+                            text(
+                                "SELECT wait_event = 'PgSleep' FROM pg_stat_activity "
+                                "WHERE pid = :pid"
+                            ),
+                            {"pid": pid},
+                        ).scalar(), (
+                            "Failed engine cancel must leave the statement running"
+                        )
+                    payload = worker.result(timeout=10)
+                    assert not observer.execute(
+                        text(
+                            "SELECT count(*) FROM pg_stat_activity "
+                            "WHERE pid = :pid AND state = 'active'"
+                        ),
+                        {"pid": pid},
+                    ).scalar()
+            with Session(engine) as verifier:
+                stopped = verifier.get(Query, 125)
+                assert stopped is not None
+                assert stopped.status == "stopped"
+                assert stopped.end_time is not None
+                assert stopped.error_message is None
+                assert stopped.results_key is None
+            assert payload is not None
+            assert payload["status"] == "stopped"
+            assert "error" not in payload
+            backend.set.assert_not_called()
+        finally:
+            sessions.rollback()
+            sessions.query(Query).filter_by(id=125).delete()
+            sessions.commit()
+            sessions.remove()
+            unreachable.dispose()

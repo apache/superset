@@ -614,10 +614,8 @@ def execute_sql_statements(  # noqa: C901
         cursor = conn.cursor()
 
         cancel_query_id = db_engine_spec.get_cancel_query_id(cursor, query)
-        # Recorded unconditionally -- even when no cancel ID comes back --
-        # so cancel_query() can tell "hasn't reached the engine yet" (still
-        # safe to fabricate a stop) apart from "this engine has no cancel
-        # support" (must fail honestly) once we get here.
+        # Record dispatch even without a cancel ID so cancel_query() can
+        # distinguish early stop intent from unavailable engine cancellation.
         query.set_extra_json_key(QUERY_DISPATCHED_KEY, True)
         if cancel_query_id is not None:
             query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
@@ -924,39 +922,17 @@ def cancel_query(query: Query) -> bool:
 
     cancel_query_id = query.extra.get(QUERY_CANCEL_KEY)
     if cancel_query_id is None:
-        # KNOWN LIMITATION (deliberately not fixed here): this read of
-        # QUERY_DISPATCHED_KEY and execute_sql_statements()'s own commit of
-        # that same flag (see the "Recorded unconditionally" comment where
-        # it's set) are two independent transactions with no lock between
-        # them. A stop request can still land in the narrow window where
-        # this read has already happened -- deciding "not dispatched yet,
-        # safe to fabricate a stop" -- but the worker's dispatch commit
-        # lands immediately after, so the statement still gets sent to the
-        # engine even though the row was just marked STOPPED. Closing this
-        # for real needs DB-level row locking (e.g. SELECT ... FOR UPDATE)
-        # or optimistic-concurrency versioning on the query row; neither is
-        # meaningfully verifiable against the sqlite backend this codebase's
-        # tests run against, so it's out of scope here rather than a
-        # false claim of safety.
         if query.extra.get(QUERY_DISPATCHED_KEY):
-            # execute_sql_statements() already opened a connection and asked
-            # this engine spec for a cancel handle, and still got nothing --
-            # this engine genuinely has no way to cancel a query once it's
-            # running. That's a real failure, not a race window; report it
-            # honestly rather than fabricating a stop the engine can't back.
+            # No engine cancellation is available. This reports only the
+            # engine outcome; the caller's committed STOPPED remains accepted.
             return False
-        # No cancel handle has been recorded and execution hasn't reached the
-        # engine yet, so "no ID" here can only mean "too early to have one" --
-        # record the same early-cancel intent Trino's own
-        # prepare_cancel_query() records for its harder case (ID only
-        # obtainable after execution starts), so the stopped check at the top
-        # of the statement-block loop honors the request instead of leaving
-        # the query stuck at RUNNING with no avenue to ever stop it.
-        #
-        # Not committed here: the caller (QueryDAO.stop_query) commits this
-        # together with status=STOPPED in one transaction, so another
-        # request can never observe the flag set but the status still
-        # RUNNING.
+        # QueryDAO commits STOPPED before calling this helper. The worker
+        # refreshes the row after its dispatch commit and before executing each
+        # block, so a stop preceding that refresh prevents dispatch. A stop
+        # after the final check can still race with execution; without an engine
+        # cancel handle, the statement can finish and its results are discarded.
+        # Stage early intent as well, preserving the guarded Trino/Impala path.
+        # The caller merges this flag into the stopped row with a guarded write.
         query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
         return True
 
