@@ -216,7 +216,9 @@ const PropertiesModal = ({
         metadata,
       };
 
-      form.setFieldsValue(dashboardInfo);
+      // `metadata` has no form field and can be huge on dashboards with many
+      // charts; the form store deep-merges everything it is given.
+      form.setFieldsValue(omit(dashboardInfo, 'metadata'));
       setDashboardInfo(dashboardInfo);
       setEditors(editors || []);
       setViewers(viewers || []);
@@ -542,7 +544,7 @@ const PropertiesModal = ({
       dashboardInfo.title !== dashboardTitle
     ) {
       form.setFieldsValue({
-        ...dashboardInfo,
+        ...omit(dashboardInfo, 'metadata'),
         title: dashboardTitle,
       });
     }
@@ -764,7 +766,7 @@ const PropertiesModal = ({
         }}
         data-test="dashboard-edit-properties-form"
         layout="vertical"
-        initialValues={dashboardInfo}
+        initialValues={dashboardInfo && omit(dashboardInfo, 'metadata')}
       >
         <Collapse
           expandIconPosition="end"
