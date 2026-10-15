@@ -225,3 +225,46 @@ test('surfaces a warning in the chart when a layer fails to load', async () => {
   // The map still renders alongside the warning.
   expect(screen.getByTestId('deckgl-container')).not.toBeNull();
 });
+
+test('reloads its layers when a dashboard auto-refresh lands, keeping the current ones on screen', async () => {
+  // ChartRenderer keeps this chart mounted through an auto-refresh, so the
+  // refresh itself has to trigger the reload that a remount used to.
+  const renderWith = (isRefreshing: boolean) => (
+    <Provider store={store}>
+      <ThemeProvider theme={supersetTheme}>
+        <DeckMulti {...v1Props} isRefreshing={isRefreshing} />
+      </ThemeProvider>
+    </Provider>
+  );
+  const getContainer = () => screen.getByTestId('deckgl-container');
+  const { rerender } = render(renderWith(false));
+  await waitFor(() =>
+    expect(getContainer().getAttribute('data-layers-count')).toBe('1'),
+  );
+  expect(SupersetClient.post).toHaveBeenCalledTimes(1);
+
+  rerender(renderWith(true));
+  expect(SupersetClient.post).toHaveBeenCalledTimes(1);
+
+  let resolveReload: (value: unknown) => void = () => {};
+  (SupersetClient.post as jest.Mock).mockReturnValueOnce(
+    new Promise(resolve => {
+      resolveReload = resolve;
+    }),
+  );
+  rerender(renderWith(false));
+
+  await waitFor(() => expect(SupersetClient.post).toHaveBeenCalledTimes(2));
+  // While the new layer data is in flight, the map keeps the previous layer
+  // and its fitted viewport instead of blanking back to the base viewport.
+  expect(getContainer().getAttribute('data-layers-count')).toBe('1');
+  const viewport = JSON.parse(
+    getContainer().getAttribute('data-viewport') || '{}',
+  );
+  expect(viewport.longitude).toBeLessThan(-100);
+
+  resolveReload({ json: { result: [{ data: SF_FEATURES }] } });
+  await waitFor(() =>
+    expect(getContainer().getAttribute('data-layers-count')).toBe('1'),
+  );
+});
