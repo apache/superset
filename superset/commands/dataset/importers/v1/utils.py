@@ -294,7 +294,9 @@ def _default_omitted_monotonic_declarations(columns: list[dict[str, Any]]) -> No
             column.setdefault("partition_transform_is_monotonic", False)
 
 
-def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
+def drop_unusable_partition_transforms(
+    config: dict[str, Any], database: Database | None = None
+) -> None:
     """
     Drop a partition value transform the save path would have rejected.
 
@@ -319,6 +321,11 @@ def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
     all, and that answer does not change with a flag -- an import written while
     the flag was off would otherwise sit in the metadata DB fully armed,
     waiting for an operator to turn the flag on.
+
+    ``database`` is accepted already resolved for the v0 importer, whose bundles
+    nest a dataset under the connection being imported and so carry no
+    ``database_id`` to look one up by. Resolving it here as before when the
+    caller passes nothing.
     """
     columns = config.get("columns")
     if not columns:
@@ -328,7 +335,9 @@ def drop_unusable_partition_transforms(config: dict[str, Any]) -> None:
 
     _default_omitted_monotonic_declarations(columns)
 
-    database = db.session.query(Database).filter_by(id=config["database_id"]).first()
+    database = database or (
+        db.session.query(Database).filter_by(id=config["database_id"]).first()
+    )
     if database is None:
         return
 

@@ -27,6 +27,7 @@ from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.commands.dataset.exceptions import DatasetInvalidError
 from superset.commands.dataset.importers.v1.utils import (
     _default_omitted_monotonic_declarations,
+    drop_unusable_partition_transforms,
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.exceptions import IncorrectVersionError
@@ -294,6 +295,18 @@ class ImportDatasetsCommand(BaseCommand):
             logger.info("Importing dataset from file %s", file_name)
             self._default_omitted_monotonic_declarations(config)
             if isinstance(config, dict):
+                for database_config in config.get(DATABASES_KEY) or []:
+                    # The connection is imported by name, so it may or may not
+                    # exist yet; `one_or_none` rather than `one`, and a bundle
+                    # creating its own connection simply has nothing stored to
+                    # disarm or validate against.
+                    database = (
+                        db.session.query(Database)
+                        .filter_by(database_name=database_config.get("database_name"))
+                        .one_or_none()
+                    )
+                    for dataset in database_config.get("tables") or []:
+                        self._prepare_partition_mapping(dataset, database)
                 imported.extend(import_from_dict(config, sync=self.sync))
             else:  # list
                 for dataset in config:
@@ -306,6 +319,7 @@ class ImportDatasetsCommand(BaseCommand):
                         .one()
                     )
                     dataset["database_id"] = database.id
+                    self._prepare_partition_mapping(dataset, database)
                     table = SqlaTable.import_from_dict(dataset, sync=self.sync)
                     if table is not None:
                         imported.append(table)
@@ -341,6 +355,65 @@ class ImportDatasetsCommand(BaseCommand):
         for key in (DATABASES_KEY, "tables"):
             for child in config.get(key) or []:
                 cls._default_omitted_monotonic_declarations(child)
+
+    @staticmethod
+    def _prepare_partition_mapping(
+        dataset: dict[str, Any], database: Optional[Database]
+    ) -> None:
+        """
+        Run the two repairs that have to happen *before* the bundle is applied.
+
+        `_repair_partition_mappings` below runs after `import_from_dict`, which
+        is too late for either of these.
+
+        Sanitizing the bundle. The v1 importer drops a transform the save path
+        would refuse (`drop_unusable_partition_transforms`) on its way in, and
+        v0 did not -- so a legacy bundle naming ``partition_mapped_column: n``
+        and a transform of ``random() + :value`` on ``n`` imported happily and
+        then failed *every* later save: a description-only
+        ``PUT /api/v1/dataset/<id>`` returns 422 on the stored expression, and
+        the mapping never mirrors anything. Applied to the config rather than
+        the model because that is where the transform still is.
+
+        Disarming the old mapping. `DatasetDAO.clear_unmapped_partition_transforms`
+        reads the mapping as it stands, so the post-import call can only enforce
+        the one-transform invariant against the *new* references. An overwrite
+        that re-points the mapping makes a previously unmapped column the
+        effective one, and a transform parked there -- which nothing in the
+        bundle authored -- is found already mapped by the later call and kept.
+        A dataset mapping ``a -> p`` with a parked ``:value + 100`` on ``b``,
+        overwritten by a bundle setting ``partition_mapped_column: b`` and
+        omitting the columns, would mirror ``b = 5`` as ``p = 105`` and drop the
+        row ``(a=1, b=5, p=1)``. The same pre-change call `DatasetDAO.update`
+        and the v1 importer both make, and for the same reason.
+
+        ``database`` is ``None`` only for a CLI bundle importing a connection
+        that does not exist yet, which by definition has no stored dataset to
+        disarm and no dialect to validate a transform against -- the same case
+        `drop_unusable_partition_transforms` already declines to act on.
+        """
+        if database is None:
+            return
+
+        # Deferred import: `daos.dataset` pulls in `views.base`, which
+        # circularly imports back into the commands package at app init.
+        from superset.daos.dataset import DatasetDAO  # noqa: PLC0415
+
+        drop_unusable_partition_transforms(dataset, database)
+
+        if not (table_name := dataset.get("table_name")):
+            return
+        existing = (
+            db.session.query(SqlaTable)
+            .filter(
+                SqlaTable.table_name == table_name,
+                SqlaTable.schema == dataset.get("schema"),
+                SqlaTable.database_id == database.id,
+            )
+            .one_or_none()
+        )
+        if existing is not None:
+            DatasetDAO.clear_unmapped_partition_transforms(existing)
 
     @staticmethod
     def _repair_partition_mappings(datasets: list[SqlaTable]) -> None:
