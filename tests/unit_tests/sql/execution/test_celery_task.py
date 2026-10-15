@@ -1923,6 +1923,150 @@ def _assert_error_results_outcome(
     assert ("Failed to delete unpublished results" in log_text) is delete_fails
 
 
+@pytest.mark.parametrize(
+    ("delete_result", "message"),
+    [
+        (True, None),
+        (False, "Unpublished results were not deleted"),
+        (RuntimeError("Backend unavailable"), "Failed to delete unpublished results"),
+    ],
+    ids=["deleted", "missing", "delete_error"],
+)
+def test_discard_stored_results_logs_undeleted_results(
+    mocker: MockerFixture,
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+    delete_result: bool | Exception,
+    message: str | None,
+) -> None:
+    """Test that results the backend did not delete are logged, not raised."""
+    from superset.sql.execution import celery_task
+
+    backend = MagicMock()
+    if isinstance(delete_result, Exception):
+        backend.delete.side_effect = delete_result
+    else:
+        backend.delete.return_value = delete_result
+    mocker.patch.object(celery_task, "results_backend", backend)
+
+    with caplog.at_level("WARNING", logger=celery_task.logger.name):
+        celery_task._discard_stored_results(123, "results-key")
+
+    backend.delete.assert_called_once_with("results-key")
+    if message is None:
+        assert not caplog.records
+    else:
+        assert message in caplog.text
+
+
+@pytest.mark.parametrize("failure", ["payload", "commit"])
+def test_error_path_deletes_results_only_without_committed_failure(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    failure: str,
+) -> None:
+    """
+    Test that the error path deletes results stored before a failure only when
+    no committed row references them: a failure building the error payload or
+    committing the failed row leaves the row uncommitted, so its results go.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'failed-commit.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    def delete(key: str) -> bool:
+        """Remove the blob."""
+        return stored.pop(key, None) is not None
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = delete
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+
+    stats_logger = MagicMock()
+
+    def timing(key: str, value: float) -> None:
+        """Fail emitting the write timing, once the results are stored."""
+        if key == "sqllab.query.results_backend_write":
+            raise RuntimeError("Metrics unavailable")
+
+    stats_logger.timing.side_effect = timing
+    mocker.patch.dict(
+        current_app.config, {"STATS_LOGGER": stats_logger, "SHOW_STACKTRACE": True}
+    )
+    if failure == "payload":
+        mocker.patch.object(
+            celery_task.traceback,
+            "format_exc",
+            side_effect=RuntimeError("Error payload failed"),
+        )
+
+    failed_flushed = False
+
+    @event.listens_for(engine, "commit")
+    def fail_failed_commit(conn: Any) -> None:
+        """Fail committing the failed row before the database commits it."""
+        if failure == "commit" and failed_flushed:
+            raise RuntimeError("Metadata commit failed")
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="failed-commit",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        @event.listens_for(session, "after_flush")
+        def flushed_failure(flushing_session: Any, context: Any) -> None:
+            nonlocal failed_flushed
+            failed_flushed = query.status == QueryStatusEnum.FAILED
+
+        match = "Error payload failed" if failure == "payload" else "commit failed"
+        with pytest.raises(RuntimeError, match=match):
+            celery_task.execute_sql_task(123, query.sql)
+        session.rollback()
+
+        backend.set.assert_called_once()
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == QueryStatusEnum.RUNNING
+            assert persisted.results_key is None
+        backend.delete.assert_called_once_with(key)
+        assert key not in stored
+    engine.dispose()
+
+
 @pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
 def test_unrecorded_error_after_results_write_deletes_stored_results(
     mocker: MockerFixture,
@@ -2081,7 +2225,10 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
     checkpoint: str,
     stop_requested: bool,
 ) -> None:
-    """The task's error lookup must not flush stale metadata before checking Stop."""
+    """
+    The task's error lookup must not flush stale metadata before checking Stop,
+    and a timeout outranks a stop recorded while it fired.
+    """
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
 
@@ -2155,17 +2302,18 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
         payload = celery_task.execute_sql_task(123, query.sql)
 
         assert payload is not None
-        if stop_requested:
+        timed_out = checkpoint.startswith("timeout")
+        if stop_requested and not timed_out:
             assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
         else:
+            # A timeout is terminal: a stop recorded while it fired does not
+            # mask it.
             expected_status = (
-                QueryStatusEnum.TIMED_OUT
-                if checkpoint.startswith("timeout")
-                else QueryStatusEnum.FAILED
+                QueryStatusEnum.TIMED_OUT if timed_out else QueryStatusEnum.FAILED
             )
             assert payload["status"] == expected_status
         session.refresh(query)
-        if stop_requested:
+        if stop_requested and not timed_out:
             assert query.status == QueryStatusEnum.STOPPED
             assert query.end_time == Decimal("1234.5")
             assert query.extra == {QUERY_EARLY_CANCEL_KEY: True}
@@ -2178,31 +2326,26 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
     engine.dispose()
 
 
-@pytest.mark.parametrize("stopped", [False, True])
-def test_error_stop_check_preserves_uncommitted_timeout(
+def test_timeout_is_recorded_without_reading_a_stop(
     mocker: MockerFixture,
     app_context: None,
     mock_query: MagicMock,
     mock_db_session: MagicMock,
-    stopped: bool,
 ) -> None:
-    """A remote stop wins, but refreshing must not erase a local timeout."""
+    """A timeout is terminal, so the error path neither reads nor guards a stop."""
     from superset.sql.execution import celery_task
 
     mock_query.status = QueryStatusEnum.TIMED_OUT
     mock_query.tmp_table_name = "pending_table"
 
-    def refresh(query: MagicMock, attribute_names: list[str] | None = None) -> None:
-        """Reload the persisted status as a real session would."""
-        query.status = QueryStatusEnum.STOPPED if stopped else QueryStatusEnum.RUNNING
-
-    mock_db_session.refresh.side_effect = refresh
     payload = celery_task._handle_query_error(RuntimeError("Timed out"), mock_query)
 
-    assert payload["status"] == (
-        QueryStatusEnum.STOPPED if stopped else QueryStatusEnum.TIMED_OUT
-    )
+    assert payload["status"] == QueryStatusEnum.TIMED_OUT
+    assert mock_query.status == QueryStatusEnum.TIMED_OUT
+    mock_db_session.refresh.assert_not_called()
+    mock_db_session.query.assert_not_called()
     mock_db_session.flush.assert_not_called()
+    mock_db_session.commit.assert_called_once()
 
 
 @pytest.mark.parametrize(

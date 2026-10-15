@@ -1141,6 +1141,159 @@ def test_get_sql_results_unrecorded_error_after_write_deletes_results(
     engine.dispose()
 
 
+@pytest.mark.parametrize("return_results", [False, True])
+@pytest.mark.parametrize("failure", ["after_failed_commit", "failed_commit"])
+def test_get_sql_results_deletes_results_only_without_committed_failure(  # noqa: C901
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    failure: str,
+    return_results: bool,
+) -> None:
+    """
+    Test that results stored before a failure are kept once the failed row
+    referencing them is committed, even if the metadata database fails right
+    after that commit, and are deleted when the failed row's commit fails.
+    """
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine, event
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'failed-commit.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_run_async = False
+    database.cache_timeout = 100
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+
+    def execute_query(*args: Any, **kwargs: Any) -> MagicMock:
+        """Commit the pre-execution metadata as execute_query does."""
+        sql_lab.db.session.commit()
+        return MagicMock(size=1, columns=[])
+
+    mocker.patch.object(sql_lab, "execute_query", side_effect=execute_query)
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    mocker.patch.object(sql_lab, "_serialize_payload", return_value=b"data")
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    def delete(key: str) -> bool:
+        """Remove the blob."""
+        return stored.pop(key, None) is not None
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = delete
+    mocker.patch.object(sql_lab, "results_backend", backend)
+
+    def timing(key: str, value: float) -> None:
+        """Fail emitting the write timing, once the results are stored."""
+        if key == "sqllab.query.results_backend_write":
+            raise RuntimeError("Metrics unavailable")
+
+    stats_logger = MagicMock()
+    stats_logger.timing.side_effect = timing
+    mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger, "SQL_MAX_ROW": 0})
+
+    failed_flushed = False
+    failed_committed = False
+
+    @event.listens_for(engine, "commit")
+    def fail_failed_commit(conn: Any) -> None:
+        """Fail committing the failed row before the database commits it."""
+        if failure == "failed_commit" and failed_flushed:
+            raise RuntimeError("Metadata commit failed")
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def fail_after_failed_commit(  # noqa: PLR0913
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Fail every metadata statement once the failed row is committed."""
+        if failed_committed:
+            raise RuntimeError("Metadata database unavailable")
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="failed-commit",
+            database_id=1,
+            sql="SELECT 1",
+            executed_sql="SELECT 1",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        @event.listens_for(session, "after_flush")
+        def flushed_failure(flushing_session: Any, context: Any) -> None:
+            nonlocal failed_flushed
+            failed_flushed = query.status == QueryStatus.FAILED
+
+        @event.listens_for(session, "after_commit")
+        def committed_failure(committing_session: Any) -> None:
+            nonlocal failed_committed
+            failed_committed = failed_flushed
+
+        if failure == "after_failed_commit":
+            payload = sql_lab.get_sql_results(
+                123, query.sql, return_results=return_results, store_results=True
+            )
+            assert payload is not None
+            assert payload["status"] == QueryStatus.FAILED
+            assert failed_committed
+        else:
+            with pytest.raises(RuntimeError, match="Metadata commit failed"):
+                sql_lab.get_sql_results(
+                    123, query.sql, return_results=return_results, store_results=True
+                )
+            assert not failed_committed
+            session.rollback()
+
+        event.remove(engine, "before_cursor_execute", fail_after_failed_commit)
+        backend.set.assert_called_once()
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            if failure == "after_failed_commit":
+                # The committed failed row references the results; keep them.
+                assert persisted.status == QueryStatus.FAILED
+                assert persisted.results_key == key
+                assert key in stored
+                backend.delete.assert_not_called()
+            else:
+                # Nothing committed references the results; delete them.
+                assert persisted.status != QueryStatus.FAILED
+                assert persisted.results_key is None
+                assert key not in stored
+                backend.delete.assert_called_once_with(key)
+    engine.dispose()
+
+
 def test_get_sql_results_keeps_published_results_of_stopped_query(
     mocker: MockerFixture,
     app: SupersetApp,

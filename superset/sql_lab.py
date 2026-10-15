@@ -169,13 +169,17 @@ def handle_query_error(
     if errors:
         query.set_extra_json_key("errors", errors_payload)
 
-    db.session.commit()
-    payload.update({"status": query.status, "error": msg, "errors": errors_payload})
+    payload.update(
+        {"status": QueryStatus.FAILED, "error": msg, "errors": errors_payload}
+    )
     if app.config.get("SHOW_STACKTRACE"):
         if stacktrace := traceback.format_exc():
             payload["stacktrace"] = stacktrace
     if troubleshooting_link := app.config["TROUBLESHOOTING_LINK"]:
         payload["link"] = troubleshooting_link
+    # The commit is the last step that can fail: when this function raises, the
+    # failed row was not committed and does not reference the stored results.
+    db.session.commit()
     return payload
 
 
@@ -326,8 +330,8 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                         unpublished_results_key=unpublished_results_key,
                     )
                 except Exception:
-                    # The failure was not recorded, so no committed row
-                    # references the stored results.
+                    # handle_query_error commits last, so the failure was not
+                    # recorded and no committed row references the results.
                     _discard_unpublished_results(query_id, unpublished_results_key)
                     raise
 

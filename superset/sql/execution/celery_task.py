@@ -92,17 +92,16 @@ def _handle_query_error(
         failure; the failed row keeps it, or it is deleted if a stop wins
     """
     # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler).
-    # Kept as an enum: after the commit below the expired attribute reloads as str.
-    status = (
-        QueryStatus.TIMED_OUT
-        if query.status == QueryStatus.TIMED_OUT
-        else QueryStatus.FAILED
-    )
+    # A timeout is a terminal outcome the user did not cause, so like committed
+    # effects it outranks a stop recorded while the query was being killed.
+    timed_out = query.status == QueryStatus.TIMED_OUT
+    status = QueryStatus.TIMED_OUT if timed_out else QueryStatus.FAILED
+    final = durable or timed_out
     # Results stored before the failure are unpublished; a stop reloads the row
     # and drops their pending key, so read it first. A rollback after a failed
     # flush has already dropped it, so prefer the key tracked at the write.
     stored_key = results_key or query.results_key
-    if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
+    if not final and _make_check_stopped_fn(query, preserve_pending=True)():
         _discard_stored_results(query.id, stored_key)
         return _stopped_query_payload(query)
 
@@ -123,17 +122,19 @@ def _handle_query_error(
         if errors:
             query.set_extra_json_key("errors", errors_payload)
 
-        if durable:
-            db.session.commit()  # pylint: disable=consider-using-transaction
-        elif not _commit_query_unless_stopped(query):
-            _discard_stored_results(query.id, stored_key)
-            return _stopped_query_payload(query)
         payload.update({"status": status.value, "error": msg, "errors": errors_payload})
         if app.config.get("SHOW_STACKTRACE"):
             if stacktrace := traceback.format_exc():
                 payload["stacktrace"] = stacktrace
         if troubleshooting_link := app.config.get("TROUBLESHOOTING_LINK"):
             payload["link"] = troubleshooting_link
+        # The commit is the last step that can fail: when this function raises,
+        # the failed row was not committed and does not reference the results.
+        if final:
+            db.session.commit()  # pylint: disable=consider-using-transaction
+        elif not _commit_query_unless_stopped(query):
+            _discard_stored_results(query.id, stored_key)
+            return _stopped_query_payload(query)
         return payload
 
 
@@ -444,8 +445,8 @@ def execute_sql_task(
                         ex, query, durable=committed, results_key=results_key
                     )
                 except Exception:
-                    # The failure was not recorded, so no committed row
-                    # references the stored results.
+                    # _handle_query_error commits last, so the failure was not
+                    # recorded and no committed row references the results.
                     _discard_stored_results(query_id, results_key)
                     raise
 
@@ -606,6 +607,8 @@ def _execute_sql_statements(
     parsed_script, blocks = _prepare_statement_blocks(
         rendered_query, db_engine_spec, database
     )
+    # Whether the target database committed a mutation or CTAS.
+    committed = False
 
     with database.get_raw_connection(
         catalog=query.catalog,
@@ -653,7 +656,6 @@ def _execute_sql_statements(
         stopped = not execution_results or check_stopped()
 
         # Commit for mutations
-        committed = False
         if not stopped and (parsed_script.has_mutation() or query.select_as_cta):
             conn.commit()  # pylint: disable=consider-using-transaction
             committed = True
