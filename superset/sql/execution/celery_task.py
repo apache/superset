@@ -257,12 +257,14 @@ def _store_results_in_backend(
     database: Any,
     durable: bool = False,
     on_results_key: Callable[[str], None] | None = None,
-) -> None:
+) -> str | None:
     """
     Store query results in the results backend.
 
     :param on_results_key: called with the key as soon as the results are
         stored, before any metadata read that can fail
+    :returns: the key set on the row and not yet published, or None if a stop
+        won and the stored results were deleted
     """
     with db.session.no_autoflush:
         key = str(uuid.uuid4())
@@ -313,7 +315,7 @@ def _store_results_in_backend(
             if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
                 if write_success:
                     _discard_stored_results(query.id, key)
-                return
+                return None
             if not write_success:
                 logger.error(
                     "Query %s: Failed to store results in backend, key: %s",
@@ -330,7 +332,7 @@ def _store_results_in_backend(
                 if durable:
                     db.session.commit()  # pylint: disable=consider-using-transaction
                 elif not _commit_query_unless_stopped(query):
-                    return
+                    return None
                 raise SupersetErrorException(
                     SupersetError(
                         message=__("Failed to store query results. Please try again."),
@@ -345,6 +347,7 @@ def _store_results_in_backend(
                     str(query.id),
                     key,
                 )
+                return key
 
 
 def _serialize_result_set(
@@ -771,8 +774,9 @@ def _execute_sql_statements(
         query, original_script, execution_results, payload, total_execution_time_ms
     )
 
+    results_key = None
     if results_backend:
-        _store_results_in_backend(
+        results_key = _store_results_in_backend(
             query,
             payload,
             database,
@@ -780,13 +784,24 @@ def _execute_sql_statements(
             on_results_key=on_results_key,
         )
 
-    return _publish_query_result(query, payload, durable=committed)
+    return _publish_query_result(
+        query, payload, durable=committed, results_key=results_key
+    )
 
 
 def _publish_query_result(
-    query: Query, payload: dict[str, Any], durable: bool = False
+    query: Query,
+    payload: dict[str, Any],
+    durable: bool = False,
+    results_key: str | None = None,
 ) -> dict[str, Any]:
-    """Publish terminal metadata only if no stop has won the finalization race."""
+    """
+    Publish terminal metadata only if no stop has won the finalization race.
+
+    :param results_key: key of results this task stored and has not published;
+        they are deleted if a stop wins. The row's own key is never deleted: a
+        replayed task can load a key an earlier attempt committed.
+    """
     if durable:
         # Committed effects outrank a stop recorded after the commit check.
         if query.status != QueryStatus.FAILED:
@@ -795,16 +810,14 @@ def _publish_query_result(
         return payload
 
     # Serialization and backend writes can outlive the last execution check.
-    # Read the stored key first: a stop reloads the row and drops it.
-    stored_key = query.results_key
     if _make_check_stopped_fn(query, preserve_pending=True)():
-        _discard_stored_results(query.id, stored_key)
+        _discard_stored_results(query.id, results_key)
         return _stopped_query_payload(query)
 
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS
     if not _commit_query_unless_stopped(query):
-        _discard_stored_results(query.id, stored_key)
+        _discard_stored_results(query.id, results_key)
         return _stopped_query_payload(query)
 
     return payload

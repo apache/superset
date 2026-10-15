@@ -3265,6 +3265,73 @@ def test_stop_seen_during_execution_reads_only_loaded_attributes(
     engine.dispose()
 
 
+def test_replayed_task_stop_keeps_results_the_committed_row_references(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """A redelivered task that a stop wins keeps the earlier attempt's results."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'replay.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+    stored = {"prior-attempt-key": b"old data"}
+
+    def store_then_stop(key: str, value: bytes, timeout: int) -> bool:
+        stored[key] = value
+        with Session(engine) as stopper:
+            stopped = stopper.get(Query, 123)
+            stopped.status = QueryStatusEnum.STOPPED
+            stopper.commit()
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store_then_stop
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(celery_task, "results_backend", backend)
+    with Session(engine) as session:
+        session.add(
+            Query(
+                id=123,
+                client_id="replayed",
+                database_id=1,
+                sql="SELECT 1",
+                status=QueryStatusEnum.SUCCESS,
+                results_key="prior-attempt-key",
+            )
+        )
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        payload = celery_task.execute_sql_task(123, "SELECT 1")
+        assert payload is not None
+
+        assert payload["status"] == QueryStatusEnum.STOPPED
+        with Session(engine) as observer:
+            row = observer.get(Query, 123)
+            assert row.status == QueryStatusEnum.STOPPED
+            assert row.results_key == "prior-attempt-key"
+        # Only this attempt's unpublished blob is deleted.
+        assert list(stored) == ["prior-attempt-key"]
+        assert backend.delete.call_count == 1
+    engine.dispose()
+
+
 @pytest.mark.parametrize("autocommit", [False, True], ids=["transaction", "autocommit"])
 @pytest.mark.parametrize("intent", ["status", "early"])
 def test_stop_seen_by_engine_survives_progress_commit(
