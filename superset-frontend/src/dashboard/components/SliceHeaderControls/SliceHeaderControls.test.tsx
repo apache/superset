@@ -882,6 +882,8 @@ test('Dataset drill info API call is made when user can only view chart as table
     ...createProps(),
     supersetCanExplore: false,
   };
+  // "View as table" has its own permission, so label resolution must not be
+  // gated behind Drill to detail.
   renderWrapper(props, {
     Gamma: [
       ['can_view_chart_as_table', 'Dashboard'],
@@ -926,6 +928,8 @@ test('Dataset drill info API call is not made without `can_get_drill_info`', asy
     ...createProps(),
     supersetCanExplore: false,
   };
+  // The endpoint is guarded by `can_get_drill_info` on Dataset, so requesting
+  // it without that permission would only ever produce a 403.
   renderWrapper(props, {
     Gamma: [['can_view_chart_as_table', 'Dashboard']],
   });
@@ -958,6 +962,7 @@ test('Results grid receives verbose names for a view-as-table-only user', async 
       ['can_get_drill_info', 'Dataset'],
     ],
   });
+  // Let the drill_info request settle the way it would while the dashboard loads.
   await waitFor(() => expect(mockCachedSupersetGet).toHaveBeenCalled());
   await openMenu();
   await userEvent.click(screen.getByTestId('view-query-menu-item'));

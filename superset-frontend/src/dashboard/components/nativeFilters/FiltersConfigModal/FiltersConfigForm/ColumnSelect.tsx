@@ -144,14 +144,22 @@ export function ColumnSelect({
   // ID sequences, so switching between them with the same numeric ID must still
   // trigger a column re-fetch.
   const datasourceKey = getDatasourceKey(datasetId, datasourceType);
-  // The datasource whose columns should be shown. A response for any other
-  // datasource is stale (the user switched while it was in flight) and is
-  // ignored, so it can neither replace the options nor reach onColumnsLoaded.
-  const latestDatasourceKey = useRef(datasourceKey);
-  latestDatasourceKey.current = datasourceKey;
+  // Only the request for the current datasource may update the columns: a
+  // late response for a previous (possibly same-id) datasource is ignored.
+  const requestIdRef = useRef(0);
+  // The form outlives this picker: once unmounted, its pending request must
+  // not reset the column a replacement picker has set.
+  useEffect(
+    () => () => {
+      requestIdRef.current += 1;
+    },
+    [],
+  );
   useChangeEffect(datasourceKey, previous => {
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
     const requestKey = datasourceKey;
-    const isStale = () => latestDatasourceKey.current !== requestKey;
+    const isCurrent = () => requestId === requestIdRef.current;
     if (previous != null) {
       setColumns([]);
       resetColumnField();
@@ -161,20 +169,21 @@ export function ColumnSelect({
       const handleError = async (
         badResponse: Parameters<typeof getClientErrorObject>[0],
       ) => {
+        if (!isCurrent()) return;
         const errorText = selectClientErrorMessage(
           await getClientErrorObject(badResponse),
           t('An error has occurred'),
           { 403: t('You do not have permission to edit this dashboard') },
         );
-        addDangerToast(errorText);
+        // The binding may have changed while the error body was read.
+        if (!isCurrent()) return;
+        addDangerToast(errorText, { noDuplicate: true });
       };
 
       if (datasourceType === DatasourceType.SemanticView) {
         fetchSemanticViewStructure(datasetId)
           .then(({ dimensions }) => {
-            if (isStale()) {
-              return;
-            }
+            if (!isCurrent()) return;
             const cols: Column[] = semanticViewDimensionsToColumns(dimensions);
             if (!isValueInColumns(cols)) {
               resetColumnField();
@@ -183,7 +192,7 @@ export function ColumnSelect({
             onColumnsLoaded?.(filterColumnNames(cols), requestKey);
           }, handleError)
           .finally(() => {
-            if (!isStale()) {
+            if (isCurrent()) {
               setLoading(false);
             }
           });
@@ -200,7 +209,7 @@ export function ColumnSelect({
           })}`,
         })
           .then(({ json: { result } }) => {
-            if (isStale()) {
+            if (!isCurrent()) {
               return;
             }
             if (!isValueInColumns(result.columns)) {
@@ -210,11 +219,14 @@ export function ColumnSelect({
             onColumnsLoaded?.(filterColumnNames(result.columns), requestKey);
           }, handleError)
           .finally(() => {
-            if (!isStale()) {
+            if (isCurrent()) {
               setLoading(false);
             }
           });
       }
+    } else {
+      // A superseded request no longer clears the spinner itself.
+      setLoading(false);
     }
   });
 
