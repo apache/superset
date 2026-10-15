@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+- `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
+  has already finished, including when completion wins a concurrent stop request.
+  The response contains `message: "Could not cancel query"` and the completed
+  `query`. API clients should use that query's terminal state rather than treating
+  the response as a successful cancellation.
+
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be
