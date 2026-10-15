@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useRef, type KeyboardEvent } from 'react';
+import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
 
 type ButtonAction = 'run' | 'stop';
 
@@ -28,13 +28,64 @@ export default function useRunStopButton(
   const currentAction: ButtonAction = isStopAction ? 'stop' : 'run';
   const gestureActionRef = useRef<ButtonAction | null>(null);
   const keyboardActionRef = useRef<ButtonAction | null>(null);
+  const releaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cancelReleaseTimer = useCallback(() => {
+    if (releaseTimerRef.current !== null) {
+      clearTimeout(releaseTimerRef.current);
+      releaseTimerRef.current = null;
+    }
+  }, []);
+
+  const clearGesture = useCallback(() => {
+    cancelReleaseTimer();
+    gestureActionRef.current = null;
+    keyboardActionRef.current = null;
+  }, [cancelReleaseTimer]);
+
+  const releaseGesture = useCallback(() => {
+    if (gestureActionRef.current === null) return;
+    cancelReleaseTimer();
+    // Native pointer/Space clicks follow release in the same event turn.
+    // Expire the saved action if that release does not produce a click.
+    releaseTimerRef.current = setTimeout(clearGesture, 0);
+  }, [cancelReleaseTimer, clearGesture]);
+
+  useEffect(() => {
+    const onKeyUp = (event: globalThis.KeyboardEvent) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        keyboardActionRef.current = null;
+        releaseGesture();
+      }
+    };
+    // Release may happen outside the button, including after pointer capture.
+    document.addEventListener('pointerup', releaseGesture, true);
+    document.addEventListener('lostpointercapture', releaseGesture, true);
+    document.addEventListener('pointercancel', clearGesture, true);
+    document.addEventListener('keyup', onKeyUp, true);
+    return () => {
+      document.removeEventListener('pointerup', releaseGesture, true);
+      document.removeEventListener('lostpointercapture', releaseGesture, true);
+      document.removeEventListener('pointercancel', clearGesture, true);
+      document.removeEventListener('keyup', onKeyUp, true);
+      clearGesture();
+    };
+  }, [clearGesture, releaseGesture]);
 
   return {
     onPointerDownCapture: () => {
+      clearGesture();
       gestureActionRef.current = currentAction;
     },
+    onBlurCapture: () => {
+      if (keyboardActionRef.current !== null) clearGesture();
+    },
     onKeyDownCapture: (event: KeyboardEvent<HTMLElement>) => {
+      if (event.key === 'Escape' && keyboardActionRef.current !== null) {
+        clearGesture();
+      }
       if (event.key === 'Enter' || event.key === ' ') {
+        cancelReleaseTimer();
         if (!event.repeat) {
           keyboardActionRef.current = currentAction;
         }
@@ -44,6 +95,7 @@ export default function useRunStopButton(
       }
     },
     onClick: () => {
+      cancelReleaseTimer();
       const gestureAction = gestureActionRef.current ?? currentAction;
       gestureActionRef.current = null;
       if (gestureAction === currentAction) {

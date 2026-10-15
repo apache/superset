@@ -125,6 +125,7 @@ const RunQueryActionButton = ({
   const {
     onPointerDownCapture,
     onKeyDownCapture,
+    onBlurCapture,
     onClick: handleClick,
   } = useRunStopButton(shouldShowStopBtn, () =>
     onClick(shouldShowStopBtn, runQuery, stopQuery, logAction),
@@ -154,6 +155,7 @@ const RunQueryActionButton = ({
 
   return (
     <StyledButton
+      onBlurCapture={onBlurCapture}
       onPointerDownCapture={event => {
         if (isMainButtonGesture(event)) onPointerDownCapture();
       }}

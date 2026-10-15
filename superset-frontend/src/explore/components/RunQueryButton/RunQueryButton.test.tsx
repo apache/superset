@@ -18,6 +18,7 @@
  */
 
 import {
+  act,
   fireEvent,
   render,
   screen,
@@ -142,5 +143,19 @@ test('held Space on Stop does not update the chart after completion', () => {
   fireEvent.click(button, { detail: 0 });
 
   expect(onQuery).not.toHaveBeenCalled();
+  expect(onStop).not.toHaveBeenCalled();
+});
+
+test('an assistive technology click still updates the chart after a cancelled pointer press', async () => {
+  const { onQuery, onStop, finishQuery } = renderGestureButton();
+  const button = screen.getByRole('button', { name: /Stop/ });
+
+  fireEvent.pointerDown(button);
+  finishQuery();
+  fireEvent.pointerUp(document.body);
+  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  fireEvent.click(button, { detail: 0 });
+
+  expect(onQuery).toHaveBeenCalledTimes(1);
   expect(onStop).not.toHaveBeenCalled();
 });

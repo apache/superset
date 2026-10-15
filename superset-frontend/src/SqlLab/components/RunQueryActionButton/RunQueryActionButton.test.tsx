@@ -22,7 +22,7 @@ import { Store } from 'redux';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { Menu } from '@superset-ui/core/components/Menu';
 
-import { render, fireEvent, waitFor } from 'spec/helpers/testing-library';
+import { act, render, fireEvent, waitFor } from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import RunQueryActionButton, {
   RunQueryActionButtonProps,
@@ -361,5 +361,87 @@ test('an assistive technology click still runs after a CTAS caret pointer press'
   fireEvent.click(mainButton, { detail: 0 });
 
   expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test.each(['plain', 'CTAS'])(
+  'an assistive technology click still runs after a cancelled %s main-button pointer press',
+  async variant => {
+    const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton(
+      {
+        overlayCreateAsMenu: variant === 'CTAS' ? ctasMenu : null,
+      },
+    );
+    const button = getAllByRole('button')[0];
+
+    fireEvent.pointerDown(button);
+    switchTo('success');
+    // Releasing outside the button does not produce a button click.
+    fireEvent.pointerUp(document.body);
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    fireEvent.click(button, { detail: 0 });
+
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    expect(stopQuery).not.toHaveBeenCalled();
+  },
+);
+
+test.each(['Escape', 'blur', 'keyup'])(
+  'an assistive technology click still runs after a Space press cancelled by %s',
+  async cancellation => {
+    const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton(
+      {},
+    );
+    const button = getByRole('button');
+
+    fireEvent.keyDown(button, { key: ' ', code: 'Space' });
+    if (cancellation === 'Escape') {
+      fireEvent.keyDown(button, { key: 'Escape', code: 'Escape' });
+    } else if (cancellation === 'blur') {
+      fireEvent.blur(button);
+    }
+    if (cancellation === 'keyup') {
+      fireEvent.keyUp(button, { key: ' ', code: 'Space' });
+      await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    }
+    switchTo('success');
+    fireEvent.click(button, { detail: 0 });
+
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    expect(stopQuery).not.toHaveBeenCalled();
+  },
+);
+
+test.each(['pointerCancel', 'lostPointerCapture'])(
+  'an assistive technology click still runs after main-button %s',
+  async cancellation => {
+    const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton(
+      {},
+    );
+    const button = getByRole('button');
+
+    fireEvent.pointerDown(button);
+    fireEvent[cancellation as 'pointerCancel' | 'lostPointerCapture'](button);
+    switchTo('success');
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    fireEvent.click(button, { detail: 0 });
+
+    expect(runQuery).toHaveBeenCalledTimes(1);
+    expect(stopQuery).not.toHaveBeenCalled();
+  },
+);
+
+test('moving focus during a pointer press preserves the starting Stop action', () => {
+  const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
+  const button = getByRole('button');
+
+  fireEvent.pointerDown(button);
+  fireEvent.blur(button);
+  switchTo('success');
+  fireEvent.pointerUp(button);
+  fireEvent.lostPointerCapture(button);
+  fireEvent.click(button);
+
+  expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).not.toHaveBeenCalled();
 });
