@@ -172,6 +172,20 @@ test('tells the chart it renders embedded in standalone Explore', () => {
   }
 });
 
+test('tells the chart it renders in Explore when standalone keeps the controls', () => {
+  const { pathname } = window.location;
+  window.history.pushState({}, '', '/explore/?standalone=2');
+  try {
+    render(<ChartRenderer {...requiredProps} source={ChartSource.Explore} />);
+    expect(screen.getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-app-section',
+      AppSection.Explore,
+    );
+  } finally {
+    window.history.pushState({}, '', pathname);
+  }
+});
+
 test('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
   const { getByTestId } = render(
     <ChartRenderer {...requiredProps} chartIsStale />,

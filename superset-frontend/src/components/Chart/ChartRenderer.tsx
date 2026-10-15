@@ -55,6 +55,7 @@ import { EmptyState } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { ExploreStandaloneMode } from 'src/explore/constants';
 import type { Datasource, ChartStatus } from 'src/explore/types';
 import type { Dispatch } from 'redux';
 import ChartContextMenu, {
@@ -243,12 +244,16 @@ function ChartRendererComponent({
   );
 
   // Tells plugins where they render, e.g. to allow editing only in Explore.
-  // Standalone Explore serves embedded charts and report screenshots.
+  // Standalone Explore serves chart iframes and report screenshots, except
+  // standalone=2, which keeps the Explore controls. Embedded dashboards
+  // render with the Dashboard source.
   const appSection = useMemo(() => {
     if (source === ChartSource.Dashboard) {
       return AppSection.Dashboard;
     }
-    return getUrlParam(URL_PARAMS.standalone)
+    const standalone = getUrlParam(URL_PARAMS.standalone);
+    return standalone &&
+      standalone !== ExploreStandaloneMode.HideNavShowControls
       ? AppSection.Embedded
       : AppSection.Explore;
   }, [source]);
