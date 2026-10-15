@@ -601,7 +601,8 @@ async def test_query_dataset_normalizes_supported_producer_timezones(
         {"created_at": "2024-01-02T03:04:05+05:30"},
         {"created_at": "2024-01-02T03:04:05-04:00"},
         {"created_at": "2024-01-02T03:04:05-08:00"},
-        {"created_at": "2024-10-27T01:30:00.123456+01:00"},
+        # Dublin fold=1 is the second 01:30, after the return to UTC.
+        {"created_at": "2024-10-27T01:30:00.123456+00:00"},
         {"created_at": "2024-03-10T02:30:00-04:00"},
         {"created_at": "2040-07-01T12:00:00-05:00"},
         {"created_at": "2024-01-01T12:00:00-03:00"},

@@ -1237,7 +1237,8 @@ async def test_get_table_normalizes_supported_producer_timezones(
         {"created_at": "2024-01-02T03:04:05-04:00", "revenue": 2},
         {"created_at": "2024-01-02T03:04:05-08:00", "revenue": 3},
         {
-            "created_at": "2024-10-27T01:30:00.123456+01:00",
+            # Dublin fold=1 is the second 01:30, after the return to UTC.
+            "created_at": "2024-10-27T01:30:00.123456+00:00",
             "revenue": 4,
         },
         {"created_at": "2024-03-10T02:30:00-04:00", "revenue": 5},

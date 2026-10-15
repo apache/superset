@@ -1268,7 +1268,8 @@ def test_bullet_compile_projects_dataframe_timestamp_before_validation() -> None
     assert result.success is True
     assert [row["Category"] for row in captured[0]] == [
         1704164645123.456,
-        1729989000000.0,
+        # Dublin fold=1 is the second 01:30, after the return to UTC.
+        1729992600000.0,
         1710052200000.0,
         2224774800000.0,
     ]
@@ -1857,7 +1858,7 @@ def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> N
     values = [*dateutil_values, *equivalent_values, *pandas_values]
     expected_numbers = [json_int_dttm_ser(value) for value in values]
     expected_categories = [
-        "1729989000123.456",
+        "1729992600123.456",
         "1710052200123.456",
         "2224774800123.456",
         "1710052200123.456",
@@ -1865,7 +1866,7 @@ def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> N
         "1710052200123.456",
         "1710052200123.456",
         "1710052200123.456",
-        "1729989000123.456",
+        "1729992600123.456",
         "1710052200123.456",
         "2224774800123.456",
     ]
