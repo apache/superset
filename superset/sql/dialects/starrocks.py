@@ -39,7 +39,7 @@ from sqlglot import exp
 from sqlglot.dialects.starrocks import StarRocks as _StarRocks
 from sqlglot.errors import ParseError
 from sqlglot.generators.starrocks import StarRocksGenerator as _StarRocksGenerator
-from sqlglot.helper import ensure_list, seq_get
+from sqlglot.helper import seq_get
 from sqlglot.parsers.starrocks import StarRocksParser as _StarRocksParser
 from sqlglot.tokens import TokenType
 
@@ -78,26 +78,6 @@ _STARROCKS_AGGREGATE_COLUMN_CONSTRAINTS = (
     "BITMAP_UNION",
     "HLL_UNION",
 )
-
-
-class StarRocksMaterializedViewRefresh(exp.Refresh):
-    """
-    `REFRESH MATERIALIZED VIEW mv [PARTITION START (...) END (...)] [FORCE]
-    [WITH {SYNC|ASYNC} MODE]` -- sqlglot's generic `exp.Refresh(this, kind)`
-    shape has no room for these StarRocks-only clauses, so the base parser
-    only consumes (without modeling) them; a subclass with its own args is
-    used instead of adding to `exp.Refresh` directly, since Superset can't
-    change the arg_types of a class owned by the installed sqlglot package.
-    https://docs.starrocks.io/docs/sql-reference/sql-statements/table_bucket_part_index/REFRESH_MATERIALIZED_VIEW/
-    """
-
-    arg_types = {
-        **exp.Refresh.arg_types,
-        "force": False,
-        "partition_start": False,
-        "partition_end": False,
-        "mode": False,
-    }
 
 
 class StarRocksParser(_StarRocksParser):
@@ -174,10 +154,11 @@ class StarRocksParser(_StarRocksParser):
         # Extends sqlglot's generic REFRESH (EXTERNAL TABLE | TABLE |
         # MATERIALIZED VIEW) with StarRocks' DICTIONARY and CONNECTIONS forms,
         # and models the optional FORCE / PARTITION START(...) END(...) /
-        # WITH {SYNC|ASYNC} MODE clauses on REFRESH MATERIALIZED VIEW via
-        # `StarRocksMaterializedViewRefresh`'s dedicated args, rather than
-        # just consuming them, so a regenerated statement doesn't silently
-        # drop them. Only the MATERIALIZED VIEW target is parsed with
+        # WITH {SYNC|ASYNC} MODE clauses on REFRESH MATERIALIZED VIEW in
+        # `exp.Refresh`'s own args, which sqlglot's StarRocks generator
+        # renders, rather than just consuming them, so a regenerated
+        # statement doesn't silently drop them. Only the MATERIALIZED VIEW
+        # target is parsed with
         # `_parse_table_parts` instead of `_parse_table`: the latter also
         # tries to parse a trailing `FORCE`/`PARTITION` as a MySQL index
         # hint and raises before this method ever sees those tokens, whereas
@@ -219,7 +200,7 @@ class StarRocksParser(_StarRocksParser):
 
     def _parse_materialized_view_refresh_clauses(
         self, this: exp.Expr | None, kind: str
-    ) -> StarRocksMaterializedViewRefresh:
+    ) -> exp.Refresh:
         force = self._match_text_seq("FORCE")
         partition_start = None
         partition_end = None
@@ -234,7 +215,7 @@ class StarRocksParser(_StarRocksParser):
             mode = self._match_texts(("SYNC", "ASYNC")) and self._prev.text.upper()
             self._match_text_seq("MODE")
 
-        return StarRocksMaterializedViewRefresh(
+        return exp.Refresh(
             this=this,
             kind=kind,
             force=force or None,
@@ -408,64 +389,6 @@ class StarRocksParser(_StarRocksParser):
                 kind=kind,
                 index_type=index_type,
                 options=options,
-            )
-        )
-
-    def _parse_drop(self, exists: bool = False) -> exp.Drop | exp.Command:
-        start = self._prev
-        temporary = self._match(TokenType.TEMPORARY)
-        materialized = self._match_text_seq("MATERIALIZED")
-        iceberg = self._match_text_seq("ICEBERG")
-
-        kind = self._match_set(self.CREATABLES) and self._prev.text.upper()
-        if not kind or (iceberg and kind and kind != "TABLE"):
-            return self._parse_as_command(start)
-
-        concurrently = self._match_text_seq("CONCURRENTLY")
-        if_exists = exists or self._parse_exists()
-
-        if kind == "COLUMN":
-            this = self._parse_column()
-        else:
-            this = self._parse_table_parts(
-                schema=True, is_db_reference=kind == "SCHEMA"
-            )
-
-        if kind == "INDEX" and self._match(TokenType.ON):
-            # MySQL's grammar treats `ON` after DROP INDEX as an "ON CLUSTER"
-            # style property (a bare id, optionally with a column list), but
-            # StarRocks' `DROP INDEX idx ON db.table` names a dotted table.
-            # https://docs.starrocks.io/docs/sql-reference/sql-statements/table_bucket_part_index/DROP_INDEX/
-            cluster = self.expression(exp.OnProperty(this=self._parse_table_parts()))
-        else:
-            cluster = self._parse_on_property() if self._match(TokenType.ON) else None
-
-        if self._match(TokenType.L_PAREN, advance=False):
-            expressions = self._parse_wrapped_csv(self._parse_types)
-        else:
-            expressions = None
-
-        cascade_or_restrict = (
-            self._match_texts(("CASCADE", "RESTRICT")) and self._prev.text.upper()
-        )
-
-        return self.expression(
-            exp.Drop(
-                exists=if_exists,
-                tables=ensure_list(this),
-                expressions=expressions,
-                kind=self.dialect.CREATABLE_KIND_MAPPING.get(kind) or kind,
-                temporary=temporary,
-                materialized=materialized,
-                cascade=cascade_or_restrict == "CASCADE",
-                restrict=cascade_or_restrict == "RESTRICT",
-                constraints=self._match_text_seq("CONSTRAINTS"),
-                purge=self._match_text_seq("PURGE"),
-                cluster=cluster,
-                concurrently=concurrently,
-                sync=self._match_text_seq("SYNC"),
-                iceberg=iceberg,
-                force=self._match_text_seq("FORCE"),
             )
         )
 
@@ -716,19 +639,10 @@ class StarRocksGenerator(_StarRocksGenerator):
     # SQL Lab's Jinja-template-comment-stripping validation step and, for
     # every engine, to build the actual statement text sent to the DB-API
     # cursor -- regenerate SQL from the AST built by `StarRocksParser`
-    # above. The overrides below fix five constructs the parser produces an
+    # above. The overrides below fix four constructs the parser produces an
     # AST for that sqlglot's stock StarRocks generator round-trips
     # incorrectly, which would otherwise send malformed or semantically
     # wrong SQL to StarRocks for anything routed through SQL Lab.
-
-    TRANSFORMS = {
-        **_StarRocksGenerator.TRANSFORMS,
-        # `StarRocksMaterializedViewRefresh` isn't registered under sqlglot's
-        # own class-name-to-method dispatch convention (it isn't a class
-        # sqlglot itself defines), so it's routed to `refresh_sql` below
-        # explicitly.
-        StarRocksMaterializedViewRefresh: lambda self, e: self.refresh_sql(e),
-    }
 
     def refresh_sql(self, expression: exp.Refresh) -> str:
         # `REFRESH CONNECTIONS` has no separate target name -- `this` is only
@@ -738,30 +652,7 @@ class StarRocksGenerator(_StarRocksGenerator):
         if expression.args.get("kind") == "CONNECTIONS":
             return "REFRESH CONNECTIONS"
 
-        sql = super().refresh_sql(expression)
-
-        # REFRESH MATERIALIZED VIEW's own FORCE / PARTITION START(...)
-        # END(...) / WITH {SYNC|ASYNC} MODE clauses, set by `_parse_refresh`
-        # on a `StarRocksMaterializedViewRefresh`. FORCE always renders after
-        # PARTITION, regardless of which side of the partition clause it
-        # appeared on in the source -- StarRocks accepts either position,
-        # but only one is worth preserving.
-        # https://docs.starrocks.io/docs/sql-reference/sql-statements/table_bucket_part_index/REFRESH_MATERIALIZED_VIEW/
-        partition_start = expression.args.get("partition_start")
-        partition_end = expression.args.get("partition_end")
-        if partition_start and partition_end:
-            sql += (
-                f" PARTITION START ({self.sql(partition_start)}) "
-                f"END ({self.sql(partition_end)})"
-            )
-
-        if expression.args.get("force"):
-            sql += " FORCE"
-
-        if mode := expression.args.get("mode"):
-            sql += f" WITH {mode} MODE"
-
-        return sql
+        return super().refresh_sql(expression)
 
     def rollupindex_sql(self, expression: exp.RollupIndex) -> str:
         sql = super().rollupindex_sql(expression)
