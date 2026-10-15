@@ -915,9 +915,7 @@ class EvalHolidayFunc:  # pylint: disable=too-few-public-methods
         # is the datetime or the country depending on which were supplied. What
         # tells them apart is the kind of argument: a datetime is always a
         # function call (`datetime(...)`, `dateadd(...)`, ...) and a country is
-        # always quoted text. Reading the second argument as the datetime
-        # whatever it held left `holiday("Christmas Day", "UK")` taking `.year`
-        # off a string.
+        # always quoted text.
         for argument in self.value[1:]:
             if isinstance(argument, EvalText):
                 country = argument.eval()
