@@ -259,7 +259,7 @@ duckdb-engine==0.17.0
     # via apache-superset
 elasticsearch==7.17.13
     # via elasticsearch-dbapi
-elasticsearch-dbapi==0.2.13
+elasticsearch-dbapi==0.3.0
     # via apache-superset
 email-validator==2.2.0
     # via
