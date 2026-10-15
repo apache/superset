@@ -4,7 +4,7 @@
 # regarding copyright ownership.  The ASF licenses this file
 # to you under the Apache License, Version 2.0 (the
 # "License"); you may not use this file except in compliance
-# with the License. You may obtain a copy of the License at
+# with the License.  You may obtain a copy of the License at
 #
 #   http://www.apache.org/licenses/LICENSE-2.0
 #
@@ -58,7 +58,7 @@ msgid ""
 "                probabilities by dividing each bin's count by the total count of data points.\n"
 "                This normalization process ensures that the resulting values sum up to 1,\n"
 "                enabling a relative comparison of the data's distribution and providing a\n"
-"                clearer understanding of the proportion of data points within each bin."
+"                a clearer understanding of the proportion of data points within each bin."
 msgstr ""
 
 msgid ""
@@ -146,8 +146,482 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
 msgid "% calculation"
+msgstr ""
+
+#, python-format
+msgid "% of"
+msgstr ""
+
+msgid "% of column"
+msgstr ""
+
+msgid "% of column total"
+msgstr ""
+
+msgid "% of grand total"
+msgstr ""
+
+msgid "% of parent"
+msgstr ""
+
+msgid "% of row total"
+msgstr ""
+
+msgid "% of total"
+msgstr ""
+
+#, python-format
+msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
+msgid "%(count)s %(label)s"
+msgstr ""
+
+msgid "%(count)s additional restricted %(label)s"
+msgstr ""
+
+#, python-format
+msgid "%(dialect)s cannot be used as a data source for security reasons."
+msgstr ""
+
+msgid "%(label)s file"
+msgstr ""
+
+msgid "%(name)s deleted successfully"
+msgstr ""
+
+msgid "%(name)s restored successfully"
+msgstr ""
+
+msgid "%(name)s.%(extension)s"
+msgstr ""
+
+msgid "%(name)s.pdf"
+msgstr ""
+
+#, python-format
+msgid "%(num)d hour"
+msgid_plural "%(num)d hours"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d minute"
+msgid_plural "%(num)d minutes"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "%(num)d second"
+msgid_plural "%(num)d seconds"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%(object)s does not exist in this database."
+msgstr ""
+
+msgid "%(prefix)s %(title)s"
+msgstr ""
+
+msgid "%(prefix)sResults truncated to %(row_count)s rows due to memory constraints."
+msgstr ""
+
+msgid "%(report_type)s schedule frequency exceeding limit. Please configure a schedule with a minimum interval of %(minimum_interval)d minutes per execution."
+msgstr ""
+
+msgid "%(rows)d rows returned"
+msgstr ""
+
+#, python-format
+msgid "%(suggestion)s instead of \"%(undefinedParameter)s?\""
+msgid_plural "%(firstSuggestions)s or %(lastSuggestion)s instead of \"%(undefinedParameter)s\"?"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid ""
+"%(validator)s was unable to check your query.\n"
+"Please recheck your query.\n"
+"Exception: %(ex)s"
+msgstr ""
+
+#, python-format
+msgid "%s %s"
+msgstr ""
+
+#, python-format
+msgid "%s (copy from %s)"
+msgstr ""
+
+msgid "%s ENCRYPTED EXTRA"
+msgstr ""
+
+msgid "%s Error"
+msgstr ""
+
+msgid "%s MCP scopes"
+msgstr ""
+
+msgid "%s PASSWORD"
+msgstr ""
+
+msgid "%s Physical"
+msgstr ""
+
+msgid "%s SSH TUNNEL PASSWORD"
+msgstr ""
+
+msgid "%s SSH TUNNEL PRIVATE KEY"
+msgstr ""
+
+msgid "%s SSH TUNNEL PRIVATE KEY PASSWORD"
+msgstr ""
+
+msgid "%s Selected"
+msgstr ""
+
+msgid "%s Selected (%s)"
+msgstr ""
+
+msgid "%s Selected (Physical)"
+msgstr ""
+
+msgid "%s Selected (Virtual)"
+msgstr ""
+
+msgid "%s Semantic View"
+msgstr ""
+
+msgid "%s URL"
+msgstr ""
+
+msgid "%s Virtual"
+msgstr ""
+
+msgid "%s additional restricted chart"
+msgid_plural "%s additional restricted charts"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s additional restricted dashboard"
+msgid_plural "%s additional restricted dashboards"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s affected chart"
+msgid_plural "%s affected charts"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s aggregates(s)"
+msgstr ""
+
+msgid "%s chart updated"
+msgid_plural "%s charts updated"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s column"
+msgid_plural "%s columns"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s column(s)"
+msgstr ""
+
+msgid "%s dashboard updated"
+msgid_plural "%s dashboards updated"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s dataset updated"
+msgid_plural "%s datasets updated"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s day ago"
+msgid_plural "%s days ago"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s field"
+msgid_plural "%s fields"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s hr ago"
+msgid_plural "%s hr ago"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s imported"
+msgstr ""
+
+msgid "%s item"
+msgid_plural "%s items"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s item(s)"
+msgstr ""
+
+msgid "%s items could not be tagged because you don’t have edit permissions to all selected objects."
+msgstr ""
+
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s metric"
+msgid_plural "%s metrics"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s min ago"
+msgid_plural "%s min ago"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s of the selected items is a semantic view, which cannot be archived: it will be deleted permanently and cannot be recovered."
+msgid_plural "%s of the selected items are semantic views, which cannot be archived: they will be deleted permanently and cannot be recovered."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s operator(s)"
+msgstr ""
+
+msgid "%s option"
+msgid_plural "%s options"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s option(s)"
+msgstr ""
+
+msgid "%s out of %s column"
+msgid_plural "%s out of %s columns"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s out of %s metric"
+msgid_plural "%s out of %s metrics"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s out of %s selected"
+msgstr ""
+
+msgid "%s recipients"
+msgstr ""
+
+msgid "%s record..."
+msgid_plural "%s records..."
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s row"
+msgid_plural "%s rows"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s s ago"
+msgid_plural "%s s ago"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s saved metric(s)"
+msgstr ""
+
+msgid "%s second"
+msgid_plural "%s seconds"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "%s semantic view(s) added"
+msgstr ""
+
+msgid "%s semantic view(s) failed to add"
+msgstr ""
+
+msgid "%s semantic view(s) failed to add: %s"
+msgstr ""
+
+msgid "%s tab selected"
+msgstr ""
+
+msgid "%s updated"
+msgstr ""
+
+msgid "%s — click the chart to return"
+msgstr ""
+
+msgid "%s%s"
+msgstr ""
+
+msgid "(Removed)"
+msgstr ""
+
+msgid "(archived)"
+msgstr ""
+
+msgid "(deleted or invalid type)"
+msgstr ""
+
+msgid "(no description, click to see stack trace)"
+msgstr ""
+
+msgid "), and they become available in your SQL (example:"
+msgstr ""
+
+#, python-format
+msgid "*%(name)s*\n"
+"\n"
+"    %(description)s\n"
+"\n"
+"    Error: %(text)s\n"
+"    "
+msgstr ""
+
+#, python-format
+msgid "*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"%(table)s\n"
+msgstr ""
+
+#, python-format
+msgid "*%(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"<%(url)s|Explore in Superset>\n"
+"\n"
+"%(table)s\n"
+msgstr ""
+
+#, python-format
+msgid "*Report Failed - All Retries Exhausted: %(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"The report failed after %(max)s retry attempts.\n"
+"\n"
+"Error: %(text)s\n"
+msgstr ""
+
+#, python-format
+msgid "*Report Retry [%(attempt)s of %(max)s]: %(name)s*\n"
+"\n"
+"%(description)s\n"
+"\n"
+"Retry attempt: %(attempt)s of %(max)s  |  Retries remaining: %(remaining)s\n"
+"\n"
+"Error: %(text)s\n"
+msgstr ""
+
+msgid "+ %s more"
+msgstr ""
+
+msgid ", then paste the JSON below. See our"
+msgstr ""
+
+msgid ""
+"-- Note: Unless you save your query, these tabs will NOT persist if you clear your cookies or change browsers.\n"
+"\n"
+msgstr ""
+
+#, python-format
+msgid "... and %d more"
+msgstr ""
+
+msgid "... and %s more"
+msgid_plural "... and %s more"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "... and %s more records"
+msgstr ""
+
+msgid "... and %s other"
+msgid_plural "... and %s others"
+msgstr[0] ""
+msgstr[1] ""
+
+msgid "... and %s others"
+msgstr ""
+
+msgid "0 Selected"
+msgstr ""
+
+msgid "1 calendar day frequency"
+msgstr ""
+
+msgid "1 day"
+msgstr ""
+
+msgid "1 day ago"
+msgstr ""
+
+msgid "1 hour"
+msgstr ""
+
+msgid "1 hourly frequency"
+msgstr ""
+
+msgid "1 minute"
+msgstr ""
+
+msgid "1 minutely frequency"
+msgstr ""
+
+msgid "1 month ago"
+msgstr ""
+
+msgid "1 month end frequency"
+msgstr ""
+
+msgid "1 month start frequency"
+msgstr ""
+
+msgid "1 week"
+msgstr ""
+
+msgid "1 week ago"
+msgstr ""
+
+msgid "1 week starting Monday (freq=W-MON)"
+msgstr ""
+
+msgid "1 week starting Sunday (freq=W-SUN)"
+msgstr ""
+
+msgid "1 year"
+msgstr ""
+
+msgid "1 year ago"
+msgstr ""
+
+msgid "1 year end frequency"
+msgstr ""
+
+msgid "1 year start frequency"
+msgstr ""
+
+msgid "10 minute"
+msgstr ""
+
+msgid "10 seconds"
+msgstr ""
+
+msgid "10/90 percentiles"
+msgstr ""
+
+#, do-not-translate
+msgid "10000"
 msgstr ""
 
 # ... (file continues unchanged) ...
