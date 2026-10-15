@@ -103,7 +103,7 @@ def _handle_query_error(
     # flush has already dropped it, so prefer the key tracked at the write.
     stored_key = results_key or query.results_key
     if not final and _make_check_stopped_fn(query, preserve_pending=True)():
-        _discard_results_unless_referenced(query, stored_key)
+        _discard_unreferenced_results(query.id, stored_key)
         return _stopped_query_payload(query)
 
     with db.session.no_autoflush:
@@ -134,7 +134,7 @@ def _handle_query_error(
         if final:
             db.session.commit()  # pylint: disable=consider-using-transaction
         elif not _commit_query_unless_stopped(query):
-            _discard_results_unless_referenced(query, stored_key)
+            _discard_unreferenced_results(query.id, stored_key)
             return _stopped_query_payload(query)
         return payload
 
@@ -510,13 +510,15 @@ def _discard_stored_results(query_id: int, key: str | None) -> None:
 
 def _discard_unreferenced_results(query_id: int, key: str | None) -> None:
     """
-    Delete stored results after a failure the task could not record, unless the
-    query row references them.
+    Delete stored results after a failure the task could not record, or after
+    a stop wins the error path, unless the query row references them.
 
     A metadata commit can apply and still raise, for example when its
-    acknowledgement is lost, so the row is read again in a new transaction. If
-    that read fails too, the results are kept until they expire: an orphaned
-    blob is safer than a committed row that references deleted results.
+    acknowledgement is lost, and a stop can then land on the row that commit
+    published. Uncommitted metadata is rolled back and the row is read again
+    in a new transaction. If that read fails, the results are kept until they
+    expire: an orphaned blob is safer than a committed row that references
+    deleted results.
     """
     if not key or not results_backend:
         return
@@ -535,19 +537,6 @@ def _discard_unreferenced_results(query_id: int, key: str | None) -> None:
         return
     if referenced_key != key:
         _discard_stored_results(query_id, key)
-
-
-def _discard_results_unless_referenced(query: Query, key: str | None) -> None:
-    """
-    Delete stored results after a stop wins the error path, unless the stopped
-    row references them.
-
-    A publish commit can apply and still raise; a stop that lands while that
-    error is handled leaves a committed row that references the results. The
-    stop checks reload the whole row, so ``query`` holds its committed key.
-    """
-    if query.results_key != key:
-        _discard_stored_results(query.id, key)
 
 
 def _stopped_query_payload(query: Query) -> dict[str, Any]:

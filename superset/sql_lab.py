@@ -151,11 +151,8 @@ def handle_query_error(
             # A publish commit can apply and still raise, so the stopped row
             # may already reference the results: delete them only if it does
             # not.
-            with db.session.no_autoflush:
-                db.session.refresh(query, attribute_names=["results_key"])
-            if query.results_key != unpublished_results_key:
-                _discard_unpublished_results(query.id, unpublished_results_key)
-            payload.update({"status": query.status})
+            _discard_unreferenced_results(query.id, unpublished_results_key)
+            payload.update({"status": QueryStatus.STOPPED})
             return payload
 
     msg = f"{prefix_message} {str(ex)}".strip()
@@ -231,13 +228,15 @@ def _discard_unpublished_results(query_id: int, key: Optional[str]) -> None:
 
 def _discard_unreferenced_results(query_id: int, key: Optional[str]) -> None:
     """
-    Delete stored results after a failure the task could not record, unless the
-    query row references them.
+    Delete stored results after a failure the task could not record, or after
+    a stop wins the error path, unless the query row references them.
 
     A metadata commit can apply and still raise, for example when its
-    acknowledgement is lost, so the row is read again in a new transaction. If
-    that read fails too, the results are kept until they expire: an orphaned
-    blob is safer than a committed row that references deleted results.
+    acknowledgement is lost, and a stop can then land on the row that commit
+    published. Uncommitted metadata is rolled back and the row is read again
+    in a new transaction. If that read fails, the results are kept until they
+    expire: an orphaned blob is safer than a committed row that references
+    deleted results.
     """
     if not key or not results_backend:
         return
