@@ -16,9 +16,11 @@
 # under the License.
 """Tests for SQL Lab stop requests racing with worker finalization."""
 
+import inspect
 from pathlib import Path
 
 import pytest
+from flask import current_app
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
@@ -154,7 +156,7 @@ def test_engine_early_cancel_preserves_concurrently_committed_terminal_metadata(
         if caller == "dao":
             QueryDAO.stop_query("engine-stop-race")
         else:
-            assert SQLExecutor._cancel_async_query(123, query.database) is True
+            assert SQLExecutor._cancel_async_query(123, query.database) is False
 
     with Session(engine) as verify_session:
         completed = verify_session.get(Query, 123)
@@ -316,3 +318,133 @@ def test_stop_query_commits_stop_with_early_cancel(
     assert query.status == QueryStatus.STOPPED
     assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
     assert query.end_time == 1234.5
+
+
+@pytest.mark.parametrize("caller", ["api", "async_handle"])
+@pytest.mark.parametrize("finish_during_cancel", [False, True])
+@pytest.mark.parametrize(
+    "terminal_status", [QueryStatus.SUCCESS, QueryStatus.FAILED, QueryStatus.TIMED_OUT]
+)
+def test_stop_reports_concurrently_finished_query(
+    mocker: MockerFixture,
+    app_context: None,
+    tmp_path: Path,
+    caller: str,
+    finish_during_cancel: bool,
+    terminal_status: QueryStatus,
+) -> None:
+    """A finished query is not reported as cancelled, including a lost stop race."""
+    from superset.queries.api import QueryRestApi
+    from superset.sql.execution.executor import SQLExecutor
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'stop-outcome.db'}")
+    Query.__table__.create(engine)
+    with Session(engine) as stop_session:
+        query = Query(
+            id=123,
+            client_id="finished-stop",
+            user_id=7,
+            database_id=1,
+            status=QueryStatus.RUNNING if finish_during_cancel else terminal_status,
+        )
+        stop_session.add(query)
+        stop_session.commit()
+        mocker.patch("superset.daos.query.db.session", stop_session)
+        mocker.patch("superset.daos.query.get_user_id", return_value=7)
+        payload = {"id": "finished-stop", "state": terminal_status.lower()}
+        mocker.patch.object(Query, "to_dict", return_value=payload)
+
+        def cancel(*args: object) -> bool:
+            """Commit the worker's terminal outcome during engine cancellation."""
+            assert finish_during_cancel
+            with Session(engine) as worker_session:
+                completed = worker_session.get(Query, 123)
+                assert completed is not None
+                completed.status = terminal_status
+                worker_session.commit()
+            return True
+
+        cancel_query = mocker.patch(
+            "superset.daos.query.sql_lab.cancel_query", side_effect=cancel
+        )
+        cancel_async = mocker.patch.object(
+            SQLExecutor, "_cancel_query", side_effect=cancel
+        )
+        if caller == "api":
+            with current_app.test_request_context(json={"client_id": "finished-stop"}):
+                response = inspect.unwrap(QueryRestApi.stop_query)(QueryRestApi())
+            assert response.status_code == 422
+            assert response.get_json() == {
+                "message": "Could not cancel query",
+                "query": payload,
+            }
+        else:
+            assert SQLExecutor._cancel_async_query(123, mocker.Mock()) is False
+        assert cancel_query.call_count + cancel_async.call_count == int(
+            finish_during_cancel
+        )
+        assert stop_session.get(Query, 123).status == terminal_status
+    engine.dispose()
+
+
+@pytest.mark.parametrize("caller", ["dao", "async_handle"])
+@pytest.mark.parametrize("early_cancel", [False, True])
+def test_winning_stop_preserves_concurrently_committed_extra(
+    mocker: MockerFixture,
+    app_context: None,
+    tmp_path: Path,
+    caller: str,
+    early_cancel: bool,
+) -> None:
+    """Only stop-owned metadata changes when a worker updates a running query."""
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.sql.execution.executor import SQLExecutor
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'stop-extra.db'}")
+    Query.__table__.create(engine)
+    worker_extra = {QUERY_CANCEL_KEY: "worker-handle", "progress": "worker progress"}
+    with Session(engine) as stop_session:
+        query = Query(
+            id=123,
+            client_id="extra-stop",
+            user_id=7,
+            database_id=1,
+            status=QueryStatus.RUNNING,
+            extra_json='{"initial": true}',
+        )
+        stop_session.add(query)
+        stop_session.commit()
+        mocker.patch("superset.daos.query.db.session", stop_session)
+        mocker.patch("superset.daos.query.get_user_id", return_value=7)
+
+        def cancel(*args: object) -> bool:
+            """Stage early intent while a second session publishes worker metadata."""
+            assert query.extra == {"initial": True}
+            if early_cancel:
+                query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+            with Session(engine) as worker_session:
+                running = worker_session.get(Query, 123)
+                assert running is not None
+                for key, value in worker_extra.items():
+                    running.set_extra_json_key(key, value)
+                worker_session.commit()
+            return True
+
+        mocker.patch("superset.daos.query.sql_lab.cancel_query", side_effect=cancel)
+        mocker.patch.object(SQLExecutor, "_cancel_query", side_effect=cancel)
+        if caller == "dao":
+            QueryDAO.stop_query("extra-stop")
+        else:
+            assert SQLExecutor._cancel_async_query(123, mocker.Mock()) is True
+
+    with Session(engine) as verify_session:
+        stopped = verify_session.get(Query, 123)
+        assert stopped is not None
+        assert stopped.status == QueryStatus.STOPPED
+        assert stopped.end_time is not None
+        assert stopped.extra == {
+            "initial": True,
+            **worker_extra,
+            **({QUERY_EARLY_CANCEL_KEY: True} if early_cancel else {}),
+        }
+    engine.dispose()

@@ -1431,19 +1431,23 @@ class SQLExecutor:
     @transaction()
     def _cancel_async_query(query_id: int, database: Database) -> bool:
         """Cancel an async query and persist intent without replacing a result."""
+        from superset.common.db_query_status import QueryStatus as DBQueryStatus
         from superset.models.sql_lab import Query as QueryModel
         from superset.sql.execution.utils import set_query_stopped
         from superset.utils.dates import now_as_float
 
         query = db.session.query(QueryModel).filter_by(id=query_id).one_or_none()
-        if not query:
+        if not query or query.status in (
+            DBQueryStatus.SUCCESS,
+            DBQueryStatus.FAILED,
+            DBQueryStatus.TIMED_OUT,
+        ):
             return False
 
         with db.session.no_autoflush:
             if not SQLExecutor._cancel_query(database, query):
                 return False
-            set_query_stopped(query, now_as_float())
-        return True
+            return set_query_stopped(query, now_as_float())
 
     @staticmethod
     def _cancel_query(database: Database, query: Any) -> bool:

@@ -62,7 +62,8 @@ class QueryDAO(BaseDAO[Query]):
 
     @staticmethod
     @transaction()
-    def stop_query(client_id: str) -> None:
+    def stop_query(client_id: str) -> Query:
+        """Stop a query and return its recorded outcome, including a lost race."""
         query = (
             db.session.query(Query)
             .filter(Query.client_id == client_id, Query.user_id == get_user_id())
@@ -79,7 +80,7 @@ class QueryDAO(BaseDAO[Query]):
             logger.warning(
                 "Query with client_id could not be stopped: query already complete",
             )
-            return
+            return query
 
         with db.session.no_autoflush:
             if not sql_lab.cancel_query(query):
@@ -89,6 +90,7 @@ class QueryDAO(BaseDAO[Query]):
             # conditional write must win the row lock before any staged
             # early-cancel flag is flushed by the transaction decorator.
             set_query_stopped(query, now_as_float())
+        return query
 
 
 class SavedQueryDAO(BaseDAO[SavedQuery]):

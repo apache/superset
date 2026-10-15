@@ -411,6 +411,8 @@ tutorial dashboard to see the four charts side by side and compare the different
 
 ### SQL Lab Tips
 
+**Stopping queries**: If a query finishes before a stop request takes effect, SQL Lab displays its completed outcome (success, failure, or timeout) rather than marking it stopped. This does not show a stop-failure toast. If the database cannot cancel a query that is still running, SQL Lab shows the stop-failure toast.
+
 **Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.
 
 **Find in editor**: Press **Ctrl+F** (or **Cmd+F** on Mac) to open the Monaco find/replace widget inside the SQL editor without leaving the editor.

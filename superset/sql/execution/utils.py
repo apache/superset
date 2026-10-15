@@ -136,10 +136,12 @@ def set_query_stopped(query: Query, end_time: float) -> bool:
     """Stage a stop only if no completed outcome won the row's write lock.
 
     The caller commits the stop and any staged early-cancel flag together.
+    A winning stop merges only that flag into freshly locked extra metadata.
     A losing stop discards its pending metadata with a locking refresh, which
     also sees the winning row under MySQL's REPEATABLE READ isolation.
     """
     with db.session.no_autoflush:
+        early_cancel = query.extra.get(QUERY_EARLY_CANCEL_KEY)
         updated = (
             db.session.query(Query)
             .filter(
@@ -156,8 +158,11 @@ def set_query_stopped(query: Query, end_time: float) -> bool:
         if not updated:
             db.session.refresh(query, with_for_update=True)
             return False
-        # The conditional update holds the write lock through the caller's
-        # commit, so the ORM flush cannot race with a terminal publication.
+        # The update holds the write lock through commit. Discard stale ORM
+        # metadata and merge only stop intent into the worker's latest extra.
+        db.session.refresh(query, with_for_update=True)
         query.status = QueryStatus.STOPPED
         query.end_time = end_time
+        if early_cancel:
+            query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
     return True
