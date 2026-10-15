@@ -28,6 +28,8 @@ shape served, and strict validation of the control values it accepts."""
 
 from __future__ import annotations
 
+import pytest
+
 from superset.utils import json
 from superset.widgets.registry import registry
 
@@ -142,6 +144,7 @@ def test_a_widget_without_any_chrome_still_validates_cleanly() -> None:
     assert errors == []
 
 
+@pytest.mark.parametrize("app", [{"FEATURE_FLAGS": {"CANVAS": True}}], indirect=True)
 def test_control_schema_rest_endpoint_exposes_chrome(client, full_api_access) -> None:
     resp = client.get("/api/v1/widgets/type/echarts/control-schema")
     assert resp.status_code == 200
@@ -149,6 +152,7 @@ def test_control_schema_rest_endpoint_exposes_chrome(client, full_api_access) ->
     assert "chrome" in schema["properties"]
 
 
+@pytest.mark.parametrize("app", [{"FEATURE_FLAGS": {"CANVAS": True}}], indirect=True)
 def test_validate_rest_endpoint_accepts_chrome_fields(client, full_api_access) -> None:
     resp = client.post(
         "/api/v1/widgets/type/echarts/validate",

@@ -17,7 +17,7 @@
 
 from datetime import date, datetime, time, timezone
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, Mock
 from zoneinfo import ZoneInfo
 
 import freezegun
@@ -30,6 +30,7 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
     Filter,
+    FilterExpression,
     Grain,
     Grains,
     GroupLimit,
@@ -48,6 +49,7 @@ from superset.common.chart_data import ChartDataResultFormat, ChartDataResultTyp
 from superset.common.query_context import QueryContext
 from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
+from superset.semantic_layers.cache import SemanticCacheOutcome
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
     _convert_query_object_filter,
@@ -465,7 +467,8 @@ def test_convert_query_object_filter_ilike(
         result = _convert_query_object_filter(filter_, all_dimensions)
         assert result is not None
         assert len(result) == 1
-        converted = next(iter(result))
+        converted: FilterExpression = next(iter(result))
+        assert isinstance(converted, Filter)
         assert converted.operator == expected
         assert converted.column == all_dimensions["category"]
         assert converted.value == "%book%"
@@ -995,6 +998,20 @@ def test_map_query_object_basic(mock_datasource: MagicMock) -> None:
             group_limit=None,
         )
     ]
+
+
+def test_map_query_object_preserves_order_while_deduplicating_columns(
+    mock_datasource: MagicMock,
+) -> None:
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category", "category"],
+    )
+
+    result: list[SemanticQuery] = map_query_object(query_object)
+
+    assert [dimension.name for dimension in result[0].dimensions] == ["category"]
 
 
 def test_map_query_object_with_time_offsets(mock_datasource: MagicMock) -> None:
@@ -2681,11 +2698,12 @@ def test_convert_query_object_filter_temporal_range_named_ranges(
         result = _convert_query_object_filter(filter_, all_dimensions)
 
     assert result is not None
-    assert {f.operator for f in result} == {
+    assert {f.operator for f in result if isinstance(f, Filter)} == {
         Operator.GREATER_THAN_OR_EQUAL,
         Operator.LESS_THAN,
     }
     for f in result:
+        assert isinstance(f, Filter)
         assert isinstance(f.value, datetime)
 
 
@@ -4084,14 +4102,16 @@ def test_map_query_object_shifts_time_offset_via_temporal_range_filter(
         gte = next(
             f.value
             for f in query.filters or ()
-            if f.column is not None
+            if isinstance(f, Filter)
+            and f.column is not None
             and f.column.name == "order_date"
             and f.operator == Operator.GREATER_THAN_OR_EQUAL
         )
         lt = next(
             f.value
             for f in query.filters or ()
-            if f.column is not None
+            if isinstance(f, Filter)
+            and f.column is not None
             and f.column.name == "order_date"
             and f.operator == Operator.LESS_THAN
         )
@@ -4172,7 +4192,9 @@ def test_get_group_limit_filters_uses_time_axis_from_temporal_range(
     order_date_bounds = {
         (f.operator, f.value)
         for f in result
-        if f.column is not None and f.column.name == "order_date"
+        if isinstance(f, Filter)
+        and f.column is not None
+        and f.column.name == "order_date"
     }
     # Inner bounds — not the outer 2020-01-01 / 2020-12-31 — must be present,
     # and the outer TEMPORAL_RANGE pass-through must be skipped.
@@ -4281,6 +4303,130 @@ def test_abc_only_provider_validates_and_maps(mocker: MockerFixture) -> None:
 
     assert {metric.name for metric in queries[0].metrics} == {"total_sales"}
     assert {dim.name for dim in queries[0].dimensions} == {"category"}
+
+
+@pytest.mark.parametrize("offset", [None, -1, 0, 2])
+@pytest.mark.parametrize("limit", [None, 0, 2])
+def test_row_offset_mapping_without_advertised_capability(
+    mock_datasource: MagicMock, offset: int | None, limit: int | None
+) -> None:
+    """Keep direct callers provider-local even when UI support is absent."""
+    mock_datasource.implementation.features = frozenset()
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        row_offset=offset,
+        row_limit=limit,
+        orderby=[("category", True)],
+    )
+
+    queries: list[SemanticQuery] = map_query_object(query_object)
+
+    assert len(queries) == 1
+    assert queries[0].offset == (offset or 0)
+    assert queries[0].limit == limit
+    assert queries[0].order is not None
+    assert queries[0].order[0][1] == OrderDirection.ASC
+    assert isinstance(queries[0].order[0][0], Dimension)
+    assert queries[0].order[0][0].name == "category"
+
+
+def test_unadvertised_offset_reaches_provider(
+    mock_datasource: MagicMock, mocker: MockerFixture
+) -> None:
+    """Do not add host-wide rejection for capable but unadvertised providers."""
+    mock_datasource.implementation.features = frozenset()
+    result: SemanticResult = SemanticResult(
+        requests=[], results=pa.table({"category": ["third"], "total_sales": [3.0]})
+    )
+    execute: Mock = mocker.Mock(return_value=result)
+    mock_datasource.implementation.get_table = execute
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        row_offset=2,
+        row_limit=2,
+    )
+
+    get_results(query_object)
+
+    execute.assert_called_once()
+    assert execute.call_args.args[0].offset == 2
+    assert execute.call_args.args[0].limit == 2
+
+
+def _offset_query_object(mock_datasource: MagicMock) -> ValidatedQueryObject:
+    return ValidatedQueryObject(
+        datasource=mock_datasource,
+        from_dttm=datetime(2025, 10, 15),
+        to_dttm=datetime(2025, 10, 22),
+        metrics=["total_sales"],
+        columns=["category"],
+        granularity="order_date",
+        time_offsets=["1 week ago"],
+        cache_timeout=60,
+    )
+
+
+def _outcome(cache_hit: bool) -> SemanticCacheOutcome:
+    frame: pd.DataFrame = pd.DataFrame({"category": ["Books"], "total_sales": [1.0]})
+    return SemanticCacheOutcome(
+        SemanticResult(
+            requests=[SemanticRequest(type="SQL", definition="Q")],
+            results=pa.Table.from_pandas(frame),
+        ),
+        cache_hit=cache_hit,
+    )
+
+
+@pytest.mark.parametrize(
+    ("main_hit", "offset_hit", "expected_status"),
+    [
+        (True, True, "HIT"),
+        (False, False, "MISS"),
+        (True, False, "MIXED"),
+        (False, True, "MIXED"),
+    ],
+)
+def test_get_results_reports_provenance_across_offset_queries(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    main_hit: bool,
+    offset_hit: bool,
+    expected_status: str,
+) -> None:
+    """A time-comparison chart dispatches one semantic query per offset; the
+    reported provenance must cover all of them, not only the main query."""
+    mock_datasource.implementation.get_table = mocker.Mock()
+    dispatch: MagicMock = mocker.patch(
+        "superset.semantic_layers.mapper._dispatch_semantic_query",
+        side_effect=[_outcome(main_hit), _outcome(offset_hit)],
+    )
+
+    result: QueryResult = get_results(_offset_query_object(mock_datasource))
+
+    assert result.semantic_cache_status == expected_status
+    assert dispatch.call_count == 2
+
+
+def test_get_results_passes_resolved_cache_timeout_to_every_dispatch(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+) -> None:
+    mock_datasource.implementation.get_table = mocker.Mock()
+    dispatch: MagicMock = mocker.patch(
+        "superset.semantic_layers.mapper._dispatch_semantic_query",
+        side_effect=[_outcome(False), _outcome(False)],
+    )
+
+    get_results(_offset_query_object(mock_datasource))
+
+    assert [call.kwargs["cache_timeout"] for call in dispatch.call_args_list] == [
+        60,
+        60,
+    ]
 
 
 @pytest.mark.parametrize("entrypoint", ["results", "validate", "map"])

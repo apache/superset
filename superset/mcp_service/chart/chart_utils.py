@@ -3002,10 +3002,8 @@ def map_big_number_config(
 ) -> Dict[str, Any]:
     """Map big number chart config to Superset form_data."""
     # Determine viz_type: big_number (with trendline) or big_number_total
-    if config.show_trendline and config.temporal_column:
-        viz_type = "big_number"
-    else:
-        viz_type = "big_number_total"
+    time_column = config.trendline_time_column
+    viz_type = "big_number" if time_column else "big_number_total"
 
     metric = create_metric_object(config.metric)
     form_data: Dict[str, Any] = {
@@ -3027,7 +3025,11 @@ def map_big_number_config(
         # Big Number with trendline uses granularity_sqla for the temporal column
         # (unlike XY charts which use x_axis). This is how Superset's
         # big_number viz determines the time column for the trendline.
-        form_data["granularity_sqla"] = config.temporal_column
+        # An inherited SQL expression stays under x_axis, where Explore saved it.
+        if isinstance(time_column, str):
+            form_data["granularity_sqla"] = time_column
+        else:
+            form_data["x_axis"] = time_column
         form_data["show_trend_line"] = True
         form_data["start_y_axis_at_zero"] = config.start_y_axis_at_zero
 
@@ -3559,7 +3561,7 @@ def _big_number_chart_what(config: BigNumberChartConfig) -> str:
         metric_label = f"{config.metric.aggregate}({config.metric.name})"
     else:
         metric_label = config.metric.name or ""
-    if config.show_trendline:
+    if config.trendline_time_column:
         return f"Big Number ({metric_label}, trendline)"
     return f"Big Number ({metric_label})"
 

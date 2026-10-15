@@ -18,6 +18,8 @@
  */
 
 import React from 'react';
+import { useColorMode } from '@docusaurus/theme-common';
+import DatabaseLogo from './DatabaseLogo';
 import {
   Card,
   Collapse,
@@ -28,6 +30,8 @@ import {
   Space,
   Divider,
   Tabs,
+  ConfigProvider,
+  theme,
 } from 'antd';
 import {
   CheckCircleOutlined,
@@ -319,8 +323,9 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
             label: (
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 {compat.logo && (
-                  <img
-                    src={`/img/databases/${compat.logo}`}
+                  <DatabaseLogo
+                    logo={compat.logo}
+                    logoDark={compat.logo_dark}
                     alt={compat.name}
                     style={{
                       width: 28,
@@ -627,11 +632,13 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
     <div className="database-page" id={name.toLowerCase().replace(/\s+/g, '-')}>
       <div style={{ marginBottom: 16 }}>
         {docs?.logo && (
-          <img
-            src={`/img/databases/${docs.logo}`}
+          <DatabaseLogo
+            logo={docs.logo}
+            logoDark={docs.logo_dark}
             alt={name}
             style={{
               height: 120,
+              maxWidth: '100%',
               objectFit: 'contain',
               marginBottom: 12,
             }}
@@ -857,4 +864,19 @@ const DatabasePage: React.FC<DatabasePageProps> = ({ database, name }) => {
   );
 };
 
-export default DatabasePage;
+export default function ThemedDatabasePage(
+  props: DatabasePageProps,
+): React.JSX.Element {
+  const { colorMode } = useColorMode();
+
+  return (
+    <ConfigProvider
+      theme={{
+        algorithm:
+          colorMode === 'dark' ? theme.darkAlgorithm : theme.defaultAlgorithm,
+      }}
+    >
+      <DatabasePage {...props} />
+    </ConfigProvider>
+  );
+}
