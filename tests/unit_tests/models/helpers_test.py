@@ -35,7 +35,11 @@ from sqlalchemy.sql.elements import Cast, ColumnElement
 from sqlalchemy.sql.visitors import iterate
 
 from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
-from superset.utils.core import FilterOperator, GenericDataType
+from superset.utils.core import (
+    FilterOperator,
+    GenericDataType,
+    QueryObjectFilterClause,
+)
 from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
@@ -6032,3 +6036,206 @@ def test_get_query_result_wraps_post_processing_type_error(
         pytest.raises(QueryObjectValidationError),
     ):
         table.get_query_result(query_object)
+
+
+# Rows used by the NULL-handling tests for negated filters. ``state`` is the
+# column that is selected back out; the other columns are the filter targets for
+# the column-type cases. The last row is NULL in every filtered column.
+_NEGATION_ROWS = [
+    (1, "CA", 1, 1, "2024-01-01 00:00:00", "aaaaaaaa-0000-0000-0000-000000000001"),
+    (2, "NY", 2, 0, "2024-02-01 00:00:00", "bbbbbbbb-0000-0000-0000-000000000002"),
+    (3, "TX", 3, 0, "2024-03-01 00:00:00", "cccccccc-0000-0000-0000-000000000003"),
+    (4, None, None, None, None, None),
+]
+
+
+def _states_matching_filter(
+    database: Database, flt: QueryObjectFilterClause
+) -> set[str | None]:
+    """
+    Build ``flt`` with the real ``get_sqla_query`` against a SQLite table holding
+    the ``_NEGATION_ROWS``, run the compiled SQL, and return the ``state`` values
+    of the rows that survive the filter (``None`` for the all-NULL row).
+    """
+    from sqlalchemy import text
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    with database.get_sqla_engine() as engine:
+        with engine.begin() as connection:
+            connection.execute(text("DROP TABLE IF EXISTS negation_t"))
+            connection.execute(
+                text(
+                    "CREATE TABLE negation_t (id INTEGER, state TEXT, n INTEGER, "
+                    "flag BOOLEAN, ts TIMESTAMP, uid UUID)"
+                )
+            )
+            for row in _NEGATION_ROWS:
+                connection.execute(
+                    text(
+                        "INSERT INTO negation_t VALUES "
+                        "(:id, :state, :n, :flag, :ts, :uid)"
+                    ),
+                    dict(
+                        zip(("id", "state", "n", "flag", "ts", "uid"), row, strict=True)
+                    ),
+                )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="negation_t",
+        columns=[
+            TableColumn(column_name="id", type="INTEGER"),
+            TableColumn(column_name="state", type="TEXT"),
+            TableColumn(column_name="n", type="INTEGER"),
+            TableColumn(column_name="flag", type="BOOLEAN"),
+            TableColumn(column_name="ts", type="TIMESTAMP", is_dttm=True),
+            TableColumn(column_name="uid", type="UUID"),
+            TableColumn(
+                column_name="upper_state", type="TEXT", expression="UPPER(state)"
+            ),
+        ],
+    )
+    query = table.get_sqla_query(
+        columns=["state"],
+        metrics=[],
+        extras={},
+        filter=[flt],
+        granularity=None,
+        is_timeseries=False,
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+    with database.get_sqla_engine() as engine:
+        with engine.connect() as connection:
+            return {row[0] for row in connection.exec_driver_sql(sql).fetchall()}
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "state", "op": "!=", "val": "CA"}, id="not-equals-text"),
+        pytest.param(
+            {"col": "state", "op": "NOT LIKE", "val": "%C%"}, id="not-like-text"
+        ),
+        pytest.param(
+            {"col": "state", "op": "NOT ILIKE", "val": "%c%"}, id="not-ilike-text"
+        ),
+    ],
+)
+def test_negated_filter_keeps_null_rows(
+    database: Database, flt: QueryObjectFilterClause
+) -> None:
+    """
+    ``!=``, ``NOT LIKE`` and ``NOT ILIKE`` only exclude the rows they name.
+
+    In SQL ``NULL != 'CA'`` is not true, so a bare ``state != 'CA'`` would also
+    drop the row whose ``state`` is NULL. A negated filter must keep it.
+    """
+    assert _states_matching_filter(database, flt) == {"NY", "TX", None}
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "n", "op": "!=", "val": 1}, id="not-equals-numeric"),
+        pytest.param({"col": "n", "op": "!=", "val": "1"}, id="not-equals-numeric-str"),
+        pytest.param({"col": "flag", "op": "!=", "val": True}, id="not-equals-boolean"),
+        pytest.param(
+            {"col": "ts", "op": "!=", "val": "2024-01-01 00:00:00"},
+            id="not-equals-temporal",
+        ),
+        pytest.param(
+            {"col": "upper_state", "op": "!=", "val": "CA"},
+            id="not-equals-calculated-column",
+        ),
+        pytest.param(
+            {
+                "col": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "UPPER(state)",
+                    "label": "upper_state_expr",
+                },
+                "op": "!=",
+                "val": "CA",
+            },
+            id="not-equals-adhoc-sql-column",
+        ),
+        pytest.param(
+            {"col": "n", "op": "NOT LIKE", "val": "1%"},
+            id="not-like-numeric-cast-to-string",
+        ),
+        pytest.param(
+            {"col": "n", "op": "NOT ILIKE", "val": "1%"},
+            id="not-ilike-numeric-cast-to-string",
+        ),
+        pytest.param(
+            {"col": "uid", "op": "NOT LIKE", "val": "aaaaaaaa%"},
+            id="not-like-uuid-cast-to-string",
+        ),
+        pytest.param(
+            {"col": "uid", "op": "NOT ILIKE", "val": "AAAAAAAA%"},
+            id="not-ilike-uuid-cast-to-string",
+        ),
+    ],
+)
+def test_negated_filter_keeps_null_rows_across_column_types(
+    database: Database, flt: QueryObjectFilterClause
+) -> None:
+    """
+    The NULL row is kept for numeric, boolean, temporal, UUID, calculated and
+    ad-hoc SQL expression columns, including the LIKE paths that cast the column
+    to a string first.
+    """
+    assert _states_matching_filter(database, flt) == {"NY", "TX", None}
+
+
+@pytest.mark.parametrize(
+    "flt, expected",
+    [
+        pytest.param({"col": "state", "op": "==", "val": "CA"}, {"CA"}, id="equals"),
+        pytest.param({"col": "state", "op": "IN", "val": ["CA"]}, {"CA"}, id="in"),
+        pytest.param({"col": "state", "op": "LIKE", "val": "%C%"}, {"CA"}, id="like"),
+        pytest.param({"col": "state", "op": "ILIKE", "val": "%c%"}, {"CA"}, id="ilike"),
+        pytest.param(
+            {"col": "state", "op": "IS NULL", "val": None}, {None}, id="is-null"
+        ),
+        pytest.param(
+            {"col": "state", "op": "IS NOT NULL", "val": None},
+            {"CA", "NY", "TX"},
+            id="is-not-null",
+        ),
+        pytest.param(
+            {"col": "n", "op": ">", "val": 1}, {"NY", "TX"}, id="greater-than"
+        ),
+        pytest.param(
+            {"col": "state", "op": "NOT IN", "val": ["CA", None]},
+            {"NY", "TX"},
+            id="not-in-with-explicit-null-operand",
+        ),
+        pytest.param(
+            {"col": "state", "op": "!=", "val": None},
+            {"CA", "NY", "TX"},
+            id="not-equals-null-operand",
+        ),
+        pytest.param(
+            {"col": "state", "op": "!=", "val": "<NULL>"},
+            {"CA", "NY", "TX"},
+            id="not-equals-null-marker-operand",
+        ),
+        pytest.param(
+            {"col": "state", "op": "==", "val": None},
+            {None},
+            id="equals-null-operand",
+        ),
+    ],
+)
+def test_filters_with_unchanged_null_semantics(
+    database: Database, flt: QueryObjectFilterClause, expected: set[str | None]
+) -> None:
+    """
+    Operators that are not negated comparisons, and negated operators given an
+    explicit NULL operand, keep their NULL handling: ``!= NULL`` still means
+    ``IS NOT NULL`` and ``NOT IN (..., NULL)`` still excludes the NULL row.
+    """
+    assert _states_matching_filter(database, flt) == expected
