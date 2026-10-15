@@ -562,8 +562,9 @@ class ChartDataRestApi(ChartRestApi):
             # decision (failing closed for a guest whose principal can't be
             # resolved) and is a no-op otherwise, so it can be called
             # unconditionally. The same
-            # helper redacts the ``/datasource/samples`` (Drill to detail)
-            # response so the two guest-facing endpoints cannot diverge.
+            # helper redacts the ``/datasource/samples`` (Drill to detail) and
+            # legacy ``/api/v1/query/`` responses so the guest-facing query
+            # endpoints cannot diverge.
             redact_sensitive_query_fields(queries)
 
             payload: dict[str, Any] = {"result": queries}
