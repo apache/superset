@@ -17,16 +17,57 @@
 
 from __future__ import annotations
 
+import enum
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Generic, TypeVar
+from dataclasses import dataclass
+from typing import Any, ClassVar, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
 
-from superset_core.semantic_layers.metadata import MetadataRefreshAdapter
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
 SemanticViewT = TypeVar("SemanticViewT", bound="SemanticView")
+
+
+class SemanticCacheResponsibility(str, enum.Enum):
+    """Component responsible for caching semantic provider results."""
+
+    PROVIDER = "provider"
+    SUPERSET = "superset"
+
+
+class SemanticCacheScope(str, enum.Enum):
+    """Execution scope in which a semantic result may be reused."""
+
+    EXECUTION_CONTEXT = "execution_context"
+    GLOBAL = "global"
+
+
+@dataclass(frozen=True)
+class SemanticCacheCapabilities:
+    """Provider guarantees for equivalent cached post-processing semantics."""
+
+    comparisons: bool = False
+    membership: bool = False
+    nulls: bool = False
+    pattern_escape: str | None = None
+
+
+@dataclass(frozen=True)
+class SemanticCacheExecutionContext:
+    """Typed host principal context offered to provider identity policy."""
+
+    principal_id: str | None
+    role_ids: tuple[str, ...]
+    host_identity: str
+
+
+@dataclass(frozen=True)
+class SemanticCacheIdentityMaterial:
+    """Explicit secret-free, result-affecting provider identity material."""
+
+    values: Mapping[str, object]
 
 
 class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
@@ -35,23 +76,41 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
 
     configuration_class: type[BaseModel]
+    semantic_cache_responsibility: SemanticCacheResponsibility = (
+        SemanticCacheResponsibility.PROVIDER
+    )
+    semantic_cache_scope: SemanticCacheScope = SemanticCacheScope.EXECUTION_CONTEXT
+    semantic_cache_capabilities: SemanticCacheCapabilities = SemanticCacheCapabilities()
+
+    def get_semantic_cache_provider_identity(
+        self,
+    ) -> SemanticCacheIdentityMaterial | None:
+        """Return explicit secret-free provider identity, or bypass containment."""
+        return None
+
+    def get_semantic_cache_context_identity(
+        self,
+        context: SemanticCacheExecutionContext,
+    ) -> SemanticCacheIdentityMaterial | None:
+        """Return complete request-context identity, or bypass containment."""
+        return None
+
     # Opt in only when all result methods enforce the advertised guarantee.
     # None preserves legacy result-cache keys without constructing the provider.
     result_cache_version: ClassVar[str | None] = None
 
     @classmethod
-    def supports_metadata_refresh(cls, configuration: dict[str, Any]) -> bool:
-        """Declare opt-in support without construction, discovery or other I/O."""
-        return False
+    def from_configuration_with_cache_token(
+        cls, configuration: dict[str, Any], *, cache_token: str
+    ) -> SemanticLayer[ConfigT, SemanticViewT]:
+        """Construct with the host's metadata generation before any discovery.
 
-    @property
-    def metadata_refresh(self) -> MetadataRefreshAdapter | None:
-        """Return a stable adapter instance, or None for legacy metadata behavior.
-
-        An opted-in layer returns the same adapter for its lifetime. Its views
-        and runtime schema use the instance bound by the host.
+        ``cache_token`` is an opaque generation that changes when the layer's
+        metadata is reloaded. Providers with local metadata caches override this
+        factory to include it in their keys before construction or lookup. Legacy
+        providers retain their ordinary construction behavior.
         """
-        return None
+        return cls.from_configuration(configuration)
 
     @classmethod
     @abstractmethod

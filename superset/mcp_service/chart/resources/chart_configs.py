@@ -167,6 +167,44 @@ def get_chart_configs_resource() -> str:
         },
     }
 
+    # Bullet chart examples
+    bullet_chart_configs = {
+        "attainment_against_targets": {
+            "description": (
+                "Revenue attainment against qualitative thresholds and a plan marker"
+            ),
+            "config": {
+                "chart_type": "bullet",
+                "metric": {
+                    "name": "revenue",
+                    "aggregate": "SUM",
+                    "label": "Revenue",
+                },
+                "ranges": [100000, 250000, 500000],
+                "range_labels": ["Minimum", "Target", "Stretch"],
+                "markers": [300000],
+                "marker_labels": ["Plan"],
+                "show_labels": True,
+                "y_axis_format": "$,.0f",
+            },
+            "use_cases": ["Goal attainment", "KPI target comparison"],
+        },
+        "regional_attainment": {
+            "description": "One bullet row per region using a saved metric",
+            "config": {
+                "chart_type": "bullet",
+                "metric": {"name": "attainment", "saved_metric": True},
+                "dimensions": [{"name": "region"}],
+                "marker_lines": [1],
+                "marker_line_labels": ["Goal"],
+                "show_legend": True,
+                "y_axis_format": ".0%",
+                "row_limit": 100,
+            },
+            "use_cases": ["Regional scorecards", "Progress by team"],
+        },
+    }
+
     # Table chart examples
     table_chart_configs = {
         "basic_table": {
@@ -357,6 +395,12 @@ def get_chart_configs_resource() -> str:
             "Apply sort_by to highlight important data",
             "Use ag-grid-table viz_type for large interactive datasets",
         ],
+        "bullet_charts": [
+            "Use one numeric metric; COUNT/COUNT_DISTINCT work for text columns",
+            "Use dimensions only when separate bullet rows are meaningful",
+            "Keep range/marker labels aligned one-for-one with their values",
+            "Use marker_lines for hard targets and markers for point comparisons",
+        ],
         "interactive_pivots": [
             "Use rows for AG Grid row groups and columns for pivot labels",
             "Metric aggregates also seed AG Grid's group aggregation model",
@@ -394,11 +438,32 @@ def get_chart_configs_resource() -> str:
 
     resource_data = {
         "xy_chart_configs": xy_chart_configs,
+        "bullet_chart_configs": bullet_chart_configs,
         "table_chart_configs": table_chart_configs,
         "sunburst_chart_configs": sunburst_chart_configs,
         "interactive_pivot_configs": interactive_pivot_configs,
         "gantt_chart_configs": gantt_chart_configs,
         "gauge_configs": gauge_configs,
+        "geographic_configs": {
+            "regional_choropleth": {
+                "chart_type": "country_map",
+                "country": "usa",
+                "region_format": "abbreviation",
+                "entity": {"name": "state"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+            "country_choropleth": {
+                "chart_type": "world_map",
+                "country_format": "cca2",
+                "entity": {"name": "country"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            },
+            "geographic_points": {
+                "chart_type": "deck_scatter",
+                "latitude": {"name": "latitude"},
+                "longitude": {"name": "longitude"},
+            },
+        },
         "best_practices": best_practices,
         "usage_notes": [
             "All examples are valid ChartConfig objects that pass validation",

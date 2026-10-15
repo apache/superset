@@ -84,6 +84,8 @@ from pydantic import (
 )
 from pydantic.json_schema import SkipJsonSchema
 
+from superset.semantic_layers.access import is_semantic_layers_enabled
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -1305,9 +1307,9 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
         default=False,
         description=(
             "Whether the ENABLE_VIEWERS feature flag is enabled on this "
-            "instance. When False, dashboard viewers are stored but have no "
-            "effect on access control — access still follows normal "
-            "Superset permissions/editorship."
+            "instance. Access checks restrict access to any nonempty viewers "
+            "list regardless of this flag, so role changes take effect "
+            "either way."
         ),
     )
     warnings: list[str] = Field(
@@ -2903,8 +2905,9 @@ class ApplyFilterValueSpec(BaseModel):
     values: List[FilterSelectValue] | None = Field(
         None,
         description=(
-            "Values to select, for a filter_select filter. Pass an empty "
-            "list to clear the filter's current selection."
+            "Values to select, for a filter_select filter; each must exist "
+            "in the filter's column. Pass an empty list to clear the "
+            "filter's current selection."
         ),
     )
     time_range: str | None = Field(
@@ -3349,9 +3352,12 @@ def dashboard_datasets_serializer(
             slc
         )
 
+    semantic_layers_enabled: bool = is_semantic_layers_enabled()
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
     for (_, source_type), slices in slices_by_datasource.items():
+        if source_type == DatasourceType.SEMANTIC_VIEW and not semantic_layers_enabled:
+            continue
         kind: Literal["table", "semantic_view"] = (
             "semantic_view" if source_type == DatasourceType.SEMANTIC_VIEW else "table"
         )

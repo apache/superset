@@ -149,3 +149,46 @@ test('cancel resets the selection back to the original frequency and does not sa
   expect(screen.getByRole('radio', { name: '1 minute' })).toBeChecked();
   expect(screen.getByRole('radio', { name: '1 hour' })).not.toBeChecked();
 });
+
+test('the interval list comes from the configured DASHBOARD_AUTO_REFRESH_INTERVALS', async () => {
+  setup(
+    {},
+    {
+      DASHBOARD_AUTO_REFRESH_INTERVALS: [
+        [0, "Don't refresh"],
+        [600, '10 minutes'],
+        [3600, '1 hour'],
+      ],
+    },
+  );
+
+  expect(screen.getByRole('radio', { name: '10 minutes' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('radio', { name: '10 seconds' }),
+  ).not.toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('radio', { name: '10 minutes' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  expect(defaultProps.onChange).toHaveBeenCalledWith(600, true);
+});
+
+test('a saved frequency missing from the configured list still renders and survives a save', async () => {
+  // defaultProps.refreshFrequency is 60, which the configuration below omits.
+  setup(
+    {},
+    {
+      DASHBOARD_AUTO_REFRESH_INTERVALS: [
+        [0, "Don't refresh"],
+        [3600, '1 hour'],
+      ],
+    },
+  );
+
+  expect(screen.getByRole('radio', { name: '1 hour' })).toBeInTheDocument();
+  expect(screen.getByRole('spinbutton')).toHaveValue(60);
+
+  await userEvent.click(screen.getByRole('button', { name: 'Save' }));
+
+  expect(defaultProps.onChange).toHaveBeenCalledWith(60, true);
+});
