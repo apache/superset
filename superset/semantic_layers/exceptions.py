@@ -19,6 +19,7 @@
 
 import logging
 from collections.abc import Callable
+from typing import ParamSpec
 
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as _
@@ -26,7 +27,7 @@ from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
 )
-from superset_core.semantic_layers.types import SemanticQuery, SemanticResult
+from superset_core.semantic_layers.types import SemanticResult
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -44,6 +45,8 @@ from superset.utils.error_sanitization import (
 )
 
 logger: logging.Logger = logging.getLogger(__name__)
+
+ProviderArguments = ParamSpec("ProviderArguments")
 
 
 def rejection_message(code: SemanticQueryErrorCode) -> str:
@@ -98,12 +101,14 @@ class SemanticLayerExecutionError(SupersetErrorException):
 
 
 def execute_semantic_query(
-    dispatcher: Callable[[SemanticQuery], SemanticResult], query: SemanticQuery
+    dispatcher: Callable[ProviderArguments, SemanticResult],
+    *args: ProviderArguments.args,
+    **kwargs: ProviderArguments.kwargs,
 ) -> SemanticResult:
     """Translate provider signals without changing host validation or retries."""
     try:
         with provider_completeness():
-            return dispatcher(query)
+            return dispatcher(*args, **kwargs)
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from ex
     except (
