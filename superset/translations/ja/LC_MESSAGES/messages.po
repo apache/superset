@@ -10392,7 +10392,7 @@ msgid "Opacity, expects values between 0 and 100"
 msgstr "不透明度(0から100の間の値)"
 
 msgid "Open"
-msgstr "開く"
+msgstr "始値"
 
 msgid "Open Datasource tab"
 msgstr "データソースタブを開く"
