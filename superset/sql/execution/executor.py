@@ -62,7 +62,7 @@ import logging
 import time
 import uuid
 from datetime import datetime
-from typing import Any, NoReturn, TYPE_CHECKING
+from typing import Any, cast, NoReturn, TYPE_CHECKING
 
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
@@ -83,6 +83,7 @@ from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
+    import pandas as pd
     from superset_core.queries.types import (
         AsyncQueryHandle,
         QueryOptions,
@@ -402,6 +403,94 @@ def execute_sql_with_cursor(
         db.session.commit()  # pylint: disable=consider-using-transaction
 
     return results
+
+
+def _decode_async_results_payload(blob: bytes) -> dict[str, Any]:
+    """
+    Decode a results backend blob written by the async SQL execution task.
+
+    The task stores a zlib-compressed payload serialized either as MessagePack
+    or as UTF-8 JSON, depending on ``RESULTS_BACKEND_USE_MSGPACK``. The format
+    is detected from the payload itself (a JSON object starts with ``{``, which
+    is never the first byte of a MessagePack map), so results stay readable if
+    the setting differs between the writing worker and the reading process.
+
+    :param blob: Compressed payload read from the results backend
+    :returns: The deserialized payload
+    """
+    import msgpack
+
+    from superset.utils import json
+
+    decompressed = cast(bytes, utils.zlib_decompress(blob, decode=False))
+    if decompressed.lstrip()[:1] == b"{":
+        return json.loads(decompressed)
+    return msgpack.loads(decompressed, raw=False)
+
+
+def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | None:
+    """
+    Convert one stored statement's data into a DataFrame.
+
+    SELECT results are stored as Arrow IPC bytes (MessagePack payloads) or as
+    a list of records (JSON payloads); DML statements store ``None``. A
+    SELECT returning no rows yields an empty DataFrame that keeps its columns,
+    matching the synchronous execution path.
+
+    :param stmt_data: Statement entry from the stored payload
+    :returns: DataFrame of the statement rows, or ``None`` for DML
+    """
+    import pyarrow as pa
+
+    data = stmt_data.get("data")
+    if data is None:
+        return None
+
+    if isinstance(data, (bytes, bytearray, memoryview)):
+        from superset.result_set import SupersetResultSet
+
+        table = pa.ipc.open_stream(pa.BufferReader(data)).read_all()
+        return SupersetResultSet.convert_table_to_df(table)
+
+    columns = [
+        column.get("column_name", column.get("name", ""))
+        for column in stmt_data.get("columns", [])
+    ]
+    return _records_to_dataframe(data, columns)
+
+
+def _records_to_dataframe(records: list[Any], columns: list[Any]) -> pd.DataFrame:
+    """
+    Build a DataFrame from JSON-style records.
+
+    Values are converted through Arrow, as SELECT results are on the
+    synchronous path, so integer columns with nulls keep ``None`` instead of
+    becoming ``NaN`` floats; mixed or nested values are kept as Python
+    objects. The given columns are kept even when there are no records.
+
+    :param records: Rows as dicts keyed by column name
+    :param columns: Column names, in order
+    :returns: DataFrame of the records
+    """
+    import pandas as pd
+    import pyarrow as pa
+
+    if not columns or not all(isinstance(row, dict) for row in records):
+        return pd.DataFrame(records, columns=columns or None)
+
+    def to_series(values: list[Any]) -> pd.Series:
+        try:
+            array = pa.array(values)
+        except (pa.ArrowInvalid, pa.ArrowTypeError):
+            return pd.Series(values, dtype=object)
+        if pa.types.is_nested(array.type):
+            return pd.Series(values, dtype=object)
+        return array.to_pandas(integer_object_nulls=True)
+
+    return pd.DataFrame(
+        {name: to_series([row.get(name) for row in records]) for name in columns},
+        columns=columns,
+    )
 
 
 class SQLExecutor:
@@ -1090,7 +1179,13 @@ class SQLExecutor:
                 StatementResult(
                     original_sql=stmt_data["original_sql"],
                     executed_sql=stmt_data["executed_sql"],
-                    data=stmt_data["data"],
+                    data=(
+                        _records_to_dataframe(
+                            stmt_data["data"], stmt_data.get("columns", [])
+                        )
+                        if isinstance(stmt_data["data"], list)
+                        else stmt_data["data"]
+                    ),
                     row_count=stmt_data["row_count"],
                     execution_time_ms=stmt_data["execution_time_ms"],
                     truncated=stmt_data.get("truncated", False),
@@ -1147,6 +1242,11 @@ class SQLExecutor:
                         stmt.data.to_dict(orient="records")
                         if isinstance(stmt.data, pd.DataFrame)
                         else stmt.data
+                    ),
+                    "columns": (
+                        list(stmt.data.columns)
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else []
                     ),
                     "row_count": stmt.row_count,
                     "truncated": stmt.truncated,
@@ -1343,7 +1443,6 @@ class SQLExecutor:
     @staticmethod
     def _get_async_query_result(query_id: int) -> Any:
         """Get the result of an async query."""
-        import pandas as pd
         from superset_core.queries.types import (
             QueryResult as QueryResultType,
             QueryStatus as QueryStatusType,
@@ -1369,8 +1468,6 @@ class SQLExecutor:
 
         # Fetch results from results backend
         if query.results_key:
-            import msgpack
-
             from superset import results_backend_manager
 
             results_backend = results_backend_manager.results_backend
@@ -1378,25 +1475,13 @@ class SQLExecutor:
                 blob = results_backend.get(query.results_key)
                 if blob:
                     try:
-                        from superset.utils.core import zlib_decompress
-
-                        payload = msgpack.loads(zlib_decompress(blob))
+                        payload = _decode_async_results_payload(blob)
 
                         statements = [
                             StatementResult(
                                 original_sql=stmt_data.get("original_sql", ""),
                                 executed_sql=stmt_data.get("executed_sql", ""),
-                                data=(
-                                    pd.DataFrame(
-                                        stmt_data.get("data", []),
-                                        columns=[
-                                            c.get("column_name", c.get("name", ""))
-                                            for c in stmt_data.get("columns", [])
-                                        ],
-                                    )
-                                    if stmt_data.get("data")
-                                    else None
-                                ),
+                                data=_decode_async_statement_data(stmt_data),
                                 row_count=stmt_data.get("row_count", 0),
                                 truncated=stmt_data.get("truncated", False),
                                 execution_time_ms=stmt_data.get("execution_time_ms"),
