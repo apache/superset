@@ -17,6 +17,7 @@
 
 
 from typing import Any
+from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -489,7 +490,7 @@ def test_get_available_engine_specs_only_probes_native_backends(
         return_value=iter([MySQLEngineSpec, SnowflakeEngineSpec]),
     )
     mocker.patch("superset.db_engine_specs.entry_points", return_value=[])
-    find_spec = mocker.patch("superset.db_engine_specs.find_spec")
+    find_spec: MagicMock = mocker.patch("superset.db_engine_specs.find_spec")
 
     available = get_available_engine_specs()
 
