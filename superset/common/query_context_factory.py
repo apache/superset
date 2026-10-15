@@ -172,7 +172,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         query_object: QueryObject,
     ) -> QueryObject:
         self._apply_granularity(query_object, form_data, datasource)
-        self._apply_filters(query_object)
+        self._apply_filters(query_object, form_data)
         self._add_tooltip_columns(query_object, form_data)
         self._add_currency_column(query_object, form_data, datasource)
         return query_object
@@ -434,8 +434,19 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     if filter["col"] != filter_to_remove
                 ]
 
-    def _apply_filters(self, query_object: QueryObject) -> None:
+    def _apply_filters(
+        self, query_object: QueryObject, form_data: dict[str, Any] | None = None
+    ) -> None:
+        """Apply the time range, retaining the source of dashboard overrides."""
+        extra_form_data: object = (form_data or {}).get("extra_form_data")
+        dashboard_time_override: bool = (
+            isinstance(extra_form_data, dict)
+            and "time_range" in extra_form_data
+            and extra_form_data["time_range"] == query_object.time_range
+        )
         if query_object.time_range:
             for filter_object in query_object.filter:
                 if filter_object["op"] == "TEMPORAL_RANGE":
                     filter_object["val"] = query_object.time_range
+                    if dashboard_time_override:
+                        filter_object["isExtra"] = True

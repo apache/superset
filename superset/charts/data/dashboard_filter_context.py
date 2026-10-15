@@ -32,6 +32,7 @@ from superset.constants import (
 )
 from superset.models.dashboard import Dashboard
 from superset.utils import json
+from superset.utils.core import QueryObjectFilterClause
 
 logger = logging.getLogger(__name__)
 
@@ -382,5 +383,11 @@ def apply_dashboard_filter_context(  # noqa: C901
         for src_key, target_key in EXTRA_FORM_DATA_OVERRIDE_REGULAR_MAPPINGS.items():
             if src_key in extra_form_data:
                 query[target_key] = extra_form_data[src_key]
+                if src_key == "time_range" and extra_form_data[src_key]:
+                    # The query factory rewrites temporal predicates with this range.
+                    filter_: QueryObjectFilterClause
+                    for filter_ in query.get("filters") or []:
+                        if filter_.get("op") == "TEMPORAL_RANGE":
+                            filter_["isExtra"] = True
 
         query["extra_form_data"] = extra_form_data

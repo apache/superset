@@ -1397,7 +1397,8 @@ def validate_filter_columns(
 
     Dashboard (``isExtra``) filters are not refused: incompatible ones are
     skipped and reported, so a dashboard filter cannot break the chart. A
-    "No filter" time range constrains nothing, so its column is not checked.
+    "No filter" time range constrains nothing, so missing columns are allowed;
+    chart-defined metric filters remain unsupported.
     """
     for filter_ in filters:
         column: Column = filter_["col"]
@@ -1405,7 +1406,6 @@ def validate_filter_columns(
             not isinstance(column, str)
             or column in dimension_names
             or filter_.get("isExtra")
-            or _is_no_op_time_range(filter_)
         ):
             continue
         if column in metric_names:
@@ -1416,6 +1416,8 @@ def validate_filter_columns(
                     column=column,
                 )
             )
+        if _is_no_op_time_range(filter_):
+            continue
         raise QueryObjectValidationError(
             _(
                 "Filter column '%(column)s' is not in this semantic view. Select a "

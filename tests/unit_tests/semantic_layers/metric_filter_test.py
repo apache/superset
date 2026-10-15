@@ -37,6 +37,7 @@ from superset_core.semantic_layers.types import (
 )
 from werkzeug.test import TestResponse
 
+from superset.charts.data.dashboard_filter_context import apply_dashboard_filter_context
 from superset.common.query_context_processor import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.exceptions import QueryObjectValidationError
@@ -317,3 +318,58 @@ def test_chart_no_op_time_range_on_missing_column_is_not_refused(
     response: TestResponse = client.post("/api/v1/chart/data", json=_request(filters))
     assert response.status_code == 200, response.json
     metric_view[1].get_table.assert_called_once()
+
+
+@pytest.mark.parametrize("source", ["chart", "browser", "server", "mismatched"])
+def test_dashboard_time_override_preserves_foreign_filter_provenance(
+    client: FlaskClient,
+    full_api_access: None,
+    metric_view: tuple[SemanticView, MagicMock],
+    source: str,
+) -> None:
+    """Dashboard time rewrites stay incompatible; chart time filters still refuse."""
+    payload: dict[str, Any] = _request(
+        [{"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}]
+    )
+    time_range: str = "2025-01-01 : 2025-02-01"
+    if source == "server":
+        apply_dashboard_filter_context(payload, {"time_range": time_range})
+    else:
+        payload["queries"][0]["time_range"] = time_range
+        if source in {"browser", "mismatched"}:
+            payload["form_data"] = {
+                "extra_form_data": {
+                    "time_range": time_range if source == "browser" else "Last week"
+                }
+            }
+    response: TestResponse = client.post("/api/v1/chart/data", json=payload)
+    assert response.status_code == (
+        400 if source in {"chart", "mismatched"} else 200
+    ), response.json
+    if source in {"chart", "mismatched"}:
+        metric_view[1].get_table.assert_not_called()
+    else:
+        assert response.json is not None
+        assert response.json["result"][0]["rejected_filter_columns"] == ["ds"]
+        metric_view[1].get_table.assert_called_once()
+        query: SemanticQuery = metric_view[1].get_table.call_args.args[0]
+        assert not query.filters
+
+
+@pytest.mark.parametrize("value", ["No filter", "Aucun filtre", None])
+def test_metric_no_op_time_range_is_still_refused(
+    client: FlaskClient,
+    full_api_access: None,
+    metric_view: tuple[SemanticView, MagicMock],
+    mocker: MockerFixture,
+    value: str | None,
+) -> None:
+    """The no-op exception for missing columns does not relax metric refusal."""
+    mocker.patch("superset.utils.date_parser._", return_value="Aucun filtre")
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json=_request([{"col": "total_amount", "op": "TEMPORAL_RANGE", "val": value}]),
+    )
+    assert response.status_code == 400, response.json
+    assert METRIC_FILTER_ERROR in str(response.json)
+    metric_view[1].get_table.assert_not_called()
