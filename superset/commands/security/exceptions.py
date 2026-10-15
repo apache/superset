@@ -35,3 +35,18 @@ class RLSDatasourceForbiddenError(ForbiddenError):
 
 class RuleDeleteFailedError(DeleteFailedError):
     message = _("RLS rules could not be deleted.")
+
+
+class PasswordRecoveryDisabledError(CommandException):
+    status = 404
+    message = _("Not found")
+
+
+class PasswordRecoveryInvalidTokenError(CommandException):
+    status = 400
+    message = _("This password reset link is invalid or has expired.")
+
+
+class PasswordRecoveryFailedError(CommandException):
+    status = 500
+    message = _("The password could not be reset. Please try again.")
