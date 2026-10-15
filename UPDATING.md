@@ -293,11 +293,16 @@ label as the custom color key, for example:
 
 ### Semantic provider error handling
 
-Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
-(formerly HTTP 408), `SupersetGenericDBErrorException` and
-`SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
-failures. Worker control timeouts and host input-validation errors retain their
-existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
+Semantic chart-query execution and value suggestions return HTTP 400 with
+host-owned guidance for typed provider rejections, and generic HTTP 500 responses
+for provider faults. In chart execution this includes provider-raised
+`SupersetTimeoutException` (formerly 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly 400). Host input validation and
+worker control exceptions retain their existing handling. Failed server-side
+value searches no longer retry without their narrowing filter; manual filter-value
+entry remains available. Providers should raise `SemanticQueryRejectedError` only
+for positively identified input-validation failures. See the
+[provider error contract](docs/developer_docs/semantic-query-errors.md).
 
 ### Semantic-view Table charts without a temporal axis
 
@@ -1378,15 +1383,16 @@ that don't touch SQLAlchemy directly.
 
 `MEDIAN`, `STDDEV_SAMP`, and `VAR_SAMP` are now available anywhere a metric
 aggregate is chosen (every chart type, SQL Lab, MCP), not only in Pivot
-Table's controls. Support is opt-in per database engine *spec class*,
-verified against a live instance before being enabled: Postgres, MySQL
-(`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and Redshift (inherits
-Postgres's support, not yet separately verified) ship enabled in this
-release. Engine specs that subclass one of those (e.g. MariaDB, Aurora
-MySQL/Postgres, TimescaleDB) inherit the same support, on the same
-not-yet-independently-verified basis. Picking one of these aggregates on a
-database that has not opted in returns a clear "not supported on this
-database" error rather than a failed query. See
+Table's controls. Support is opt-in per database engine *spec class*:
+Postgres, MySQL (`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and
+Redshift (inherits Postgres's support) were verified against a live
+instance; Databricks and Snowflake (both `MEDIAN`/`STDDEV_SAMP`/`VAR_SAMP`)
+were confirmed against each vendor's own documented SQL function reference,
+not yet against a live instance. Engine specs that subclass one of these
+(e.g. MariaDB, Aurora MySQL/Postgres, TimescaleDB) inherit the same support,
+on the same verification basis as their parent. Picking one of these
+aggregates on a database that has not opted in returns a clear "not
+supported on this database" error rather than a failed query. See
 `docs/sip/median-stddev-variance-aggregates.md` for the full design
 rationale, including why this is safe to add without reintroducing the
 totals/subtotals correctness bug fixed by #41184 (SIP-216).
