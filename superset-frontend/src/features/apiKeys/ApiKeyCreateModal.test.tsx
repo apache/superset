@@ -79,6 +79,23 @@ test('offers only the scopes the current user may self-issue', async () => {
   expect(screen.queryByText('superset:user:write')).not.toBeInTheDocument();
 });
 
+test('offers no scopes while the lookup is still in flight', async () => {
+  fetchMock.get(
+    SCOPES_ENDPOINT,
+    { result: ['superset:chart:read'] },
+    { delay: 10_000 },
+  );
+
+  render(<ApiKeyCreateModal {...props} />);
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls(SCOPES_ENDPOINT)).toHaveLength(1),
+  );
+  await openScopesSelect();
+
+  expect(screen.queryByText('superset:chart:read')).not.toBeInTheDocument();
+  expect(screen.queryByText('superset:user:write')).not.toBeInTheDocument();
+});
+
 test('falls back to the full catalog when the scope lookup fails', async () => {
   fetchMock.get(SCOPES_ENDPOINT, 500);
 

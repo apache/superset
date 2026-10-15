@@ -58,14 +58,18 @@ export function ApiKeyCreateModal({
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Scopes the current user may self-issue; null until loaded (or when the
-  // lookup fails), in which case the full catalog is offered as before.
-  const [allowedScopes, setAllowedScopes] = useState<string[] | null>(null);
+  // Scopes the current user may self-issue: undefined while the lookup is in
+  // flight (nothing is offered yet), null when it failed (the full catalog is
+  // offered as before), otherwise the allowed subset.
+  const [allowedScopes, setAllowedScopes] = useState<
+    string[] | null | undefined
+  >(undefined);
 
   useEffect(() => {
     if (!show) {
       return;
     }
+    setAllowedScopes(undefined);
     SupersetClient.get({ endpoint: '/api/v1/me/api_key_scopes/' })
       .then(({ json }) => setAllowedScopes(json?.result ?? null))
       .catch(() => setAllowedScopes(null));
@@ -100,7 +104,7 @@ export function ApiKeyCreateModal({
       const { message } = await getClientErrorObject(error);
       addDangerToast(
         message
-          ? `${t('Failed to create API key')}: ${message}`
+          ? t('Failed to create API key: %s', message)
           : t('Failed to create API key'),
       );
       throw error;
@@ -209,12 +213,15 @@ export function ApiKeyCreateModal({
           mode="multiple"
           allowClear
           showSearch
+          loading={allowedScopes === undefined}
           options={
-            allowedScopes
-              ? API_KEY_SCOPE_OPTIONS.filter(option =>
-                  allowedScopes.includes(option.value),
-                )
-              : API_KEY_SCOPE_OPTIONS
+            allowedScopes === undefined
+              ? []
+              : allowedScopes
+                ? API_KEY_SCOPE_OPTIONS.filter(option =>
+                    allowedScopes.includes(option.value),
+                  )
+                : API_KEY_SCOPE_OPTIONS
           }
           placeholder={t('Select MCP resource scopes (optional)')}
           data-test="api-key-scopes-select"
