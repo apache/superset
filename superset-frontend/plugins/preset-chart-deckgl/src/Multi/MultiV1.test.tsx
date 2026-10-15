@@ -29,6 +29,9 @@ jest.mock('../DeckGLContainer', () => ({
       data-test="deckgl-container"
       data-viewport={JSON.stringify(viewport)}
       data-layers-count={layers?.length || 0}
+      data-layers-data={JSON.stringify(
+        layers?.map((layer: any) => layer?.props?.data),
+      )}
     >
       DeckGL Container Mock
     </div>
@@ -53,9 +56,14 @@ getChartBuildQueryRegistry().registerValue('deck_scatter', (fd: any) => ({
   queries: [{}],
   form_data: fd,
 }));
-getChartTransformPropsRegistry().registerValue('deck_scatter', () => ({
-  payload: { data: { features: SF_FEATURES } },
-}));
+// Builds the layer from the response, so a test can tell which response a
+// rendered layer came from.
+getChartTransformPropsRegistry().registerValue(
+  'deck_scatter',
+  (chartProps: any) => ({
+    payload: { data: { features: chartProps.queriesData[0].data } },
+  }),
+);
 
 const store = configureStore({ reducer: { dataMask: () => ({}) } });
 
@@ -263,8 +271,17 @@ test('reloads its layers when a dashboard auto-refresh lands, keeping the curren
   );
   expect(viewport.longitude).toBeLessThan(-100);
 
-  resolveReload({ json: { result: [{ data: SF_FEATURES }] } });
+  const drawnPositions = () =>
+    JSON.parse(getContainer().getAttribute('data-layers-data') || '[]').map(
+      (data: { position: number[] }[]) => data.map(d => d.position),
+    );
+  expect(drawnPositions()).toEqual([SF_FEATURES.map(f => f.position)]);
+
+  const refreshedFeatures = [{ position: [-118.24, 34.05] }];
+  resolveReload({ json: { result: [{ data: refreshedFeatures }] } });
+  // The layer drawn after the refresh is built from the refreshed response,
+  // not kept from the first load.
   await waitFor(() =>
-    expect(getContainer().getAttribute('data-layers-count')).toBe('1'),
+    expect(drawnPositions()).toEqual([[refreshedFeatures[0].position]]),
   );
 });
