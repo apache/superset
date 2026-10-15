@@ -79,6 +79,7 @@ def test_legacy_handle_query_error_payload_includes_stacktrace_when_enabled() ->
     config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": True}
     with (
         patch("superset.sql_lab.db") as mock_db,
+        patch("superset.sql.execution.utils.db", mock_db),
         patch("superset.sql_lab.app") as mock_app,
     ):
         mock_app.config = config
@@ -118,6 +119,7 @@ def test_legacy_handle_query_error_payload_omits_stacktrace_when_disabled() -> N
     config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": False}
     with (
         patch("superset.sql_lab.db") as mock_db,
+        patch("superset.sql.execution.utils.db", mock_db),
         patch("superset.sql_lab.app") as mock_app,
     ):
         mock_app.config = config
@@ -198,7 +200,11 @@ def test_new_handle_query_error_payload_includes_stacktrace_when_enabled() -> No
     query = _make_query_mock()
     config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": True}
 
-    with patch.object(ct, "db") as mock_db, patch.object(ct, "app") as mock_app:
+    with (
+        patch.object(ct, "db") as mock_db,
+        patch("superset.sql.execution.utils.db", mock_db),
+        patch.object(ct, "app") as mock_app,
+    ):
         mock_app.config = config
         mock_db.session = MagicMock()
 
@@ -236,7 +242,11 @@ def test_new_handle_query_error_payload_omits_stacktrace_when_disabled() -> None
     query = _make_query_mock()
     config = {"TROUBLESHOOTING_LINK": None, "SHOW_STACKTRACE": False}
 
-    with patch.object(ct, "db") as mock_db, patch.object(ct, "app") as mock_app:
+    with (
+        patch.object(ct, "db") as mock_db,
+        patch("superset.sql.execution.utils.db", mock_db),
+        patch.object(ct, "app") as mock_app,
+    ):
         mock_app.config = config
         mock_db.session = MagicMock()
 
