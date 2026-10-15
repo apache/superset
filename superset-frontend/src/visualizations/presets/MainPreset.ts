@@ -88,6 +88,12 @@ import { HandlebarsChartPlugin } from '@superset-ui/plugin-chart-handlebars';
 import { ChartCustomizationPlugins, FilterPlugins } from 'src/constants';
 import AgGridTableChartPlugin from '@superset-ui/plugin-chart-ag-grid-table';
 import TimeTableChartPlugin from '../TimeTable';
+import {
+  UsageDrilldownChartPlugin,
+  USAGE_DRILLDOWN_VIZ_TYPE,
+  UsageSummaryChartPlugin,
+  USAGE_SUMMARY_VIZ_TYPE,
+} from '@superset-ui/plugin-chart-usage-drilldown';
 
 export default class MainPreset extends Preset {
   constructor() {
@@ -143,6 +149,12 @@ export default class MainPreset extends Preset {
         new TableChartPlugin().configure({ key: VizType.Table }),
         new TimePivotChartPlugin().configure({ key: VizType.TimePivot }),
         new TimeTableChartPlugin().configure({ key: VizType.TimeTable }),
+        new UsageDrilldownChartPlugin().configure({
+          key: USAGE_DRILLDOWN_VIZ_TYPE,
+        }),
+        new UsageSummaryChartPlugin().configure({
+          key: USAGE_SUMMARY_VIZ_TYPE,
+        }),
         new WordCloudChartPlugin().configure({ key: VizType.WordCloud }),
         new WorldMapChartPlugin().configure({ key: VizType.WorldMap }),
         new EchartsAreaChartPlugin().configure({

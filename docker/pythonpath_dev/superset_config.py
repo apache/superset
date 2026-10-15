@@ -34,6 +34,22 @@ from superset.security.session_validation import SessionValidationSecurityManage
 
 logger = logging.getLogger()
 
+
+def env_bool(name: str, default: bool) -> bool:
+    """Read a boolean env var ("true"/"1"/"yes"/"on" are truthy)."""
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() in ("true", "1", "yes", "on")
+
+
+def env_list(name: str, default: str = "") -> list[str]:
+    """Read a comma-separated env var into a list of non-empty strings."""
+    return [
+        item.strip() for item in os.getenv(name, default).split(",") if item.strip()
+    ]
+
+
 DATABASE_DIALECT = os.getenv("DATABASE_DIALECT")
 DATABASE_USER = os.getenv("DATABASE_USER")
 DATABASE_PASSWORD = os.getenv("DATABASE_PASSWORD")
@@ -170,6 +186,9 @@ SESSION_USE_SIGNER = True
 PERMANENT_SESSION_LIFETIME = timedelta(minutes=SESSION_LIFETIME)
 
 # Cookie hardening
+# Own cookie name: other Flask apps on localhost (e.g. the Integrator on :2021) also use
+# "session", and cookies are shared across ports, so they would log each other out
+SESSION_COOKIE_NAME = os.getenv("SESSION_COOKIE_NAME", "superset_session")
 SESSION_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_SAMESITE = "Strict"
@@ -184,3 +203,21 @@ FAB_PASSWORD_COMPLEXITY_ENABLED = True
 
 # --- REGISTER CUSTOM SECURITY MANAGER ---
 CUSTOM_SECURITY_MANAGER = SessionValidationSecurityManager
+
+
+# --- EMBEDDING & CORS CONFIGURATION ---
+ENABLE_CORS = env_bool("ENABLE_CORS", True)
+CORS_OPTIONS = {
+    "supports_credentials": True,
+    "allow_headers": ["*"],
+    "resources": ["*"],
+    "origins": env_list("SUPERSET_CORS_ORIGINS"),
+}
+
+TALISMAN_ENABLED = env_bool("TALISMAN_ENABLED", True)
+WTF_CSRF_ENABLED = env_bool("WTF_CSRF_ENABLED", True)
+# If Superset continues setting X-Frame-Options to SAMEORIGIN, override it here
+HTTP_HEADERS = {"X-Frame-Options": os.getenv("HTTP_X_FRAME_OPTIONS", "SAMEORIGIN")}
+
+GUEST_ROLE_NAME = os.getenv("GUEST_ROLE_NAME", "Public")
+PUBLIC_ROLE_LIKE = os.getenv("PUBLIC_ROLE_LIKE") or None

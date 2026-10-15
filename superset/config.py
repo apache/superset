@@ -1155,11 +1155,26 @@ STORE_CACHE_KEYS_IN_METADATA_DB = False
 # NOTE: enabling this requires installing the cors-related python dependencies
 # `pip install .[cors]` or `pip install apache_superset[cors]`, depending
 ENABLE_CORS = True
+# Extra CORS origins / frame ancestors as comma-separated env vars
+SUPERSET_CORS_ORIGINS: list[str] = [
+    origin.strip()
+    for origin in os.environ.get("SUPERSET_CORS_ORIGINS", "").split(",")
+    if origin.strip()
+]
+SUPERSET_FRAME_ANCESTORS: list[str] = [
+    origin.strip()
+    for origin in os.environ.get("SUPERSET_FRAME_ANCESTORS", "").split(",")
+    if origin.strip()
+]
 CORS_OPTIONS: dict[Any, Any] = {
+    "supports_credentials": True,
+    "allow_headers": ["*"],
+    "resources": ["*"],
     "origins": [
         "https://tile.openstreetmap.org",
         "https://tile.osm.ch",
-    ]
+        *SUPERSET_CORS_ORIGINS,
+    ],
 }
 
 # Sanitizes the HTML content used in markdowns to allow its rendering in a safe manner.
@@ -2145,6 +2160,7 @@ TALISMAN_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
         "default-src": ["'self'"],
+        "frame-ancestors": ["'self'", *SUPERSET_FRAME_ANCESTORS],
         "img-src": [
             "'self'",
             "blob:",
@@ -2192,6 +2208,7 @@ TALISMAN_DEV_CONFIG = {
     "content_security_policy": {
         "base-uri": ["'self'"],
         "default-src": ["'self'"],
+        "frame-ancestors": ["'self'", *SUPERSET_FRAME_ANCESTORS],
         "img-src": [
             "'self'",
             "blob:",
