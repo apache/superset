@@ -89,7 +89,7 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     TIME_COMPARISON,
 )
-from superset.utils.date_parser import get_past_or_future
+from superset.utils.date_parser import get_past_or_future, is_no_time_range
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -1429,9 +1429,10 @@ def _is_no_op_time_range(
     filter_: QueryObjectFilterClause | ValidatedQueryObjectFilterClause,
 ) -> bool:
     """Whether a filter is a time range that applies no bounds."""
-    return filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value and filter_.get(
-        "val"
-    ) in (None, NO_TIME_RANGE)
+    value: object = filter_.get("val")
+    return filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value and (
+        value is None or (isinstance(value, str) and is_no_time_range(value))
+    )
 
 
 def _validate_filters(

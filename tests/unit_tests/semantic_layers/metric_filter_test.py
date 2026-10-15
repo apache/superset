@@ -300,15 +300,17 @@ def test_filter_reporting_survives_result_cache_hit(
     metric_view[1].get_table.assert_not_called()
 
 
-@pytest.mark.parametrize("value", ["No filter", None])
+@pytest.mark.parametrize("value", ["No filter", "Aucun filtre", None])
 def test_chart_no_op_time_range_on_missing_column_is_not_refused(
     client: FlaskClient,
     full_api_access: None,
     metric_view: tuple[SemanticView, MagicMock],
     value: str | None,
+    mocker: MockerFixture,
 ) -> None:
     """Saving from a dashboard can store a "No filter" range on a foreign column;
     it constrains nothing, so it must not break the chart."""
+    mocker.patch("superset.utils.date_parser._", return_value="Aucun filtre")
     filters: list[QueryObjectFilterClause] = [
         {"col": "ds", "op": "TEMPORAL_RANGE", "val": value},
     ]
