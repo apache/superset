@@ -1054,6 +1054,7 @@ def _save_with_parked_transform(
     transform: str,
     *,
     feature_enabled: bool,
+    stored_transforms: dict[str, str | None] | None = None,
 ) -> MagicMock:
     """
     Drive ``save`` with a transform on a column the mapping does not mirror.
@@ -1062,15 +1063,25 @@ def _save_with_parked_transform(
     override -- so the transform on ``other_time`` is parked: invisible in the
     editor, and live the moment the mapped column resolves back to it.
 
+    ``stored_transforms`` is what the dataset already holds, by column name. It
+    matters because the drop exempts an unchanged *echo* of stored
+    configuration with the flag off, and the default here stores nothing on
+    ``other_time`` -- so the exemption is unreachable unless a caller asks for
+    it.
+
     Returns the ORM mock. The assertions read `update_from_object`'s argument
     rather than the payload built here: the view parses its own dict out of
     ``request.form``, so the one this function holds is never the one corrected.
     """
     from superset.models.core import Database
 
-    stored_column = MagicMock()
-    stored_column.column_name = "event_time"
-    stored_column.partition_value_transform = None
+    stored_columns = []
+    for name, stored_transform in (stored_transforms or {"event_time": None}).items():
+        stored_column = MagicMock()
+        stored_column.column_name = name
+        stored_column.partition_value_transform = stored_transform
+        stored_column.partition_transform_is_monotonic = stored_transform is not None
+        stored_columns.append(stored_column)
 
     mock_orm = MagicMock()
     mock_orm.database_id = 1
@@ -1078,7 +1089,7 @@ def _save_with_parked_transform(
     mock_orm.table_name = "my_table"
     mock_orm.schema = "public"
     mock_orm.catalog = None
-    mock_orm.columns = [stored_column]
+    mock_orm.columns = stored_columns
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
     mock_security_manager.raise_for_editorship.return_value = None
@@ -1211,6 +1222,58 @@ def test_save_drops_a_parked_transform_rather_than_refusing_it(
 
     mock_json_error_response.assert_not_called()
     assert _written_column(mock_orm, "other_time")["partition_value_transform"] is None
+
+
+@pytest.mark.parametrize(
+    "feature_enabled, survives",
+    [(True, False), (False, True)],
+    ids=["flag-on-drops-the-echo", "flag-off-keeps-the-echo"],
+)
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.json_error_response")
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_exempts_an_echoed_parked_transform_only_while_the_flag_is_off(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    mock_json_error_response: MagicMock,
+    feature_enabled: bool,
+    survives: bool,
+    app: Flask,
+) -> None:
+    """
+    Both halves of the ``stored_by_name`` branch, with ``other_time`` actually
+    stored -- which is what makes the exemption reachable at all. The tests
+    above store nothing on it, so passing the stored-columns dict
+    unconditionally leaves them green while the flag-on behaviour is gone.
+
+    With the flag **off**, an unchanged echo survives: this endpoint's own
+    client does GET-then-POST, so a 422 or a silent drop would punish a client
+    merely returning the state it was handed, and nothing mirrors anyway.
+
+    With the flag **on** nothing is exempt. No model-level pass runs on this
+    path -- the REST path has one -- so exempting the echo left the old mapped
+    column holding its transform, and clearing the override through this same
+    endpoint later re-armed it.
+    """
+    transform = "to_unixtime(:value)"
+    mock_orm = _save_with_parked_transform(
+        app,
+        mock_get_datasource,
+        mock_security_manager,
+        transform,
+        feature_enabled=feature_enabled,
+        # The echo: stored exactly what the payload sends back, monotonic
+        # declaration included, so the two are indistinguishable by value.
+        stored_transforms={"event_time": None, "other_time": transform},
+    )
+
+    mock_json_error_response.assert_not_called()
+    parked = _written_column(mock_orm, "other_time")
+    assert parked["partition_value_transform"] == (transform if survives else None)
+    assert parked["partition_transform_is_monotonic"] is survives
 
 
 # ---------------------------------------------------------------------------
