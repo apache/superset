@@ -82,6 +82,10 @@ def test_untouched_items_resaved_with_empty_extra_record_only_the_label_edit() -
             '{"certification": {"certified_by": "Ann"}, "warning_markdown": "w"}',
             '{"warning_markdown":"w","certification":{"certified_by":"Ann"}}',
         ),
+        (
+            '{"folders": [{"name": "Sales", "description": null}]}',
+            '{"folders": [{"name": "Sales"}]}',
+        ),
     ],
     ids=[
         "null-to-empty-object",
@@ -91,6 +95,7 @@ def test_untouched_items_resaved_with_empty_extra_record_only_the_label_edit() -
         "json-spacing",
         "nested-null-key",
         "key-order",
+        "null-key-in-object-in-array",
     ],
 )
 def test_equivalent_extra_is_not_an_edit(before: Any, after: Any) -> None:

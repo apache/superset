@@ -152,6 +152,8 @@ def _normalized_child_extra(extra: Any) -> Any:
 
 def _without_null_values(value: Any) -> Any:
     """Return *value* with null-valued object keys dropped at every depth."""
+    if isinstance(value, list):
+        return [_without_null_values(v) for v in value]
     if not isinstance(value, dict):
         return value
     return {k: _without_null_values(v) for k, v in value.items() if v is not None}
