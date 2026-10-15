@@ -426,7 +426,8 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
     cancel_mode: str,
     statement: str,
     autocommit: bool,
-    stop_timing: str = "executing",
+    stop_timing: str = "executing",  # noqa: PT028
+    repeat_stop: bool = False,  # noqa: PT028
 ) -> None:
     """Real workers discard results after an accepted, best-effort engine stop."""
     import inspect as python_inspect
@@ -555,6 +556,9 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
         return True
 
     backend.set.side_effect = store_results
+    cancel = MagicMock(wraps=PostgresEngineSpec.cancel_query)
+    if repeat_stop:
+        monkeypatch.setattr(PostgresEngineSpec, "cancel_query", cancel)
     if cancel_mode == "no_cancel_id":
         # Model a connector using BaseEngineSpec's default (no cancel handle).
         monkeypatch.setattr(
@@ -681,6 +685,12 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
                 assert stopped.status == expected
                 assert stopped.to_dict()["state"] == expected
                 assert stopped.end_time is not None
+                if repeat_stop:
+                    original_end_time = stopped.end_time
+                    assert stop_request() is True
+                    verifier.refresh(stopped)
+                    assert stopped.end_time == original_end_time
+                    cancel.assert_called_once()
                 assert stopped.error_message is None
                 assert bool(stopped.results_key) is (stop_timing == "target_commit")
             assert payload is not None
@@ -755,4 +765,25 @@ def test_soft_timeout_after_accepted_postgres_stop(
         "select",
         False,
         stop_timing="soft_timeout",
+    )
+
+
+@pytest.mark.parametrize("worker_path", ["legacy", "celery"])
+@pytest.mark.parametrize("caller", ["api", "async_handle"])
+def test_repeated_stop_cancels_postgres_only_once(
+    engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    worker_path: str,
+    caller: str,
+) -> None:
+    """An accepted Stop cannot reuse a closed worker connection's cancel PID."""
+    test_accepted_stop_with_real_postgres_workers(
+        engine,
+        monkeypatch,
+        worker_path=worker_path,
+        caller=caller,
+        cancel_mode="normal",
+        statement="select",
+        autocommit=False,
+        repeat_stop=True,
     )

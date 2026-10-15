@@ -339,7 +339,9 @@ def test_stop_query_commits_stop_with_early_cancel(
 
     session.expire_all()
     assert query.status == QueryStatus.STOPPED
-    assert query.extra[QUERY_EARLY_CANCEL_KEY] is True
+    assert bool(query.extra.get(QUERY_EARLY_CANCEL_KEY)) is (
+        status != QueryStatus.STOPPED
+    )
     assert query.end_time == 1234.5
 
 
@@ -602,5 +604,5 @@ def test_stop_acceptance_survives_post_commit_failure(
     session.expire_all()
     assert query.status == QueryStatus.STOPPED
     assert query.end_time == original_end_time
-    # Repeating Stop can retry best-effort cancellation without changing time.
-    assert (cancel_api if caller == "api" else cancel_handle).call_count == 2
+    # Stored cancellation handles may identify an unrelated session after reuse.
+    (cancel_api if caller == "api" else cancel_handle).assert_called_once()

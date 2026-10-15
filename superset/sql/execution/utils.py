@@ -217,11 +217,17 @@ def finish_query_stop(query: Query, cancel: Callable[[], bool]) -> bool:
 
     The caller has staged a guarded Stop. Only the first commit determines
     acceptance. Cancellation and its optional early-cancel metadata are
-    best-effort after that point.
+    best-effort after that point. An already-stopped row stays accepted without
+    retrying engine cancellation.
     """
     query_id = query.id
     end_time = query.end_time
+    # The guarded locking refresh makes this history reflect the durable row.
+    # Reusing a stored cancel handle after Stop could cancel an unrelated session.
+    first_stop = sa.inspect(query).attrs.status.history.has_changes()
     db.session.commit()  # pylint: disable=consider-using-transaction
+    if not first_stop:
+        return True
     try:
         try:
             engine_cancelled = cancel()

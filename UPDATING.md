@@ -35,6 +35,7 @@ assists people when migrating to a new version.
   An accepted Stop returns HTTP 200 (`cancel()` returns `True`) even if engine
   cancellation or subsequent cancellation-metadata persistence fails. Its stopped
   state and original end time survive repeated Stop requests and worker timeouts.
+  Repeated Stop requests do not retry engine cancellation.
   Engine cancellation is best-effort: its statement may continue, but SQL Lab
   discards the results. Stop cannot undo autocommit, implicit-commit DDL, or SQL
   commits performed during execution. With SQLite metadata (which does not

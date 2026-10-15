@@ -30,7 +30,8 @@ SQL Lab records Stop before attempting engine cancellation. Once recorded, the
 Stop API returns HTTP 200, the UI shows the query as stopped, and an async query
 handle's `cancel()` returns `True`. Cancellation-related failures, later worker
 timeouts, and failures to save cancellation metadata do not replace that outcome.
-Repeated Stop requests preserve the original stop time.
+Repeated Stop requests preserve the original stop time and do not retry engine
+cancellation.
 
 Engine cancellation is best-effort: if the engine is unreachable, provides no
 cancellation handle, or rejects cancellation, its statement may run to completion,
