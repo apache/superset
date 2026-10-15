@@ -40,6 +40,7 @@ from superset.exceptions import (
     OAuth2RedirectError,
     QueryObjectValidationError,
     SupersetException,
+    SupersetSecurityException,
 )
 from superset.extensions import event_logger
 from superset.mcp_service import guest_scope
@@ -95,6 +96,7 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
+from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.utils.core import DatasourceType, GenericDataType
 from superset.utils.json import JSONDecodeError
 
@@ -122,6 +124,11 @@ class _ChartFacts(NamedTuple):
 def _is_expected_json_load_error(exc: Exception) -> bool:
     """Recognize only the exact exceptions emitted for ordinary JSON failures."""
     return type(exc) in {TypeError, ValueError, JSONDecodeError}
+
+
+def _access_denied_error(exc: SupersetSecurityException) -> ChartError:
+    """Report a query-time refusal as an access error, as the chart-data API does."""
+    return ChartError(error=bounded_exception_message(exc), error_type="AccessDenied")
 
 
 _GENERIC_TYPE_MAP: dict[int, str] = {
@@ -1202,11 +1209,15 @@ async def _get_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
-        except QueryObjectValidationError as ex:
+        except (QueryObjectValidationError, SemanticLayerQueryRejectedError) as ex:
             logger.warning(
                 "Chart data validation failed for chart %s: %s", chart_id, ex
             )
             return ChartError(error=str(ex), error_type="ValidationError")
+        except SupersetSecurityException as ex:
+            # The chart-data API answers 403; keep refusals out of DataError.
+            logger.warning("Chart data access refused for chart %s", chart_id)
+            return _access_denied_error(ex)
         except (CommandException, SupersetException, ValueError) as data_error:
             error_text = bounded_exception_message(data_error)
             await ctx.error(
@@ -1445,9 +1456,12 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
-    except QueryObjectValidationError as ex:
+    except (QueryObjectValidationError, SemanticLayerQueryRejectedError) as ex:
         logger.warning("Unsaved chart data validation failed: %s", ex)
         return ChartError(error=str(ex), error_type="ValidationError")
+    except SupersetSecurityException as ex:
+        logger.warning("Unsaved chart data access refused")
+        return _access_denied_error(ex)
     except (CommandException, SupersetException, ValueError) as e:
         error_text = bounded_exception_message(e)
         logger.error("Domain error querying unsaved chart data")

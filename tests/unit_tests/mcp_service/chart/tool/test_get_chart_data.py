@@ -3930,6 +3930,129 @@ class TestOAuthErrorRouting:
         assert data["error_type"] != "DataError"
 
 
+def _categorized_errors() -> list[tuple[Exception, str, str]]:
+    """Query-time errors with the MCP category matching the chart-data API."""
+    from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.semantic_layers.exceptions import (
+        SemanticLayerExecutionError,
+        SemanticLayerQueryRejectedError,
+    )
+
+    return [
+        (
+            SupersetSecurityException(
+                SupersetError(
+                    message="Semantic views cannot enforce guest row-level "
+                    "security rules.",
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    level=ErrorLevel.WARNING,
+                )
+            ),
+            "AccessDenied",
+            "Semantic views cannot enforce guest row-level security rules.",
+        ),
+        (
+            SemanticLayerQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER),
+            "ValidationError",
+            "A semantic query filter is invalid.",
+        ),
+        (
+            SemanticLayerExecutionError(),
+            "DataError",
+            "Error retrieving chart data",
+        ),
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error,error_type,message", _categorized_errors())
+async def test_saved_chart_query_error_keeps_api_category(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+    error_type: str,
+    message: str,
+) -> None:
+    """Refusals are access errors and provider rejections are validation errors."""
+    routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
+    routing._patch_query_path(monkeypatch, routing._make_chart(), error)
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == error_type
+    assert message in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("error,error_type,message", _categorized_errors())
+async def test_unsaved_chart_query_error_keeps_api_category(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    error: Exception,
+    error_type: str,
+    message: str,
+) -> None:
+    """The form_data_key path categorizes errors like the saved-chart path."""
+    chart_data_module = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    get_data_command_module = importlib.import_module(
+        "superset.commands.chart.data.get_data_command"
+    )
+
+    class RaisingChartDataCommand:
+        def __init__(self, query_context: object) -> None:
+            self.query_context = query_context
+
+        def validate(self) -> None:
+            pass
+
+        def run(self) -> dict[str, Any]:
+            raise error
+
+    monkeypatch.setattr(
+        chart_data_module,
+        "get_cached_form_data",
+        lambda *args, **kwargs: json.dumps(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+                "metrics": ["count"],
+                "groupby": ["gender"],
+                "row_limit": 10,
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *args, **kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(
+        get_data_command_module, "ChartDataCommand", RaisingChartDataCommand
+    )
+
+    async with Client(mcp_server) as client:
+        result = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == error_type
+    expected: str = message.replace("retrieving", "querying unsaved")
+    assert expected in data["error"]
+
+
 # ---------------------------------------------------------------------------
 # Tests for _recommend_visualizations
 # ---------------------------------------------------------------------------
