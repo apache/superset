@@ -48,7 +48,7 @@ import { ColumnSelect } from './ColumnSelect';
 
 export interface ControlItemsProps {
   expanded: boolean;
-  datasetId: number;
+  datasetId?: number;
   datasourceType?: DatasourceType;
   disabled: boolean;
   forceUpdate: Function;
