@@ -481,6 +481,90 @@ def test_update_chart_accepts_semantic_view_datasource(
     assert cmd._properties["datasource_name"] == "my_semantic_view"
 
 
+def test_update_chart_repoints_to_saved_query_datasource(
+    mocker: MockerFixture,
+) -> None:
+    """Repointing a chart's ``datasource_id`` at a real ``SavedQuery`` must
+    be accepted and use the effective (newly-supplied) id for the lookup,
+    deriving ``datasource_name`` from the query's ``label``.
+
+    Regression test for apache/superset#29697's update-command path, which
+    ``test_access_checks.py`` only covers for ``CreateChartCommand``. Uses a
+    real ``SavedQuery`` (not a mock) like ``test_access_checks.py`` does, so
+    an ``AttributeError`` from a missing ``.name`` would surface here too.
+    """
+    from superset.models.sql_lab import SavedQuery
+
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False,
+        id=1,
+        tags=[],
+        dashboards=[],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    saved_query = SavedQuery(label="My saved query")
+    get_datasource_by_id = mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id",
+        return_value=saved_query,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access"
+    )
+
+    cmd = UpdateChartCommand(1, {"datasource_id": 11, "datasource_type": "saved_query"})
+    cmd.validate()
+
+    # The effective id is the newly-supplied 11, not the chart's stored 42.
+    get_datasource_by_id.assert_called_once_with(11, "saved_query")
+    raise_for_access.assert_called_once_with(datasource=saved_query)
+    assert cmd._properties["datasource_name"] == "My saved query"
+
+
+def test_update_chart_rejects_access_denied_saved_query_datasource(
+    mocker: MockerFixture,
+) -> None:
+    """Repointing a chart at a saved query the user cannot access must raise
+    ``ChartForbiddenError``, same as any other datasource type.
+    """
+    from superset.models.sql_lab import SavedQuery
+
+    find_by_id = mocker.patch("superset.commands.chart.update.ChartDAO.find_by_id")
+    find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False,
+        id=1,
+        tags=[],
+        dashboards=[],
+        datasource_id=42,
+        datasource_type="table",
+    )
+    mocker.patch("superset.commands.chart.update.security_manager.raise_for_editorship")
+    mocker.patch(
+        "superset.commands.chart.update.compute_subjects",
+        side_effect=lambda model, properties, exceptions: None,
+    )
+    saved_query = SavedQuery(label="My saved query")
+    mocker.patch(
+        "superset.commands.chart.update.get_datasource_by_id",
+        return_value=saved_query,
+    )
+    mocker.patch(
+        "superset.commands.chart.update.security_manager.raise_for_access",
+        side_effect=_access_exc(),
+    )
+
+    with pytest.raises(ChartForbiddenError):
+        UpdateChartCommand(
+            1, {"datasource_id": 11, "datasource_type": "saved_query"}
+        ).validate()
+
+
 def test_update_chart_missing_datasource_type_keeps_required_error(
     mocker: MockerFixture,
 ) -> None:

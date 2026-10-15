@@ -219,6 +219,117 @@ def test_query_schema_perm_guards_unset_database() -> None:
     assert query.schema_perm == ""
 
 
+@pytest.mark.parametrize(
+    (
+        "catalog",
+        "schema",
+        "database_name",
+        "default_catalog",
+        "expected",
+    ),
+    [
+        (None, "s1", "db", None, "[db].[s1]"),
+        ("cat", "s1", "db", None, "[db].[cat].[s1]"),
+        (None, "s1", "db", "defcat", "[db].[defcat].[s1]"),
+    ],
+)
+def test_saved_query_schema_perm(
+    catalog,
+    schema,
+    database_name,
+    default_catalog,
+    expected,
+) -> None:
+    """SavedQuery.schema_perm mirrors Query.schema_perm's default-catalog
+    fallback.
+
+    Regression test: a saved query against a database with a default
+    catalog can leave ``catalog`` unset (same as a raw SQL Lab ``Query``),
+    so this must fall back to ``database.get_default_catalog()`` -- not
+    building a ``[db].[schema]`` permission string that never matches the
+    ``[db].[catalog].[schema]`` grant a schema-authorized user actually
+    holds.
+    """
+    database = MagicMock()
+    database.database_name = database_name
+    database.get_default_catalog.return_value = default_catalog
+    saved_query = SavedQuery(label="q", schema=schema, catalog=catalog)
+    saved_query.database = database
+    with patch.object(
+        sql_lab_module.security_manager,
+        "get_schema_perm",
+        return_value=expected or None,
+    ) as mock_get_schema_perm:
+        result = saved_query.schema_perm
+        assert result == expected
+        effective_catalog = catalog if catalog is not None else default_catalog
+        mock_get_schema_perm.assert_called_once_with(
+            database_name, effective_catalog, schema
+        )
+
+
+def test_saved_query_schema_perm_guards_unset_database() -> None:
+    """schema_perm returns None instead of raising when the database is
+    unset, mirroring Query.schema_perm_guards_unset_database.
+    """
+    saved_query = SavedQuery(label="q", schema="s1", db_id=1)
+    assert saved_query.schema_perm is None
+
+
+def test_saved_query_before_update_syncs_dependent_slice_perms(app: Any) -> None:
+    """Moving a saved query to a new schema also updates dependent charts'
+    denormalized perm/catalog_perm/schema_perm.
+
+    ``SavedQuery`` has no persisted perm columns of its own and gets no
+    ``datasource_access`` PVM (unlike ``SqlaTable``/``SemanticView``), but
+    ``Slice``'s ``set_related_perm`` listener still copies its computed
+    perm strings onto the chart at save time. Without a ``before_update``
+    listener on ``SavedQuery`` to re-copy them, a chart would keep matching
+    a stale schema/catalog grant after the saved query moves -- the
+    no-viewer chart-list fallback matches on ``Slice.schema_perm``/
+    ``catalog_perm`` (see ``ChartFilter._apply_viewers``).
+    """
+    from superset.extensions import db
+    from superset.models.core import Database
+    from superset.models.slice import Slice
+    from superset.utils.core import DatasourceType
+
+    database = Database(database_name="syncdb", sqlalchemy_uri="sqlite://")
+    saved_query = SavedQuery(label="Sync Query", schema="old_schema", database=database)
+
+    db.session.add(database)
+    db.session.add(saved_query)
+    db.session.flush()
+
+    chart = Slice(
+        slice_name="On the saved query",
+        datasource_type=DatasourceType.SAVEDQUERY,
+        datasource_id=saved_query.id,
+        datasource_name="Sync Query",
+        viz_type="table",
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+
+    try:
+        assert chart.schema_perm == saved_query.schema_perm
+        old_schema_perm = chart.schema_perm
+
+        saved_query.schema = "new_schema"
+        db.session.flush()
+        db.session.expire(chart)
+        db.session.expire(saved_query)
+
+        new_schema_perm = saved_query.schema_perm
+        assert new_schema_perm != old_schema_perm
+        assert chart.schema_perm == new_schema_perm
+        assert chart.catalog_perm == saved_query.catalog_perm
+        assert chart.perm == saved_query.perm
+    finally:
+        db.session.rollback()
+
+
 def test_adhoc_column_to_sqla_applies_time_grain_for_unsaved_dataset() -> None:
     """
     Selecting a time grain on a chart backed by an unsaved SQL Lab query must
