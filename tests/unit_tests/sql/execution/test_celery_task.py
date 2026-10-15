@@ -2312,6 +2312,7 @@ def test_commit_that_applies_and_raises_keeps_referenced_results(
         assert key in stored
     engine.dispose()
 
+
 @pytest.mark.parametrize("stop_at", ["before_stop_check", "before_failed_commit"])
 def test_stop_after_an_applied_publish_keeps_referenced_results(
     mocker: MockerFixture,
@@ -2422,7 +2423,6 @@ def test_stop_after_an_applied_publish_keeps_referenced_results(
         backend.delete.assert_not_called()
         assert key in stored
     engine.dispose()
-
 
 
 @pytest.mark.parametrize("stopped", [False, True])
@@ -2895,6 +2895,96 @@ def test_autocommit_work_finished_before_a_stop_is_committed(
         assert query.status == expected
         assert conn.commit.called is committed
         assert on_commit.called is committed
+    engine.dispose()
+
+
+@pytest.mark.parametrize("ctas", [True, False], ids=["ctas", "insert"])
+def test_sqlite_ctas_finished_before_a_stop_is_committed(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    ctas: bool,
+) -> None:
+    """
+    On SQLite in its default transaction mode, a CTAS is durable once it
+    finishes, so a stop recorded after it finished ends SUCCESS. An INSERT
+    stays uncommitted until ``commit()``, so the same stop discards it and
+    ends STOPPED.
+    """
+    from contextlib import contextmanager
+
+    from sqlalchemy import create_engine, inspect
+    from sqlalchemy.orm import Session
+
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'metadata.db'}")
+    Query.__table__.create(engine)
+    target = create_engine(f"sqlite:///{tmp_path / 'target.db'}")
+    with target.begin() as setup:
+        setup.exec_driver_sql("CREATE TABLE existing (a INTEGER)")
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mock_database.db_engine_spec.is_autocommit = SqliteEngineSpec.is_autocommit
+
+    @contextmanager
+    def raw_connection(*args: Any, **kwargs: Any) -> Any:
+        connection = target.raw_connection()
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+    mock_database.get_raw_connection = raw_connection
+    sql = "SELECT 1 AS a" if ctas else "INSERT INTO existing VALUES (1)"
+    executed = "CREATE TABLE tmp_table AS SELECT 1 AS a" if ctas else sql
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="sqlite-ctas",
+            database_id=1,
+            sql=sql,
+            select_as_cta=ctas,
+            status=QueryStatusEnum.PENDING,
+        )
+        session.add(query)
+        session.commit()
+
+        def execute_then_stop(
+            *, cursor: Any, **kwargs: Any
+        ) -> list[tuple[str, None, float, int]]:
+            """Run the statement on SQLite, then commit a stop elsewhere."""
+            cursor.execute(executed)
+            with Session(engine) as stop_session:
+                stopped_query = stop_session.get(Query, 123)
+                assert stopped_query is not None
+                stopped_query.status = QueryStatusEnum.STOPPED
+                stop_session.commit()
+            return [(executed, None, 1.0, 1)]
+
+        mocker.patch.object(celery_task.db, "session", session)
+        mocker.patch.object(celery_task, "_get_query", return_value=query)
+        mocker.patch.object(
+            celery_task, "execute_sql_with_cursor", side_effect=execute_then_stop
+        )
+        mocker.patch.object(celery_task, "results_backend", None)
+
+        payload = celery_task._execute_sql_statements(123, sql, None)
+
+        expected = QueryStatusEnum.SUCCESS if ctas else QueryStatusEnum.STOPPED
+        assert payload is not None
+        assert payload["status"] == expected
+        session.refresh(query)
+        assert query.status == expected
+    with target.connect() as observer:
+        assert inspect(observer).has_table("tmp_table") is ctas
+        rows = observer.exec_driver_sql("SELECT COUNT(*) FROM existing").scalar()
+        assert rows == 0
+    target.dispose()
     engine.dispose()
 
 

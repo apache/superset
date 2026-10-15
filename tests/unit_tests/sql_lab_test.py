@@ -990,6 +990,105 @@ def test_get_sql_results_autocommit_work_finished_before_a_stop_is_committed(
     engine.dispose()
 
 
+@pytest.mark.parametrize("ctas", [True, False], ids=["ctas", "insert"])
+def test_get_sql_results_sqlite_ctas_finished_before_a_stop_is_committed(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    ctas: bool,
+) -> None:
+    """
+    Test that on SQLite in its default transaction mode a CTAS, durable once it
+    finishes, ends SUCCESS when a stop is recorded after it finished, while an
+    INSERT, uncommitted until ``commit()``, is discarded and ends STOPPED.
+    """
+    from contextlib import contextmanager
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine, inspect
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'metadata.db'}")
+    Query.__table__.create(engine)
+    target = create_engine(f"sqlite:///{tmp_path / 'target.db'}")
+    with target.begin() as setup:
+        setup.exec_driver_sql("CREATE TABLE existing (a INTEGER)")
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_dml = True
+    database.allow_run_async = False
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    database.select_star.return_value = "SELECT * FROM tmp_table"
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+
+    @contextmanager
+    def raw_connection(*args: Any, **kwargs: Any) -> Any:
+        connection = target.raw_connection()
+        try:
+            yield connection
+        finally:
+            connection.close()
+
+    database.get_raw_connection = raw_connection
+    mocker.patch.object(sql_lab, "results_backend", None)
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+    mocker.patch.dict(app.config, {"STATS_LOGGER": MagicMock()})
+
+    sql = "SELECT 1 AS a" if ctas else "INSERT INTO existing VALUES (1)"
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="sqlite-ctas",
+            database_id=1,
+            sql=sql,
+            select_as_cta=ctas,
+            ctas_method="TABLE",
+            tmp_table_name="tmp_table",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        def execute_then_stop(query: Query, cursor: Any, log_params: Any) -> MagicMock:
+            """Run the statement on SQLite, then commit a stop elsewhere."""
+            cursor.execute(query.executed_sql)
+            with Session(engine) as stop_session:
+                stopped_query = stop_session.get(Query, 123)
+                assert stopped_query is not None
+                stopped_query.status = QueryStatus.STOPPED
+                stop_session.commit()
+            return MagicMock(size=1, columns=[])
+
+        mocker.patch.object(sql_lab, "execute_query", side_effect=execute_then_stop)
+
+        payload = sql_lab.execute_sql_statements(
+            123, sql, True, False, None, False, None
+        )
+
+        expected = QueryStatus.SUCCESS if ctas else QueryStatus.STOPPED
+        assert payload is not None
+        assert payload["status"] == expected
+        session.refresh(query)
+        assert query.status == expected
+    with target.connect() as observer:
+        assert inspect(observer).has_table("tmp_table") is ctas
+        rows = observer.exec_driver_sql("SELECT COUNT(*) FROM existing").scalar()
+        assert rows == 0
+    target.dispose()
+    engine.dispose()
+
+
 @pytest.mark.parametrize(
     ("stop_at", "store_results", "return_results"),
     [
