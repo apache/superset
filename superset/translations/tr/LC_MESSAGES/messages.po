@@ -8591,7 +8591,7 @@ msgstr "Kolon seç"
 msgid "Get the last date by the date unit."
 msgstr "Tarih birimi tarafından son tarihi alın."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Tatil için belirtilen tarih alın"
 
 msgid "Give access to multiple catalogs in a single database connection."
