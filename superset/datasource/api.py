@@ -33,6 +33,7 @@ from superset.common.tabular_query import (
     resolve_explorable,
     ResolvedExplorable,
     TabularQueryValidationError,
+    validate_names,
     validate_query_names,
 )
 from superset.connectors.sqla.models import BaseDatasource
@@ -575,7 +576,7 @@ class DatasourceRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
-        """Return metrics and dimensions compatible with the current selection.
+        """Return compatible members, refusing unknown selected names with a 400.
         ---
         post:
           summary: Get compatible metrics and dimensions
@@ -650,6 +651,18 @@ class DatasourceRestApi(BaseSupersetApi):
         body = request.get_json(silent=True) or {}
         selected_metrics = body.get("selected_metrics", [])
         selected_dimensions = body.get("selected_dimensions", [])
+
+        selection_errors: list[str] = validate_names(
+            selected_metrics,
+            {metric.metric_name for metric in datasource.metrics},
+            "metric",
+        ) + validate_names(
+            selected_dimensions,
+            {dimension.column_name for dimension in datasource.columns},
+            "dimension",
+        )
+        if selection_errors:
+            return self.response(400, message="; ".join(selection_errors))
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.

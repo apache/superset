@@ -19,7 +19,7 @@ import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import datetime
-from unittest.mock import ANY, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from flask_appbuilder.security.sqla.models import PermissionView, Role
@@ -177,6 +177,108 @@ class TestDatasourceApi(SupersetTestCase):
             .filter(SqlaTable.table_name == "virtual_dataset")
             .one()
         )
+
+    def test_compatible_rejects_unknown_selection_before_cache(self) -> None:
+        """A stale member must not produce a partial compatibility answer."""
+        datasource: MagicMock = MagicMock(spec=SemanticView)
+        datasource.metrics = [MagicMock(metric_name="bookings")]
+        datasource.columns = [MagicMock(column_name="country")]
+        datasource.uid = "semantic_view__5"
+        datasource.metadata_generation = "generation-1"
+        datasource.cache_timeout = 300
+        datasource.get_compatible_metrics.return_value = ["bookings"]
+        datasource.get_compatible_dimensions.return_value = ["country"]
+        self.login(ADMIN_USERNAME)
+
+        cases: list[tuple[list[str], list[str], list[str]]] = [
+            (["missing_metric"], ["country"], ["Unknown metric: 'missing_metric'"]),
+            (
+                ["bookings"],
+                ["missing_dimension"],
+                ["Unknown dimension: 'missing_dimension'"],
+            ),
+            (["old_bookings"], ["country"], ["Unknown metric: 'old_bookings'"]),
+            (
+                ["missing_metric"],
+                ["missing_dimension"],
+                [
+                    "Unknown metric: 'missing_metric'",
+                    "Unknown dimension: 'missing_dimension'",
+                ],
+            ),
+        ]
+        for selected_metrics, selected_dimensions, unknowns in cases:
+            with (
+                self.subTest(unknowns=unknowns),
+                patch(
+                    "superset.datasource.api.DatasourceDAO.get_datasource",
+                    return_value=datasource,
+                ),
+                patch(
+                    "superset.datasource.api.cache_manager.data_cache.get",
+                    return_value=None,
+                ) as cache_get,
+                patch("superset.datasource.api.cache_manager.data_cache.set"),
+            ):
+                response = self.client.post(
+                    "api/v1/datasource/semantic_view/5/compatible",
+                    json={
+                        "selected_metrics": selected_metrics,
+                        "selected_dimensions": selected_dimensions,
+                    },
+                )
+
+                assert response.status_code == 400
+                for unknown in unknowns:
+                    assert unknown in response.json["message"]
+                cache_get.assert_not_called()
+        datasource.get_compatible_metrics.assert_not_called()
+        datasource.get_compatible_dimensions.assert_not_called()
+
+        with (
+            patch(
+                "superset.datasource.api.DatasourceDAO.get_datasource",
+                return_value=datasource,
+            ),
+            patch(
+                "superset.datasource.api.cache_manager.data_cache.get",
+                return_value=None,
+            ),
+            patch("superset.datasource.api.cache_manager.data_cache.set"),
+        ):
+            response = self.client.post(
+                "api/v1/datasource/semantic_view/5/compatible",
+                json={
+                    "selected_metrics": ["bookings"],
+                    "selected_dimensions": ["country"],
+                },
+            )
+
+        assert response.status_code == 200
+        assert response.json["result"] == {
+            "compatible_metrics": ["bookings"],
+            "compatible_dimensions": ["country"],
+        }
+        datasource.get_compatible_metrics.assert_called_once_with(
+            ["bookings"], ["country"]
+        )
+        datasource.get_compatible_dimensions.assert_called_once_with(
+            ["bookings"], ["country"]
+        )
+
+    @pytest.mark.usefixtures("app_context", "virtual_dataset")
+    def test_compatible_rejects_unknown_sql_dataset_member(self) -> None:
+        """The shared endpoint also refuses unknown names for SQL datasets."""
+        self.login(ADMIN_USERNAME)
+        table: SqlaTable = self.get_virtual_dataset()
+
+        response = self.client.post(
+            f"api/v1/datasource/table/{table.id}/compatible",
+            json={"selected_metrics": ["missing_metric"], "selected_dimensions": []},
+        )
+
+        assert response.status_code == 400
+        assert "Unknown metric: 'missing_metric'" in response.json["message"]
 
     @pytest.mark.usefixtures("app_context", "virtual_dataset")
     def test_get_column_values_ints(self):
