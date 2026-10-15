@@ -3263,3 +3263,204 @@ def test_stop_seen_during_execution_reads_only_loaded_attributes(
         assert stop_seen_during_execution(query) is (not expired and intent != "none")
         execute.assert_not_called()
     engine.dispose()
+
+
+@pytest.mark.parametrize("autocommit", [False, True], ids=["transaction", "autocommit"])
+@pytest.mark.parametrize("intent", ["status", "early"])
+def test_stop_seen_by_engine_survives_progress_commit(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    autocommit: bool,
+    intent: str,
+) -> None:
+    """
+    An engine that cancels a running mutation on a stop ends STOPPED, even
+    though the shared executor's progress commit expires the loaded stop.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    from .conftest import setup_mock_raw_connection
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'cancel-progress.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task, "results_backend", None)
+    mock_database.db_engine_spec.is_autocommit.return_value = autocommit
+    conn = setup_mock_raw_connection(mock_database)
+    cursor = conn.cursor.return_value
+    cursor.description = None
+    cursor.rowcount = 0
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="cancel-progress",
+            database_id=1,
+            sql="INSERT INTO users VALUES (1)",
+            status=QueryStatusEnum.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        def poll_and_cancel(cursor: Any, sql: str, observed: Query) -> None:
+            with Session(engine) as stopper:
+                stopped = stopper.get(Query, 123)
+                if intent == "status":
+                    stopped.status = QueryStatusEnum.STOPPED
+                else:
+                    stopped.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+                stopper.commit()
+            # A polling engine loads the stop, cancels the operation and
+            # returns with no cursor description.
+            session.refresh(observed)
+            cursor.cancel()
+
+        mock_database.db_engine_spec.execute_with_cursor.side_effect = poll_and_cancel
+        on_commit = MagicMock()
+
+        payload = celery_task._execute_sql_statements(
+            123, query.sql, None, on_commit=on_commit
+        )
+        assert payload is not None
+
+        cursor.cancel.assert_called_once()
+        assert payload["status"] == QueryStatusEnum.STOPPED
+        with Session(engine) as observer:
+            assert observer.get(Query, 123).status == QueryStatusEnum.STOPPED
+        conn.commit.assert_not_called()
+        on_commit.assert_not_called()
+    engine.dispose()
+
+
+@pytest.mark.parametrize("intent", ["status", "early"])
+def test_impala_cancel_survives_progress_commit(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    intent: str,
+) -> None:
+    """Impala's own polling cancel of an autocommit INSERT ends STOPPED."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    from .conftest import setup_mock_raw_connection
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'impala-cancel.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task, "results_backend", None)
+    mock_database.db_engine_spec = ImpalaEngineSpec
+    conn = setup_mock_raw_connection(mock_database)
+    # Only the RPC cursor is a double: execute_with_cursor, handle_cursor and
+    # is_autocommit are Impala's own.
+    cursor = conn.cursor.return_value
+    cursor.description = None
+    cursor.rowcount = 0
+    cursor.status.return_value = "RUNNING_STATE"
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="impala-cancel",
+            database_id=1,
+            sql="INSERT INTO users VALUES (1)",
+            status=QueryStatusEnum.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        def start_then_stop(sql: str) -> None:
+            with Session(engine) as stopper:
+                stopped = stopper.get(Query, 123)
+                if intent == "status":
+                    stopped.status = QueryStatusEnum.STOPPED
+                else:
+                    stopped.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+                stopper.commit()
+
+        cursor.execute_async.side_effect = start_then_stop
+
+        payload = celery_task._execute_sql_statements(123, query.sql, None)
+        assert payload is not None
+
+        cursor.cancel_operation.assert_called_once()
+        cursor.close_operation.assert_called_once()
+        assert payload["status"] == QueryStatusEnum.STOPPED
+        with Session(engine) as observer:
+            assert observer.get(Query, 123).status == QueryStatusEnum.STOPPED
+        conn.commit.assert_not_called()
+    engine.dispose()
+
+
+def test_stop_seen_between_autocommit_statements_ends_stopped(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+) -> None:
+    """A stop the check before the next statement loads ends the script STOPPED."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    from .conftest import setup_mock_raw_connection
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'between-statements.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task, "results_backend", None)
+    mock_database.db_engine_spec.is_autocommit.return_value = True
+    mock_database.db_engine_spec.run_multiple_statements_as_one = False
+    conn = setup_mock_raw_connection(mock_database)
+    cursor = conn.cursor.return_value
+    cursor.description = None
+    cursor.rowcount = 1
+    sql = "INSERT INTO users VALUES (1);\nINSERT INTO users VALUES (2)"
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="between-statements",
+            database_id=1,
+            sql=sql,
+            status=QueryStatusEnum.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        def finish_then_stop(cursor: Any, sql: str, observed: Query) -> None:
+            # The first statement finishes; a stop lands before the next one.
+            with Session(engine) as stopper:
+                stopper.get(Query, 123).status = QueryStatusEnum.STOPPED
+                stopper.commit()
+
+        execute = mock_database.db_engine_spec.execute_with_cursor
+        execute.side_effect = finish_then_stop
+
+        payload = celery_task._execute_sql_statements(123, sql, None)
+        assert payload is not None
+
+        execute.assert_called_once()
+        assert payload["status"] == QueryStatusEnum.STOPPED
+        with Session(engine) as observer:
+            assert observer.get(Query, 123).status == QueryStatusEnum.STOPPED
+        conn.commit.assert_not_called()
+    engine.dispose()

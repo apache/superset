@@ -593,6 +593,38 @@ def stop_seen_during_execution(query: Query) -> bool:
     )
 
 
+class _StopSeenTracker:
+    """
+    Record a stop seen while the statements run.
+
+    The executor commits progress after each statement, which expires the
+    session's copy of the row. A stop the engine loaded while a statement ran,
+    or a check between statements saw, is recorded before that commit.
+    """
+
+    def __init__(
+        self,
+        query: Query,
+        check_stopped: Callable[[], bool],
+        execute: Callable[[Any, str], None],
+    ) -> None:
+        self._query = query
+        self._check_stopped = check_stopped
+        self._execute = execute
+        self.seen = False
+
+    def check_stopped(self) -> bool:
+        """Check for a stop between statements."""
+        if self._check_stopped():
+            self.seen = True
+        return self.seen
+
+    def execute(self, cursor: Any, sql: str) -> None:
+        """Execute a statement, then record a stop the engine loaded."""
+        self._execute(cursor, sql)
+        self.seen = self.seen or stop_seen_during_execution(self._query)
+
+
 def _make_execute_fn(query: Query, db_engine_spec: Any) -> Any:
     """Create an execute function with stats timing."""
 
@@ -646,6 +678,9 @@ def _execute_sql_statements(
     db_engine_spec = database.db_engine_spec
     db_engine_spec.patch()
     check_stopped = _make_check_stopped_fn(query)
+    stop_tracker = _StopSeenTracker(
+        query, check_stopped, _make_execute_fn(query, db_engine_spec)
+    )
 
     logger.info("Query %s: Set query to 'running'", str(query_id))
     query.status = QueryStatus.RUNNING
@@ -682,8 +717,8 @@ def _execute_sql_statements(
                 statements=blocks,
                 query=query,
                 log_query_fn=_make_log_query_fn(database),
-                check_stopped_fn=check_stopped,
-                execute_fn=_make_execute_fn(query, db_engine_spec),
+                check_stopped_fn=stop_tracker.check_stopped,
+                execute_fn=stop_tracker.execute,
                 # `blocks` is a single un-split block when the engine runs multiple
                 # statements as one; otherwise each block is an individual statement.
                 is_split=not db_engine_spec.run_multiple_statements_as_one,
@@ -710,7 +745,7 @@ def _execute_sql_statements(
             # cannot discard it. Only a stop seen while the statements ran,
             # which is when the engine cancels a running one, ends STOPPED; a
             # later stop lost the race to the committed work.
-            stopped = stop_seen_during_execution(query)
+            stopped = stop_tracker.seen or stop_seen_during_execution(query)
         else:
             # Cancelling can clear cursor.description, leaving a nonempty
             # result list that looks like successful DML. Check intent, not
