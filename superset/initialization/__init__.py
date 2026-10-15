@@ -206,6 +206,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
         from superset.security.api import (
+            PasswordRecoveryRestApi,
             RoleRestAPI,
             SecurityRestApi,
             UserRegistrationsRestAPI,
@@ -566,6 +567,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
         appbuilder.add_api(SecurityRestApi)
+        appbuilder.add_api(PasswordRecoveryRestApi)
         #
         # Conditionally setup email views
         #
