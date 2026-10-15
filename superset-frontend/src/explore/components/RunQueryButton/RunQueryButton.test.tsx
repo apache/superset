@@ -17,10 +17,15 @@
  * under the License.
  */
 
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
-import { RunQueryButton } from './index';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
+import { RunQueryButton, type RunQueryButtonProps } from './index';
 
-const createProps = (overrides: Record<string, any> = {}) => ({
+const createProps = (overrides: Partial<RunQueryButtonProps> = {}) => ({
   loading: false,
   onQuery: jest.fn(),
   onStop: jest.fn(),
@@ -71,4 +76,71 @@ test('renders query running button disabled', async () => {
   expect(screen.getByRole('button')).toBeDisabled();
   await userEvent.click(screen.getByRole('button'));
   expect(props.onStop).not.toHaveBeenCalled();
+});
+
+const renderGestureButton = () => {
+  const props = createProps({ loading: true });
+  const utils = render(<RunQueryButton {...props} />);
+  const finishQuery = () =>
+    utils.rerender(<RunQueryButton {...props} loading={false} />);
+  return { ...utils, ...props, finishQuery };
+};
+
+test('held Enter on Stop does not update the chart after completion', () => {
+  const { onQuery, onStop, finishQuery } = renderGestureButton();
+  const button = screen.getByRole('button', { name: /Stop/ });
+
+  // Native buttons click on each Enter keydown, including auto-repeat.
+  fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
+  fireEvent.click(button, { detail: 0 });
+  expect(onStop).toHaveBeenCalledTimes(1);
+  finishQuery();
+  expect(screen.getByRole('button', { name: 'Update chart' })).toBe(button);
+  for (let repeat = 0; repeat < 2; repeat += 1) {
+    fireEvent.keyDown(button, { key: 'Enter', code: 'Enter', repeat: true });
+    fireEvent.click(button, { detail: 0 });
+  }
+  fireEvent.keyUp(button, { key: 'Enter', code: 'Enter' });
+
+  expect(onQuery).not.toHaveBeenCalled();
+  expect(onStop).toHaveBeenCalledTimes(1);
+
+  fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
+  fireEvent.click(button, { detail: 0 });
+  fireEvent.keyUp(button, { key: 'Enter', code: 'Enter' });
+  expect(onQuery).toHaveBeenCalledTimes(1);
+});
+
+test('a pointer gesture on Stop does not update the chart after completion', () => {
+  const { onQuery, onStop, finishQuery } = renderGestureButton();
+  const button = screen.getByRole('button', { name: /Stop/ });
+
+  fireEvent.pointerDown(button);
+  fireEvent.mouseDown(button);
+  finishQuery();
+  expect(screen.getByRole('button', { name: 'Update chart' })).toBe(button);
+  fireEvent.pointerUp(button);
+  fireEvent.mouseUp(button);
+  fireEvent.click(button);
+
+  expect(onQuery).not.toHaveBeenCalled();
+  expect(onStop).not.toHaveBeenCalled();
+
+  fireEvent.pointerDown(button);
+  fireEvent.click(button);
+  expect(onQuery).toHaveBeenCalledTimes(1);
+});
+
+test('held Space on Stop does not update the chart after completion', () => {
+  const { onQuery, onStop, finishQuery } = renderGestureButton();
+  const button = screen.getByRole('button', { name: /Stop/ });
+
+  fireEvent.keyDown(button, { key: ' ', code: 'Space' });
+  finishQuery();
+  fireEvent.keyDown(button, { key: ' ', code: 'Space', repeat: true });
+  fireEvent.keyUp(button, { key: ' ', code: 'Space' });
+  fireEvent.click(button, { detail: 0 });
+
+  expect(onQuery).not.toHaveBeenCalled();
+  expect(onStop).not.toHaveBeenCalled();
 });

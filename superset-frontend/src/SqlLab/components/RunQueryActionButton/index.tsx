@@ -18,10 +18,9 @@
  */
 import {
   useMemo,
-  useRef,
   FC,
   ReactElement,
-  type KeyboardEvent,
+  type SyntheticEvent,
   type ReactNode,
 } from 'react';
 
@@ -33,6 +32,7 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { detectOS } from 'src/utils/common';
 import { QueryButtonProps } from 'src/SqlLab/types';
 import useQueryEditor from 'src/SqlLab/hooks/useQueryEditor';
+import useRunStopButton from 'src/hooks/useRunStopButton';
 import {
   LOG_ACTIONS_SQLLAB_RUN_QUERY,
   LOG_ACTIONS_SQLLAB_STOP_QUERY,
@@ -84,7 +84,11 @@ const onClick = (
   runQuery();
 };
 
-type ButtonAction = 'run' | 'stop';
+/** Only the main split button changes action; caret gestures open a menu. */
+const isMainButtonGesture = (event: SyntheticEvent<HTMLSpanElement>) =>
+  event.target instanceof Element &&
+  event.target.closest('button') ===
+    event.currentTarget.querySelector('button');
 
 const StyledButton = styled.span`
   button {
@@ -118,38 +122,13 @@ const RunQueryActionButton = ({
 
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
-  const currentAction: ButtonAction = shouldShowStopBtn ? 'stop' : 'run';
-
-  // The label can switch between Stop and Run while a pointer or key is held
-  // down, and the browser dispatches the click against whatever the button
-  // shows at release time. Remember the action the gesture started on so a
-  // press that began on Stop can never run the query.
-  const gestureActionRef = useRef<ButtonAction | null>(null);
-  const keyboardActionRef = useRef<ButtonAction | null>(null);
-
-  const captureGestureAction = () => {
-    gestureActionRef.current = currentAction;
-  };
-
-  const onKeyDownCapture = (event: KeyboardEvent<HTMLSpanElement>) => {
-    if (event.key === 'Enter' || event.key === ' ') {
-      if (!event.repeat) {
-        keyboardActionRef.current = currentAction;
-      }
-      // Enter auto-repeat generates more clicks after the first consumes the
-      // pending gesture. Keep those clicks tied to the original key press.
-      gestureActionRef.current = keyboardActionRef.current ?? currentAction;
-    }
-  };
-
-  const handleClick = () => {
-    const gestureAction = gestureActionRef.current ?? currentAction;
-    gestureActionRef.current = null;
-    if (gestureAction !== currentAction) {
-      return;
-    }
-    onClick(shouldShowStopBtn, runQuery, stopQuery, logAction);
-  };
+  const {
+    onPointerDownCapture,
+    onKeyDownCapture,
+    onClick: handleClick,
+  } = useRunStopButton(shouldShowStopBtn, () =>
+    onClick(shouldShowStopBtn, runQuery, stopQuery, logAction),
+  );
 
   const ButtonComponent: FC<QueryButtonProps> = overlayCreateAsMenu
     ? (DropdownButton as FC)
@@ -175,8 +154,12 @@ const RunQueryActionButton = ({
 
   return (
     <StyledButton
-      onPointerDownCapture={captureGestureAction}
-      onKeyDownCapture={onKeyDownCapture}
+      onPointerDownCapture={event => {
+        if (isMainButtonGesture(event)) onPointerDownCapture();
+      }}
+      onKeyDownCapture={event => {
+        if (isMainButtonGesture(event)) onKeyDownCapture(event);
+      }}
     >
       <ButtonComponent
         data-test="run-query-action"

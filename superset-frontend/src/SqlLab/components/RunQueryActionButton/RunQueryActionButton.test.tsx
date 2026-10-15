@@ -330,3 +330,36 @@ test('a Run gesture does not stop a newly running query', () => {
   expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).not.toHaveBeenCalled();
 });
+
+test('an assistive technology click still runs after a CTAS caret key press', () => {
+  const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton({
+    overlayCreateAsMenu: ctasMenu,
+  });
+  const [mainButton, caretButton] = getAllByRole('button');
+
+  fireEvent.keyDown(caretButton, { key: 'Enter', code: 'Enter' });
+  fireEvent.click(caretButton, { detail: 0 });
+  fireEvent.keyUp(caretButton, { key: 'Enter', code: 'Enter' });
+  switchTo('success');
+  // Assistive technology can activate the main button without a new press.
+  fireEvent.click(mainButton, { detail: 0 });
+
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test('an assistive technology click still runs after a CTAS caret pointer press', () => {
+  const { getAllByRole, runQuery, stopQuery, switchTo } = renderGestureButton({
+    overlayCreateAsMenu: ctasMenu,
+  });
+  const [mainButton, caretButton] = getAllByRole('button');
+
+  fireEvent.pointerDown(caretButton);
+  fireEvent.pointerUp(caretButton);
+  fireEvent.click(caretButton);
+  switchTo('success');
+  fireEvent.click(mainButton, { detail: 0 });
+
+  expect(runQuery).toHaveBeenCalledTimes(1);
+  expect(stopQuery).not.toHaveBeenCalled();
+});
