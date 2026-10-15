@@ -20,6 +20,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import type { DataRecordValue } from '@superset-ui/core';
+import { Tooltip } from '@superset-ui/core/components';
 import type { UsageDrilldownProps } from './types';
 import { DURATION_RUNS, DURATION_TOTAL } from './consts';
 import { notifyEmbedHost } from './notifyEmbedHost';
@@ -349,6 +350,30 @@ function hrefOf(value: DataRecordValue): string | undefined {
 const display = (value: DataRecordValue) =>
   value === null || value === undefined ? t('<NULL>') : String(value);
 
+// The dataset labels groups with no real entity behind them in parentheses,
+// e.g. "(not in a workflow)" or "(no workflows)". They have nothing to drill
+// into, so they are shown but cannot be opened.
+const isPlaceholder = (value: DataRecordValue) =>
+  typeof value === 'string' && /^\(.*\)$/.test(value.trim());
+
+// Placeholder labels from the dataset that show as "-", with an explanation
+// on hover: "(not in a workflow)" groups calls recorded before workflows were
+// tracked, "(no workflows)" stands for a project without any workflows.
+const hints: Record<string, () => string> = {
+  '(not in a workflow)': () =>
+    t(
+      'These API calls are from older records that were saved without workflow details, so their workflow cannot be shown.',
+    ),
+  '(no workflows)': () =>
+    t('This project has no workflows, so there is nothing to show here.'),
+};
+
+const hint = (value: DataRecordValue) =>
+  typeof value === 'string' ? hints[value]?.() : undefined;
+
+const name = (value: DataRecordValue) =>
+  hint(value) === undefined ? display(value) : '-';
+
 // "Project" -> "projects", "API" -> "APIs"
 const plural = (label: string) =>
   label === label.toUpperCase() ? `${label}s` : `${label.toLowerCase()}s`;
@@ -455,7 +480,7 @@ export default function UsageDrilldown({
 
   const query = search.trim().toLowerCase();
   const filtered = rows.filter(row =>
-    display(row.value).toLowerCase().includes(query),
+    name(row.value).toLowerCase().includes(query),
   );
   const shown = filtered.slice(0, visible);
   const rootLabel = t('All %s', plural(levels[0].label));
@@ -548,76 +573,88 @@ export default function UsageDrilldown({
                 </td>
               </tr>
             )}
-            {shown.map(row => (
-              <tr
-                key={display(row.value)}
-                className={next ? 'ud-clickable' : undefined}
-                onClick={next ? () => goTo([...path, row.value]) : undefined}
-              >
-                <td>
-                  {next ? (
-                    <>
-                      <div className="ud-name">{display(row.value)}</div>
-                      <div className="ud-sub">
-                        {count(row.children.size, next.label)}
-                        {depth > 0 && row.links.size === 1 && (
-                          <>
-                            {' · '}
-                            <a
-                              href={[...row.links][0]}
-                              target="_blank"
-                              rel="noreferrer"
-                              onClick={event => event.stopPropagation()}
-                            >
-                              {t('View detail')}
-                            </a>
-                          </>
-                        )}
-                      </div>
-                    </>
-                  ) : (
-                    <div className="ud-api">
-                      {row.badges.size === 1 && (
-                        <span
-                          className={`ud-badge ud-badge-${[...row.badges][0].toLowerCase()}`}
-                        >
-                          {[...row.badges][0]}
-                        </span>
-                      )}
-                      <div>
-                        <div className="ud-name">{display(row.value)}</div>
-                        {row.subtitles.size === 1 && (
-                          <div className="ud-sub ud-sub-mono">
-                            {[...row.subtitles][0]}
+            {shown.map(row => {
+              const drillable = !!next && !isPlaceholder(row.value);
+              return (
+                <Tooltip
+                  key={display(row.value)}
+                  title={hint(row.value)}
+                  placement="topLeft"
+                >
+                  <tr
+                    className={drillable ? 'ud-clickable' : undefined}
+                    onClick={
+                      drillable ? () => goTo([...path, row.value]) : undefined
+                    }
+                  >
+                    <td>
+                      {next ? (
+                        <>
+                          <div className="ud-name">{name(row.value)}</div>
+                          <div className="ud-sub">
+                            {count(row.children.size, next.label)}
+                            {depth > 0 && row.links.size === 1 && (
+                              <>
+                                {' · '}
+                                <a
+                                  href={[...row.links][0]}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  onClick={event => event.stopPropagation()}
+                                >
+                                  {t('View detail')}
+                                </a>
+                              </>
+                            )}
                           </div>
-                        )}
+                        </>
+                      ) : (
+                        <div className="ud-api">
+                          {row.badges.size === 1 && (
+                            <span
+                              className={`ud-badge ud-badge-${[...row.badges][0].toLowerCase()}`}
+                            >
+                              {[...row.badges][0]}
+                            </span>
+                          )}
+                          <div>
+                            <div className="ud-name">{name(row.value)}</div>
+                            {row.subtitles.size === 1 && (
+                              <div className="ud-sub ud-sub-mono">
+                                {[...row.subtitles][0]}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </td>
+                    <td className="ud-num ud-mono">
+                      {row.total.toLocaleString()}
+                    </td>
+                    <td className="ud-share-col">
+                      <div className="ud-share">
+                        <div className="ud-bar">
+                          <div
+                            className="ud-bar-fill"
+                            style={{ width: `${row.share}%` }}
+                          />
+                        </div>
+                        <span className="ud-mono">{row.share.toFixed(1)}%</span>
                       </div>
-                    </div>
-                  )}
-                </td>
-                <td className="ud-num ud-mono">{row.total.toLocaleString()}</td>
-                <td className="ud-share-col">
-                  <div className="ud-share">
-                    <div className="ud-bar">
-                      <div
-                        className="ud-bar-fill"
-                        style={{ width: `${row.share}%` }}
-                      />
-                    </div>
-                    <span className="ud-mono">{row.share.toFixed(1)}%</span>
-                  </div>
-                </td>
-                {showDuration ? (
-                  <td className="ud-duration ud-mono">
-                    {row.durationRuns
-                      ? `${(row.durationTotal / row.durationRuns / 1000).toFixed(2)} s`
-                      : '—'}
-                  </td>
-                ) : (
-                  <td className="ud-chevron-col">{next && '›'}</td>
-                )}
-              </tr>
-            ))}
+                    </td>
+                    {showDuration ? (
+                      <td className="ud-duration ud-mono">
+                        {row.durationRuns
+                          ? `${(row.durationTotal / row.durationRuns / 1000).toFixed(2)} s`
+                          : '—'}
+                      </td>
+                    ) : (
+                      <td className="ud-chevron-col">{drillable && '›'}</td>
+                    )}
+                  </tr>
+                </Tooltip>
+              );
+            })}
           </tbody>
         </table>
 
