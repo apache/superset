@@ -600,6 +600,12 @@ def import_dataset(  # noqa: C901
                     # references once the params are applied, so they are
                     # forwarded rather than left to default to empty.
                     template_params=_get_template_params(dataset),
+                    # Editorship of a same-named dataset must not authorize
+                    # the referenced tables here, matching the create/update
+                    # commands: otherwise importing (or overwriting) a virtual
+                    # dataset whose SQL reads a table the importer only edits a
+                    # decoy for would stand in for real data access.
+                    allow_editorship=False,
                 )
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex

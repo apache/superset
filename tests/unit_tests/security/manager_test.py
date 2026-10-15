@@ -4172,8 +4172,46 @@ def test_raise_for_access_editorship_denied_in_strict_mode(
     with pytest.raises(SupersetSecurityException):
         sm.raise_for_access(query=query, force_dataset_match=True)
 
+    # allow_editorship=False (dataset create/update validation): also not enough.
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, allow_editorship=False)
+
     # Non-strict mode: editorship still authorizes access (#20382).
     sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_allow_editorship_false_keeps_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    allow_editorship=False must not drop the schema_access fallthrough: a
+    user with schema_access can still DEFINE a dataset over the table (unlike
+    force_dataset_match=True, which requires a registered dataset match).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database, schema=None, catalog=None, sql="SELECT * FROM dbo.foo"
+    )
+    # Only schema_access holds (the dbo schema on this connection).
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    # allow_editorship=False still passes on schema_access ...
+    sm.raise_for_access(query=query, allow_editorship=False)
+    # ... whereas the strict flag would deny it (no registered dataset).
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, force_dataset_match=True)
 
 
 def test_get_datasources_accessible_by_user_schema_access(

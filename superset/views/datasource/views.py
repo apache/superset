@@ -210,6 +210,7 @@ def _authorize_repoint(
             security_manager.raise_for_access(
                 database=target_database,
                 table=requested_table,
+                allow_editorship=False,
             )
         if repoints_sql:
             security_manager.raise_for_access(
@@ -217,6 +218,7 @@ def _authorize_repoint(
                 sql=requested_sql,
                 catalog=requested_table.catalog,
                 schema=requested_table.schema,
+                allow_editorship=False,
             )
     except SupersetSecurityException as ex:
         raise DatasetForbiddenError() from ex

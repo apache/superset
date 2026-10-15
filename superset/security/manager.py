@@ -4985,6 +4985,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         template_params: Optional[dict[str, Any]] = None,
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
+        allow_editorship: bool = True,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -5022,6 +5023,19 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             access, and a query's SQL may be templated such that the
             tables actually touched depend on parameters supplied at
             request time.
+        :param allow_editorship: When False, editorship/ownership of a
+            registered dataset no longer counts as access to the underlying
+            table in the database+table / query branch (the
+            ``catalog_access`` / ``schema_access`` / ``datasource_access``
+            checks still apply). Dataset create/update SQL and table
+            validation set this to False so that *defining* a dataset over a
+            table requires real data access to that table, not editorship of
+            a same-named dataset -- otherwise a no-table decoy dataset named
+            after the table would let its editor create a second dataset that
+            reads it. Unlike ``force_dataset_match`` this keeps the
+            catalog/schema fallthroughs, so ``schema_access`` still authorizes
+            defining a dataset. Ignored when ``force_dataset_match`` is True
+            (editorship is already excluded there).
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5381,14 +5395,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for datasource_ in datasources:
                     # ``datasource_access`` on a registered dataset is always
                     # sufficient. Editorship of the dataset is accepted only on
-                    # the non-strict path (chart-data, dataset CRUD,
-                    # ``/table_metadata/``, ``/select_star/``), where it is the
-                    # dataset-owner "explore your own dataset" grant from
-                    # #20382. Under strict scoping (SQL Lab raw queries, MetaDB,
-                    # MCP ``execute_sql``) editorship is deliberately excluded:
-                    # returning raw rows from the underlying warehouse table
-                    # must follow the user's live data-access grants, not
-                    # editorship of a same-named dataset. Any principal able to
+                    # the non-strict path (chart-data, ``/table_metadata/``,
+                    # ``/select_star/``), where it is the dataset-owner
+                    # "explore your own dataset" grant from #20382.
+                    #
+                    # It is excluded on two kinds of call:
+                    #   * strict scoping (``force_dataset_match``) -- SQL Lab
+                    #     raw queries, MetaDB, MCP ``execute_sql`` and
+                    #     alert/report queries -- which return raw rows and
+                    #     also drop the catalog/schema fallthroughs;
+                    #   * ``allow_editorship=False`` -- dataset create/update
+                    #     SQL/table validation (whether a dataset may be
+                    #     *defined* over a table) and query-backed chart-data
+                    #     (which runs a stored query's raw SQL) -- which keep
+                    #     the catalog/schema fallthroughs but refuse editorship.
+                    # Both must follow the user's live data-access grants, not
+                    # editorship of a same-named dataset: any principal able to
                     # create a dataset can make themselves an editor of one
                     # named after an arbitrary table, so accepting editorship
                     # here would let dataset creation stand in for data access
@@ -5396,7 +5418,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     if self.can_access(
                         "datasource_access",
                         datasource_.perm or "",
-                    ) or (not force_dataset_match and self.is_editor(datasource_)):
+                    ) or (
+                        not force_dataset_match
+                        and allow_editorship
+                        and self.is_editor(datasource_)
+                    ):
                         # access to any datasource is sufficient
                         break
                 else:
