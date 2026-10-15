@@ -517,6 +517,10 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       setLastFetchConfig(config);
       setLoading(true);
       const { pageIndex, pageSize, sortBy, filters: filterValues } = config;
+      // The Source control and the semantic-layer connections only exist with
+      // SEMANTIC_LAYERS on, but a saved URL can still carry them. The dataset API
+      // rejects both, and with the control hidden the user could not clear them.
+      const semanticLayersEnabled = isFeatureEnabled(SEMANTIC_LAYERS_FLAG);
 
       // Separate source_type and database/connection filters for special handling
       const sourceTypeFilter = filterValues.find(f => f.id === 'source_type');
@@ -542,7 +546,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         sourceTypeFilter?.value && typeof sourceTypeFilter.value === 'object'
           ? (sourceTypeFilter.value as { value: string }).value
           : (sourceTypeFilter?.value as string | undefined);
-      if (sourceTypeValue) {
+      if (sourceTypeValue && semanticLayersEnabled) {
         otherFilters.push({
           col: 'source_type',
           opr: 'eq',
@@ -560,11 +564,17 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             ? (databaseFilter.value as { value: unknown }).value
             : databaseFilter.value;
         if (typeof raw === 'string' && raw.startsWith('sl:')) {
-          otherFilters.push({
-            col: 'semantic_layer_uuid',
-            opr: 'eq',
-            value: raw.slice(3),
-          });
+          if (semanticLayersEnabled) {
+            otherFilters.push({
+              col: 'semantic_layer_uuid',
+              opr: 'eq',
+              value: raw.slice(3),
+            });
+          } else {
+            // Drop the stale connection from the filter state too, so it does
+            // not linger in the filter bar or come back on the next refetch.
+            filtersRef.current?.clearFilterById('database');
+          }
         } else if (raw !== null && raw !== undefined && raw !== '') {
           otherFilters.push({
             col: 'database',
