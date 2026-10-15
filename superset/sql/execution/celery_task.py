@@ -31,6 +31,7 @@ from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 
 import msgpack
+import sqlalchemy as sa
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
@@ -445,9 +446,9 @@ def execute_sql_task(
                         ex, query, durable=committed, results_key=results_key
                     )
                 except Exception:
-                    # _handle_query_error commits last, so the failure was not
-                    # recorded and no committed row references the results.
-                    _discard_stored_results(query_id, results_key)
+                    # _handle_query_error commits last, so the failure was most
+                    # likely not recorded. A commit can still apply and raise.
+                    _discard_unreferenced_results(query_id, results_key)
                     raise
 
 
@@ -507,6 +508,35 @@ def _discard_stored_results(query_id: int, key: str | None) -> None:
         )
 
 
+def _discard_unreferenced_results(query_id: int, key: str | None) -> None:
+    """
+    Delete stored results after a failure the task could not record, unless the
+    query row references them.
+
+    A metadata commit can apply and still raise, for example when its
+    acknowledgement is lost, so the row is read again in a new transaction. If
+    that read fails too, the results are kept until they expire: an orphaned
+    blob is safer than a committed row that references deleted results.
+    """
+    if not key or not results_backend:
+        return
+    try:
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        referenced_key = (
+            db.session.query(Query.results_key).filter(Query.id == query_id).scalar()
+        )
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "Query %s: Kept results that may be referenced, key: %s",
+            str(query_id),
+            key,
+            exc_info=True,
+        )
+        return
+    if referenced_key != key:
+        _discard_stored_results(query_id, key)
+
+
 def _stopped_query_payload(query: Query) -> dict[str, Any]:
     """Return a minimal stopped result without publishing successful results."""
     query.status = QueryStatus.STOPPED
@@ -538,6 +568,23 @@ def _make_check_stopped_fn(
         return stopped
 
     return check_stopped
+
+
+def stop_seen_during_execution(query: Query) -> bool:
+    """
+    Whether the session's copy of the query held a stop when execution returned.
+
+    Engines that cancel a running statement on a stop (Hive, Impala, Presto) do
+    so after loading the stop into this session, as do the checks between
+    statements. A stop the session never loaded was recorded after the
+    statements finished. The row is not read again, and attributes expired by a
+    commit count as unseen.
+    """
+    loaded = sa.inspect(query).dict
+    if loaded.get("status") == QueryStatus.STOPPED:
+        return True
+    extra_json = loaded.get("extra_json")
+    return bool(extra_json and json.loads(extra_json).get(QUERY_EARLY_CANCEL_KEY))
 
 
 def _make_execute_fn(query: Query, db_engine_spec: Any) -> Any:
@@ -609,6 +656,7 @@ def _execute_sql_statements(
     )
     # Whether the target database committed a mutation or CTAS.
     committed = False
+    writes = parsed_script.has_mutation() or query.select_as_cta
 
     with database.get_raw_connection(
         catalog=query.catalog,
@@ -651,12 +699,20 @@ def _execute_sql_statements(
                 )
             ) from ex
 
-        # Cancelling can clear cursor.description, leaving a nonempty result
-        # list that looks like successful DML. Check intent, not just results.
-        stopped = not execution_results or check_stopped()
+        if writes and execution_results and db_engine_spec.is_autocommit(conn):
+            # Each finished statement is already durable and ``conn.commit()``
+            # cannot discard it. Only a stop seen while the statements ran,
+            # which is when the engine cancels a running one, ends STOPPED; a
+            # later stop lost the race to the committed work.
+            stopped = stop_seen_during_execution(query)
+        else:
+            # Cancelling can clear cursor.description, leaving a nonempty
+            # result list that looks like successful DML. Check intent, not
+            # just results.
+            stopped = not execution_results or check_stopped()
 
         # Commit for mutations
-        if not stopped and (parsed_script.has_mutation() or query.select_as_cta):
+        if not stopped and writes:
             conn.commit()  # pylint: disable=consider-using-transaction
             committed = True
             if on_commit:
@@ -669,12 +725,6 @@ def _execute_sql_statements(
     # and by the guarded publish, so serialization does not re-read the row. A
     # committed mutation or CTAS is durable: a stop recorded after the
     # pre-commit check lost the race and must not mask the committed result.
-    #
-    # Engines that autocommit each statement (Impala, Hive, Trino) make DML and
-    # CTAS permanent when the statement finishes, and ``conn.commit()`` does
-    # nothing. A stop that lands between statement completion and the
-    # pre-commit check therefore still ends STOPPED, with the rows or table
-    # already written.
     total_execution_time_ms = (now_as_float() - execution_start_time) * 1000
     _finalize_successful_query(
         query, original_script, execution_results, payload, total_execution_time_ms

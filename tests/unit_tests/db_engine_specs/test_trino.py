@@ -1968,3 +1968,22 @@ def test_get_cancel_query_id_reads_the_running_query() -> None:
         == "20261001_000000_00001_abcde"
     )
     assert TrinoEngineSpec.has_query_id_during_execute is True
+
+
+def test_is_autocommit_reads_trino_isolation_level() -> None:
+    """
+    A Trino connection commits each statement unless it was opened with a
+    transactional isolation level.
+    """
+    from trino.dbapi import Connection
+    from trino.transaction import IsolationLevel
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    assert TrinoEngineSpec.is_autocommit(Connection("localhost")) is True
+    assert (
+        TrinoEngineSpec.is_autocommit(
+            Connection("localhost", isolation_level=IsolationLevel.READ_COMMITTED)
+        )
+        is False
+    )

@@ -1959,6 +1959,32 @@ def test_discard_stored_results_logs_undeleted_results(
         assert message in caplog.text
 
 
+@pytest.mark.parametrize(
+    ("key", "has_backend"),
+    [(None, True), ("results-key", False)],
+    ids=["no_key", "no_backend"],
+)
+def test_discard_unreferenced_results_without_stored_results(
+    mocker: MockerFixture,
+    app_context: None,
+    key: str | None,
+    has_backend: bool,
+) -> None:
+    """Test that nothing is read or deleted when no results were stored."""
+    from superset.sql.execution import celery_task
+
+    backend = MagicMock() if has_backend else None
+    mocker.patch.object(celery_task, "results_backend", backend)
+    session = mocker.patch.object(celery_task.db, "session")
+
+    celery_task._discard_unreferenced_results(123, key)
+
+    session.rollback.assert_not_called()
+    session.query.assert_not_called()
+    if backend is not None:
+        backend.delete.assert_not_called()
+
+
 @pytest.mark.parametrize("failure", ["payload", "commit"])
 def test_error_path_deletes_results_only_without_committed_failure(
     mocker: MockerFixture,
@@ -2067,18 +2093,24 @@ def test_error_path_deletes_results_only_without_committed_failure(
     engine.dispose()
 
 
-@pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
-def test_unrecorded_error_after_results_write_deletes_stored_results(
+@pytest.mark.parametrize(
+    ("reread", "delete_fails"),
+    [("available", False), ("available", True), ("unavailable", False)],
+    ids=["reread-deleted", "reread-delete_error", "no_reread"],
+)
+def test_unrecorded_error_after_results_write_deletes_only_unreferenced_results(
     mocker: MockerFixture,
     app_context: None,
     mock_database: MagicMock,
     tmp_path: Path,
     caplog: pytest.LogCaptureFixture,
+    reread: str,
     delete_fails: bool,
 ) -> None:
     """
-    Test that results stored before a failure the task cannot record, because
-    the metadata database stays unavailable, are deleted from the results backend.
+    Test that results stored before a failure the task cannot record are
+    deleted once a fresh read shows the row does not reference them, and kept
+    until they expire when the metadata database cannot be read at all.
     """
     from sqlalchemy import create_engine, event
     from sqlalchemy.orm import Session
@@ -2127,7 +2159,8 @@ def test_unrecorded_error_after_results_write_deletes_stored_results(
         executemany: bool,
     ) -> None:
         """Fail every metadata statement once the results are stored."""
-        if stored:
+        cleanup_read = statement.startswith('SELECT "query".results_key ')
+        if stored and not (reread == "available" and cleanup_read):
             raise RuntimeError("Metadata database unavailable")
 
     with Session(engine) as session:
@@ -2148,9 +2181,135 @@ def test_unrecorded_error_after_results_write_deletes_stored_results(
 
         backend.set.assert_called_once()
         key = backend.set.call_args.args[0]
-        backend.delete.assert_called_once_with(key)
-        assert (key in stored) is delete_fails
-        assert ("Failed to delete unpublished results" in caplog.text) is delete_fails
+        if reread == "available":
+            backend.delete.assert_called_once_with(key)
+            assert (key in stored) is delete_fails
+            assert (
+                "Failed to delete unpublished results" in caplog.text
+            ) is delete_fails
+        else:
+            backend.delete.assert_not_called()
+            assert key in stored
+            assert "Kept results that may be referenced" in caplog.text
+    engine.dispose()
+
+
+@pytest.mark.parametrize("applied", ["failed_row", "published_row"])
+def test_commit_that_applies_and_raises_keeps_referenced_results(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    applied: str,
+) -> None:
+    """
+    Test that a metadata commit that reaches the database and then raises (its
+    acknowledgement is lost) does not delete the results the committed row
+    references: the failed row of the error handler, or the published row
+    when the metadata database then stays unavailable.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'applied-commit.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+    stats_logger = MagicMock()
+    if applied == "failed_row":
+
+        def timing(key: str, value: float) -> None:
+            """Fail emitting the write timing, once the results are stored."""
+            if key == "sqllab.query.results_backend_write":
+                raise RuntimeError("Metrics unavailable")
+
+        stats_logger.timing.side_effect = timing
+    mocker.patch.dict(current_app.config, {"STATS_LOGGER": stats_logger})
+
+    target = QueryStatusEnum.FAILED if applied == "failed_row" else "success"
+    flushed = False
+    applied_commit = False
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def metadata_unavailable(  # noqa: PLR0913
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Keep the metadata database down once the published row commits."""
+        if applied == "published_row" and applied_commit:
+            raise RuntimeError("Metadata database unavailable")
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="applied-commit",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        @event.listens_for(session, "after_flush")
+        def flushed_target(flushing_session: Any, context: Any) -> None:
+            nonlocal flushed
+            flushed = query.status == target and query.results_key is not None
+
+        do_commit = engine.dialect.do_commit
+
+        def lose_acknowledgement(dbapi_connection: Any) -> None:
+            """Raise after the database committed the row with the key."""
+            nonlocal applied_commit
+            do_commit(dbapi_connection)
+            if flushed and not applied_commit:
+                applied_commit = True
+                raise RuntimeError("Commit acknowledgement lost")
+
+        mocker.patch.object(
+            engine.dialect, "do_commit", side_effect=lose_acknowledgement
+        )
+
+        with pytest.raises(RuntimeError):
+            celery_task.execute_sql_task(123, query.sql)
+
+        assert applied_commit
+        event.remove(engine, "before_cursor_execute", metadata_unavailable)
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == target
+            assert persisted.results_key == key
+        backend.delete.assert_not_called()
+        assert key in stored
     engine.dispose()
 
 
@@ -2533,6 +2692,97 @@ def test_stop_during_mutation_commit_does_not_mask_committed_work(
         assert query.status == expected_status
         assert query.progress == 100
         assert (query.results_key is not None) is bool(backend_write)
+    engine.dispose()
+
+
+@pytest.mark.parametrize("ctas", [False, True], ids=["mutation", "ctas"])
+@pytest.mark.parametrize("stop_intent", ["status", "early"])
+@pytest.mark.parametrize("seen", [False, True], ids=["after_finish", "while_running"])
+@pytest.mark.parametrize("autocommit", [True, False], ids=["autocommit", "transaction"])
+def test_autocommit_work_finished_before_a_stop_is_committed(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    autocommit: bool,
+    seen: bool,
+    stop_intent: str,
+    ctas: bool,
+) -> None:
+    """
+    On a connection that commits each statement when it finishes, a mutation or
+    CTAS that finished before the stop was seen is committed work: it ends
+    SUCCESS. A stop the session loaded while the statements ran (the point at
+    which the engine cancels a running statement) still ends STOPPED, and so
+    does any stop before the commit inside a transaction.
+    """
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    from .conftest import setup_mock_raw_connection
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'autocommit.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mock_database.db_engine_spec.is_autocommit = BaseEngineSpec.is_autocommit
+    conn = setup_mock_raw_connection(mock_database)
+    conn.dbapi_connection.autocommit = autocommit
+    sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="autocommit",
+            database_id=1,
+            sql=sql,
+            select_as_cta=ctas,
+            status=QueryStatusEnum.PENDING,
+        )
+        session.add(query)
+        session.commit()
+
+        def execute_then_stop(**kwargs: Any) -> list[tuple[str, None, float, int]]:
+            """Finish the last statement, with a stop committed elsewhere."""
+            with Session(engine) as stop_session:
+                stopped_query = stop_session.get(Query, 123)
+                assert stopped_query is not None
+                if stop_intent == "early":
+                    stopped_query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+                else:
+                    stopped_query.status = QueryStatusEnum.STOPPED
+                    stopped_query.end_time = 1234.5
+                stop_session.commit()
+            if seen:
+                # An engine polling the running statement loads the stop.
+                session.refresh(query)
+            return [(sql, None, 1.0, 1)]
+
+        mocker.patch.object(celery_task.db, "session", session)
+        mocker.patch.object(celery_task, "_get_query", return_value=query)
+        mocker.patch.object(
+            celery_task, "execute_sql_with_cursor", side_effect=execute_then_stop
+        )
+        mocker.patch.object(celery_task, "results_backend", None)
+        on_commit = MagicMock()
+
+        payload = celery_task._execute_sql_statements(
+            123, sql, None, on_commit=on_commit
+        )
+
+        committed = autocommit and not seen
+        expected = QueryStatusEnum.SUCCESS if committed else QueryStatusEnum.STOPPED
+        assert payload is not None
+        assert payload["status"] == expected
+        session.refresh(query)
+        assert query.status == expected
+        assert conn.commit.called is committed
+        assert on_commit.called is committed
     engine.dispose()
 
 

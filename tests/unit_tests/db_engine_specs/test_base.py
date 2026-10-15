@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import enum
 import importlib
 import json  # noqa: TID251
 import re
@@ -2056,3 +2057,92 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+class _Connection:
+    """A DB-API connection exposing only the given attributes."""
+
+    def __init__(self, **attributes: Any) -> None:
+        self.__dict__.update(attributes)
+
+
+class _IsolationLevel(enum.Enum):
+    AUTOCOMMIT = 0
+    READ_COMMITTED = 2
+
+
+def _raise_autocommit_error() -> bool:
+    raise RuntimeError("Connection closed")
+
+
+@pytest.mark.parametrize(
+    ("connection", "expected"),
+    [
+        # psycopg2, pyodbc
+        (_Connection(autocommit=True), True),
+        (_Connection(autocommit=False), False),
+        # MySQLdb and PyMySQL expose a method, not an attribute
+        (_Connection(autocommit=lambda on: None, get_autocommit=lambda: True), True),
+        (_Connection(get_autocommit=lambda: False), False),
+        # Trino
+        (_Connection(isolation_level=_IsolationLevel.AUTOCOMMIT), True),
+        (_Connection(isolation_level=_IsolationLevel.READ_COMMITTED), False),
+        (_Connection(isolation_level="autocommit"), True),
+        # sqlite3's default deferred transactions report an empty level
+        (_Connection(isolation_level=""), False),
+        (_Connection(isolation_level="DEFERRED"), False),
+        # Nothing reported: the engine spec's default applies
+        (_Connection(), False),
+        (_Connection(get_autocommit=lambda: None), False),
+        (_Connection(get_autocommit=_raise_autocommit_error), False),
+        # A pooled connection is unwrapped to its DB-API connection
+        (_Connection(dbapi_connection=_Connection(autocommit=True)), True),
+    ],
+)
+def test_is_autocommit(connection: Any, expected: bool) -> None:
+    """
+    ``is_autocommit`` reads the transaction mode the DB-API driver reports.
+    """
+    assert BaseEngineSpec.is_autocommit(connection) is expected
+
+
+def test_is_autocommit_real_connections() -> None:
+    """
+    A real sqlite3 connection, raw or pooled by SQLAlchemy, is transactional
+    unless it was opened in autocommit mode.
+    """
+    import sqlite3
+
+    from sqlalchemy import create_engine
+
+    assert BaseEngineSpec.is_autocommit(sqlite3.connect(":memory:")) is False
+
+    engine = create_engine("sqlite://")
+    connection = engine.raw_connection()
+    try:
+        assert BaseEngineSpec.is_autocommit(connection) is False
+    finally:
+        connection.close()
+        engine.dispose()
+
+
+def test_is_autocommit_falls_back_to_the_engine_default() -> None:
+    """
+    Engines whose drivers report no transaction mode but have no transactions
+    (PyHive, impyla) commit each statement when it finishes; a driver that
+    reports a mode overrides the default.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+    from superset.db_engine_specs.presto import PrestoEngineSpec
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    for spec in (HiveEngineSpec, ImpalaEngineSpec, PrestoEngineSpec, TrinoEngineSpec):
+        assert spec.is_autocommit(_Connection()) is True
+    assert (
+        TrinoEngineSpec.is_autocommit(
+            _Connection(isolation_level=_IsolationLevel.READ_COMMITTED)
+        )
+        is False
+    )
+    assert BaseEngineSpec.is_autocommit(_Connection()) is False

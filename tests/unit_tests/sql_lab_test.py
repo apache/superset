@@ -880,6 +880,235 @@ def test_get_sql_results_stop_before_target_commit_stays_stopped(
     engine.dispose()
 
 
+@pytest.mark.parametrize("ctas", [False, True], ids=["mutation", "ctas"])
+@pytest.mark.parametrize("seen", [False, True], ids=["after_finish", "while_running"])
+@pytest.mark.parametrize("autocommit", [True, False], ids=["autocommit", "transaction"])
+def test_get_sql_results_autocommit_work_finished_before_a_stop_is_committed(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    autocommit: bool,
+    seen: bool,
+    ctas: bool,
+) -> None:
+    """
+    Test that on a connection that commits each statement when it finishes, a
+    mutation or CTAS that finished before the stop was seen ends SUCCESS. A
+    stop the session loaded while the statement ran (the point at which the
+    engine cancels a running statement) still ends STOPPED, and so does any
+    stop before the commit inside a transaction.
+    """
+    from contextlib import contextmanager
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'autocommit.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_dml = True
+    database.allow_run_async = False
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    database.select_star.return_value = "SELECT * FROM tmp_table"
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+
+    conn = MagicMock()
+    conn.dbapi_connection.autocommit = autocommit
+
+    @contextmanager
+    def raw_connection(*args: Any, **kwargs: Any) -> Any:
+        yield conn
+
+    database.get_raw_connection = raw_connection
+    mocker.patch.object(sql_lab, "results_backend", None)
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+    mocker.patch.dict(app.config, {"STATS_LOGGER": MagicMock()})
+    on_commit = MagicMock()
+
+    sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="autocommit-stop",
+            database_id=1,
+            sql=sql,
+            select_as_cta=ctas,
+            ctas_method="TABLE",
+            tmp_table_name="tmp_table",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        def execute_then_stop(*args: Any, **kwargs: Any) -> MagicMock:
+            """Finish the last statement, with a stop committed elsewhere."""
+            with Session(engine) as stop_session:
+                stopped_query = stop_session.get(Query, 123)
+                assert stopped_query is not None
+                stopped_query.status = QueryStatus.STOPPED
+                stopped_query.end_time = 1234.5
+                stop_session.commit()
+            if seen:
+                # An engine polling the running statement loads the stop.
+                session.refresh(query)
+            return MagicMock(size=1, columns=[])
+
+        mocker.patch.object(sql_lab, "execute_query", side_effect=execute_then_stop)
+
+        payload = sql_lab.execute_sql_statements(
+            123,
+            sql,
+            True,
+            False,
+            None,
+            False,
+            None,
+            on_commit=on_commit,
+        )
+
+        committed = autocommit and not seen
+        expected = QueryStatus.SUCCESS if committed else QueryStatus.STOPPED
+        assert payload is not None
+        assert payload["status"] == expected
+        session.refresh(query)
+        assert query.status == expected
+        assert conn.commit.called is committed
+        assert on_commit.called is committed
+    engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("stop_at", "store_results", "return_results"),
+    [
+        ("serialize", False, True),
+        ("serialize", True, True),
+        ("serialize", True, False),
+        ("backend_write", True, True),
+        ("backend_write", True, False),
+    ],
+)
+def test_get_sql_results_stop_during_select_finalization_ends_stopped(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    stop_at: str,
+    store_results: bool,
+    return_results: bool,
+) -> None:
+    """
+    Test that a stop landing while a SELECT's results are serialized or stored
+    ends STOPPED in both the row and the returned payload, keeps the stop's end
+    time, and deletes stored results the stopped row does not reference.
+    """
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'select-stop.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_run_async = False
+    database.cache_timeout = 100
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+    mocker.patch.dict(app.config, {"STATS_LOGGER": MagicMock(), "SQL_MAX_ROW": 0})
+
+    def deliver_stop() -> None:
+        """Commit the stop from another session."""
+        with Session(engine) as stop_session:
+            stopped_query = stop_session.get(Query, 123)
+            assert stopped_query is not None
+            stopped_query.status = QueryStatus.STOPPED
+            stopped_query.end_time = 1234.5
+            stop_session.commit()
+
+    def execute_query(*args: Any, **kwargs: Any) -> MagicMock:
+        """Commit the pre-execution metadata as execute_query does."""
+        sql_lab.db.session.commit()
+        return MagicMock(size=1, columns=[])
+
+    def serialize(*args: Any, **kwargs: Any) -> tuple[list[Any], ...]:
+        """Serialize the result set, with the stop landing meanwhile."""
+        if stop_at == "serialize":
+            deliver_stop()
+        return ([], [], [], [])
+
+    mocker.patch.object(sql_lab, "execute_query", side_effect=execute_query)
+    mocker.patch.object(sql_lab, "_serialize_and_expand_data", side_effect=serialize)
+    mocker.patch.object(sql_lab, "_serialize_payload", return_value=b"data")
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob, with the stop landing meanwhile."""
+        stored[key] = value
+        if stop_at == "backend_write":
+            deliver_stop()
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(sql_lab, "results_backend", backend)
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="select-stop",
+            database_id=1,
+            sql="SELECT 1",
+            executed_sql="SELECT 1",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        payload = sql_lab.get_sql_results(
+            123,
+            query.sql,
+            return_results=return_results,
+            store_results=store_results,
+        )
+
+        assert payload == {"query_id": 123, "status": QueryStatus.STOPPED}
+        session.refresh(query)
+        assert query.status == QueryStatus.STOPPED
+        assert query.end_time == 1234.5
+        assert query.results_key is None
+        if store_results:
+            key = backend.set.call_args.args[0]
+            backend.delete.assert_called_once_with(key)
+            assert key not in stored
+        else:
+            backend.set.assert_not_called()
+            backend.delete.assert_not_called()
+    engine.dispose()
+
+
 @pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
 @pytest.mark.parametrize("return_results", [False, True])
 @pytest.mark.parametrize("stopped", [False, True], ids=["no_stop", "stop"])
@@ -1036,18 +1265,24 @@ def test_get_sql_results_error_after_write_deletes_results_when_stopped(  # noqa
     engine.dispose()
 
 
-@pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
-def test_get_sql_results_unrecorded_error_after_write_deletes_results(
+@pytest.mark.parametrize(
+    ("reread", "delete_fails"),
+    [("available", False), ("available", True), ("unavailable", False)],
+    ids=["reread-deleted", "reread-delete_error", "no_reread"],
+)
+def test_get_sql_results_unrecorded_error_after_write_deletes_unreferenced_results(
     mocker: MockerFixture,
     app: SupersetApp,
     app_context: None,
     tmp_path: Any,
     caplog: pytest.LogCaptureFixture,
+    reread: str,
     delete_fails: bool,
 ) -> None:
     """
-    Test that results stored before a failure the task cannot record, because
-    the metadata database stays unavailable, are deleted from the results backend.
+    Test that results stored before a failure the task cannot record are
+    deleted once a fresh read shows the row does not reference them, and kept
+    until they expire when the metadata database cannot be read at all.
     """
     from unittest.mock import PropertyMock
 
@@ -1111,7 +1346,8 @@ def test_get_sql_results_unrecorded_error_after_write_deletes_results(
         executemany: bool,
     ) -> None:
         """Fail every metadata statement once the results are stored."""
-        if stored:
+        cleanup_read = statement.startswith('SELECT "query".results_key ')
+        if stored and not (reread == "available" and cleanup_read):
             raise RuntimeError("Metadata database unavailable")
 
     with Session(engine) as session:
@@ -1135,9 +1371,157 @@ def test_get_sql_results_unrecorded_error_after_write_deletes_results(
 
         backend.set.assert_called_once()
         key = backend.set.call_args.args[0]
-        backend.delete.assert_called_once_with(key)
-        assert (key in stored) is delete_fails
-        assert ("Failed to delete unpublished results" in caplog.text) is delete_fails
+        if reread == "available":
+            backend.delete.assert_called_once_with(key)
+            assert (key in stored) is delete_fails
+            assert (
+                "Failed to delete unpublished results" in caplog.text
+            ) is delete_fails
+        else:
+            backend.delete.assert_not_called()
+            assert key in stored
+            assert "Kept results that may be referenced" in caplog.text
+    engine.dispose()
+
+
+@pytest.mark.parametrize(
+    ("applied", "return_results"),
+    [("failed_row", False), ("failed_row", True), ("published_row", True)],
+)
+def test_get_sql_results_commit_that_applies_and_raises_keeps_results(  # noqa: C901
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    applied: str,
+    return_results: bool,
+) -> None:
+    """
+    Test that a metadata commit that reaches the database and then raises (its
+    acknowledgement is lost) does not delete the results the committed row
+    references: the failed row of the error handler, or the published row
+    when the metadata database then stays unavailable.
+    """
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine, event
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'applied-commit.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_run_async = False
+    database.cache_timeout = 100
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+
+    def execute_query(*args: Any, **kwargs: Any) -> MagicMock:
+        """Commit the pre-execution metadata as execute_query does."""
+        sql_lab.db.session.commit()
+        return MagicMock(size=1, columns=[])
+
+    mocker.patch.object(sql_lab, "execute_query", side_effect=execute_query)
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    mocker.patch.object(sql_lab, "_serialize_payload", return_value=b"data")
+    mocker.patch("backoff._sync.time.sleep")
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = lambda key: stored.pop(key, None) is not None
+    mocker.patch.object(sql_lab, "results_backend", backend)
+
+    stats_logger = MagicMock()
+    if applied == "failed_row":
+
+        def timing(key: str, value: float) -> None:
+            """Fail emitting the write timing, once the results are stored."""
+            if key == "sqllab.query.results_backend_write":
+                raise RuntimeError("Metrics unavailable")
+
+        stats_logger.timing.side_effect = timing
+    mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger, "SQL_MAX_ROW": 0})
+
+    target = QueryStatus.FAILED if applied == "failed_row" else QueryStatus.SUCCESS
+    flushed = False
+    applied_commit = False
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def metadata_unavailable(  # noqa: PLR0913
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Keep the metadata database down once the published row commits."""
+        if applied == "published_row" and applied_commit:
+            raise RuntimeError("Metadata database unavailable")
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="applied-commit",
+            database_id=1,
+            sql="SELECT 1",
+            executed_sql="SELECT 1",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        @event.listens_for(session, "after_flush")
+        def flushed_target(flushing_session: Any, context: Any) -> None:
+            nonlocal flushed
+            flushed = query.status == target and query.results_key is not None
+
+        do_commit = engine.dialect.do_commit
+
+        def lose_acknowledgement(dbapi_connection: Any) -> None:
+            """Raise after the database committed the row with the key."""
+            nonlocal applied_commit
+            do_commit(dbapi_connection)
+            if flushed and not applied_commit:
+                applied_commit = True
+                raise RuntimeError("Commit acknowledgement lost")
+
+        mocker.patch.object(
+            engine.dialect, "do_commit", side_effect=lose_acknowledgement
+        )
+
+        with pytest.raises((RuntimeError, sql_lab.SqlLabException)):
+            sql_lab.get_sql_results(
+                123, query.sql, return_results=return_results, store_results=True
+            )
+
+        assert applied_commit
+        event.remove(engine, "before_cursor_execute", metadata_unavailable)
+        key = backend.set.call_args.args[0]
+        with Session(engine) as observer:
+            persisted = observer.get(Query, 123)
+            assert persisted is not None
+            assert persisted.status == target
+            assert persisted.results_key == key
+        backend.delete.assert_not_called()
+        assert key in stored
     engine.dispose()
 
 
@@ -1294,7 +1678,7 @@ def test_get_sql_results_deletes_results_only_without_committed_failure(  # noqa
     engine.dispose()
 
 
-def test_get_sql_results_keeps_published_results_of_stopped_query(
+def test_get_sql_results_keeps_published_results_after_final_commit(
     mocker: MockerFixture,
     app: SupersetApp,
     app_context: None,
@@ -1302,7 +1686,7 @@ def test_get_sql_results_keeps_published_results_of_stopped_query(
 ) -> None:
     """
     Test that a failure after the final metadata commit does not delete results
-    whose key the stopped query row already references.
+    whose key the committed query row already references.
     """
     from unittest.mock import PropertyMock
 
@@ -1349,13 +1733,8 @@ def test_get_sql_results_keeps_published_results_of_stopped_query(
     stored: dict[str, bytes] = {}
 
     def store(key: str, value: bytes, timeout: int) -> bool:
-        """Write the blob, with the stop landing while the write is in flight."""
+        """Write the blob successfully."""
         stored[key] = value
-        with Session(engine) as stop_session:
-            stopped_query = stop_session.get(Query, 123)
-            assert stopped_query is not None
-            stopped_query.status = QueryStatus.STOPPED
-            stop_session.commit()
         return True
 
     backend = MagicMock()
@@ -1383,8 +1762,8 @@ def test_get_sql_results_keeps_published_results_of_stopped_query(
         session.rollback()
         session.refresh(query)
         assert payload is not None
-        assert payload["status"] == QueryStatus.STOPPED
-        assert query.status == QueryStatus.STOPPED
+        assert payload["status"] == QueryStatus.FAILED
+        assert query.status == QueryStatus.FAILED
         assert query.results_key == key
         assert key in stored
         backend.delete.assert_not_called()
