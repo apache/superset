@@ -3243,6 +3243,10 @@ msgstr ""
 msgid "Chart type"
 msgstr ""
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr ""
 
@@ -4618,6 +4622,10 @@ msgstr ""
 msgid "Dashboard updated %s"
 msgstr ""
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr ""
 
@@ -4830,6 +4838,10 @@ msgstr ""
 
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Dataset updated: %s"
 msgstr ""
 
 #, python-format

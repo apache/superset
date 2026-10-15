@@ -319,6 +319,7 @@ export default function VersionHistoryPanel({
                   : `related-${relatedEntryKey(entry.record)}`
               }
               record={entry.record}
+              records={entry.records}
               rollupEntityNames={entry.rollupEntityNames}
               onOpen={onOpenRelated}
             />
