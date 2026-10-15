@@ -81,6 +81,7 @@ from superset.extensions import cache_manager
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
+from superset.utils.decorators import transaction
 
 if TYPE_CHECKING:
     from superset_core.queries.types import (
@@ -1427,15 +1428,22 @@ class SQLExecutor:
         )
 
     @staticmethod
+    @transaction()
     def _cancel_async_query(query_id: int, database: Database) -> bool:
-        """Cancel an async query."""
+        """Cancel an async query and persist intent without replacing a result."""
         from superset.models.sql_lab import Query as QueryModel
+        from superset.sql.execution.utils import set_query_stopped
+        from superset.utils.dates import now_as_float
 
         query = db.session.query(QueryModel).filter_by(id=query_id).one_or_none()
         if not query:
             return False
 
-        return SQLExecutor._cancel_query(database, query)
+        with db.session.no_autoflush:
+            if not SQLExecutor._cancel_query(database, query):
+                return False
+            set_query_stopped(query, now_as_float())
+        return True
 
     @staticmethod
     def _cancel_query(database: Database, query: Any) -> bool:

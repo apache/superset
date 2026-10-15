@@ -26,6 +26,7 @@ from sqlalchemy.orm import Session
 from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_EARLY_CANCEL_KEY
 from superset.daos.query import QueryDAO
+from superset.models.core import Database
 from superset.models.sql_lab import Query
 
 
@@ -85,6 +86,150 @@ def test_stop_query_preserves_concurrently_committed_terminal_result(
         assert completed.results_key == "published-results"
         assert completed.end_time == 1234.5
         assert completed.extra == {"worker": True}
+    engine.dispose()
+
+
+@pytest.mark.parametrize("engine_name", ["trino", "impala"])
+@pytest.mark.parametrize("caller", ["dao", "async_handle"])
+@pytest.mark.parametrize(
+    "terminal_status", [QueryStatus.SUCCESS, QueryStatus.FAILED, QueryStatus.TIMED_OUT]
+)
+def test_engine_early_cancel_preserves_concurrently_committed_terminal_metadata(
+    mocker: MockerFixture,
+    app_context: None,
+    tmp_path: Path,
+    engine_name: str,
+    caller: str,
+    terminal_status: QueryStatus,
+) -> None:
+    """Real engine preparation must not flush stale extra over a worker's result."""
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.sql.execution.executor import SQLExecutor
+
+    engine_spec = TrinoEngineSpec if engine_name == "trino" else ImpalaEngineSpec
+    prepare_cancel = engine_spec.prepare_cancel_query
+    mocker.patch.object(Database, "db_engine_spec", engine_spec)
+    engine = create_engine(f"sqlite:///{tmp_path / 'engine-stop.db'}")
+    Database.__table__.create(engine)
+    Database.metadata.tables["ssh_tunnels"].create(engine)
+    Query.__table__.create(engine)
+    with Session(engine) as stop_session:
+        # Core inserts avoid unrelated permission-creation ORM event handlers.
+        stop_session.execute(
+            Database.__table__.insert().values(
+                id=1, database_name="cancel-race", sqlalchemy_uri="sqlite://"
+            )
+        )
+        query = Query(
+            id=123,
+            client_id="engine-stop-race",
+            user_id=7,
+            database_id=1,
+            status=QueryStatus.RUNNING,
+            extra_json='{"initial": true}',
+        )
+        stop_session.add(query)
+        stop_session.commit()
+        mocker.patch("superset.daos.query.db.session", stop_session)
+        mocker.patch("superset.daos.query.get_user_id", return_value=7)
+
+        def prepare_after_worker_commit(loaded_query: Query) -> None:
+            """Complete in a second session after the stop has loaded RUNNING."""
+            assert loaded_query.status == QueryStatus.RUNNING
+            assert loaded_query.extra == {"initial": True}
+            with Session(engine) as worker_session:
+                completed = worker_session.get(Query, 123)
+                assert completed is not None
+                completed.status = terminal_status
+                completed.results_key = "published-results"
+                completed.end_time = 1234.5
+                completed.extra_json = '{"columns": [{"name": "worker"}], "errors": []}'
+                worker_session.commit()
+            prepare_cancel(loaded_query)
+
+        mocker.patch.object(
+            engine_spec, "prepare_cancel_query", side_effect=prepare_after_worker_commit
+        )
+        if caller == "dao":
+            QueryDAO.stop_query("engine-stop-race")
+        else:
+            assert SQLExecutor._cancel_async_query(123, query.database) is True
+
+    with Session(engine) as verify_session:
+        completed = verify_session.get(Query, 123)
+        assert completed is not None
+        assert completed.status == terminal_status
+        assert completed.results_key == "published-results"
+        assert completed.end_time == 1234.5
+        assert completed.extra == {"columns": [{"name": "worker"}], "errors": []}
+    engine.dispose()
+
+
+@pytest.mark.parametrize("engine_name", ["trino", "impala"])
+@pytest.mark.parametrize("caller", ["dao", "async_handle"])
+def test_engine_early_cancel_commits_with_guarded_stop(
+    mocker: MockerFixture,
+    app_context: None,
+    tmp_path: Path,
+    engine_name: str,
+    caller: str,
+) -> None:
+    """Both cancellation callers publish early intent together with STOPPED."""
+    from superset.db_engine_specs.impala import ImpalaEngineSpec
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.sql.execution.executor import SQLExecutor
+
+    engine_spec = TrinoEngineSpec if engine_name == "trino" else ImpalaEngineSpec
+    prepare_cancel = engine_spec.prepare_cancel_query
+    mocker.patch.object(Database, "db_engine_spec", engine_spec)
+    engine = create_engine(f"sqlite:///{tmp_path / 'early-stop.db'}")
+    Database.__table__.create(engine)
+    Database.metadata.tables["ssh_tunnels"].create(engine)
+    Query.__table__.create(engine)
+    with Session(engine) as stop_session:
+        # Core inserts avoid unrelated permission-creation ORM event handlers.
+        stop_session.execute(
+            Database.__table__.insert().values(
+                id=1, database_name="early-cancel", sqlalchemy_uri="sqlite://"
+            )
+        )
+        query = Query(
+            id=123,
+            client_id="early-engine-stop",
+            user_id=7,
+            database_id=1,
+            status=QueryStatus.RUNNING,
+            extra_json='{"initial": true}',
+        )
+        stop_session.add(query)
+        stop_session.commit()
+        mocker.patch("superset.daos.query.db.session", stop_session)
+        mocker.patch("superset.daos.query.get_user_id", return_value=7)
+
+        def prepare_without_commit(loaded_query: Query) -> None:
+            """Preparation stages intent without making it separately visible."""
+            prepare_cancel(loaded_query)
+            with Session(engine) as observer:
+                stored = observer.get(Query, 123)
+                assert stored is not None
+                assert stored.status == QueryStatus.RUNNING
+                assert stored.extra == {"initial": True}
+
+        mocker.patch.object(
+            engine_spec, "prepare_cancel_query", side_effect=prepare_without_commit
+        )
+        if caller == "dao":
+            QueryDAO.stop_query("early-engine-stop")
+        else:
+            assert SQLExecutor._cancel_async_query(123, query.database) is True
+
+    with Session(engine) as verify_session:
+        stopped = verify_session.get(Query, 123)
+        assert stopped is not None
+        assert stopped.status == QueryStatus.STOPPED
+        assert stopped.extra == {"initial": True, QUERY_EARLY_CANCEL_KEY: True}
+        assert stopped.end_time is not None
     engine.dispose()
 
 
