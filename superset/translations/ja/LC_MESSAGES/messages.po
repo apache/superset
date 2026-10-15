@@ -193,19 +193,19 @@ msgstr "「%s」がシステムの既定テーマに設定されました"
 msgid "% calculation"
 msgstr "% 計算"
 
-#, python-format
+#, no-python-format
 msgid "% of"
 msgstr "に対する割合(%)"
 
-#, python-format
+#, no-python-format
 msgid "% of column"
 msgstr "列に対する割合(%)"
 
-#, python-format
+#, no-python-format
 msgid "% of column total"
 msgstr "列の合計に対する割合(%)"
 
-#, python-format
+#, no-python-format
 msgid "% of grand total"
 msgstr "総合計に対する割合(%)"
 
@@ -213,7 +213,7 @@ msgstr "総合計に対する割合(%)"
 msgid "% of parent"
 msgstr "親に対する割合(%)"
 
-#, python-format
+#, no-python-format
 msgid "% of row total"
 msgstr "行の合計に対する割合(%)"
 
@@ -7819,7 +7819,7 @@ msgid "Hierarchy"
 msgstr "階層"
 
 msgid "High"
-msgstr "高い"
+msgstr "高値"
 
 msgid "High color"
 msgstr "高い値の色"
@@ -9018,7 +9018,7 @@ msgid "Longitude of default viewport"
 msgstr "既定ビューポートの経度"
 
 msgid "Low"
-msgstr "低い"
+msgstr "安値"
 
 msgid "Low color"
 msgstr "低い値の色"
@@ -10471,7 +10471,7 @@ msgstr "データ列の任意の名称。"
 msgid "Optional warning about use of this metric"
 msgstr "このメトリックの使用に関する任意の警告メッセージ"
 
-#, python-format
+#, no-python-format
 msgid ""
 "Optional. When set together with Low color, Mid color, and High color "
 "below, colors diverge from Mid color at this value toward Low color below"
@@ -17337,7 +17337,7 @@ msgstr "値は 0 以上にする必要があります"
 msgid "Value must be greater than 0"
 msgstr "値は 0 より大きくする必要があります"
 
-#, python-format
+#, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column is "
 "unavailable with Server pagination enabled, since each page would compute"
@@ -17346,7 +17346,7 @@ msgid ""
 msgstr ""
 "「値」: 下部の色付けに使用する正確な数値を入力します。サーバー側のページネーションが有効な場合、各ページで割合の計算結果が異なるため「列に対する割合(%)」は使用できません。サーバー側のページネーション有効時は、既存の割合ルールに自動データ範囲が使用されます。"
 
-#, python-format
+#, no-python-format
 msgid ""
 "Value: type the exact numbers used for coloring below. % of column: type "
 "a percentage of the column maximum or sum selected below, so the rule "
