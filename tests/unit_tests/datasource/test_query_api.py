@@ -197,19 +197,18 @@ def test_to_arrow_ipc_object_big_integers_int64(scalar: type) -> None:
     assert table.column("value").to_pylist() == values
 
 
-def test_chart_data_schema_rejects_arrow() -> None:
-    """`ARROW` lives on the shared enum so `get_data` can serialize it, but
-    `_send_chart_response` has no Arrow branch — accepting it on chart/data
-    would execute the query and only then fail with "Unsupported result_format".
+def test_chart_data_schema_accepts_arrow() -> None:
+    """`ARROW` is an opt-in wire format for /api/v1/chart/data too: a viz
+    plugin's `ChartMetadata.supportsArrowFormat` gates whether the frontend
+    ever sends it, and `_send_chart_response` has a matching Arrow branch
+    (mirroring the datasource query endpoint's) rather than falling through
+    to "Unsupported result_format".
     """
     from superset.charts.schemas import ChartDataQueryContextSchema
 
     field = ChartDataQueryContextSchema().fields["result_format"]
 
-    with pytest.raises(ValidationError) as excinfo:
-        field.deserialize("arrow")
-    assert "arrow" in str(excinfo.value)
-    assert "/api/v1/datasource/" in str(excinfo.value)
+    assert field.deserialize("arrow") == ChartDataResultFormat.ARROW
 
     # Its own formats are unaffected.
     for fmt in ("json", "csv", "xlsx"):

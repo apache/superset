@@ -104,7 +104,7 @@ describe('chart actions', () => {
   let getChartDataUriStub: jest.SpyInstance;
   let buildV1ChartDataPayloadStub: jest.SpyInstance;
   let waitForAsyncDataStub: jest.SpyInstance;
-  let fakeMetadata: { viz_type?: string };
+  let fakeMetadata: { viz_type?: string; supportsArrowFormat?: boolean };
 
   beforeAll(() => {
     fetchMock.get('glob:*api/v1/security/csrf_token/*', { result: '1234' });
@@ -356,6 +356,87 @@ describe('chart actions', () => {
         }),
       );
       expect(dispatch.mock.calls[0][0].type).toBe(actions.CHART_UPDATE_STARTED);
+    });
+
+    test('requests Arrow and converts the raw response to row dicts for an opted-in viz type', async () => {
+      const { tableFromArrays, tableToIPC } = jest.requireActual(
+        'apache-arrow',
+      ) as typeof import('apache-arrow');
+      const arrowBytes: Uint8Array = tableToIPC(
+        tableFromArrays({ region: ['EMEA', 'APAC'], sales: [10, 20] }),
+        'stream',
+      );
+      // Mocked one level below the network: this still exercises the real
+      // v1ChartDataRequest Arrow branch (response.arrayBuffer() ->
+      // arrowBufferToQueryData), without relying on fetch-mock/jsdom's
+      // fetch polyfill to carry binary bytes faithfully across realms,
+      // which isn't representative of a real single-realm browser anyway.
+      const postSpy = jest.spyOn(SupersetClient, 'post').mockResolvedValue({
+        status: 200,
+        arrayBuffer: () => Promise.resolve(arrowBytes.buffer),
+      } as unknown as Response);
+
+      // Simulates a viz type whose ChartMetadata sets supportsArrowFormat.
+      fakeMetadata = { viz_type: 'my_viz', supportsArrowFormat: true };
+      buildV1ChartDataPayloadStub.mockResolvedValue({
+        some_param: 'fake query!',
+        result_type: 'full',
+        result_format: 'arrow',
+      } as unknown as Awaited<
+        ReturnType<typeof exploreUtils.buildV1ChartDataPayload>
+      >);
+
+      const chartKey = 'arrow_test';
+      const dispatchMock = jest.fn();
+      const updateDataMaskSpy = jest
+        .spyOn(dataMaskActions, 'updateDataMask')
+        .mockReturnValue({ type: 'UPDATE_DATA_MASK' } as ReturnType<
+          typeof dataMaskActions.updateDataMask
+        >);
+
+      try {
+        const thunkAction = actions.exploreJSON(
+          { viz_type: 'my_viz' } as QueryFormData,
+          false,
+          undefined,
+          chartKey,
+        );
+        await thunkAction(
+          dispatchMock as unknown as actions.ChartThunkDispatch,
+          mockGetState as unknown as () => actions.RootState,
+          undefined,
+        );
+
+        // The request body still carries result_format: 'arrow' — confirms
+        // exploreJSON actually resolved it from ChartMetadata rather than
+        // hardcoding 'json'. parseMethod is forced to 'raw' regardless of
+        // this viz type's own ChartMetadata.parseMethod.
+        expect(postSpy).toHaveBeenCalledTimes(1);
+        const requestConfig = postSpy.mock.calls[0][0] as unknown as {
+          body: string;
+          parseMethod?: string;
+        };
+        expect(JSON.parse(requestConfig.body)).toEqual({
+          some_param: 'fake query!',
+          result_type: 'full',
+          result_format: 'arrow',
+        });
+        expect(requestConfig.parseMethod).toBe('raw');
+
+        const succeeded = dispatchMock.mock.calls.find(
+          ([action]) => action?.type === actions.CHART_UPDATE_SUCCEEDED,
+        );
+        expect(succeeded).toBeDefined();
+        const [queriesResponse] = succeeded![0].queriesResponse;
+        expect(queriesResponse.data).toEqual([
+          { region: 'EMEA', sales: 10 },
+          { region: 'APAC', sales: 20 },
+        ]);
+        expect(queriesResponse.colnames).toEqual(['region', 'sales']);
+      } finally {
+        updateDataMaskSpy.mockRestore();
+        postSpy.mockRestore();
+      }
     });
 
     test('should handle the bigint without regression', async () => {
