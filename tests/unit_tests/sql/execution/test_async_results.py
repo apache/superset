@@ -29,6 +29,7 @@ from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock
+from uuid import UUID
 from zoneinfo import ZoneInfo
 
 import pandas as pd
@@ -114,7 +115,6 @@ def _store_and_read(
             payload["statements"], execution_results, strict=True
         ):
             if result_set is not None:
-                statement.pop("arrow_schema", None)
                 statement["data"] = (
                     df_to_records(result_set.to_pandas_df(), convert_decimals=True)
                     or []
@@ -882,3 +882,149 @@ def test_async_payload_uses_one_arrow_format(
         data = base64.b64decode(data)
     assert isinstance(data, bytes)
     assert pa.ipc.open_stream(data).read_all().to_pydict() == {"value": [1]}
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize("value", [2**70, -(2**70)])
+def test_async_nested_oversized_integer_matches_sync(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    use_msgpack: bool,
+    value: int,
+) -> None:
+    """Nested integers outside MessagePack's range must not fail the query."""
+    sql = "SELECT value FROM t"
+    rows = [({"a": [value]},), (None,)]
+    sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    result = _store_and_read(
+        mocker,
+        sql,
+        [_select(sql, ["value"], rows)],
+        write_msgpack=use_msgpack,
+        read_msgpack=not use_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+    actual = result.statements[0].data["value"][0]["a"][0]
+    expected = sync.statements[0].data["value"][0]["a"][0]
+    assert actual == expected
+    assert type(actual) is type(expected)
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param(datetime(2026, 1, 2, 3, 4, 5, 123456), id="datetime"),
+        pytest.param(
+            datetime(2026, 1, 2, 3, 4, 5, 123456, tzinfo=timezone.utc),
+            id="aware_datetime",
+        ),
+        pytest.param(
+            datetime(2026, 1, 2, 3, 4, 5, 123456, tzinfo=timezone(timedelta(hours=-4))),
+            id="offset_datetime",
+        ),
+        pytest.param(UUID("12345678-1234-5678-1234-567812345678"), id="uuid"),
+        pytest.param(Decimal("1.100000000000000000000001"), id="decimal"),
+        pytest.param(b"binary", id="bytes"),
+        pytest.param(b"\xff\x00\x80", id="non_utf8_bytes"),
+    ],
+)
+def test_async_nested_scalar_types_match_sync(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    use_msgpack: bool,
+    value: Any,
+) -> None:
+    """Nested non-JSON scalars retain the synchronous value and Python type."""
+    sql = "SELECT value FROM t"
+    rows = [({"a": [{"b": value}]},), (None,)]
+    sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    result = _store_and_read(
+        mocker,
+        sql,
+        [_select(sql, ["value"], rows)],
+        write_msgpack=use_msgpack,
+        read_msgpack=not use_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    actual = result.statements[0].data["value"][0]["a"][0]["b"]
+    expected = sync.statements[0].data["value"][0]["a"][0]["b"]
+    assert actual == expected
+    assert type(actual) is type(expected)
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param({"a": {1, 2}}, id="set"),
+        pytest.param({"a": (1, 2)}, id="tuple"),
+        pytest.param({"a": pd.Timestamp("2026-01-02")}, id="scalar_subclass"),
+        pytest.param(
+            {"a": datetime(2026, 11, 1, 1, 30, tzinfo=ZoneInfo("America/New_York"))},
+            id="named_timezone",
+        ),
+    ],
+)
+def test_async_unsupported_nested_types_use_arrow_strings(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    use_msgpack: bool,
+    value: Any,
+) -> None:
+    """Unsupported types fall back for the column without failing the query."""
+    sql = "SELECT value FROM t"
+    rows = [(value,), ({"a": [3]},), (None,)]
+    sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    result_set = _result_set(["value"], rows)
+    result = _store_and_read(
+        mocker,
+        sql,
+        [(sql, result_set, 5.0, len(rows))],
+        write_msgpack=use_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    actual = result.statements[0].data
+    pd.testing.assert_frame_equal(
+        actual, SupersetResultSet.convert_table_to_df(result_set.pa_table)
+    )
+    assert isinstance(actual["value"][0], str)
+    assert actual["value"][0] != sync.statements[0].data["value"][0]
+    assert type(actual["value"][0]) is not type(sync.statements[0].data["value"][0])
+    assert actual["value"][1] == '{"a": [3]}'
+    assert actual["value"][2] is None
+
+
+def test_legacy_nested_sidecar_remains_readable() -> None:
+    """Read the untyped sidecar without interpreting JSON-looking strings."""
+    from superset.sql.execution.executor import _decode_async_statement_data
+    from superset.sqllab.utils import write_ipc_buffer
+
+    result_set = _result_set(["value"], [({"a": [1]},), (None,)])
+    statement = {
+        "data": write_ipc_buffer(result_set.pa_table).to_pybytes(),
+        "nested_columns": {"value": [{"a": [1]}, None]},
+    }
+    pd.testing.assert_frame_equal(
+        _decode_async_statement_data(statement), result_set.to_pandas_df()
+    )
+
+
+def test_legacy_nested_oversized_integer_matches_sync() -> None:
+    """Legacy record decoding also tolerates nested integers outside int64."""
+    from superset.sql.execution.executor import _decode_async_statement_data
+
+    value = {"a": 2**70}
+    result = _decode_async_statement_data(
+        {"data": [{"value": value}], "columns": [{"name": "value"}]}
+    )
+    assert result is not None
+    pd.testing.assert_frame_equal(
+        result, _result_set(["value"], [(value,)]).to_pandas_df()
+    )
+    assert type(result["value"][0]["a"]) is int

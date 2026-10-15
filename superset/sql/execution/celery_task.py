@@ -54,6 +54,7 @@ from superset.sql.execution.executor import (
     build_statement_blocks,
     execute_sql_with_cursor,
 )
+from superset.sql.execution.serialization import serialize_nested_columns
 from superset.sql.parse import SQLScript
 from superset.sqllab.utils import write_ipc_buffer
 from superset.utils import json
@@ -187,9 +188,11 @@ def _finalize_successful_query(
                 }
             )
             if result_set.nested_columns:
-                # Arrow stores nested values as strings; keep the original objects
-                # that the synchronous to_pandas_df() path restores.
-                statements_data[-1]["nested_columns"] = result_set.nested_columns
+                # Keep supported nested values out of the outer JSON/MessagePack
+                # serializer, which coerces types or rejects oversized integers.
+                statements_data[-1]["nested_columns_msgpack"] = (
+                    serialize_nested_columns(result_set.nested_columns)
+                )
 
         else:
             # DML statement - no data, just row count

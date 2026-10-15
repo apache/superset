@@ -34,12 +34,20 @@ Extensions using `Database.execute_async()` receive SELECT results as pandas
 DataFrames from `handle.get_result()`, including empty results with column names.
 DML statements have `data=None`. Both `RESULTS_BACKEND_USE_MSGPACK` settings use
 Arrow IPC for statement data (Base64-encoded inside the JSON transport), so scalar
-columns follow the synchronous Arrow conversion. Nested JSON values are restored
-as Python objects rather than Arrow's string representation.
+columns follow the synchronous Arrow conversion. Nested lists and dictionaries
+retain JSON scalar types (including arbitrary-sized integers), `datetime`
+(naive or with `datetime.timezone` fixed offsets, including microseconds),
+`UUID`, `Decimal`, and `bytes` values in both transports. These values match
+synchronous execution rather than Arrow's
+string representation. Other nested types (for example, sets or tuples) use the
+Arrow string representation for the entire affected column, not Python objects.
+This fallback also applies to scalar subclasses and datetimes with other timezone
+implementations (for example, `zoneinfo.ZoneInfo`).
 
-Legacy JSON-record results remain readable, but types already converted to strings
-cannot be recovered; rerun those queries for typed results. Cached SQL results are
-rebuilt as DataFrames; an unreadable cache entry is treated as a cache miss. These
+Legacy JSON-record results and untyped nested sidecars remain readable, but types
+already converted to strings or floats cannot be recovered; rerun those queries
+for typed results. Cached SQL results are rebuilt as DataFrames; an unreadable
+cache entry is treated as a cache miss. These
 Python result handles are separate from the SQL Lab results API's JSON format.
 
 ## Chart dataset changes

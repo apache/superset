@@ -81,6 +81,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.extensions import cache_manager
+from superset.sql.execution.serialization import deserialize_nested_columns
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
@@ -453,7 +454,12 @@ def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | No
 
         table = pa.ipc.open_stream(pa.BufferReader(data)).read_all()
         df = SupersetResultSet.convert_table_to_df(table)
-        for name, values in stmt_data.get("nested_columns", {}).items():
+        # Older sidecars contain untyped values; do not guess lost types.
+        nested_columns = {
+            **stmt_data.get("nested_columns", {}),
+            **deserialize_nested_columns(stmt_data.get("nested_columns_msgpack", {})),
+        }
+        for name, values in nested_columns.items():
             df[name] = values
         return df
 
@@ -502,7 +508,7 @@ def _records_to_dataframe(
 
         try:
             array = pa.array(values)
-        except (pa.ArrowInvalid, pa.ArrowTypeError):
+        except (pa.ArrowInvalid, pa.ArrowTypeError, OverflowError):
             return pd.Series(values, dtype=object)
         if pa.types.is_nested(array.type):
             return pd.Series(values, dtype=object)
