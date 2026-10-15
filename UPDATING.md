@@ -284,11 +284,16 @@ label as the custom color key, for example:
 
 ### Semantic provider error handling
 
-Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
-(formerly HTTP 408), `SupersetGenericDBErrorException` and
-`SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
-failures. Worker control timeouts and host input-validation errors retain their
-existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
+Semantic chart-query execution and value suggestions return HTTP 400 with
+host-owned guidance for typed provider rejections, and generic HTTP 500 responses
+for provider faults. In chart execution this includes provider-raised
+`SupersetTimeoutException` (formerly 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly 400). Host input validation and
+worker control exceptions retain their existing handling. Failed server-side
+value searches no longer retry without their narrowing filter; manual filter-value
+entry remains available. Providers should raise `SemanticQueryRejectedError` only
+for positively identified input-validation failures. See the
+[provider error contract](docs/developer_docs/semantic-query-errors.md).
 
 ### Semantic-view Table charts without a temporal axis
 
