@@ -3110,3 +3110,42 @@ def test_no_inner_mirror_for_main_dttm_which_the_subquery_never_filters(
     # The outer query does filter `main_dttm_col`, so it still prunes.
     assert "dt_epoch >= 1767225600" in outer
     assert "dt_epoch <= 1769904000" in outer
+
+
+def test_a_null_member_of_an_in_list_declines_the_whole_mirror(app: Flask) -> None:
+    """
+    The NULL tests elsewhere cover a NULL *probe result*; this covers a NULL
+    member of the filter's own list, which is a different guard.
+
+    A `None` in an `IN` list widens the real predicate to
+    `country IS NULL OR country IN ('US')`. Mirroring only the non-null members
+    would be *narrower* than that, so the list has to decline entire. With
+    `coalesce(lower(:value), 'unknown')`, mirroring the rest would emit
+    `region_key IN ('us')` and drop a row with `country IS NULL,
+    region_key = 'unknown'` -- a row the original filter keeps.
+
+    The probe is booby-trapped rather than stubbed: the decline happens before
+    any transform is evaluated, so reaching the warehouse at all is the defect.
+    """
+    table = _table(
+        transform="coalesce(lower(:value), 'unknown')",
+        monotonic=False,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, side_effect=AssertionError("the probe must not run")):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.IN.value,
+                        "val": ["US", None],
+                    }
+                ],
+            )
+
+    assert "region_key" not in sql
