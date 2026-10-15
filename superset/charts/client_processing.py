@@ -783,6 +783,8 @@ def sample_stat(stat: str) -> Callable[..., Any]:
 
     def aggregate(values: Union[pd.Series, pd.DataFrame], axis: int = 0) -> Any:
         if isinstance(values, pd.Series):
+            # nulls arrive as the "SUPERSET_PANDAS_NAN" placeholder; skip them
+            values = pd.to_numeric(values, errors="coerce")
             return getattr(values, stat)() if values.count() > 1 else 0
         return getattr(values, stat)(axis=axis).where(values.count(axis=axis) > 1, 0)
 
