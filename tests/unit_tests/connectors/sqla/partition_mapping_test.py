@@ -3420,3 +3420,68 @@ def test_dropping_incoming_transforms_tolerates_no_columns() -> None:
         )
         == []
     )
+
+
+@pytest.mark.parametrize(
+    "column_type, value",
+    [
+        ("Array(Int32)", 5),
+        ("Array(String)", "us"),
+    ],
+    ids=["numeric-elements", "text-elements"],
+)
+def test_an_array_partition_column_is_refused_whatever_the_value(
+    column_type: str, value: Any
+) -> None:
+    """
+    Every other branch of this gate compares a probe result against the
+    column's type. An array has no scalar to compare: `handle_comparison_filter`
+    emits a bare ``col = value``, so an ``Array(Int32)`` key mirrors as
+    ``dt_epoch = 5`` and a PostgreSQL ``text[]`` one as ``dt_epoch = 'us'``,
+    and neither is an operator the engine has -- the predicate fails the whole
+    chart once it is in the statement.
+
+    So it is refused for the *column*, ahead of the per-value table, and the
+    value it is handed makes no difference. `MULTI_VALUE` having no entry in
+    `_PROBE_RESULT_TYPES` read as "nothing to check" and let the mirror
+    through.
+    """
+    # Imported here rather than at module scope: at module scope it widens the
+    # set of modules the mypy pre-commit hook analyses, which then reports an
+    # unrelated `type: ignore` in `db_engine_specs/mysql.py` as unused.
+    from superset.db_engine_specs.clickhouse import (  # noqa: PLC0415
+        ClickHouseEngineSpec,
+    )
+
+    column = _partition_column(column_type)
+
+    with patch.object(
+        type(column.table.database),
+        "db_engine_spec",
+        new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+    ):
+        assert column.type_generic == GenericDataType.MULTI_VALUE
+        error = probed_value_type_error(column, [value])
+
+    assert error is not None
+    assert "array column" in error
+
+
+def test_a_scalar_column_on_an_array_capable_engine_still_mirrors() -> None:
+    """
+    The refusal is for the array type, not for every column on an engine that
+    has arrays -- an ordinary `Int32` key under the same spec still takes the
+    number its transform returns.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: PLC0415
+        ClickHouseEngineSpec,
+    )
+
+    column = _partition_column("Int32")
+
+    with patch.object(
+        type(column.table.database),
+        "db_engine_spec",
+        new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+    ):
+        assert probed_value_type_error(column, [1767225600]) is None

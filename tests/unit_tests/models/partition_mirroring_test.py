@@ -3149,3 +3149,56 @@ def test_a_null_member_of_an_in_list_declines_the_whole_mirror(app: Flask) -> No
             )
 
     assert "region_key" not in sql
+
+
+def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
+    """
+    Nothing in this module looked at whether the partition key is an array.
+
+    `handle_comparison_filter` emits a bare ``col = value``, so an
+    ``Array(Int32)`` partition key took the scalar the transform returned and
+    mirrored as ``region_keys = 5``; a PostgreSQL ``text[]`` key takes
+    ``region_keys = 'us'`` the same way. Neither is an operator the engine has,
+    and by then the predicate is in the statement -- so the chart errored
+    instead of losing its pruning, which is the one outcome this feature may
+    not have.
+
+    `probed_value_type_error` refuses it for the *column*, since an array holds
+    no scalar at all and there is no result that could compare. The mapped
+    column is numeric here because `equality_mirrors_safely` withdraws ``=`` on
+    a text column under ClickHouse anyway, which would mask the gate under test.
+    """
+    table = _table(
+        transform=":value + 0",
+        monotonic=False,
+        mapped_column="dt_epoch",
+        partition_mapped_column="dt_epoch",
+        partition_column="region_keys",
+    )
+    table.columns.append(TableColumn(column_name="region_keys", type="Array(Int32)"))
+
+    with app.app_context():
+        with patch(PROBE, return_value=[5]) as probe:
+            with patch.object(
+                type(table.database),
+                "db_engine_spec",
+                new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+            ):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "dt_epoch",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": 5,
+                        }
+                    ],
+                )
+
+    # The probe is reached -- the decline is the type gate's, not an earlier
+    # one's -- and nothing is mirrored onto the array.
+    assert probe.called
+    assert "region_keys" not in sql
+    # The filter itself is untouched: the query is still correct, it just reads
+    # every partition.
+    assert "dt_epoch = 5" in sql

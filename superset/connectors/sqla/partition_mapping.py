@@ -3229,8 +3229,12 @@ UPPER_BOUND_OPERATORS = {
 #:
 #: Only the types a mismatch can actually break a query with are listed. An
 #: unresolvable column type is absent because there is nothing to check
-#: against, and ``MULTI_VALUE`` because this module does not mirror onto an
-#: array partition key at all.
+#: against. ``MULTI_VALUE`` is absent because no entry here could express it:
+#: an array partition key cannot hold *any* scalar, so it is refused for the
+#: column rather than for a value, in `probed_value_type_error`'s own branch
+#: ahead of this table. It was absent without that branch for a while, and
+#: absence here reads as "nothing to check" -- so an ``Array(Int32)`` key took
+#: a scalar mirror and failed the chart.
 #: ``numbers.Number`` rather than ``(int, float)``: Postgres answers
 #: ``extract(epoch from ...)`` with a `Decimal`, which is the single commonest
 #: transform this feature has, and an engine is free to answer with any number
@@ -3342,6 +3346,29 @@ def probed_value_type_error(
     generic_type = _native_generic_type(partition_column)
     if generic_type is None:
         return None
+
+    if generic_type == utils.GenericDataType.MULTI_VALUE:
+        # Refused for the column rather than per value: an array holds no
+        # scalar, so there is no result a transform could return that would
+        # compare. `handle_comparison_filter` emits a bare ``col = value``, so
+        # an ``Array(Int32)`` partition key mirrors as ``region_keys = 5`` and
+        # a PostgreSQL ``text[]`` one as ``region_keys = 'us'`` -- neither of
+        # which is an operator the engine has, so the predicate fails the whole
+        # chart once it is in the statement.
+        #
+        # Knowable from the schema alone, unlike every other branch here, which
+        # needs a probe result to compare. It is still answered from this gate
+        # so the preview reports it the same way, and so the decline costs only
+        # the pruning.
+        return str(
+            _(
+                "%(column)s is an array column, which cannot be compared "
+                "against the single value a transform returns. Mirrored "
+                "filters on this mapping would fail at the database. Map a "
+                "scalar partition column instead.",
+                column=partition_column.column_name,
+            )
+        )
 
     allowed = _PROBE_RESULT_TYPES.get(generic_type)
     if allowed is None:
