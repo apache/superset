@@ -157,7 +157,7 @@ const RunQueryActionButton = ({
     <StyledButton
       onBlurCapture={onBlurCapture}
       onPointerDownCapture={event => {
-        if (isMainButtonGesture(event)) onPointerDownCapture();
+        if (isMainButtonGesture(event)) onPointerDownCapture(event);
       }}
       onKeyDownCapture={event => {
         if (isMainButtonGesture(event)) onKeyDownCapture(event);

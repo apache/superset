@@ -28,6 +28,8 @@ import RunQueryActionButton, {
   RunQueryActionButtonProps,
 } from 'src/SqlLab/components/RunQueryActionButton';
 
+import { pointerEvent, keyDown, keyUp } from 'spec/helpers/runStopButton';
+
 const middlewares = [thunk];
 const mockStore = configureStore(middlewares);
 
@@ -202,13 +204,13 @@ test('a pointer gesture that starts on Stop does not run the query after it fini
   const button = getByRole('button');
   expect(getByText('Stop')).toBeInTheDocument();
 
-  fireEvent.pointerDown(button);
+  pointerEvent('pointerdown', button);
   fireEvent.mouseDown(button);
   switchTo('success');
   expect(getByText('Run')).toBeInTheDocument();
-  fireEvent.pointerUp(button);
+  pointerEvent('pointerup', button);
   fireEvent.mouseUp(button);
-  fireEvent.click(button);
+  pointerEvent('click', button);
 
   expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).not.toHaveBeenCalled();
@@ -218,11 +220,10 @@ test('a Space key press that starts on Stop does not run the query after it fini
   const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
   const button = getByRole('button');
 
-  fireEvent.keyDown(button, { key: ' ', code: 'Space' });
+  keyDown(button, ' ');
   switchTo('success');
-  fireEvent.keyDown(button, { key: ' ', code: 'Space', repeat: true });
-  fireEvent.keyUp(button, { key: ' ', code: 'Space' });
-  fireEvent.click(button);
+  keyDown(button, ' ', true);
+  keyUp(button, ' ');
 
   expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).not.toHaveBeenCalled();
@@ -234,9 +235,9 @@ test('a pointer gesture that starts on Stop does not run the query with the CTAS
   });
   const mainButton = getAllByRole('button')[0];
 
-  fireEvent.pointerDown(mainButton);
+  pointerEvent('pointerdown', mainButton);
   switchTo('success');
-  fireEvent.click(mainButton);
+  pointerEvent('click', mainButton);
 
   expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).not.toHaveBeenCalled();
@@ -246,8 +247,8 @@ test('a pointer gesture that starts and ends on Stop stops the query', () => {
   const { getByRole, runQuery, stopQuery } = renderGestureButton({});
   const button = getByRole('button');
 
-  fireEvent.pointerDown(button);
-  fireEvent.click(button);
+  pointerEvent('pointerdown', button);
+  pointerEvent('click', button);
 
   expect(stopQuery).toHaveBeenCalledTimes(1);
   expect(runQuery).not.toHaveBeenCalled();
@@ -257,11 +258,11 @@ test('a new gesture after the query finishes runs the query', () => {
   const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
   const button = getByRole('button');
 
-  fireEvent.pointerDown(button);
+  pointerEvent('pointerdown', button);
   switchTo('success');
-  fireEvent.click(button);
-  fireEvent.pointerDown(button);
-  fireEvent.click(button);
+  pointerEvent('click', button);
+  pointerEvent('pointerdown', button);
+  pointerEvent('click', button);
 
   expect(runQuery).toHaveBeenCalledTimes(1);
   expect(stopQuery).not.toHaveBeenCalled();
@@ -273,21 +274,18 @@ const expectHeldEnterNotToRun = (props: Partial<RunQueryActionButtonProps>) => {
   const button = getAllByRole('button')[0];
 
   // Native buttons click on every Enter keydown, including auto-repeat.
-  fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
-  fireEvent.click(button, { detail: 0 });
+  keyDown(button, 'Enter');
   expect(stopQuery).toHaveBeenCalledTimes(1);
   switchTo('success');
   for (let repeat = 0; repeat < 2; repeat += 1) {
-    fireEvent.keyDown(button, { key: 'Enter', code: 'Enter', repeat: true });
-    fireEvent.click(button, { detail: 0 });
+    keyDown(button, 'Enter', true);
   }
   fireEvent.keyUp(button, { key: 'Enter', code: 'Enter' });
 
   expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).toHaveBeenCalledTimes(1);
 
-  fireEvent.keyDown(button, { key: 'Enter', code: 'Enter' });
-  fireEvent.click(button, { detail: 0 });
+  keyDown(button, 'Enter');
   fireEvent.keyUp(button, { key: 'Enter', code: 'Enter' });
   expect(runQuery).toHaveBeenCalledTimes(1);
 };
@@ -307,12 +305,11 @@ test('held Space on the CTAS Stop button does not run SQL after completion', () 
   const button = getAllByRole('button')[0];
 
   // Space repeats keydown but clicks only when the key is released.
-  fireEvent.keyDown(button, { key: ' ', code: 'Space' });
-  fireEvent.keyDown(button, { key: ' ', code: 'Space', repeat: true });
+  keyDown(button, ' ');
+  keyDown(button, ' ', true);
   switchTo('success');
-  fireEvent.keyDown(button, { key: ' ', code: 'Space', repeat: true });
-  fireEvent.keyUp(button, { key: ' ', code: 'Space' });
-  fireEvent.click(button, { detail: 0 });
+  keyDown(button, ' ', true);
+  keyUp(button, ' ');
 
   expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).not.toHaveBeenCalled();
@@ -323,9 +320,9 @@ test('a Run gesture does not stop a newly running query', () => {
   switchTo('success');
   const button = getByRole('button');
 
-  fireEvent.pointerDown(button);
+  pointerEvent('pointerdown', button);
   switchTo('running');
-  fireEvent.click(button);
+  pointerEvent('click', button);
 
   expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).not.toHaveBeenCalled();
@@ -337,8 +334,7 @@ test('an assistive technology click still runs after a CTAS caret key press', ()
   });
   const [mainButton, caretButton] = getAllByRole('button');
 
-  fireEvent.keyDown(caretButton, { key: 'Enter', code: 'Enter' });
-  fireEvent.click(caretButton, { detail: 0 });
+  keyDown(caretButton, 'Enter');
   fireEvent.keyUp(caretButton, { key: 'Enter', code: 'Enter' });
   switchTo('success');
   // Assistive technology can activate the main button without a new press.
@@ -354,9 +350,9 @@ test('an assistive technology click still runs after a CTAS caret pointer press'
   });
   const [mainButton, caretButton] = getAllByRole('button');
 
-  fireEvent.pointerDown(caretButton);
-  fireEvent.pointerUp(caretButton);
-  fireEvent.click(caretButton);
+  pointerEvent('pointerdown', caretButton);
+  pointerEvent('pointerup', caretButton);
+  pointerEvent('click', caretButton);
   switchTo('success');
   fireEvent.click(mainButton, { detail: 0 });
 
@@ -374,10 +370,10 @@ test.each(['plain', 'CTAS'])(
     );
     const button = getAllByRole('button')[0];
 
-    fireEvent.pointerDown(button);
+    pointerEvent('pointerdown', button);
     switchTo('success');
     // Releasing outside the button does not produce a button click.
-    fireEvent.pointerUp(document.body);
+    pointerEvent('pointerup', document.body);
     await act(() => new Promise(resolve => setTimeout(resolve, 0)));
     fireEvent.click(button, { detail: 0 });
 
@@ -394,14 +390,15 @@ test.each(['Escape', 'blur', 'keyup'])(
     );
     const button = getByRole('button');
 
-    fireEvent.keyDown(button, { key: ' ', code: 'Space' });
+    keyDown(button, ' ');
     if (cancellation === 'Escape') {
       fireEvent.keyDown(button, { key: 'Escape', code: 'Escape' });
     } else if (cancellation === 'blur') {
       fireEvent.blur(button);
     }
     if (cancellation === 'keyup') {
-      fireEvent.keyUp(button, { key: ' ', code: 'Space' });
+      // A release on another element has no native button default click.
+      fireEvent.keyUp(document.body, { key: ' ', code: 'Space' });
       await act(() => new Promise(resolve => setTimeout(resolve, 0)));
     }
     switchTo('success');
@@ -420,7 +417,7 @@ test.each(['pointerCancel', 'lostPointerCapture'])(
     );
     const button = getByRole('button');
 
-    fireEvent.pointerDown(button);
+    pointerEvent('pointerdown', button);
     fireEvent[cancellation as 'pointerCancel' | 'lostPointerCapture'](button);
     switchTo('success');
     await act(() => new Promise(resolve => setTimeout(resolve, 0)));
@@ -435,13 +432,156 @@ test('moving focus during a pointer press preserves the starting Stop action', (
   const { getByRole, runQuery, stopQuery, switchTo } = renderGestureButton({});
   const button = getByRole('button');
 
-  fireEvent.pointerDown(button);
+  pointerEvent('pointerdown', button);
   fireEvent.blur(button);
   switchTo('success');
-  fireEvent.pointerUp(button);
-  fireEvent.lostPointerCapture(button);
-  fireEvent.click(button);
+  pointerEvent('pointerup', button);
+  pointerEvent('lostpointercapture', button);
+  pointerEvent('click', button);
 
   expect(runQuery).not.toHaveBeenCalled();
   expect(stopQuery).not.toHaveBeenCalled();
+});
+
+test.each(['mouse', 'touch', 'pen'])(
+  'a delayed %s Stop click retains intent after release, capture loss and timers',
+  async pointerType => {
+    const {
+      getByRole,
+      runQuery: run,
+      stopQuery: stop,
+      switchTo,
+    } = renderGestureButton({});
+    const button = getByRole('button');
+    const finish = () => switchTo('success');
+    pointerEvent('pointerdown', button, 7, pointerType);
+    finish();
+    pointerEvent('pointerup', button, 7, pointerType);
+    pointerEvent('lostpointercapture', button, 7, pointerType);
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    pointerEvent('click', button, 7, pointerType);
+    expect(run).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+    // An unmatched activation must not inherit this (consumed) pointer intent.
+    fireEvent.click(button, { detail: 0 });
+    expect(run).toHaveBeenCalledTimes(1);
+  },
+);
+
+test('Space on Stop followed by Escape and release never runs after completion', () => {
+  const {
+    getByRole,
+    runQuery: run,
+    stopQuery: stop,
+    switchTo,
+  } = renderGestureButton({});
+  const button = getByRole('button');
+  const finish = () => switchTo('success');
+  keyDown(button, ' ');
+  finish();
+  keyDown(button, 'Escape');
+  keyUp(button, 'Escape');
+  keyUp(button, ' ');
+  expect(run).not.toHaveBeenCalled();
+  expect(stop).not.toHaveBeenCalled();
+  fireEvent.click(button, { detail: 0 });
+  expect(run).toHaveBeenCalledTimes(1);
+});
+
+test.each(['second pointer', 'unrelated key'])(
+  'a held Stop pointer ignores release of a %s',
+  async unrelated => {
+    const {
+      getByRole,
+      runQuery: run,
+      stopQuery: stop,
+      switchTo,
+    } = renderGestureButton({});
+    const button = getByRole('button');
+    const finish = () => switchTo('success');
+    pointerEvent('pointerdown', button, 7, 'touch');
+    finish();
+    if (unrelated === 'second pointer') {
+      pointerEvent('pointerup', document.body, 8, 'touch');
+      pointerEvent('lostpointercapture', document.body, 8, 'touch');
+      pointerEvent('pointercancel', document.body, 8, 'touch');
+    } else {
+      fireEvent.keyUp(document.body, { key: 'Enter' });
+      fireEvent.keyUp(document.body, { key: ' ' });
+    }
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    pointerEvent('pointerup', button, 7, 'touch');
+    pointerEvent('click', button, 7, 'touch');
+    expect(run).not.toHaveBeenCalled();
+    expect(stop).not.toHaveBeenCalled();
+  },
+);
+
+test('held Enter on Run does not run again after completion until a fresh press', () => {
+  const {
+    getByRole,
+    runQuery: run,
+    stopQuery: stop,
+    switchTo,
+  } = renderGestureButton({});
+  const button = getByRole('button');
+  const finish = () => switchTo('success');
+  finish();
+  keyDown(button, 'Enter');
+  expect(run).toHaveBeenCalledTimes(1);
+  switchTo('running');
+  finish();
+  keyDown(button, 'Enter', true);
+  keyDown(button, 'Enter', true);
+  keyUp(button, 'Enter');
+  expect(run).toHaveBeenCalledTimes(1);
+  expect(stop).not.toHaveBeenCalled();
+  keyDown(button, 'Enter');
+  keyUp(button, 'Enter');
+  expect(run).toHaveBeenCalledTimes(2);
+});
+
+test.each(['pointer', 'keyboard'])(
+  'an independent click during a pending %s press uses the displayed action',
+  async source => {
+    const {
+      getByRole,
+      runQuery: run,
+      stopQuery: stop,
+      switchTo,
+    } = renderGestureButton({});
+    const button = getByRole('button');
+    const finish = () => switchTo('success');
+    if (source === 'pointer') pointerEvent('pointerdown', button, 7, 'touch');
+    else keyDown(button, ' ');
+    finish();
+    await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+    fireEvent.click(button, { detail: 0 });
+    expect(run).toHaveBeenCalledTimes(1);
+    if (source === 'pointer') {
+      pointerEvent('pointerup', button, 7, 'touch');
+      pointerEvent('click', button, 7, 'touch');
+    } else keyUp(button, ' ');
+    expect(run).toHaveBeenCalledTimes(1);
+    expect(stop).not.toHaveBeenCalled();
+  },
+);
+
+test('a held Space press ignores a different key or target releasing', async () => {
+  const {
+    getByRole,
+    runQuery: run,
+    stopQuery: stop,
+    switchTo,
+  } = renderGestureButton({});
+  const button = getByRole('button');
+  const finish = () => switchTo('success');
+  keyDown(button, ' ');
+  finish();
+  fireEvent.keyUp(button, { key: 'Enter' });
+  fireEvent.keyUp(document.body, { key: ' ' });
+  await act(() => new Promise(resolve => setTimeout(resolve, 0)));
+  keyUp(button, ' ');
+  expect(run).not.toHaveBeenCalled();
+  expect(stop).not.toHaveBeenCalled();
 });

@@ -411,14 +411,16 @@ tutorial dashboard to see the four charts side by side and compare the different
 
 ### Stopping chart queries
 
-In Explore, a mouse press or Enter/Space key press that starts on **Stop** will not
+In Explore, a mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not
 update the chart if the query finishes while the button is held. Release and press
 **Create chart** or **Update chart** again to intentionally run another query.
-Cancelling a press does not block a later assistive-technology activation.
+Escape cancels a held Space activation, including its release. Holding Enter
+starts at most one query until you release it and press again. Cancelling a press
+does not block a later independent assistive-technology activation.
 
 ### SQL Lab Tips
 
-**Run/Stop button**: A mouse press or Enter/Space key press that starts on **Stop** will not run the SQL if the query finishes while the button is held. Release and press **Run** again to start another execution. Cancelling a press (for example, releasing the pointer outside the button, pressing Escape, or moving focus away) does not block a later assistive-technology activation. This also applies to the CTAS/CVAS main button.
+**Run/Stop button**: A mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not run the SQL if the query finishes while the button is held. Release and press **Run** again to start another execution. Escape cancels a held Space activation, including its eventual release; moving focus away also cancels keyboard activation. Holding Enter starts at most one execution, even if it finishes before you release the key. Releasing a pointer outside the button cancels that press. An independent assistive-technology or programmatic click still performs the action displayed on the button. This also applies to the CTAS/CVAS main button.
 
 **Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.
 

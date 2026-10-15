@@ -16,91 +16,140 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, type KeyboardEvent } from 'react';
+import {
+  useEffect,
+  useRef,
+  type KeyboardEvent,
+  type MouseEvent,
+  type PointerEvent,
+} from 'react';
 
 type ButtonAction = 'run' | 'stop';
+type PointerPress = {
+  action: ButtonAction;
+  button: HTMLButtonElement;
+  pointerType: string;
+};
+type KeyPress = {
+  action: ButtonAction;
+  button: HTMLButtonElement;
+  key: string;
+  cancelled: boolean;
+};
 
-/** Preserve the starting action of a Run/Stop pointer or Enter/Space gesture. */
+/** Find the main button even when capture handlers live on a split-button wrapper. */
+const getButton = (target: EventTarget | null) =>
+  target instanceof Element ? target.closest('button') : null;
+
+/** Preserve press intent without treating independent clicks as part of a press. */
 export default function useRunStopButton(
   isStopAction: boolean,
   onClick: () => void,
 ) {
   const currentAction: ButtonAction = isStopAction ? 'stop' : 'run';
-  const gestureActionRef = useRef<ButtonAction | null>(null);
-  const keyboardActionRef = useRef<ButtonAction | null>(null);
-  const releaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const cancelReleaseTimer = useCallback(() => {
-    if (releaseTimerRef.current !== null) {
-      clearTimeout(releaseTimerRef.current);
-      releaseTimerRef.current = null;
-    }
-  }, []);
-
-  const clearGesture = useCallback(() => {
-    cancelReleaseTimer();
-    gestureActionRef.current = null;
-    keyboardActionRef.current = null;
-  }, [cancelReleaseTimer]);
-
-  const releaseGesture = useCallback(() => {
-    if (gestureActionRef.current === null) return;
-    cancelReleaseTimer();
-    // Native pointer/Space clicks follow release in the same event turn.
-    // Expire the saved action if that release does not produce a click.
-    releaseTimerRef.current = setTimeout(clearGesture, 0);
-  }, [cancelReleaseTimer, clearGesture]);
+  const pointersRef = useRef(new Map<number, PointerPress>());
+  const keyRef = useRef<KeyPress | null>(null);
+  const latestRef = useRef({ currentAction, onClick });
+  latestRef.current = { currentAction, onClick };
 
   useEffect(() => {
+    const pointers = pointersRef.current;
+    const onPointerUp = (event: globalThis.PointerEvent) => {
+      const press = pointers.get(event.pointerId);
+      if (press && getButton(event.target) !== press.button) {
+        pointers.delete(event.pointerId);
+      }
+      // Keep matching intent until click, including across implicit capture loss
+      // and touch compatibility-event delays. Independent clicks bypass this map.
+    };
+    const onPointerCancel = (event: globalThis.PointerEvent) => {
+      pointers.delete(event.pointerId);
+    };
     const onKeyUp = (event: globalThis.KeyboardEvent) => {
-      if (event.key === 'Enter' || event.key === ' ') {
-        keyboardActionRef.current = null;
-        releaseGesture();
+      const press = keyRef.current;
+      if (
+        !press ||
+        event.key !== press.key ||
+        getButton(event.target) !== press.button
+      ) {
+        return;
+      }
+      // Own keyboard activation: native keyboard clicks have no press identity,
+      // so retaining one to match a later click could swallow an AT activation.
+      event.preventDefault();
+      keyRef.current = null;
+      const latest = latestRef.current;
+      if (
+        press.key === ' ' &&
+        !press.cancelled &&
+        !press.button.disabled &&
+        press.action === latest.currentAction
+      ) {
+        latest.onClick();
       }
     };
-    // Release may happen outside the button, including after pointer capture.
-    document.addEventListener('pointerup', releaseGesture, true);
-    document.addEventListener('lostpointercapture', releaseGesture, true);
-    document.addEventListener('pointercancel', clearGesture, true);
+    document.addEventListener('pointerup', onPointerUp, true);
+    document.addEventListener('pointercancel', onPointerCancel, true);
     document.addEventListener('keyup', onKeyUp, true);
     return () => {
-      document.removeEventListener('pointerup', releaseGesture, true);
-      document.removeEventListener('lostpointercapture', releaseGesture, true);
-      document.removeEventListener('pointercancel', clearGesture, true);
+      document.removeEventListener('pointerup', onPointerUp, true);
+      document.removeEventListener('pointercancel', onPointerCancel, true);
       document.removeEventListener('keyup', onKeyUp, true);
-      clearGesture();
+      pointers.clear();
+      keyRef.current = null;
     };
-  }, [clearGesture, releaseGesture]);
+  }, []);
 
   return {
-    onPointerDownCapture: () => {
-      clearGesture();
-      gestureActionRef.current = currentAction;
+    onPointerDownCapture: (event: PointerEvent<HTMLElement>) => {
+      const button = getButton(event.target);
+      if (button && !button.disabled && event.button === 0) {
+        pointersRef.current.set(event.pointerId, {
+          action: currentAction,
+          button,
+          pointerType: event.pointerType,
+        });
+      }
     },
     onBlurCapture: () => {
-      if (keyboardActionRef.current !== null) clearGesture();
+      if (keyRef.current) keyRef.current.cancelled = true;
     },
     onKeyDownCapture: (event: KeyboardEvent<HTMLElement>) => {
-      if (event.key === 'Escape' && keyboardActionRef.current !== null) {
-        clearGesture();
+      if (event.key === 'Escape' && keyRef.current) {
+        keyRef.current.cancelled = true;
       }
-      if (event.key === 'Enter' || event.key === ' ') {
-        cancelReleaseTimer();
-        if (!event.repeat) {
-          keyboardActionRef.current = currentAction;
-        }
-        // Enter repeats click after the pending gesture has been consumed.
-        // Keep each repeat tied to the action at the original key press.
-        gestureActionRef.current = keyboardActionRef.current ?? currentAction;
-      }
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      const button = getButton(event.target);
+      if (!button || button.disabled) return;
+      event.preventDefault();
+      // Repeats are not new intent, even if the first run already completed.
+      if (event.repeat) return;
+      keyRef.current = {
+        action: currentAction,
+        button,
+        key: event.key,
+        cancelled: false,
+      };
+      if (event.key === 'Enter') onClick();
     },
-    onClick: () => {
-      cancelReleaseTimer();
-      const gestureAction = gestureActionRef.current ?? currentAction;
-      gestureActionRef.current = null;
-      if (gestureAction === currentAction) {
-        onClick();
+    onClick: (event: MouseEvent<HTMLElement>) => {
+      const native = event.nativeEvent as Partial<globalThis.PointerEvent>;
+      const pointers = pointersRef.current;
+      // AT and HTMLElement.click() have no pointer identity. In particular,
+      // detail=0 alone cannot distinguish an AT click from a keyboard click.
+      const press =
+        native.pointerId !== undefined && native.pointerType
+          ? pointers.get(native.pointerId)
+          : undefined;
+      if (
+        press &&
+        press.pointerType === native.pointerType &&
+        press.button === getButton(event.target)
+      ) {
+        if (native.pointerId !== undefined) pointers.delete(native.pointerId);
+        if (press.action !== currentAction) return;
       }
+      onClick();
     },
   };
 }
