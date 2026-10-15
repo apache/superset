@@ -84,6 +84,8 @@ from pydantic import (
 )
 from pydantic.json_schema import SkipJsonSchema
 
+from superset.semantic_layers.access import is_semantic_layers_enabled
+
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -173,12 +175,7 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
 
 
 class DashboardFilter(ColumnOperator):
-    """
-    Filter object for dashboard listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for dashboard listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
@@ -248,12 +245,9 @@ class ListDashboardsRequest(
                 "just trashed dashboards, 'include' returns live and trashed "
                 "together. Omit for live dashboards only (default). Trashed "
                 "rows carry a non-null deleted_at and are limited to "
-                "dashboards the caller can edit (the same audience that can "
-                "restore them, not merely the ones they own; admins see "
-                "all). This omits EXTRA_EDITORS_RESOLVER-granted and guest "
-                "role-derived editorship, so some restorable dashboards may "
-                "be under-enumerated. Requires the SOFT_DELETE feature flag "
-                "to have produced trashed rows."
+                "dashboards the caller can edit (admins see all); some "
+                "restorable dashboards may be missing. Requires the "
+                "SOFT_DELETE feature flag to have produced trashed rows."
             ),
         ),
     ]
@@ -1313,9 +1307,9 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
         default=False,
         description=(
             "Whether the ENABLE_VIEWERS feature flag is enabled on this "
-            "instance. When False, dashboard viewers are stored but have no "
-            "effect on access control — access still follows normal "
-            "Superset permissions/editorship."
+            "instance. Access checks restrict access to any nonempty viewers "
+            "list regardless of this flag, so role changes take effect "
+            "either way."
         ),
     )
     warnings: list[str] = Field(
@@ -2319,9 +2313,8 @@ class BaseNewFilterSpec(BaseModel):
     scope_chart_ids: List[int] | None = Field(
         None,
         description=(
-            "Chart IDs this filter should apply to. When omitted the filter "
-            "applies to all charts on the dashboard. All IDs must belong to "
-            "charts that are on the dashboard."
+            "IDs of charts on the dashboard this filter applies to. Omit to "
+            "apply it to all charts on the dashboard."
         ),
     )
 
@@ -2645,22 +2638,15 @@ class BaseNewDashboardComponentSpec(BaseModel):
     target_tab: str | None = Field(
         None,
         description=(
-            "Tab to add the component to, matched by display name or "
-            "component ID (see get_dashboard_layout for available tabs). "
-            "Omit to use the first tab, or the grid if there are no tabs; "
-            "specify a target when the component should land in a "
-            "specific one rather than the first tab."
+            "Tab to add the component to, by display name or component ID "
+            "(see get_dashboard_layout). Omit for the first tab, or the grid "
+            "if there are no tabs."
         ),
     )
 
 
 class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new markdown/text tile.
-
-    Placed in its own new row (a MARKDOWN component sits alongside charts,
-    not as a full-width band), so it composes with existing rows/charts on
-    the target grid or tab.
-    """
+    """Spec for a new markdown/text tile, placed in its own new row."""
 
     component_type: Literal["markdown"] = Field(
         ..., description="Discriminator - must be 'markdown'"
@@ -2712,12 +2698,7 @@ def _sanitize_header_text(value: str) -> str:
 
 
 class HeaderComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new section header band.
-
-    Placed directly on the target grid/tab (not inside a row) so it spans
-    the full dashboard width, matching how the dashboard builder places
-    dragged header components.
-    """
+    """Spec for a new full-width section header band."""
 
     component_type: Literal["header"] = Field(
         ..., description="Discriminator - must be 'header'"
@@ -2738,11 +2719,7 @@ class HeaderComponentSpec(BaseNewDashboardComponentSpec):
 
 
 class DividerComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new horizontal divider.
-
-    Placed directly on the target grid/tab (not inside a row), same as
-    ``HeaderComponentSpec``. Carries no content — only placement.
-    """
+    """Spec for a new full-width horizontal divider; it has no content."""
 
     component_type: Literal["divider"] = Field(
         ..., description="Discriminator - must be 'divider'"
@@ -2928,8 +2905,9 @@ class ApplyFilterValueSpec(BaseModel):
     values: List[FilterSelectValue] | None = Field(
         None,
         description=(
-            "Values to select, for a filter_select filter. Pass an empty "
-            "list to clear the filter's current selection."
+            "Values to select, for a filter_select filter; each must exist "
+            "in the filter's column. Pass an empty list to clear the "
+            "filter's current selection."
         ),
     )
     time_range: str | None = Field(
@@ -3374,9 +3352,12 @@ def dashboard_datasets_serializer(
             slc
         )
 
+    semantic_layers_enabled: bool = is_semantic_layers_enabled()
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
     for (_, source_type), slices in slices_by_datasource.items():
+        if source_type == DatasourceType.SEMANTIC_VIEW and not semantic_layers_enabled:
+            continue
         kind: Literal["table", "semantic_view"] = (
             "semantic_view" if source_type == DatasourceType.SEMANTIC_VIEW else "table"
         )

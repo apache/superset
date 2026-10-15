@@ -21,6 +21,8 @@ from __future__ import annotations
 
 import os
 import uuid
+from collections.abc import Hashable
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, patch, PropertyMock
@@ -45,6 +47,9 @@ from superset_core.semantic_layers.types import (
 from superset_core.semantic_layers.view import SemanticViewFeature
 from werkzeug.test import TestResponse
 
+from superset.common.query_context_factory import QueryContextFactory
+from superset.common.query_object import QueryObject
+from superset.common.tabular_query import _resolve_time_column
 from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.models import (
     ColumnMetadata,
@@ -53,6 +58,7 @@ from superset.semantic_layers.models import (
     SemanticLayer,
     SemanticView,
 )
+from superset.superset_typing import ExplorableData
 from superset.utils.core import GenericDataType
 
 # =============================================================================
@@ -255,7 +261,7 @@ def test_semantic_layer_implementation() -> None:
 
     mock_class = MagicMock()
     mock_impl = MagicMock()
-    mock_class.from_configuration.return_value = mock_impl
+    mock_class.from_configuration_with_cache_token.return_value = mock_impl
 
     with patch.dict(
         "superset.semantic_layers.models.registry",
@@ -267,7 +273,9 @@ def test_semantic_layer_implementation() -> None:
 
         result = layer.implementation
 
-    mock_class.from_configuration.assert_called_once_with({"key": "value"})
+    mock_class.from_configuration_with_cache_token.assert_called_once_with(
+        {"key": "value"}, cache_token=layer.metadata_generation
+    )
     assert result == mock_impl
 
 
@@ -337,6 +345,7 @@ def mock_implementation(
     impl.get_metrics.return_value = mock_metrics
     impl.uid.return_value = "semantic_view_uid_123"
     impl.features = frozenset()
+    impl.preferred_temporal_dimension = None
     return impl
 
 
@@ -485,16 +494,45 @@ def test_semantic_view_query_endpoint_returns_error(
     assert "query" not in response.json["result"][0]
 
 
-def test_semantic_view_get_extra_cache_keys() -> None:
-    """Test SemanticView get_extra_cache_keys method."""
-    from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
+@pytest.mark.parametrize("version", [None, "producer-v1", "producer-v2"])
+def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
+    """Keep NULL normalization and producer guarantees in the result identity."""
+    from superset.common.query_object import QueryObject
 
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = version
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
-    with patch.dict(
-        "superset.semantic_layers.models.registry", {"fixture": ProviderLayer}
-    ):
-        result: list[Any] = view.get_extra_cache_keys({})
-    assert result == []
+    query: QueryObject = QueryObject(
+        columns=["category"],
+        filters=[{"col": "category", "op": "IN", "val": ["a", "<NULL>"]}],
+    )
+    with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
+        composed_key: str = query.cache_key(
+            extra_cache_keys=view.get_extra_cache_keys({})
+        )
+        expected: list[Hashable] = [
+            view.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
+        if version is not None:
+            expected.append(("semantic-result-version", "fixture", version))
+        assert view.get_extra_cache_keys({}) == expected
+        assert composed_key != query.cache_key(extra_cache_keys=expected[1:])
+        assert composed_key != query.cache_key(
+            extra_cache_keys=[expected[0], *expected[2:]]
+        )
+        assert composed_key != query.cache_key(extra_cache_keys=[])
+        if version is not None:
+            assert composed_key != query.cache_key(
+                extra_cache_keys=[("semantic-result-version", "fixture", version)]
+            )
+            assert composed_key != query.cache_key(
+                extra_cache_keys=["semantic-null-filters-v1"]
+            )
+        assert composed_key == query.cache_key(
+            extra_cache_keys=view.get_extra_cache_keys({})
+        )
+    provider.assert_not_called()
 
 
 def test_semantic_view_perm() -> None:
@@ -785,6 +823,88 @@ def test_semantic_view_abc_features_default_empty() -> None:
     )
 
     assert SemanticViewABC.features == frozenset()
+
+
+def test_semantic_view_abc_preferred_temporal_dimension_is_optional() -> None:
+    """Existing providers inherit no preferred temporal dimension."""
+    from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
+
+    assert SemanticViewABC.preferred_temporal_dimension is None
+
+
+@pytest.mark.parametrize(
+    ("preferred", "expected"),
+    [
+        ("metric_time", "metric_time"),
+        (None, None),
+        ("missing_time", None),
+        ("entity_name", None),
+    ],
+)
+def test_semantic_view_data_honors_exposed_temporal_preference(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+    preferred: str | None,
+    expected: str | None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Backend and Explore use the same exposed temporal preference."""
+    mock_implementation.get_dimensions.return_value = [
+        Dimension(id="entity.time", name="entity_time", type=pa.date32()),
+        Dimension(id="entity.name", name="entity_name", type=pa.string()),
+        Dimension(id="metric.time", name="metric_time", type=pa.timestamp("us")),
+    ]
+    mock_implementation.preferred_temporal_dimension = preferred
+
+    assert semantic_view.main_dttm_col == expected
+    data: ExplorableData = semantic_view.data
+
+    assert data["columns"][0]["column_name"] == "entity_time"
+    assert data["columns"][0]["is_dttm"] is True
+    assert data["main_dttm_col"] == expected
+    assert data["granularity_sqla"] == [
+        ("entity_time", "entity_time"),
+        ("metric_time", "metric_time"),
+    ]
+    if expected is not None:
+        assert _resolve_time_column(semantic_view, semantic_view.name, None, True) == (
+            expected
+        )
+    assert any(
+        "preferred_temporal_dimension" in record.message for record in caplog.records
+    ) is (preferred is not None and expected is None)
+
+
+def test_semantic_view_preference_supplies_filter_granularity(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """A bounded ad-hoc axis uses the view's preferred time dimension for filters."""
+    mock_implementation.get_dimensions.return_value = [
+        Dimension(id="entity.time", name="entity_time", type=pa.date32()),
+        Dimension(id="metric.time", name="metric_time", type=pa.timestamp("us")),
+    ]
+    mock_implementation.preferred_temporal_dimension = "metric_time"
+    axis: dict[str, str] = {
+        "expressionType": "SQL",
+        "sqlExpression": "amount / 10",
+        "label": "amount_bucket",
+    }
+    query_object: MagicMock = MagicMock(spec=QueryObject)
+    query_object.granularity = None
+    query_object.from_dttm = datetime(2024, 1, 1, tzinfo=timezone.utc)
+    query_object.to_dttm = datetime(2024, 1, 31, tzinfo=timezone.utc)
+    query_object.time_range = "2024-01-01 : 2024-01-31"
+    query_object.columns = [axis]
+    query_object.post_processing = []
+    query_object.filter = []
+
+    QueryContextFactory()._apply_granularity(
+        query_object, {"x_axis": axis}, semantic_view
+    )
+
+    assert query_object.granularity == "metric_time"
+    assert query_object.columns == [axis]
 
 
 def test_semantic_view_data_features_empty(
@@ -2544,6 +2664,22 @@ def test_values_for_column_search_rejection_falls_back_unfiltered(
     assert "category" in caplog.text
 
 
+def test_semantic_view_data_row_offset_capability(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """Expose the optional bounded-offset contract through existing metadata."""
+    declared: frozenset[SemanticViewFeature] = frozenset(
+        {SemanticViewFeature.ROW_OFFSET, SemanticViewFeature.GROUP_LIMIT}
+    )
+    mock_implementation.features = declared
+
+    data: ExplorableData = semantic_view.data
+
+    assert data["semantic_view_features"] == ["GROUP_LIMIT", "ROW_OFFSET"]
+    assert SemanticViewFeature.ROW_OFFSET.value == "ROW_OFFSET"
+
+
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])
 def test_values_fallback_translates_provider_completeness_error(
     mock_implementation: MagicMock,
@@ -2585,9 +2721,13 @@ def test_result_generation_reads_class_without_provider_construction(
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         assert view.result_cache_version == version
-        assert view.get_extra_cache_keys({}) == (
-            [] if version is None else [("semantic-result-version", "fixture", version)]
-        )
+        expected: list[Hashable] = [
+            view.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
+        if version is not None:
+            expected.append(("semantic-result-version", "fixture", version))
+        assert view.get_extra_cache_keys({}) == expected
     provider.assert_not_called()
 
 
@@ -2738,9 +2878,14 @@ def test_layer_delete_batches_permission_ownership_queries(session: Any) -> None
         event.remove(connection, "before_cursor_execute", record_select)
 
     assert delete_pvm.call_count == 30
-    assert len(selects) <= 3
+    assert len(selects) <= 4
+    assert sum("ab_view_menu" in statement for statement in selects) == 1
     assert all("configuration" not in statement.lower() for statement in selects)
-    assert all(" IN (" not in statement.upper() for statement in selects)
+    assert all(
+        " IN (" not in statement.upper()
+        for statement in selects
+        if "ab_view_menu" not in statement
+    )
     assert all("NOT IN" not in statement.upper() for statement in selects)
 
 
