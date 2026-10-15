@@ -39,6 +39,7 @@ from superset.daos.dashboard import DashboardDAO
 from superset.dashboards.schemas import DashboardGetResponseSchema
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.utils.error_sanitization import is_sanitization_required
 
@@ -54,16 +55,22 @@ def embedded_feature_enabled(mocker: MockerFixture) -> None:
     )
 
 
-def _guest_user_from_token(mocker: MockerFixture, username: str) -> GuestUser:
+def _guest_user_from_token(
+    mocker: MockerFixture, username: str, resource_ids: list[str]
+) -> GuestUser:
     """
     Build the guest user the same way the request loader does: sign a token with
-    the given ``user.username`` claim and parse it from the request headers.
+    the given ``user.username`` claim and dashboard resources, and parse it from
+    the request headers.
     """
     mocker.patch.object(security_manager, "find_role", return_value=Role(name="Public"))
     mocker.patch.object(security_manager, "_is_guest_token_revoked", return_value=False)
     token = security_manager.create_guest_access_token(
         user={"username": username},
-        resources=[{"type": GuestTokenResourceType.DASHBOARD, "id": str(uuid4())}],
+        resources=[
+            {"type": GuestTokenResourceType.DASHBOARD, "id": resource_id}
+            for resource_id in resource_ids
+        ],
         rls=[],
     )
     header_name = current_app.config["GUEST_TOKEN_HEADER_NAME"]
@@ -76,8 +83,10 @@ def _guest_user_from_token(mocker: MockerFixture, username: str) -> GuestUser:
 
 @pytest.fixture
 def guest_user_factory(mocker: MockerFixture, embedded_feature_enabled: None) -> Any:
-    def _make(username: str) -> GuestUser:
-        guest_user = _guest_user_from_token(mocker, username)
+    def _make(username: str, resource_ids: list[str] | None = None) -> GuestUser:
+        guest_user = _guest_user_from_token(
+            mocker, username, resource_ids if resource_ids is not None else []
+        )
         g.user = guest_user
         return guest_user
 
@@ -86,8 +95,8 @@ def guest_user_factory(mocker: MockerFixture, embedded_feature_enabled: None) ->
 
 def _embedded_dashboard() -> Dashboard:
     """
-    A published, chart-less dashboard with an embedded configuration that is not
-    listed in the guest token's resources.
+    A published, chart-less dashboard with an embedded configuration, so that
+    guest access depends only on whether the token lists the embedded UUID.
     """
     dashboard = Dashboard(
         id=42,
@@ -96,7 +105,13 @@ def _embedded_dashboard() -> Dashboard:
         slices=[],
     )
     dashboard.uuid = uuid4()
+    dashboard.embedded = [EmbeddedDashboard(uuid=uuid4(), allow_domain_list="")]
     return dashboard
+
+
+def _unlisted_resource_ids() -> list[str]:
+    """Resource ids that do not match the embedded dashboard under test."""
+    return [str(uuid4())]
 
 
 @pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
@@ -110,29 +125,54 @@ def test_is_guest_user_does_not_depend_on_username(
 
 
 @pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
-def test_dashboard_access_applies_guest_rules_for_any_username(
+def test_dashboard_access_denied_when_embedded_uuid_not_in_token(
     guest_user_factory: Any, username: str
 ) -> None:
     """
-    A guest whose token does not list the dashboard is denied, whatever the
-    token's username claim is.
+    A guest whose token does not list the embedded dashboard is denied, whatever
+    the token's username claim is.
     """
-    guest_user_factory(username)
+    dashboard = _embedded_dashboard()
+    guest_user_factory(username, _unlisted_resource_ids())
 
+    assert dashboard.embedded
+    assert security_manager.has_guest_access(dashboard) is False
     with pytest.raises(SupersetSecurityException):
-        security_manager.raise_for_access(dashboard=_embedded_dashboard())
+        security_manager.raise_for_access(dashboard=dashboard)
 
 
 @pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
-def test_dashboard_dao_uuid_lookup_applies_guest_rules_for_any_username(
+def test_dashboard_access_allowed_when_embedded_uuid_in_token(
+    guest_user_factory: Any, username: str
+) -> None:
+    dashboard = _embedded_dashboard()
+    guest_user_factory(username, [str(dashboard.embedded[0].uuid)])
+
+    assert security_manager.has_guest_access(dashboard) is True
+    security_manager.raise_for_access(dashboard=dashboard)
+
+
+@pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
+def test_dashboard_dao_uuid_lookup_denied_when_embedded_uuid_not_in_token(
     mocker: MockerFixture, guest_user_factory: Any, username: str
 ) -> None:
-    guest_user_factory(username)
     dashboard = _embedded_dashboard()
+    guest_user_factory(username, _unlisted_resource_ids())
     mocker.patch.object(Dashboard, "get", return_value=dashboard)
 
     with pytest.raises(DashboardAccessDeniedError):
         DashboardDAO.get_by_id_or_slug(str(dashboard.uuid))
+
+
+@pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
+def test_dashboard_dao_uuid_lookup_allowed_when_embedded_uuid_in_token(
+    mocker: MockerFixture, guest_user_factory: Any, username: str
+) -> None:
+    dashboard = _embedded_dashboard()
+    guest_user_factory(username, [str(dashboard.embedded[0].uuid)])
+    mocker.patch.object(Dashboard, "get", return_value=dashboard)
+
+    assert DashboardDAO.get_by_id_or_slug(str(dashboard.uuid)) is dashboard
 
 
 @pytest.mark.parametrize("username", USERNAMES, ids=USERNAME_IDS)
