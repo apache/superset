@@ -166,3 +166,21 @@ def set_query_stopped(query: Query, end_time: float) -> bool:
         if early_cancel:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
     return True
+
+
+def commit_query_unless_stopped(query: Query) -> bool:
+    """Atomically guard terminal metadata writes against a concurrent stop."""
+    with db.session.no_autoflush:
+        # The conditional write acquires the row's write lock until commit.
+        # A separate status read cannot protect the subsequent ORM flush.
+        updated = (
+            db.session.query(Query)
+            .filter(Query.id == query.id, Query.status != QueryStatus.STOPPED)
+            .update({Query.status: query.status}, synchronize_session=False)
+        )
+        if not updated:
+            # A locking read also sees the latest row under REPEATABLE READ.
+            db.session.refresh(query, with_for_update=True)
+            return False
+    db.session.commit()  # pylint: disable=consider-using-transaction
+    return True

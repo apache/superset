@@ -55,6 +55,7 @@ from superset.sql.execution.utils import (
     _discard_stored_results,
     _discard_unreferenced_results,
     _extract_errors,
+    commit_query_unless_stopped as _commit_query_unless_stopped,
     set_query_stopped,
     stop_seen_during_execution,
 )
@@ -457,24 +458,6 @@ def _get_query_after_error(query_id: int) -> Query:
         # Rolling back only discards metadata the failed task never committed.
         db.session.rollback()  # pylint: disable=consider-using-transaction
         return _get_query(query_id=query_id)
-
-
-def _commit_query_unless_stopped(query: Query) -> bool:
-    """Atomically guard terminal metadata writes against a concurrent stop."""
-    with db.session.no_autoflush:
-        # The conditional write acquires the row's write lock until commit.
-        # A separate status read cannot protect the subsequent ORM flush.
-        updated = (
-            db.session.query(Query)
-            .filter(Query.id == query.id, Query.status != QueryStatus.STOPPED)
-            .update({Query.status: query.status}, synchronize_session=False)
-        )
-        if not updated:
-            # A locking read also sees the latest row under REPEATABLE READ.
-            db.session.refresh(query, with_for_update=True)
-            return False
-    db.session.commit()  # pylint: disable=consider-using-transaction
-    return True
 
 
 def _stopped_query_payload(query: Query) -> dict[str, Any]:
