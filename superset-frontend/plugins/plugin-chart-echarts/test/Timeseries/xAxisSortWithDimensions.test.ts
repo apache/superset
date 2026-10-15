@@ -397,3 +397,309 @@ test('sorts the axis by the sort-only metric with a time comparison', () => {
     'count, XOne',
   ]);
 });
+
+test('does not hide a two-dimension series whose truncated label collides with the sort-only metric', () => {
+  // With two dimensions (`platform`, `region`) and a single displayed
+  // metric, `truncate_metric` drops the metric prefix from the displayed
+  // series, so their `label_map` entries are just the two dimension values
+  // (2 parts). The sort-only metric keeps its own prefix, so its pivoted
+  // columns always carry 3 parts (metric + the two dimension values). A
+  // dimension value that happens to read like the sort-only metric's label
+  // ("SUM(na_sales)") must not make a genuine 2-part displayed column look
+  // like one of the sort-only metric's 3-part columns.
+  const twoDimRows: DataRecord[] = [
+    {
+      genre: 'Action',
+      'SUM(na_sales), US': 30,
+      'PS4, US': 20,
+      'SUM(na_sales), SUM(na_sales), US': 5,
+      'SUM(na_sales), PS4, US': 3,
+    },
+    {
+      genre: 'Puzzle',
+      'SUM(na_sales), US': 5,
+      'PS4, US': 5,
+      'SUM(na_sales), SUM(na_sales), US': 20,
+      'SUM(na_sales), PS4, US': 10,
+    },
+    {
+      genre: 'Sports',
+      'SUM(na_sales), US': 40,
+      'PS4, US': 10,
+      'SUM(na_sales), SUM(na_sales), US': 1,
+      'SUM(na_sales), PS4, US': 1,
+    },
+  ];
+  const twoDimLabelMap = {
+    genre: ['genre'],
+    'SUM(na_sales), US': ['SUM(na_sales)', 'US'],
+    'PS4, US': ['PS4', 'US'],
+    'SUM(na_sales), SUM(na_sales), US': [
+      'SUM(na_sales)',
+      'SUM(na_sales)',
+      'US',
+    ],
+    'SUM(na_sales), PS4, US': ['SUM(na_sales)', 'PS4', 'US'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['platform', 'region'],
+      timeseries_limit_metric: naSales,
+      truncate_metric: true,
+      stack: true,
+      showValue: true,
+      onlyTotal: true,
+      x_axis_sort: 'SUM(na_sales)',
+      xAxisSort: 'SUM(na_sales)',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: twoDimRows,
+        label_map: twoDimLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+
+  // The two displayed (2-part) series render and keep their values; the
+  // 3-part sort-only columns are not among them.
+  expect(series.map(({ name }) => name).sort()).toEqual([
+    'PS4, US',
+    'SUM(na_sales), US',
+  ]);
+  // SUM(na_sales) totals (3-part sort-only columns): Puzzle 30, Action 8,
+  // Sports 2.
+  series.forEach(entry => {
+    expect(entry.data.map(([genre]) => genre)).toEqual([
+      'Puzzle',
+      'Action',
+      'Sports',
+    ]);
+  });
+  // Stacked totals use only the displayed (2-part) series: Action 50,
+  // Puzzle 10, Sports 50, read off in the sorted order above.
+  const stackedTotals = series
+    .flatMap((entry, seriesIndex) =>
+      entry.data.map((value, dataIndex) =>
+        entry.label.formatter({ value, dataIndex, seriesIndex }),
+      ),
+    )
+    .filter(label => label !== '');
+  expect(stackedTotals).toEqual(['10', '50', '50']);
+});
+
+test('rolls up a MAX sort metric by MAX rather than summing per-dimension maxima', () => {
+  // The ungrouped MAX of a metric equals the MAX of its per-dimension
+  // maxima, not their sum. Category A has per-platform maxima 100 and 0
+  // (overall max 100); category B has 60 and 60 (overall max 60). Without
+  // a dimension, A sorts first (100 > 60); summing the pivoted columns
+  // instead of taking their max would reverse that (100 vs 120).
+  const maxMetric: QueryFormMetric = {
+    expressionType: 'SIMPLE',
+    aggregate: 'MAX',
+    column: { column_name: 'na_sales' },
+    label: 'MAX(na_sales)',
+  };
+  const maxRows: DataRecord[] = [
+    {
+      genre: 'A',
+      PS4: 10,
+      XOne: 10,
+      'MAX(na_sales), PS4': 100,
+      'MAX(na_sales), XOne': 0,
+    },
+    {
+      genre: 'B',
+      PS4: 10,
+      XOne: 10,
+      'MAX(na_sales), PS4': 60,
+      'MAX(na_sales), XOne': 60,
+    },
+  ];
+  const maxLabelMap = {
+    genre: ['genre'],
+    PS4: ['PS4'],
+    XOne: ['XOne'],
+    'MAX(na_sales), PS4': ['MAX(na_sales)', 'PS4'],
+    'MAX(na_sales), XOne': ['MAX(na_sales)', 'XOne'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['platform'],
+      timeseries_limit_metric: maxMetric,
+      truncate_metric: true,
+      x_axis_sort: 'MAX(na_sales)',
+      xAxisSort: 'MAX(na_sales)',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: maxRows,
+        label_map: maxLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+  series.forEach(entry => {
+    expect(entry.data.map(([genre]) => genre)).toEqual(['A', 'B']);
+  });
+});
+
+test('excludes forecast-derived columns from a sort-only metric sum', () => {
+  // `label_map` is built from the cached DataFrame's final columns, after
+  // Prophet has run, so a forecast's `<metric>, <dim>__yhat` column has the
+  // same shape as one of the sort-only metric's own pivoted columns. If it
+  // were summed in, the axis order would depend on the forecast trend
+  // rather than the selected metric.
+  const forecastRows: DataRecord[] = [
+    {
+      genre: 'Action',
+      US: 30,
+      EU: 20,
+      'SUM(na_sales), US': 5,
+      'SUM(na_sales), EU': 3,
+      'SUM(na_sales), US__yhat': 1000,
+    },
+    {
+      genre: 'Puzzle',
+      US: 5,
+      EU: 5,
+      'SUM(na_sales), US': 20,
+      'SUM(na_sales), EU': 10,
+      'SUM(na_sales), US__yhat': 1,
+    },
+    {
+      genre: 'Sports',
+      US: 40,
+      EU: 10,
+      'SUM(na_sales), US': 1,
+      'SUM(na_sales), EU': 1,
+      'SUM(na_sales), US__yhat': 2000,
+    },
+  ];
+  const forecastLabelMap = {
+    genre: ['genre'],
+    US: ['US'],
+    EU: ['EU'],
+    'SUM(na_sales), US': ['SUM(na_sales)', 'US'],
+    'SUM(na_sales), EU': ['SUM(na_sales)', 'EU'],
+    'SUM(na_sales), US__yhat': ['SUM(na_sales)', 'US__yhat'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['region'],
+      timeseries_limit_metric: naSales,
+      truncate_metric: true,
+      x_axis_sort: 'SUM(na_sales)',
+      xAxisSort: 'SUM(na_sales)',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: forecastRows,
+        label_map: forecastLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+  // SUM(na_sales) totals excluding the forecast column: Puzzle 30, Action
+  // 8, Sports 2. Including the forecast column would instead put Sports
+  // first (2000 + 2 = 2002).
+  series.forEach(entry => {
+    expect(entry.data.map(([genre]) => genre)).toEqual([
+      'Puzzle',
+      'Action',
+      'Sports',
+    ]);
+  });
+});
+
+test('sorts by a displayed metric that a Difference comparison replaced with its offset column', () => {
+  // With two displayed metrics, no dimensions, and a Difference comparison,
+  // `compare` drops each metric's own base column and `renameOperator`
+  // renames its offset variant to `<metric>, <offset>` (metrics.length > 1).
+  // Selecting one of those metrics as the sort target has to resolve to
+  // that renamed column instead of leaving the axis in query order.
+  const comparisonRows: DataRecord[] = [
+    { genre: 'X', 'A, 1 week ago': 5, 'B, 1 week ago': 1 },
+    { genre: 'Y', 'A, 1 week ago': 10, 'B, 1 week ago': 2 },
+  ];
+  const comparisonLabelMap = {
+    genre: ['genre'],
+    'A, 1 week ago': ['A', '1 week ago'],
+    'B, 1 week ago': ['B', '1 week ago'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['A', 'B'],
+      groupby: [],
+      comparison_type: 'difference',
+      comparisonType: 'difference',
+      time_compare: ['1 week ago'],
+      timeCompare: ['1 week ago'],
+      x_axis_sort: 'A',
+      xAxisSort: 'A',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: comparisonRows,
+        label_map: comparisonLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+  // A's difference values are 5 (X) then 10 (Y); sorted descending by A
+  // puts Y first, which query order (X, Y) does not.
+  series.forEach(entry => {
+    expect(entry.data.map(([genre]) => genre)).toEqual(['Y', 'X']);
+  });
+});
