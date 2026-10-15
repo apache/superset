@@ -22,6 +22,7 @@ values, search pass-through, the 400 naming an unknown column, and the cache
 header contract.
 """
 
+from datetime import datetime
 from typing import Any, cast
 from unittest.mock import MagicMock
 
@@ -670,7 +671,7 @@ def test_disabled_compatible_cache_skips_reads_and_writes(
 @pytest.mark.parametrize("compatible", [False, True])
 @pytest.mark.parametrize(
     "datasource_timeout, default_timeout, expected_timeout",
-    [(120, 300, 120), (None, 300, 300), (0, 300, 300), (120, -1, 120)],
+    [(120, 300, 120), (None, 300, 300), (0, 300, 300), (120, -1, 120), (None, 0, 0)],
 )
 def test_enabled_suggestion_caches_preserve_timeout_and_hits(
     client: Any,
@@ -713,3 +714,50 @@ def test_enabled_suggestion_caches_preserve_timeout_and_hits(
     assert cached_response.json["result"] == response.json["result"]
     cache.get.assert_called_once()
     cache.set.assert_not_called()
+
+
+def test_compatible_cache_invalidates_after_datasource_edit(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    """Unedited datasources hit warm entries; edited ones recompute compatibility."""
+    semantic_view_datasource.cache_timeout = 300
+    semantic_view_datasource.changed_on = datetime(2026, 1, 1)
+    metrics: MagicMock = mocker.patch.object(
+        SemanticView, "get_compatible_metrics", return_value=["old_metric"]
+    )
+    dimensions: MagicMock = mocker.patch.object(
+        SemanticView, "get_compatible_dimensions", return_value=["category"]
+    )
+    entries: dict[str, dict[str, list[str]]] = {}
+
+    def write_entry(key: str, value: dict[str, list[str]], timeout: int) -> None:
+        entries[key] = value
+
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.side_effect = entries.get
+    cache.set.side_effect = write_entry
+    endpoint: str = "/api/v1/datasource/semantic_view/1/compatible"
+    response: Any = client.post(endpoint, json={})
+    assert response.status_code == 200
+    assert response.json["result"]["compatible_metrics"] == ["old_metric"]
+    first_key: str = cache.get.call_args.args[0]
+    cached_response: Any = client.post(endpoint, json={})
+    assert cached_response.status_code == 200
+    assert cached_response.json == response.json
+    assert cache.get.call_args.args[0] == first_key
+    metrics.assert_called_once()
+    dimensions.assert_called_once()
+    cache.set.assert_called_once()
+
+    semantic_view_datasource.changed_on = datetime(2026, 1, 2)
+    metrics.return_value = ["new_metric"]
+    edited_response: Any = client.post(endpoint, json={})
+    assert edited_response.status_code == 200
+    assert edited_response.json["result"]["compatible_metrics"] == ["new_metric"]
+    assert cache.get.call_args.args[0] != first_key
+    assert metrics.call_count == 2
+    assert dimensions.call_count == 2
+    assert cache.set.call_count == 2

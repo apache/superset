@@ -665,6 +665,7 @@ class DatasourceRestApi(BaseSupersetApi):
                 json.dumps(
                     {
                         "uid": datasource.uid,
+                        "changed_on": str(getattr(datasource, "changed_on", "")),
                         "metadata_version": (
                             datasource.metadata_generation
                             if isinstance(datasource, SemanticView)

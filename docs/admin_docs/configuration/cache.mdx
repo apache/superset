@@ -120,10 +120,13 @@ fallback, so setting only that nested default to `-1` does not disable these end
 With caching disabled, each request fetches fresh values or compatibility results from the source.
 
 This bypass does not delete existing entries. Earlier versions could write entries without
-expiry on Redis while the timeout was `-1`; these can become readable again when caching is
-re-enabled. Before re-enabling, use your deployment's cache-management tooling to invalidate
-the affected `col_values:` and `compatible:` entries in the data cache, accounting for your
-configured cache-key prefix.
+expiry on Redis while the timeout was `-1`; column-value entries can become readable again
+when caching is re-enabled unless the datasource has been edited. Compatibility keys include
+the datasource modification time, matching column-value keys. Adding this key component makes
+older compatibility entries unreachable and causes a one-time cache miss for compatibility lists.
+Before re-enabling, invalidate affected `col_values:` entries through your deployment's
+cache-management tooling. Obsolete `compatible:` entries can also be removed to reclaim space.
+Account for your configured cache-key prefix when managing either kind of entry.
 
 Native filter option queries (the dropdown values for native filters) go through this same
 chart-data cache, but their freshness needs often differ from regular chart queries, especially for
