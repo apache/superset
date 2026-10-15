@@ -114,11 +114,18 @@ class CreateSemanticViewCommand(BaseCommand):
         raw_configuration: dict[str, Any] | str = (
             self._properties.get("configuration") or {}
         )
-        configuration: dict[str, Any] = (
-            json.loads(raw_configuration)
-            if isinstance(raw_configuration, str)
-            else raw_configuration
-        )
+        try:
+            configuration: Any = (
+                json.loads(raw_configuration)
+                if isinstance(raw_configuration, str)
+                else raw_configuration
+            )
+        except ValueError:
+            configuration = None
+        if not isinstance(configuration, dict):
+            raise SemanticViewInvalidError(
+                _("The view configuration must be a JSON object.")
+            )
         try:
             view: SemanticViewABC | None = layer.implementation.get_semantic_view(
                 name, configuration

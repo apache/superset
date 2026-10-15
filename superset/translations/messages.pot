@@ -18156,5 +18156,8 @@ msgid ""
 " is unreachable."
 msgstr ""
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "Only the first %s values are listed. Enter a value manually if it is not listed."
 msgstr ""
