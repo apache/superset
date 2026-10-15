@@ -33,6 +33,7 @@ from superset.commands.database.utils import (
     add_perm,
     add_pvm,
     add_vm,
+    encrypted_extra_secrets_reused,
     oauth2_endpoint_rebind_unsafe,
     ping,
 )
@@ -268,3 +269,83 @@ def test_oauth2_endpoint_rebind_unsafe_without_stored_client() -> None:
         "{}",
         _oauth2_submitted({"token_request_uri": "https://other.example.org/token"}),
     )
+
+
+_SECRETS = {"$.oauth2_client_info.secret", "$.embedded_credentials.password"}
+_STORED = json.dumps(
+    {
+        "oauth2_client_info": {"id": "client", "secret": "real-secret"},
+        "embedded_credentials": {"username": "svc", "password": "real-pw"},
+    }
+)
+
+
+@pytest.mark.parametrize(
+    "submitted,expected",
+    [
+        # Left masked: restored verbatim, so reused...
+        (
+            {
+                "oauth2_client_info": {"id": "client", "secret": PASSWORD_MASK},
+                "embedded_credentials": {"username": "svc", "password": "new-pw"},
+            },
+            True,
+        ),
+        # ...even when another field changes in the same save (sc-126869).
+        (
+            {
+                "oauth2_client_info": {
+                    "id": "client",
+                    "secret": "new-secret",
+                    "scope": "session:role:ANALYST",
+                },
+                "embedded_credentials": {"username": "svc", "password": PASSWORD_MASK},
+            },
+            True,
+        ),
+        # Every secret re-entered, even with its stored value: fresh (sc-126870).
+        (
+            {
+                "oauth2_client_info": {"id": "client", "secret": "real-secret"},
+                "embedded_credentials": {"username": "svc", "password": "real-pw"},
+            },
+            False,
+        ),
+        # A dropped path drops the secret rather than carrying it over.
+        ({"oauth2_client_info": {"id": "client"}}, False),
+    ],
+)
+def test_encrypted_extra_secrets_reused_is_judged_per_secret(
+    submitted: dict[str, object], expected: bool
+) -> None:
+    """A stored secret rides along only where the submission leaves it masked."""
+    assert (
+        encrypted_extra_secrets_reused(
+            _SECRETS, _STORED, json.dumps(submitted), submitted=True
+        )
+        is expected
+    )
+
+
+def test_encrypted_extra_secrets_reused_when_the_payload_is_left_out() -> None:
+    """Leaving masked_encrypted_extra out keeps every stored secret attached."""
+    assert encrypted_extra_secrets_reused(_SECRETS, _STORED, None, submitted=False)
+
+
+@pytest.mark.parametrize("stored", [None, "", "{}", "[1]", "not json"])
+def test_encrypted_extra_secrets_reused_with_nothing_stored(stored: str | None) -> None:
+    """Nothing stored means nothing can be carried over."""
+    assert not encrypted_extra_secrets_reused(_SECRETS, stored, None, submitted=False)
+
+
+def test_encrypted_extra_secrets_reused_ignores_a_compact_json_mismatch() -> None:
+    """
+    The stored blob's formatting is irrelevant (sc-126869, first-edit leg).
+
+    The dialog stores compact JSON on create; comparing serialized blobs read a
+    still-masked secret as fresh because the re-serialized form differed.
+    """
+    stored = '{"oauth2_client_info":{"id":"client","secret":"real-secret"}}'
+    submitted = '{"oauth2_client_info": {"id": "client", "secret": "XXXXXXXXXX"}}'
+
+    assert encrypted_extra_secrets_reused(_SECRETS, stored, submitted, submitted=True)
