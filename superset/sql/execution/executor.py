@@ -56,6 +56,7 @@ superset_core.api.models for the public API contract.
 
 from __future__ import annotations
 
+import base64
 import contextlib
 import hashlib
 import logging
@@ -64,6 +65,8 @@ import uuid
 from datetime import datetime
 from typing import Any, cast, NoReturn, TYPE_CHECKING
 
+import pandas as pd
+import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
 
@@ -83,8 +86,6 @@ from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
 
 if TYPE_CHECKING:
-    import pandas as pd
-    import pyarrow as pa
     from superset_core.queries.types import (
         AsyncQueryHandle,
         QueryOptions,
@@ -433,74 +434,39 @@ def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | No
     """
     Convert one stored statement's data into a DataFrame.
 
-    SELECT results are stored as Arrow IPC bytes (MessagePack payloads) or as
-    a list of records (JSON payloads); DML statements store ``None``. A
+    SELECT results are Arrow IPC bytes (MessagePack) or Base64 strings (JSON).
+    Older JSON payloads contain records; DML statements store ``None``. A
     SELECT returning no rows yields an empty DataFrame that keeps its columns,
     matching the synchronous execution path.
 
     :param stmt_data: Statement entry from the stored payload
     :returns: DataFrame of the statement rows, or ``None`` for DML
     """
-    import pyarrow as pa
-
     data = stmt_data.get("data")
     if data is None:
         return None
 
+    if isinstance(data, str):
+        data = base64.b64decode(data)
     if isinstance(data, (bytes, bytearray, memoryview)):
         from superset.result_set import SupersetResultSet
 
         table = pa.ipc.open_stream(pa.BufferReader(data)).read_all()
-        return SupersetResultSet.convert_table_to_df(table)
+        df = SupersetResultSet.convert_table_to_df(table)
+        for name, values in stmt_data.get("nested_columns", {}).items():
+            df[name] = values
+        return df
 
     columns = [
         column.get("column_name", column.get("name", ""))
         for column in stmt_data.get("columns", [])
     ]
-    arrow_types = {}
-    if schema_data := stmt_data.get("arrow_schema") or stmt_data.get("temporal_schema"):
-        import base64
-
-        schema = pa.ipc.read_schema(pa.BufferReader(base64.b64decode(schema_data)))
-        arrow_types = {field.name: field.type for field in schema}
-    return _records_to_dataframe(data, columns, arrow_types)
-
-
-def _json_column_to_series(
-    name: str, values: list[Any], arrow_type: pa.DataType
-) -> pd.Series:
-    """Restore a JSON column using its original Arrow scalar type."""
-    import base64
-    from datetime import time
-
-    import pandas as pd
-    import pyarrow as pa
-
-    from superset.result_set import SupersetResultSet
-
-    if pa.types.is_time(arrow_type):
-        values = [time.fromisoformat(v) if isinstance(v, str) else v for v in values]
-    elif (
-        pa.types.is_binary(arrow_type)
-        or pa.types.is_large_binary(arrow_type)
-        or pa.types.is_fixed_size_binary(arrow_type)
-    ):
-        values = [base64.b64decode(v) if isinstance(v, str) else v for v in values]
-    # Result sets retain nested/JSON values as Python objects even when
-    # their Arrow representation is a string column.
-    if any(isinstance(value, (dict, list)) for value in values):
-        return pd.Series(values, dtype=object)
-    if pa.types.is_duration(arrow_type):
-        array = pa.array(values, type=arrow_type)
-    else:
-        array = pa.array(values).cast(arrow_type)
-    return SupersetResultSet.convert_table_to_df(pa.table({name: array}))[name]
+    return _records_to_dataframe(data, columns)
 
 
 def _records_to_dataframe(
     records: list[Any],
     columns: list[Any],
-    arrow_types: dict[str, pa.DataType] | None = None,
     dtypes: list[str] | None = None,
 ) -> pd.DataFrame:
     """
@@ -512,14 +478,10 @@ def _records_to_dataframe(
     objects. The given columns are kept even when there are no records.
 
     :param records: Rows as dicts keyed by column name
-    :param arrow_types: Original Arrow types for JSON-serialized columns
-    :param dtypes: Original pandas dtypes for cached DataFrames
     :param columns: Column names, in order
+    :param dtypes: Original pandas dtypes for cached DataFrames
     :returns: DataFrame of the records
     """
-    import pandas as pd
-    import pyarrow as pa
-
     if not columns or not all(isinstance(row, dict) for row in records):
         return pd.DataFrame(records, columns=columns or None)
 
@@ -529,9 +491,14 @@ def _records_to_dataframe(
         # DataFrame.to_dict keeps pandas' missing timestamp sentinel on cache hits.
         values = [None if value is pd.NaT else value for value in values]
         if name in column_dtypes:
-            return pd.Series(values, dtype=column_dtypes[name])
-        if arrow_types and name in arrow_types:
-            return _json_column_to_series(name, values, arrow_types[name])
+            try:
+                return pd.Series(values, dtype=column_dtypes[name])
+            except (TypeError, ValueError):
+                # pandas cannot parse some of its own fixed-offset dtype strings.
+                # Without a non-null value, inference cannot retain the timezone.
+                if not any(value is not None for value in values):
+                    raise
+                return pd.Series(values)
 
         try:
             array = pa.array(values)
@@ -1227,34 +1194,38 @@ class SQLExecutor:
         if cache_key is None:
             return None
 
-        if (cached := cache_manager.data_cache.get(cache_key)) is not None:
-            # Reconstruct statement results from cached data
-            statements = [
-                StatementResult(
-                    original_sql=stmt_data["original_sql"],
-                    executed_sql=stmt_data["executed_sql"],
-                    data=(
-                        _records_to_dataframe(
-                            stmt_data["data"],
-                            stmt_data.get("columns", []),
-                            dtypes=stmt_data.get("dtypes"),
-                        )
-                        if isinstance(stmt_data["data"], list)
-                        else stmt_data["data"]
-                    ),
-                    row_count=stmt_data["row_count"],
-                    execution_time_ms=stmt_data["execution_time_ms"],
-                    truncated=stmt_data.get("truncated", False),
+        try:
+            if (cached := cache_manager.data_cache.get(cache_key)) is not None:
+                # Reconstruct statement results from cached data
+                statements = [
+                    StatementResult(
+                        original_sql=stmt_data["original_sql"],
+                        executed_sql=stmt_data["executed_sql"],
+                        data=(
+                            _records_to_dataframe(
+                                stmt_data["data"],
+                                stmt_data.get("columns", []),
+                                dtypes=stmt_data.get("dtypes"),
+                            )
+                            if isinstance(stmt_data["data"], list)
+                            else stmt_data["data"]
+                        ),
+                        row_count=stmt_data["row_count"],
+                        execution_time_ms=stmt_data["execution_time_ms"],
+                        truncated=stmt_data.get("truncated", False),
+                    )
+                    for stmt_data in cached.get("statements", [])
+                ]
+                return QueryResultType(
+                    status=QueryStatus.SUCCESS,
+                    statements=statements,
+                    query_id=None,
+                    is_cached=True,
+                    total_execution_time_ms=cached.get("total_execution_time_ms", 0),
                 )
-                for stmt_data in cached.get("statements", [])
-            ]
-            return QueryResultType(
-                status=QueryStatus.SUCCESS,
-                statements=statements,
-                query_id=None,
-                is_cached=True,
-                total_execution_time_ms=cached.get("total_execution_time_ms", 0),
-            )
+        except Exception:  # pylint: disable=broad-except
+            # A stale or unreadable cache entry must not prevent query execution.
+            logger.warning("Unable to decode cached SQL result; treating as a miss")
 
         return None
 
@@ -1287,8 +1258,6 @@ class SQLExecutor:
         # Convert DataFrames to list-of-dicts so the cache backend
         # does not need to pickle pandas objects (which can fail to
         # deserialize correctly with some backends or pandas versions).
-        import pandas as pd
-
         cached_data = {
             "statements": [
                 {

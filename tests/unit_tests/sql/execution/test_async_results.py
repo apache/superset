@@ -25,10 +25,11 @@ the results backend contract are exercised together without mocking the
 compression or serialization layers.
 """
 
-from datetime import time, timedelta
+from datetime import datetime, time, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 import pytest
@@ -83,7 +84,7 @@ def _store_and_read(
     *,
     write_msgpack: bool,
     read_msgpack: bool | None = None,
-    schema_key: str | None = "arrow_schema",
+    legacy_records: bool = False,
 ) -> Any:
     """Store results with the Celery task writer, read them with the handle."""
     backend = DictResultsBackend()
@@ -106,13 +107,18 @@ def _store_and_read(
     _finalize_successful_query(
         query, SQLScript(sql, engine="sqlite"), execution_results, payload, 10.0
     )
-    if schema_key != "arrow_schema":
-        for statement in payload["statements"]:
-            schema = statement.pop("arrow_schema", None)
-            if schema_key is None:
-                statement.pop("temporal_schema", None)
-            if schema_key is not None and schema is not None:
-                statement[schema_key] = schema
+    if legacy_records and not write_msgpack:
+        from superset.dataframe import df_to_records
+
+        for statement, (_, result_set, _, _) in zip(
+            payload["statements"], execution_results, strict=True
+        ):
+            if result_set is not None:
+                statement.pop("arrow_schema", None)
+                statement["data"] = (
+                    df_to_records(result_set.to_pandas_df(), convert_decimals=True)
+                    or []
+                )
     _store_results_in_backend(query, payload, database)
     assert query.results_key in backend.store
 
@@ -594,24 +600,35 @@ def test_async_scalar_types_match_sync(
     pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
 
 
+@pytest.mark.parametrize(
+    "tz", [ZoneInfo("America/New_York"), timezone(timedelta(hours=-4))]
+)
+@pytest.mark.parametrize("data_kind", ["populated", "empty", "nulls"])
 def test_timezone_cache_hit_dtype_matches_sync(
-    mocker: MockerFixture, app_context: None, database: Database
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    tz: Any,
+    data_kind: str,
 ) -> None:
     """Sync and async cache hits keep the original timezone and timestamp unit."""
-    from datetime import datetime
-    from zoneinfo import ZoneInfo
-
     from superset_core.queries.types import QueryOptions
 
     from superset.extensions import cache_manager
 
     sql = "SELECT value FROM t"
     rows = [
-        (datetime(2026, 1, 2, 3, tzinfo=ZoneInfo("America/New_York")),),
-        (pd.Timestamp("2026-01-02 03:04:05.123456789", tz="America/New_York"),),
+        (datetime(2026, 1, 2, 3, tzinfo=tz),),
+        (pd.Timestamp("2026-01-02 03:04:05.123456789", tz=tz),),
         (None,),
     ]
     sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    if data_kind == "empty":
+        sync.statements[0].data = sync.statements[0].data.iloc[:0]
+    elif data_kind == "nulls":
+        sync.statements[0].data = sync.statements[0].data.iloc[-1:]
+    # Cache records carry no DataFrame index.
+    sync.statements[0].data = sync.statements[0].data.reset_index(drop=True)
     cache = DictCache()
     mocker.patch.object(cache_manager.data_cache, "get", side_effect=cache.get)
     mocker.patch.object(cache_manager.data_cache, "set", side_effect=cache.set)
@@ -619,6 +636,10 @@ def test_timezone_cache_hit_dtype_matches_sync(
     mocker.patch.object(executor, "_generate_cache_key", return_value="tz-key")
     executor._store_in_cache(sync, sql, QueryOptions())
     cached = executor._get_from_cache(sql, QueryOptions())
+    if data_kind != "populated" and not isinstance(tz, ZoneInfo):
+        # Unparseable timezone metadata cannot be inferred without any values.
+        assert cached is None
+        return
     assert cached is not None
     for result in (
         cached,
@@ -651,7 +672,7 @@ def test_async_legacy_payload_without_schema(
         ],
         write_msgpack=use_msgpack,
         read_msgpack=not use_msgpack,
-        schema_key=None,
+        legacy_records=True,
     )
     assert result.status == QueryStatus.SUCCESS, result.error_message
     pd.testing.assert_frame_equal(
@@ -663,27 +684,6 @@ def test_async_legacy_payload_without_schema(
             }
         ),
     )
-
-
-def test_async_legacy_temporal_schema(
-    mocker: MockerFixture, app_context: None, database: Database
-) -> None:
-    """The date/timestamp-only schema from older workers remains supported."""
-    from datetime import date, datetime
-
-    sql = "SELECT date_value, timestamp_value FROM t"
-    columns = ["date_value", "timestamp_value"]
-    rows = [(date(2026, 1, 2), datetime(2026, 1, 2, 3, 4, 5)), (None, None)]
-    sync = _execute_sync(mocker, database, sql, columns, rows)
-    result = _store_and_read(
-        mocker,
-        sql,
-        [_select(sql, columns, rows)],
-        write_msgpack=False,
-        schema_key="temporal_schema",
-    )
-    assert result.status == QueryStatus.SUCCESS, result.error_message
-    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
 
 
 def test_legacy_cache_without_dtypes(mocker: MockerFixture, app_context: None) -> None:
@@ -718,15 +718,167 @@ def test_legacy_cache_without_dtypes(mocker: MockerFixture, app_context: None) -
     )
 
 
+@pytest.mark.parametrize(
+    "write_msgpack,read_msgpack",
+    [(False, False), (False, True), (True, True), (True, False)],
+)
+@pytest.mark.parametrize("value", [{"key": [1, 2]}, [1, {"key": 2}]])
 def test_async_json_nested_values_match_sync(
-    mocker: MockerFixture, app_context: None, database: Database
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    write_msgpack: bool,
+    read_msgpack: bool,
+    value: Any,
 ) -> None:
     """Schema-based restoration does not stringify original nested JSON values."""
     sql = "SELECT value FROM t"
-    rows = [({"key": [1, 2]},), (None,)]
+    rows = [(value,), ('{"looks": "json"}',), (None,)]
     sync = _execute_sync(mocker, database, sql, ["value"], rows)
     result = _store_and_read(
-        mocker, sql, [_select(sql, ["value"], rows)], write_msgpack=False
+        mocker,
+        sql,
+        [_select(sql, ["value"], rows)],
+        write_msgpack=write_msgpack,
+        read_msgpack=read_msgpack,
     )
     assert result.status == QueryStatus.SUCCESS, result.error_message
     pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+
+
+@pytest.mark.parametrize(
+    "write_msgpack,read_msgpack",
+    [(False, False), (False, True), (True, True), (True, False)],
+)
+@pytest.mark.parametrize("values", [[1, 2**60], [0, -1, 2**60, None]])
+def test_async_mixed_large_integers_match_sync(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    write_msgpack: bool,
+    read_msgpack: bool,
+    values: list[Any],
+) -> None:
+    """Large IDs mixed with small sentinels never pass through JSON coercion."""
+    sql = "SELECT value FROM t"
+    rows = [(value,) for value in values]
+    sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    result = _store_and_read(
+        mocker,
+        sql,
+        [_select(sql, ["value"], rows)],
+        write_msgpack=write_msgpack,
+        read_msgpack=read_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+
+
+@pytest.mark.parametrize(
+    "write_msgpack,read_msgpack",
+    [(False, False), (False, True), (True, True), (True, False)],
+)
+def test_async_month_day_nano_interval_matches_sync(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    write_msgpack: bool,
+    read_msgpack: bool,
+) -> None:
+    """Intervals unsupported by JSON inference use the same Arrow path as sync."""
+    import pyarrow as pa
+
+    sql = "SELECT value FROM t"
+    rows = [(pa.MonthDayNano([2, 3, 4]),), (None,)]
+    sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    result = _store_and_read(
+        mocker,
+        sql,
+        [_select(sql, ["value"], rows)],
+        write_msgpack=write_msgpack,
+        read_msgpack=read_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+
+
+@pytest.mark.parametrize("async_execution", [False, True])
+@pytest.mark.parametrize(
+    "cached",
+    [
+        {"statements": [{"data": []}]},
+        {
+            "statements": [
+                {
+                    "original_sql": "SELECT 1",
+                    "executed_sql": "SELECT 1",
+                    "data": [{"value": 1}],
+                    "columns": ["value"],
+                    "dtypes": ["int64", "object"],
+                    "row_count": 1,
+                    "execution_time_ms": 1,
+                }
+            ]
+        },
+    ],
+)
+def test_corrupt_cache_is_a_miss(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    async_execution: bool,
+    cached: dict[str, Any],
+) -> None:
+    """Both entry points execute again rather than fail on unreadable cache data."""
+    from superset.extensions import cache_manager
+
+    sql = "SELECT 1 AS value"
+    _execute_sync(mocker, database, sql, ["value"], [(1,)])
+    executor = SQLExecutor(database)
+    mocker.patch.object(executor, "_generate_cache_key", return_value="corrupt")
+    mocker.patch.object(cache_manager.data_cache, "get", return_value=cached)
+    if async_execution:
+        submit = mocker.patch(
+            "superset.sql.execution.celery_task.execute_sql_task.delay"
+        )
+        query = mocker.patch.object(executor, "_create_query_record").return_value
+        query.id = 42
+        handle = executor.execute_async(sql)
+        assert handle.query_id == 42
+        submit.assert_called_once()
+    else:
+        result = executor.execute(sql)
+        assert result.status == QueryStatus.SUCCESS, result.error_message
+        assert not result.is_cached
+        assert result.statements[0].data["value"].tolist() == [1]
+
+
+@pytest.mark.parametrize("use_msgpack", [False, True])
+def test_async_payload_uses_one_arrow_format(
+    mocker: MockerFixture,
+    app_context: None,
+    use_msgpack: bool,
+) -> None:
+    """SELECT data carries its schema once, with Base64 only for JSON transport."""
+    import base64
+
+    import pyarrow as pa
+
+    mocker.patch("superset.results_backend_use_msgpack", use_msgpack)
+    payload: dict[str, Any] = {}
+    _finalize_successful_query(
+        MagicMock(),
+        SQLScript("SELECT 1", engine="sqlite"),
+        [_select("SELECT 1", ["value"], [(1,)])],
+        payload,
+        1.0,
+    )
+    statement = payload["statements"][0]
+    assert "arrow_schema" not in statement
+    assert "temporal_schema" not in statement
+    data = statement["data"]
+    if not use_msgpack:
+        assert isinstance(data, str)
+        data = base64.b64decode(data)
+    assert isinstance(data, bytes)
+    assert pa.ipc.open_stream(data).read_all().to_pydict() == {"value": [1]}

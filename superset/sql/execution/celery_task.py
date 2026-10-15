@@ -186,34 +186,10 @@ def _finalize_successful_query(
                     "execution_time_ms": exec_time,
                 }
             )
-            # JSON records lose scalar types. Retain the complete Arrow schema
-            # and encode binary columns losslessly instead of decoding as text.
-            statements_data[-1]["arrow_schema"] = base64.b64encode(
-                result_set.pa_table.schema.serialize().to_pybytes()
-            ).decode("ascii")
-            if isinstance(data, list):
-                import pyarrow as pa
-
-                for field in result_set.pa_table.schema:
-                    column = result_set.pa_table.column(field.name)
-                    if pa.types.is_duration(field.type):
-                        # Integer ticks retain negative and sub-microsecond intervals.
-                        values = column.cast(pa.int64()).to_pylist()
-                    elif (
-                        pa.types.is_binary(field.type)
-                        or pa.types.is_large_binary(field.type)
-                        or pa.types.is_fixed_size_binary(field.type)
-                    ):
-                        values = [
-                            base64.b64encode(value).decode("ascii")
-                            if value is not None
-                            else None
-                            for value in column.to_pylist()
-                        ]
-                    else:
-                        continue
-                    for row, value in zip(data, values, strict=True):
-                        row[field.name] = value
+            if result_set.nested_columns:
+                # Arrow stores nested values as strings; keep the original objects
+                # that the synchronous to_pandas_df() path restores.
+                statements_data[-1]["nested_columns"] = result_set.nested_columns
 
         else:
             # DML statement - no data, just row count
@@ -328,33 +304,31 @@ def _store_results_in_backend(
 
 def _serialize_result_set(
     result_set: SupersetResultSet,
-) -> tuple[bytes | list[Any], list[Any]]:
+) -> tuple[bytes | str, list[Any]]:
     """
     Serialize result set based on RESULTS_BACKEND_USE_MSGPACK config.
 
-    When msgpack is enabled, uses Apache Arrow IPC format for efficiency.
-    Otherwise, falls back to JSON-serializable records.
+    Both transports use Apache Arrow IPC to retain the result types. JSON
+    wraps the IPC bytes in Base64; MessagePack carries them directly.
 
     :param result_set: Query result set to serialize
     :returns: Tuple of (serialized_data, columns)
     """
     from superset import results_backend_use_msgpack
-    from superset.dataframe import df_to_records
 
-    if results_backend_use_msgpack:
-        if has_app_context():
-            stats_logger = app.config["STATS_LOGGER"]
-            with stats_timing(
-                "sqllab.query.results_backend_pa_serialization", stats_logger
-            ):
-                data: bytes | list[Any] = write_ipc_buffer(
-                    result_set.pa_table
-                ).to_pybytes()
-        else:
-            data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+    if has_app_context():
+        stats_logger = app.config["STATS_LOGGER"]
+        with stats_timing(
+            "sqllab.query.results_backend_pa_serialization", stats_logger
+        ):
+            arrow_data = write_ipc_buffer(result_set.pa_table).to_pybytes()
     else:
-        df = result_set.to_pandas_df()
-        data = df_to_records(df, convert_decimals=True) or []
+        arrow_data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+    data = (
+        arrow_data
+        if results_backend_use_msgpack
+        else base64.b64encode(arrow_data).decode("ascii")
+    )
 
     return (data, result_set.columns)
 

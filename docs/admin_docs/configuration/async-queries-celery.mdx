@@ -76,14 +76,6 @@ For performance gains, [MessagePack](https://github.com/msgpack/msgpack-python) 
 disabled by setting `RESULTS_BACKEND_USE_MSGPACK = False` in your `superset_config.py`, should any
 issues arise. Please clear your existing results cache store when upgrading an existing environment.
 
-The Python `Database.execute_async()` result handle preserves date, time, timestamp, interval,
-large integer, decimal, and binary column types with either serialization format. JSON
-results include Arrow schema metadata; binary columns use Base64 encoding in storage.
-Older JSON results without schema metadata still load but retain their serialized strings;
-rerun those queries to obtain typed columns. Data cache hits also retain timestamp units
-and timezones.
-This does not change the JSON representation returned by the SQL Lab results API.
-
 **Important Notes**
 
 - It is important that all the worker nodes and web servers in the Superset cluster _share a common

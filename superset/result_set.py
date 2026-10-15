@@ -377,6 +377,11 @@ class SupersetResultSet:
         return df
 
     @property
+    def nested_columns(self) -> dict[str, list[Any]]:
+        """Original nested values restored by the synchronous DataFrame path."""
+        return self._nested_columns
+
+    @property
     def pa_table(self) -> pa.Table:
         return self.table
 

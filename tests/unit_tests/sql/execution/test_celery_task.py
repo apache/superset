@@ -17,12 +17,13 @@
 
 """Tests for celery_task.py - async SQL execution via Celery."""
 
+import base64
 from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock
 
 import msgpack
-import pandas as pd
+import pyarrow as pa
 import pytest
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app
@@ -859,14 +860,11 @@ def test_serialize_result_set_json(
     from superset.sql.execution.celery_task import _serialize_result_set
 
     mocker.patch("superset.results_backend_use_msgpack", False)
-    mocker.patch(
-        "superset.dataframe.df_to_records",
-        return_value=[{"id": 1, "name": "Alice"}],
-    )
-
     data, columns = _serialize_result_set(mock_result_set)
 
-    assert data == [{"id": 1, "name": "Alice"}]
+    assert isinstance(data, str)
+    table = pa.ipc.open_stream(base64.b64decode(data)).read_all()
+    assert table.equals(mock_result_set.pa_table)
     assert columns == mock_result_set.columns
 
 
@@ -881,30 +879,19 @@ def test_serialize_result_set_json_normalizes_decimal_nonfinite(
 
     finite = Decimal("0.10000000000000000001")
     mocker.patch("superset.results_backend_use_msgpack", False)
-    mock_result_set.to_pandas_df.return_value = pd.DataFrame(
-        {
-            "value": pd.Series(
-                [
-                    Decimal("NaN"),
-                    Decimal("sNaN"),
-                    Decimal("Infinity"),
-                    Decimal("-Infinity"),
-                    finite,
-                ],
-                dtype=object,
-            )
-        }
+    # SupersetResultSet normalizes non-finite decimals before exposing its table.
+    mock_result_set.pa_table = pa.table(
+        {"value": [None, None, None, None, str(finite)]}
     )
-
     data, _ = _serialize_result_set(mock_result_set)
-    assert isinstance(data, list)
-    assert [row["value"] for row in data] == [None, None, None, None, str(finite)]
+    assert isinstance(data, str)
+    table = pa.ipc.open_stream(base64.b64decode(data)).read_all()
+    assert table.to_pydict()["value"] == [None, None, None, None, str(finite)]
 
-    payload = _serialize_payload({"data": data})
-    payload_text = payload.decode() if isinstance(payload, bytes) else payload
+    payload_text = _serialize_payload({"data": data}).decode()
     assert "NaN" not in payload_text
     assert "Infinity" not in payload_text
-    assert superset_json.loads(payload_text)["data"][:4] == [{"value": None}] * 4
+    assert superset_json.loads(payload_text)["data"] == data
 
 
 # =============================================================================

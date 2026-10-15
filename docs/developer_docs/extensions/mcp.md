@@ -28,6 +28,20 @@ under the License.
 
 Model Context Protocol (MCP) integration allows extensions to register custom AI agent capabilities that integrate seamlessly with Superset's MCP service. Extensions can provide both **tools** (executable functions) and **prompts** (interactive guidance) that AI agents can discover and use.
 
+## Python SQL query results
+
+Extensions using `Database.execute_async()` receive SELECT results as pandas
+DataFrames from `handle.get_result()`, including empty results with column names.
+DML statements have `data=None`. Both `RESULTS_BACKEND_USE_MSGPACK` settings use
+Arrow IPC for statement data (Base64-encoded inside the JSON transport), so scalar
+columns follow the synchronous Arrow conversion. Nested JSON values are restored
+as Python objects rather than Arrow's string representation.
+
+Legacy JSON-record results remain readable, but types already converted to strings
+cannot be recovered; rerun those queries for typed results. Cached SQL results are
+rebuilt as DataFrames; an unreadable cache entry is treated as a cache miss. These
+Python result handles are separate from the SQL Lab results API's JSON format.
+
 ## Chart dataset changes
 
 The built-in `update_chart` tool requires a complete `config` when rebinding
