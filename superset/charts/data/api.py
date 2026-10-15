@@ -486,6 +486,25 @@ class ChartDataRestApi(ChartRestApi):
                 datasource,
             )
 
+        if result_format == ChartDataResultFormat.ARROW:
+            # Arrow is a live wire format, not a downloadable export, so it's
+            # handled as its own branch rather than folded into table_like()
+            # (which gates the CSV/XLSX export permission check below). This
+            # mirrors the datasource query endpoint's Arrow branch
+            # (``superset/datasource/api.py::DatasourceRestApi._run``). Only a
+            # viz plugin that opts in via ``ChartMetadata.supportsArrowFormat``
+            # ever requests this format, so third-party plugins that never set
+            # the flag are unaffected.
+            queries = materialized_result["queries"]
+            if len(queries) != 1:
+                return self.response_400(
+                    message="Arrow result format supports exactly one query."
+                )
+            return Response(
+                queries[0]["data"],
+                mimetype="application/vnd.apache.arrow.stream",
+            )
+
         if result_format in ChartDataResultFormat.table_like():
             # Verify user has permission to export file
             if not self._has_export_permission():

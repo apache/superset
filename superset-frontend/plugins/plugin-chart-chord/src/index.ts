@@ -26,6 +26,7 @@ import thumbnailDark from './images/thumbnail-dark.png';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Flow'),
   credits: ['https://github.com/d3/d3-chord'],
   description: t(

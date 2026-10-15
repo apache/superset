@@ -27,6 +27,7 @@ import buildQuery from './buildQuery';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   category: t('Map'),
   credits: ['https://uber.github.io/deck.gl'],
   behaviors: [
