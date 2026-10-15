@@ -2565,6 +2565,7 @@ def test_cancel_query_early_cancel_flag(
     from superset.constants import QUERY_EARLY_CANCEL_KEY
     from superset.sql.execution.executor import SQLExecutor
 
+    session = mocker.patch("superset.sql.execution.executor.db.session")
     mock_query = MagicMock()
     mock_query.extra = {QUERY_EARLY_CANCEL_KEY: True}
 
@@ -2579,6 +2580,7 @@ def test_cancel_query_early_cancel_flag(
 
     assert result is True
     prepare_cancel_mock.assert_called_with(mock_query)
+    session.commit.assert_not_called()
 
 
 @pytest.mark.parametrize("finished_status", ["success", "failed", "timed_out"])
