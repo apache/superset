@@ -258,6 +258,53 @@ def test_semantic_layer_implementation_not_implemented(mocker: MockerFixture) ->
         _ = layer.implementation
 
 
+def test_semantic_layer_implementation_is_scoped_to_owning_session(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """The same identity reuses bindings within, but never across, ORM sessions."""
+    from flask import current_app
+    from flask_appbuilder.security.sqla.models import User
+
+    from superset.utils.core import override_user
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
+
+    engine: Engine = cast(Engine, session.get_bind())
+    SemanticLayer.metadata.create_all(engine)
+    layer_id: uuid.UUID = uuid.uuid4()
+    session.add(
+        SemanticLayer(
+            uuid=layer_id, name="Session scoped", type="test", configuration="{}"
+        )
+    )
+    session.commit()
+    mocker.patch.dict(
+        current_app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "session-test"}
+    )
+    mocker.patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer})
+    factory: MagicMock = mocker.spy(LegacyLayer, "from_configuration")
+    first_session: Session
+    second_session: Session
+    with (
+        override_user(User(id=7)),
+        Session(engine) as first_session,
+        Session(engine) as second_session,
+    ):
+        first_layer: SemanticLayer | None = first_session.get(SemanticLayer, layer_id)
+        second_layer: SemanticLayer | None = second_session.get(SemanticLayer, layer_id)
+        assert first_layer is not None
+        assert second_layer is not None
+        assert first_layer is not second_layer
+        first: LegacyLayer = cast(LegacyLayer, first_layer.implementation)
+        assert first_layer.implementation is first
+        second: LegacyLayer = cast(LegacyLayer, second_layer.implementation)
+        assert second_layer.implementation is second
+        assert first_layer.implementation is first
+        assert first.context == second.context
+        assert first.context.principal_id == "7"
+        assert first is not second
+        assert factory.call_count == 2
+
+
 def test_semantic_layer_implementation(mocker: MockerFixture) -> None:
     """Test that implementation returns a configured semantic layer."""
     from superset.semantic_layers.execution import current_host_execution_context
