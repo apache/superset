@@ -24,7 +24,7 @@ assists people when migrating to a new version.
 
 ## Next
 
-- [45087](https://github.com/apache/superset/pull/45186): Adds `msgpack>=1.2.3, <1.3`
+- [45186](https://github.com/apache/superset/pull/45186): Adds `msgpack>=1.2.3, <1.3`
   to `requirements/base.in`, bumps `pyarrow` constraint floor in
   `superset-core/pyproject.toml` to `>=25.0.1, <26`, and documents advisory-specific
   container remediation guidance in
