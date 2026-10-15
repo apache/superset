@@ -25,6 +25,8 @@ the results backend contract are exercised together without mocking the
 compression or serialization layers.
 """
 
+from datetime import time, timedelta
+from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -81,6 +83,7 @@ def _store_and_read(
     *,
     write_msgpack: bool,
     read_msgpack: bool | None = None,
+    schema_key: str | None = "arrow_schema",
 ) -> Any:
     """Store results with the Celery task writer, read them with the handle."""
     backend = DictResultsBackend()
@@ -103,6 +106,13 @@ def _store_and_read(
     _finalize_successful_query(
         query, SQLScript(sql, engine="sqlite"), execution_results, payload, 10.0
     )
+    if schema_key != "arrow_schema":
+        for statement in payload["statements"]:
+            schema = statement.pop("arrow_schema", None)
+            if schema_key is None:
+                statement.pop("temporal_schema", None)
+            if schema_key is not None and schema is not None:
+                statement[schema_key] = schema
     _store_results_in_backend(query, payload, database)
     assert query.results_key in backend.store
 
@@ -505,3 +515,218 @@ def test_temporal_cache_hit_matches_sync(
     pd.testing.assert_frame_equal(cached.statements[0].data, expected)
     handle = executor._create_cached_handle(cached)
     pd.testing.assert_frame_equal(handle.get_result().statements[0].data, expected)
+
+
+def _execute_sync(
+    mocker: MockerFixture,
+    database: Database,
+    sql: str,
+    columns: list[str],
+    rows: list[tuple[Any, ...]],
+) -> Any:
+    """Execute with a real executor and a cursor returning the given values."""
+    from flask import current_app
+
+    from .conftest import create_mock_connection, create_mock_cursor
+
+    cursor = create_mock_cursor(columns, rows)
+    mocker.patch.object(
+        database, "get_raw_connection", return_value=create_mock_connection(cursor)
+    )
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kw: sql
+    )
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=rows)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+    result = database.execute(sql)
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    return result
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        pytest.param(time(3, 4, 5), id="time"),
+        pytest.param(timedelta(hours=1), id="interval"),
+        pytest.param(timedelta(minutes=-15), id="negative_interval"),
+        pytest.param(pd.Timedelta(1, unit="ns"), id="nanosecond_interval"),
+        pytest.param(2**60, id="int64"),
+        pytest.param(Decimal("1.10"), id="decimal"),
+        pytest.param(b"binary", id="bytes"),
+        pytest.param(b"\xff\x00\x80", id="non_utf8_bytes"),
+    ],
+)
+@pytest.mark.parametrize(
+    "write_msgpack,read_msgpack",
+    [(False, False), (False, True), (True, True), (True, False)],
+)
+@pytest.mark.parametrize("include_null", [False, True])
+def test_async_scalar_types_match_sync(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    value: Any,
+    write_msgpack: bool,
+    read_msgpack: bool,
+    include_null: bool,
+) -> None:
+    """Both backend codecs retain scalar values and dtypes, including binary."""
+    sql = "SELECT value FROM t"
+    rows = [(value,), (None,)] if include_null else [(value,)]
+    sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    result = _store_and_read(
+        mocker,
+        sql,
+        [_select(sql, ["value"], rows)],
+        write_msgpack=write_msgpack,
+        read_msgpack=read_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+
+
+def test_timezone_cache_hit_dtype_matches_sync(
+    mocker: MockerFixture, app_context: None, database: Database
+) -> None:
+    """Sync and async cache hits keep the original timezone and timestamp unit."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    from superset_core.queries.types import QueryOptions
+
+    from superset.extensions import cache_manager
+
+    sql = "SELECT value FROM t"
+    rows = [
+        (datetime(2026, 1, 2, 3, tzinfo=ZoneInfo("America/New_York")),),
+        (pd.Timestamp("2026-01-02 03:04:05.123456789", tz="America/New_York"),),
+        (None,),
+    ]
+    sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    cache = DictCache()
+    mocker.patch.object(cache_manager.data_cache, "get", side_effect=cache.get)
+    mocker.patch.object(cache_manager.data_cache, "set", side_effect=cache.set)
+    executor = SQLExecutor(database)
+    mocker.patch.object(executor, "_generate_cache_key", return_value="tz-key")
+    executor._store_in_cache(sync, sql, QueryOptions())
+    cached = executor._get_from_cache(sql, QueryOptions())
+    assert cached is not None
+    for result in (
+        cached,
+        executor.execute(sql),
+        executor.execute_async(sql).get_result(),
+    ):
+        assert result.is_cached
+        pd.testing.assert_frame_equal(
+            result.statements[0].data, sync.statements[0].data
+        )
+
+
+@pytest.mark.parametrize("use_msgpack", [False, True])
+def test_async_legacy_payload_without_schema(
+    mocker: MockerFixture, app_context: None, use_msgpack: bool
+) -> None:
+    """Pre-schema payloads remain readable without guessing types from strings."""
+    from datetime import date
+
+    columns = ["value", "date_value"]
+    result = _store_and_read(
+        mocker,
+        "SELECT value, date_value FROM t",
+        [
+            _select(
+                "SELECT value, date_value FROM t",
+                columns,
+                [("2026-01-02", date(2026, 1, 2)), (None, None)],
+            )
+        ],
+        write_msgpack=use_msgpack,
+        read_msgpack=not use_msgpack,
+        schema_key=None,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(
+        result.statements[0].data,
+        pd.DataFrame(
+            {
+                "value": ["2026-01-02", None],
+                "date_value": [date(2026, 1, 2) if use_msgpack else "2026-01-02", None],
+            }
+        ),
+    )
+
+
+def test_async_legacy_temporal_schema(
+    mocker: MockerFixture, app_context: None, database: Database
+) -> None:
+    """The date/timestamp-only schema from older workers remains supported."""
+    from datetime import date, datetime
+
+    sql = "SELECT date_value, timestamp_value FROM t"
+    columns = ["date_value", "timestamp_value"]
+    rows = [(date(2026, 1, 2), datetime(2026, 1, 2, 3, 4, 5)), (None, None)]
+    sync = _execute_sync(mocker, database, sql, columns, rows)
+    result = _store_and_read(
+        mocker,
+        sql,
+        [_select(sql, columns, rows)],
+        write_msgpack=False,
+        schema_key="temporal_schema",
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+
+
+def test_legacy_cache_without_dtypes(mocker: MockerFixture, app_context: None) -> None:
+    """Record caches written before dtype metadata still load."""
+    from superset_core.queries.types import QueryOptions
+
+    from superset.extensions import cache_manager
+
+    mocker.patch.object(
+        cache_manager.data_cache,
+        "get",
+        return_value={
+            "statements": [
+                {
+                    "original_sql": "SELECT value FROM t",
+                    "executed_sql": "SELECT value FROM t",
+                    "data": [{"value": 1}, {"value": None}],
+                    "columns": ["value"],
+                    "row_count": 2,
+                    "execution_time_ms": 1.0,
+                }
+            ]
+        },
+    )
+    executor = SQLExecutor(MagicMock())
+    mocker.patch.object(executor, "_generate_cache_key", return_value="legacy")
+    result = executor._get_from_cache("SELECT value FROM t", QueryOptions())
+    assert result is not None
+    pd.testing.assert_frame_equal(
+        result.statements[0].data,
+        pd.DataFrame({"value": pd.Series([1, None], dtype=object)}),
+    )
+
+
+def test_async_json_nested_values_match_sync(
+    mocker: MockerFixture, app_context: None, database: Database
+) -> None:
+    """Schema-based restoration does not stringify original nested JSON values."""
+    sql = "SELECT value FROM t"
+    rows = [({"key": [1, 2]},), (None,)]
+    sync = _execute_sync(mocker, database, sql, ["value"], rows)
+    result = _store_and_read(
+        mocker, sql, [_select(sql, ["value"], rows)], write_msgpack=False
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)

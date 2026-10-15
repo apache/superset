@@ -457,19 +457,51 @@ def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | No
         column.get("column_name", column.get("name", ""))
         for column in stmt_data.get("columns", [])
     ]
-    temporal_types = {}
-    if schema_data := stmt_data.get("temporal_schema"):
+    arrow_types = {}
+    if schema_data := stmt_data.get("arrow_schema") or stmt_data.get("temporal_schema"):
         import base64
 
         schema = pa.ipc.read_schema(pa.BufferReader(base64.b64decode(schema_data)))
-        temporal_types = {field.name: field.type for field in schema}
-    return _records_to_dataframe(data, columns, temporal_types)
+        arrow_types = {field.name: field.type for field in schema}
+    return _records_to_dataframe(data, columns, arrow_types)
+
+
+def _json_column_to_series(
+    name: str, values: list[Any], arrow_type: pa.DataType
+) -> pd.Series:
+    """Restore a JSON column using its original Arrow scalar type."""
+    import base64
+    from datetime import time
+
+    import pandas as pd
+    import pyarrow as pa
+
+    from superset.result_set import SupersetResultSet
+
+    if pa.types.is_time(arrow_type):
+        values = [time.fromisoformat(v) if isinstance(v, str) else v for v in values]
+    elif (
+        pa.types.is_binary(arrow_type)
+        or pa.types.is_large_binary(arrow_type)
+        or pa.types.is_fixed_size_binary(arrow_type)
+    ):
+        values = [base64.b64decode(v) if isinstance(v, str) else v for v in values]
+    # Result sets retain nested/JSON values as Python objects even when
+    # their Arrow representation is a string column.
+    if any(isinstance(value, (dict, list)) for value in values):
+        return pd.Series(values, dtype=object)
+    if pa.types.is_duration(arrow_type):
+        array = pa.array(values, type=arrow_type)
+    else:
+        array = pa.array(values).cast(arrow_type)
+    return SupersetResultSet.convert_table_to_df(pa.table({name: array}))[name]
 
 
 def _records_to_dataframe(
     records: list[Any],
     columns: list[Any],
-    temporal_types: dict[str, pa.DataType] | None = None,
+    arrow_types: dict[str, pa.DataType] | None = None,
+    dtypes: list[str] | None = None,
 ) -> pd.DataFrame:
     """
     Build a DataFrame from JSON-style records.
@@ -480,7 +512,8 @@ def _records_to_dataframe(
     objects. The given columns are kept even when there are no records.
 
     :param records: Rows as dicts keyed by column name
-    :param temporal_types: Arrow types for temporal columns serialized as ISO strings
+    :param arrow_types: Original Arrow types for JSON-serialized columns
+    :param dtypes: Original pandas dtypes for cached DataFrames
     :param columns: Column names, in order
     :returns: DataFrame of the records
     """
@@ -490,14 +523,16 @@ def _records_to_dataframe(
     if not columns or not all(isinstance(row, dict) for row in records):
         return pd.DataFrame(records, columns=columns or None)
 
+    column_dtypes = dict(zip(columns, dtypes, strict=True)) if dtypes else {}
+
     def to_series(name: str, values: list[Any]) -> pd.Series:
         # DataFrame.to_dict keeps pandas' missing timestamp sentinel on cache hits.
         values = [None if value is pd.NaT else value for value in values]
-        if temporal_types and name in temporal_types:
-            from superset.result_set import SupersetResultSet
+        if name in column_dtypes:
+            return pd.Series(values, dtype=column_dtypes[name])
+        if arrow_types and name in arrow_types:
+            return _json_column_to_series(name, values, arrow_types[name])
 
-            array = pa.array(values).cast(temporal_types[name])
-            return SupersetResultSet.convert_table_to_df(pa.table({name: array}))[name]
         try:
             array = pa.array(values)
         except (pa.ArrowInvalid, pa.ArrowTypeError):
@@ -1200,7 +1235,9 @@ class SQLExecutor:
                     executed_sql=stmt_data["executed_sql"],
                     data=(
                         _records_to_dataframe(
-                            stmt_data["data"], stmt_data.get("columns", [])
+                            stmt_data["data"],
+                            stmt_data.get("columns", []),
+                            dtypes=stmt_data.get("dtypes"),
                         )
                         if isinstance(stmt_data["data"], list)
                         else stmt_data["data"]
@@ -1264,6 +1301,11 @@ class SQLExecutor:
                     ),
                     "columns": (
                         list(stmt.data.columns)
+                        if isinstance(stmt.data, pd.DataFrame)
+                        else []
+                    ),
+                    "dtypes": (
+                        [str(dtype) for dtype in stmt.data.dtypes]
                         if isinstance(stmt.data, pd.DataFrame)
                         else []
                     ),

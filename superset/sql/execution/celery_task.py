@@ -186,20 +186,35 @@ def _finalize_successful_query(
                     "execution_time_ms": exec_time,
                 }
             )
-            # JSON encodes temporal values as strings; retain their exact Arrow
-            # types so the DataFrame reader can distinguish dates from timestamps
-            # and preserve timestamp units and timezones.
-            import pyarrow as pa
+            # JSON records lose scalar types. Retain the complete Arrow schema
+            # and encode binary columns losslessly instead of decoding as text.
+            statements_data[-1]["arrow_schema"] = base64.b64encode(
+                result_set.pa_table.schema.serialize().to_pybytes()
+            ).decode("ascii")
+            if isinstance(data, list):
+                import pyarrow as pa
 
-            temporal_fields = [
-                field
-                for field in result_set.pa_table.schema
-                if pa.types.is_date(field.type) or pa.types.is_timestamp(field.type)
-            ]
-            if temporal_fields:
-                statements_data[-1]["temporal_schema"] = base64.b64encode(
-                    pa.schema(temporal_fields).serialize().to_pybytes()
-                ).decode("ascii")
+                for field in result_set.pa_table.schema:
+                    column = result_set.pa_table.column(field.name)
+                    if pa.types.is_duration(field.type):
+                        # Integer ticks retain negative and sub-microsecond intervals.
+                        values = column.cast(pa.int64()).to_pylist()
+                    elif (
+                        pa.types.is_binary(field.type)
+                        or pa.types.is_large_binary(field.type)
+                        or pa.types.is_fixed_size_binary(field.type)
+                    ):
+                        values = [
+                            base64.b64encode(value).decode("ascii")
+                            if value is not None
+                            else None
+                            for value in column.to_pylist()
+                        ]
+                    else:
+                        continue
+                    for row, value in zip(data, values, strict=True):
+                        row[field.name] = value
+
         else:
             # DML statement - no data, just row count
             statements_data.append(
