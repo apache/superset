@@ -136,20 +136,42 @@ def test_append_columns_writes_in_place_when_the_target_names_the_source():
 
     The target need not be a column of `base_df` for this: `geodetic_parse`
     passes `{"latitude": "latitude"}` whenever the caller keeps the default
-    column name, and `latitude` is a column of `append_df` only. Appending it
-    would go through `pd.concat`, which unions the index instead of aligning to
-    `base_df`, so a frame that does not have a 0-based index would gain a row per
-    parsed row. Testing only whether the target is already present would miss
-    this, since it is not.
+    column name, and `latitude` is a column of `append_df` only. Testing only
+    whether the target is already present would miss this, since it is not.
+
+    `append_df` carries `base_df`'s index, which is what the geography helpers
+    pass since #45086, so the in-place write lands on the caller's own rows.
     """
     base_df = DataFrame({"city": ["New York City", "Sydney"]}, index=[5, 6])
-    append_df = DataFrame({"latitude": [40.7, -33.8]})
+    append_df = DataFrame({"latitude": [40.7, -33.8]}, index=[5, 6])
 
     post_df = _append_columns(base_df, append_df, {"latitude": "latitude"})
 
     assert post_df.columns.tolist() == ["city", "latitude"]
     assert post_df.index.tolist() == [5, 6]
     assert len(post_df) == len(base_df)
+    assert series_to_list(post_df["latitude"]) == [40.7, -33.8]
+
+
+def test_append_columns_never_adds_rows_for_a_non_renaming_mapping():
+    """
+    A mapping that renames nothing may not change `base_df`'s row count.
+
+    This is what separates the in-place write from the append path for a target
+    that names its own source. `pd.concat` unions the index, so an `append_df`
+    carrying rows `base_df` does not have would grow the result and leave the
+    original columns empty in the extra rows. Writing in place keeps the
+    caller's rows, which is the only shape the next operation can use.
+    """
+    base_df = DataFrame({"city": ["New York City", "Sydney"]})
+    append_df = DataFrame({"latitude": [40.7, -33.8, 99.9]})
+
+    post_df = _append_columns(base_df, append_df, {"latitude": "latitude"})
+
+    assert len(post_df) == len(base_df)
+    assert post_df.columns.tolist() == ["city", "latitude"]
+    assert series_to_list(post_df["city"]) == ["New York City", "Sydney"]
+    assert series_to_list(post_df["latitude"]) == [40.7, -33.8]
 
 
 def test_append_columns_ignores_unmapped_columns():

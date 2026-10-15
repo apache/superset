@@ -240,7 +240,8 @@ def _append_columns(
     all, which `geodetic_parse` does whenever the caller keeps the default
     column name, and that must keep being written in place: appending it would
     concatenate, and `pd.concat` unions the index rather than aligning to
-    `base_df`.
+    `base_df`, so an `append_df` that does not share `base_df`'s index would
+    change the row count.
 
     Note that! this is a memory-intensive operation.
 
