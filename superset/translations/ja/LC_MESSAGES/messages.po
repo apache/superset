@@ -17344,7 +17344,7 @@ msgid ""
 " a different percentage. Existing percentage rules use the automatic data"
 " range while Server pagination is enabled."
 msgstr ""
-"「値」: 下部の色付けに使用する正確な数値を入力します。サーバー側のページネーションが有効な場合、各ページで割合の計算結果が異なるため「列の %」は使用できません。サーバー側のページネーション有効時は、既存の割合ルールに自動データ範囲が使用されます。"
+"「値」: 下部の色付けに使用する正確な数値を入力します。サーバー側のページネーションが有効な場合、各ページで割合の計算結果が異なるため「列に対する割合(%)」は使用できません。サーバー側のページネーション有効時は、既存の割合ルールに自動データ範囲が使用されます。"
 
 #, python-format
 msgid ""
@@ -17353,7 +17353,7 @@ msgid ""
 "keeps working as the data changes. Column sum adds the absolute values so"
 " positive and negative values do not cancel each other out."
 msgstr ""
-"「値」: 下部の色付けに使用する正確な数値を入力します。「列の %」: 下部で選択した列の最大値または合計値に対するパーセンテージを入力すると、データが変更されてもルールが維持されます。列の合計値は絶対値を加算するため、正と負の値が相殺されません。"
+"「値」: 下部の色付けに使用する正確な数値を入力します。「列に対する割合(%)」: 下部で選択した列の最大値または合計値に対するパーセンテージを入力すると、データが変更されてもルールが維持されます。列の合計値は絶対値を加算するため、正と負の値が相殺されません。"
 
 msgid "Values"
 msgstr "値"
