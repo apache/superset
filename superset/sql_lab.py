@@ -112,7 +112,8 @@ def handle_query_error(
         so a stop recorded after that commit lost the race and must not mask
         the failure
     :param unpublished_results_key: key of results stored in the results
-        backend that no committed query row references, deleted if a stop wins
+        backend that no committed query row references; the failed row keeps
+        it, or it is deleted if a stop wins
     """
     payload = payload or {}
 
@@ -146,7 +147,7 @@ def handle_query_error(
         with db.session.no_autoflush:
             db.session.refresh(query, attribute_names=["status"])
         if query.status == QueryStatus.STOPPED:
-            _discard_unpublished_results(query, unpublished_results_key)
+            _discard_unpublished_results(query.id, unpublished_results_key)
             payload.update({"status": query.status})
             return payload
 
@@ -154,22 +155,16 @@ def handle_query_error(
     query.error_message = msg
     query.tmp_table_name = None
     query.status = QueryStatus.FAILED
+    if unpublished_results_key:
+        # A rollback after a failed flush drops the pending key.
+        query.results_key = unpublished_results_key
     # TODO: re-enable this after updating the frontend to properly display timeout status  # noqa: E501
     # if query.status != QueryStatus.TIMED_OUT:
     #   query.status = QueryStatus.FAILED
     if not query.end_time:
         query.end_time = now_as_float()
 
-    # extract DB-specific errors (invalid column, eg)
-    if isinstance(ex, SupersetErrorException):
-        errors = [ex.error]
-    elif isinstance(ex, SupersetErrorsException):
-        errors = ex.errors
-    else:
-        errors = query.database.db_engine_spec.extract_errors(
-            str(ex), database_name=query.database.unique_name
-        )
-
+    errors = _extract_errors(ex, query)
     errors_payload = [dataclasses.asdict(error) for error in errors]
     if errors:
         query.set_extra_json_key("errors", errors_payload)
@@ -184,12 +179,24 @@ def handle_query_error(
     return payload
 
 
-def _discard_unpublished_results(query: Query, key: Optional[str]) -> None:
-    """
-    Delete results stored for a stopped query whose key was never committed.
+def _extract_errors(ex: Exception, query: Query) -> list[SupersetError]:
+    """Extract DB-specific errors (invalid column, eg)."""
+    if isinstance(ex, SupersetErrorException):
+        return [ex.error]
+    if isinstance(ex, SupersetErrorsException):
+        return ex.errors
+    return query.database.db_engine_spec.extract_errors(
+        str(ex), database_name=query.database.unique_name
+    )
 
+
+def _discard_unpublished_results(query_id: int, key: Optional[str]) -> None:
+    """
+    Delete stored results whose key no committed query row will reference.
+
+    That happens when a stop wins, or when the task cannot record its failure.
     Nothing can read the blob before it expires. A failed delete is logged and
-    does not change the STOPPED outcome.
+    does not change the query's outcome.
     """
     if not key or not results_backend:
         return
@@ -197,16 +204,16 @@ def _discard_unpublished_results(query: Query, key: Optional[str]) -> None:
         deleted = results_backend.delete(key)
     except Exception:  # pylint: disable=broad-except
         logger.warning(
-            "Query %s: Failed to delete results of stopped query, key: %s",
-            str(query.id),
+            "Query %s: Failed to delete unpublished results, key: %s",
+            str(query_id),
             key,
             exc_info=True,
         )
         return
     if not deleted:
         logger.warning(
-            "Query %s: Results of stopped query were not deleted, key: %s",
-            str(query.id),
+            "Query %s: Unpublished results were not deleted, key: %s",
+            str(query_id),
             key,
         )
 
@@ -307,15 +314,22 @@ def get_sql_results(  # pylint: disable=too-many-arguments
                 logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
-                query = get_query(query_id=query_id)
-                # Failures after the target commit (result serialization, the
-                # results backend, closing the connection) cannot undo it.
-                return handle_query_error(
-                    ex,
-                    query,
-                    durable=committed,
-                    unpublished_results_key=unpublished_results_key,
-                )
+                try:
+                    query = get_query(query_id=query_id)
+                    # Failures after the target commit (result serialization,
+                    # the results backend, closing the connection) cannot undo
+                    # it.
+                    return handle_query_error(
+                        ex,
+                        query,
+                        durable=committed,
+                        unpublished_results_key=unpublished_results_key,
+                    )
+                except Exception:
+                    # The failure was not recorded, so no committed row
+                    # references the stored results.
+                    _discard_unpublished_results(query_id, unpublished_results_key)
+                    raise
 
 
 S = TypeVar("S", bound=BaseSQLStatement[Any])

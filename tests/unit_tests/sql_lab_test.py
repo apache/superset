@@ -883,23 +883,27 @@ def test_get_sql_results_stop_before_target_commit_stays_stopped(
 @pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
 @pytest.mark.parametrize("return_results", [False, True])
 @pytest.mark.parametrize("stopped", [False, True], ids=["no_stop", "stop"])
-def test_get_sql_results_error_after_write_deletes_results_when_stopped(
+@pytest.mark.parametrize("failure", ["write_timing", "final_flush"])
+def test_get_sql_results_error_after_write_deletes_results_when_stopped(  # noqa: C901
     mocker: MockerFixture,
     app: SupersetApp,
     app_context: None,
     tmp_path: Any,
     caplog: pytest.LogCaptureFixture,
+    failure: str,
     stopped: bool,
     return_results: bool,
     delete_fails: bool,
 ) -> None:
     """
     Test that results stored before a failure are deleted when the error
-    handler finds the query stopped, and that a failed delete still ends STOPPED.
+    handler finds the query stopped, that a failed delete still ends STOPPED,
+    and that without a stop the failed row keeps the key, even when the failure
+    rolls back the session.
     """
     from unittest.mock import PropertyMock
 
-    from sqlalchemy import create_engine
+    from sqlalchemy import create_engine, event
 
     from superset import sql_lab
     from superset.db_engine_specs.sqlite import SqliteEngineSpec
@@ -949,11 +953,9 @@ def test_get_sql_results_error_after_write_deletes_results_when_stopped(
 
     failed = False
 
-    def timing(key: str, value: float) -> None:
-        """Fail emitting the write timing, with the stop landing first."""
+    def fail() -> None:
+        """Raise once the results are stored, with the stop landing first."""
         nonlocal failed
-        if key != "sqllab.query.results_backend_write" or failed:
-            return
         assert stored
         failed = True
         if stopped:
@@ -962,8 +964,30 @@ def test_get_sql_results_error_after_write_deletes_results_when_stopped(
                 assert stopped_query is not None
                 stopped_query.status = QueryStatus.STOPPED
                 stop_session.commit()
-        raise RuntimeError("Metrics unavailable")
+        raise RuntimeError("Metrics or metadata database unavailable")
 
+    def timing(key: str, value: float) -> None:
+        """Fail emitting the write timing."""
+        if failure == "write_timing" and key == "sqllab.query.results_backend_write":
+            if not failed:
+                fail()
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def fail_flush(  # noqa: PLR0913
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Fail flushing the result metadata, which rolls back the session."""
+        update = statement.lstrip().startswith("UPDATE")
+        if failure == "final_flush" and update and stored and not failed:
+            fail()
+
+    # get_query retries after rolling back the session the failed flush broke.
+    mocker.patch("backoff._sync.time.sleep")
     stats_logger = MagicMock()
     stats_logger.timing.side_effect = timing
     mocker.patch.dict(app.config, {"STATS_LOGGER": stats_logger, "SQL_MAX_ROW": 0})
@@ -1007,8 +1031,113 @@ def test_get_sql_results_error_after_write_deletes_results_when_stopped(
             backend.delete.assert_called_once_with(key)
             assert (key in stored) is delete_fails
             assert (
-                "Failed to delete results of stopped query" in caplog.text
+                "Failed to delete unpublished results" in caplog.text
             ) is delete_fails
+    engine.dispose()
+
+
+@pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
+def test_get_sql_results_unrecorded_error_after_write_deletes_results(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+    caplog: pytest.LogCaptureFixture,
+    delete_fails: bool,
+) -> None:
+    """
+    Test that results stored before a failure the task cannot record, because
+    the metadata database stays unavailable, are deleted from the results backend.
+    """
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine, event
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'unrecorded.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_run_async = False
+    database.cache_timeout = 100
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+
+    def execute_query(*args: Any, **kwargs: Any) -> MagicMock:
+        """Commit the pre-execution metadata as execute_query does."""
+        sql_lab.db.session.commit()
+        return MagicMock(size=1, columns=[])
+
+    mocker.patch.object(sql_lab, "execute_query", side_effect=execute_query)
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    mocker.patch.object(sql_lab, "_serialize_payload", return_value=b"data")
+    mocker.patch("backoff._sync.time.sleep")
+    mocker.patch.dict(app.config, {"SQL_MAX_ROW": 0})
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    def delete(key: str) -> bool:
+        """Remove the blob."""
+        return stored.pop(key, None) is not None
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = (
+        RuntimeError("Backend unavailable") if delete_fails else delete
+    )
+    mocker.patch.object(sql_lab, "results_backend", backend)
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def metadata_unavailable(  # noqa: PLR0913
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Fail every metadata statement once the results are stored."""
+        if stored:
+            raise RuntimeError("Metadata database unavailable")
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="unrecorded",
+            database_id=1,
+            sql="SELECT 1",
+            executed_sql="SELECT 1",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        with caplog.at_level("WARNING", logger=sql_lab.logger.name):
+            with pytest.raises(sql_lab.SqlLabException):
+                sql_lab.get_sql_results(
+                    123, query.sql, return_results=False, store_results=True
+                )
+
+        backend.set.assert_called_once()
+        key = backend.set.call_args.args[0]
+        backend.delete.assert_called_once_with(key)
+        assert (key in stored) is delete_fails
+        assert ("Failed to delete unpublished results" in caplog.text) is delete_fails
     engine.dispose()
 
 

@@ -80,6 +80,7 @@ def _handle_query_error(
     payload: dict[str, Any] | None = None,
     prefix_message: str = "",
     durable: bool = False,
+    results_key: str | None = None,
 ) -> dict[str, Any]:
     """
     Handle error while processing the SQL query.
@@ -87,6 +88,8 @@ def _handle_query_error(
     :param durable: the target database already committed the query's effects,
         so a stop recorded after that commit lost the race and must not mask
         the failure
+    :param results_key: key of results stored in the results backend before the
+        failure; the failed row keeps it, or it is deleted if a stop wins
     """
     # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler).
     # Kept as an enum: after the commit below the expired attribute reloads as str.
@@ -96,10 +99,11 @@ def _handle_query_error(
         else QueryStatus.FAILED
     )
     # Results stored before the failure are unpublished; a stop reloads the row
-    # and drops their pending key, so read it first.
-    stored_key = query.results_key
+    # and drops their pending key, so read it first. A rollback after a failed
+    # flush has already dropped it, so prefer the key tracked at the write.
+    stored_key = results_key or query.results_key
     if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
-        _discard_stored_results(query, stored_key)
+        _discard_stored_results(query.id, stored_key)
         return _stopped_query_payload(query)
 
     with db.session.no_autoflush:
@@ -108,6 +112,8 @@ def _handle_query_error(
         query.error_message = msg
         query.tmp_table_name = None
         query.status = status
+        if stored_key:
+            query.results_key = stored_key
 
         if not query.end_time:
             query.end_time = now_as_float()
@@ -120,7 +126,7 @@ def _handle_query_error(
         if durable:
             db.session.commit()  # pylint: disable=consider-using-transaction
         elif not _commit_query_unless_stopped(query):
-            _discard_stored_results(query, stored_key)
+            _discard_stored_results(query.id, stored_key)
             return _stopped_query_payload(query)
         payload.update({"status": status.value, "error": msg, "errors": errors_payload})
         if app.config.get("SHOW_STACKTRACE"):
@@ -248,8 +254,14 @@ def _store_results_in_backend(
     payload: dict[str, Any],
     database: Any,
     durable: bool = False,
+    on_results_key: Callable[[str], None] | None = None,
 ) -> None:
-    """Store query results in the results backend."""
+    """
+    Store query results in the results backend.
+
+    :param on_results_key: called with the key as soon as the results are
+        stored, before any metadata read that can fail
+    """
     with db.session.no_autoflush:
         key = str(uuid.uuid4())
         payload["query"]["resultsKey"] = key
@@ -294,9 +306,11 @@ def _store_results_in_backend(
             logger.debug("*** compressed payload size: %i", len(compressed))
 
             write_success = results_backend.set(key, compressed, cache_timeout)
+            if write_success and on_results_key:
+                on_results_key(key)
             if not durable and _make_check_stopped_fn(query, preserve_pending=True)():
                 if write_success:
-                    _discard_stored_results(query, key)
+                    _discard_stored_results(query.id, key)
                 return
             if not write_success:
                 logger.error(
@@ -396,6 +410,12 @@ def execute_sql_task(
                 nonlocal committed
                 committed = True
 
+            results_key: str | None = None
+
+            def track_results_key(key: str) -> None:
+                nonlocal results_key
+                results_key = key
+
             try:
                 from superset.utils.oauth2 import execute_with_oauth2_retry
 
@@ -407,6 +427,7 @@ def execute_sql_task(
                         rendered_query,
                         start_time=start_time,
                         on_commit=mark_committed,
+                        on_results_key=track_results_key,
                     ),
                     can_retry=lambda: not query.progress,
                 )
@@ -414,10 +435,29 @@ def execute_sql_task(
                 logger.exception("Query %d: %s", query_id, ex)
                 stats_logger = app.config["STATS_LOGGER"]
                 stats_logger.incr("error_sqllab_unhandled")
-                query = _get_query(query_id=query_id)
-                # Failures after the target commit (result serialization, the
-                # results backend, closing the connection) cannot undo it.
-                return _handle_query_error(ex, query, durable=committed)
+                try:
+                    query = _get_query_after_error(query_id)
+                    # Failures after the target commit (result serialization,
+                    # the results backend, closing the connection) cannot undo
+                    # it.
+                    return _handle_query_error(
+                        ex, query, durable=committed, results_key=results_key
+                    )
+                except Exception:
+                    # The failure was not recorded, so no committed row
+                    # references the stored results.
+                    _discard_stored_results(query_id, results_key)
+                    raise
+
+
+def _get_query_after_error(query_id: int) -> Query:
+    """Get the query, rolling back a session a failed flush left unusable."""
+    try:
+        return _get_query(query_id=query_id)
+    except Exception:  # pylint: disable=broad-except
+        # Rolling back only discards metadata the failed task never committed.
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        return _get_query(query_id=query_id)
 
 
 def _commit_query_unless_stopped(query: Query) -> bool:
@@ -438,13 +478,13 @@ def _commit_query_unless_stopped(query: Query) -> bool:
     return True
 
 
-def _discard_stored_results(query: Query, key: str | None) -> None:
+def _discard_stored_results(query_id: int, key: str | None) -> None:
     """
-    Delete results stored for a query that a stop has since won.
+    Delete stored results whose key no committed query row will reference.
 
-    The key is never published, so the blob would only occupy the results
-    backend until it expires. A failed delete is logged and does not change the
-    STOPPED outcome.
+    That happens when a stop wins, or when the task cannot record its failure.
+    The blob would only occupy the results backend until it expires. A failed
+    delete is logged and does not change the query's outcome.
     """
     if not key or not results_backend:
         return
@@ -452,16 +492,16 @@ def _discard_stored_results(query: Query, key: str | None) -> None:
         deleted = results_backend.delete(key)
     except Exception:  # pylint: disable=broad-except
         logger.warning(
-            "Query %s: Failed to delete results of stopped query, key: %s",
-            str(query.id),
+            "Query %s: Failed to delete unpublished results, key: %s",
+            str(query_id),
             key,
             exc_info=True,
         )
         return
     if not deleted:
         logger.warning(
-            "Query %s: Results of stopped query were not deleted, key: %s",
-            str(query.id),
+            "Query %s: Unpublished results were not deleted, key: %s",
+            str(query_id),
             key,
         )
 
@@ -533,11 +573,14 @@ def _execute_sql_statements(
     rendered_query: str,
     start_time: float | None,
     on_commit: Callable[[], None] | None = None,
+    on_results_key: Callable[[str], None] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute SQL statements and store results.
 
     :param on_commit: called once the target database commits a mutation or CTAS
+    :param on_results_key: called with the key of results stored in the results
+        backend, before any metadata read or write that can fail
     """
     if start_time:
         stats_logger = app.config["STATS_LOGGER"]
@@ -636,7 +679,13 @@ def _execute_sql_statements(
     )
 
     if results_backend:
-        _store_results_in_backend(query, payload, database, durable=committed)
+        _store_results_in_backend(
+            query,
+            payload,
+            database,
+            durable=committed,
+            on_results_key=on_results_key,
+        )
 
     return _publish_query_result(query, payload, durable=committed)
 
@@ -656,13 +705,13 @@ def _publish_query_result(
     # Read the stored key first: a stop reloads the row and drops it.
     stored_key = query.results_key
     if _make_check_stopped_fn(query, preserve_pending=True)():
-        _discard_stored_results(query, stored_key)
+        _discard_stored_results(query.id, stored_key)
         return _stopped_query_payload(query)
 
     if query.status != QueryStatus.FAILED:
         query.status = QueryStatus.SUCCESS
     if not _commit_query_unless_stopped(query):
-        _discard_stored_results(query, stored_key)
+        _discard_stored_results(query.id, stored_key)
         return _stopped_query_payload(query)
 
     return payload

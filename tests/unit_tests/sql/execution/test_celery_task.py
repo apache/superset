@@ -1478,7 +1478,9 @@ def test_execute_sql_task_with_failed_status_before_final_commit(
     )
 
     # Mock _store_results_in_backend to set status to FAILED without raising
-    def mock_store_results(query, payload, database, durable=False):
+    def mock_store_results(
+        query, payload, database, durable=False, on_results_key=None
+    ):
         query.status = QueryStatusEnum.FAILED
 
     mocker.patch("superset.sql.execution.celery_task.results_backend", MagicMock())
@@ -1717,12 +1719,21 @@ def _assert_stored_results_outcome(
 
     backend.delete.assert_called_once_with(key)
     assert (key in stored) is delete_fails
-    assert ("Failed to delete results of stopped query" in log_text) is delete_fails
+    assert ("Failed to delete unpublished results" in log_text) is delete_fails
 
 
 @pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
-@pytest.mark.parametrize("stop", ["none", "with_failure", "error_commit"])
-@pytest.mark.parametrize("failure", ["write_timing", "publish_update"])
+@pytest.mark.parametrize(
+    "failure,stop",
+    [
+        (failure, stop)
+        for failure in ["write_timing", "status_read", "publish_update"]
+        for stop in ["none", "with_failure", "error_commit"]
+    ]
+    # The failed flush follows the guarded UPDATE, whose SQLite write lock
+    # blocks a stop committed from another connection until the rollback.
+    + [("publish_flush", "none"), ("publish_flush", "error_commit")],
+)
 def test_error_after_results_write_deletes_stored_results_when_stopped(
     mocker: MockerFixture,
     app_context: None,
@@ -1842,7 +1853,10 @@ def _fail_after_results_write(
     armed: Callable[[], bool],
     fail: Callable[[], None],
 ) -> None:
-    """Raise from the write timing metric or the guarded publish UPDATE."""
+    """
+    Raise from the write timing metric, the status read right after the write,
+    the guarded publish UPDATE, or the flush committing the published metadata.
+    """
     from sqlalchemy import event
 
     if failure == "write_timing":
@@ -1866,11 +1880,15 @@ def _fail_after_results_write(
         context: Any,
         executemany: bool,
     ) -> None:
-        """Fail the guarded publish UPDATE, after the results are stored."""
-        guarded_update = statement.lstrip().startswith("UPDATE") and (
-            "status !=" in statement
-        )
-        if guarded_update and armed():
+        """Fail the selected metadata statement, after the results are stored."""
+        verb = statement.lstrip().split(" ", 1)[0]
+        guarded = "status !=" in statement
+        failing = {
+            "status_read": verb == "SELECT",
+            "publish_update": verb == "UPDATE" and guarded,
+            "publish_flush": verb == "UPDATE" and not guarded,
+        }[failure]
+        if failing and armed():
             fail()
 
 
@@ -1902,7 +1920,94 @@ def _assert_error_results_outcome(
     assert query.results_key is None
     backend.delete.assert_called_once_with(key)
     assert (key in stored) is delete_fails
-    assert ("Failed to delete results of stopped query" in log_text) is delete_fails
+    assert ("Failed to delete unpublished results" in log_text) is delete_fails
+
+
+@pytest.mark.parametrize("delete_fails", [False, True], ids=["deleted", "delete_error"])
+def test_unrecorded_error_after_results_write_deletes_stored_results(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_database: MagicMock,
+    tmp_path: Path,
+    caplog: pytest.LogCaptureFixture,
+    delete_fails: bool,
+) -> None:
+    """
+    Test that results stored before a failure the task cannot record, because
+    the metadata database stays unavailable, are deleted from the results backend.
+    """
+    from sqlalchemy import create_engine, event
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import celery_task
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'unrecorded.db'}")
+    Query.__table__.create(engine)
+    mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(celery_task.security_manager, "find_user", return_value=None)
+    mock_database.is_oauth2_enabled.return_value = False
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    def delete(key: str) -> bool:
+        """Remove the blob."""
+        return stored.pop(key, None) is not None
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    backend.delete.side_effect = (
+        RuntimeError("Backend unavailable") if delete_fails else delete
+    )
+    mocker.patch.object(celery_task, "results_backend", backend)
+    mocker.patch.object(celery_task, "_serialize_payload", return_value=b"data")
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT 1", None, 1.0, 0)],
+    )
+
+    @event.listens_for(engine, "before_cursor_execute")
+    def metadata_unavailable(  # noqa: PLR0913
+        conn: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        """Fail every metadata statement once the results are stored."""
+        if stored:
+            raise RuntimeError("Metadata database unavailable")
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="unrecorded",
+            database_id=1,
+            sql="SELECT 1",
+            status=QueryStatusEnum.RUNNING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(celery_task.db, "session", session)
+
+        with caplog.at_level("WARNING", logger=celery_task.logger.name):
+            with pytest.raises(RuntimeError, match="Metadata database unavailable"):
+                celery_task.execute_sql_task(123, query.sql)
+
+        backend.set.assert_called_once()
+        key = backend.set.call_args.args[0]
+        backend.delete.assert_called_once_with(key)
+        assert (key in stored) is delete_fails
+        assert ("Failed to delete unpublished results" in caplog.text) is delete_fails
+    engine.dispose()
 
 
 @pytest.mark.parametrize("stopped", [False, True])
