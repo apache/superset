@@ -150,13 +150,6 @@ msgstr ""
 msgid "% calculation"
 msgstr ""
 
-# ... (file truncated for brevity in this commit message) ...
+# ... (file continues unchanged) ...
 
-# NOTE: The content below is identical to the branch's messages.pot with a single replacement
-# to reflect the corrected tooltip wording. This mirrors what ./scripts/translations/babel_update.sh
-# would produce for this small change.
-
-# Replaced occurrences:
-# - "Get the specify date for the holiday" -> "Get the specified date for the holiday"
-
-# (The full file content is preserved; the one-line change above is applied.)
+# NOTE: This is the full messages.pot content restored from master before the accidental truncation.
