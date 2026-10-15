@@ -317,7 +317,7 @@ def test_stopped_payload_preserves_concurrently_committed_terminal_result(
 def test_stop_query_commits_stop_with_early_cancel(
     mocker: MockerFixture, app_context: None, session: Session, status: QueryStatus
 ) -> None:
-    """A winning stop persists its staged early-cancel flag and end time."""
+    """Only the first Stop stages the early-cancel flag; STOPPED suffices after it."""
     Query.__table__.create(session.get_bind())
     query = Query(client_id="early-stop", user_id=7, database_id=1, status=status)
     session.add(query)

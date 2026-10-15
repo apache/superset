@@ -247,13 +247,15 @@ def test_require_mysql_tls_connects_with_verified_tls(
         assert cipher[1], "connection succeeded but is not actually using TLS"
 
 
+@pytest.mark.parametrize("isolation_level", ["REPEATABLE READ", "READ COMMITTED"])
 @pytest.mark.parametrize("winner", ["stop", "worker"])
 def test_stop_at_target_commit_is_serialized(
     mysql_container: MySqlContainer,
     monkeypatch: pytest.MonkeyPatch,
     winner: str,
+    isolation_level: str,
 ) -> None:
-    """MySQL locking reads serialize Stop with the target commit under RR."""
+    """MySQL locking reads serialize Stop with the target commit under RR and RC."""
     from concurrent.futures import ThreadPoolExecutor, TimeoutError
     from threading import Event
 
@@ -287,7 +289,7 @@ def test_stop_at_target_commit_is_serialized(
         connection.execute(text("INSERT IGNORE INTO dbs VALUES (1)"))
     Query.__table__.create(engine, checkfirst=True)
     sessions = scoped_session(
-        sessionmaker(bind=engine.execution_options(isolation_level="REPEATABLE READ"))
+        sessionmaker(bind=engine.execution_options(isolation_level=isolation_level))
     )
     monkeypatch.setattr(db, "session", sessions)
     sessions.add(
@@ -317,7 +319,7 @@ def test_stop_at_target_commit_is_serialized(
             sessions.remove()
 
     def stop() -> bool:
-        """Start with an RR snapshot predating the worker's commit marker."""
+        """Read the row before the worker commits its target-committed marker."""
         try:
             query = sessions.get(Query, 126)
             stopping.set()
