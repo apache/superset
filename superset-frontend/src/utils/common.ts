@@ -61,19 +61,26 @@ export function storeQuery(query: JsonObject): Promise<string> {
   });
 }
 
-export function optionLabel(opt: OptionValue): string {
+export function optionLabel(opt: OptionValue, useConstantLabel = true): string {
+  let value: string | undefined;
+
   if (opt === null) {
-    return getConstantLabel(NULL_STRING);
+    value = NULL_STRING;
   }
   if (opt === '') {
-    return getConstantLabel(EMPTY_STRING);
+    value = EMPTY_STRING;
   }
   if (opt === true) {
-    return getConstantLabel(TRUE_STRING);
+    value = TRUE_STRING;
   }
   if (opt === false) {
-    return getConstantLabel(FALSE_STRING);
+    value = FALSE_STRING;
   }
+
+  if (value !== undefined) {
+    return useConstantLabel ? getConstantLabel(value) : value;
+  }
+
   if (typeof opt !== 'string' && typeof opt === 'number') {
     return opt.toString();
   }

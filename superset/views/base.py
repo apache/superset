@@ -456,7 +456,7 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     }
 
 
-def get_shared_constant_labels_bootstrap_data() -> dict[str, str]:
+def get_shared_constant_labels_bootstrap_data() -> dict[str, dict[str, str]]:
     """
     Load the shared constant labels from backend.
     """

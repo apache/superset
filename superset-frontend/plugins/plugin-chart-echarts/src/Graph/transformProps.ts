@@ -18,12 +18,14 @@
  */
 import {
   CategoricalColorNamespace,
+  FALSE_STRING,
   getConstantLabel,
   getMetricLabel,
   DataRecord,
   DataRecordValue,
   NULL_STRING,
   tooltipHtml,
+  TRUE_STRING,
 } from '@superset-ui/core';
 import type { EChartsCoreOption } from 'echarts/core';
 import type { GraphSeriesOption } from 'echarts/charts';
@@ -150,7 +152,9 @@ function getCategoryName(columnName: string, name?: DataRecordValue) {
     return getConstantLabel(NULL_STRING);
   }
   const label =
-    typeof name === 'boolean' ? `${columnName}: ${name}` : String(name);
+    typeof name === 'boolean'
+      ? `${columnName}: ${getConstantLabel(name ? TRUE_STRING : FALSE_STRING)}`
+      : String(name);
   // Decode quoted forms only to detect collisions with the shared null label.
   // Trim at each level because the color scale trims its keys.
   let unquoted = label.trim();
