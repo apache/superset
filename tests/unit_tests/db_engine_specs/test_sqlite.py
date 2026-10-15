@@ -16,7 +16,7 @@
 # under the License.
 # pylint: disable=invalid-name, unused-argument, import-outside-toplevel, redefined-outer-name
 from datetime import datetime
-from typing import Any, Optional
+from typing import Optional
 
 import pytest
 from sqlalchemy import text
@@ -245,72 +245,3 @@ def test_year_pdf_time_grain(year: Optional[float], expected: Optional[str]) -> 
     with engine.connect() as connection:
         result = connection.execute(text(sql)).scalar()
     assert result == expected
-
-
-@pytest.mark.parametrize(
-    ("isolation_level", "sql", "expected"),
-    [
-        ("", "CREATE TABLE t AS SELECT 1 AS a", True),
-        ("", "CREATE TABLE t (a INTEGER)", True),
-        ("", "INSERT INTO existing VALUES (1)", False),
-        (None, "INSERT INTO existing VALUES (1)", True),
-    ],
-    ids=["ctas", "ddl", "dml", "dml_isolation_none"],
-)
-def test_is_autocommit_reports_uncommitted_work(
-    tmp_path: Any, isolation_level: Optional[str], sql: str, expected: bool
-) -> None:
-    """
-    SQLite DDL, including a CTAS, is durable when it finishes on a connection
-    in its default transaction mode, while DML waits for ``commit()``.
-    """
-    import sqlite3
-
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-    path = tmp_path / "target.db"
-    setup = sqlite3.connect(path)
-    setup.execute("CREATE TABLE existing (a INTEGER)")
-    setup.commit()
-    setup.close()
-
-    connection = sqlite3.connect(path)
-    connection.isolation_level = isolation_level
-    connection.execute(sql)
-    assert SqliteEngineSpec.is_autocommit(connection) is expected
-    connection.close()
-
-    # What finished outside a transaction survives closing without commit().
-    observer = sqlite3.connect(path)
-    rows = observer.execute("SELECT COUNT(*) FROM existing").fetchone()[0]
-    tables = observer.execute(
-        "SELECT COUNT(*) FROM sqlite_master WHERE name = 't'"
-    ).fetchone()[0]
-    observer.close()
-    assert bool(rows or tables) is expected
-
-
-def test_is_autocommit_reads_pooled_connections(tmp_path: Any) -> None:
-    """The check reads the DB-API connection behind a pooled raw connection."""
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-    engine = create_engine(f"sqlite:///{tmp_path / 'pooled.db'}")
-    connection = engine.raw_connection()
-    try:
-        connection.cursor().execute("CREATE TABLE t AS SELECT 1 AS a")
-        assert SqliteEngineSpec.is_autocommit(connection) is True
-        connection.cursor().execute("INSERT INTO t VALUES (2)")
-        assert SqliteEngineSpec.is_autocommit(connection) is False
-    finally:
-        connection.close()
-        engine.dispose()
-
-
-def test_is_autocommit_falls_back_without_transaction_state() -> None:
-    """A connection that does not report a transaction uses the base check."""
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
-
-    class _Connection:
-        autocommit = True
-
-    assert SqliteEngineSpec.is_autocommit(_Connection()) is True

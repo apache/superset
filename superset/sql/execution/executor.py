@@ -81,7 +81,6 @@ from superset.extensions import cache_manager
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
 from superset.utils import core as utils
-from superset.utils.decorators import transaction
 
 if TYPE_CHECKING:
     from superset_core.queries.types import (
@@ -1428,12 +1427,11 @@ class SQLExecutor:
         )
 
     @staticmethod
-    @transaction()
     def _cancel_async_query(query_id: int, database: Database) -> bool:
         """Accept a stop with best-effort engine cancellation, or report a lost race."""
         from superset.common.db_query_status import QueryStatus as DBQueryStatus
         from superset.models.sql_lab import Query as QueryModel
-        from superset.sql.execution.utils import set_query_stopped
+        from superset.sql.execution.utils import finish_query_stop, set_query_stopped
         from superset.utils.dates import now_as_float
 
         query = db.session.query(QueryModel).filter_by(id=query_id).one_or_none()
@@ -1445,29 +1443,12 @@ class SQLExecutor:
             return False
 
         with db.session.no_autoflush:
-            end_time = now_as_float()
-            if not set_query_stopped(query, end_time):
+            if not set_query_stopped(query, now_as_float()):
+                db.session.commit()  # pylint: disable=consider-using-transaction
                 return False
-            # Commit before engine cancellation can wake the Celery worker.
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            # The handle reports the recorded stop, not whether the engine
-            # could interrupt its statement. Results from that statement are
-            # discarded if it continues running.
-            try:
-                engine_cancelled = SQLExecutor._cancel_query(database, query)
-            except Exception:  # pylint: disable=broad-except
-                logger.warning(
-                    "Query %s: Stop accepted; engine cancellation not confirmed",
-                    query.id,
-                    exc_info=True,
-                )
-            else:
-                if not engine_cancelled:
-                    logger.warning(
-                        "Query %s: Stop accepted; engine cancellation not confirmed",
-                        query.id,
-                    )
-            return set_query_stopped(query, end_time)
+            return finish_query_stop(
+                query, lambda: SQLExecutor._cancel_query(database, query)
+            )
 
     @staticmethod
     def _cancel_query(database: Database, query: Any) -> bool:

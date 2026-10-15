@@ -2496,7 +2496,7 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
 ) -> None:
     """
     The task's error lookup must not flush stale metadata before checking Stop,
-    and a timeout outranks a stop recorded while it fired.
+    including when a time-limit signal fires after the Stop.
     """
     from sqlalchemy import create_engine
     from sqlalchemy.orm import Session
@@ -2572,17 +2572,15 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
 
         assert payload is not None
         timed_out = checkpoint.startswith("timeout")
-        if stop_requested and not timed_out:
+        if stop_requested:
             assert payload == {"query_id": 123, "status": QueryStatusEnum.STOPPED}
         else:
-            # A timeout is terminal: a stop recorded while it fired does not
-            # mask it.
             expected_status = (
                 QueryStatusEnum.TIMED_OUT if timed_out else QueryStatusEnum.FAILED
             )
             assert payload["status"] == expected_status
         session.refresh(query)
-        if stop_requested and not timed_out:
+        if stop_requested:
             assert query.status == QueryStatusEnum.STOPPED
             assert query.end_time == Decimal("1234.5")
             assert query.extra == {
@@ -2598,13 +2596,13 @@ def test_task_error_lookup_does_not_flush_over_a_stop(
     engine.dispose()
 
 
-def test_timeout_is_recorded_without_reading_a_stop(
+def test_timeout_is_guarded_against_a_stop(
     mocker: MockerFixture,
     app_context: None,
     mock_query: MagicMock,
     mock_db_session: MagicMock,
 ) -> None:
-    """A timeout is terminal, so the error path neither reads nor guards a stop."""
+    """A timeout checks and guards against a previously accepted Stop."""
     from superset.sql.execution import celery_task
 
     mock_query.status = QueryStatusEnum.TIMED_OUT
@@ -2614,8 +2612,8 @@ def test_timeout_is_recorded_without_reading_a_stop(
 
     assert payload["status"] == QueryStatusEnum.TIMED_OUT
     assert mock_query.status == QueryStatusEnum.TIMED_OUT
-    mock_db_session.refresh.assert_not_called()
-    mock_db_session.query.assert_not_called()
+    mock_db_session.refresh.assert_called_once()
+    mock_db_session.query.assert_called_once()
     mock_db_session.flush.assert_not_called()
     mock_db_session.commit.assert_called_once()
 
@@ -2823,7 +2821,6 @@ def test_autocommit_work_finished_before_a_stop_is_committed(
     from sqlalchemy.orm import Session
 
     from superset.constants import QUERY_EARLY_CANCEL_KEY
-    from superset.db_engine_specs.base import BaseEngineSpec
     from superset.models.sql_lab import Query
     from superset.sql.execution import celery_task
 
@@ -2833,7 +2830,6 @@ def test_autocommit_work_finished_before_a_stop_is_committed(
     Query.__table__.create(engine)
     mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
     mocker.patch.object(Query, "to_dict", return_value={"id": 123})
-    mock_database.db_engine_spec.is_autocommit = BaseEngineSpec.is_autocommit
     conn = setup_mock_raw_connection(mock_database)
     conn.dbapi_connection.autocommit = autocommit
     sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
@@ -2872,11 +2868,8 @@ def test_autocommit_work_finished_before_a_stop_is_committed(
             celery_task, "execute_sql_with_cursor", side_effect=execute_then_stop
         )
         mocker.patch.object(celery_task, "results_backend", None)
-        on_commit = MagicMock()
 
-        payload = celery_task._execute_sql_statements(
-            123, sql, None, on_commit=on_commit
-        )
+        payload = celery_task._execute_sql_statements(123, sql, None)
 
         expected = QueryStatusEnum.STOPPED
         assert payload is not None
@@ -2884,7 +2877,6 @@ def test_autocommit_work_finished_before_a_stop_is_committed(
         session.refresh(query)
         assert query.status == expected
         assert not conn.commit.called
-        assert not on_commit.called
     engine.dispose()
 
 
@@ -2902,7 +2894,6 @@ def test_sqlite_ctas_finished_before_a_stop_is_committed(
     from sqlalchemy import create_engine, inspect
     from sqlalchemy.orm import Session
 
-    from superset.db_engine_specs.sqlite import SqliteEngineSpec
     from superset.models.sql_lab import Query
     from superset.sql.execution import celery_task
 
@@ -2913,7 +2904,6 @@ def test_sqlite_ctas_finished_before_a_stop_is_committed(
         setup.exec_driver_sql("CREATE TABLE existing (a INTEGER)")
     mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
     mocker.patch.object(Query, "to_dict", return_value={"id": 123})
-    mock_database.db_engine_spec.is_autocommit = SqliteEngineSpec.is_autocommit
 
     @contextmanager
     def raw_connection(*args: Any, **kwargs: Any) -> Any:
@@ -3343,7 +3333,6 @@ def test_stop_seen_by_engine_survives_progress_commit(
     mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
     mocker.patch.object(Query, "to_dict", return_value={"id": 123})
     mocker.patch.object(celery_task, "results_backend", None)
-    mock_database.db_engine_spec.is_autocommit.return_value = autocommit
     conn = setup_mock_raw_connection(mock_database)
     cursor = conn.cursor.return_value
     cursor.description = None
@@ -3374,11 +3363,8 @@ def test_stop_seen_by_engine_survives_progress_commit(
             cursor.cancel()
 
         mock_database.db_engine_spec.execute_with_cursor.side_effect = poll_and_cancel
-        on_commit = MagicMock()
 
-        payload = celery_task._execute_sql_statements(
-            123, query.sql, None, on_commit=on_commit
-        )
+        payload = celery_task._execute_sql_statements(123, query.sql, None)
         assert payload is not None
 
         cursor.cancel.assert_called_once()
@@ -3386,7 +3372,6 @@ def test_stop_seen_by_engine_survives_progress_commit(
         with Session(engine) as observer:
             assert observer.get(Query, 123).status == QueryStatusEnum.STOPPED
         conn.commit.assert_not_called()
-        on_commit.assert_not_called()
     engine.dispose()
 
 
@@ -3417,7 +3402,7 @@ def test_impala_cancel_survives_progress_commit(
     mock_database.db_engine_spec = ImpalaEngineSpec
     conn = setup_mock_raw_connection(mock_database)
     # Only the RPC cursor is a double: execute_with_cursor, handle_cursor and
-    # is_autocommit are Impala's own.
+    # cancellation are Impala's own.
     cursor = conn.cursor.return_value
     cursor.description = None
     cursor.rowcount = 0
@@ -3477,7 +3462,6 @@ def test_stop_seen_between_autocommit_statements_ends_stopped(
     mocker.patch.object(Query, "database", PropertyMock(return_value=mock_database))
     mocker.patch.object(Query, "to_dict", return_value={"id": 123})
     mocker.patch.object(celery_task, "results_backend", None)
-    mock_database.db_engine_spec.is_autocommit.return_value = True
     mock_database.db_engine_spec.run_multiple_statements_as_one = False
     conn = setup_mock_raw_connection(mock_database)
     cursor = conn.cursor.return_value

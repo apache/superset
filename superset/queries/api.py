@@ -278,7 +278,8 @@ class QueryRestApi(BaseSupersetModelRestApi):
               $ref: '#/components/responses/404'
             422:
               description: >
-                Query already finished; includes the completed query
+                Query already finished or target transaction committed;
+                includes the recorded query
             500:
               $ref: '#/components/responses/500'
         """

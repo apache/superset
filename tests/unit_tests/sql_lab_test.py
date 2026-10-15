@@ -846,7 +846,6 @@ def test_get_sql_results_stop_before_target_commit_stays_stopped(
         sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
     )
     mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
-    on_commit = MagicMock()
 
     sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
     with Session(engine) as session:
@@ -872,7 +871,6 @@ def test_get_sql_results_stop_before_target_commit_stays_stopped(
             None,
             False,
             None,
-            on_commit=on_commit,
         )
 
         assert payload is not None
@@ -880,7 +878,6 @@ def test_get_sql_results_stop_before_target_commit_stays_stopped(
         session.refresh(query)
         assert query.status == QueryStatus.STOPPED
         conn.commit.assert_not_called()
-        on_commit.assert_not_called()
     engine.dispose()
 
 
@@ -933,7 +930,6 @@ def test_get_sql_results_autocommit_work_finished_before_a_stop_is_committed(
     )
     mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
     mocker.patch.dict(app.config, {"STATS_LOGGER": MagicMock()})
-    on_commit = MagicMock()
 
     sql = "SELECT 1" if ctas else "INSERT INTO users VALUES (1)"
     with Session(engine) as session:
@@ -974,7 +970,6 @@ def test_get_sql_results_autocommit_work_finished_before_a_stop_is_committed(
             None,
             False,
             None,
-            on_commit=on_commit,
         )
 
         expected = QueryStatus.STOPPED
@@ -983,7 +978,6 @@ def test_get_sql_results_autocommit_work_finished_before_a_stop_is_committed(
         session.refresh(query)
         assert query.status == expected
         assert not conn.commit.called
-        assert not on_commit.called
     engine.dispose()
 
 
@@ -2608,4 +2602,114 @@ def test_legacy_startup_preserves_stop_before_running_write(
             assert persisted is not None
             assert persisted.status == QueryStatus.STOPPED
             assert persisted.end_time == 1234.5
+    engine.dispose()
+
+
+def test_sync_payload_limit_stop_response_matches_recorded_outcome(
+    mocker: MockerFixture,
+    app: SupersetApp,
+    app_context: None,
+    tmp_path: Any,
+) -> None:
+    """Stop during inline size validation cannot observe a premature SUCCESS."""
+    from unittest.mock import PropertyMock
+
+    from sqlalchemy import create_engine
+
+    from superset import sql_lab
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+    from superset.models.sql_lab import Query
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'published.db'}")
+    Query.__table__.create(engine)
+
+    database = MagicMock()
+    database.db_engine_spec = SqliteEngineSpec
+    database.allow_run_async = False
+    database.cache_timeout = 100
+    database.get_default_schema_for_query.return_value = "main"
+    database.mutate_sql_based_on_config.side_effect = lambda sql, is_split=False: sql
+    mocker.patch.object(Query, "database", PropertyMock(return_value=database))
+    mocker.patch.object(Query, "to_dict", return_value={"id": 123})
+    mocker.patch.object(sql_lab.security_manager, "find_user", return_value=None)
+
+    def execute_query(*args: Any, **kwargs: Any) -> MagicMock:
+        """Commit the pre-execution metadata as execute_query does."""
+        sql_lab.db.session.commit()
+        return MagicMock(size=1, columns=[])
+
+    mocker.patch.object(sql_lab, "execute_query", side_effect=execute_query)
+    mocker.patch.object(
+        sql_lab, "_serialize_and_expand_data", return_value=([], [], [], [])
+    )
+    # The stored payload fits; the returned one exceeds SQLLAB_PAYLOAD_MAX_MB,
+    # so the inline size check must run before publishing SUCCESS.
+    stop_responses: list[int] = []
+    serializations = 0
+
+    def serialize_with_stop(*args: Any) -> bytes:
+        """Stop at the inline payload check, before any oversized-result error."""
+        import inspect
+
+        from superset.queries.api import QueryRestApi
+
+        nonlocal serializations
+        serializations += 1
+        if serializations == 1:
+            return b"data"
+        with app.test_request_context(json={"client_id": "published"}):
+            response = inspect.unwrap(QueryRestApi.stop_query)(QueryRestApi())
+        stop_responses.append(response.status_code)
+        return b"x" * (2 * 1024 * 1024)
+
+    mocker.patch("superset.daos.query.get_user_id", return_value=7)
+    mocker.patch.object(sql_lab, "cancel_query", return_value=False)
+    mocker.patch.object(
+        sql_lab,
+        "_serialize_payload",
+        side_effect=serialize_with_stop,
+    )
+    mocker.patch.dict(
+        app.config,
+        {"STATS_LOGGER": MagicMock(), "SQL_MAX_ROW": 0, "SQLLAB_PAYLOAD_MAX_MB": 1},
+    )
+
+    stored: dict[str, bytes] = {}
+
+    def store(key: str, value: bytes, timeout: int) -> bool:
+        """Write the blob successfully."""
+        stored[key] = value
+        return True
+
+    backend = MagicMock()
+    backend.set.side_effect = store
+    mocker.patch.object(sql_lab, "results_backend", backend)
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="published",
+            user_id=7,
+            database_id=1,
+            sql="SELECT 1",
+            executed_sql="SELECT 1",
+            status=QueryStatus.PENDING,
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(sql_lab.db, "session", session)
+
+        payload = sql_lab.get_sql_results(
+            123, query.sql, return_results=True, store_results=True
+        )
+
+        key = backend.set.call_args.args[0]
+        session.rollback()
+        session.refresh(query)
+        assert payload is not None
+        assert stop_responses == [200]
+        assert payload["status"] == QueryStatus.STOPPED
+        assert query.status == QueryStatus.STOPPED
+        assert query.results_key is None
+        backend.delete.assert_called_once_with(key)
     engine.dispose()

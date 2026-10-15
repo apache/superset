@@ -68,6 +68,7 @@ from superset.sql.execution.utils import (
     _discard_unreferenced_results,
     _extract_errors,
     commit_query_unless_stopped,
+    commit_target_transaction,
 )
 from superset.sql.parse import BaseSQLStatement, CTASMethod, SQLScript, Table
 from superset.sqllab.limiting_factor import LimitingFactor
@@ -462,13 +463,11 @@ def execute_sql_statements(  # noqa: C901
     start_time: Optional[float],
     expand_data: bool,
     log_params: Optional[dict[str, Any]],
-    on_commit: Optional[Callable[[], None]] = None,
     on_results_key: Optional[Callable[[Optional[str]], None]] = None,
 ) -> Optional[dict[str, Any]]:
     """
     Executes the sql query returns the results.
 
-    :param on_commit: called once the target database commits a mutation or CTAS
     :param on_results_key: called with the key of results written to the
         results backend, then with None once the query row commits that key
     """
@@ -651,15 +650,9 @@ def execute_sql_statements(  # noqa: C901
         # A recorded Stop discards results even when an autocommit statement
         # has already changed the target database. It cannot undo those effects.
         if parsed_script.has_mutation() or query.select_as_cta:
-            with db.session.no_autoflush:
-                db.session.refresh(query, attribute_names=["status"])
-            stopped = query.status == QueryStatus.STOPPED
-            if stopped:
+            if not commit_target_transaction(query, conn.commit):
                 payload.update({"status": QueryStatus.STOPPED})
                 return payload
-            conn.commit()
-            if on_commit:
-                on_commit()
 
     # Preserve pending execution metadata without flushing it over a stop.
     # Publication below acquires the row lock before any terminal ORM flush.
@@ -787,35 +780,6 @@ def execute_sql_statements(  # noqa: C901
                     key,
                 )
 
-    # A stop that landed during serialization or the results backend write
-    # wins even if the target database committed: the query ends STOPPED, and
-    # the payload must say so too rather than carry the SUCCESS built above.
-    # Reload only the status, without flushing, so the result fields set on
-    # the success path above (rows, progress, extra "columns", select_sql,
-    # end_time, results_key) stay pending for the commit below.
-    with db.session.no_autoflush:
-        db.session.refresh(query, attribute_names=["status"])
-    if query.status == QueryStatus.STOPPED:
-        # Discard the pending success fields, keeping the stop's end time, and
-        # delete stored results the stopped row will not reference.
-        with db.session.no_autoflush:
-            db.session.refresh(query)
-        _discard_unpublished_results(query_id, stored_key, results_backend)
-        if on_results_key:
-            on_results_key(None)
-        db.session.commit()
-        return {"query_id": query_id, "status": QueryStatus.STOPPED}
-    if query.status != QueryStatus.FAILED:
-        query.status = QueryStatus.SUCCESS
-    if not commit_query_unless_stopped(query):
-        _discard_unpublished_results(query_id, stored_key, results_backend)
-        if on_results_key:
-            on_results_key(None)
-        db.session.commit()
-        return {"query_id": query_id, "status": QueryStatus.STOPPED}
-    if on_results_key:
-        on_results_key(None)
-
     if return_results:
         # since we're returning results we need to create non-arrow data
         if use_arrow_data:
@@ -852,6 +816,37 @@ def execute_sql_statements(  # noqa: C901
                         level=ErrorLevel.ERROR,
                     )
                 )
+
+    # A stop that landed during serialization or the results backend write
+    # wins unless the target-commit boundary already rejected Stop. The payload
+    # must say STOPPED too rather than carry the SUCCESS built above.
+    # Reload only the status, without flushing, so the result fields set on
+    # the success path above (rows, progress, extra "columns", select_sql,
+    # end_time, results_key) stay pending for the commit below.
+    with db.session.no_autoflush:
+        db.session.refresh(query, attribute_names=["status"])
+    if query.status == QueryStatus.STOPPED:
+        # Discard the pending success fields, keeping the stop's end time, and
+        # delete stored results the stopped row will not reference.
+        with db.session.no_autoflush:
+            db.session.refresh(query)
+        _discard_unpublished_results(query_id, stored_key, results_backend)
+        if on_results_key:
+            on_results_key(None)
+        db.session.commit()
+        return {"query_id": query_id, "status": QueryStatus.STOPPED}
+    if query.status != QueryStatus.FAILED:
+        query.status = QueryStatus.SUCCESS
+    if not commit_query_unless_stopped(query):
+        _discard_unpublished_results(query_id, stored_key, results_backend)
+        if on_results_key:
+            on_results_key(None)
+        db.session.commit()
+        return {"query_id": query_id, "status": QueryStatus.STOPPED}
+    if on_results_key:
+        on_results_key(None)
+
+    if return_results:
         return payload
 
     return None

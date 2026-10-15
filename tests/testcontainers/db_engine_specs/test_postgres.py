@@ -426,6 +426,7 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
     cancel_mode: str,
     statement: str,
     autocommit: bool,
+    stop_timing: str = "executing",
 ) -> None:
     """Real workers discard results after an accepted, best-effort engine stop."""
     import inspect as python_inspect
@@ -474,14 +475,56 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
         ),
     }[statement]
 
+    from threading import Event
+
+    committing = Event()
+    release_commit = Event()
+    release_results = Event()
+
+    class CursorProxy:
+        """Inject a Celery signal after the real statement has returned."""
+
+        def __init__(self, cursor: Any) -> None:
+            self.cursor = cursor
+
+        def __getattr__(self, name: str) -> Any:
+            return getattr(self.cursor, name)
+
+        def fetchall(self) -> Any:
+            if stop_timing == "soft_timeout":
+                from celery.exceptions import SoftTimeLimitExceeded
+
+                raise SoftTimeLimitExceeded()
+            return self.cursor.fetchall()
+
+    class ConnectionProxy:
+        """Pause exactly between the worker's stop check and target commit."""
+
+        def __init__(self, connection: Any) -> None:
+            self.connection = connection
+
+        def cursor(self) -> Any:
+            return CursorProxy(self.connection.cursor())
+
+        def commit(self) -> None:
+            if stop_timing == "target_commit":
+                committing.set()
+                assert release_commit.wait(10), "Commit was not released"
+            self.connection.commit()
+
     @contextmanager
     def raw_connection(**kwargs: Any) -> Iterator[Any]:
         """Use a real Postgres cursor without replacing either worker's executor."""
         connection = engine.raw_connection()
+        original_autocommit = connection.dbapi_connection.autocommit
         connection.dbapi_connection.autocommit = autocommit
         try:
-            yield connection
+            yield ConnectionProxy(connection)
         finally:
+            # Direct DBAPI changes bypass SQLAlchemy's isolation-level reset.
+            # Do not return an autocommit connection to the metadata pool.
+            connection.rollback()
+            connection.dbapi_connection.autocommit = original_autocommit
             connection.close()
 
     database = MagicMock()
@@ -504,6 +547,14 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
     backend = MagicMock()
     monkeypatch.setattr(celery_task, "results_backend", backend)
     monkeypatch.setattr(sql_lab, "results_backend", backend)
+
+    def store_results(*args: Any) -> bool:
+        """Keep finalization pending until Stop has checked the commit marker."""
+        if stop_timing == "target_commit":
+            assert release_results.wait(10), "Results were not released"
+        return True
+
+    backend.set.side_effect = store_results
     if cancel_mode == "no_cancel_id":
         # Model a connector using BaseEngineSpec's default (no cancel handle).
         monkeypatch.setattr(
@@ -542,14 +593,16 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
         )
         sessions.commit()
         try:
-            with ThreadPoolExecutor(max_workers=1) as pool:
+            with ThreadPoolExecutor(max_workers=2) as pool:
                 worker = pool.submit(work)
                 with engine.connect().execution_options(
                     isolation_level="AUTOCOMMIT"
                 ) as observer:
                     deadline = time.monotonic() + 10
                     pid = None
-                    while time.monotonic() < deadline:
+                    while (
+                        stop_timing != "target_commit" and time.monotonic() < deadline
+                    ):
                         pid = observer.execute(
                             text(
                                 "SELECT pid FROM pg_stat_activity "
@@ -560,29 +613,59 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
                         if pid:
                             break
                         time.sleep(0.01)
-                    assert pid is not None, "Postgres statement did not start"
-                    if caller == "api":
-                        with app.test_request_context(
-                            json={"client_id": "accept-stop"}
-                        ):
-                            response = python_inspect.unwrap(QueryRestApi.stop_query)(
-                                QueryRestApi()
-                            )
-                        assert response.status_code == 200
-                        assert response.get_json() == {"result": "OK"}
+                    if stop_timing == "target_commit":
+                        assert committing.wait(10), "Worker did not reach target commit"
                     else:
-                        handle = SQLExecutor(database)._create_async_handle(125)
-                        assert handle.cancel() is True
-                    if cancel_mode != "normal":
-                        assert observer.execute(
-                            text(
-                                "SELECT wait_event = 'PgSleep' FROM pg_stat_activity "
-                                "WHERE pid = :pid"
-                            ),
-                            {"pid": pid},
-                        ).scalar(), (
-                            "Failed engine cancel must leave the statement running"
-                        )
+                        assert pid is not None, "Postgres statement did not start"
+
+                    def stop_request() -> bool:
+                        """Run the real API/handle Stop in its own metadata session."""
+                        try:
+                            with app.test_request_context(
+                                json={"client_id": "accept-stop"}
+                            ):
+                                if caller == "api":
+                                    response = python_inspect.unwrap(
+                                        QueryRestApi.stop_query
+                                    )(QueryRestApi())
+                                    assert response.status_code in (200, 422)
+                                    if (
+                                        stop_timing == "target_commit"
+                                        and response.status_code == 422
+                                    ):
+                                        assert (
+                                            response.get_json()["query"]["state"]
+                                            == "running"
+                                        )
+                                    return response.status_code == 200
+                                return (
+                                    SQLExecutor(database)
+                                    ._create_async_handle(125)
+                                    .cancel()
+                                )
+                        finally:
+                            sessions.remove()
+
+                    stopping = pool.submit(stop_request)
+                    if stop_timing == "target_commit":
+                        # A guarded Stop must wait for the worker's row lock.
+                        # On the old code it completes before the target commit.
+                        deadline = time.monotonic() + 5
+                        while not stopping.done() and time.monotonic() < deadline:
+                            if observer.execute(
+                                text(
+                                    "SELECT count(*) FROM pg_stat_activity WHERE "
+                                    "wait_event_type = 'Lock' AND query LIKE '%query%'"
+                                )
+                            ).scalar():
+                                break
+                            time.sleep(0.01)
+                        release_commit.set()
+                    try:
+                        accepted = stopping.result(timeout=10)
+                        assert accepted is (stop_timing != "target_commit")
+                    finally:
+                        release_results.set()
                     payload = worker.result(timeout=10)
                     assert not observer.execute(
                         text(
@@ -594,18 +677,22 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
             with Session(engine) as verifier:
                 stopped = verifier.get(Query, 125)
                 assert stopped is not None
-                assert stopped.status == "stopped"
-                assert stopped.to_dict()["state"] == "stopped"
+                expected = "success" if stop_timing == "target_commit" else "stopped"
+                assert stopped.status == expected
+                assert stopped.to_dict()["state"] == expected
                 assert stopped.end_time is not None
                 assert stopped.error_message is None
-                assert stopped.results_key is None
+                assert bool(stopped.results_key) is (stop_timing == "target_commit")
             assert payload is not None
-            assert payload["status"] == "stopped"
+            assert payload["status"] == expected
             assert "error" not in payload
-            backend.set.assert_not_called()
+            if stop_timing != "target_commit":
+                backend.set.assert_not_called()
             # Stop accepts discarding results, not rolling back an autocommit
             # mutation that engine cancellation could not interrupt.
-            durable = autocommit and cancel_mode != "normal"
+            durable = stop_timing == "target_commit" or (
+                autocommit and cancel_mode != "normal"
+            )
             with engine.connect() as observer:
                 if statement == "ctas":
                     assert inspect(observer).has_table(table_name) is durable
@@ -621,3 +708,51 @@ def test_accepted_stop_with_real_postgres_workers(  # noqa: C901
             unreachable.dispose()
             with engine.begin() as connection:
                 connection.execute(text("DROP TABLE IF EXISTS accepted_stop_mutation"))
+
+
+@pytest.mark.parametrize("worker_path", ["legacy", "celery"])
+@pytest.mark.parametrize("caller", ["api", "async_handle"])
+@pytest.mark.parametrize("cancel_mode", ["normal", "unreachable", "no_cancel_id"])
+@pytest.mark.parametrize("statement", ["insert", "ctas"])
+def test_stop_at_target_commit_is_serialized(
+    engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    worker_path: str,
+    caller: str,
+    cancel_mode: str,
+    statement: str,
+) -> None:
+    """A target commit holding the row lock wins over a concurrent Stop."""
+    test_accepted_stop_with_real_postgres_workers(
+        engine,
+        monkeypatch,
+        worker_path,
+        caller,
+        cancel_mode,
+        statement,
+        False,
+        stop_timing="target_commit",
+    )
+
+
+@pytest.mark.parametrize("worker_path", ["legacy", "celery"])
+@pytest.mark.parametrize("caller", ["api", "async_handle"])
+@pytest.mark.parametrize("cancel_mode", ["unreachable", "no_cancel_id"])
+def test_soft_timeout_after_accepted_postgres_stop(
+    engine: Engine,
+    monkeypatch: pytest.MonkeyPatch,
+    worker_path: str,
+    caller: str,
+    cancel_mode: str,
+) -> None:
+    """A time-limit signal cannot overwrite an already accepted Stop."""
+    test_accepted_stop_with_real_postgres_workers(
+        engine,
+        monkeypatch,
+        worker_path,
+        caller,
+        cancel_mode,
+        "select",
+        False,
+        stop_timing="soft_timeout",
+    )

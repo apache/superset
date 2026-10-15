@@ -49,9 +49,6 @@ class ImpalaEngineSpec(BaseEngineSpec):
 
     engine = "impala"
     engine_name = "Apache Impala"
-    # impyla connections have no transactions and do not report a transaction
-    # mode, so each statement is durable when it finishes.
-    autocommit_by_default = True
 
     metadata = {
         "description": (

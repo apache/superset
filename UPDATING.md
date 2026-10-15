@@ -25,15 +25,23 @@ assists people when migrating to a new version.
 ## Next
 
 - `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
-  has already finished, including when completion wins a concurrent stop request.
-  The response contains `message: "Could not cancel query"` and the completed
-  `query`. API clients should use that query's terminal state rather than treating
-  the response as a successful cancellation. A stop recorded before completion
-  returns HTTP 200 (and an async handle's `cancel()` returns `True`) even if engine
-  cancellation is unavailable or fails. The query remains stopped in SQL Lab;
-  the engine statement may continue running, with its results discarded.
-  A mutation on an autocommit connection can complete despite an accepted Stop;
-  Stop does not roll back its database changes.
+  has already finished or its worker has committed the target transaction.
+  The response contains `message: "Could not cancel query"` and the recorded
+  `query`; an async handle's `cancel()` returns `False`. After a target commit,
+  that query can still be running while SQL Lab prepares its results.
+  PostgreSQL/MySQL metadata databases serialize Stop against the worker's final
+  stop check and target commit. If Stop wins, transactional work is discarded;
+  if the worker wins, Stop is rejected even before results are published.
+  An accepted Stop returns HTTP 200 (`cancel()` returns `True`) even if engine
+  cancellation or subsequent cancellation-metadata persistence fails. Its stopped
+  state and original end time survive repeated Stop requests and worker timeouts.
+  Engine cancellation is best-effort: its statement may continue, but SQL Lab
+  discards the results. Stop cannot undo autocommit, implicit-commit DDL, or SQL
+  commits performed during execution. With SQLite metadata (which does not
+  support row locks), a Stop accepted between the worker's final check and
+  target commit can also leave transactional changes committed. Target and
+  metadata commits are not atomic: a metadata commit failure after the target
+  commit can likewise leave database changes without the committed marker.
 
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,

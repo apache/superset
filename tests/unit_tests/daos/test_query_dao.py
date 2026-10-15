@@ -526,3 +526,81 @@ def test_accepted_stop_reports_success_when_engine_cancel_fails(
     session.expire_all()
     assert query.status == QueryStatus.STOPPED
     assert query.end_time is not None
+
+
+@pytest.mark.parametrize("caller", ["api", "async_handle"])
+@pytest.mark.parametrize("failure", ["none", "final_stop", "final_commit"])
+def test_stop_acceptance_survives_post_commit_failure(
+    mocker: MockerFixture,
+    app_context: None,
+    session: Session,
+    caller: str,
+    failure: str,
+) -> None:
+    """A durable stop remains accepted, and repeating it preserves its timestamp."""
+    from superset.queries.api import QueryRestApi
+    from superset.sql.execution.executor import SQLExecutor
+
+    Query.__table__.create(session.get_bind())
+    query = Query(
+        id=123,
+        client_id="durable-stop",
+        user_id=7,
+        database_id=1,
+        status=QueryStatus.RUNNING,
+    )
+    session.add(query)
+    session.commit()
+    mocker.patch("superset.daos.query.get_user_id", return_value=7)
+    cancel_api = mocker.patch(
+        "superset.daos.query.sql_lab.cancel_query", return_value=False
+    )
+    cancel_handle = mocker.patch.object(
+        SQLExecutor, "_cancel_query", return_value=False
+    )
+    commit = session.commit
+    stop = set_query_stopped
+    commits = 0
+    stops = 0
+
+    def fail_commit() -> None:
+        """Fail only the second commit, after acceptance is durable."""
+        nonlocal commits
+        commits += 1
+        if failure == "final_commit" and commits == 2:
+            raise RuntimeError("post-stop commit failed")
+        commit()
+
+    def fail_stop(query: Query, end_time: float) -> bool:
+        """Fail the post-cancellation metadata merge."""
+        nonlocal stops
+        stops += 1
+        if failure == "final_stop" and stops == 2:
+            raise RuntimeError("post-stop merge failed")
+        return stop(query, end_time)
+
+    mocker.patch.object(session, "commit", side_effect=fail_commit)
+    mocker.patch("superset.daos.query.set_query_stopped", side_effect=fail_stop)
+    mocker.patch(
+        "superset.sql.execution.utils.set_query_stopped", side_effect=fail_stop
+    )
+
+    def request_stop() -> None:
+        """Exercise the public response rather than only the staged row."""
+        if caller == "api":
+            with current_app.test_request_context(json={"client_id": "durable-stop"}):
+                response = inspect.unwrap(QueryRestApi.stop_query)(QueryRestApi())
+            assert response.status_code == 200
+        else:
+            assert SQLExecutor(mocker.Mock())._create_async_handle(123).cancel() is True
+
+    request_stop()
+    session.expire_all()
+    original_end_time = query.end_time
+    assert query.status == QueryStatus.STOPPED
+    request_stop()
+    session.expire_all()
+    assert query.status == QueryStatus.STOPPED
+    assert query.end_time == original_end_time
+    # Repeating Stop can retry best-effort cancellation without changing time.
+    assert (cancel_api if caller == "api" else cancel_handle).call_count == 2

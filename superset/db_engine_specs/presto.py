@@ -166,9 +166,6 @@ class PrestoBaseEngineSpec(BaseEngineSpec, metaclass=ABCMeta):
 
     supports_dynamic_schema = True
     supports_catalog = supports_dynamic_catalog = supports_cross_catalog_queries = True
-    # PyHive's Presto and Hive connections have no transactions and do not report
-    # a transaction mode, so each statement is durable when it finishes.
-    autocommit_by_default = True
 
     encrypted_extra_sensitive_fields = {
         "$.auth_params.password": "Password",

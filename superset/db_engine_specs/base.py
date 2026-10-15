@@ -22,7 +22,6 @@ import logging
 import re
 import warnings
 from datetime import datetime, timedelta
-from enum import Enum
 from inspect import signature
 from re import Match, Pattern
 from typing import (
@@ -655,10 +654,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     requires_column_value_normalization: bool = False
     try_remove_schema_from_table_name = True  # pylint: disable=invalid-name
     run_multiple_statements_as_one = False
-    # Whether each statement is durable as soon as it finishes when the DB-API
-    # driver does not report its transaction mode (for example, a driver whose
-    # ``commit()`` does nothing because the database has no transactions).
-    autocommit_by_default = False
     custom_errors: dict[
         Pattern[str], tuple[str, SupersetErrorType, dict[str, Any]]
     ] = {}
@@ -3026,41 +3021,6 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         persists them with a guarded stop so a concurrent terminal result wins.
         """
         return None
-
-    @classmethod
-    def is_autocommit(cls, connection: Any) -> bool:
-        """
-        Whether statements run on a raw DB-API connection are durable once they
-        finish, so ``commit()`` has nothing left to commit or discard.
-
-        Drivers report this through the ``autocommit`` attribute (psycopg2,
-        pyodbc), ``get_autocommit()`` (MySQL drivers) or an ``AUTOCOMMIT``
-        isolation level (Trino). Connections that report none of these fall
-        back to ``autocommit_by_default``.
-
-        :param connection: A raw connection, as returned by
-            ``Database.get_raw_connection``
-        :return: Whether each statement commits when it finishes
-        """
-        dbapi_connection = getattr(connection, "dbapi_connection", None) or connection
-        autocommit = getattr(dbapi_connection, "autocommit", None)
-        if isinstance(autocommit, bool):
-            return autocommit
-        get_autocommit = getattr(dbapi_connection, "get_autocommit", None)
-        if callable(get_autocommit):
-            try:
-                autocommit = get_autocommit()
-            except Exception:  # pylint: disable=broad-except
-                logger.warning("Could not read the connection's autocommit mode")
-            else:
-                if isinstance(autocommit, bool):
-                    return autocommit
-        isolation_level = getattr(dbapi_connection, "isolation_level", None)
-        if isinstance(isolation_level, Enum):
-            isolation_level = isolation_level.name
-        if isinstance(isolation_level, str) and isolation_level:
-            return isolation_level.upper() == "AUTOCOMMIT"
-        return cls.autocommit_by_default
 
     @classmethod
     def has_implicit_cancel(cls) -> bool:

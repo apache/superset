@@ -19,17 +19,19 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from typing import TYPE_CHECKING
 
 import sqlalchemy as sa
 
 from superset import db
 from superset.common.db_query_status import QueryStatus
-from superset.constants import QUERY_EARLY_CANCEL_KEY
+from superset.constants import QUERY_EARLY_CANCEL_KEY, QUERY_TARGET_COMMITTED_KEY
 from superset.errors import SupersetError
 from superset.exceptions import SupersetErrorException, SupersetErrorsException
 from superset.models.sql_lab import Query
 from superset.utils import json
+from superset.utils.dates import now_as_float
 
 if TYPE_CHECKING:
     from flask_caching.backends.base import BaseCache
@@ -151,7 +153,7 @@ def set_query_stopped(query: Query, end_time: float) -> bool:
                 ),
             )
             .update(
-                {Query.status: QueryStatus.STOPPED, Query.end_time: end_time},
+                {Query.status: Query.status},
                 synchronize_session=False,
             )
         )
@@ -161,8 +163,13 @@ def set_query_stopped(query: Query, end_time: float) -> bool:
         # The update holds the write lock through commit. Discard stale ORM
         # metadata and merge only stop intent into the worker's latest extra.
         db.session.refresh(query, with_for_update=True)
-        query.status = QueryStatus.STOPPED
-        query.end_time = end_time
+        if query.extra.get(QUERY_TARGET_COMMITTED_KEY) is True:
+            return False
+        if query.status != QueryStatus.STOPPED:
+            query.status = QueryStatus.STOPPED
+            query.end_time = end_time
+        elif query.end_time is None:
+            query.end_time = end_time
         if early_cancel:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
     return True
@@ -184,3 +191,64 @@ def commit_query_unless_stopped(query: Query) -> bool:
             return False
     db.session.commit()  # pylint: disable=consider-using-transaction
     return True
+
+
+def commit_target_transaction(query: Query, commit: Callable[[], None]) -> bool:
+    """Serialize the last Stop check and target commit on the metadata row.
+
+    Postgres/MySQL hold the row lock until the target-committed marker is
+    durable. A Stop's guarded update waits, then declines that marker even
+    while result serialization is still running. SQLite ignores FOR UPDATE;
+    it retains a check-to-commit window. Neither database can make the two
+    commits atomic in the face of a metadata commit failure.
+    """
+    with db.session.no_autoflush:
+        db.session.refresh(query, attribute_names=["status"], with_for_update=True)
+        if query.status == QueryStatus.STOPPED:
+            db.session.refresh(query)
+            return False
+        commit()
+        query.set_extra_json_key(QUERY_TARGET_COMMITTED_KEY, True)
+        return commit_query_unless_stopped(query)
+
+
+def finish_query_stop(query: Query, cancel: Callable[[], bool]) -> bool:
+    """Publish Stop before cancellation; later failures cannot reject acceptance.
+
+    The caller has staged a guarded Stop. Only the first commit determines
+    acceptance. Cancellation and its optional early-cancel metadata are
+    best-effort after that point.
+    """
+    query_id = query.id
+    end_time = query.end_time
+    db.session.commit()  # pylint: disable=consider-using-transaction
+    try:
+        try:
+            engine_cancelled = cancel()
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Query %s: Stop accepted; engine cancellation not confirmed",
+                query_id,
+                exc_info=True,
+            )
+        else:
+            if not engine_cancelled:
+                logger.warning(
+                    "Query %s: Stop accepted; engine cancellation not confirmed",
+                    query_id,
+                )
+        stopped = set_query_stopped(query, end_time or now_as_float())
+        db.session.commit()  # pylint: disable=consider-using-transaction
+        return stopped
+    except Exception:  # pylint: disable=broad-except
+        logger.warning(
+            "Query %s: Stop accepted; cancellation metadata was not recorded",
+            query_id,
+            exc_info=True,
+        )
+        db.session.rollback()  # pylint: disable=consider-using-transaction
+        # Keep acceptance readable even if the metadata database is unavailable
+        # after the first commit. These are committed values, not staged writes.
+        sa.orm.attributes.set_committed_value(query, "status", QueryStatus.STOPPED)
+        sa.orm.attributes.set_committed_value(query, "end_time", end_time)
+        return True

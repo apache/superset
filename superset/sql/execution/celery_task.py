@@ -60,6 +60,7 @@ from superset.sql.execution.utils import (
     _discard_unreferenced_results,
     _extract_errors,
     commit_query_unless_stopped as _commit_query_unless_stopped,
+    commit_target_transaction,
     set_query_stopped,
     stop_seen_during_execution,
 )
@@ -96,17 +97,14 @@ def _handle_query_error(
     :param results_key: key of results stored in the results backend before the
         failure; the failed row keeps it, or it is deleted if a stop wins
     """
-    # Preserve TIMED_OUT status if already set (from SoftTimeLimitExceeded handler).
-    # A timeout is a terminal outcome the user did not cause and outranks a
-    # stop recorded while the query was being killed.
+    # Preserve an uncommitted timeout only if no accepted Stop won the row.
     timed_out = query.status == QueryStatus.TIMED_OUT
     status = QueryStatus.TIMED_OUT if timed_out else QueryStatus.FAILED
-    final = timed_out
     # Results stored before the failure are unpublished; a stop reloads the row
     # and drops their pending key, so read it first. A rollback after a failed
     # flush has already dropped it, so prefer the key tracked at the write.
     stored_key = results_key or query.results_key
-    if not final and _make_check_stopped_fn(query, preserve_pending=True)():
+    if _make_check_stopped_fn(query, preserve_pending=True)():
         _discard_unreferenced_results(query.id, stored_key, results_backend)
         return _stopped_query_payload(query)
 
@@ -135,9 +133,7 @@ def _handle_query_error(
             payload["link"] = troubleshooting_link
         # The commit is the last step that can fail: when this function raises,
         # the failed row was not committed and does not reference the results.
-        if final:
-            db.session.commit()  # pylint: disable=consider-using-transaction
-        elif not _commit_query_unless_stopped(query):
+        if not _commit_query_unless_stopped(query):
             _discard_unreferenced_results(query.id, stored_key, results_backend)
             return _stopped_query_payload(query)
         return payload
@@ -541,13 +537,11 @@ def _execute_sql_statements(
     query_id: int,
     rendered_query: str,
     start_time: float | None,
-    on_commit: Callable[[], None] | None = None,
     on_results_key: Callable[[str], None] | None = None,
 ) -> dict[str, Any] | None:
     """
     Execute SQL statements and store results.
 
-    :param on_commit: called once the target database commits a mutation or CTAS
     :param on_results_key: called with the key of results stored in the results
         backend, before any metadata read or write that can fail
     """
@@ -633,9 +627,7 @@ def _execute_sql_statements(
 
         # Commit for mutations
         if not stopped and writes:
-            conn.commit()  # pylint: disable=consider-using-transaction
-            if on_commit:
-                on_commit()
+            stopped = not commit_target_transaction(query, conn.commit)
 
     if stopped or (writes and check_stopped()):
         return _stopped_query_payload(query)

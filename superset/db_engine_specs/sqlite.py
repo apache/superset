@@ -129,24 +129,6 @@ class SqliteEngineSpec(BaseEngineSpec):
     }
 
     @classmethod
-    def is_autocommit(cls, connection: Any) -> bool:
-        """
-        Whether the statements that ran on the connection are already durable.
-
-        sqlite3 commits each statement as it finishes unless a transaction is
-        open. In its default transaction control only INSERT, UPDATE, DELETE
-        and REPLACE open one implicitly, so DDL such as ``CREATE TABLE ... AS``
-        is durable whatever the connection's isolation level. The driver
-        reports whether finished work is still uncommitted through
-        ``in_transaction``, which is checked once the statements have run.
-        """
-        dbapi_connection = getattr(connection, "dbapi_connection", None) or connection
-        in_transaction = getattr(dbapi_connection, "in_transaction", None)
-        if isinstance(in_transaction, bool):
-            return not in_transaction
-        return super().is_autocommit(connection)
-
-    @classmethod
     def epoch_to_dttm(cls) -> str:
         return "datetime({col}, 'unixepoch')"
 

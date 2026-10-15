@@ -26,10 +26,9 @@ from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery
 from superset.queries.filters import QueryFilter
 from superset.queries.saved_queries.filters import SavedQueryFilter
-from superset.sql.execution.utils import set_query_stopped
+from superset.sql.execution.utils import finish_query_stop, set_query_stopped
 from superset.utils.core import get_user_id
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +60,6 @@ class QueryDAO(BaseDAO[Query]):
         )
 
     @staticmethod
-    @transaction()
     def stop_query(client_id: str) -> Query:
         """Stop a query and return its recorded outcome, including a lost race."""
         query = (
@@ -83,32 +81,10 @@ class QueryDAO(BaseDAO[Query]):
             return query
 
         with db.session.no_autoflush:
-            end_time = now_as_float()
-            if not set_query_stopped(query, end_time):
+            if not set_query_stopped(query, now_as_float()):
+                db.session.commit()  # pylint: disable=consider-using-transaction
                 return query
-            # Cancellation can wake the worker immediately. Publish stop intent
-            # before signalling the engine, not in the decorator's later commit.
-            db.session.commit()  # pylint: disable=consider-using-transaction
-            # STOPPED is the accepted outcome even when the engine cannot
-            # cancel. The worker discards results rather than publishing them.
-            try:
-                engine_cancelled = sql_lab.cancel_query(query)
-            except Exception:  # pylint: disable=broad-except
-                logger.warning(
-                    "Query %s: Stop accepted; engine cancellation not confirmed",
-                    query.id,
-                    exc_info=True,
-                )
-            else:
-                if not engine_cancelled:
-                    logger.warning(
-                        "Query %s: Stop accepted; engine cancellation not confirmed",
-                        query.id,
-                    )
-
-            # Engine preparation can stage early-cancel metadata. Merge it only
-            # if no durable terminal outcome has superseded this stop.
-            set_query_stopped(query, end_time)
+            finish_query_stop(query, lambda: sql_lab.cancel_query(query))
         return query
 
 
