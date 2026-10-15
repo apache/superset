@@ -121,7 +121,7 @@
     "@luma.gl/gltf": "~9.4.0",
     "@luma.gl/shadertools": "~9.4.0",
     "@luma.gl/webgl": "~9.4.0",
-    "@reduxjs/toolkit": "^1.9.3",
+    "@reduxjs/toolkit": "^2.13.0",
     "@rjsf/core": "^6.11.0",
     "@rjsf/utils": "^6.6.2",
     "@rjsf/validator-ajv8": "^6.11.0",
