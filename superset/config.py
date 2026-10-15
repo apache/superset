@@ -731,7 +731,7 @@ DEFAULT_FEATURE_FLAGS: dict[str, bool] = {
     # @lifecycle: development
     "ALERT_REPORT_TABS": False,
     # Canvas: the AI-first successor to dashboards, whose widgets are placed on
-    # a canvas. When off, its API is not registered; existing canvases are kept.
+    # a canvas. When off, its APIs and pages answer 404; existing canvases are kept.
     # @lifecycle: development
     "CANVAS": False,
     # Enables experimental chart plugins

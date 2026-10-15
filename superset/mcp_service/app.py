@@ -1041,7 +1041,7 @@ def _remove_tool_quietly(tool_name: str, reason: str) -> None:
         pass
 
 
-# Registered only with the CANVAS feature flag, like the canvas and widget APIs.
+# Removed while the CANVAS feature flag is off.
 CANVAS_TOOLS = (
     "list_canvases",
     "get_canvas",
@@ -1068,8 +1068,8 @@ def _apply_config_guards(flask_app: Any) -> set[str]:
       the GLOBAL_TASK_FRAMEWORK feature flag via feature_flag_manager so that
       all Superset enablement paths (DEFAULT_FEATURE_FLAGS, GET_FEATURE_FLAGS_FUNC,
       IS_FEATURE_ENABLED_FUNC, etc.) are respected.
-    - Canvas and widget tools: mirror the canvas and widget APIs, which are
-      registered only with the CANVAS feature flag.
+    - Canvas and widget tools: removed while the CANVAS feature flag is off,
+      as the canvas and widget APIs answer 404 then.
     """
     removed: set[str] = set()
 
