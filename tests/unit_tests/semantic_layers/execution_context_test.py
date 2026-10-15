@@ -251,6 +251,9 @@ def test_execution_refusal_survives_api_boundary(
         "superset.semantic_layers.api.db.session.query"
     ).return_value.filter_by.return_value.first.return_value = execution_view
     cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    query_cache_get: MagicMock = mocker.patch(
+        "superset.common.query_context_processor.QueryCacheManager.get"
+    )
     factory: MagicMock = mocker.spy(LegacyLayer, "from_configuration")
     response: Any
     if endpoint == "column":
@@ -291,6 +294,7 @@ def test_execution_refusal_survives_api_boundary(
     )
     assert response.json["errors"][0]["extra"]["reason"] == "method_not_supported"
     cache.get.assert_not_called()
+    query_cache_get.assert_not_called()
     factory.assert_not_called()
 
 

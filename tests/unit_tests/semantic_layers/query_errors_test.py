@@ -393,6 +393,104 @@ def test_annotation_preserves_semantic_failure(
     command.run.assert_called_once()
 
 
+def test_annotation_access_denial_is_validation_error(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """An ordinary annotation datasource denial keeps the validation boundary."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        SupersetSecurityException,
+    )
+
+    denial: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message="Annotation datasource access denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    chart: MagicMock = MagicMock()
+    chart.get_query_context.return_value.queries = []
+    chart.get_query_context.return_value.raise_for_access.side_effect = denial
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    with pytest.raises(
+        QueryObjectValidationError, match="Annotation datasource access denied"
+    ):
+        QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source"}, False
+        )
+    chart.get_query_context.return_value.raise_for_access.assert_called_once()
+
+
+@pytest.mark.parametrize("result_type", ["full", "query"])
+def test_annotation_access_denial_http(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    result_type: str,
+) -> None:
+    """Ordinary source denial is a query failure, not a whole-request 403."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    chart: MagicMock = MagicMock()
+    chart.get_query_context.return_value.queries = []
+    chart.get_query_context.return_value.raise_for_access.side_effect = (
+        SupersetSecurityException(
+            SupersetError(
+                message="Annotation datasource access denied",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["ORDER_DATE"],
+                    "metrics": ["ORDER_COUNT"],
+                    "annotation_layers": [
+                        {
+                            "annotationType": "EVENT",
+                            "sourceType": "table",
+                            "value": 42,
+                            "name": "Source",
+                            "show": True,
+                            "showMarkers": False,
+                        }
+                    ],
+                }
+            ],
+            "result_format": "json",
+            "result_type": result_type,
+            "force": True,
+        },
+    )
+    if result_type == "full":
+        assert response.status_code == 400
+        assert "Annotation datasource access denied" in response.get_data(as_text=True)
+        chart.get_query_context.return_value.raise_for_access.assert_called_once()
+    else:
+        # Query previews do not load annotations; their own validation error
+        # remains in the successful response's per-query payload.
+        assert response.status_code == 200
+        assert "provider query" in response.json["result"][0]["error"]
+        chart.get_query_context.return_value.raise_for_access.assert_not_called()
+
+
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])
 def test_async_completeness_does_not_publish_success(
     app_context: None, date_view: MagicMock, mocker: MockerFixture, reason: str
@@ -509,3 +607,75 @@ def test_unknown_rejection_code_is_logged_before_normalizing(
     assert error.code == SemanticQueryErrorCode.INVALID_QUERY
     assert "'INVALID_FLITER'" in caplog.text
     assert str(error) == "Semantic query rejected."
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize(
+    "code",
+    [
+        "UNSUPPORTED_QUERY",
+        "UNSUPPORTED_OFFSET",
+        "INVALID_FILTER",
+        "INVALID_QUERY",
+        "unknown-private-code",
+        None,
+    ],
+)
+def test_async_provider_error_matches_sync_chart_error(
+    app_context: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    guest: bool,
+    code: str | None,
+) -> None:
+    """The real async processor preserves host classification and public text."""
+    from superset.charts.schemas import ChartDataQueryContextSchema
+    from superset.common.query_context import QueryContext
+    from superset.common.query_serialization import serialize_query
+    from superset.exceptions import SupersetErrorException
+    from superset.semantic_layers.exceptions import (
+        SemanticLayerExecutionError,
+        SemanticLayerQueryRejectedError,
+    )
+    from superset.tasks.async_queries import execute_chart_query
+    from superset.tasks.utils import error_update
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    failure: Exception = (
+        SemanticQueryRejectedError(code)
+        if code is not None
+        else RuntimeError("private-provider-diagnostic")
+    )
+    expected: SupersetErrorException = (
+        SemanticLayerQueryRejectedError(failure.code)
+        if isinstance(failure, SemanticQueryRejectedError)
+        else SemanticLayerExecutionError()
+    )
+    date_view.get_table.side_effect = failure
+    context: QueryContext = ChartDataQueryContextSchema().load(
+        {
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        }
+    )
+    task_context: MagicMock = mocker.patch(
+        "superset.tasks.async_queries.get_context"
+    ).return_value
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=context
+    )
+    captured: pytest.ExceptionInfo[SupersetErrorException]
+    with pytest.raises(type(expected)) as captured:
+        execute_chart_query.func(serialize_query(context, 0), user_id=7)
+
+    assert captured.value.status == expected.status
+    assert captured.value.message == expected.message
+    assert error_update(captured.value)["error_message"] == expected.message
+    assert "private" not in str(captured.value.to_dict())
+    task_context.update_task.assert_not_called()
+    date_view.get_table.assert_called_once()
