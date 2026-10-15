@@ -322,6 +322,44 @@ def test_in_on_array_parses_literals(mocker: MockerFixture, app: Flask) -> None:
             "skills not in (array('driver'), array('cook'))",
             id="not-in",
         ),
+        # Raw (non-string) values: the array literal comes from ``val`` itself,
+        # never from the scalar operand, which would collapse ``[]`` to NULL and
+        # ``[0]`` to the falsy ``0``. Every one of these is a real array.
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.NOT_EQUALS.value, "val": []},
+            "skills != array()",
+            id="not-equals-raw-empty-list",
+        ),
+        pytest.param(
+            {"col": "scores", "op": FilterOperator.NOT_EQUALS.value, "val": [0]},
+            "scores != array(0)",
+            id="not-equals-raw-zero-list",
+        ),
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.NOT_EQUALS.value, "val": [None]},
+            "skills != array(null)",
+            id="not-equals-raw-null-element",
+        ),
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.NOT_IN.value, "val": [[]]},
+            "skills not in (array())",
+            id="not-in-raw-empty-array",
+        ),
+        pytest.param(
+            {"col": "scores", "op": FilterOperator.NOT_IN.value, "val": [[0]]},
+            "scores not in (array(0))",
+            id="not-in-raw-zero-array",
+        ),
+        pytest.param(
+            {"col": "scores", "op": FilterOperator.NOT_IN.value, "val": [0]},
+            "scores not in (array(0))",
+            id="not-in-raw-zero-candidate",
+        ),
+        pytest.param(
+            {"col": "skills", "op": FilterOperator.NOT_IN.value, "val": []},
+            "skills not in (",
+            id="not-in-raw-empty-candidate-list",
+        ),
     ],
 )
 def test_negated_whole_array_filter_keeps_null_arrays(

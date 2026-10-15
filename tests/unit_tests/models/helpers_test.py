@@ -5655,390 +5655,6 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
     )
 
 
-def test_get_sqla_query_calculated_column_inlined_in_raw_records(
-    database: Database,
-) -> None:
-    """Regression test for #34784: a calculated column selected as an adhoc
-    column in a raw-records query (no groupby/metrics) must have its stored
-    SQL expression inlined, not emitted as a bare column reference."""
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-    from superset.models.helpers import SqlaQuery
-
-    table: SqlaTable = SqlaTable(
-        database=database,
-        schema=None,
-        table_name="t",
-        columns=[
-            TableColumn(column_name="a", type="INTEGER"),
-            TableColumn(column_name="b", type="TEXT"),
-            TableColumn(
-                column_name="name_test",
-                type="TEXT",
-                expression="CASE WHEN a > 0 THEN 'positive' ELSE 'non-positive' END",
-            ),
-        ],
-    )
-
-    # No metrics/groupby => the ``elif columns:`` branch runs.
-    adhoc_col: AdhocColumn = {
-        "sqlExpression": "name_test",
-        "label": "name_test",
-        "isColumnReference": True,
-    }
-    sqlaq: SqlaQuery = table.get_sqla_query(
-        columns=[adhoc_col],
-        is_timeseries=False,
-        row_limit=10,
-    )
-
-    with database.get_sqla_engine() as engine:
-        sql: str = str(
-            sqlaq.sqla_query.compile(
-                dialect=engine.dialect,
-                compile_kwargs={"literal_binds": True},
-            )
-        )
-
-    # The stored expression must be inlined rather than emitted as a bare
-    # ``name_test`` reference.
-    assert "CASE WHEN a > 0" in sql
-    assert "'positive'" in sql
-    assert "'non-positive'" in sql
-
-
-def test_values_for_column_uses_read_limit_retry(
-    mocker: MockerFixture,
-    database: Database,
-) -> None:
-    """
-    Physical-table datasets run filter-value SQL through the database
-    read-limit retry so engines like ClickHouse can bound the read when the
-    engine rejects it.
-    """
-    import pandas as pd
-
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-
-    table = SqlaTable(
-        database=database,
-        schema=None,
-        table_name="t",
-        columns=[TableColumn(column_name="a")],
-    )
-
-    retry = mocker.patch.object(
-        database,
-        "run_with_sampling_read_limit_retry",
-        side_effect=lambda sql, run: run(sql),
-    )
-    with patch(
-        "pandas.read_sql_query",
-        return_value=pd.DataFrame({"column_values": [1]}),
-    ):
-        table.values_for_column("a")
-
-    retry.assert_called_once()
-
-
-def test_values_for_column_virtual_dataset_skips_read_limit_retry(
-    mocker: MockerFixture,
-    database: Database,
-) -> None:
-    """
-    Virtual datasets embed user-authored SQL and must stay governed by
-    operator read limits.
-    """
-    import pandas as pd
-
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-
-    table = SqlaTable(
-        database=database,
-        schema=None,
-        table_name="virtual_t",
-        sql="SELECT a FROM t",
-        columns=[TableColumn(column_name="a")],
-    )
-
-    retry = mocker.patch.object(
-        database,
-        "run_with_sampling_read_limit_retry",
-        side_effect=lambda sql, run: run(sql),
-    )
-    with patch(
-        "pandas.read_sql_query",
-        return_value=pd.DataFrame({"column_values": [1]}),
-    ):
-        table.values_for_column("a")
-
-    retry.assert_not_called()
-
-
-def test_get_query_str_extended_does_not_alter_system_sampling_sql(
-    database: Database,
-) -> None:
-    """
-    The bounded-read override is a retry-time concern; the generated (and
-    user-visible) statement for a samples request must stay unmodified.
-    """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-
-    table = SqlaTable(
-        database=database,
-        schema=None,
-        table_name="t",
-        columns=[TableColumn(column_name="a")],
-    )
-
-    query_str_ext = table.get_query_str_extended(
-        {
-            "columns": ["a"],
-            "extras": {"system_sampling": True},
-            "is_timeseries": False,
-            "row_limit": 10,
-        }
-    )
-    assert "SETTINGS" not in query_str_ext.sql
-
-
-def test_query_system_sampling_uses_read_limit_retry(
-    mocker: MockerFixture,
-    database: Database,
-) -> None:
-    """
-    The system_sampling extras marker (set by the samples query action)
-    routes execution through the read-limit retry; ordinary chart queries
-    are untouched.
-    """
-    import pandas as pd
-
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-
-    table = SqlaTable(
-        database=database,
-        schema=None,
-        table_name="t",
-        columns=[TableColumn(column_name="a")],
-    )
-    retry = mocker.patch.object(
-        database,
-        "run_with_sampling_read_limit_retry",
-        side_effect=lambda sql, run: run(sql),
-    )
-    mocker.patch.object(database, "get_df", return_value=pd.DataFrame({"a": [1]}))
-
-    table.query(
-        {
-            "columns": ["a"],
-            "extras": {"system_sampling": True},
-            "is_timeseries": False,
-            "row_limit": 10,
-        }
-    )
-    retry.assert_called_once()
-
-    retry.reset_mock()
-    table.query({"columns": ["a"], "is_timeseries": False, "row_limit": 10})
-    retry.assert_not_called()
-
-
-def test_query_system_sampling_skips_virtual_dataset(
-    mocker: MockerFixture,
-    database: Database,
-) -> None:
-    """
-    Even sample requests do not receive the retry on virtual datasets.
-    """
-    import pandas as pd
-
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-
-    table = SqlaTable(
-        database=database,
-        schema=None,
-        table_name="virtual_t",
-        sql="SELECT a FROM t",
-        columns=[TableColumn(column_name="a")],
-    )
-    retry = mocker.patch.object(
-        database,
-        "run_with_sampling_read_limit_retry",
-        side_effect=lambda sql, run: run(sql),
-    )
-    mocker.patch.object(database, "get_df", return_value=pd.DataFrame({"a": [1]}))
-
-    table.query(
-        {
-            "columns": ["a"],
-            "extras": {"system_sampling": True},
-            "is_timeseries": False,
-            "row_limit": 10,
-        }
-    )
-    retry.assert_not_called()
-
-
-def test_select_star_returns_unmodified_sql(
-    mocker: MockerFixture,
-    database: Database,
-) -> None:
-    """
-    select_star output is displayed in SQL Lab, returned by the API, and
-    persisted as CTAS result-fetch SQL, so it must never carry the
-    bounded-read override.
-    """
-    from superset.sql.parse import Table
-
-    retry_sql = mocker.patch.object(database, "sampling_read_limit_retry_sql")
-    sql = database.select_star(Table("t"), limit=10, latest_partition=False)
-
-    retry_sql.assert_not_called()
-    assert "SETTINGS" not in sql
-
-
-def test_adhoc_type_probe_does_not_get_sampling_retry(
-    mocker: MockerFixture,
-    database: Database,
-) -> None:
-    """
-    The adhoc expression type probe is a zero-row WHERE FALSE query and must
-    never be routed through the sampling read-limit retry.
-    """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-
-    table = SqlaTable(
-        database=database,
-        schema=None,
-        table_name="t",
-        columns=[TableColumn(column_name="a", type="INTEGER")],
-    )
-    retry = mocker.patch.object(
-        database,
-        "run_with_sampling_read_limit_retry",
-        side_effect=lambda sql, run: run(sql),
-    )
-    mocker.patch(
-        "superset.connectors.sqla.models.get_columns_description",
-        return_value=[{"is_dttm": False, "type_generic": GenericDataType.NUMERIC}],
-    )
-
-    adhoc_col: AdhocColumn = {
-        "sqlExpression": "a + 1",
-        "label": "probe_me",
-        "columnType": "BASE_AXIS",
-        "timeGrain": "P1D",
-    }
-    table.adhoc_column_to_sqla(adhoc_col)
-
-    retry.assert_not_called()
-
-
-def test_filter_adhoc_column(database: Database) -> None:
-    """
-    Test that filter works with adhoc column labels.
-    When filter contains a string that matches the label of an adhoc column
-    in the columns list, it should correctly convert to a SQLAlchemy column
-    instead of raising QueryObjectValidationError.
-    """
-    from superset.connectors.sqla.models import SqlaTable, TableColumn
-
-    table = SqlaTable(
-        table_name="test_table",
-        database=database,
-        columns=[
-            TableColumn(column_name="name", type="TEXT"),
-            TableColumn(column_name="real_name", type="TEXT"),
-        ],
-    )
-
-    # Should not raise QueryObjectValidationError
-    result = table.get_sqla_query(
-        columns=[
-            "name",
-            {
-                "expressionType": "SQL",
-                "label": "full_name",
-                "sqlExpression": "real_name",
-            },
-        ],
-        orderby=[],
-        metrics=[],
-        extras={},
-        filter=[
-            {"col": "full_name", "op": "ILIKE", "val": "Zona%"}
-        ],  # Filter by adhoc column label
-        granularity=None,
-        is_timeseries=False,
-    )
-    assert result is not None
-
-    # Verify the WHERE predicate uses the resolved adhoc expression and value.
-    with database.get_sqla_engine() as engine:
-        sql = str(
-            result.sqla_query.compile(
-                dialect=engine.dialect,
-                compile_kwargs={"literal_binds": True},
-            )
-        )
-
-    assert "real_name AS full_name" in sql
-    assert "WHERE" in sql
-    # The adhoc column resolved by label is parenthesized in the WHERE clause,
-    # consistent with inline adhoc columns, to guard operator precedence.
-    assert "lower((real_name)) LIKE lower('Zona%')" in sql
-
-
-def test_get_query_result_wraps_post_processing_type_error(
-    database: "Database",
-) -> None:
-    """
-    A raw TypeError from pandas inside exec_post_processing (e.g. resample.mean()
-    on a DataFrame that contains object-dtype columns) must be surfaced as
-    QueryObjectValidationError (400) rather than propagating as a system 500.
-    """
-    from datetime import timedelta
-    from unittest.mock import patch
-
-    import pandas as pd
-
-    from superset.common.query_object import QueryObject
-    from superset.connectors.sqla.models import SqlaTable
-    from superset.exceptions import QueryObjectValidationError
-    from superset.models.helpers import QueryResult
-
-    table = SqlaTable(table_name="t", database=database)
-
-    # DatetimeIndex + object-dtype "category" column causes
-    # df.resample("1D").mean() to raise TypeError in pandas ≥ 2.x
-    df = pd.DataFrame(
-        {"metric": [1.0, 2.0], "category": ["a", "b"]},
-        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
-    )
-
-    query_object = QueryObject(
-        row_limit=10,
-        post_processing=[
-            {"operation": "resample", "options": {"method": "mean", "rule": "1D"}}
-        ],
-    )
-
-    with (
-        patch.object(
-            table,
-            "query",
-            return_value=QueryResult(
-                df=df,
-                query="SELECT 1",
-                duration=timedelta(0),
-                sql_shifted_temporal_labels=set(),
-            ),
-        ),
-        patch.object(table, "normalize_df", return_value=df),
-        pytest.raises(QueryObjectValidationError),
-    ):
-        table.get_query_result(query_object)
-
-
 # Rows used by the NULL-handling tests for negated filters. ``state`` is the
 # column that is selected back out; the other columns are the filter targets for
 # the column-type cases (``ip`` and ``port`` carry the advanced data types). The
@@ -6091,17 +5707,20 @@ def _negation_table(database: Database) -> SqlaTable:
             connection.execute(
                 text(
                     "CREATE TABLE negation_t (id INTEGER, state TEXT, n INTEGER, "
-                    "flag BOOLEAN, ts TIMESTAMP, uid UUID, ip INTEGER, port INTEGER)"
+                    "flag BOOLEAN, ts TIMESTAMP, uid UUID, ip INTEGER, port INTEGER, "
+                    "state_copy TEXT)"
                 )
             )
             for row in _NEGATION_ROWS:
                 connection.execute(
                     text(
-                        "INSERT INTO negation_t VALUES "
-                        "(:id, :state, :n, :flag, :ts, :uid, :ip, :port)"
+                        "INSERT INTO negation_t "
+                        "(id, state, n, flag, ts, uid, ip, port) "
+                        "VALUES (:id, :state, :n, :flag, :ts, :uid, :ip, :port)"
                     ),
                     dict(zip(_NEGATION_COLUMNS, row, strict=True)),
                 )
+            connection.execute(text("UPDATE negation_t SET state_copy = state"))
 
     return SqlaTable(
         database=database,
@@ -6118,6 +5737,11 @@ def _negation_table(database: Database) -> SqlaTable:
                 column_name="ip", type="INTEGER", advanced_data_type="internet_address"
             ),
             TableColumn(column_name="port", type="INTEGER", advanced_data_type="port"),
+            TableColumn(
+                column_name="state_copy",
+                type="TEXT",
+                advanced_data_type="null_aware_type",
+            ),
             TableColumn(
                 column_name="upper_state", type="TEXT", expression="UPPER(state)"
             ),
@@ -6539,3 +6163,490 @@ def test_ip_not_in_cidr_range_non_null_rows_unchanged(database: Database) -> Non
         "val": ["192.168.1.0/24"],
     }
     assert _states_matching_filter(database, flt) - {None} == set()
+
+
+@pytest.fixture
+def null_aware_advanced_data_type(
+    mocker: MockerFixture, advanced_data_types: None
+) -> None:
+    """
+    Register a custom advanced data type whose translation understands NULL
+    operands: ``!= NULL`` / ``NOT IN (NULL)`` become ``IS NOT NULL`` (the plugin
+    request contract allows NULL values).
+    """
+    from flask import current_app
+    from sqlalchemy import and_
+
+    from superset.advanced_data_type.types import (
+        AdvancedDataType,
+        AdvancedDataTypeRequest,
+        AdvancedDataTypeResponse,
+    )
+
+    def translate_type(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
+        return {
+            "values": list(req["values"]),
+            "error_message": "",
+            "display_value": "",
+            "valid_filter_operators": [],
+        }
+
+    def translate_filter(col: Any, op: FilterOperator, values: list[Any]) -> Any:
+        non_null = [value for value in values if value is not None]
+        if op == FilterOperator.EQUALS:
+            return col == values[0]
+        if op == FilterOperator.IN:
+            return col.in_(non_null)
+        if op == FilterOperator.NOT_EQUALS:
+            return col.isnot(None) if values[0] is None else col != values[0]
+        if not non_null:
+            return col.isnot(None)
+        if len(non_null) < len(values):
+            return and_(col.isnot(None), ~col.in_(non_null))
+        return ~col.in_(non_null)
+
+    mocker.patch.dict(
+        current_app.config["ADVANCED_DATA_TYPES"],
+        {
+            "null_aware_type": AdvancedDataType(
+                verbose_name="null aware",
+                description="translates NULL operands itself",
+                valid_data_types=["str"],
+                translate_type=translate_type,
+                translate_filter=translate_filter,
+            )
+        },
+    )
+
+
+@pytest.mark.usefixtures("null_aware_advanced_data_type")
+@pytest.mark.parametrize(
+    "flt, expected",
+    [
+        pytest.param(
+            {"col": "state_copy", "op": "!=", "val": None},
+            {"CA", "NY", "TX"},
+            id="not-equals-null-operand",
+        ),
+        pytest.param(
+            {"col": "state_copy", "op": "NOT IN", "val": [None]},
+            {"CA", "NY", "TX"},
+            id="not-in-only-null",
+        ),
+        pytest.param(
+            {"col": "state_copy", "op": "NOT IN", "val": ["CA", None]},
+            {"NY", "TX"},
+            id="not-in-with-explicit-null",
+        ),
+        pytest.param(
+            {"col": "state_copy", "op": "==", "val": "CA"}, {"CA"}, id="equals"
+        ),
+    ],
+)
+def test_custom_advanced_data_type_explicit_null_translation_is_not_wrapped(
+    database: Database, flt: QueryObjectFilterClause, expected: set[str | None]
+) -> None:
+    """
+    A plugin that translates an explicit NULL operand itself (``IS NOT NULL``) is
+    not wrapped with a keep-NULL disjunct, which would make it match every row.
+    """
+    assert _states_matching_filter(database, flt) == expected
+
+
+@pytest.mark.usefixtures("null_aware_advanced_data_type")
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "state_copy", "op": "!=", "val": "CA"}, id="not-equals"),
+        pytest.param({"col": "state_copy", "op": "NOT IN", "val": ["CA"]}, id="not-in"),
+    ],
+)
+def test_custom_advanced_data_type_negation_with_value_keeps_null_rows(
+    database: Database, flt: QueryObjectFilterClause
+) -> None:
+    """The same plugin, given a non-NULL operand, gets its negation wrapped."""
+    assert _states_matching_filter(database, flt) == {"NY", "TX", None}
+
+
+def test_get_sqla_query_calculated_column_inlined_in_raw_records(
+    database: Database,
+) -> None:
+    """Regression test for #34784: a calculated column selected as an adhoc
+    column in a raw-records query (no groupby/metrics) must have its stored
+    SQL expression inlined, not emitted as a bare column reference."""
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.models.helpers import SqlaQuery
+
+    table: SqlaTable = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="a", type="INTEGER"),
+            TableColumn(column_name="b", type="TEXT"),
+            TableColumn(
+                column_name="name_test",
+                type="TEXT",
+                expression="CASE WHEN a > 0 THEN 'positive' ELSE 'non-positive' END",
+            ),
+        ],
+    )
+
+    # No metrics/groupby => the ``elif columns:`` branch runs.
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "name_test",
+        "label": "name_test",
+        "isColumnReference": True,
+    }
+    sqlaq: SqlaQuery = table.get_sqla_query(
+        columns=[adhoc_col],
+        is_timeseries=False,
+        row_limit=10,
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql: str = str(
+            sqlaq.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    # The stored expression must be inlined rather than emitted as a bare
+    # ``name_test`` reference.
+    assert "CASE WHEN a > 0" in sql
+    assert "'positive'" in sql
+    assert "'non-positive'" in sql
+
+
+def test_values_for_column_uses_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Physical-table datasets run filter-value SQL through the database
+    read-limit retry so engines like ClickHouse can bound the read when the
+    engine rejects it.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    retry.assert_called_once()
+
+
+def test_values_for_column_virtual_dataset_skips_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Virtual datasets embed user-authored SQL and must stay governed by
+    operator read limits.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        sql="SELECT a FROM t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    with patch(
+        "pandas.read_sql_query",
+        return_value=pd.DataFrame({"column_values": [1]}),
+    ):
+        table.values_for_column("a")
+
+    retry.assert_not_called()
+
+
+def test_get_query_str_extended_does_not_alter_system_sampling_sql(
+    database: Database,
+) -> None:
+    """
+    The bounded-read override is a retry-time concern; the generated (and
+    user-visible) statement for a samples request must stay unmodified.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+
+    query_str_ext = table.get_query_str_extended(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    assert "SETTINGS" not in query_str_ext.sql
+
+
+def test_query_system_sampling_uses_read_limit_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    The system_sampling extras marker (set by the samples query action)
+    routes execution through the read-limit retry; ordinary chart queries
+    are untouched.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch.object(database, "get_df", return_value=pd.DataFrame({"a": [1]}))
+
+    table.query(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    retry.assert_called_once()
+
+    retry.reset_mock()
+    table.query({"columns": ["a"], "is_timeseries": False, "row_limit": 10})
+    retry.assert_not_called()
+
+
+def test_query_system_sampling_skips_virtual_dataset(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    Even sample requests do not receive the retry on virtual datasets.
+    """
+    import pandas as pd
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="virtual_t",
+        sql="SELECT a FROM t",
+        columns=[TableColumn(column_name="a")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch.object(database, "get_df", return_value=pd.DataFrame({"a": [1]}))
+
+    table.query(
+        {
+            "columns": ["a"],
+            "extras": {"system_sampling": True},
+            "is_timeseries": False,
+            "row_limit": 10,
+        }
+    )
+    retry.assert_not_called()
+
+
+def test_select_star_returns_unmodified_sql(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    select_star output is displayed in SQL Lab, returned by the API, and
+    persisted as CTAS result-fetch SQL, so it must never carry the
+    bounded-read override.
+    """
+    from superset.sql.parse import Table
+
+    retry_sql = mocker.patch.object(database, "sampling_read_limit_retry_sql")
+    sql = database.select_star(Table("t"), limit=10, latest_partition=False)
+
+    retry_sql.assert_not_called()
+    assert "SETTINGS" not in sql
+
+
+def test_adhoc_type_probe_does_not_get_sampling_retry(
+    mocker: MockerFixture,
+    database: Database,
+) -> None:
+    """
+    The adhoc expression type probe is a zero-row WHERE FALSE query and must
+    never be routed through the sampling read-limit retry.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="a", type="INTEGER")],
+    )
+    retry = mocker.patch.object(
+        database,
+        "run_with_sampling_read_limit_retry",
+        side_effect=lambda sql, run: run(sql),
+    )
+    mocker.patch(
+        "superset.connectors.sqla.models.get_columns_description",
+        return_value=[{"is_dttm": False, "type_generic": GenericDataType.NUMERIC}],
+    )
+
+    adhoc_col: AdhocColumn = {
+        "sqlExpression": "a + 1",
+        "label": "probe_me",
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    table.adhoc_column_to_sqla(adhoc_col)
+
+    retry.assert_not_called()
+
+
+def test_filter_adhoc_column(database: Database) -> None:
+    """
+    Test that filter works with adhoc column labels.
+    When filter contains a string that matches the label of an adhoc column
+    in the columns list, it should correctly convert to a SQLAlchemy column
+    instead of raising QueryObjectValidationError.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        table_name="test_table",
+        database=database,
+        columns=[
+            TableColumn(column_name="name", type="TEXT"),
+            TableColumn(column_name="real_name", type="TEXT"),
+        ],
+    )
+
+    # Should not raise QueryObjectValidationError
+    result = table.get_sqla_query(
+        columns=[
+            "name",
+            {
+                "expressionType": "SQL",
+                "label": "full_name",
+                "sqlExpression": "real_name",
+            },
+        ],
+        orderby=[],
+        metrics=[],
+        extras={},
+        filter=[
+            {"col": "full_name", "op": "ILIKE", "val": "Zona%"}
+        ],  # Filter by adhoc column label
+        granularity=None,
+        is_timeseries=False,
+    )
+    assert result is not None
+
+    # Verify the WHERE predicate uses the resolved adhoc expression and value.
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            result.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert "real_name AS full_name" in sql
+    assert "WHERE" in sql
+    # The adhoc column resolved by label is parenthesized in the WHERE clause,
+    # consistent with inline adhoc columns, to guard operator precedence.
+    assert "lower((real_name)) LIKE lower('Zona%')" in sql
+
+
+def test_get_query_result_wraps_post_processing_type_error(
+    database: "Database",
+) -> None:
+    """
+    A raw TypeError from pandas inside exec_post_processing (e.g. resample.mean()
+    on a DataFrame that contains object-dtype columns) must be surfaced as
+    QueryObjectValidationError (400) rather than propagating as a system 500.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(table_name="t", database=database)
+
+    # DatetimeIndex + object-dtype "category" column causes
+    # df.resample("1D").mean() to raise TypeError in pandas ≥ 2.x
+    df = pd.DataFrame(
+        {"metric": [1.0, 2.0], "category": ["a", "b"]},
+        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
+    )
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "resample", "options": {"method": "mean", "rule": "1D"}}
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        pytest.raises(QueryObjectValidationError),
+    ):
+        table.get_query_result(query_object)
