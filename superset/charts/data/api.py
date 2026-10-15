@@ -559,8 +559,9 @@ class ChartDataRestApi(ChartRestApi):
             # the frontend uses to expose the "View query" action); stacktraces
             # and driver errors stay redacted regardless, as those leak details
             # of the deployment itself. The helper resolves the guest-sanitization
-            # decision (failing closed when the principal can't be resolved) and
-            # is a no-op otherwise, so it can be called unconditionally. The same
+            # decision (failing closed for a guest whose principal can't be
+            # resolved) and is a no-op otherwise, so it can be called
+            # unconditionally. The same
             # helper redacts the ``/datasource/samples`` (Drill to detail)
             # response so the two guest-facing endpoints cannot diverge.
             redact_sensitive_query_fields(queries)

@@ -447,9 +447,10 @@ class Datasource(BaseSupersetView):
         )
         # Drill to detail is available to embedded guests (see the guest branch
         # above), and the samples payload carries the generated SQL under
-        # ``query``. Apply the same guest redaction ``/api/v1/chart/data`` has
-        # applied since CVE-2025-55673 so the SQL is not disclosed to a guest
-        # whose role lacks "can view query on Dashboard".
+        # ``query``. Apply the same guest redaction as ``/api/v1/chart/data``
+        # (CVE-2025-55673, gated on "can view query on Dashboard" since #43151)
+        # so the SQL is not disclosed to a guest whose role lacks that
+        # permission.
         redact_sensitive_query_fields([rv])
         return self.json_response({"result": rv})
 

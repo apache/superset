@@ -931,7 +931,14 @@ def test_samples_guest_response_is_redacted_by_the_real_helper(
     }
     mock_get_samples.return_value = rv
 
+    # Serialize what the view hands to ``json_response`` at call time, as the
+    # real ``json_response`` does, so the assertions see what a client receives
+    # and would catch the redaction running only after the response is built.
+    sent: list[dict[str, Any]] = []
     view = _view_self()
+    view.json_response.side_effect = lambda obj, *args, **kwargs: sent.append(
+        superset_json.loads(superset_json.dumps(obj))
+    )
     app = Flask(__name__)
     with app.test_request_context(
         "/datasource/samples?datasource_type=table&datasource_id=1&dashboard_id=5",
@@ -940,15 +947,16 @@ def test_samples_guest_response_is_redacted_by_the_real_helper(
     ):
         _get_view_func("samples")(view)
 
-    # The real helper redacted the generated SQL and stacktrace in place before
-    # the response was built, while the rendering fields were left intact.
-    assert "query" not in rv
-    assert "stacktrace" not in rv
-    assert rv["data"] == [{"id": 1}]
+    # The serialized response carries no generated SQL or stacktrace, while the
+    # rendering fields were left intact.
+    assert len(sent) == 1
+    result = sent[0]["result"]
+    assert "query" not in result
+    assert "stacktrace" not in result
+    assert result["data"] == [{"id": 1}]
     mock_global_security_manager.can_access.assert_called_once_with(
         "can_view_query", "Dashboard"
     )
-    view.json_response.assert_called_once_with({"result": rv})
 
 
 # A raw driver error can quote the full statement (SQLAlchemy appends
