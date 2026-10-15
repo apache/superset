@@ -23,6 +23,7 @@ It is used by SQLExecutor.execute_async() to run queries in the background.
 
 from __future__ import annotations
 
+import base64
 import dataclasses
 import logging
 import traceback
@@ -185,6 +186,20 @@ def _finalize_successful_query(
                     "execution_time_ms": exec_time,
                 }
             )
+            # JSON encodes temporal values as strings; retain their exact Arrow
+            # types so the DataFrame reader can distinguish dates from timestamps
+            # and preserve timestamp units and timezones.
+            import pyarrow as pa
+
+            temporal_fields = [
+                field
+                for field in result_set.pa_table.schema
+                if pa.types.is_date(field.type) or pa.types.is_timestamp(field.type)
+            ]
+            if temporal_fields:
+                statements_data[-1]["temporal_schema"] = base64.b64encode(
+                    pa.schema(temporal_fields).serialize().to_pybytes()
+                ).decode("ascii")
         else:
             # DML statement - no data, just row count
             statements_data.append(

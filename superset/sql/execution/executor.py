@@ -84,6 +84,7 @@ from superset.utils import core as utils
 
 if TYPE_CHECKING:
     import pandas as pd
+    import pyarrow as pa
     from superset_core.queries.types import (
         AsyncQueryHandle,
         QueryOptions,
@@ -456,10 +457,20 @@ def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | No
         column.get("column_name", column.get("name", ""))
         for column in stmt_data.get("columns", [])
     ]
-    return _records_to_dataframe(data, columns)
+    temporal_types = {}
+    if schema_data := stmt_data.get("temporal_schema"):
+        import base64
+
+        schema = pa.ipc.read_schema(pa.BufferReader(base64.b64decode(schema_data)))
+        temporal_types = {field.name: field.type for field in schema}
+    return _records_to_dataframe(data, columns, temporal_types)
 
 
-def _records_to_dataframe(records: list[Any], columns: list[Any]) -> pd.DataFrame:
+def _records_to_dataframe(
+    records: list[Any],
+    columns: list[Any],
+    temporal_types: dict[str, pa.DataType] | None = None,
+) -> pd.DataFrame:
     """
     Build a DataFrame from JSON-style records.
 
@@ -469,6 +480,7 @@ def _records_to_dataframe(records: list[Any], columns: list[Any]) -> pd.DataFram
     objects. The given columns are kept even when there are no records.
 
     :param records: Rows as dicts keyed by column name
+    :param temporal_types: Arrow types for temporal columns serialized as ISO strings
     :param columns: Column names, in order
     :returns: DataFrame of the records
     """
@@ -478,7 +490,14 @@ def _records_to_dataframe(records: list[Any], columns: list[Any]) -> pd.DataFram
     if not columns or not all(isinstance(row, dict) for row in records):
         return pd.DataFrame(records, columns=columns or None)
 
-    def to_series(values: list[Any]) -> pd.Series:
+    def to_series(name: str, values: list[Any]) -> pd.Series:
+        # DataFrame.to_dict keeps pandas' missing timestamp sentinel on cache hits.
+        values = [None if value is pd.NaT else value for value in values]
+        if temporal_types and name in temporal_types:
+            from superset.result_set import SupersetResultSet
+
+            array = pa.array(values).cast(temporal_types[name])
+            return SupersetResultSet.convert_table_to_df(pa.table({name: array}))[name]
         try:
             array = pa.array(values)
         except (pa.ArrowInvalid, pa.ArrowTypeError):
@@ -488,7 +507,7 @@ def _records_to_dataframe(records: list[Any], columns: list[Any]) -> pd.DataFram
         return array.to_pandas(integer_object_nulls=True)
 
     return pd.DataFrame(
-        {name: to_series([row.get(name) for row in records]) for name in columns},
+        {name: to_series(name, [row.get(name) for row in records]) for name in columns},
         columns=columns,
     )
 

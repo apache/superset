@@ -34,6 +34,7 @@ from pytest_mock import MockerFixture
 from superset_core.queries.types import QueryStatus
 
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
+from superset.models.core import Database
 from superset.result_set import SupersetResultSet
 from superset.sql.execution.celery_task import (
     _finalize_successful_query,
@@ -111,7 +112,7 @@ def _store_and_read(
     mocker.patch(
         "superset.sql.execution.executor.db.session.query"
     ).return_value.filter_by.return_value.one_or_none.return_value = query
-    return SQLExecutor._get_async_query_result(query.id)
+    return SQLExecutor(database)._create_async_handle(query.id).get_result()
 
 
 @pytest.mark.parametrize("use_msgpack", [True, False])
@@ -402,3 +403,105 @@ def test_cache_hit_returns_dataframes(mocker: MockerFixture, app_context: None) 
         assert list(empty.data.columns) == ["b"]
         assert dml.data is None
         assert dml.row_count == 4
+
+
+@pytest.mark.parametrize(
+    "use_msgpack,read_msgpack",
+    [(True, True), (False, False), (True, False), (False, True)],
+)
+def test_async_temporal_results_match_sync(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    use_msgpack: bool,
+    read_msgpack: bool,
+) -> None:
+    """Temporal values and dtypes match synchronous execution for both codecs."""
+    from datetime import date, datetime, timezone
+
+    from flask import current_app
+
+    from .conftest import create_mock_connection, create_mock_cursor
+
+    sql = "SELECT timestamp_value, date_value, text_value, tz_value FROM t"
+    rows = [
+        (
+            datetime(2026, 1, 2, 3, 4, 5, 123456),
+            date(2026, 1, 2),
+            "2026-01-02",
+            datetime(2026, 1, 2, tzinfo=timezone.utc),
+        ),
+        (None, None, None, None),
+    ]
+    columns = ["timestamp_value", "date_value", "text_value", "tz_value"]
+    cursor = create_mock_cursor(columns, rows)
+    mocker.patch.object(
+        database, "get_raw_connection", return_value=create_mock_connection(cursor)
+    )
+    mocker.patch.object(
+        database, "mutate_sql_based_on_config", side_effect=lambda sql, **kw: sql
+    )
+    mocker.patch.object(database.db_engine_spec, "execute")
+    mocker.patch.object(database.db_engine_spec, "fetch_data", return_value=rows)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "SQL_QUERY_MUTATOR": None,
+            "SQLLAB_TIMEOUT": 30,
+            "SQL_MAX_ROW": None,
+            "QUERY_LOGGER": None,
+        },
+    )
+    sync = database.execute(sql)
+    assert sync.status == QueryStatus.SUCCESS, sync.error_message
+    result = _store_and_read(
+        mocker,
+        sql,
+        [_select(sql, columns, rows)],
+        write_msgpack=use_msgpack,
+        read_msgpack=read_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+
+
+def test_temporal_cache_hit_matches_sync(
+    mocker: MockerFixture, app_context: None, database: Database
+) -> None:
+    """The shared records reader keeps Python temporal values on cache hits."""
+    from datetime import date, datetime
+
+    from superset_core.queries.types import QueryOptions, QueryResult, StatementResult
+
+    from superset.extensions import cache_manager
+
+    sql = "SELECT timestamp_value, date_value FROM t"
+    expected = _result_set(
+        ["timestamp_value", "date_value"],
+        [(datetime(2026, 1, 2, 3, 4, 5), date(2026, 1, 2)), (None, None)],
+    ).to_pandas_df()
+    executor = SQLExecutor(database)
+    mocker.patch.object(executor, "_generate_cache_key", return_value="temporal-key")
+    cache = DictCache()
+    mocker.patch.object(cache_manager.data_cache, "get", side_effect=cache.get)
+    mocker.patch.object(cache_manager.data_cache, "set", side_effect=cache.set)
+    executor._store_in_cache(
+        QueryResult(
+            status=QueryStatus.SUCCESS,
+            statements=[
+                StatementResult(
+                    original_sql=sql,
+                    executed_sql=sql,
+                    data=expected,
+                    row_count=2,
+                )
+            ],
+        ),
+        sql,
+        QueryOptions(),
+    )
+    cached = executor._get_from_cache(sql, QueryOptions())
+    assert cached is not None
+    pd.testing.assert_frame_equal(cached.statements[0].data, expected)
+    handle = executor._create_cached_handle(cached)
+    pd.testing.assert_frame_equal(handle.get_result().statements[0].data, expected)
