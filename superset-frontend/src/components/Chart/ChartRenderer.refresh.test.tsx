@@ -242,3 +242,61 @@ test('does not render a chart with an empty response while its query is in fligh
   expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
   expect(screen.queryByText(NO_RESULTS)).not.toBeInTheDocument();
 });
+
+test('reports the render when an auto-refresh lands on a chart kept on screen', async () => {
+  const chartProps = props({ suppressLoadingSpinner: true });
+  const { actions } = chartProps;
+  const { rerender } = render(
+    <ChartRenderer {...chartProps} chartStatus="rendered" />,
+  );
+  await screen.findByTestId('refresh-test-chart');
+  rerender(<ChartRenderer {...chartProps} chartStatus="loading" />);
+  await screen.findByTestId('refresh-test-chart');
+  expect(actions.chartRenderingSucceeded).not.toHaveBeenCalled();
+
+  rerender(
+    <ChartRenderer
+      {...chartProps}
+      chartStatus="success"
+      queriesResponse={queriesResponse(2)}
+    />,
+  );
+
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=2',
+  );
+  expect(actions.chartRenderingSucceeded).toHaveBeenCalledTimes(1);
+  expect(actions.chartRenderingSucceeded).toHaveBeenCalledWith(1);
+  expect(actions.logEvent).toHaveBeenCalledTimes(1);
+});
+
+test('reports a refreshed render once when the plugin mounts for the new response', async () => {
+  // The previous response had no rows, so the refresh shows the no-results
+  // state and the plugin mounts, and reports itself, when data lands.
+  const chartProps = props({
+    suppressLoadingSpinner: true,
+    queriesResponse: [{ data: [] }] as unknown as QueryData[],
+  });
+  const { actions } = chartProps;
+  const { rerender } = render(
+    <ChartRenderer {...chartProps} chartStatus="rendered" />,
+  );
+  await screen.findByText(NO_RESULTS);
+  rerender(<ChartRenderer {...chartProps} chartStatus="loading" />);
+  await screen.findByText(NO_RESULTS);
+
+  rerender(
+    <ChartRenderer
+      {...chartProps}
+      chartStatus="success"
+      queriesResponse={queriesResponse(2)}
+    />,
+  );
+
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=2',
+  );
+  await waitForChartLoad();
+  expect(actions.chartRenderingSucceeded).toHaveBeenCalledTimes(1);
+  expect(actions.logEvent).toHaveBeenCalledTimes(1);
+});

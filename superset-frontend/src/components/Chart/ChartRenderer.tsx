@@ -320,7 +320,16 @@ function ChartRendererComponent({
     [addFilter],
   );
 
+  // The response the last render success was reported for. A refreshed
+  // response can be reported both by the effect below and by a plugin that
+  // mounts for it, and only the first report counts.
+  const reportedResponseRef = useRef<QueryData[] | null | undefined>();
+
   const handleRenderSuccess = useCallback((): void => {
+    if (reportedResponseRef.current === queriesResponse) {
+      return;
+    }
+    reportedResponseRef.current = queriesResponse;
     if (['loading', 'rendered'].indexOf(chartStatus as string) < 0) {
       actions.chartRenderingSucceeded(chartId);
     }
@@ -335,7 +344,23 @@ function ChartRendererComponent({
         duration: Logger.getTimestamp() - renderStartTimeRef.current,
       });
     }
-  }, [actions, chartId, chartStatus, propVizType]);
+  }, [actions, chartId, chartStatus, propVizType, queriesResponse]);
+
+  // The plugin reports render success once, after it loads. A chart kept on
+  // screen through an auto-refresh stays mounted when the new response lands,
+  // so that render is reported here to move the chart back to `rendered`.
+  const keptOnScreenRef = useRef(false);
+  useEffect(() => {
+    if (chartStatus === 'loading') {
+      keptOnScreenRef.current = hasRenderableResults;
+      return;
+    }
+    const refreshLanded = keptOnScreenRef.current;
+    keptOnScreenRef.current = false;
+    if (refreshLanded && chartStatus === 'success') {
+      handleRenderSuccess();
+    }
+  }, [chartStatus, handleRenderSuccess, hasRenderableResults, queriesResponse]);
 
   const handleRenderFailure = useCallback(
     (error: Error, info: { componentStack: string } | null): void => {
