@@ -231,6 +231,8 @@ def test_background_context_has_separate_binding(
         "structure",
         "chart_data",
         "saved_chart_data",
+        "datasource_info",
+        "datasource_query",
     ],
 )
 def test_execution_refusal_survives_api_boundary(
@@ -264,6 +266,13 @@ def test_execution_refusal_survives_api_boundary(
         response = client.post("/api/v1/datasource/semantic_view/1/compatible", json={})
     elif endpoint == "structure":
         response = client.get("/api/v1/semantic_view/1/structure")
+    elif endpoint == "datasource_info":
+        response = client.get("/api/v1/datasource/semantic_view/1")
+    elif endpoint == "datasource_query":
+        response = client.post(
+            "/api/v1/datasource/semantic_view/1/query",
+            json={"dimensions": ["category"]},
+        )
     elif endpoint in {"chart_data", "saved_chart_data"}:
         from superset.charts.data.api import ChartDataRestApi
         from superset.utils import json
@@ -296,6 +305,42 @@ def test_execution_refusal_survives_api_boundary(
     cache.get.assert_not_called()
     query_cache_get.assert_not_called()
     factory.assert_not_called()
+
+
+@pytest.mark.parametrize("endpoint", ["info", "query"])
+def test_datasource_resolution_keeps_unrelated_denial_message_only(
+    client: Any,
+    full_api_access: None,
+    execution_view: SemanticView,
+    mocker: MockerFixture,
+    endpoint: str,
+) -> None:
+    """Resolution must not serialize details from ordinary access denials."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    mocker.patch.object(
+        SemanticView,
+        "raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                message="Access denied",
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"tables": ["private_schema.private_table"]},
+            )
+        ),
+    )
+    response: Any
+    if endpoint == "info":
+        response = client.get("/api/v1/datasource/semantic_view/1")
+    else:
+        response = client.post(
+            "/api/v1/datasource/semantic_view/1/query",
+            json={"dimensions": ["category"]},
+        )
+    assert response.status_code == 403
+    assert response.json == {"message": "Access denied"}
 
 
 @pytest.mark.parametrize("saved", [False, True])
