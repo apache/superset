@@ -774,7 +774,9 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                         ),
                         error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                         level=ErrorLevel.ERROR,
-                    )
+                    ),
+                    # A configuration problem, not a server fault.
+                    status=400,
                 )
 
             # Deliberately *instead of* impersonation, not alongside it, and this is
@@ -818,7 +820,8 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                     ),
                     error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
                     level=ErrorLevel.ERROR,
-                )
+                ),
+                status=400,
             )
         elif self.impersonate_user:
             sqlalchemy_url, engine_kwargs = self.db_engine_spec.impersonate_user(

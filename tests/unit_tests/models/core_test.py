@@ -3421,6 +3421,8 @@ def test_a_guest_is_refused_rather_than_run_on_the_base_credential(
     assert excinfo.value.error.error_type == (
         SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
     )
+    # A configuration problem, so monitoring must not count it as a server fault.
+    assert excinfo.value.status == 400
     create_engine_mock.assert_not_called()
 
 
@@ -3800,6 +3802,7 @@ def test_a_guest_on_a_promoted_connection_is_refused_with_an_actionable_message(
     assert error.error_type == SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR
     assert "OAuth2 client information" in error.message
     assert "imported from another environment" in error.message
+    assert excinfo.value.status == 400
     create_engine_mock.assert_not_called()
 
 
