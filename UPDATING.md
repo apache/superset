@@ -2008,8 +2008,15 @@ non-additive-metric bug this section originally removed the control for does
 not return. It reuses the exact same field name and value spellings as
 before, so a chart that still had e.g. `aggregateFunction: "Median"` sitting
 unused in its saved `params` starts computing totals with that aggregation
-again automatically, with no action required and no value to reconfigure. A
-one-time migration tags every such chart with a `legacy-pivot-aggregation-restored`
+again automatically, with no action required and no value to reconfigure. The
+one exception is a chart that also has a percent "Show values as" selected:
+that control only exists since the per-table aggregation was removed, so the
+percent choice is the more recent, explicit intent (made on top of
+database-computed totals), and a result aggregation would both change those
+totals and hide the percent display. The migration drops the orphaned
+`aggregateFunction` from such a chart (and from its saved `query_context`)
+instead of restoring it, so it keeps rendering exactly as before. A
+one-time migration tags every other such chart with a `legacy-pivot-aggregation-restored`
 custom tag; opening a tagged chart in Explore shows a notice that its totals
 may now look different, which clears once you review and accept it (or save
 the chart). Accepting only removes the tag; it does not rebuild the saved

@@ -2625,6 +2625,44 @@ def test_apply_client_processing_xlsx_formats_percentages_as_cells():
     assert sheet.cell(row=2, column=2).number_format == "0.0%"
 
 
+def test_apply_client_processing_xlsx_no_percent_format_under_result_aggregation():
+    """A stale percent `showValuesAs` under a result aggregation is ignored
+    when pivoting (the chart no longer renders it, see
+    `effective_show_values_as`), so the workbook must not apply the percent
+    number format either: an actual value of 10 would otherwise display as
+    1000.0%.
+    """
+    import openpyxl  # noqa: PLC0415
+
+    source = pd.DataFrame(
+        {"nation": ["US", "US"], "gender": ["boy", "girl"], "SUM(num)": [1, 99]}
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": "Average",
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    workbook = openpyxl.load_workbook(BytesIO(processed["queries"][0]["data"]))
+    sheet = workbook.active
+    assert sheet.cell(row=2, column=2).value == 1
+    assert sheet.cell(row=2, column=2).number_format != "0.0%"
+
+
 def test_apply_client_processing_csv_format_show_values_as():
     """CSV exports carry the percentages the chart displays."""
     result = {

@@ -1116,6 +1116,28 @@ def merge_currency_formats(
     return currency_formats
 
 
+def effective_show_values_as(form_data: dict[str, Any]) -> Optional[str]:
+    """Return the ``showValuesAs`` percent mode the live chart actually renders.
+
+    A result aggregation (any ``aggregateFunction`` but the default "Metric")
+    takes over the cell/summary computation on the frontend and hides the
+    "Show values as" control in Explore (see ``aggregateFunction``'s
+    ``visibility`` in controlPanel.tsx and ``resultFactory ?? fractionType``
+    in utilities.ts, where the result aggregation always wins). Hiding the
+    control doesn't reset its stored value, so a percent choice made before
+    switching to e.g. "Average" stays persisted; every export/report path has
+    to ignore it the same way the chart does -- both when pivoting the data
+    and when picking a cell format -- rather than apply a percent transform
+    (or a percent number format) the live chart no longer shows.
+    """
+    show_values_as = form_data.get("showValuesAs")
+    if show_values_as not in SHOW_VALUES_AS_PERCENT_MODES:
+        return None
+    if form_data.get("aggregateFunction") not in (None, "Metric"):
+        return None
+    return show_values_as
+
+
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: dict[str, Any],
@@ -1132,21 +1154,8 @@ def pivot_table_v2(
     # the leaf rows describe the table, the rest are its database-computed
     # totals.
     df, rollup_levels = split_grouping_sets_levels(df)
-    show_values_as = form_data.get("showValuesAs")
-    # A result aggregation (anything but the default "Metric") takes over the
-    # cell/summary computation on the frontend and hides this control in
-    # Explore (see `aggregateFunction`'s `visibility` in controlPanel.tsx and
-    # `resultFactory ?? fractionType` in utilities.ts, where the result
-    # aggregation always wins) -- ignore a stale persisted `showValuesAs`
-    # the same way once a result aggregation is active, rather than applying
-    # a percent transform the live chart no longer shows.
+    percent_mode = effective_show_values_as(form_data)
     aggregate_function_raw = form_data.get("aggregateFunction")
-    percent_mode = (
-        show_values_as
-        if show_values_as in SHOW_VALUES_AS_PERCENT_MODES
-        and aggregate_function_raw in (None, "Metric")
-        else None
-    )
     # "Metric" (the new result-aggregation control's default, meaning "use the
     # metric's own definition, no second aggregation pass") isn't a key in
     # pivot_v2_aggfunc_map -- it never needed to be, since this backend path
@@ -1543,7 +1552,7 @@ def apply_client_processing(  # noqa: C901
                 number_format=(
                     EXCEL_PERCENT_FORMAT
                     if viz_type == "pivot_table_v2"
-                    and form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
+                    and effective_show_values_as(form_data) is not None
                     else None
                 ),
                 **{

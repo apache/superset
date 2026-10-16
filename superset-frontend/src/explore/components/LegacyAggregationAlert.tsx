@@ -22,8 +22,9 @@ import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { css } from '@apache-superset/core/theme';
 import { TagType } from 'src/components';
-import { fetchTags, deleteTaggedObjects } from 'src/features/tags/tags';
+import { fetchTags } from 'src/features/tags/tags';
 import { LEGACY_AGGREGATION_TAG } from 'src/explore/constants';
+import { removeLegacyAggregationTag } from 'src/explore/exploreUtils/legacyAggregationTag';
 import { ExploreAlert } from './ExploreAlert';
 
 interface LegacyAggregationAlertProps {
@@ -78,16 +79,19 @@ export const LegacyAggregationAlert = ({
       return;
     }
     const deletedTagId = tag.id;
-    deleteTaggedObjects(
-      { objectType: 'chart', objectId: sliceId },
-      tag,
+    // Best-effort (see removeLegacyAggregationTag): when the removal can't
+    // be persisted the notice stays, which is the honest state -- it will
+    // show again on the next load for the same reason.
+    removeLegacyAggregationTag(sliceId).then(removed => {
+      if (!removed) {
+        return;
+      }
       // A functional update guards against a chart switch (or a same-slice
-      // re-fetch) completing while this DELETE is still in flight: only
-      // clear the tag this call actually deleted, never whatever tag is
+      // re-fetch) completing while the removal is still in flight: only
+      // clear the tag this call actually removed, never whatever tag is
       // showing by the time the response comes back.
-      () => setTag(current => (current?.id === deletedTagId ? null : current)),
-      error => logging.warn('Failed to remove legacy aggregation tag', error),
-    );
+      setTag(current => (current?.id === deletedTagId ? null : current));
+    });
   }, [sliceId, tag]);
 
   if (!tag) {
