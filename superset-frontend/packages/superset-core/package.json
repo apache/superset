@@ -1,6 +1,6 @@
 {
   "name": "@apache-superset/core",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "This package contains UI elements, APIs, and utility functions used by Superset.",
   "license": "Apache-2.0",
   "author": "Apache Software Foundation",
