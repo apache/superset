@@ -73,11 +73,9 @@ def upgrade():
     # Delete duplicate tags if any, keeping the one with the lowest ID
     min_id_subquery = (
         select(
-            [
-                func.min(tag_table.c.id).label("min_id"),
-                tag_table.c.name,
-                tag_table.c.type,
-            ]
+            func.min(tag_table.c.id).label("min_id"),
+            tag_table.c.name,
+            tag_table.c.type,
         )
         .group_by(
             tag_table.c.name,
@@ -87,7 +85,7 @@ def upgrade():
     )
 
     delete_query = tag_table.delete().where(
-        tag_table.c.id.notin_(select([min_id_subquery.c.min_id]))
+        tag_table.c.id.notin_(select(min_id_subquery.c.min_id))
     )
 
     bind.execute(delete_query)
