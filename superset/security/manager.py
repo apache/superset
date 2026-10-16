@@ -5009,8 +5009,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             data (SQL Lab, MetaDB, MCP ``execute_sql``, alert/report
             queries) set this to True.
             The default (False) preserves the historical semantics for
-            chart-data, dataset CRUD, ``/table_metadata/``, and
-            ``/select_star/``.
+            chart-data, ``/table_metadata/``, and ``/select_star/`` (dataset
+            create/update/import additionally opt out of the editorship accept
+            via ``allow_editorship`` below).
         :param allow_query_authorship_bypass: When True, a SQL Lab query's
             own author is granted access to that exact, already-succeeded
             query without an additional dataset-level ``datasource_access``
@@ -5025,13 +5026,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             request time.
         :param allow_editorship: When False, editorship/ownership of a
             registered dataset no longer counts as access to the underlying
-            table in the database+table / query branch (the
-            ``catalog_access`` / ``schema_access`` / ``datasource_access``
-            checks still apply). Dataset create/update SQL and table
-            validation set this to False so that *defining* a dataset over a
-            table requires real data access to that table, not editorship of
-            a same-named dataset -- otherwise a no-table decoy dataset named
-            after the table would let its editor create a second dataset that
+            table (in both the database+table / query branch and the
+            datasource / query_context branch; the ``catalog_access`` /
+            ``schema_access`` / ``datasource_access`` checks still apply).
+            The paths that define or repoint a dataset over a table -- dataset
+            create, update, v1 import, and the legacy ``/datasource/save/``
+            repoint -- and query-backed chart-data set this to False so that
+            binding a dataset to (or reading a stored query against) a table
+            requires real data access to that table, not editorship of a
+            same-named dataset -- otherwise a no-table decoy dataset named
+            after the table would let its editor define a second dataset that
             reads it. Unlike ``force_dataset_match`` this keeps the
             catalog/schema fallthroughs, so ``schema_access`` still authorizes
             defining a dataset. Ignored when ``force_dataset_match`` is True
@@ -5404,11 +5408,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     #     raw queries, MetaDB, MCP ``execute_sql`` and
                     #     alert/report queries -- which return raw rows and
                     #     also drop the catalog/schema fallthroughs;
-                    #   * ``allow_editorship=False`` -- dataset create/update
-                    #     SQL/table validation (whether a dataset may be
-                    #     *defined* over a table) and query-backed chart-data
-                    #     (which runs a stored query's raw SQL) -- which keep
-                    #     the catalog/schema fallthroughs but refuse editorship.
+                    #   * ``allow_editorship=False`` -- the paths that define
+                    #     or repoint a dataset over a table (create, update, v1
+                    #     import, and the legacy ``/datasource/save/`` repoint)
+                    #     and query-backed chart-data (which runs a stored
+                    #     query's raw SQL) -- which keep the catalog/schema
+                    #     fallthroughs but refuse editorship.
                     # Both must follow the user's live data-access grants, not
                     # editorship of a same-named dataset: any principal able to
                     # create a dataset can make themselves an editor of one

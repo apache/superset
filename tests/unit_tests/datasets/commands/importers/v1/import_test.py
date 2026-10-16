@@ -859,6 +859,66 @@ def test_import_dataset_metadata_only_skips_binding_check(
     assert binding_checks == []  # unchanged binding -> no table/SQL access check
 
 
+def test_import_dataset_database_repoint_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard: an overwrite that keeps table/schema/catalog/sql but
+    points at a DIFFERENT database still repoints the dataset, so the binding
+    check must run against the new database with allow_editorship=False -- the
+    database is part of the binding (matching UpdateDatasetCommand's repoint).
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    db_a = Database(database_name="db_a", sqlalchemy_uri="sqlite://")
+    db_b = Database(database_name="db_b", sqlalchemy_uri="sqlite://")
+    db.session.add_all([db_a, db_b])
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=db_a,
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    # The access check runs before import_from_dict; stub the mutation so the
+    # test isolates whether the binding check ran (a real DB-identity change
+    # drives import_from_dict down an insert path that is orthogonal here).
+    mocker.patch.object(SqlaTable, "import_from_dict", return_value=existing)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "",
+            "database_id": db_b.id,  # repoint to a different database
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["table"].table == "orders"
+    assert binding_checks[0].get("allow_editorship") is False
+
+
 def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
     """
     Two metrics sharing a UUID must be rejected by the import schema.

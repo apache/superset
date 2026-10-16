@@ -291,12 +291,17 @@ def _raise_for_import_binding_access(
     requested_catalog = config.get("catalog", existing.catalog if existing else None)
 
     if existing is not None and (
-        requested_sql == (existing.sql or None)
+        config["database_id"] == existing.database_id
+        and requested_sql == (existing.sql or None)
         and requested_table_name == existing.table_name
         and requested_schema == existing.schema
         and requested_catalog == existing.catalog
     ):
         # Binding unchanged -- a metadata-only re-import, not a repoint.
+        # The database is part of the binding: an overwrite that keeps
+        # table/schema/catalog/sql but points at a different database still
+        # repoints the dataset, so it must be re-authorized (matching
+        # UpdateDatasetCommand._apply_database_repoint).
         return
 
     if requested_sql:
@@ -653,9 +658,10 @@ def import_dataset(  # noqa: C901
         db.session.flush()
 
     if not ignore_permissions:
-        # Object-level access to the dataset itself (editor/owner, #20382). The
-        # table binding this dataset points at was authorized before the row
-        # was mutated, in ``_raise_for_import_binding_access`` above.
+        # Object-level access to the dataset itself (editor/owner, #20382). A
+        # change to the table binding this dataset points at was authorized
+        # before the row was mutated, in ``_raise_for_import_binding_access``
+        # above.
         try:
             security_manager.raise_for_access(datasource=dataset)
         except SupersetSecurityException as ex:
