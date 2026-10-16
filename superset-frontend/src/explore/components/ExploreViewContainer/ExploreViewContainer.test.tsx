@@ -1490,10 +1490,16 @@ test('automatic axis title margin adjustment ignores a transient empty value fro
     // must react to the settled value only, not this transient one, or it
     // would zero out a custom margin and then bump it back to 30, losing
     // the original 75.
-    store.dispatch(exploreActions.setControlValue('x_axis_title', ''));
-    store.dispatch(
-      exploreActions.setControlValue('x_axis_title', 'X Axis Label Redone'),
-    );
+    // Commit the clear on its own so the margin effect actually sees the
+    // empty value, then retype inside the debounce window.
+    act(() => {
+      store.dispatch(exploreActions.setControlValue('x_axis_title', ''));
+    });
+    act(() => {
+      store.dispatch(
+        exploreActions.setControlValue('x_axis_title', 'X Axis Label Redone'),
+      );
+    });
 
     // Give the debounced margin effect more than its window to settle.
     await new Promise(resolve => setTimeout(resolve, 300));
