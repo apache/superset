@@ -921,12 +921,14 @@ export function getLegendProps(
         }
       : {}),
     selected: legendState ?? {},
-    selector: [
-      { type: 'all', title: t('All') },
-      { type: 'inverse', title: t('Inv') },
-    ],
+    // `selector: false` omits the All/Inv group from legend layout.
+    selector: showSelectorLegend
+      ? [
+          { type: 'all', title: t('All') },
+          { type: 'inverse', title: t('Inv') },
+        ]
+      : false,
     selectorLabel: {
-      show: showSelectorLegend,
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,
       color: theme.colorText,

@@ -137,7 +137,6 @@ const expectedThemeProps = {
   ],
   selected: {},
   selectorLabel: {
-    show: true,
     fontFamily: theme.fontFamily,
     fontSize: theme.fontSizeSM,
     color: theme.colorText,
@@ -1279,7 +1278,7 @@ describe('getLegendProps', () => {
     });
   });
 
-  test('hides All and Inv button labels when showSelectorLegend is false', () => {
+  test('omits All and Inv buttons when showSelectorLegend is false', () => {
     const legend = getLegendProps(
       LegendType.Plain,
       LegendOrientation.Top,
@@ -1287,13 +1286,7 @@ describe('getLegendProps', () => {
       theme,
       false,
     );
-    expect(legend.selector).toEqual([
-      { type: 'all', title: 'All' },
-      { type: 'inverse', title: 'Inv' },
-    ]);
-    expect(legend.selectorLabel).toEqual(
-      expect.objectContaining({ show: false }),
-    );
+    expect(legend.selector).toBe(false);
   });
 });
 
