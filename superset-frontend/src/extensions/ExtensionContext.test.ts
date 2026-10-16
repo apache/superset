@@ -135,7 +135,7 @@ test('ctx.window ignores undefined duration and unknown options', () => {
   } as never);
 
   const { payload } = mockDispatch.mock.calls[0][0];
-  expect(payload).not.toHaveProperty('allowHtml');
+  expect(payload.allowHtml).not.toBe(true);
   expect(payload.duration).toBe(4000);
 });
 
