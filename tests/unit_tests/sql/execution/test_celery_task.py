@@ -774,6 +774,8 @@ def test_store_results_in_backend_payload_too_large(
 
 
 @pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize("nested_column_present", [True, False])
+@pytest.mark.parametrize("nested_value", [{"value": "x"}, [b"\xff" * 17]])
 @pytest.mark.parametrize("text_length", [1, 9, 17])
 @pytest.mark.parametrize("bytes_over_limit", [0, 1])
 def test_store_results_in_backend_raw_arrow_size_boundary(
@@ -784,6 +786,8 @@ def test_store_results_in_backend_raw_arrow_size_boundary(
     mock_result_set: MagicMock,
     use_msgpack: bool,
     text_length: int,
+    nested_column_present: bool,
+    nested_value: Any,
     bytes_over_limit: int,
 ) -> None:
     """Count raw IPC plus all metadata, with exact limits and Base64 padding."""
@@ -800,7 +804,12 @@ def test_store_results_in_backend_raw_arrow_size_boundary(
     backend.set.return_value = True
     mocker.patch("superset.results_backend_use_msgpack", use_msgpack)
     mocker.patch("superset.sql.execution.celery_task.uuid.uuid4", return_value="key")
-    mock_result_set.pa_table = pa.table({"text": ["x" * text_length]})
+    table_data = {"text": ["x" * text_length]}
+    if nested_column_present:
+        table_data["nested"] = [
+            superset_json.dumps(nested_value, default=superset_json.json_iso_dttm_ser)
+        ]
+    mock_result_set.pa_table = pa.table(table_data)
     data, columns = _serialize_result_set(mock_result_set)
     payload: dict[str, Any] = {
         "query": {"resultsKey": "key"},
@@ -810,7 +819,7 @@ def test_store_results_in_backend_raw_arrow_size_boundary(
                 "data": data,
                 "columns": columns,
                 "nested_columns_msgpack": serialize_nested_columns(
-                    {"nested": [{"value": "x"}]}, use_msgpack=use_msgpack
+                    {"nested": [nested_value]}, use_msgpack=use_msgpack
                 ),
             },
             {"data": data, "columns": columns},
@@ -818,10 +827,13 @@ def test_store_results_in_backend_raw_arrow_size_boundary(
         "metadata": "x" * 1000,
     }
     serialized = _serialize_payload(payload)
-    expected_size = len(serialized) - sum(
-        len(value)
-        for value in payload["statements"][1]["nested_columns_msgpack"].values()
-    )
+    sidecar = payload["statements"][1]["nested_columns_msgpack"]["nested"]
+    raw_sidecar_size = len(sidecar if use_msgpack else base64.b64decode(sidecar))
+    expected_size = len(serialized) - (len(sidecar) - raw_sidecar_size)
+    if nested_column_present:
+        expected_size -= min(
+            raw_sidecar_size, mock_result_set.pa_table.column("nested").nbytes
+        )
     if isinstance(data, str):
         expected_size -= 2 * (len(data) - len(base64.b64decode(data)))
     mocker.patch.dict(

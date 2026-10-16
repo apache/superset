@@ -32,6 +32,7 @@ from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 
 import msgpack
+import pyarrow as pa
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
@@ -256,18 +257,31 @@ def _finalize_successful_query(
 
 def _get_payload_size(payload: dict[str, Any], serialized_payload: bytes) -> int:
     """Count raw Arrow and metadata, excluding duplicate nested sidecar values."""
+
+    def raw_size(value: bytes | str) -> int:
+        """Return decoded Base64 length without allocating a decoded copy."""
+        if isinstance(value, bytes):
+            return len(value)
+        return len(value) // 4 * 3 - value.endswith("=") - value.endswith("==")
+
     size = len(serialized_payload)
     for statement in payload.get("statements", []):
-        if isinstance(data := statement.get("data"), str):
-            # Retain all envelope metadata without allocating another decoded
-            # copy of the Arrow data just to determine its size.
-            arrow_size = len(data) // 4 * 3 - data.endswith("=") - data.endswith("==")
-            size -= len(data) - arrow_size
-        # Arrow retains the full nested column as text for older readers and
-        # unknown tags. Its typed copy must not charge the same values twice.
-        size -= sum(
-            len(value) for value in statement.get("nested_columns_msgpack", {}).values()
-        )
+        data = statement.get("data")
+        if isinstance(data, str):
+            size -= len(data) - raw_size(data)
+        if sidecars := statement.get("nested_columns_msgpack"):
+            # Arrow keeps nested columns as text for older readers and unknown
+            # tags. Discount only the part of each typed copy also held there;
+            # binary values replaced by placeholders still count at raw size.
+            arrow = base64.b64decode(data) if isinstance(data, str) else data
+            table = pa.ipc.open_stream(pa.BufferReader(arrow)).read_all()
+            for name, value in sidecars.items():
+                duplicate = (
+                    min(raw_size(value), table.column(name).nbytes)
+                    if name in table.column_names
+                    else 0
+                )
+                size -= len(value) - raw_size(value) + duplicate
     return size
 
 

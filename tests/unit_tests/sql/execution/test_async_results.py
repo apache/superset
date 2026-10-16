@@ -1141,6 +1141,71 @@ def test_nested_payload_limit_does_not_charge_duplicate_sidecar(
     assert result.statements[0].data["value"].tolist() == [value] * row_count
 
 
+@pytest.mark.parametrize("use_msgpack", [True, False])
+def test_nested_binary_payload_limit_rejects_sidecar_only_bytes(
+    mocker: MockerFixture,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_database: MagicMock,
+    use_msgpack: bool,
+) -> None:
+    """Binary replaced by Arrow placeholders must still count toward the limit."""
+    from os import urandom
+
+    from superset.errors import SupersetErrorType
+    from superset.sql.execution import celery_task
+
+    rows = [([b"\xff\xff" + urandom(4095)],) for _ in range(300)]
+    result_set = _result_set(["value"], rows)
+    # Invalid UTF-8 and odd-length UTF-16 become tiny placeholders in Arrow.
+    assert result_set.pa_table.column("value").to_pylist() == ['["[bytes]"]'] * 300
+    assert sum(len(row[0][0]) for row in rows) > 1024 * 1024
+    mocker.patch("superset.results_backend_use_msgpack", use_msgpack)
+    mocker.patch.dict(current_app.config, {"SQLLAB_PAYLOAD_MAX_MB": 1})
+    backend = mocker.patch.object(celery_task, "results_backend")
+    backend.set.return_value = True
+    mock_query.sql = "SELECT value"
+    mock_query.database = mock_database
+    mock_database.is_oauth2_enabled.return_value = False
+    mocker.patch.object(celery_task, "_get_query", return_value=mock_query)
+    mocker.patch.object(celery_task, "security_manager")
+    mocker.patch.object(celery_task, "_commit_query_unless_stopped", return_value=True)
+    mocker.patch.object(
+        celery_task,
+        "execute_sql_with_cursor",
+        return_value=[("SELECT value", result_set, 1.0, len(rows))],
+    )
+
+    payload = celery_task.execute_sql_task(mock_query.id, mock_query.sql)
+
+    assert payload is not None
+    assert payload["status"] == "failed"
+    assert (
+        payload["errors"][0]["error_type"] == SupersetErrorType.RESULT_TOO_LARGE_ERROR
+    )
+    assert mock_query.status == "failed"
+    backend.set.assert_not_called()
+    assert mock_query.results_key is None
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+def test_sync_nested_binary_does_not_use_backend_payload_limit(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    use_msgpack: bool,
+) -> None:
+    """The in-process DataFrame path has no results-backend payload or sidecar."""
+    mocker.patch("superset.results_backend_use_msgpack", use_msgpack)
+    mocker.patch.dict(current_app.config, {"SQLLAB_PAYLOAD_MAX_MB": 1})
+    backend = mocker.patch("superset.sql.execution.celery_task.results_backend")
+    value = [b"\xff" * (1024 * 1024 + 1)]
+    result = _execute_sync(mocker, database, "SELECT value", ["value"], [(value,)])
+
+    assert result.statements[0].data["value"].tolist() == [value]
+    backend.set.assert_not_called()
+
+
 def test_msgpack_nested_sidecar_uses_raw_bytes(
     mocker: MockerFixture, app_context: None
 ) -> None:
