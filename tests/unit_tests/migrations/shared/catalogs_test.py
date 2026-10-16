@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from typing import Any
 
 import pytest
@@ -23,6 +24,7 @@ from sqlalchemy.orm.session import Session
 
 from superset.migrations.shared import catalogs
 from superset.migrations.shared.catalogs import (
+    CatalogRequiresConnectionError,
     Database,
     downgrade_catalog_perms,
     get_default_catalog,
@@ -64,7 +66,7 @@ from superset.migrations.shared.security_converge import (
         ("bigquery://my-project", None, "my-project"),
         ("bigquery:///my-project", None, "my-project"),
         # project inferred from the credentials, which needs a connection
-        ("bigquery://", '{"engine_params": {}}', None),
+        ("bigquery://", '{"engine_params": {}}', CatalogRequiresConnectionError),
         (
             "databricks://token:XXXXXXXXXX@host:443?http_path=/sql&catalog=main",
             None,
@@ -80,10 +82,29 @@ from superset.migrations.shared.security_converge import (
         (
             "databricks+connector://token:XXXXXXXXXX@host:443/default",
             '{"engine_params": {"connect_args": {"http_path": "/sql"}}}',
-            None,
+            CatalogRequiresConnectionError,
         ),
-        ("databricks+connector://token:XXXXXXXXXX@host:443/default", None, None),
-        ("databricks+connector://token:XXXXXXXXXX@host:443/default", "{bad", None),
+        (
+            "databricks+connector://token:XXXXXXXXXX@host:443/default",
+            None,
+            CatalogRequiresConnectionError,
+        ),
+        (
+            "databricks+connector://token:XXXXXXXXXX@host:443/default",
+            "{bad",
+            CatalogRequiresConnectionError,
+        ),
+        (
+            "databricks+pyhive://token:XXXXXXXXXX@host:443/hive_metastore?http_path=/x",
+            None,
+            "hive_metastore",
+        ),
+        (
+            "databricks+pyhive://token:XXXXXXXXXX@host:443/main/default?http_path=/x",
+            None,
+            "main",
+        ),
+        ("databricks+pyhive://token:XXXXXXXXXX@host:443", None, None),
         # Databricks drivers without catalog support
         (
             "databricks+pyodbc://token:XXXXXXXXXX@host:443/default?catalog=main",
@@ -95,17 +116,22 @@ from superset.migrations.shared.security_converge import (
 def test_get_default_catalog(
     sqlalchemy_uri: str,
     extra: str | None,
-    expected: str | None,
+    expected: str | type[Exception] | None,
 ) -> None:
     """
     The default catalog is derived from the stored URI and plain-text ``extra``,
-    matching how each engine spec resolves it when no connection is needed.
+    matching how each engine spec resolves it when no connection is needed, and
+    flagged when the engine spec would need a connection.
     """
     database = Database(database_name="db", sqlalchemy_uri=sqlalchemy_uri, extra=extra)
     result = parse_database_uri(database)
     assert result is not None
     engine, url = result
-    assert get_default_catalog(database, engine, url) == expected
+    if expected is CatalogRequiresConnectionError:
+        with pytest.raises(CatalogRequiresConnectionError):
+            get_default_catalog(database, engine, url)
+    else:
+        assert get_default_catalog(database, engine, url) == expected
 
 
 @pytest.fixture
@@ -144,6 +170,7 @@ def add_database(
     name: str,
     sqlalchemy_uri: str,
     extra: str | None = None,
+    schema: str = "public",
 ) -> None:
     """
     Add a database with a dataset, a chart, SQL Lab models, and a schema
@@ -161,9 +188,9 @@ def add_database(
         SqlaTable(
             id=id_,
             database_id=id_,
-            schema="public",
+            schema=schema,
             perm=f"[{name}].[my_table](id:{id_})",
-            schema_perm=f"[{name}].[public]",
+            schema_perm=f"[{name}].[{schema}]",
         )
     )
     session.add(
@@ -171,7 +198,7 @@ def add_database(
             id=id_,
             datasource_id=id_,
             datasource_type="table",
-            schema_perm=f"[{name}].[public]",
+            schema_perm=f"[{name}].[{schema}]",
         )
     )
     session.add_all(
@@ -188,7 +215,7 @@ def add_database(
     ).one_or_none() or Permission(name="schema_access")
     pvm = PermissionView(
         permission=schema_access,
-        view_menu=ViewMenu(name=f"[{name}].[public]"),
+        view_menu=ViewMenu(name=f"[{name}].[{schema}]"),
     )
     role = session.query(Role).filter_by(name="Gamma").one_or_none() or Role(
         name="Gamma"
@@ -268,11 +295,21 @@ def test_upgrade_catalog_perms_preserves_existing_catalogs(
     migration_session: Session,
 ) -> None:
     """
-    Rows that already have a catalog keep it.
+    Rows in another catalog keep it on upgrade and downgrade.
     """
     session = migration_session
     add_database(session, 1, "my_db", "postgresql://host/db")
     session.get(Query, 1).catalog = "other"
+    session.add(
+        SqlaTable(
+            id=2,
+            database_id=1,
+            schema="public",
+            catalog="other",
+            catalog_perm="[my_db].[other]",
+            schema_perm="[my_db].[other].[public]",
+        )
+    )
     session.commit()
 
     upgrade_catalog_perms(engines={"postgresql"})
@@ -280,30 +317,47 @@ def test_upgrade_catalog_perms_preserves_existing_catalogs(
 
     assert get_state(session, 1)["sqllab"] == ["other", "db", "db", "db"]
 
+    downgrade_catalog_perms(engines={"postgresql"})
+    session.commit()
+
+    assert get_state(session, 1)["sqllab"] == ["other", None, None, None]
+    table = session.get(SqlaTable, 2)
+    assert (table.catalog, table.catalog_perm, table.schema_perm) == (
+        "other",
+        "[my_db].[other]",
+        "[my_db].[other].[public]",
+    )
+
 
 @pytest.mark.parametrize(
-    "name, sqlalchemy_uri, extra",
+    "name, sqlalchemy_uri, extra, message",
     [
-        ("bigquery_no_project", "bigquery://", None),
-        ("databricks_no_catalog", "databricks://token:XXXXXXXXXX@host:443", None),
+        (
+            "bigquery_no_project",
+            "bigquery://",
+            None,
+            "its default catalog can't be determined without connecting to it",
+        ),
         (
             "databricks_connector_no_catalog",
             "databricks+connector://token:XXXXXXXXXX@host:443/default",
             '{"engine_params": {"connect_args": {}}}',
+            "its default catalog can't be determined without connecting to it",
         ),
-        ("invalid_uri", "not a uri", None),
+        ("invalid_uri", "not a uri", None, "invalid SQLAlchemy URI"),
     ],
 )
-def test_upgrade_catalog_perms_skips_underivable_catalog(
+def test_catalog_perms_skip_underivable_catalog(
     migration_session: Session,
     caplog: pytest.LogCaptureFixture,
     name: str,
     sqlalchemy_uri: str,
     extra: str | None,
+    message: str,
 ) -> None:
     """
     Databases whose default catalog can't be derived without a connection are left
-    untouched and logged.
+    untouched, with a warning naming the operation.
     """
     session = migration_session
     add_database(session, 1, name, sqlalchemy_uri, extra)
@@ -316,7 +370,73 @@ def test_upgrade_catalog_perms_skips_underivable_catalog(
 
     assert get_state(session, 1) == state
     assert get_perms(session) == perms
-    assert f"Skipping catalog backfill for database {name}" in caplog.text
+    warnings = [r.getMessage() for r in caplog.records if r.levelname == "WARNING"]
+    assert len(warnings) == 2
+    assert warnings[0].startswith(
+        f"Skipping catalog backfill for database {name}: {message}"
+    )
+    assert warnings[1].startswith(
+        f"Skipping catalog rollback for database {name}: {message}"
+    )
+
+
+@pytest.mark.parametrize(
+    "name, sqlalchemy_uri",
+    [
+        ("databricks_no_catalog", "databricks://token:XXXXXXXXXX@host:443"),
+        ("postgres_no_database", "postgresql://host"),
+        ("trino_no_catalog", "trino://host:8080"),
+    ],
+)
+def test_catalog_perms_skip_databases_without_default_catalog(
+    migration_session: Session,
+    caplog: pytest.LogCaptureFixture,
+    name: str,
+    sqlalchemy_uri: str,
+) -> None:
+    """
+    Databases without a default catalog are left untouched without a warning,
+    since their permissions don't change when catalogs are enabled.
+    """
+    caplog.set_level(logging.INFO, logger="alembic.env")
+    session = migration_session
+    add_database(session, 1, name, sqlalchemy_uri)
+    state = get_state(session, 1)
+    perms = get_perms(session)
+
+    upgrade_catalog_perms()
+    downgrade_catalog_perms()
+    session.commit()
+
+    assert get_state(session, 1) == state
+    assert get_perms(session) == perms
+    assert not [r for r in caplog.records if r.levelname == "WARNING"]
+    assert f"Skipping catalog backfill for database {name}: no default catalog" in (
+        caplog.text
+    )
+
+
+def test_upgrade_catalog_perms_databricks_pyhive(migration_session: Session) -> None:
+    """
+    Databricks over PyHive takes its default catalog from the URI.
+    """
+    session = migration_session
+    add_database(
+        session,
+        1,
+        "my_databricks",
+        "databricks+pyhive://token:XXXXXXXXXX@host:443/hive_metastore?http_path=/x",
+    )
+
+    upgrade_catalog_perms(engines={"databricks"})
+    session.commit()
+
+    assert get_state(session, 1)["table"] == (
+        "hive_metastore",
+        "[my_databricks].[hive_metastore]",
+        "[my_databricks].[hive_metastore].[public]",
+    )
+    assert get_role_perms(session) == {"[my_databricks].[hive_metastore].[public]"}
 
 
 def test_catalog_perms_only_touch_given_engines(migration_session: Session) -> None:
@@ -357,12 +477,14 @@ def test_upgrade_catalog_perms_does_not_rename_other_databases(
     """
     session = migration_session
     add_database(session, 1, "my_db", "postgresql://host/db")
-    add_database(session, 2, "myXdb", "mysql://host/db")
+    add_database(session, 2, "myXdb", "mysql://host/db", schema="sales")
 
     upgrade_catalog_perms(engines={"postgresql"})
     session.commit()
 
-    assert ("[myXdb].[public]", "schema_access") in get_perms(session)
+    perms = get_perms(session)
+    assert ("[myXdb].[sales]", "schema_access") in perms
+    assert ("[my_db].[db].[sales]", "schema_access") not in perms
 
 
 def test_catalog_perms_do_not_use_live_models() -> None:

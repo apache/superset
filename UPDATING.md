@@ -131,15 +131,26 @@ The migrations that add catalog support for PostgreSQL, Databricks, BigQuery,
 Presto, Trino and Snowflake no longer connect to analytical databases while
 upgrading. They fill in the default catalog only when it can be read from the
 database's stored connection settings: the database name in the URI for
-PostgreSQL, Presto, Trino and Snowflake, the project in the URI for BigQuery,
-and an explicit `catalog` setting for Databricks. Permissions for other
-catalogs are not created during the upgrade.
+PostgreSQL, Presto, Trino, Snowflake and Databricks over PyHive, the project in
+the URI for BigQuery, and an explicit `catalog` setting for the other Databricks
+connectors. Permissions for other catalogs are not created during the upgrade.
+The `CATALOGS_SIMPLIFIED_MIGRATION` setting has no effect and was removed.
 
-Databases where the default catalog isn't in the stored settings are skipped and
-listed in the migration logs. For those, sync the database permissions after
-upgrading and grant the new catalog-qualified schema permissions to roles that
-had schema access; otherwise those roles can lose access to the database's
-schemas in SQL Lab and Explore.
+Two kinds of databases need their default catalog found by connecting, so the
+migrations skip them and name them in the migration logs: BigQuery databases
+without a project in the URI, and Databricks databases using the native
+connector (`databricks+connector://`) without `connect_args.catalog` in their
+extra settings. For each of them, after upgrading:
+
+1. Sync the database permissions.
+2. Grant the new catalog-qualified schema permissions to roles that had schema
+   access to the database.
+3. Set the catalog on the database's datasets, for example by editing each
+   dataset, so that roles with dataset access can query them in SQL Lab.
+
+Downgrading through these migrations does the reverse for the same databases
+and skips the same ones, so catalogs that were filled in for skipped databases
+by an earlier upgrade that connected to them are left in place.
 
 ### Dashboard copy layout validation
 
