@@ -432,6 +432,13 @@ def merge_extra_form_data_filters_into_query(
         extra_form_data,
     )
     merge_form_data_filters_into_query(query, extra_query_form_data)
+    if extra_form_data.get("time_range"):
+        from superset.charts.data.dashboard_filter_context import (
+            mark_dashboard_time_range_filters,
+        )
+
+        # Like a dashboard range, it is extra only over unbounded saved ranges.
+        mark_dashboard_time_range_filters(query.get("filters") or [])
 
 
 def _deck_gl_spatial_cols(spatial: dict[str, Any] | None) -> list[str]:

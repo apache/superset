@@ -41,6 +41,9 @@ from superset.charts.data.dashboard_filter_context import apply_dashboard_filter
 from superset.common.query_context_processor import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.exceptions import QueryObjectValidationError
+from superset.mcp_service.chart.chart_helpers import (
+    merge_extra_form_data_filters_into_query,
+)
 from superset.semantic_layers.mapper import (
     map_query_object,
     validate_query_object,
@@ -324,7 +327,7 @@ def test_chart_no_op_time_range_on_missing_column_is_not_refused(
     "saved_range", [None, "No filter", "Aucun filtre", "2024-01-01 : 2024-06-01"]
 )
 @pytest.mark.parametrize("column", ["ds", "total_amount"])
-@pytest.mark.parametrize("source", ["chart", "browser", "server", "mismatched"])
+@pytest.mark.parametrize("source", ["chart", "browser", "server", "mcp", "mismatched"])
 def test_dashboard_time_override_preserves_foreign_filter_provenance(
     client: FlaskClient,
     full_api_access: None,
@@ -342,6 +345,11 @@ def test_dashboard_time_override_preserves_foreign_filter_provenance(
     time_range: str = "2025-01-01 : 2025-02-01"
     if source == "server":
         apply_dashboard_filter_context(payload, {"time_range": time_range})
+    elif source == "mcp":
+        # MCP get_chart_data merges the override into the saved query only.
+        merge_extra_form_data_filters_into_query(
+            payload["queries"][0], {"time_range": time_range}, 73, "semantic_view"
+        )
     else:
         payload["queries"][0]["time_range"] = time_range
         if source in {"browser", "mismatched"}:
