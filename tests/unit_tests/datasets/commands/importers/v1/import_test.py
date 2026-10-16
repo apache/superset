@@ -919,6 +919,65 @@ def test_import_dataset_database_repoint_runs_binding_check(
     assert binding_checks[0].get("allow_editorship") is False
 
 
+def test_import_dataset_template_params_only_change_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (templated repoint): an overwrite that keeps the SQL text
+    but changes only ``template_params`` still repoints where a Jinja ``FROM``
+    resolves, so the binding check must run against the NEW params with
+    allow_editorship=False -- the stored params are not what the overwrite
+    executes.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps({"t": "public.ok"}),
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "SELECT * FROM {{ t }}",  # unchanged SQL text
+            "database_id": database.id,
+            "template_params": {"t": "private.secret"},  # repoints the FROM
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": "private.secret"}
+    assert binding_checks[0].get("allow_editorship") is False
+
+
 def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
     """
     Two metrics sharing a UUID must be rejected by the import schema.

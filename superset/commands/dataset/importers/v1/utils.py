@@ -262,6 +262,15 @@ def _config_template_params(config: dict[str, Any]) -> dict[str, Any]:
     return {}
 
 
+def _existing_template_params(dataset: SqlaTable) -> dict[str, Any]:
+    """A stored dataset's template params as a dict, tolerating bad JSON."""
+    try:
+        params = dataset.template_params_dict
+    except json.JSONDecodeError:
+        return {}
+    return params if isinstance(params, dict) else {}
+
+
 def _raise_for_import_binding_access(
     config: dict[str, Any], existing: SqlaTable | None
 ) -> None:
@@ -283,12 +292,26 @@ def _raise_for_import_binding_access(
         # is no table binding to authorize here.
         return
 
-    requested_sql = config.get("sql") or None
+    # Resolve the requested binding by MERGING the config over the stored row:
+    # an overwrite only applies the keys the upload carries, so an omitted
+    # field keeps its stored value. Resolving in isolation would mis-authorize
+    # (e.g. omitted ``sql`` -> treat a virtual dataset as physical; omitted
+    # ``template_params`` -> render against ``{}`` while the stored params are
+    # kept).
+    requested_sql = (
+        config["sql"] if "sql" in config else (existing.sql if existing else None)
+    ) or None
     requested_table_name = config.get("table_name") or (
         existing.table_name if existing else None
     )
     requested_schema = config.get("schema", existing.schema if existing else None)
     requested_catalog = config.get("catalog", existing.catalog if existing else None)
+    if "template_params" in config:
+        requested_params = _config_template_params(config)
+    elif existing is not None:
+        requested_params = _existing_template_params(existing)
+    else:
+        requested_params = {}
 
     if existing is not None and (
         config["database_id"] == existing.database_id
@@ -296,12 +319,14 @@ def _raise_for_import_binding_access(
         and requested_table_name == existing.table_name
         and requested_schema == existing.schema
         and requested_catalog == existing.catalog
+        and requested_params == _existing_template_params(existing)
     ):
         # Binding unchanged -- a metadata-only re-import, not a repoint.
-        # The database is part of the binding: an overwrite that keeps
-        # table/schema/catalog/sql but points at a different database still
-        # repoints the dataset, so it must be re-authorized (matching
-        # UpdateDatasetCommand._apply_database_repoint).
+        # The database and template_params are part of the binding: an
+        # overwrite that keeps table/schema/catalog/sql but points at a
+        # different database, or changes the params a templated FROM renders
+        # against, still repoints the dataset and must be re-authorized
+        # (matching UpdateDatasetCommand).
         return
 
     if requested_sql:
@@ -312,7 +337,7 @@ def _raise_for_import_binding_access(
             # catalog/schema, so they are normalized to None.
             catalog=requested_catalog or None,
             schema=requested_schema or None,
-            template_params=_config_template_params(config),
+            template_params=requested_params,
             allow_editorship=False,
         )
     elif isinstance(requested_table_name, str):
