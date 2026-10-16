@@ -633,3 +633,51 @@ test('result aggregation passes the leaf query data through as a single, unsynth
     columns: formData.groupbyRows,
   });
 });
+
+test('result aggregation wins over the additive fast path for an additive metric', () => {
+  // A SIMPLE SUM metric is additive, which would otherwise take the
+  // synthesized-total path. With a result aggregation selected the leaf rows
+  // must pass through untouched so Median runs over 10/30, not 10/30/40.
+  const additiveResultProps = new ChartProps<QueryFormData>({
+    formData: {
+      ...formData,
+      aggregateFunction: 'Median',
+      combineMetric: false,
+      transposePivot: false,
+      metricsLayout: MetricsLayoutEnum.ROWS,
+      groupbyRows: ['store'],
+      groupbyColumns: [],
+      metrics: [
+        {
+          expressionType: 'SIMPLE',
+          aggregate: 'SUM',
+          column: { column_name: 'sales' },
+          label: 'SUM(sales)',
+        },
+      ],
+      colTotals: true,
+      rowTotals: true,
+    },
+    width: 800,
+    height: 600,
+    queriesData: [
+      {
+        data: [
+          { store: 'A', 'SUM(sales)': 10 },
+          { store: 'B', 'SUM(sales)': 30 },
+        ],
+        colnames: ['store', 'SUM(sales)'],
+        coltypes: [1, 0],
+      },
+    ],
+    hooks: { setDataMask },
+    filterState: { selectedFilters: {} },
+    datasource: { verboseMap: {}, columnFormats: {} },
+    theme: supersetTheme,
+  });
+
+  const result = transformProps(additiveResultProps);
+  expect(result.aggregateFunction).toBe('Median');
+  expect(result.data).toHaveLength(1);
+  expect(result.data[0].data).toEqual(additiveResultProps.queriesData[0].data);
+});
