@@ -28,6 +28,7 @@ from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
@@ -490,9 +491,18 @@ async def test_query_dataset_success(mcp_server: FastMCP) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "fold,zoneinfo_iso",
+    [
+        (0, "2024-10-27T01:30:00.123456+01:00"),
+        (1, "2024-10-27T01:30:00.123456+00:00"),
+    ],
+)
 async def test_query_dataset_normalizes_supported_producer_timezones(
     mcp_server: FastMCP,
     monkeypatch: pytest.MonkeyPatch,
+    fold: int,
+    zoneinfo_iso: str,
 ) -> None:
     dataset = _make_dataset(
         columns=[_make_column("created_at", is_dttm=True)],
@@ -510,6 +520,9 @@ async def test_query_dataset_normalizes_supported_producer_timezones(
     )
     # Capture the producer offset before normalization or hostile hooks.
     dublin_iso: str = dublin_fold.isoformat()
+    zoneinfo_fold: datetime = datetime(
+        2024, 10, 27, 1, 30, 0, 123456, tzinfo=ZoneInfo("Europe/Dublin"), fold=fold
+    )
     result_data = chart_data_command_result(
         [
             {
@@ -556,6 +569,7 @@ async def test_query_dataset_normalizes_supported_producer_timezones(
                     tzinfo=dateutil_tz.gettz("Etc/GMT+3"),
                 )
             },
+            {"created_at": zoneinfo_fold},
         ],
         columns=["created_at"],
         coltypes=[GenericDataType.TEMPORAL],
@@ -606,6 +620,7 @@ async def test_query_dataset_normalizes_supported_producer_timezones(
         {"created_at": "2024-03-10T02:30:00-04:00"},
         {"created_at": "2040-07-01T12:00:00-05:00"},
         {"created_at": "2024-01-01T12:00:00-03:00"},
+        {"created_at": zoneinfo_iso},
     ]
     assert data["performance"]["cache_status"] == "fresh"
     assert data["cache_status"]["cache_hit"] is False

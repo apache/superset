@@ -1818,13 +1818,16 @@ def test_bullet_timestamp_categories_match_chart_data_wire_and_all_previews() ->
         assert category[:20] in ascii_content
 
 
-def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> None:
+@pytest.mark.parametrize("microsecond", [0, 123456])
+def test_bullet_dateutil_categories_preserve_chart_data_selected_instants(
+    microsecond: int,
+) -> None:
     dublin = dateutil_tz.gettz("Europe/Dublin")
     new_york = dateutil_tz.gettz("America/New_York")
     assert dublin is not None
     assert new_york is not None
     dateutil_values = [
-        datetime(2024, 10, 27, 1, 30, 0, 123456, tzinfo=dublin, fold=1),
+        datetime(2024, 10, 27, 1, 30, 0, microsecond, tzinfo=dublin, fold=1),
         datetime(2024, 3, 10, 2, 30, 0, 123456, tzinfo=new_york),
         datetime(2040, 7, 1, 12, 0, 0, 123456, tzinfo=new_york),
         datetime(
@@ -1858,7 +1861,9 @@ def test_bullet_dateutil_categories_preserve_chart_data_selected_instants() -> N
     pandas_values = [pd.Timestamp(value) for value in dateutil_values[:3]]
     values = [*dateutil_values, *equivalent_values, *pandas_values]
     expected_numbers = [json_int_dttm_ser(value) for value in values]
-    dublin_category: str = str(dateutil_values[0].timestamp() * 1000)
+    dublin_category: str = _javascript_number_string(
+        dateutil_values[0].timestamp() * 1000
+    )
     expected_categories = [
         dublin_category,
         "1710052200123.456",

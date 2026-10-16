@@ -37,6 +37,7 @@ from superset.mcp_service.app import mcp
 from superset.mcp_service.chart import query_result as query_result_module
 from superset.mcp_service.chart.chart_helpers import build_query_dicts_from_form_data
 from superset.mcp_service.chart.compile import CompileResult
+from superset.mcp_service.chart.preview_utils import _javascript_number_string
 from superset.mcp_service.chart.query_result import validate_query_result_envelope
 from superset.mcp_service.chart.schemas import (
     BulletChartConfig,
@@ -1531,8 +1532,10 @@ async def test_bullet_numeric_and_temporal_categories_reach_real_mcp_entrypoint(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("format_", ["ascii", "vega_lite"])
+@pytest.mark.parametrize("microsecond", [0, 123456])
 async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
     format_: str,
+    microsecond: int,
 ) -> None:
     from contextlib import nullcontext
 
@@ -1558,7 +1561,7 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         1,
         30,
         0,
-        123456,
+        microsecond,
         tzinfo=dateutil_dublin,
         fold=1,
     )
@@ -1615,12 +1618,12 @@ async def test_bullet_timestamp_categories_from_dataframe_reach_fastmcp(
         "-0.0010000000000287557",
         "1704153600000",
         "null",
-        str(dublin_epoch_ms),
+        _javascript_number_string(dublin_epoch_ms),
         "1710052200123.456",
         "2224774800123.456",
         "1710052200123.456",
         "1710052200123.456",
-        str(dublin_epoch_ms),
+        _javascript_number_string(dublin_epoch_ms),
         "1710052200123.456",
     ]
     form_data = {
