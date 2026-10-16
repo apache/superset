@@ -24,6 +24,37 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
+  Lab stop on Impala is delivered to the worker that is polling the query, which
+  cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
+  cancel invalidated the handle the worker was still polling, so the run failed
+  instead of ending as stopped. When no worker is polling, the query is marked
+  stopped but Impala keeps running it and holds its admission slot until it
+  finishes or Impala closes it: for example when the worker has died or
+  restarted, or when the stop arrives while results are being fetched.
+  Operators who relied on the HTTP cancel to free admission slots in those cases
+  should rely on Impala's own query and session timeouts. Chart and MCP
+  cancellation still use the HTTP cancel.
+- `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
+  has already finished or its worker has committed the target transaction.
+  The response contains `message: "Could not cancel query"` and the recorded
+  `query`; an async handle's `cancel()` returns `False`. After a target commit,
+  that query can still be running while SQL Lab prepares its results.
+  PostgreSQL/MySQL metadata databases serialize Stop against the worker's final
+  stop check and target commit. If Stop wins, transactional work is discarded;
+  if the worker wins, Stop is rejected even before results are published.
+  An accepted Stop returns HTTP 200 (`cancel()` returns `True`) even if engine
+  cancellation or subsequent cancellation-metadata persistence fails. Its stopped
+  state and original end time survive repeated Stop requests and worker timeouts.
+  Repeated Stop requests do not retry engine cancellation.
+  Engine cancellation is best-effort: its statement may continue, but SQL Lab
+  discards the results. Stop cannot undo autocommit, implicit-commit DDL, or SQL
+  commits performed during execution. With SQLite metadata (which does not
+  support row locks), a Stop accepted between the worker's final check and
+  target commit can also leave transactional changes committed. Target and
+  metadata commits are not atomic: a metadata commit failure after the target
+  commit can likewise leave database changes without the committed marker.
+
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be

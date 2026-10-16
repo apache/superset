@@ -738,9 +738,20 @@ def convert_uuids(obj: Any) -> Any:
 
 
 class UUIDMixin:  # pylint: disable=too-few-public-methods
-    uuid = sa.Column(
-        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
-    )
+    # A plain `uuid = sa.Column(...)` class attribute resolves to `Any` (or
+    # the raw `Column[Any]` descriptor) under mypy unless the whole class
+    # hierarchy happens to be loaded together in the same run -- so a
+    # scoped, per-PR mypy check silently lets an unnarrowed `.uuid` read
+    # through even though the column is nullable, and only a full-repo
+    # sweep catches the mismatch later (see #44789 and its predecessors
+    # #44394/#44424/#44648). The `@declared_attr` + explicit `Mapped[...]`
+    # return annotation used by `created_by_fk`/`changed_by_fk` above makes
+    # the type deterministic regardless of what else mypy is checking.
+    @declared_attr
+    def uuid(self) -> Mapped[Optional[uuid.UUID]]:  # pylint: disable=arguments-renamed
+        return sa.Column(
+            UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
+        )
 
     @validates("uuid")
     def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
