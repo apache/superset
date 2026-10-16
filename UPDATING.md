@@ -54,6 +54,22 @@ assists people when migrating to a new version.
   target commit can also leave transactional changes committed. Target and
   metadata commits are not atomic: a metadata commit failure after the target
   commit can likewise leave database changes without the committed marker.
+- **Semantic dimension variant resolution.** With `SEMANTIC_LAYERS` enabled,
+  same-name dimension variants use one default
+  preference for metadata, filters and grouping fallbacks: raw (no grain), then
+  second/minute/hour/day/week/month/quarter/year, then other grain representations
+  in lexical order. Explicit supported grouping grains remain honored; filters
+  and time bounds use the default independently of grouping. Sorting and series
+  limits use the selected grouping grain. This can change
+  results that depended on arbitrary catalog ordering. Providers exposing
+  different IDs or conflicting types, definitions or descriptions for the same
+  name and grain must disambiguate their catalog; such catalogs are rejected
+  instead of silently selecting a variant. On dashboards,
+  only the affected dataset reports the ambiguity; other datasets still load.
+  Independent temporal predicates are retained unless replaced by the query's
+  time-axis bounds; time-series offsets and separate inner-bound queries replace
+  ranges on their selected axis. Retained predicates can narrow results where
+  earlier releases discarded them.
 
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,

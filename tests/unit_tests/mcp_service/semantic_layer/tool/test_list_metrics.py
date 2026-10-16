@@ -22,7 +22,7 @@ from __future__ import annotations
 import contextlib
 import importlib
 from collections.abc import Generator
-from types import MethodType, ModuleType
+from types import ModuleType
 from typing import Any
 from unittest.mock import call, MagicMock, Mock, patch
 
@@ -145,9 +145,9 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
     view.implementation.get_dimensions.return_value = dimensions
     view.implementation.get_metrics.return_value = []
     view.implementation.get_compatible_dimensions.return_value = dimensions
-    view.get_compatible_dimensions.side_effect = MethodType(
-        SemanticView.get_compatible_dimensions, view
-    )
+    semantic_view: SemanticView = SemanticView()
+    semantic_view.implementation = view.implementation
+    view.get_compatible_dimensions.side_effect = semantic_view.get_compatible_dimensions
     dataset: MagicMock = _make_dataset(1)
     dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
     dataset.columns = [_make_column(f"column_{i}") for i in range(30)]

@@ -23,6 +23,7 @@ import os
 import uuid
 from collections.abc import Hashable
 from datetime import date, datetime, timezone
+from itertools import permutations
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, patch, PropertyMock
@@ -38,6 +39,7 @@ from superset_core.semantic_layers.errors import SemanticResultCompletenessReaso
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
+    Grain,
     Grains,
     Metric,
     Operator,
@@ -65,6 +67,45 @@ from superset.utils.core import GenericDataType
 # =============================================================================
 # get_column_type tests
 # =============================================================================
+
+
+@pytest.mark.parametrize(
+    "grains, expected",
+    [
+        ((None, Grains.DAY, Grains.HOUR), None),
+        ((Grains.DAY, Grains.HOUR, Grains.MONTH), Grains.HOUR),
+        ((Grain("Custom B", "P5D"), Grain("Custom A", "P2D")), Grain("A", "P2D")),
+    ],
+)
+def test_column_metadata_default_is_order_independent(
+    grains: tuple[Grain | None, ...], expected: Grain | None
+) -> None:
+    """Metadata keeps the same raw/finest/custom choice across extraction."""
+    dimensions: tuple[Dimension, ...] = tuple(
+        Dimension(str(index), "event_time", pa.timestamp("us"), grain=grain)
+        for index, grain in enumerate(grains)
+    )
+    implementation: MagicMock = MagicMock()
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    for ordering in permutations(dimensions):
+        implementation.get_dimensions.return_value = ordering
+        assert len(view._unique_dimensions) == 1
+        assert view._unique_dimensions[0].grain == expected
+
+
+def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
+    """Metadata must not hide an ambiguity that prevents query mapping."""
+    implementation: MagicMock = MagicMock()
+    implementation.get_dimensions.return_value = {
+        Dimension("a", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("b", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("raw", "event_time", pa.timestamp("us")),
+    }
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+        _columns: list[ColumnMetadata] = view.columns
 
 
 def test_get_column_type_temporal_date() -> None:
@@ -2671,6 +2712,39 @@ def test_values_search_failure_never_retries_without_filter(
 
     mock_implementation.get_values.assert_called_once()
     assert mock_implementation.get_values.call_args.args[1] is not None
+
+
+@pytest.mark.parametrize(
+    "method", ["get_compatible_metrics", "get_compatible_dimensions"]
+)
+@pytest.mark.parametrize("ambiguous", [False, True])
+def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> None:
+    """Both compatibility projections use default identities and reject collisions."""
+    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
+    month: Dimension = Dimension(
+        "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    duplicate: Dimension = Dimension(
+        "other-month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    catalog: tuple[Dimension, ...] = (
+        (raw, month, duplicate) if ambiguous else (raw, month)
+    )
+    implementation: MagicMock = MagicMock()
+    implementation.get_metrics.return_value = set()
+    provider_method: MagicMock = getattr(implementation, method)
+    provider_method.return_value = set()
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    for ordering in permutations(catalog):
+        implementation.get_dimensions.return_value = ordering
+        if ambiguous:
+            with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+                getattr(view, method)([], ["event_time"])
+            provider_method.assert_not_called()
+        else:
+            assert getattr(view, method)([], ["event_time"]) == []
+            assert provider_method.call_args.args[1] == {raw}
 
 
 def test_semantic_view_data_row_offset_capability(
