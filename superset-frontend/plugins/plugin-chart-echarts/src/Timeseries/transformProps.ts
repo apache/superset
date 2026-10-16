@@ -497,18 +497,16 @@ export default function transformProps(
       ? getMetricLabel(size)
       : undefined;
   const extraMetrics = extractExtraMetrics(chartProps.rawFormData);
-  const extraMetricLabels = extraMetrics
-    .map(getMetricLabel)
-    .flatMap(label =>
-      label === sizeMetricLabel
-        ? []
-        : [
-            verboseMap[label] ?? label,
-            // forecast columns of a sort-only metric stay hidden too, even
-            // though the sort key itself ignores them
-            ...pivotedColumnsOf(label, { includeForecast: true }),
-          ],
-    );
+  const extraMetricLabels = extraMetrics.map(getMetricLabel).flatMap(label =>
+    label === sizeMetricLabel
+      ? []
+      : [
+          verboseMap[label] ?? label,
+          // forecast columns of a sort-only metric stay hidden too, even
+          // though the sort key itself ignores them
+          ...pivotedColumnsOf(label, { includeForecast: true }),
+        ],
+  );
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
