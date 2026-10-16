@@ -75,6 +75,10 @@ class KeyValueResource(StrEnum):
     EXPLORE_PERMALINK = "explore_permalink"
     METASTORE_CACHE = "superset_metastore_cache"
     LOCK = "lock"
+    # Self-service AUTH_DB password recovery: outstanding single-use tokens
+    # (stored as verifiers only) and the per-address resend cooldown.
+    PASSWORD_RECOVERY_THROTTLE = "password_recovery_throttle"  # noqa: S105
+    PASSWORD_RECOVERY_TOKEN = "password_recovery_token"  # noqa: S105
     PKCE_CODE_VERIFIER = "pkce_code_verifier"
     SQLLAB_PERMALINK = "sqllab_permalink"
 

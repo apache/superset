@@ -35,6 +35,26 @@ assists people when migrating to a new version.
   Operators who relied on the HTTP cancel to free admission slots in those cases
   should rely on Impala's own query and session timeouts. Chart and MCP
   cancellation still use the HTTP cancel.
+- `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
+  has already finished or its worker has committed the target transaction.
+  The response contains `message: "Could not cancel query"` and the recorded
+  `query`; an async handle's `cancel()` returns `False`. After a target commit,
+  that query can still be running while SQL Lab prepares its results.
+  PostgreSQL/MySQL metadata databases serialize Stop against the worker's final
+  stop check and target commit. If Stop wins, transactional work is discarded;
+  if the worker wins, Stop is rejected even before results are published.
+  An accepted Stop returns HTTP 200 (`cancel()` returns `True`) even if engine
+  cancellation or subsequent cancellation-metadata persistence fails. Its stopped
+  state and original end time survive repeated Stop requests and worker timeouts.
+  Repeated Stop requests do not retry engine cancellation.
+  Engine cancellation is best-effort: its statement may continue, but SQL Lab
+  discards the results. Stop cannot undo autocommit, implicit-commit DDL, or SQL
+  commits performed during execution. With SQLite metadata (which does not
+  support row locks), a Stop accepted between the worker's final check and
+  target commit can also leave transactional changes committed. Target and
+  metadata commits are not atomic: a metadata commit failure after the target
+  commit can likewise leave database changes without the committed marker.
+
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be
@@ -295,11 +315,16 @@ label as the custom color key, for example:
 
 ### Semantic provider error handling
 
-Semantic chart-query execution classifies provider-raised `SupersetTimeoutException`
-(formerly HTTP 408), `SupersetGenericDBErrorException` and
-`SupersetTemplateParamsErrorException` (formerly HTTP 400) as generic HTTP 500
-failures. Worker control timeouts and host input-validation errors retain their
-existing handling. See the [provider error contract](docs/developer_docs/semantic-query-errors.md).
+Semantic chart-query execution and value suggestions return HTTP 400 with
+host-owned guidance for typed provider rejections, and generic HTTP 500 responses
+for provider faults. In chart execution this includes provider-raised
+`SupersetTimeoutException` (formerly 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly 400). Host input validation and
+worker control exceptions retain their existing handling. Failed server-side
+value searches no longer retry without their narrowing filter; manual filter-value
+entry remains available. Providers should raise `SemanticQueryRejectedError` only
+for positively identified input-validation failures. See the
+[provider error contract](docs/developer_docs/semantic-query-errors.md).
 
 ### Semantic-view Table charts without a temporal axis
 

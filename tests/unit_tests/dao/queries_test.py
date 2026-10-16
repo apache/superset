@@ -21,7 +21,7 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
-from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
+from superset.exceptions import QueryNotFoundException
 
 
 def test_query_dao_save_metadata(session: Session) -> None:
@@ -146,10 +146,7 @@ def test_query_dao_stop_query_not_found(
 
     db.session.add(database)
     db.session.add(query_obj)
-    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
-    # wrapped in @transaction, which rolls back the session on the
-    # QueryNotFoundException raised below -- an uncommitted insert would be
-    # discarded along with it.
+    # Persist the fixture before testing a different query identifier.
     db.session.commit()
 
     mocker.patch("superset.sql_lab.cancel_query", return_value=False)
@@ -202,9 +199,10 @@ def test_query_dao_stop_query_not_running(
     assert query.status == QueryStatus.FAILED
 
 
-def test_query_dao_stop_query_failed(
+def test_query_dao_stop_query_accepts_uncancelable_engine(
     mocker: MockerFixture, app: Any, session: Session
 ) -> None:
+    """A missing engine cancellation does not reject a durable Stop."""
     from superset import db
     from superset.common.db_query_status import QueryStatus
     from superset.models.core import Database
@@ -233,21 +231,20 @@ def test_query_dao_stop_query_failed(
 
     db.session.add(database)
     db.session.add(query_obj)
-    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
-    # wrapped in @transaction, which rolls back the session on the
-    # SupersetCancelQueryException raised below -- an uncommitted insert
-    # would be discarded along with it.
+    # The query must exist before the Stop transaction can lock its row.
     db.session.commit()
 
-    mocker.patch("superset.sql_lab.cancel_query", return_value=False)
+    cancel_query = mocker.patch("superset.sql_lab.cancel_query", return_value=False)
 
     from superset.daos.query import QueryDAO
 
-    with pytest.raises(SupersetCancelQueryException):
-        QueryDAO.stop_query(query_obj.client_id)
+    assert QueryDAO.stop_query(query_obj.client_id) is query_obj
+    cancel_query.assert_called_once_with(query_obj)
 
+    db.session.expire_all()
     query = db.session.query(Query).one()
-    assert query.status == QueryStatus.RUNNING
+    assert query.status == QueryStatus.STOPPED
+    assert query.end_time is not None
 
 
 def test_query_dao_stop_query(
@@ -324,10 +321,7 @@ def test_query_dao_stop_query_wrong_user(
 
     db.session.add(database)
     db.session.add(query_obj)
-    # Committed (not just autoflushed) since QueryDAO.stop_query() is now
-    # wrapped in @transaction, which rolls back the session on the
-    # QueryNotFoundException raised below -- an uncommitted insert would be
-    # discarded along with it.
+    # Persist the fixture before testing ownership scoping.
     db.session.commit()
 
     # Simulate a different user (user 2) attempting to stop user 1's query
@@ -340,74 +334,3 @@ def test_query_dao_stop_query_wrong_user(
 
     query = db.session.query(Query).one()
     assert query.status == QueryStatus.RUNNING
-
-
-@pytest.mark.parametrize(
-    "finished_status",
-    ["success", "failed", "timed_out"],
-)
-def test_query_dao_stop_query_keeps_status_when_impala_finishes_first(
-    mocker: MockerFixture, app: Any, session: Session, finished_status: str
-) -> None:
-    """
-    A stop that loses the race with the worker's terminal commit must not
-    cancel through the coordinator or relabel the finished query as STOPPED.
-    """
-    from sqlalchemy import update
-
-    from superset import db
-    from superset.common.db_query_status import QueryStatus
-    from superset.constants import QUERY_CANCEL_KEY
-    from superset.db_engine_specs.impala import ImpalaEngineSpec
-    from superset.models.core import Database
-    from superset.models.sql_lab import Query
-
-    engine = db.session.get_bind()
-    Query.metadata.create_all(engine)  # pylint: disable=no-member
-
-    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
-    query_obj = Query(
-        client_id="foo",
-        database=database,
-        sql="select * from bar",
-        status=QueryStatus.RUNNING,
-        end_time=1.0,
-        extra_json=f'{{"{QUERY_CANCEL_KEY}": "0123456789abcdef:0123456789abcdef"}}',
-    )
-    db.session.add(database)
-    db.session.add(query_obj)
-    db.session.commit()
-
-    mocker.patch.object(
-        Database,
-        "db_engine_spec",
-        new_callable=mocker.PropertyMock,
-        return_value=ImpalaEngineSpec,
-    )
-    http_cancel = mocker.patch.object(
-        ImpalaEngineSpec, "cancel_query", return_value=True
-    )
-    prepare = ImpalaEngineSpec.prepare_cancel_query
-
-    def finish_then_prepare(query: Query) -> None:
-        # The worker commits its terminal status after the stop request read
-        # the query as running, but before the stop is claimed.
-        db.session.execute(
-            update(Query)
-            .where(Query.id == query.id)
-            .values(status=QueryStatus(finished_status))
-        )
-        prepare(query)
-
-    mocker.patch.object(
-        ImpalaEngineSpec, "prepare_cancel_query", side_effect=finish_then_prepare
-    )
-
-    from superset.daos.query import QueryDAO
-
-    QueryDAO.stop_query(query_obj.client_id)
-
-    http_cancel.assert_not_called()
-    query = db.session.query(Query).one()
-    assert query.status == QueryStatus(finished_status)
-    assert query.end_time == 1.0

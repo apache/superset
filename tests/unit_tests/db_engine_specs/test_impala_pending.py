@@ -16,7 +16,6 @@
 # under the License.
 
 from contextlib import nullcontext
-from pathlib import Path
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -64,6 +63,9 @@ def test_stop_during_poll_does_not_fail_sync_fetch(
 
     def stop_before_poll() -> str:
         """Let the worker run before the Stop caller can do another commit."""
+        # The guarded stop caller publishes STOPPED before engine cancellation.
+        query.status = QueryStatus.STOPPED
+        session.commit()
         if use_executor:
             assert SQLExecutor._cancel_query(query.database, query)
         else:
@@ -95,8 +97,8 @@ def test_stop_during_poll_does_not_fail_sync_fetch(
     with pytest.raises(SqlLabQueryStoppedException):
         execute_query(query, cursor)
 
-    # The Stop commit, then the poll's transaction boundary, both carry STOPPED.
-    assert committed_stops == [QueryStatus.STOPPED, QueryStatus.STOPPED]
+    # The poll publishes the flag only after the caller has recorded STOPPED.
+    assert committed_stops == [QueryStatus.STOPPED]
     operation.cancel.assert_called_once_with()
     operation.close.assert_called_once_with()
     assert cursor.description is None
@@ -174,7 +176,7 @@ def test_stop_running_query_uses_live_cursor(use_executor: bool) -> None:
             assert SQLExecutor._cancel_query(query.database, query)
         else:
             assert cancel_query(query)
-        db.session.commit.assert_called_once_with()
+        db.session.commit.assert_not_called()
 
         cursor: Mock = Mock()
         cursor.status.return_value = "RUNNING_STATE"
@@ -257,7 +259,8 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
             assert SQLExecutor._cancel_query(query.database, query)
         else:
             assert cancel_query(query)
-        db.session.commit.assert_called_once_with()
+        # The caller commits early intent together with the guarded STOPPED write.
+        db.session.commit.assert_not_called()
 
         cursor: Mock = Mock()
         cursor.status.return_value = "PENDING_STATE"
@@ -272,119 +275,11 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
 def test_prepare_cancel_query_flags_stop(extra: dict[str, str]) -> None:
     """Stop is flagged for the live cursor whether or not a handle is published."""
     query: MagicMock = MagicMock(extra=extra, status=QueryStatus.RUNNING)
-    committed_statuses: list[QueryStatus] = []
     with patch("superset.db_engine_specs.impala.db") as db:
-        db.session.commit.side_effect = lambda: committed_statuses.append(query.status)
         ImpalaEngineSpec.prepare_cancel_query(query)
     query.set_extra_json_key.assert_called_once_with(QUERY_EARLY_CANCEL_KEY, True)
-    db.session.commit.assert_called_once_with()
-    assert committed_statuses == [QueryStatus.STOPPED]
-
-
-@pytest.mark.parametrize(
-    "status",
-    [
-        QueryStatus.RUNNING,
-        QueryStatus.SUCCESS,
-        QueryStatus.FAILED,
-        QueryStatus.TIMED_OUT,
-    ],
-)
-def test_prepare_cancel_query_keeps_finished_status(
-    mocker: MockerFixture, tmp_path: Path, status: QueryStatus
-) -> None:
-    """A late stop must not relabel a finished query, which would hide its result."""
-    from sqlalchemy import create_engine
-    from sqlalchemy.orm import Session
-
-    from superset.models.sql_lab import Query
-
-    engine = create_engine(f"sqlite:///{tmp_path / 'stop.db'}")
-    Query.__table__.create(engine)
-    with Session(engine) as session:
-        session.add(
-            Query(
-                id=1,
-                client_id="late-stop",
-                database_id=1,
-                sql="SELECT 1",
-                status=status,
-                extra_json="{}",
-            )
-        )
-        session.commit()
-
-    with Session(engine) as session:
-        mocker.patch("superset.db_engine_specs.impala.db", Mock(session=session))
-        query = session.get(Query, 1)
-        assert query is not None
-        # The stop caller read the query before the worker's terminal commit.
-        query.status = QueryStatus.RUNNING
-        ImpalaEngineSpec.prepare_cancel_query(query)
-        assert query.status == (
-            QueryStatus.STOPPED if status == QueryStatus.RUNNING else status
-        )
-
-    with Session(engine) as session:
-        stored = session.get(Query, 1)
-        assert stored is not None
-        stopped = status == QueryStatus.RUNNING
-        assert stored.status == (QueryStatus.STOPPED if stopped else status)
-        assert stored.extra.get(QUERY_EARLY_CANCEL_KEY) is (True if stopped else None)
-
-
-@pytest.mark.parametrize("use_executor", [False, True])
-@pytest.mark.parametrize(
-    "finished_status", [QueryStatus.SUCCESS, QueryStatus.FAILED, QueryStatus.TIMED_OUT]
-)
-def test_finished_query_stop_bypasses_repeatable_read_snapshot(
-    mocker: MockerFixture, use_executor: bool, finished_status: QueryStatus
-) -> None:
-    """
-    A declined stop must reload current state, not the earlier RUNNING snapshot.
-
-    The session is mocked because SQLite cannot model this case: a write on a
-    stale WAL snapshot fails with SQLITE_BUSY_SNAPSHOT, while InnoDB's UPDATE
-    and locking read see the latest committed row. ``refresh`` models that
-    difference. The real-session tests in
-    ``tests/unit_tests/dao/query_stop_isolation_test.py`` cover the lock release
-    and the poll snapshot.
-    """
-    query = MagicMock(
-        id=1,
-        status=QueryStatus.RUNNING,
-        extra={QUERY_CANCEL_KEY: "0123456789abcdef:fedcba9876543210"},
-    )
-    query.database.db_engine_spec = ImpalaEngineSpec
-    session = mocker.patch("superset.db_engine_specs.impala.db.session")
-    # The conditional UPDATE sees the worker's terminal commit, even though
-    # the stop request's earlier SELECT established a RUNNING snapshot.
-    session.query.return_value.filter.return_value.update.return_value = 0
-
-    def refresh(refreshed: MagicMock, with_for_update: bool = False) -> None:
-        """Model InnoDB's current locking read versus a consistent snapshot read."""
-        refreshed.status = finished_status if with_for_update else QueryStatus.RUNNING
-
-    session.refresh.side_effect = refresh
-    http_cancel = mocker.patch.object(
-        ImpalaEngineSpec, "cancel_query", return_value=True
-    )
-    get_engine = mocker.patch.object(query.database, "get_sqla_engine")
-
-    if use_executor:
-        assert SQLExecutor._cancel_query(query.database, query) is False
-    else:
-        assert cancel_query(query) is False
-
-    assert query.status == finished_status
-    query.set_extra_json_key.assert_not_called()
-    # The transaction holding the locking read ends; nothing else is written.
-    assert [c[0] for c in session.method_calls if c[0] != "query"] == [
-        "refresh",
-        "commit",
-    ]
-    get_engine.assert_not_called()
-    http_cancel.assert_not_called()
+    db.session.commit.assert_not_called()
+    assert query.status == QueryStatus.RUNNING
 
 
 def test_pending_operation_polls_with_backoff() -> None:

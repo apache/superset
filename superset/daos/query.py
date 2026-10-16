@@ -19,16 +19,16 @@ from datetime import datetime, timezone
 from typing import Any, Union
 
 from superset import sql_lab
-from superset.common.db_query_status import FINISHED_QUERY_STATUSES, QueryStatus
+from superset.common.db_query_status import QueryStatus
 from superset.daos.base import BaseDAO
-from superset.exceptions import QueryNotFoundException, SupersetCancelQueryException
+from superset.exceptions import QueryNotFoundException
 from superset.extensions import db
 from superset.models.sql_lab import Query, SavedQuery
 from superset.queries.filters import QueryFilter
 from superset.queries.saved_queries.filters import SavedQueryFilter
+from superset.sql.execution.utils import finish_query_stop, set_query_stopped
 from superset.utils.core import get_user_id
 from superset.utils.dates import now_as_float
-from superset.utils.decorators import transaction
 
 logger = logging.getLogger(__name__)
 
@@ -60,8 +60,8 @@ class QueryDAO(BaseDAO[Query]):
         )
 
     @staticmethod
-    @transaction()
-    def stop_query(client_id: str) -> None:
+    def stop_query(client_id: str) -> Query:
+        """Stop a query and return its recorded outcome, including a lost race."""
         query = (
             db.session.query(Query)
             .filter(Query.client_id == client_id, Query.user_id == get_user_id())
@@ -70,53 +70,22 @@ class QueryDAO(BaseDAO[Query]):
         if not query:
             raise QueryNotFoundException(f"Query with client_id {client_id} not found")
 
-        if query.status in FINISHED_QUERY_STATUSES:
+        if query.status in [
+            QueryStatus.FAILED,
+            QueryStatus.SUCCESS,
+            QueryStatus.TIMED_OUT,
+        ]:
             logger.warning(
                 "Query with client_id could not be stopped: query already complete",
             )
-            return
+            return query
 
-        cancelled = sql_lab.cancel_query(query)
-        if query.status in FINISHED_QUERY_STATUSES:
-            # Preparing the stop can observe the worker's terminal commit.
-            logger.warning(
-                "Query with client_id could not be stopped: query already complete",
-            )
-            return
-        if not cancelled:
-            raise SupersetCancelQueryException("Could not cancel query")
-
-        if query.status == QueryStatus.STOPPED:
-            # The engine spec already committed the stop while preparing it
-            # (see ImpalaEngineSpec.prepare_cancel_query).
-            return
-
-        # cancel_query() may have staged an early-cancel flag on query.extra
-        # without committing it (see its docstring/comments); the
-        # @transaction decorator commits it together with status=STOPPED
-        # below in one transaction, closing the window where another
-        # request could observe the flag set but the status still RUNNING.
-        #
-        # The write is conditional: the worker can commit SUCCESS or TIMED_OUT
-        # after the check above, and that result must not be overwritten. A
-        # FAILED committed in this window is usually caused by the cancel
-        # itself (engines that kill the statement from outside the worker),
-        # so it is still replaced with STOPPED.
-        stopped = (
-            db.session.query(Query)
-            .filter(
-                Query.id == query.id,
-                Query.status.notin_((QueryStatus.SUCCESS, QueryStatus.TIMED_OUT)),
-            )
-            .update(
-                {Query.status: QueryStatus.STOPPED, Query.end_time: now_as_float()},
-                synchronize_session="fetch",
-            )
-        )
-        if not stopped:
-            logger.warning(
-                "Query with client_id could not be stopped: query already complete",
-            )
+        with db.session.no_autoflush:
+            if not set_query_stopped(query, now_as_float()):
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                return query
+            finish_query_stop(query, lambda: sql_lab.cancel_query(query))
+        return query
 
 
 class SavedQueryDAO(BaseDAO[SavedQuery]):
