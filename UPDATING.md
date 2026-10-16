@@ -979,7 +979,11 @@ Deployments already running with `TAGGING_SYSTEM` enabled keep any
 remain queryable via the API and MCP's `list_tags`/`get_tag_info` tools,
 and are still exempt from bulk tag deletion — but no new ones are created,
 and the `superset sync_tags` CLI command that backfilled them has been
-removed. The `DASHBOARD_LIST_CUSTOM_TAGS_ONLY` config flag and the
+removed. Nothing maintains those retained rows any more: un-favoriting no
+longer deletes a `favorited_by:` row, and editor changes no longer prune
+`editor:` rows, so they are a frozen snapshot that drifts from current
+favorites and editorship. No migration removes them; delete them manually.
+The `DASHBOARD_LIST_CUSTOM_TAGS_ONLY` config flag and the
 dashboard-list filtering it enables are kept, defaulting to `False`, so
 deployments that already set it to `True` to hide legacy implicit tags from
 dashboard-list responses keep that filtering; new deployments with no
