@@ -22,6 +22,7 @@ from superset import db
 from superset.daos.tag import TagDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.models.sql_lab import SavedQuery
 from superset.tags.models import ObjectType, Tag, TaggedObject, TagType
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
@@ -374,6 +375,50 @@ class TestTagsDAO(SupersetTestCase):
         assert tagged_object_count() == 1
 
         db.session.delete(dashboard)
+        db.session.commit()
+
+        assert tagged_object_count() == 0
+
+        db.session.delete(tag)
+        db.session.commit()
+
+    @pytest.mark.usefixtures("with_tagging_system_feature")
+    @pytest.mark.parametrize(
+        "object_type",
+        [ObjectType.chart, ObjectType.query],
+    )
+    def test_tagged_object_cleanup_on_object_delete(self, object_type):
+        """Deleting a tagged chart or saved query cleans up its tagged_object
+        rows, guarding the delete listeners registered for those models."""
+        obj = (
+            Slice(slice_name="tag cleanup chart", viz_type="table")
+            if object_type == ObjectType.chart
+            else SavedQuery(label="tag cleanup query", sql="SELECT 1")
+        )
+        db.session.add(obj)
+        db.session.commit()
+        object_id = obj.id
+
+        tag = self.insert_tag(
+            name=f"cleanup_test_tag_{object_type.name}", tag_type=TagType.custom
+        )
+        self.insert_tagged_object(
+            tag_id=tag.id, object_id=object_id, object_type=object_type
+        )
+
+        def tagged_object_count() -> int:
+            return (
+                db.session.query(TaggedObject)
+                .filter(
+                    TaggedObject.object_type == object_type.name,
+                    TaggedObject.object_id == object_id,
+                )
+                .count()
+            )
+
+        assert tagged_object_count() == 1
+
+        db.session.delete(obj)
         db.session.commit()
 
         assert tagged_object_count() == 0
