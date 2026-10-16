@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -505,6 +506,7 @@ def test_create_semantic_view_lookup_failure(
     from superset.commands.semantic_layer.create import CreateSemanticViewCommand
     from superset.commands.semantic_layer.exceptions import SemanticViewInvalidError
 
+    caplog.set_level(logging.INFO, logger="superset.commands.semantic_layer.create")
     layer: MagicMock = MagicMock()
     layer.implementation.get_semantic_view.return_value = None
     layer.implementation.get_semantic_view.side_effect = failure
@@ -536,10 +538,14 @@ def test_create_semantic_view_lookup_failure(
     if failure is not None:
         assert caplog.messages == [
             "Semantic view lookup failed for layer layer-uuid, view orders: "
-            f"{type(failure).__name__}"
+            f"{type(failure).__name__}",
+            "Semantic view lookup produced no view for layer layer-uuid, view orders",
         ]
     else:
-        assert caplog.messages == []
+        assert caplog.messages == [
+            "Semantic view lookup produced no view for layer layer-uuid, view orders"
+        ]
+        assert caplog.records[0].levelno == logging.INFO
     dao.validate_uniqueness.assert_not_called()
     dao.create.assert_not_called()
 

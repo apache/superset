@@ -139,6 +139,11 @@ class CreateSemanticViewCommand(BaseCommand):
             )
             view = None
         if view is None:
+            logger.info(
+                "Semantic view lookup produced no view for layer %s, view %s",
+                layer_uuid,
+                name,
+            )
             raise SemanticViewInvalidError(
                 _(
                     "Couldn't validate this semantic view: it may not exist, "
