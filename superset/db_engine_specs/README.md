@@ -1322,6 +1322,8 @@ Some databases have an implicit query cancelation. When a cursor stops being pol
 
 For other databases, DB engine specs can implement query cancelation via the `prepare_cancel_query` and `cancel_query` methods. Implementation of query cancelation is usually heavily dependent on the database, but the DB engine specs that support it can serve as an example.
 
+These methods must not flush or commit the metadata session. `prepare_cancel_query` can stage cancellation intent on the query; its caller persists that intent together with a conditional stop, preserving any terminal result committed while cancellation was in flight.
+
 ### Get metrics on dataset creation
 
 When a physical dataset is first created, the `get_metrics` class method is called on the table. The base implementation returns the `COUNT(*)` metric, but DB engine specs can override `get_metrics` to return other metrics. This method is useful for semantic layers that contain their own metrics definitions; when Superset connect to them it can automatically create those metrics when a dataset is added.

@@ -7210,7 +7210,7 @@ msgstr ""
 msgid "Get the last date by the date unit."
 msgstr ""
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr ""
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8197,6 +8197,9 @@ msgid "Layout type of tree"
 msgstr ""
 
 msgid "Least recently modified"
+msgstr ""
+
+msgid "Leave a bound empty for an unbounded range."
 msgstr ""
 
 msgid "Leave blank to keep the current password"
@@ -18149,4 +18152,7 @@ msgstr ""
 msgid ""
 "This semantic provider does not support this query. Remove unsupported "
 "filters or grouping and try again."
+msgstr ""
+
+msgid "Only the first %s values are listed. Enter a value manually if it is not listed."
 msgstr ""

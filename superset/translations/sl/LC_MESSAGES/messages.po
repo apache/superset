@@ -8359,7 +8359,7 @@ msgstr "Geometrijski stolpec"
 msgid "Get the last date by the date unit."
 msgstr "Pridobi zadnji datum glede na časovno enoto."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Določi datum praznika"
 
 msgid "Give access to multiple catalogs in a single database connection."
