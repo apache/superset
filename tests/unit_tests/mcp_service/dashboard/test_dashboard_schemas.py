@@ -33,10 +33,14 @@ from superset.mcp_service.dashboard.schemas import (
     _extract_native_filters,
     _safe_user_label,
     AddChartToDashboardRequest,
+    ApplyFilterValueSpec,
     dashboard_serializer,
     DashboardInfo,
     DuplicateDashboardRequest,
     DuplicateDashboardResponse,
+    FilterRangeSpec,
+    FilterSelectSpec,
+    FilterTimeGrainSpec,
     GenerateDashboardRequest,
     GetDashboardInfoRequest,
     GetDashboardLayoutRequest,
@@ -44,6 +48,7 @@ from superset.mcp_service.dashboard.schemas import (
     ManageDashboardOwnersResponse,
     ManageDashboardRolesResponse,
     NativeFilterSummary,
+    NativeFilterUpdateSpec,
     redact_filter_state_data_model_metadata,
     serialize_chart_summary,
     serialize_dashboard_object,
@@ -498,6 +503,61 @@ class TestExtractNativeFilters:
         assert _extract_native_filters("[]") == []
         assert _extract_native_filters("123") == []
         assert _extract_native_filters('"just a string"') == []
+
+    @pytest.mark.parametrize(
+        "divider_id,divider_type",
+        [
+            ("NATIVE_FILTER_DIVIDER-abc123", "DIVIDER"),
+            ("NATIVE_FILTER_DIVIDER-abc123", None),
+            ("legacy-divider", "DIVIDER"),
+        ],
+    )
+    def test_divider_uses_title_as_name_and_divider_as_filter_type(
+        self, divider_id: str, divider_type: str | None
+    ) -> None:
+        """A divider stores its text under "title" and has no "filterType";
+        both must be normalized rather than surfaced as None/None."""
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": divider_id,
+                        **({"type": divider_type} if divider_type else {}),
+                        "title": "Geography",
+                        "description": "Location filters",
+                    }
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert len(result) == 1
+        assert result[0].id == divider_id
+        assert result[0].name == "Geography"
+        assert result[0].filter_type == "divider"
+        assert result[0].targets == []
+
+    def test_divider_alongside_regular_filter(self) -> None:
+        metadata = json_dumps(
+            {
+                "native_filter_configuration": [
+                    {
+                        "id": "NATIVE_FILTER_DIVIDER-abc123",
+                        "type": "DIVIDER",
+                        "title": "Geography",
+                    },
+                    {
+                        "id": "f1",
+                        "name": "Region",
+                        "filterType": "filter_select",
+                    },
+                ]
+            }
+        )
+        result = _extract_native_filters(metadata)
+        assert [(r.id, r.name, r.filter_type) for r in result] == [
+            ("NATIVE_FILTER_DIVIDER-abc123", "Geography", "divider"),
+            ("f1", "Region", "filter_select"),
+        ]
 
 
 class TestExtractCrossFiltersEnabled:
@@ -1307,3 +1367,63 @@ def test_native_filter_supported_predicates_remain_complete(
         [NativeFilterSummary(id="f1", name="Filter", filter_type=filter_type)],
     )
     assert result["native_filter_values_incomplete"] is False
+
+
+@pytest.mark.parametrize(
+    "bound", ["NaN", "Infinity", "-Infinity", float("nan"), float("inf"), float("-inf")]
+)
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_non_finite_bounds(
+    bound: str | float, index: int
+) -> None:
+    """Reject non-finite strings and numbers in either range bound after coercion."""
+    bounds: list[str | float | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be finite"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )
+
+
+@pytest.mark.parametrize("bound", [10**1000, -(10**1000)])
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_overflowing_integer_bounds(
+    bound: int, index: int
+) -> None:
+    """Huge integers yield validation errors instead of leaking OverflowError."""
+    bounds: list[int | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be finite"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )
+
+
+@pytest.mark.parametrize(
+    "model, payload",
+    [
+        (FilterSelectSpec, {"filter_type": "filter_select", "column": "region"}),
+        (FilterRangeSpec, {"filter_type": "filter_range", "column": "cost"}),
+        (FilterTimeGrainSpec, {"filter_type": "filter_timegrain"}),
+        (NativeFilterUpdateSpec, {"id": "NATIVE_FILTER-1"}),
+    ],
+)
+def test_filter_specs_reject_boolean_dataset_id(
+    model: Any, payload: dict[str, Any]
+) -> None:
+    """bool coerces to int in pydantic lax mode; dataset_id=true must not become 1."""
+    with pytest.raises(ValidationError, match="dataset_id must be an integer"):
+        model.model_validate({**payload, "name": "Filter", "dataset_id": True})
+    assert model.model_validate({**payload, "name": "Filter", "dataset_id": 1})
+
+
+@pytest.mark.parametrize("bound", [True, False])
+@pytest.mark.parametrize("index", [0, 1])
+def test_apply_filter_range_rejects_boolean_bounds(bound: bool, index: int) -> None:
+    """Boolean bounds must not coerce to numeric range predicates."""
+    bounds: list[int | None] = [None, None]
+    bounds[index] = bound
+    with pytest.raises(ValidationError, match="range bounds must be numbers or null"):
+        ApplyFilterValueSpec.model_validate(
+            {"filter_name_or_id": "Cost", "range": bounds}
+        )

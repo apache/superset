@@ -34,10 +34,13 @@ export interface BigNumberDatum {
   [key: string]: number | string | null;
 }
 
+export type HeaderAlignment = 'left' | 'center' | 'right';
+
 export type BigNumberTotalFormData = QueryFormData & {
   metric?: QueryFormMetric;
   yAxisFormat?: string;
   forceTimestampFormatting?: boolean;
+  headerAlignment?: HeaderAlignment;
 };
 
 export type BigNumberWithTrendlineFormData = BigNumberTotalFormData & {
@@ -107,4 +110,5 @@ export type BigNumberVizProps = {
   formData?: BigNumberWithTrendlineFormData;
   refs: Refs;
   colorThresholdFormatters?: ColorFormatters;
+  headerAlignment?: HeaderAlignment;
 };

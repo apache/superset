@@ -17,6 +17,7 @@
 """Persisted saves through the real baseline, Continuum and change listeners."""
 
 from collections.abc import Iterator
+from datetime import datetime, timezone
 from itertools import chain, repeat
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -394,3 +395,382 @@ def test_none_predicate_result_denies_capture_and_is_memoized(
     assert unit._capture_enabled(capture_session) is False
     assert unit._capture_enabled(capture_session) is False
     predicate.assert_called_once_with(capture_session)
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_nonversioned_transaction_never_consults_capture_policy(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    enabled: bool,
+) -> None:
+    """Unrelated writes and empty commits do not ask the host for policy."""
+    predicate: MagicMock = MagicMock(return_value=enabled)
+    monkeypatch.setitem(app.config, "VERSIONING_CAPTURE_PREDICATE", predicate)
+    database: Database = Database(database_name="unrelated", sqlalchemy_uri="sqlite://")
+    capture_session.add(database)
+    capture_session.flush()
+    database.database_name = "edited"
+    capture_session.commit()
+    capture_session.commit()
+    assert not any(history_counts(capture_session).values())
+    predicate.assert_not_called()
+
+
+@pytest.mark.parametrize("unrelated_first", [False, True])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_first_versioned_flush_freezes_policy_through_finalization(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    unrelated_first: bool,
+    enabled: bool,
+) -> None:
+    """One decision covers shadows and semantic changes across mixed flushes."""
+    dashboard: Dashboard = Dashboard(dashboard_title="original")
+    capture_session.add(dashboard)
+    capture_session.commit()
+    before: dict[str, int] = history_counts(capture_session)
+    predicate: MagicMock = MagicMock(return_value=enabled)
+    monkeypatch.setitem(app.config, "VERSIONING_CAPTURE_PREDICATE", predicate)
+    if unrelated_first:
+        capture_session.add(
+            Database(database_name="unrelated", sqlalchemy_uri="sqlite://")
+        )
+        capture_session.flush()
+        predicate.assert_not_called()
+    dashboard.dashboard_title = "intermediate"
+    capture_session.flush()
+    predicate.assert_called_once_with(capture_session)
+    predicate.return_value = not enabled
+    dashboard.dashboard_title = "final"
+    capture_session.commit()
+    predicate.assert_called_once_with(capture_session)
+    after: dict[str, int] = history_counts(capture_session)
+    assert after["dashboards_version"] == before["dashboards_version"] + int(enabled)
+    assert (after["version_changes"] > before["version_changes"]) is enabled
+
+
+@pytest.mark.parametrize(
+    "enabled,rollback_nested",
+    [
+        (False, False),
+        (False, True),
+        (True, False),
+        (True, True),
+    ],
+)
+def test_lazy_capture_savepoint_and_query_autoflush(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    rollback_nested: bool,
+    enabled: bool,
+) -> None:
+    """Savepoint completion keeps the outer decision through query autoflush."""
+    predicate: MagicMock = MagicMock(return_value=enabled)
+    monkeypatch.setitem(app.config, "VERSIONING_CAPTURE_PREDICATE", predicate)
+    capture_session.add(Database(database_name="unrelated", sqlalchemy_uri="sqlite://"))
+    nested: SessionTransaction = capture_session.begin_nested()
+    predicate.assert_not_called()
+    dashboard: Dashboard = Dashboard(dashboard_title="nested")
+    capture_session.add(dashboard)
+    assert (
+        capture_session.scalar(sa.select(sa.func.count()).select_from(Dashboard)) == 1
+    )
+    predicate.assert_called_once_with(capture_session)
+    predicate.return_value = not enabled
+    if rollback_nested:
+        nested.rollback()
+    else:
+        nested.commit()
+    capture_session.add(Dashboard(dashboard_title="outer"))
+    capture_session.commit()
+    predicate.assert_called_once_with(capture_session)
+    assert history_counts(capture_session)["dashboards_version"] == (
+        (1 if rollback_nested else 2) if enabled else 0
+    )
+
+
+@pytest.mark.parametrize("soft_delete", [False, True])
+@pytest.mark.parametrize("enabled", [False, True])
+def test_lazy_capture_delete_policy(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    soft_delete: bool,
+    enabled: bool,
+) -> None:
+    """Both deletion paths consult policy once and preserve allowed history."""
+    dashboard: Dashboard = Dashboard(dashboard_title="delete me")
+    capture_session.add(dashboard)
+    capture_session.commit()
+    before: dict[str, int] = history_counts(capture_session)
+    predicate: MagicMock = MagicMock(return_value=enabled)
+    monkeypatch.setitem(app.config, "VERSIONING_CAPTURE_PREDICATE", predicate)
+    if soft_delete:
+        dashboard.deleted_at = datetime.now(timezone.utc)
+    else:
+        capture_session.delete(dashboard)
+    capture_session.commit()
+    predicate.assert_called_once_with(capture_session)
+    assert history_counts(capture_session)["dashboards_version"] == (
+        before["dashboards_version"] + int(enabled and not soft_delete)
+    )
+
+
+def test_lazy_capture_predicate_error_still_propagates(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Laziness does not turn a host programming failure into silent denial."""
+    predicate: MagicMock = MagicMock(side_effect=RuntimeError("policy failed"))
+    monkeypatch.setitem(app.config, "VERSIONING_CAPTURE_PREDICATE", predicate)
+    capture_session.add(Dashboard(dashboard_title="not committed"))
+    with pytest.raises(RuntimeError, match="policy failed"):
+        capture_session.commit()
+    capture_session.rollback()
+    assert not any(history_counts(capture_session).values())
+
+
+def test_capture_after_savepoint_rollback_with_stable_policy(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """A rolled-back shadow cannot poison a subsequent outer-transaction save."""
+    monkeypatch.setitem(
+        app.config, "VERSIONING_CAPTURE_PREDICATE", lambda session: True
+    )
+    capture_session.add(Database(database_name="unrelated", sqlalchemy_uri="sqlite://"))
+    nested: SessionTransaction = capture_session.begin_nested()
+    capture_session.add(Dashboard(dashboard_title="rolled back"))
+    capture_session.flush()
+    nested.rollback()
+    capture_session.add(Dashboard(dashboard_title="outer"))
+    capture_session.commit()
+    assert history_counts(capture_session)["dashboards_version"] == 1
+
+
+@pytest.mark.parametrize("query_autoflush", [False, True])
+def test_capture_after_savepoint_rollback(
+    capture_session: Session,
+    query_autoflush: bool,
+) -> None:
+    """A rolled-back insert cannot poison history for a surviving insert."""
+    from sqlalchemy_continuum import versioning_manager
+
+    capture_session.add(Database(database_name="unrelated", sqlalchemy_uri="sqlite://"))
+    nested: SessionTransaction = capture_session.begin_nested()
+    capture_session.add(Dashboard(dashboard_title="rolled back"))
+    if query_autoflush:
+        assert (
+            capture_session.scalar(sa.select(sa.func.count()).select_from(Dashboard))
+            == 1
+        )
+    else:
+        capture_session.flush()
+    nested.rollback()
+    capture_session.add(Dashboard(dashboard_title="outer"))
+    capture_session.commit()
+    shadow: Any = version_class(Dashboard)
+    assert capture_session.scalars(sa.select(Dashboard.dashboard_title)).all() == [
+        "outer"
+    ]
+    assert capture_session.execute(
+        sa.select(
+            shadow.dashboard_title, shadow.operation_type, shadow.end_transaction_id
+        )
+    ).all() == [("outer", 0, None)]
+    assert history_counts(capture_session)["version_transaction"] == 1
+    # Shadow transaction IDs must reference surviving rows on every dialect.
+    assert capture_session.scalar(sa.select(shadow.transaction_id)) in (
+        capture_session.scalars(sa.select(versioning_manager.transaction_cls.id)).all()
+    )
+
+
+def test_savepoint_rollback_reapplying_same_value(capture_session: Session) -> None:
+    """Reapplying a rolled-back value must dirty the cached shadow again."""
+    dashboard: Dashboard = Dashboard(dashboard_title="original")
+    capture_session.add(dashboard)
+    capture_session.commit()
+    dashboard.dashboard_title = "outer edit"
+    capture_session.flush()
+    nested: SessionTransaction = capture_session.begin_nested()
+    dashboard.dashboard_title = "discarded edit"
+    capture_session.flush()
+    nested.rollback()
+    dashboard.dashboard_title = "discarded edit"
+    capture_session.commit()
+    shadow: Any = version_class(Dashboard)
+    assert dashboard.dashboard_title == "discarded edit"
+    assert capture_session.scalars(
+        sa.select(shadow.dashboard_title).order_by(shadow.transaction_id)
+    ).all() == ["original", "discarded edit"]
+
+
+@pytest.mark.parametrize("rollback_nested", [False, True])
+def test_ending_enclosing_savepoint_clears_inner_checkpoints(
+    capture_session: Session, rollback_nested: bool
+) -> None:
+    """Closing an enclosing savepoint must release its open descendants' state."""
+    from superset.versioning.savepoints import _CHECKPOINTS_KEY
+
+    dashboard: Dashboard = Dashboard(dashboard_title="outer")
+    capture_session.add(dashboard)
+    capture_session.flush()
+    enclosing: SessionTransaction = capture_session.begin_nested()
+    inner: SessionTransaction = capture_session.begin_nested()
+    dashboard.dashboard_title = "inner"
+    capture_session.flush()
+    assert len(capture_session.info[_CHECKPOINTS_KEY]) == 2
+    if rollback_nested:
+        enclosing.rollback()
+    else:
+        enclosing.commit()
+    assert not inner.is_active
+    assert not capture_session.info.get(_CHECKPOINTS_KEY)
+    capture_session.commit()
+    shadow: Any = version_class(Dashboard)
+    expected: str = "outer" if rollback_nested else "inner"
+    assert dashboard.dashboard_title == expected
+    assert capture_session.scalars(sa.select(shadow.dashboard_title)).all() == [
+        expected
+    ]
+
+
+@pytest.mark.parametrize("inner_commit", [False, True])
+@pytest.mark.parametrize("edit_after_rollback", [False, True])
+def test_savepoint_rollback_preserves_outer_history(
+    capture_session: Session,
+    inner_commit: bool,
+    edit_after_rollback: bool,
+) -> None:
+    """Rollback restores cached shadows and pending diffs, including nested work."""
+    from superset.versioning.changes.table import version_changes_table
+
+    dashboard: Dashboard = Dashboard(dashboard_title="original")
+    chart: Slice = Slice(slice_name="chart", viz_type="table", params="{}")
+    capture_session.add_all([dashboard, chart])
+    capture_session.commit()
+    dashboard.dashboard_title = "outer edit"
+    capture_session.flush()
+    shadow: Any = version_class(Dashboard)
+    outer_tx: int = capture_session.scalar(
+        sa.select(sa.func.max(shadow.transaction_id))
+    )
+    nested: SessionTransaction = capture_session.begin_nested()
+    dashboard.dashboard_title = "discarded edit"
+    dashboard.slices.append(chart)
+    capture_session.add(Dashboard(dashboard_title="discarded insert"))
+    capture_session.flush()
+    if inner_commit:
+        with capture_session.begin_nested():
+            dashboard.dashboard_title = "discarded inner edit"
+            capture_session.flush()
+    nested.rollback()
+    if edit_after_rollback:
+        dashboard.dashboard_title = "surviving edit"
+    capture_session.commit()
+    expected: str = "surviving edit" if edit_after_rollback else "outer edit"
+    assert dashboard.dashboard_title == expected
+    assert dashboard.slices == []
+    assert capture_session.execute(
+        sa.select(
+            shadow.dashboard_title, shadow.operation_type, shadow.end_transaction_id
+        ).order_by(shadow.transaction_id)
+    ).all() == [("original", 0, outer_tx), (expected, 1, None)]
+    assert history_counts(capture_session)["version_transaction"] == 2
+    assert history_counts(capture_session)["dashboard_slices_version"] == 0
+    assert capture_session.execute(
+        sa.select(version_changes_table.c.from_value, version_changes_table.c.to_value)
+        .where(version_changes_table.c.entity_kind == "dashboard")
+        .where(version_changes_table.c.transaction_id == outer_tx)
+    ).all() == [("original", expected)]
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize("rollback_outer", [False, True])
+def test_savepoint_commit_obeys_outer_transaction(
+    capture_session: Session,
+    app: SupersetApp,
+    monkeypatch: pytest.MonkeyPatch,
+    enabled: bool,
+    rollback_outer: bool,
+) -> None:
+    """Releasing a savepoint does not independently commit live or history rows."""
+    monkeypatch.setitem(
+        app.config, "VERSIONING_CAPTURE_PREDICATE", lambda session: enabled
+    )
+    capture_session.add(Database(database_name="unrelated", sqlalchemy_uri="sqlite://"))
+    with capture_session.begin_nested():
+        capture_session.add(Dashboard(dashboard_title="nested"))
+        capture_session.flush()
+    if rollback_outer:
+        capture_session.rollback()
+    else:
+        capture_session.commit()
+    assert capture_session.scalars(sa.select(Dashboard.dashboard_title)).all() == (
+        [] if rollback_outer else ["nested"]
+    )
+    assert history_counts(capture_session)["dashboards_version"] == int(
+        enabled and not rollback_outer
+    )
+
+
+def test_savepoint_rollback_removes_deleted_entity_and_action_intent(
+    capture_session: Session,
+) -> None:
+    """A rolled-back deletion/action cannot change a later ordinary save's history."""
+    from sqlalchemy_continuum import versioning_manager
+
+    from superset.versioning.changes.listener import ACTION_KIND_KEY
+    from superset.versioning.changes.table import version_changes_table
+
+    dashboard: Dashboard = Dashboard(dashboard_title="original")
+    capture_session.add(dashboard)
+    capture_session.commit()
+    capture_session.add(Database(database_name="unrelated", sqlalchemy_uri="sqlite://"))
+    nested: SessionTransaction = capture_session.begin_nested()
+    capture_session.info[ACTION_KIND_KEY] = "restore"
+    capture_session.delete(dashboard)
+    capture_session.flush()
+    nested.rollback()
+    dashboard.dashboard_title = "surviving edit"
+    capture_session.commit()
+    shadow: Any = version_class(Dashboard)
+    assert capture_session.execute(
+        sa.select(shadow.dashboard_title, shadow.operation_type).order_by(
+            shadow.transaction_id
+        )
+    ).all() == [("original", 0), ("surviving edit", 1)]
+    assert capture_session.scalars(
+        sa.select(versioning_manager.transaction_cls.action_kind)
+    ).all() == ["create", None]
+    assert capture_session.execute(
+        sa.select(version_changes_table.c.from_value, version_changes_table.c.to_value)
+    ).all() == [("original", "surviving edit")]
+
+
+@pytest.mark.parametrize("rollback_nested", [False, True])
+def test_capture_after_savepoint_and_unrelated_flush(
+    capture_session: Session, rollback_nested: bool
+) -> None:
+    """An unrelated flush cannot detach a surviving shadow from later edits."""
+    dashboard: Dashboard = Dashboard(dashboard_title="first")
+    capture_session.add(dashboard)
+    capture_session.flush()
+    nested: SessionTransaction = capture_session.begin_nested()
+    dashboard.dashboard_title = "nested"
+    capture_session.flush()
+    if rollback_nested:
+        nested.rollback()
+    else:
+        nested.commit()
+    capture_session.add(Database(database_name="unrelated", sqlalchemy_uri="sqlite://"))
+    capture_session.flush()
+    dashboard.dashboard_title = "last"
+    capture_session.commit()
+    shadow: Any = version_class(Dashboard)
+    assert capture_session.scalars(sa.select(shadow.dashboard_title)).all() == ["last"]

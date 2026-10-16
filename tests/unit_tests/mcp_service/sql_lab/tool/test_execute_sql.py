@@ -199,6 +199,8 @@ class TestExecuteSql:
             assert len(data["columns"]) == 2
             assert data["columns"][0]["name"] == "id"
             assert data["execution_time"] > 0
+            assert data["statements"][0]["data"] is None
+            assert data["statements"][0]["executed_sql"] is None
 
             # Verify Database.execute() was called with correct QueryOptions
             mock_database.execute.assert_called_once()
@@ -768,16 +770,15 @@ class TestExecuteSql:
             assert data["rows"] == [{"b": 2}]
             assert data["row_count"] == 1
 
-            # Per-statement data should be present for both statements
+            # Earlier results remain nested; the last result is only at the top level
             assert data["statements"][0]["data"] is not None
             assert data["statements"][0]["data"]["rows"] == [{"a": 1}]
             assert len(data["statements"][0]["data"]["columns"]) == 1
             assert data["statements"][0]["data"]["columns"][0]["name"] == "a"
 
-            assert data["statements"][1]["data"] is not None
-            assert data["statements"][1]["data"]["rows"] == [{"b": 2}]
-            assert len(data["statements"][1]["data"]["columns"]) == 1
-            assert data["statements"][1]["data"]["columns"][0]["name"] == "b"
+            assert data["statements"][1]["data"] is None
+            assert data["columns"][0]["name"] == "b"
+            assert all(stmt["executed_sql"] is None for stmt in data["statements"])
 
             # Warning should be present for multi-data-bearing queries
             assert data["multi_statement_warning"] is not None
@@ -861,10 +862,9 @@ class TestExecuteSql:
             assert "id" in column_names
             assert "amount" in column_names
 
-            # SET statement should have no data, SELECT should have data
+            # SET has no data; SELECT data is only at the top level
             assert data["statements"][0]["data"] is None
-            assert data["statements"][1]["data"] is not None
-            assert len(data["statements"][1]["data"]["rows"]) == 2
+            assert data["statements"][1]["data"] is None
 
             # No warning since only one data-bearing statement
             assert data["multi_statement_warning"] is None
@@ -989,7 +989,7 @@ class TestExecuteSql:
             assert data["rows"] == [{"total_revenue": 12345.67}]
             assert data["row_count"] == 1
 
-            # Both statements should have per-statement data
+            # Both statements retain metadata
             assert len(data["statements"]) == 2
 
             # First statement's data is accessible
@@ -1000,13 +1000,12 @@ class TestExecuteSql:
             assert len(first_stmt["data"]["columns"]) == 1
             assert first_stmt["data"]["columns"][0]["name"] == "order_count"
 
-            # Second statement's data is accessible
+            # Second statement's data is only at the top level
             second_stmt = data["statements"][1]
             assert second_stmt["truncated"] is True
-            assert second_stmt["data"] is not None
-            assert second_stmt["data"]["rows"] == [{"total_revenue": 12345.67}]
-            assert len(second_stmt["data"]["columns"]) == 1
-            assert second_stmt["data"]["columns"][0]["name"] == "total_revenue"
+            assert second_stmt["data"] is None
+            assert len(data["columns"]) == 1
+            assert data["columns"][0]["name"] == "total_revenue"
 
             # Warning should tell LLM to check statements array
             assert data["multi_statement_warning"] is not None
