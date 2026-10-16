@@ -1600,9 +1600,9 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "已将 %s 个新列添加到虚拟数据集"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "已将 %s 个新列添加到数据集"
 
 #, python-format
 msgid "Added a %s"
@@ -8433,7 +8433,7 @@ msgstr "几何列"
 msgid "Get the last date by the date unit."
 msgstr "按日期单位获取最后的日期。"
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "获取指定节假日的日期"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -10558,9 +10558,9 @@ msgstr "最后修改 %s"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "已修改虚拟数据集中的 %s 列"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "已修改数据集中的 %s 列"
 
 msgid "Modified by"
 msgstr "修改人"
@@ -12832,9 +12832,9 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "已从虚拟数据集中删除 %s 列"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "已从数据集中删除 %s 列"
 
 #, python-format
 msgid "Removed a %s"

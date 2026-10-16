@@ -1380,8 +1380,8 @@ msgid "Added '%s' dimension"
 msgstr ""
 
 #, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -7210,7 +7210,7 @@ msgstr ""
 msgid "Get the last date by the date unit."
 msgstr ""
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr ""
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8199,6 +8199,9 @@ msgstr ""
 msgid "Least recently modified"
 msgstr ""
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
 msgid "Leave blank to keep the current password"
 msgstr ""
 
@@ -9018,8 +9021,8 @@ msgid "Modified %s"
 msgstr ""
 
 #, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -10959,8 +10962,8 @@ msgid "Removed '%s' metric"
 msgstr ""
 
 #, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
 msgstr[0] ""
 msgstr[1] ""
 

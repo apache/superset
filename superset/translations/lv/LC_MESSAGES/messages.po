@@ -1585,12 +1585,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Pievienota %s jauna kolonna virtuālajai datu kopai"
-msgstr[1] "Pievienotas %s jaunas kolonnas virtuālajai datu kopai"
-msgstr[2] "Pievienotas %s jaunas kolonnas virtuālajai datu kopai"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Pievienota %s jauna kolonna datu kopai"
+msgstr[1] "Pievienotas %s jaunas kolonnas datu kopai"
+msgstr[2] "Pievienotas %s jaunas kolonnas datu kopai"
 
 #, python-format
 msgid "Added a %s"
@@ -8231,7 +8231,7 @@ msgstr "Ģeometrijas kolonna"
 msgid "Get the last date by the date unit."
 msgstr "Iegūt pēdējo datumu pēc datuma vienības."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Iegūt norādīto datumu svētku dienai"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -10212,12 +10212,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Modificēts %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Modificēta %s kolonna virtuālajā datu kopā"
-msgstr[1] "Modificētas %s kolonnas virtuālajā datu kopā"
-msgstr[2] "Modificētas %s kolonnas virtuālajā datu kopā"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Modificēta %s kolonna datu kopā"
+msgstr[1] "Modificētas %s kolonnas datu kopā"
+msgstr[2] "Modificētas %s kolonnas datu kopā"
 
 msgid "Modified by"
 msgstr "Modificēja"
@@ -12384,12 +12384,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Noņemta %s kolonna no virtuālās datu kopas"
-msgstr[1] "Noņemtas %s kolonnas no virtuālās datu kopas"
-msgstr[2] "Noņemtas %s kolonnas no virtuālās datu kopas"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Noņemta %s kolonna no datu kopas"
+msgstr[1] "Noņemtas %s kolonnas no datu kopas"
+msgstr[2] "Noņemtas %s kolonnas no datu kopas"
 
 #, python-format
 msgid "Removed a %s"

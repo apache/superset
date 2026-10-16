@@ -1589,10 +1589,10 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Sanal veri kümesine %s yeni sütun eklendi"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Veri kümesine %s yeni sütun eklendi"
 
 #, python-format
 msgid "Added a %s"
@@ -8591,7 +8591,7 @@ msgstr "Kolon seç"
 msgid "Get the last date by the date unit."
 msgstr "Tarih birimi tarafından son tarihi alın."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Tatil için belirtilen tarih alın"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -10672,10 +10672,10 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Son düzenleme %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Sanal veri kümesindeki %s sütun değiştirildi"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Veri kümesindeki %s sütun değiştirildi"
 
 msgid "Modified by"
 msgstr "Düzenleyen"
@@ -12924,10 +12924,10 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Sanal veri setinden %s sütun kaldırıldı"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Veri setinden %s sütun kaldırıldı"
 
 #, python-format
 msgid "Removed a %s"

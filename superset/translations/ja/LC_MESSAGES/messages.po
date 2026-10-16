@@ -1435,10 +1435,10 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "仮想データセットに %s 個の新しい列を追加しました"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "データセットに %s 個の新しい列を追加しました"
 
 #, python-format
 msgid "Added a %s"
@@ -7600,7 +7600,7 @@ msgstr "ジオメトリ列"
 msgid "Get the last date by the date unit."
 msgstr "日付単位に基づいて最後の日付を取得します。"
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "指定された休日の日付を取得します"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -9479,10 +9479,10 @@ msgstr ""
 msgid "Modified %s"
 msgstr "%s に更新しました"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "仮想データセット内の %s 個の列を更新しました"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "データセット内の %s 個の列を更新しました"
 
 msgid "Modified by"
 msgstr "更新者"
@@ -11520,10 +11520,10 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "仮想データセットから %s 個の列を削除しました"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "データセットから %s 個の列を削除しました"
 
 #, python-format
 msgid "Removed a %s"

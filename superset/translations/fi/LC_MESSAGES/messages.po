@@ -2347,10 +2347,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Virtuaaliseen tietoaineistoon lisättiin 1 uusi sarake"
-msgstr[1] "Virtuaaliseen tietoaineistoon lisättiin %s uutta saraketta"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Tietoaineistoon lisättiin 1 uusi sarake"
+msgstr[1] "Tietoaineistoon lisättiin %s uutta saraketta"
 
 #, python-format
 msgid "Added a %s"
@@ -13554,7 +13554,7 @@ msgstr "Hae viimeinen päivämäärä päiväyksikön mukaan."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Hae tietty päivämäärä loman päiväksi."
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -16954,10 +16954,10 @@ msgstr "Muokattu %s"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Muokattu 1 sarake virtuaalisessa tietojoukossa"
-msgstr[1] "Muokattu %s saraketta virtuaalisessa tietojoukossa"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Muokattu 1 sarake tietojoukossa"
+msgstr[1] "Muokattu %s saraketta tietojoukossa"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
@@ -20642,10 +20642,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
 #, fuzzy, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Poistettiin 1 sarake virtuaalisesta tietojoukosta"
-msgstr[1] "Poistettiin %s saraketta virtuaalisesta tietojoukosta"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Poistettiin 1 sarake tietojoukosta"
+msgstr[1] "Poistettiin %s saraketta tietojoukosta"
 
 #, python-format
 msgid "Removed a %s"
