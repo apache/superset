@@ -22,6 +22,7 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
 import { MemoryRouter } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
@@ -102,9 +103,13 @@ test('JSON column opens a tree modal for object payloads', async () => {
     await screen.findByText('{"path":"/superset/welcome/","n":1}'),
   );
 
-  const dialog = await screen.findByRole('dialog');
-  expect(dialog).toHaveTextContent('path');
-  expect(dialog).toHaveTextContent('/superset/welcome/');
+  // A raw string handed to the tree would render as one leaf, so check that
+  // each key and value gets its own node
+  const dialog = within(await screen.findByRole('dialog'));
+  expect(dialog.getByText('path:')).toBeInTheDocument();
+  expect(dialog.getByText('"/superset/welcome/"')).toBeInTheDocument();
+  expect(dialog.getByText('n:')).toBeInTheDocument();
+  expect(dialog.getByText('1')).toBeInTheDocument();
 });
 
 test('JSON trigger styling does not depend on data-test attributes', async () => {
