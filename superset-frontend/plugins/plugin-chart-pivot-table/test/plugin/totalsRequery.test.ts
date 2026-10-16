@@ -178,3 +178,39 @@ test.each([
     ).toEqual(buildGroupbyCombinations(combined));
   },
 );
+
+// With transposePivot the display axes are swapped: display rows are
+// `groupbyColumns` ('quarter') and display columns are `groupbyRows`
+// ('territory'). The metric axis follows metricsLayout in display coordinates,
+// so the collapsed level appears on that display axis only.
+const transposedLeaf = { rows: ['quarter'], columns: ['territory'] };
+const metricAxisSubtotalCases: [
+  MetricsLayoutEnum,
+  'rowSubTotals' | 'colSubTotals',
+  { rows: string[]; columns: string[] }[],
+][] = [
+  [
+    MetricsLayoutEnum.ROWS,
+    'rowSubTotals',
+    [{ rows: [], columns: ['territory'] }, transposedLeaf],
+  ],
+  [
+    MetricsLayoutEnum.COLUMNS,
+    'colSubTotals',
+    [{ rows: ['quarter'], columns: [] }, transposedLeaf],
+  ],
+  [MetricsLayoutEnum.COLUMNS, 'rowSubTotals', [transposedLeaf]],
+  [MetricsLayoutEnum.ROWS, 'colSubTotals', [transposedLeaf]],
+];
+
+test.each(metricAxisSubtotalCases)(
+  'transposed, non-combined metrics (%s) with only %s request the expected levels',
+  (metricsLayout, subtotalToggle, expectedLevels) => {
+    const transposed = { ...noOptions, metricsLayout, transposePivot: true };
+
+    expect(buildGroupbyCombinations(transposed)).toEqual([transposedLeaf]);
+    expect(
+      buildGroupbyCombinations({ ...transposed, [subtotalToggle]: true }),
+    ).toEqual(expectedLevels);
+  },
+);
