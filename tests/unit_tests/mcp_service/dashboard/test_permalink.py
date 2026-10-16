@@ -17,6 +17,7 @@
 
 """Tests for MCP dashboard permalink helpers."""
 
+from typing import Any, cast
 from unittest.mock import Mock, patch, PropertyMock
 
 import pytest
@@ -34,6 +35,7 @@ from superset.mcp_service.dashboard.permalink import (
     lookup_dashboard_reference,
     refresh_request_user_for_permalink_access,
 )
+from superset.security.guest_token import GuestToken, GuestUser
 
 FOUND = "dashboard"
 PERMALINK_URL = "https://example.test/dashboard/p/shared-key/"
@@ -160,6 +162,42 @@ def test_refresh_request_user_for_permalink_access_keeps_user_when_reload_fails(
         assert g.user is current_user
 
     mock_load.assert_called_once_with(username="admin")
+
+
+def test_permalink_lookup_keeps_guest_identity(app: Any) -> None:
+    """Guest identities come from their token and are not reloaded as stored users."""
+    guest = GuestUser(
+        cast(
+            GuestToken,
+            {
+                "user": {"username": "embedded-viewer"},
+                "resources": [{"type": "dashboard", "id": "1"}],
+                "rls_rules": [{"dataset": "5", "clause": "amount > 0"}],
+                "datasets": [5],
+                "iat": 0,
+                "exp": 9999999999,
+            },
+        ),
+        [],
+    )
+    stored_user = object()
+    with (
+        app.test_request_context("/mcp"),
+        patch(
+            "superset.mcp_service.dashboard.permalink.load_user_with_relationships",
+            return_value=stored_user,
+        ) as reload_user,
+        patch(
+            "superset.commands.dashboard.permalink.get.GetDashboardPermalinkCommand.run",
+            return_value=None,
+        ),
+    ):
+        g.user = guest
+        assert get_dashboard_permalink("guest-state") is None
+        assert g.user is guest
+        assert g.user.guest_token["datasets"] == [5]
+        assert g.user.rls == [{"dataset": "5", "clause": "amount > 0"}]
+    reload_user.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -380,7 +418,7 @@ def test_lookup_dashboard_reference_unresolvable_reference(mock_get_permalink) -
 @pytest.mark.parametrize("denied", [False, True])
 def test_stacking_resolves_with_calling_user(app: Flask, denied: bool) -> None:
     """The real get command checks access using the refreshed calling user."""
-    user = Mock(username="viewer", is_anonymous=False)
+    user = Mock(username="viewer", is_anonymous=False, is_guest_user=False)
     refreshed_user = Mock(username="viewer")
     value: DashboardPermalinkValue = {
         "dashboardId": "42",

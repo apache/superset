@@ -22,23 +22,12 @@ query.extra -- superset.sql_lab.cancel_query() would return False without
 recording anything, so stop_query() raised SupersetCancelQueryException and
 left query.status untouched.
 
-The fix distinguishes two cases that both look like "no cancel_query_id yet":
-
-1. Execution hasn't reached the engine at all (hasn't opened a DB connection
-   or called get_cancel_query_id()). Here, generalizing the
-   QUERY_EARLY_CANCEL_KEY mechanism Trino's own prepare_cancel_query() already
-   uses for its harder case is safe: record the early-cancel intent and
-   report success, so the stopped-check at the top of the statement-block
-   loop honors it before the statement is ever sent to the database.
-
-2. Execution HAS reached the engine (a connection is open and
-   get_cancel_query_id() has been called) and the engine spec still returned
-   no cancel ID -- this engine genuinely has no way to cancel a running
-   query. This must continue to fail honestly (raise
-   SupersetCancelQueryException, leave status alone) rather than fabricate a
-   stop the engine can't actually back; case 1's success path must not apply
-   here. A new QUERY_DISPATCHED_KEY, set unconditionally once execution opens
-   the connection, is what distinguishes the two cases.
+Stop intent is durable independently of engine cancellation support. Before
+execution reaches the engine, the early-cancel flag prevents dispatch. After
+execution has started, an engine without a cancel handle may finish its SQL,
+but the accepted Stop still discards its results and retains STOPPED. The
+QUERY_DISPATCHED_KEY distinguishes missing cancellation support from the
+pre-dispatch window; neither case may reject an already-durable Stop.
 
 Also covered: the success-path status finalizer at the end of
 execute_sql_statements() must not clobber a STOPPED status a concurrent stop
@@ -71,7 +60,6 @@ superset/sql_lab.py::cancel_query/execute_sql_statements/handle_query_error.
 import threading
 from typing import Any
 
-import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
@@ -315,27 +303,20 @@ def test_stop_during_pre_dispatch_pause_marks_stopped_without_dispatch(
     assert execution_result["payload"]["status"] == QueryStatus.STOPPED
 
 
-def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
+def test_stop_after_dispatch_with_no_cancel_support_discards_results(
     mocker: MockerFixture, app: Any
 ) -> None:
     """
-    Case 2, the finding-1 regression guard: once execute_sql_statements() has
-    opened the connection and asked the (sqlite) engine spec for a cancel
-    handle -- and gotten nothing back, since sqlite doesn't override
-    get_cancel_query_id() -- a stop request must fail honestly
-    (SupersetCancelQueryException, status left alone) instead of fabricating
-    a STOPPED status for a query that is, in fact, still running against the
-    real database.
+    Accept Stop after dispatch even when the engine cannot cancel its SQL.
 
-    get_cancel_query_id() is deliberately left unmocked: the real, permanent
-    "this engine has no cancel support" behavior is exactly the case that
-    must not be confused with the pre-dispatch race window.
+    The real SQLite execute_query still runs after the pause is released, but
+    its result must not be published and its completion cannot replace the
+    accepted Stop or its original timestamp.
     """
     from superset import sql_lab
     from superset.common.db_query_status import QueryStatus
     from superset.constants import QUERY_DISPATCHED_KEY
     from superset.daos.query import QueryDAO
-    from superset.exceptions import SupersetCancelQueryException
 
     harness = _RaceHarness(mocker)
     query_id, client_id = harness.make_query("post-dispatch-no-cancel-support")
@@ -376,15 +357,11 @@ def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
         )
         assert "cancel_query" not in query.extra
 
-        # Must raise now: the engine has already been asked for a cancel
-        # handle and had none to give, which is a real "can't cancel"
-        # failure, not the early race window.
-        with pytest.raises(SupersetCancelQueryException):
-            QueryDAO.stop_query(client_id)
-
-        # Nothing was fabricated: still RUNNING.
-        unstopped_query = harness.fresh_query(query_id)
-        assert unstopped_query.status == QueryStatus.RUNNING
+        stopped_query = QueryDAO.stop_query(client_id)
+        assert stopped_query.status == QueryStatus.STOPPED
+        stop_end_time = stopped_query.end_time
+        assert stop_end_time is not None
+        assert harness.fresh_query(query_id).status == QueryStatus.STOPPED
     finally:
         release_execution.set()
 
@@ -394,15 +371,15 @@ def test_stop_after_dispatch_with_no_cancel_support_raises_honestly(
     # The statement genuinely ran (real execute_query was called through).
     execute_query_spy.assert_called_once()
 
-    # Since the stop attempt failed, execution proceeds to real completion --
-    # this also confirms the success-path finalizer's new STOPPED-guard
-    # doesn't misfire and swallow a legitimate SUCCESS.
+    # Engine execution can finish, but an accepted Stop discards its output.
     final_query = harness.fresh_query(query_id)
-    assert final_query.status == QueryStatus.SUCCESS, (
-        f"expected the query to run to real completion since the stop "
-        f"attempt correctly failed, got status={final_query.status!r}"
-    )
-    assert execution_result["payload"]["status"] == QueryStatus.SUCCESS
+    assert final_query.status == QueryStatus.STOPPED
+    assert final_query.end_time == stop_end_time
+    assert final_query.results_key is None
+    assert execution_result["payload"] == {
+        "query_id": query_id,
+        "status": QueryStatus.STOPPED,
+    }
 
 
 def test_stop_with_existing_cancel_id_unaffected_by_dispatched_key(

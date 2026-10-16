@@ -85,7 +85,7 @@ dateunit = (year | month | week)`}</code>
     </div>
     <div>
       <h3>HOLIDAY</h3>
-      <p>{t('Get the specify date for the holiday')}</p>
+      <p>{t('Get the specified date for the holiday')}</p>
       <h4>{t('Syntax')}</h4>
       <pre>
         <code>{`holiday([string])
