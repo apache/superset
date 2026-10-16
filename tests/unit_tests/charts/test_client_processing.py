@@ -2206,18 +2206,39 @@ def test_pivot_table_v2_sample_statistics_aggregations(
 
 
 @pytest.mark.parametrize(
-    "aggregate_function",
-    ["Sample Variance", "Sample Standard Deviation"],
+    ("aggregate_function", "row_summaries", "column_summaries"),
+    [
+        # Cells hold the per-cell sample variance (US: 50 and 200, FR: 200 and
+        # 450); each summary is the sample variance of those cell values.
+        (
+            "Sample Variance",
+            {"US": 11250.0, "FR": 31250.0},
+            {"boy": 11250.0, "girl": 31250.0},
+        ),
+        # Cells hold the per-cell sample standard deviation (US: ~7.07 and
+        # ~14.14, FR: ~14.14 and ~21.21); each summary is the sample standard
+        # deviation of those cell values, which is 5 in every scope.
+        (
+            "Sample Standard Deviation",
+            {"US": 5.0, "FR": 5.0},
+            {"boy": 5.0, "girl": 5.0},
+        ),
+    ],
 )
-def test_pivot_table_v2_sample_statistics_with_summaries(aggregate_function: str):
+def test_pivot_table_v2_sample_statistics_with_summaries(
+    aggregate_function: str,
+    row_summaries: dict[str, float],
+    column_summaries: dict[str, float],
+):
     """Row and column summaries invoke the reducer with ``axis``; the sample
-    statistics must handle the DataFrame/axis form, not just a Series.
+    statistics must handle the DataFrame/axis form, not just a Series. Two
+    observations per (nation, gender) cell keep the summaries non-zero.
     """
     df = pd.DataFrame(
         {
-            "nation": ["US", "US", "FR", "FR"],
-            "gender": ["boy", "girl", "boy", "girl"],
-            "SUM(num)": [10, 20, 30, 50],
+            "nation": ["US"] * 4 + ["FR"] * 4,
+            "gender": ["boy", "boy", "girl", "girl"] * 2,
+            "SUM(num)": [10, 20, 30, 50, 40, 60, 70, 100],
         }
     )
     form_data = {
@@ -2231,7 +2252,10 @@ def test_pivot_table_v2_sample_statistics_with_summaries(aggregate_function: str
 
     pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
 
-    assert not pivoted.empty
+    for nation, expected in row_summaries.items():
+        assert pivoted.loc[(nation,)].iloc[-1] == pytest.approx(expected)
+    for gender, expected in column_summaries.items():
+        assert pivoted[("SUM(num)", gender)].iloc[-1] == pytest.approx(expected)
 
 
 def _normalize_summary(value: Any) -> Any:
