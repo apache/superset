@@ -782,6 +782,62 @@ def test_import_dataset_overwrite_decoy_as_physical_requires_table_access(
     assert table_call.kwargs["allow_dataset_editorship"] is False
 
 
+@pytest.mark.parametrize(
+    "changes",
+    [
+        pytest.param({"table_name": "customer_pii"}, id="table_name"),
+        pytest.param({"schema": "restricted"}, id="schema"),
+    ],
+)
+def test_import_dataset_overwrite_physical_rebinding_requires_table_access(
+    mocker: MockerFixture, session: Session, changes: dict[str, str]
+) -> None:
+    """
+    Overwriting a physical dataset with a config that points it at another
+    table binds it to that table. Editorship of the dataset being overwritten
+    must not authorize the new table.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    existing = SqlaTable(
+        uuid=uuid.uuid4(),
+        table_name="safe_table",
+        schema="public",
+        database_id=database.id,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
+        # The datasource check passes, as it would through editorship.
+        if kwargs.get("table"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                    message="You need access to the following tables",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    check = mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=raise_for_access
+    )
+
+    config = {**_physical_config(existing, database), **changes}
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config, overwrite=True)
+
+    table_call = next(c for c in check.call_args_list if c.kwargs.get("table"))
+    assert table_call.kwargs["table"] == Table(config["table_name"], config["schema"])
+    assert table_call.kwargs["allow_dataset_editorship"] is False
+
+
 def test_import_dataset_unchanged_physical_reimport_skips_table_check(
     mocker: MockerFixture, session: Session
 ) -> None:
