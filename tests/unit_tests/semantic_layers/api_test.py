@@ -3276,3 +3276,90 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
         {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
     )
     dao.update.assert_called_once()
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize(
+    "lookup_result,lookup_error,unique,expected",
+    [
+        (
+            None,
+            None,
+            True,
+            "Couldn't validate this semantic view: it may not exist, "
+            "or the semantic layer is unreachable.",
+        ),
+        (
+            None,
+            ValueError("secret"),
+            True,
+            "Couldn't validate this semantic view: it may not exist, "
+            "or the semantic layer is unreachable.",
+        ),
+        (
+            None,
+            ConnectionError("secret"),
+            True,
+            "Couldn't validate this semantic view: it may not exist, "
+            "or the semantic layer is unreachable.",
+        ),
+        (
+            None,
+            RuntimeError("secret"),
+            True,
+            "Couldn't validate this semantic view: it may not exist, "
+            "or the semantic layer is unreachable.",
+        ),
+        (MagicMock(), None, False, "Semantic view could not be created."),
+    ],
+)
+def test_post_semantic_view_provider_validation(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    lookup_result: MagicMock | None,
+    lookup_error: Exception | None,
+    unique: bool,
+    expected: str,
+) -> None:
+    """Keep lookup and duplicate errors distinct without exposing provider secrets."""
+    layer: MagicMock = MagicMock()
+    layer.implementation.get_semantic_view.return_value = lookup_result
+    layer.implementation.get_semantic_view.side_effect = lookup_error
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO"
+    )
+    dao.validate_uniqueness.return_value = unique
+    response: TestResponse = client.post(
+        "/api/v1/semantic_view/",
+        json={
+            "views": [
+                {
+                    "name": "orders",
+                    "semantic_layer_uuid": str(uuid_lib.uuid4()),
+                    "configuration": {"db": "prod"},
+                }
+            ]
+        },
+    )
+    assert response.status_code == 422
+    assert response.json is not None
+    assert response.json["result"] == {
+        "created": [],
+        "errors": [{"name": "orders", "error": expected}],
+    }
+    assert "secret" not in response.get_data(as_text=True)
+    assert "secret" not in caplog.text
+    dao.create.assert_not_called()
+    layer.implementation.get_semantic_view.assert_called_once_with(
+        "orders", {"db": "prod"}
+    )
