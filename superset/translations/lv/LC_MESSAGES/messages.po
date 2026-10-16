@@ -8231,7 +8231,7 @@ msgstr "Ģeometrijas kolonna"
 msgid "Get the last date by the date unit."
 msgstr "Iegūt pēdējo datumu pēc datuma vienības."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Iegūt norādīto datumu svētku dienai"
 
 msgid "Give access to multiple catalogs in a single database connection."
