@@ -826,3 +826,40 @@ describe('chart actions timeout', () => {
     expect(postSpy).toHaveBeenCalledWith(expectedPayload);
   });
 });
+
+// A chart whose form_data the API withheld (the viewer cannot read it) has no
+// datasource. Querying it used to throw while building the query context, after
+// the chart was already marked as loading, so it spun forever.
+test('exploreJSON fails a chart without a datasource with an access error instead of hanging', async () => {
+  const dispatchMock = jest.fn();
+  const getState = jest.fn(() => ({
+    charts: {},
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+  }));
+  const getChartDataRequestSpy = jest.spyOn(actions, 'getChartDataRequest');
+
+  try {
+    const result = await actions.exploreJSON(
+      { slice_id: 9 } as unknown as QueryFormData,
+      false,
+      undefined,
+      9,
+    )(
+      dispatchMock as unknown as actions.ChartThunkDispatch,
+      getState as unknown as () => actions.RootState,
+      undefined,
+    );
+
+    expect(result).toEqual([]);
+    expect(getChartDataRequestSpy).not.toHaveBeenCalled();
+    expect(dispatchMock).toHaveBeenCalledTimes(1);
+    const [action] = dispatchMock.mock.calls[0];
+    expect(action.type).toBe(actions.CHART_UPDATE_FAILED);
+    expect(action.key).toBe(9);
+    expect(action.queriesResponse[0].errors[0].error_type).toBe(
+      'CHART_SECURITY_ACCESS_ERROR',
+    );
+  } finally {
+    getChartDataRequestSpy.mockRestore();
+  }
+});
