@@ -501,8 +501,10 @@ itsdangerous==2.2.0
     #   flask-wtf
 jaraco-classes==3.4.0
     # via keyring
-jaraco-context==6.0.1
-    # via keyring
+jaraco-context==6.1.0
+    # via
+    #   -r requirements/development.in
+    #   keyring
 jaraco-functools==4.3.0
     # via keyring
 jeepney==0.9.0
