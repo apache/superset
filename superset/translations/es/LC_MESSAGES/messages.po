@@ -8579,7 +8579,7 @@ msgstr "Columna de geometría"
 msgid "Get the last date by the date unit."
 msgstr "Obtiene la última fecha para la unidad de fecha especificada."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Obtiene la fecha del día feriado especificado"
 
 msgid "Give access to multiple catalogs in a single database connection."
