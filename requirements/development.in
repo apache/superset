@@ -61,3 +61,7 @@ testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4
 # raises `zope.interface.exceptions.InvalidInterface` outright on 3.13.
 # 7.2 is the first release with explicit handling for it.
 zope.interface>=7.2
+
+# Security: CVE-2026-75509 - joserfc claim-validation bypass via array-typed
+# iss/sub claims (pulled in transitively via fastmcp-slim)
+joserfc>=1.7.3
