@@ -907,20 +907,20 @@ describe('async actions', () => {
   const mockQueryDatasourceLookups = ({
     datasetWithSameId,
     queryFound,
+    metadata = queryDatasourceMetadata,
   }: {
     datasetWithSameId: boolean;
     queryFound: boolean;
+    metadata?: Record<string, unknown>;
   }) => {
     fetchMock.removeRoute(datasetEndpoint);
     fetchMock.removeRoute(datasourceMetadataEndpoint);
     fetchMock.get(datasetEndpoint, datasetWithSameId ? unrelatedDataset : 404, {
       name: datasetEndpoint,
     });
-    fetchMock.get(
-      datasourceMetadataEndpoint,
-      queryFound ? queryDatasourceMetadata : 404,
-      { name: datasourceMetadataEndpoint },
-    );
+    fetchMock.get(datasourceMetadataEndpoint, queryFound ? metadata : 404, {
+      name: datasourceMetadataEndpoint,
+    });
   };
 
   const popDatasourceQuery = (datasourceKey: string, sql?: string) => {
@@ -1058,6 +1058,81 @@ describe('async actions', () => {
       }),
     );
   });
+
+  test.each([
+    { datasourceKey: '5__semantic_view' },
+    { datasourceKey: '7__saved_query' },
+  ])(
+    'popDatasourceQuery shows the error toast without any lookup for the $datasourceKey datasource',
+    async ({ datasourceKey }) => {
+      mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+      const dispatched = await popDatasourceQuery(datasourceKey, generatedSql);
+
+      expect(fetchMock.callHistory.calls(datasetEndpoint)).toHaveLength(0);
+      expect(
+        fetchMock.callHistory.calls(datasourceMetadataEndpoint),
+      ).toHaveLength(0);
+      expect(dispatched.some(isDatasourceToast)).toBe(true);
+      expect(
+        dispatched.some(action => action.type === actions.ADD_QUERY_EDITOR),
+      ).toBe(false);
+    },
+  );
+
+  test('popDatasourceQuery still resolves a bare datasource id as a dataset id', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+    const dispatched = await popDatasourceQuery('5');
+
+    expect(fetchMock.callHistory.calls(datasetEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(datasetEndpoint)[0].url).toContain(
+      '/api/v1/dataset/5?',
+    );
+    expect(dispatched).toContainEqual(
+      expect.objectContaining({
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: expect.objectContaining({
+          name: 'Query unrelated_dataset',
+          dbId: 99,
+        }),
+      }),
+    );
+  });
+
+  test.each([
+    {
+      description: 'null',
+      metadata: { ...queryDatasourceMetadata, name: null },
+    },
+    {
+      description: 'absent',
+      metadata: {
+        catalog: 'analytics_catalog',
+        schema: 'analytics',
+        database: { id: 7, backend: 'postgresql' },
+        sql: 'SELECT 1',
+      },
+    },
+  ])(
+    'popDatasourceQuery titles the editor "Query" when the query name is $description',
+    async ({ metadata }) => {
+      mockQueryDatasourceLookups({
+        datasetWithSameId: false,
+        queryFound: true,
+        metadata,
+      });
+
+      const dispatched = await popDatasourceQuery('42__query', generatedSql);
+
+      expect(dispatched).toContainEqual(
+        expect.objectContaining({
+          type: actions.ADD_QUERY_EDITOR,
+          queryEditor: expect.objectContaining({ name: 'Query', dbId: 7 }),
+        }),
+      );
+    },
+  );
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('addQueryEditor', () => {
