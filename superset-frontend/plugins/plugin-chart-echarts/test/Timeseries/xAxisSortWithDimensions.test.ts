@@ -570,6 +570,75 @@ test('rolls up a MAX sort metric by MAX rather than summing per-dimension maxima
   });
 });
 
+test('rolls up a MIN sort metric by MIN rather than summing per-dimension minima', () => {
+  // The ungrouped MIN of a metric equals the MIN of its per-dimension
+  // minima, not their sum. Category A has per-platform minima 0 and 100
+  // (overall min 0); category B has 40 and 40 (overall min 40). Ascending,
+  // A sorts first (0 < 40); summing the pivoted columns instead would
+  // reverse that (100 vs 80).
+  const minMetric: QueryFormMetric = {
+    expressionType: 'SIMPLE',
+    aggregate: 'MIN',
+    column: { column_name: 'na_sales' },
+    label: 'MIN(na_sales)',
+  };
+  const minRows: DataRecord[] = [
+    {
+      genre: 'A',
+      PS4: 10,
+      XOne: 10,
+      'MIN(na_sales), PS4': 0,
+      'MIN(na_sales), XOne': 100,
+    },
+    {
+      genre: 'B',
+      PS4: 10,
+      XOne: 10,
+      'MIN(na_sales), PS4': 40,
+      'MIN(na_sales), XOne': 40,
+    },
+  ];
+  const minLabelMap = {
+    genre: ['genre'],
+    PS4: ['PS4'],
+    XOne: ['XOne'],
+    'MIN(na_sales), PS4': ['MIN(na_sales)', 'PS4'],
+    'MIN(na_sales), XOne': ['MIN(na_sales)', 'XOne'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['platform'],
+      timeseries_limit_metric: minMetric,
+      truncate_metric: true,
+      x_axis_sort: 'MIN(na_sales)',
+      xAxisSort: 'MIN(na_sales)',
+      x_axis_sort_asc: true,
+      xAxisSortAsc: true,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: minRows,
+        label_map: minLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+  series.forEach(entry => {
+    expect(entry.data.map(([genre]) => genre)).toEqual(['A', 'B']);
+  });
+});
+
 test('excludes forecast-derived columns from a sort-only metric sum', () => {
   // `label_map` is built from the cached DataFrame's final columns, after
   // Prophet has run, so a forecast's `<metric>, <dim>__yhat` column has the
