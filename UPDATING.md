@@ -24,11 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
-- [45186](https://github.com/apache/superset/pull/45186): Adds `msgpack>=1.2.3, <1.3`
-  to `requirements/base.in`, bumps `pyarrow` constraint floor in
-  `superset-core/pyproject.toml` to `>=25.0.1, <26`, and documents advisory-specific
-  container remediation guidance in
-  `docs/admin_docs/security/dependency-vulnerability-remediation.mdx`.
+- [45186](https://github.com/apache/superset/pull/45186): Sets `pyarrow>=23.0.1`
+  in `superset-core` (without an upper ceiling) and explicitly bounds
+  `msgpack>=1.2.3,<1.3.0` in `requirements/base.in`. The relaxed floor in core
+  resolves CVE-2026-25087 while preserving compatibility for downstream
+  extensions, whereas container images and application builds continue to
+  enforce the narrower window via `requirements/base.in` and
+  `requirements/base.txt`.
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
