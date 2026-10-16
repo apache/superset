@@ -1205,12 +1205,13 @@ def _prepare_gauge_preview(  # noqa: C901
         explicit_colors = []
     colors = []
     for position in range(max(1, len(interval_bounds))):
-        # Explicit per-interval colors win; blanks fall back to the legacy
-        # palette index for that band, else the palette cycled by position.
+        # Explicit per-interval colors win. Once any are saved the renderer
+        # ignores the legacy palette indices, so a blank entry falls back to
+        # the positional palette color only; otherwise legacy indices apply.
         custom = explicit_colors[position] if position < len(explicit_colors) else None
         if isinstance(custom, str) and custom:
             colors.append(custom)
-        elif position < len(color_indices):
+        elif not explicit_colors and position < len(color_indices):
             colors.append(
                 _GAUGE_COLORS[(int(color_indices[position]) - 1) % len(_GAUGE_COLORS)]
             )

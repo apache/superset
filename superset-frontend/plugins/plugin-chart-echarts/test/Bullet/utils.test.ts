@@ -71,8 +71,13 @@ test('getColorLuminance distinguishes dark and light opaque colors', () => {
   expect(getColorLuminance('rgb(0, 0, 0)')).toBe(0);
 });
 
+test('getColorLuminance measures near-opaque colors by their own channels', () => {
+  expect(getColorLuminance('#000000fc')).toBe(0);
+  expect(getColorLuminance('rgba(255, 255, 255, 0.9)')).toBeCloseTo(1);
+});
+
 test('getColorLuminance returns null for translucent or unparseable colors', () => {
-  expect(getColorLuminance('#00000080')).toBeNull();
-  expect(getColorLuminance('rgba(0, 0, 0, 0.5)')).toBeNull();
+  expect(getColorLuminance('#00000033')).toBeNull();
+  expect(getColorLuminance('rgba(0, 0, 0, 0.3)')).toBeNull();
   expect(getColorLuminance('not-a-color')).toBeNull();
 });

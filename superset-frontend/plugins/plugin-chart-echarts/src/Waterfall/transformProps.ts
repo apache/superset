@@ -41,6 +41,7 @@ import { getDefaultTooltip } from '../utils/tooltip';
 import { defaultGrid, defaultYAxis } from '../defaults';
 import { ASSIST_MARK, LEGEND, TOKEN, TOTAL_MARK } from './constants';
 import { getColtypesMapping } from '../utils/series';
+import { normalizeRgbaColor } from '../utils/colors';
 import { Refs } from '../types';
 import { NULL_STRING } from '../constants';
 
@@ -177,9 +178,9 @@ export default function transformProps(
     currencyFormat,
     granularitySqla = '',
     groupby,
-    increaseColor = { r: 90, g: 193, b: 137 },
-    decreaseColor = { r: 224, g: 67, b: 85 },
-    totalColor = { r: 102, g: 102, b: 102 },
+    increaseColor: rawIncreaseColor,
+    decreaseColor: rawDecreaseColor,
+    totalColor: rawTotalColor,
     metric = '',
     xAxis,
     xTicksLayout,
@@ -196,6 +197,26 @@ export default function transformProps(
     increaseLabel,
     decreaseLabel,
   } = formData;
+  // `increase_color` / `decrease_color` are shared control names; tolerate the
+  // hex strings other charts save under them (e.g. after a viz type switch).
+  const increaseColor = normalizeRgbaColor(rawIncreaseColor, {
+    r: 90,
+    g: 193,
+    b: 137,
+    a: 1,
+  });
+  const decreaseColor = normalizeRgbaColor(rawDecreaseColor, {
+    r: 224,
+    g: 67,
+    b: 85,
+    a: 1,
+  });
+  const totalColor = normalizeRgbaColor(rawTotalColor, {
+    r: 102,
+    g: 102,
+    b: 102,
+    a: 1,
+  });
   const defaultFormatter = currencyFormat?.symbol
     ? new CurrencyFormatter({ d3Format: yAxisFormat, currency: currencyFormat })
     : getNumberFormatter(yAxisFormat);

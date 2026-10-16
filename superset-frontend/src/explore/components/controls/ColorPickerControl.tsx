@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { getCategoricalSchemeRegistry, rgbaToHex } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -219,8 +219,35 @@ export default function ColorPickerControl({
 
   const hexValue = toDisplayHex(value, themeColors);
 
+  // AntD renders the swatch trigger as a plain div with no tab stop, so
+  // keyboard-only users could not reach or open it. Make the trigger
+  // focusable and let Enter/Space open the popup like a click would.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const trigger = containerRef.current?.querySelector<HTMLElement>(
+      '.ant-color-picker-trigger',
+    );
+    if (!trigger) return;
+    trigger.setAttribute('role', 'button');
+    trigger.setAttribute('tabindex', disabled ? '-1' : '0');
+    if (ariaLabel && !trigger.hasAttribute('aria-label'))
+      trigger.setAttribute('aria-label', ariaLabel);
+  });
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (
+      !disabled &&
+      target.classList?.contains('ant-color-picker-trigger') &&
+      (event.key === 'Enter' || event.key === ' ')
+    ) {
+      event.preventDefault();
+      target.click();
+    }
+  };
+
   return (
-    <div>
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div ref={containerRef} onKeyDown={handleTriggerKeyDown}>
       <ControlHeader {...headerProps} />
       <ColorPicker
         aria-label={ariaLabel}

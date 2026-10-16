@@ -34,8 +34,10 @@ from superset.mcp_service.chart.chart_utils import (
     map_gauge_config,
     MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     merge_chart_form_data,
+    merge_form_data_for_update,
 )
 from superset.mcp_service.chart.preview_utils import (
+    _GAUGE_COLORS,
     _prepare_gauge_preview,
     generate_gauge_ascii_preview,
     generate_gauge_vega_lite_preview,
@@ -1311,6 +1313,41 @@ def test_gauge_explicit_interval_color_indices_supersede_saved_colors() -> None:
     merged = merge_chart_form_data(existing, map_gauge_config(config), config)
     assert "interval_colors" not in merged
     assert merged["interval_color_indices"] == "1,2"
+
+
+def test_gauge_same_dataset_update_indices_supersede_saved_colors() -> None:
+    existing = {
+        "viz_type": "gauge_chart",
+        "datasource": "1__table",
+        "intervals": "50,100",
+        "interval_colors": ["#ff0000", "#00ff00"],
+    }
+    config = GaugeChartConfig(
+        chart_type="gauge",
+        metric={"name": "progress", "aggregate": "AVG"},
+        intervals="50,100",
+        interval_color_indices="2,3",
+    )
+    merged = merge_form_data_for_update(existing, map_gauge_config(config), config)
+    assert "interval_colors" not in merged
+    assert merged["interval_color_indices"] == "2,3"
+
+
+def test_gauge_preview_blank_explicit_color_uses_positional_palette_color() -> None:
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": "50,100",
+        "interval_color_indices": "1,4",
+        "interval_colors": ["#ff0000", ""],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    colors = prepared[1]["interval_colors"]
+    # Legacy index 4 is ignored once explicit colors exist; position 1 wins.
+    assert colors[1] == _GAUGE_COLORS[1]
 
 
 def test_gauge_preview_honors_explicit_interval_colors() -> None:

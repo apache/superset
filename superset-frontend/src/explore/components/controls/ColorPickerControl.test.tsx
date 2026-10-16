@@ -238,3 +238,10 @@ test('handles undefined theme gracefully', () => {
 
   expect(() => render(<ColorPickerControl {...defaultProps} />)).not.toThrow();
 });
+
+test('trigger is exposed as a focusable button for keyboard users', () => {
+  const { container } = render(<ColorPickerControl {...defaultProps} />);
+  const trigger = container.querySelector('.ant-color-picker-trigger');
+  expect(trigger).toHaveAttribute('tabindex', '0');
+  expect(trigger).toHaveAttribute('role', 'button');
+});
