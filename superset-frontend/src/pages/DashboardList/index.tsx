@@ -587,9 +587,13 @@ function DashboardList(props: DashboardListProps) {
                       tooltip={
                         allowEdit
                           ? deleteActionLabel()
-                          : t(
-                              'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                            )
+                          : softDelete
+                            ? t(
+                                'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+                              )
+                            : t(
+                                'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+                              )
                       }
                       placement="bottom"
                       icon={

@@ -83,6 +83,7 @@ function DashboardCard({
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
   const allowEdit = isUserEditorOrAdmin(
     user,
@@ -152,9 +153,13 @@ function DashboardCard({
           title={
             allowEdit
               ? null
-              : t(
-                  'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                )
+              : softDelete
+                ? t(
+                    'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+                  )
+                : t(
+                    'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+                  )
           }
         >
           <button
