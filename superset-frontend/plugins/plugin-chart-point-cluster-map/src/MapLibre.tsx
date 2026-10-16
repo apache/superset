@@ -37,7 +37,7 @@ import './MapLibre.css';
 // `import.meta.url`, which our (non-ESM-output) webpack bundle rewrites to
 // a build-time path that doesn't match maplibre's `^https?:` check, so
 // `WORKER_URL` silently resolves to `''` and no worker gets created. Point
-// it at the copy CopyPlugin emits alongside the rest of our static assets
+// it at output.copy emits alongside the rest of our static assets
 // (see webpack.config.js) instead, using the runtime-configurable public
 // path so this also works behind a reverse-proxy / APPLICATION_ROOT
 // prefix. This must run before the first MapLibre map mounts.
