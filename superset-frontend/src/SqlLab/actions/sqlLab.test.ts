@@ -885,107 +885,135 @@ describe('async actions', () => {
 
   // The numeric prefix of a `<id>__query` datasource key is a query id, not a
   // dataset id, so it must never be resolved through the dataset API.
-  // The mock serves every endpoint a correct resolution of the query
-  // datasource could use; `datasetWithSameId` controls whether a dataset that
-  // happens to share the numeric id exists.
-  const mockDatasourceLookups = (datasetWithSameId: boolean) =>
-    jest
-      .spyOn(SupersetClient, 'get')
-      .mockClear()
-      .mockImplementation(async ({ endpoint }: { endpoint?: string }) => {
-        if (endpoint?.startsWith('/api/v1/dataset/42')) {
-          if (!datasetWithSameId) {
-            throw new Error('Not found');
-          }
-          return {
-            json: {
-              result: {
-                name: 'unrelated_dataset',
-                schema: 'unrelated_schema',
-                database: { id: 99 },
-                select_star: 'SELECT * FROM unrelated_dataset',
-              },
-            },
-          } as any;
-        }
-        if (endpoint?.startsWith('/api/v1/query/42')) {
-          return {
-            json: {
-              result: {
-                tab_name: 'My tab',
-                schema: 'analytics',
-                catalog: null,
-                database: { id: 7 },
-                sql: 'SELECT 1',
-              },
-            },
-          } as any;
-        }
-        if (endpoint?.includes('fetch_datasource_metadata')) {
-          return {
-            json: {
-              name: 'My tab',
-              schema: 'analytics',
-              catalog: null,
-              database: { id: 7 },
-              sql: 'SELECT 1',
-            },
-          } as any;
-        }
-        throw new Error(`unexpected request: ${endpoint}`);
-      });
+  const datasetEndpoint = 'glob:*/api/v1/dataset/*';
+  const datasourceMetadataEndpoint = 'glob:*/fetch_datasource_metadata*';
+  const queryDatasourceMetadata = {
+    name: 'My tab',
+    catalog: 'analytics_catalog',
+    schema: 'analytics',
+    database: { id: 7, backend: 'postgresql' },
+    sql: 'SELECT 1',
+  };
+  const unrelatedDataset = {
+    result: {
+      name: 'unrelated_dataset',
+      schema: 'unrelated_schema',
+      database: { id: 99 },
+      select_star: 'SELECT * FROM unrelated_dataset',
+    },
+  };
+  const generatedSql = 'SELECT a FROM (SELECT 1) AS virtual_table';
 
-  test('popDatasourceQuery does not resolve a query datasource key as a dataset id', async () => {
-    const getSpy = mockDatasourceLookups(true);
+  const mockQueryDatasourceLookups = ({
+    datasetWithSameId,
+    queryFound,
+  }: {
+    datasetWithSameId: boolean;
+    queryFound: boolean;
+  }) => {
+    fetchMock.removeRoute(datasetEndpoint);
+    fetchMock.removeRoute(datasourceMetadataEndpoint);
+    fetchMock.get(datasetEndpoint, datasetWithSameId ? unrelatedDataset : 404, {
+      name: datasetEndpoint,
+    });
+    fetchMock.get(
+      datasourceMetadataEndpoint,
+      queryFound ? queryDatasourceMetadata : 404,
+      { name: datasourceMetadataEndpoint },
+    );
+  };
+
+  const popDatasourceQuery = (datasourceKey: string, sql?: string) => {
     const store = mockStore(initialState);
-
-    await actions.popDatasourceQuery('42__query', 'SELECT 1')(
-      store.dispatch,
-      () => typedInitialState,
-      undefined,
-    );
-
-    const endpoints = getSpy.mock.calls.map(([request]) => request.endpoint);
-    expect(endpoints).not.toContainEqual(
-      expect.stringContaining('/api/v1/dataset/42'),
-    );
-    getSpy.mockRestore();
-  });
-
-  test.each([{ datasetWithSameId: false }, { datasetWithSameId: true }])(
-    'popDatasourceQuery opens an editor on the query database and schema for a query datasource (dataset with the same id exists: $datasetWithSameId)',
-    async ({ datasetWithSameId }) => {
-      const getSpy = mockDatasourceLookups(datasetWithSameId);
-      const store = mockStore(initialState);
-
-      await actions.popDatasourceQuery('42__query', 'SELECT 1')(
+    return actions
+      .popDatasourceQuery(datasourceKey, sql)(
         store.dispatch,
         () => typedInitialState,
         undefined,
-      );
+      )
+      .then(() => store.getActions());
+  };
 
-      const dispatched = store.getActions();
-      expect(dispatched).not.toContainEqual(
-        expect.objectContaining({ type: ADD_TOAST }),
-      );
+  afterEach(() => {
+    fetchMock.removeRoute(datasetEndpoint);
+    fetchMock.removeRoute(datasourceMetadataEndpoint);
+  });
+
+  const isDatasourceToast = (action: AnyAction) =>
+    action.type === ADD_TOAST &&
+    action.payload.toastType === ToastType.Danger &&
+    action.payload.text === "The datasource couldn't be loaded";
+
+  test('popDatasourceQuery does not look up a query datasource key as a dataset', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+    await popDatasourceQuery('42__query', generatedSql);
+
+    expect(
+      fetchMock.callHistory.calls(datasetEndpoint).map(call => call.url),
+    ).toEqual([]);
+  });
+
+  test.each([{ datasetWithSameId: false }, { datasetWithSameId: true }])(
+    'popDatasourceQuery opens the supplied SQL on the query database, catalog and schema (dataset with the same id exists: $datasetWithSameId)',
+    async ({ datasetWithSameId }) => {
+      mockQueryDatasourceLookups({ datasetWithSameId, queryFound: true });
+
+      const dispatched = await popDatasourceQuery('42__query', generatedSql);
+
+      expect(dispatched.some(isDatasourceToast)).toBe(false);
       expect(dispatched).toContainEqual(
         expect.objectContaining({
           type: actions.ADD_QUERY_EDITOR,
           queryEditor: expect.objectContaining({
+            name: 'Query My tab',
             dbId: 7,
+            catalog: 'analytics_catalog',
             schema: 'analytics',
-            sql: 'SELECT 1',
+            sql: generatedSql,
             autorun: false,
           }),
         }),
       );
-      getSpy.mockRestore();
     },
   );
 
+  test('popDatasourceQuery falls back to the SQL of the query when no SQL is supplied', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+    const dispatched = await popDatasourceQuery('42__query');
+
+    expect(dispatched).toContainEqual(
+      expect.objectContaining({
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: expect.objectContaining({
+          dbId: 7,
+          catalog: 'analytics_catalog',
+          schema: 'analytics',
+          sql: 'SELECT 1',
+          autorun: false,
+        }),
+      }),
+    );
+  });
+
+  test('popDatasourceQuery shows the error toast and opens no editor when the query cannot be loaded', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: false });
+
+    const dispatched = await popDatasourceQuery('42__query', generatedSql);
+
+    expect(dispatched.some(isDatasourceToast)).toBe(true);
+    expect(
+      dispatched.some(action => action.type === actions.ADD_QUERY_EDITOR),
+    ).toBe(false);
+  });
+
   test('popDatasourceQuery still resolves a table datasource key as a dataset id', async () => {
-    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
-      json: {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+    fetchMock.removeRoute(datasetEndpoint);
+    fetchMock.get(
+      datasetEndpoint,
+      {
         result: {
           name: 'my_dataset',
           schema: 'public',
@@ -993,29 +1021,29 @@ describe('async actions', () => {
           select_star: 'SELECT * FROM my_dataset',
         },
       },
-    } as any);
-    const store = mockStore(initialState);
-
-    await actions.popDatasourceQuery('5__table')(
-      store.dispatch,
-      () => typedInitialState,
-      undefined,
+      { name: datasetEndpoint },
     );
 
-    expect(getSpy).toHaveBeenCalledWith({
-      endpoint: expect.stringContaining('/api/v1/dataset/5?'),
-    });
-    expect(store.getActions()).toContainEqual(
+    const dispatched = await popDatasourceQuery('5__table');
+
+    expect(fetchMock.callHistory.calls(datasetEndpoint)).toHaveLength(1);
+    expect(fetchMock.callHistory.calls(datasetEndpoint)[0].url).toContain(
+      '/api/v1/dataset/5?',
+    );
+    expect(
+      fetchMock.callHistory.calls(datasourceMetadataEndpoint),
+    ).toHaveLength(0);
+    expect(dispatched).toContainEqual(
       expect.objectContaining({
         type: actions.ADD_QUERY_EDITOR,
         queryEditor: expect.objectContaining({
+          name: 'Query my_dataset',
           dbId: 3,
           schema: 'public',
           sql: 'SELECT * FROM my_dataset',
         }),
       }),
     );
-    getSpy.mockRestore();
   });
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
