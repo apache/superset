@@ -954,6 +954,19 @@ describe('async actions', () => {
     ).toEqual([]);
   });
 
+  test('popDatasourceQuery requests the datasource metadata with the full datasource key', async () => {
+    mockQueryDatasourceLookups({ datasetWithSameId: true, queryFound: true });
+
+    await popDatasourceQuery('42__query', generatedSql);
+
+    const requests = fetchMock.callHistory
+      .calls(datasourceMetadataEndpoint)
+      .map(call => new URL(call.url));
+    expect(requests).toHaveLength(1);
+    expect(requests[0].pathname).toBe('/fetch_datasource_metadata');
+    expect(requests[0].searchParams.get('datasourceKey')).toBe('42__query');
+  });
+
   test.each([{ datasetWithSameId: false }, { datasetWithSameId: true }])(
     'popDatasourceQuery opens the supplied SQL on the query database, catalog and schema (dataset with the same id exists: $datasetWithSameId)',
     async ({ datasetWithSameId }) => {
