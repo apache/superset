@@ -885,6 +885,7 @@ pytest==7.4.4
     #   pytest-asyncio
     #   pytest-cov
     #   pytest-mock
+    #   pytest-split
     #   pytest-xdist
 pytest-asyncio==0.23.8
     # via apache-superset
@@ -896,6 +897,8 @@ pytest-mock==3.10.0
     # via
     #   apache-superset
     #   apache-superset-extensions-cli
+pytest-split==0.11.0
+    # via apache-superset
 pytest-xdist==3.8.0
     # via apache-superset
 python-calamine==0.8.2

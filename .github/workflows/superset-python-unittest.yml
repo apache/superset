@@ -53,6 +53,10 @@ jobs:
         # exercised separately by the nightly canary (python-nightly-canary.yml)
         # so cross-version breaks don't cost a runner on every push/PR.
         python-version: ["current"]
+        # The suite is split across shards so no single pytest process
+        # accumulates whole-package coverage data for all ~27k tests. Keep this
+        # list's length and the `--splits` value below in sync.
+        shard: [1, 2, 3]
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
@@ -75,19 +79,40 @@ jobs:
       # filters an enabled report) so the slow-file critical path under
       # loadfile stays visible. `--maxfail` is a controller-level stop: tests
       # already dispatched to workers finish, so the final failure count can
-      # slightly exceed it.
+      # slightly exceed it, and it now applies per shard rather than to the
+      # suite as a whole.
+      #
+      # `--splits`/`--group` (pytest-split) shard the suite across the matrix,
+      # cutting the per-process state that scales with test count -- the
+      # per-test reports, `--durations` timings and JUnit nodes pytest holds
+      # until the session ends, plus the executed-line sets coverage.py
+      # accumulates -- to roughly a third. Runners were being reclaimed with a
+      # shutdown signal in the last seconds of the unsharded ~27k-test session,
+      # when that state is at its peak. Note `--cov=superset` still measures
+      # every module in the package on every shard, so the measured-file
+      # registry itself does not shrink; only the per-test and hit-data parts
+      # do. Codecov merges the same-flag uploads from all shards back into one
+      # `python,unit` report. Without a committed `.test_durations` file
+      # pytest-split falls back to an even split by test count; adding one
+      # would only improve shard balance.
       - name: Python unit tests
         env:
           SUPERSET_TESTENV: true
           SUPERSET_SECRET_KEY: not-a-secret
         run: |
-          pytest -n auto --dist loadfile --durations=0 --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear --maxfail=50 --junit-xml=test-results/junit-unit.xml
+          pytest -n auto --dist loadfile --splits 3 --group ${{ matrix.shard }} --durations=0 --durations-min=0.5 --cov-report= --cov=superset ./tests/common ./tests/unit_tests --cache-clear --maxfail=50 --junit-xml=test-results/junit-unit.xml
       # COVERAGE_FILE keeps these scoped gates off the default .coverage that
       # the step above wrote. pytest-cov starts a fresh data file per run, so
       # without it the last gate replaces the full-suite data and the report
       # uploaded below contains only that gate's subtree -- every other file
       # then reads as uncovered, and patch coverage on an unrelated PR is 0%.
+      #
+      # These two gates are small and whole-subpackage, so they are pinned to
+      # one shard rather than repeated on every shard: sharding them would
+      # leave each one measuring only part of its own subpackage, and
+      # `--cov-fail-under=100` would fail on the tests the other shards hold.
       - name: Python 100% coverage unit tests
+        if: matrix.shard == 1
         env:
           SUPERSET_TESTENV: true
           SUPERSET_SECRET_KEY: not-a-secret
@@ -111,7 +136,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: junit-results-${{ matrix.python-version }}
+          name: junit-results-${{ matrix.python-version }}-${{ matrix.shard }}
           path: test-results/
           retention-days: 7
 
@@ -131,10 +156,12 @@ jobs:
 
   # Stable required-status-check anchor. `unit-tests` is a matrix job gated on
   # change detection, so on non-Python PRs it is skipped and never produces its
-  # `unit-tests (current)` context (a job-level skip happens before matrix
-  # expansion). This always-running job reports a single context that branch
-  # protection can require: it passes when unit-tests succeeded or was skipped,
-  # and fails only on a real failure.
+  # per-shard `unit-tests (current, N)` contexts (a job-level skip happens
+  # before matrix expansion). This always-running job reports a single context
+  # that branch protection can require: it passes when unit-tests succeeded or
+  # was skipped, and fails only on a real failure. A matrix job's aggregate
+  # `result` is success only when every shard succeeded, so one failing shard
+  # still fails this check.
   unit-tests-required:
     needs: [changes, unit-tests]
     if: always()

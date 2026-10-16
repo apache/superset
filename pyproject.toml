@@ -341,6 +341,11 @@ development = [
     "pytest-asyncio",
     "pytest-cov",
     "pytest-mock",
+    # Shards the unit suite across CI matrix legs (--splits/--group) so no
+    # single pytest process accumulates whole-package coverage data for the
+    # entire suite. Works without a .test_durations file (even split by test
+    # count); a committed durations file would only improve shard balance.
+    "pytest-split",
     "pytest-xdist",
     "python-ldap>=3.4.8",
     "ruff",
