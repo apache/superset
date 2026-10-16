@@ -1330,6 +1330,13 @@ async def _query_from_form_data(  # noqa: C901
     form_data = _non_paginated_request_form_data(form_data, request, row_limit)
     viz_type = form_data.get("viz_type", "unknown")
     effective_force = _compute_effective_force(request)
+    # Cached form_data has no query_context of its own, so this path always
+    # goes through the buildQuery-skipping fallback.
+    query_context_accuracy_warning = (
+        "Querying unsaved form_data (form_data_key), which has no "
+        "query_context. Data may not match the chart visualization "
+        "exactly."
+    )
 
     try:
         query_context = build_query_context_from_form_data(
@@ -1340,6 +1347,7 @@ async def _query_from_form_data(  # noqa: C901
             force=effective_force,
             custom_cache_timeout=request.cache_timeout,
         )
+        await ctx.warning(query_context_accuracy_warning)
 
         await ctx.report_progress(3, 4, "Executing data query")
         set_query_context_form_data(query_context, datasource_id, datasource_type)
@@ -1428,7 +1436,12 @@ async def _query_from_form_data(  # noqa: C901
         unsaved_chart = _ChartFacts(0, chart_name, viz_type)
         if request.format == "csv":
             return _export_data_as_csv(
-                unsaved_chart, limited_data, raw_columns, cache_status, performance
+                unsaved_chart,
+                limited_data,
+                raw_columns,
+                cache_status,
+                performance,
+                query_context_accuracy_warning=query_context_accuracy_warning,
             )
         if request.format == "excel":
             return _export_data_as_excel(
@@ -1438,6 +1451,7 @@ async def _query_from_form_data(  # noqa: C901
                 cache_status,
                 performance,
                 _temporal_result_columns(query_result),
+                query_context_accuracy_warning=query_context_accuracy_warning,
             )
 
         await ctx.report_progress(4, 4, "Building response")
@@ -1454,7 +1468,10 @@ async def _query_from_form_data(  # noqa: C901
             row_count=len(data),
             total_rows=query_result.get("rowcount"),
             summary=summary,
-            insights=["This is an unsaved chart queried from cached form_data."],
+            insights=[
+                query_context_accuracy_warning,
+                "This is an unsaved chart queried from cached form_data.",
+            ],
             data_quality=format_data_quality(columns, len(data)),
             recommended_visualizations=[],
             data_freshness=None,

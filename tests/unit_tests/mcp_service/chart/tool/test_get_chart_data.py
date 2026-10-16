@@ -731,6 +731,9 @@ class _AsyncContext:
     async def report_progress(self, *args: Any, **kwargs: Any) -> None:
         pass
 
+    async def warning(self, *args: Any, **kwargs: Any) -> None:
+        pass
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
@@ -5485,6 +5488,70 @@ class TestQueryContextAccuracyWarning:
             response = await client.call_tool(
                 "get_chart_data",
                 {"request": {"identifier": 206, "form_data_key": "edited-growth"}},
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any("form_data" in insight.lower() for insight in data["insights"]), (
+            data["insights"]
+        )
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize("response_format", ["json", "csv", "excel"])
+    async def test_form_data_key_without_identifier_is_flagged_in_response(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        response_format: str,
+    ) -> None:
+        """An unsaved chart queried by form_data_key alone goes through the same
+        buildQuery-skipping fallback, so every response format carries the
+        caveat."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        cached_form_data = {
+            "datasource": "1__table",
+            "viz_type": "big_number",
+            "metric": {"label": "SUM(revenue)"},
+            "time_grain_sqla": "P3M",
+            "compare_lag": 1,
+            "show_trend_line": True,
+        }
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            module,
+            "build_query_context_from_form_data",
+            lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+        monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+        monkeypatch.setattr(
+            module, "get_cached_form_data", lambda _key: json.dumps(cached_form_data)
+        )
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {
+                    "request": {
+                        "form_data_key": "unsaved-growth",
+                        "format": response_format,
+                    }
+                },
             )
 
         data = json.loads(response.content[0].text)
