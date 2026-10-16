@@ -43,7 +43,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.python == 'true'
     runs-on: ubuntu-26.04
-    # Leave time for setup, the full suite, scoped coverage gates, and uploads.
+    # Leave time for setup, one shard of the suite, scoped coverage gates, and
+    # uploads.
     timeout-minutes: 45
     permissions:
       id-token: write
@@ -86,16 +87,19 @@ jobs:
       # `--splits`/`--group` (pytest-split) shard the suite across the matrix,
       # cutting the per-process state that scales with test count -- the
       # per-test reports, `--durations` timings and JUnit nodes pytest holds
-      # until the session ends, plus the executed-line sets coverage.py
-      # accumulates -- to roughly a third. Runners were being reclaimed with a
-      # shutdown signal in the last seconds of the unsharded ~27k-test session,
-      # when that state is at its peak. Note `--cov=superset` still measures
-      # every module in the package on every shard, so the measured-file
-      # registry itself does not shrink; only the per-test and hit-data parts
-      # do. Codecov merges the same-flag uploads from all shards back into one
-      # `python,unit` report. Without a committed `.test_durations` file
-      # pytest-split falls back to an even split by test count; adding one
-      # would only improve shard balance.
+      # until the session ends, plus whatever each xdist worker accumulates
+      # over its own tests -- to roughly a third. Runners were being reclaimed
+      # with a shutdown signal in the last seconds of the unsharded ~27k-test
+      # session, when that state is at its peak. The coverage data is not what
+      # shrinks: without `dynamic_context`/`--cov-context` it is one line and
+      # branch set per source file, bounded by the size of `superset` rather
+      # than by the test count, and a third of the tests still exercises most
+      # of the shared core. `--cov=superset` also still measures every module
+      # in the package on every shard, so the measured-file registry does not
+      # shrink either. Codecov merges the same-flag uploads from all shards
+      # back into one `python,unit` report. Without a committed
+      # `.test_durations` file pytest-split falls back to an even split by
+      # test count; adding one would only improve shard balance.
       - name: Python unit tests
         env:
           SUPERSET_TESTENV: true
