@@ -37,6 +37,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   expect(config.redis.sslCertReqs).toEqual('required');
   expect(config.redis.sslCaCerts).toEqual('');
   expect(config.redis.sentinels).toEqual([]);
+  expect(config.redis.sentinelSsl).toEqual(false);
   expect(config.statsd.host).toEqual('127.0.0.1');
   expect(config.statsd.port).toEqual(8125);
   expect(config.statsd.globalTags).toEqual([]);
@@ -58,6 +59,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
     's1:26380, s2 ,[::1]:26381,bad:port,toobig:70000';
   process.env.REDIS_SENTINEL_MASTER = 'mymaster';
   process.env.REDIS_SENTINEL_PASSWORD = 'sentinel-pwd';
+  process.env.REDIS_SENTINEL_SSL = 'true';
   process.env.STATSD_HOST = '15.15.15.15';
   process.env.STATSD_PORT = '8000';
   process.env.STATSD_GLOBAL_TAGS = 'tag-1,tag-2';
@@ -84,6 +86,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   ]);
   expect(config.redis.sentinelMaster).toEqual('mymaster');
   expect(config.redis.sentinelPassword).toEqual('sentinel-pwd');
+  expect(config.redis.sentinelSsl).toEqual(true);
   expect(config.statsd.host).toEqual('15.15.15.15');
   expect(config.statsd.port).toEqual(8000);
   expect(config.statsd.globalTags).toEqual(['tag-1', 'tag-2']);
@@ -104,6 +107,7 @@ test('buildConfig() builds configuration and applies env var overrides', () => {
   delete process.env.REDIS_SENTINELS;
   delete process.env.REDIS_SENTINEL_MASTER;
   delete process.env.REDIS_SENTINEL_PASSWORD;
+  delete process.env.REDIS_SENTINEL_SSL;
   delete process.env.STATSD_HOST;
   delete process.env.STATSD_PORT;
   delete process.env.STATSD_GLOBAL_TAGS;

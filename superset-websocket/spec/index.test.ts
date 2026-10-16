@@ -249,6 +249,7 @@ describe('server', () => {
       sentinels: [],
       sentinelMaster: '',
       sentinelPassword: '',
+      sentinelSsl: false,
       ...overrides,
     });
 
@@ -360,6 +361,24 @@ describe('server', () => {
       expect(opts.tls).toEqual({ checkServerIdentity: expect.anything() });
       // Without this flag ioredis connects to the master in plaintext.
       expect(opts.enableTLSForSentinelMode).toBe(true);
+    });
+    test('it enables TLS for the sentinel nodes with sentinelSsl', () => {
+      const opts = server.buildRedisOpts(
+        redisConfig({
+          ssl: true,
+          sentinelSsl: true,
+          sentinels: [{ host: 's1', port: 26379 }],
+          sentinelMaster: 'mymaster',
+        }),
+      );
+      expect(opts.tls).toEqual({ checkServerIdentity: expect.anything() });
+      expect(opts.sentinelTLS).toEqual(opts.tls);
+      expect(opts.enableTLSForSentinelMode).toBe(true);
+    });
+    test('it ignores sentinelSsl outside Sentinel mode', () => {
+      expect(
+        server.buildRedisOpts(redisConfig({ ssl: true, sentinelSsl: true })),
+      ).not.toHaveProperty('sentinelTLS');
     });
     test('it requires a master name in Sentinel mode', () => {
       expect(() =>

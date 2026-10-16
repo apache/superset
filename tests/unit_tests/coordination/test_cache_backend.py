@@ -404,3 +404,85 @@ def test_owner_token_backend_errors_propagate(operation: str) -> None:
 
     with pytest.raises(RedisConnectionError, match="unavailable"):
         operation_call()
+
+
+def _sentinel_node_pools(backend: Any) -> list[Any]:
+    return [node.connection_pool for node in backend._sentinel.sentinels]
+
+
+def test_redis_sentinel_cache_backend_secures_master_and_sentinels_with_tls() -> None:
+    """With ``ssl`` and ``sentinel_ssl`` set, both the sentinel-node connections and
+    the resolved-master connection use TLS with the shared certificate settings."""
+    from redis.connection import SSLConnection
+    from redis.sentinel import SentinelManagedSSLConnection
+
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    tls = {
+        "ssl_certfile": "/certs/client.crt",
+        "ssl_keyfile": "/certs/client.key",
+        "ssl_cert_reqs": "required",
+        "ssl_ca_certs": "/certs/ca.crt",
+    }
+    backend = RedisSentinelCacheBackend(
+        sentinels=[("sentinel1", 26379), ("sentinel2", 26379)],
+        master="mymaster",
+        ssl=True,
+        sentinel_ssl=True,
+        ssl_certfile=tls["ssl_certfile"],
+        ssl_keyfile=tls["ssl_keyfile"],
+        ssl_cert_reqs=tls["ssl_cert_reqs"],
+        ssl_ca_certs=tls["ssl_ca_certs"],
+    )
+
+    pools = _sentinel_node_pools(backend)
+    assert len(pools) == 2
+    for pool in pools:
+        assert issubclass(pool.connection_class, SSLConnection)
+        assert {k: pool.connection_kwargs[k] for k in tls} == tls
+
+    master_pool = backend._cache.connection_pool
+    assert issubclass(master_pool.connection_class, SentinelManagedSSLConnection)
+    assert {k: master_pool.connection_kwargs[k] for k in tls} == tls
+
+
+def test_redis_sentinel_cache_backend_is_plaintext_without_tls() -> None:
+    """TLS stays off for the sentinels and the master unless configured."""
+    from redis.connection import SSLConnection
+    from redis.sentinel import SentinelManagedSSLConnection
+
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    backend = RedisSentinelCacheBackend(
+        sentinels=[("sentinel1", 26379)],
+        master="mymaster",
+        ssl_ca_certs="/certs/ca.crt",
+    )
+
+    for pool in _sentinel_node_pools(backend):
+        assert not issubclass(pool.connection_class, SSLConnection)
+        assert "ssl_ca_certs" not in pool.connection_kwargs
+    master_pool = backend._cache.connection_pool
+    assert not issubclass(master_pool.connection_class, SentinelManagedSSLConnection)
+    assert "ssl_ca_certs" not in master_pool.connection_kwargs
+
+
+def test_redis_sentinel_cache_backend_from_config_reads_sentinel_ssl() -> None:
+    """``CACHE_REDIS_SENTINEL_SSL`` enables TLS on the sentinel-node connections."""
+    from redis.connection import SSLConnection
+
+    from superset.coordination.cache_backend import RedisSentinelCacheBackend
+
+    backend = RedisSentinelCacheBackend.from_config(
+        {
+            "CACHE_REDIS_SENTINELS": [("sentinel1", 26379)],
+            "CACHE_REDIS_SENTINEL_MASTER": "mymaster",
+            "CACHE_REDIS_SSL": True,
+            "CACHE_REDIS_SENTINEL_SSL": True,
+            "CACHE_REDIS_SSL_CA_CERTS": "/certs/ca.crt",
+        }
+    )
+
+    for pool in _sentinel_node_pools(backend):
+        assert issubclass(pool.connection_class, SSLConnection)
+        assert pool.connection_kwargs["ssl_ca_certs"] == "/certs/ca.crt"

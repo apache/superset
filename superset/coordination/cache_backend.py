@@ -329,6 +329,26 @@ class RedisCacheBackend(RedisCommandsMixin, RedisCache):
         return cls(**kwargs)
 
 
+def _tls_kwargs(
+    certfile: str | None,
+    keyfile: str | None,
+    cert_reqs: str,
+    ca_certs: str | None,
+) -> dict[str, Any]:
+    """redis-py keyword arguments enabling TLS, omitting unset certificate paths."""
+    return {
+        k: v
+        for k, v in {
+            "ssl": True,
+            "ssl_certfile": certfile,
+            "ssl_keyfile": keyfile,
+            "ssl_cert_reqs": cert_reqs,
+            "ssl_ca_certs": ca_certs,
+        }.items()
+        if v is not None
+    }
+
+
 class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
     def __init__(  # pylint: disable=too-many-arguments
         self,
@@ -347,10 +367,16 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
         socket_timeout: float | None = None,
         socket_connect_timeout: float | None = None,
         force_master_ip: str | None = None,
+        sentinel_ssl: bool = False,
         **kwargs: Any,
     ) -> None:
-        # Sentinel dont directly support SSL
-        # Initialize Sentinel without SSL parameters
+        # ``ssl`` secures the connection to the resolved master and
+        # ``sentinel_ssl`` the connections to the sentinel nodes; both use the
+        # same certificate, key, CA and verification settings.
+        tls_kwargs = _tls_kwargs(ssl_certfile, ssl_keyfile, ssl_cert_reqs, ssl_ca_certs)
+
+        # Sentinel keyword arguments never include the SSL settings that
+        # configure the master connection (those are passed to ``master_for``).
         self._sentinel = Sentinel(
             sentinels,
             **(
@@ -367,6 +393,7 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
                 "socket_timeout": socket_timeout,
                 "socket_connect_timeout": socket_connect_timeout,
                 "protocol": 2,
+                **(tls_kwargs if sentinel_ssl else {}),
             },
             **{
                 k: v
@@ -382,25 +409,14 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
             },
         )
 
-        # Prepare SSL-related arguments for master_for method
         master_kwargs: dict[str, Any] = {
-            "password": password,
-            "ssl": ssl,
-            "ssl_certfile": ssl_certfile if ssl else None,
-            "ssl_keyfile": ssl_keyfile if ssl else None,
-            "ssl_cert_reqs": ssl_cert_reqs if ssl else None,
-            "ssl_ca_certs": ssl_ca_certs if ssl else None,
+            k: v
+            for k, v in {
+                "password": password,
+                **(tls_kwargs if ssl else {}),
+            }.items()
+            if v is not None
         }
-
-        # If SSL is False, remove all SSL-related keys
-        # SSL_* are expected only if SSL is True
-        if not ssl:
-            master_kwargs = {
-                k: v for k, v in master_kwargs.items() if not k.startswith("ssl")
-            }
-
-        # Filter out None values from master_kwargs
-        master_kwargs = {k: v for k, v in master_kwargs.items() if v is not None}
 
         # Added after the None-filtering above: these must be forwarded even
         # when None (that's the explicit override), unlike the SSL args.
@@ -429,6 +445,7 @@ class RedisSentinelCacheBackend(RedisCommandsMixin, RedisSentinelCache):
             "master": config.get("CACHE_REDIS_SENTINEL_MASTER", "mymaster"),
             "password": config.get("CACHE_REDIS_PASSWORD", None),
             "sentinel_password": config.get("CACHE_REDIS_SENTINEL_PASSWORD", None),
+            "sentinel_ssl": config.get("CACHE_REDIS_SENTINEL_SSL", False),
             "key_prefix": config.get("CACHE_KEY_PREFIX", ""),
             "db": config.get("CACHE_REDIS_DB", 0),
             "ssl": config.get("CACHE_REDIS_SSL", False),
