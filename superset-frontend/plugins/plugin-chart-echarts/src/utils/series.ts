@@ -1407,6 +1407,34 @@ export function getTimeCompareStackId(
 }
 
 const TOOLTIP_SERIES_KEY = 'seriesId';
+
+/**
+ * Reads the numeric value a tooltip param contributes to the metric sort.
+ *
+ * `value` is echarts' normalized view of the data item, and the same field the
+ * tooltip rows themselves are built from. The raw `data` item is only a plain
+ * tuple for the simplest series: bar series wrap it in `{ value, label }` to
+ * reposition negative labels, and in `{ value, itemStyle }` when coloured by
+ * the primary axis, so reading `data` positionally yields `undefined` there.
+ *
+ * Values that aren't finite numbers (nulls in a gap, missing points) sort last
+ * rather than poisoning the comparator with NaN.
+ */
+function extractTooltipSortValue(
+  param: { value?: unknown; data?: unknown },
+  yIndex: number,
+): number {
+  const item = param?.value ?? param?.data;
+  const tuple =
+    !Array.isArray(item) && typeof item === 'object' && item !== null
+      ? (item as { value?: unknown }).value
+      : item;
+  const value = Array.isArray(tuple) ? tuple[yIndex] : tuple;
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : -Infinity;
+}
+
 export function extractTooltipKeys(
   forecastValue: any[],
   yIndex: number,
@@ -1416,7 +1444,12 @@ export function extractTooltipKeys(
   if (richTooltip && tooltipSortByMetric) {
     return forecastValue
       .slice()
-      .sort((a, b) => b.data[yIndex] - a.data[yIndex])
+      .sort((a, b) => {
+        const aValue = extractTooltipSortValue(a, yIndex);
+        const bValue = extractTooltipSortValue(b, yIndex);
+        if (aValue === bValue) return 0;
+        return bValue > aValue ? 1 : -1;
+      })
       .map(value => value[TOOLTIP_SERIES_KEY]);
   }
   if (richTooltip) {

@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **"Tooltip sort by metric" now sorts descending on stacked charts.** The
+  control's rows were reversed on any stacked chart, so the documented
+  descending order was rendered ascending ([#35673](https://github.com/apache/superset/issues/35673)).
+  Stacked tooltips still read top-of-stack first when the control is off, which
+  is the default; only charts that explicitly enable it change. Anyone relying
+  on the ascending order described by
+  [#42106](https://github.com/apache/superset/pull/42106) should leave the
+  control disabled.
+
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP

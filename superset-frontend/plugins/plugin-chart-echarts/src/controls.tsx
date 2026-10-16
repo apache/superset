@@ -333,7 +333,7 @@ const tooltipSortByMetricControl: ControlSetItem = {
     renderTrigger: true,
     default: false,
     description: t(
-      'Whether to sort tooltip by the selected metric in descending order. On stacked charts, values are shown in ascending order.',
+      'Whether to sort tooltip by the selected metric in descending order.',
     ),
     visibility: ({ controls }: ControlPanelsContainerProps) =>
       Boolean(controls?.rich_tooltip?.value),

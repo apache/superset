@@ -4637,3 +4637,113 @@ test('tooltip keeps the metric format on a Difference time comparison', () => {
   expect(result).toContain('$ 100');
   expect(result).toContain('$ 25');
 });
+
+/**
+ * Builds a rich tooltip for a chart whose series values are deliberately
+ * neither ascending nor descending, so an unsorted tooltip is distinguishable
+ * from one sorted in the wrong direction.
+ *
+ * The params mirror how echarts builds them from the transformed series:
+ * `data` is the raw data item and `value` is its normalized tuple, which
+ * differ whenever the item is an object rather than a plain array.
+ */
+function buildSortedTooltip(
+  formData: Partial<EchartsTimeseriesFormData>,
+  values: Record<string, number> = { mid: 10, low: 1, high: 30 },
+): string[] {
+  const chartProps = createTestChartProps({
+    formData: {
+      metrics: ['m'],
+      groupby: ['g'],
+      richTooltip: true,
+      tooltipSortByMetric: true,
+      ...formData,
+    },
+    queriesData: [
+      createTestQueryData([{ ...values, __timestamp: BASE_TIMESTAMP }]),
+    ],
+  });
+
+  const { echartOptions } = transformProps(chartProps);
+  const { tooltip } = echartOptions as unknown as TooltipFormatterOptions;
+  const params = (echartOptions.series as SeriesOption[]).flatMap(series => {
+    const { id, name, data } = series as SeriesOption & {
+      id: string;
+      data: unknown[];
+    };
+    if (!(id in values)) {
+      return [];
+    }
+    const item = data[0];
+    return [
+      {
+        seriesId: id,
+        seriesName: name,
+        data: item,
+        value: Array.isArray(item) ? item : (item as { value: unknown }).value,
+        marker: '<span style="background-color:#1f77b4;"></span>',
+      },
+    ];
+  });
+
+  return Array.from(
+    tooltip.formatter(params).matchAll(/>(low|mid|high)</g),
+  ).map(match => match[1]);
+}
+
+test('tooltip sorted by metric orders rows descending on an unstacked line chart', () => {
+  expect(buildSortedTooltip({})).toEqual(['high', 'mid', 'low']);
+});
+
+test('tooltip sorted by metric orders rows descending on a stacked area chart', () => {
+  expect(
+    buildSortedTooltip({ area: true, stack: StackControlsValue.Stack }),
+  ).toEqual(['high', 'mid', 'low']);
+});
+
+test('tooltip sorted by metric orders rows descending on a stream-stacked area chart', () => {
+  expect(
+    buildSortedTooltip({ area: true, stack: StackControlsValue.Stream }),
+  ).toEqual(['high', 'mid', 'low']);
+});
+
+test('tooltip sorted by metric orders rows descending on a stacked bar chart', () => {
+  expect(
+    buildSortedTooltip({
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      stack: StackControlsValue.Stack,
+    }),
+  ).toEqual(['high', 'mid', 'low']);
+});
+
+test('tooltip keeps stacked rows bottom-up when not sorting by metric', () => {
+  expect(
+    buildSortedTooltip({
+      area: true,
+      stack: StackControlsValue.Stack,
+      tooltipSortByMetric: false,
+    }),
+  ).toEqual(['high', 'low', 'mid']);
+});
+
+test('tooltip sorted by metric orders rows descending on a bar chart with negative values', () => {
+  // Negative values make transformNegativeLabelsPosition wrap the data item in
+  // `{ value, label }`, so the sort can no longer read it positionally.
+  expect(
+    buildSortedTooltip(
+      { seriesType: EchartsTimeseriesSeriesType.Bar },
+      { mid: 10, low: -5, high: 30 },
+    ),
+  ).toEqual(['high', 'mid', 'low']);
+});
+
+test('tooltip sorted by metric orders rows descending on a bar chart coloured by the primary axis', () => {
+  // applyColorByPrimaryAxis wraps each data item in `{ value, itemStyle }`.
+  expect(
+    buildSortedTooltip({
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      groupby: [],
+      colorByPrimaryAxis: true,
+    }),
+  ).toEqual(['high', 'mid', 'low']);
+});

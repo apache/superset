@@ -1689,6 +1689,7 @@ export default function transformProps(
         const forecastValue: CallbackDataParams[] = richTooltip
           ? params
           : [params];
+        const sortTooltipByMetric = Boolean(richTooltip && tooltipSortByMetric);
         const sortedKeys = collapseForecastKeys(
           extractTooltipKeys(
             forecastValue,
@@ -1796,7 +1797,10 @@ export default function transformProps(
               focusedRow = rows.length - 1;
             }
           });
-        if (stack) {
+        // Stacked charts list their rows top-of-stack first so the tooltip
+        // reads like the chart. Sorting by metric is an explicit ordering
+        // request, so it must not be flipped back here.
+        if (stack && !sortTooltipByMetric) {
           rows.reverse();
           if (focusedRow !== undefined) {
             focusedRow = rows.length - focusedRow - 1;
