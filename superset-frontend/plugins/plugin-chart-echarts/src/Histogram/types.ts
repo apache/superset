@@ -16,8 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { QueryFormColumn, QueryFormData } from '@superset-ui/core';
+import {
+  DataRecordValue,
+  QueryFormColumn,
+  QueryFormData,
+} from '@superset-ui/core';
 import { BaseChartProps, BaseTransformedProps } from '../types';
+import { HistogramBin } from './crossFilter';
 
 export type HistogramFormData = QueryFormData & {
   bins: number;
@@ -41,4 +46,8 @@ export interface HistogramChartProps extends BaseChartProps<HistogramFormData> {
 export type HistogramTransformedProps =
   BaseTransformedProps<HistogramFormData> & {
     onFocusedSeries: (index: number | undefined) => void;
+    /** Bin edges aligned with the x-axis categories. */
+    bins: HistogramBin[];
+    /** Raw groupby values aligned with each bar series. */
+    seriesGroupby: DataRecordValue[][];
   };
