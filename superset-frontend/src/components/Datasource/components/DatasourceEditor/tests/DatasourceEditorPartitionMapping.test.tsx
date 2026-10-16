@@ -168,13 +168,13 @@ test('moving the mapping onto a column does not arm a transform parked there', a
   await userEvent.click((await screen.findAllByLabelText(/expand row/i))[0]);
   await userEvent.click(await screen.findByTestId('move-mapping-here'));
 
-  // `state` is a VARCHAR, so there is no engine default to pre-fill either: the
-  // mapping arrives inert, and the field's own required marker says why rather
-  // than a mirror switching itself on.
+  // `state` is a VARCHAR, so it gets the bare `:value` pre-fill rather than an
+  // engine default -- never the `lower(:value)` parked there, which nobody
+  // wrote about this mapping.
   await waitFor(() => {
     expect(columnNamed(lastSavedColumns(props), 'state')).toMatchObject({
-      partition_value_transform: null,
-      partition_transform_is_monotonic: false,
+      partition_value_transform: ':value',
+      partition_transform_is_monotonic: true,
     });
   });
   // And the column it came from does not keep its own either -- one mapping,
@@ -183,11 +183,6 @@ test('moving the mapping onto a column does not arm a transform parked there', a
     partition_value_transform: null,
     partition_transform_is_monotonic: false,
   });
-  expect(lastValidationErrors(props)).toEqual(
-    expect.arrayContaining([
-      expect.stringContaining('A value transform is required on state'),
-    ]),
-  );
 });
 
 test('re-pointing the default datetime column leaves the value transform behind', async () => {
