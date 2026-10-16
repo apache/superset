@@ -17792,7 +17792,7 @@ msgid ""
 "Where to place the ellipsis when a tooltip label is too long. Choose Off "
 "to always show the full label, or Start when labels share a common "
 "prefix."
-msgstr "ツールチップのラベルが長すぎる場合に省略記号 (…) を配置する位置を指定します。「オフ」を選択すると常に全文字を表示し、「先頭」はラベルの共通接頭辞がある場合に便利です。"
+msgstr "ツールチップのラベルが長すぎる場合に省略記号 (…) を配置する位置を指定します。「オフ」を選択すると常に全文字を表示し、「開始」はラベルの共通接頭辞がある場合に便利です。"
 
 msgid "Whether the progress bar overlaps when there are multiple groups of data"
 msgstr "複数のデータグループがある場合に、プログレスバーを重ねるかどうか"
