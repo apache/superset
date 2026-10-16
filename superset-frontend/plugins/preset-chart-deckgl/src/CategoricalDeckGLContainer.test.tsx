@@ -225,3 +225,47 @@ test.each([
     expect(mockViewports.at(-1)?.latitude).toBeCloseTo(expectedLatitude, 1);
   },
 );
+
+test('with autozoom a tilt written back by Explore keeps the viewer on the same rows', () => {
+  const positions = [
+    [-122.45, 37.75],
+    [-122.4, 37.8],
+  ];
+  const props = {
+    formData: {
+      datasource: '1__table',
+      viz_type: 'deck_scatter',
+      autozoom: true,
+    } as unknown as QueryFormData,
+    getLayer: jest.fn(() => ({})),
+    getPoints: (features: JsonObject[]) =>
+      features.map(feature => feature.position),
+    viewport: { longitude: 0, latitude: 0, zoom: 1 },
+    width: 400,
+    height: 300,
+    setControlValue: jest.fn(),
+    payload: { data: { features: positions.map(position => ({ position })) } },
+  } as unknown as CategoricalDeckGLContainerProps;
+
+  const { rerender } = render(
+    <ThemeProvider theme={supersetTheme}>
+      <CategoricalDeckGLContainer {...props} />
+    </ThemeProvider>,
+  );
+  const fitted = mockViewports.at(-1);
+
+  // Explore saves the viewer's tilt through setControlValue, and the transform
+  // re-runs on the same response, building a new features array.
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <CategoricalDeckGLContainer
+        {...props}
+        viewport={{ longitude: -100, latitude: 20, zoom: 6, pitch: 40 }}
+        payload={{
+          data: { features: positions.map(position => ({ position })) },
+        }}
+      />
+    </ThemeProvider>,
+  );
+  expect(mockViewports.at(-1)).toEqual(fitted);
+});

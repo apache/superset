@@ -25,6 +25,7 @@
 /* eslint no-underscore-dangle: ["error", { "allow": ["", "__timestamp"] }] */
 
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
+import { isEqual } from 'lodash-es';
 import {
   CategoricalColorNamespace,
   Datasource,
@@ -41,6 +42,7 @@ import Legend from './components/Legend';
 import { hexToRGB } from './utils/colors';
 import { getMapboxApiKey } from './utils/mapbox';
 import fitViewport, { Viewport } from './utils/fitViewport';
+import computeBoundsFromPoints from './utils/computeBoundsFromPoints';
 import {
   DeckGLContainerHandle,
   DeckGLContainerStyledWrapper,
@@ -161,9 +163,22 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
   );
   const [viewport, setViewport] = useState(getAdjustedViewport());
   const featuresRef = useRef(props.payload.data.features);
+  // The area autozoom last fitted. The transform builds a new features array
+  // on every run, including the one Explore triggers when it saves the
+  // viewer's pan, zoom or tilt, so a refit keys on these bounds by value.
+  const autozoomBoundsRef = useRef(
+    props.formData.autozoom
+      ? computeBoundsFromPoints(
+          props.getPoints(props.payload.data.features || []),
+        )
+      : undefined,
+  );
 
   useEffect(() => {
     const features = props.payload.data.features || [];
+    const autozoomBounds = props.formData.autozoom
+      ? computeBoundsFromPoints(props.getPoints(features))
+      : undefined;
     if (props.payload.form_data !== stateFormData) {
       const categories = getCategories(props.formData, features);
 
@@ -174,18 +189,22 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
       // A dashboard auto-refresh keeps the chart mounted and swaps in new
       // data without a new form_data, so new categories are merged into the
       // legend here instead of being filtered out as unknown, and autozoom
-      // refits the map to the new rows.
+      // refits the map when the new rows cover another area.
       setCategories(previous =>
         reconcileCategories(
           previous as Categories,
           getCategories(props.formData, features),
         ),
       );
-      if (props.formData.autozoom) {
+      if (
+        autozoomBounds &&
+        !isEqual(autozoomBounds, autozoomBoundsRef.current)
+      ) {
         setViewport(getAdjustedViewport());
       }
     }
     featuresRef.current = props.payload.data.features;
+    autozoomBoundsRef.current = autozoomBounds;
   }, [getAdjustedViewport, props, stateFormData]);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
