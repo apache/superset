@@ -203,6 +203,23 @@ test('handles initialization errors gracefully', async () => {
   appendChildSpy.mockRestore();
 });
 
+test('rejects an extension whose id is "core"', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+
+  const ext = createMockExtension({ id: 'core', remoteEntry: '' });
+  const succeeded = await loader.initializeExtension(ext);
+
+  expect(succeeded).toBe(false);
+  expect(errorSpy).toHaveBeenCalledWith(
+    expect.stringContaining('Failed to initialize extension'),
+    expect.objectContaining({ message: expect.stringContaining('reserved') }),
+  );
+  expect(loader.getExtension('core')).toBeUndefined();
+
+  errorSpy.mockRestore();
+});
+
 test('logs success after initializeExtensions completes', async () => {
   const loader = ExtensionsLoader.getInstance();
   const infoSpy = jest.spyOn(logging, 'info').mockImplementation();
@@ -322,6 +339,207 @@ test('each extension gets an isolated getContext via module federation custom sc
 
   appendChildSpy.mockRestore();
   cleanupWebpackSharing();
+});
+
+test('each extension gets a chat.registerClientTool(s) rebind that prefixes its own id', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const registerClientTool = jest.fn();
+  const registerClientTools = jest.fn();
+  window.superset = {
+    ...window.superset,
+    chat: { registerClientTool, registerClientTools } as unknown,
+  } as Namespaces;
+
+  const capturedCoreModules: Array<typeof import('@apache-superset/core')> = [];
+  const makeContainer = () => ({
+    init: jest.fn().mockImplementation(async (scope: WebpackSharedScope) => {
+      const moduleFactory = await scope['@apache-superset/core']['0.1.0'].get();
+      capturedCoreModules.push(
+        moduleFactory() as typeof import('@apache-superset/core'),
+      );
+    }),
+    get: jest.fn().mockResolvedValue(() => {}),
+  });
+
+  const appendChildSpy = mockRemoteEntryLoad();
+  mockWebpackSharing({
+    '0.1.0': {
+      get: () => Promise.resolve(() => ({})),
+      loaded: true,
+      eager: true,
+    },
+  });
+
+  const ext1 = createMockExtension({
+    id: 'org.ext1',
+    remoteEntry: 'http://ext1/remoteEntry.js',
+  });
+  (window as any).airbnb_ext1 = makeContainer();
+  await loader.initializeExtension({
+    ...ext1,
+    moduleFederationName: 'airbnb_ext1',
+  });
+
+  const noopTool = {
+    description: 'test',
+    inputSchema: { type: 'object', properties: {} },
+    handler: () => ({ success: true }),
+  };
+
+  capturedCoreModules[0].chat.registerClientTool({
+    ...noopTool,
+    name: 'dashboard__do_thing',
+  });
+  expect(registerClientTool).toHaveBeenCalledWith({
+    ...noopTool,
+    name: 'org.ext1.dashboard__do_thing',
+  });
+
+  capturedCoreModules[0].chat.registerClientTools([
+    { ...noopTool, name: 'dashboard__one' },
+    { ...noopTool, name: 'dashboard__two' },
+  ]);
+  expect(registerClientTools).toHaveBeenCalledWith([
+    { ...noopTool, name: 'org.ext1.dashboard__one' },
+    { ...noopTool, name: 'org.ext1.dashboard__two' },
+  ]);
+
+  appendChildSpy.mockRestore();
+  cleanupWebpackSharing();
+});
+
+test('the chat.registerChat rebind also prefixes options.tools with its own id', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const registerChat = jest.fn();
+  window.superset = {
+    ...window.superset,
+    chat: { registerChat } as unknown,
+  } as Namespaces;
+
+  const capturedCoreModules: Array<typeof import('@apache-superset/core')> = [];
+  const makeContainer = () => ({
+    init: jest.fn().mockImplementation(async (scope: WebpackSharedScope) => {
+      const moduleFactory = await scope['@apache-superset/core']['0.1.0'].get();
+      capturedCoreModules.push(
+        moduleFactory() as typeof import('@apache-superset/core'),
+      );
+    }),
+    get: jest.fn().mockResolvedValue(() => {}),
+  });
+
+  const appendChildSpy = mockRemoteEntryLoad();
+  mockWebpackSharing({
+    '0.1.0': {
+      get: () => Promise.resolve(() => ({})),
+      loaded: true,
+      eager: true,
+    },
+  });
+
+  const ext1 = createMockExtension({
+    id: 'org.ext1',
+    remoteEntry: 'http://ext1/remoteEntry.js',
+  });
+  (window as any).airbnb_ext1 = makeContainer();
+  await loader.initializeExtension({
+    ...ext1,
+    moduleFederationName: 'airbnb_ext1',
+  });
+
+  const noopTool = {
+    description: 'test',
+    inputSchema: { type: 'object', properties: {} },
+    handler: () => ({ success: true }),
+  };
+  const trigger = () => null;
+  const panel = () => null;
+
+  capturedCoreModules[0].chat.registerChat(
+    { id: 'org.ext1.chat', name: 'Ext1 Chat' },
+    trigger,
+    panel,
+    { tools: [{ ...noopTool, name: 'dashboard__do_thing' }] },
+  );
+
+  expect(registerChat).toHaveBeenCalledWith(
+    { id: 'org.ext1.chat', name: 'Ext1 Chat' },
+    trigger,
+    panel,
+    { tools: [{ ...noopTool, name: 'org.ext1.dashboard__do_thing' }] },
+  );
+
+  appendChildSpy.mockRestore();
+  cleanupWebpackSharing();
+});
+
+test('a factory that throws after registering a tool does not leave that tool registered', async () => {
+  const loader = ExtensionsLoader.getInstance();
+  const errorSpy = jest.spyOn(logging, 'error').mockImplementation();
+  const disposeSpy = jest.fn();
+  const registerClientTool = jest.fn().mockReturnValue({ dispose: disposeSpy });
+  window.superset = {
+    ...window.superset,
+    chat: { registerClientTool } as unknown,
+  } as Namespaces;
+
+  const capturedCoreModules: Array<typeof import('@apache-superset/core')> = [];
+  const container = {
+    init: jest.fn().mockImplementation(async (scope: WebpackSharedScope) => {
+      const moduleFactory = await scope['@apache-superset/core']['0.1.0'].get();
+      capturedCoreModules.push(
+        moduleFactory() as typeof import('@apache-superset/core'),
+      );
+    }),
+    // Stands in for the extension's own ./index module: registers a tool
+    // (through the same scoped `chat` the extension itself would import),
+    // then throws before finishing — e.g. a bug elsewhere in its own
+    // top-level registration code.
+    get: jest.fn().mockResolvedValue(() => {
+      capturedCoreModules[0].chat.registerClientTool({
+        name: 'dashboard__do_thing',
+        description: 'test',
+        inputSchema: { type: 'object', properties: {} },
+        handler: () => ({ success: true }),
+      });
+      throw new Error('boom');
+    }),
+  };
+
+  const appendChildSpy = mockRemoteEntryLoad();
+  mockWebpackSharing({
+    '0.1.0': {
+      get: () => Promise.resolve(() => ({})),
+      loaded: true,
+      eager: true,
+    },
+  });
+
+  const ext1 = createMockExtension({
+    id: 'org.ext1',
+    remoteEntry: 'http://ext1/remoteEntry.js',
+  });
+  (window as any).airbnb_ext1 = container;
+
+  const succeeded = await loader.initializeExtension({
+    ...ext1,
+    moduleFederationName: 'airbnb_ext1',
+  });
+
+  expect(succeeded).toBe(false);
+  expect(registerClientTool).toHaveBeenCalledWith({
+    name: 'org.ext1.dashboard__do_thing',
+    description: 'test',
+    inputSchema: { type: 'object', properties: {} },
+    handler: expect.any(Function),
+  });
+  // The tool was registered (above) but the extension's own init failed —
+  // the Disposable registerClientTool handed back must get disposed so the
+  // tool doesn't stay callable.
+  expect(disposeSpy).toHaveBeenCalledTimes(1);
+
+  appendChildSpy.mockRestore();
+  cleanupWebpackSharing();
+  errorSpy.mockRestore();
 });
 
 test('throws when the container is missing from window', async () => {
