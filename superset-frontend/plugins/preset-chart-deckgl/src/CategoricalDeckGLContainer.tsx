@@ -173,13 +173,17 @@ const CategoricalDeckGLContainer = (props: CategoricalDeckGLContainerProps) => {
     } else if (props.payload.data.features !== featuresRef.current) {
       // A dashboard auto-refresh keeps the chart mounted and swaps in new
       // data without a new form_data, so new categories are merged into the
-      // legend here instead of being filtered out as unknown.
+      // legend here instead of being filtered out as unknown, and autozoom
+      // refits the map to the new rows.
       setCategories(previous =>
         reconcileCategories(
           previous as Categories,
           getCategories(props.formData, features),
         ),
       );
+      if (props.formData.autozoom) {
+        setViewport(getAdjustedViewport());
+      }
     }
     featuresRef.current = props.payload.data.features;
   }, [getAdjustedViewport, props, stateFormData]);

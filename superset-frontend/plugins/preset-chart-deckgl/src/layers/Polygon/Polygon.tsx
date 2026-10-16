@@ -279,6 +279,7 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
 
   const [viewport, setViewport] = useState(getAdjustedViewport());
   const [stateFormData, setStateFormData] = useState(props.payload.form_data);
+  const featuresRef = useRef(props.payload.data.features);
 
   useEffect(() => {
     const { payload } = props;
@@ -286,7 +287,15 @@ const DeckGLPolygon = (props: DeckGLPolygonProps) => {
     if (payload.form_data !== stateFormData) {
       setViewport(getAdjustedViewport());
       setStateFormData(payload.form_data);
+    } else if (
+      props.formData.autozoom &&
+      payload.data.features !== featuresRef.current
+    ) {
+      // A dashboard auto-refresh keeps the chart mounted and swaps in new
+      // data without a new form_data, so autozoom refits the map here.
+      setViewport(getAdjustedViewport());
     }
+    featuresRef.current = payload.data.features;
   }, [getAdjustedViewport, props, stateFormData, viewport]);
 
   const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {

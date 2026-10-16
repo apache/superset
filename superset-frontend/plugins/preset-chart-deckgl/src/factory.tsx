@@ -114,6 +114,18 @@ export function createDeckGLComponent(
 
     const [viewport, setViewport] = useState(getAdjustedViewport());
 
+    useEffect(() => {
+      // A dashboard auto-refresh keeps the chart mounted and swaps in new
+      // data, so autozoom refits the map to the new rows here.
+      if (
+        props.formData.autozoom &&
+        prevPayload &&
+        prevPayload.data.features !== props.payload.data.features
+      ) {
+        setViewport(getAdjustedViewport());
+      }
+    }, [getAdjustedViewport, prevPayload, props]);
+
     const setTooltip = useCallback((tooltip: TooltipProps['tooltip']) => {
       const { current } = containerRef;
       if (current) {

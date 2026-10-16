@@ -27,10 +27,14 @@ import CategoricalDeckGLContainer, {
 import { addColorToFeatures } from './utils/addColor';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
 
+const mockViewports: JsonObject[] = [];
 jest.mock('./DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: jest
     .requireActual('react')
-    .forwardRef(() => <div data-test="deckgl-container" />),
+    .forwardRef(({ viewport }: { viewport: JsonObject }) => {
+      mockViewports.push(viewport);
+      return <div data-test="deckgl-container" />;
+    }),
 }));
 
 // Record every (label, sliceId) pair the categorical color scale is asked to
@@ -163,3 +167,61 @@ test('features of a category that first appears in a refreshed response are draw
   );
   expect(drawnCategories()).toEqual(['A', 'B']);
 });
+
+test.each([
+  [true, 51.5],
+  [false, 0],
+])(
+  'with autozoom %s a refreshed response leaves the map centered at latitude %s',
+  (autozoom, expectedLatitude) => {
+    const fd = {
+      datasource: '1__table',
+      viz_type: 'deck_scatter',
+      autozoom,
+    } as unknown as QueryFormData;
+    const props = {
+      formData: fd,
+      getLayer: jest.fn(() => ({})),
+      getPoints: (features: JsonObject[]) =>
+        features.map(feature => feature.position),
+      viewport: { longitude: 0, latitude: 0, zoom: 1 },
+      width: 400,
+      height: 300,
+      setControlValue: jest.fn(),
+      // The standalone v1 transforms build the payload from the query
+      // response, which carries no form_data.
+      payload: {
+        data: {
+          features: [
+            { position: [-122.45, 37.75] },
+            { position: [-122.4, 37.8] },
+          ],
+        },
+      },
+    } as unknown as CategoricalDeckGLContainerProps;
+
+    const { rerender } = render(
+      <ThemeProvider theme={supersetTheme}>
+        <CategoricalDeckGLContainer {...props} />
+      </ThemeProvider>,
+    );
+    expect(mockViewports.at(-1)?.latitude).toBeCloseTo(autozoom ? 37.775 : 0);
+
+    rerender(
+      <ThemeProvider theme={supersetTheme}>
+        <CategoricalDeckGLContainer
+          {...props}
+          payload={{
+            data: {
+              features: [
+                { position: [-0.15, 51.48] },
+                { position: [-0.1, 51.52] },
+              ],
+            },
+          }}
+        />
+      </ThemeProvider>,
+    );
+    expect(mockViewports.at(-1)?.latitude).toBeCloseTo(expectedLatitude, 1);
+  },
+);

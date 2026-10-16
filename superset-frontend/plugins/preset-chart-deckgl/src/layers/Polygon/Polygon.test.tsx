@@ -474,3 +474,55 @@ describe('getPoints utility', () => {
     expect(points[4]).toEqual([2, 2]);
   });
 });
+
+test('autozoom refits the map when a refresh brings rows in another place', () => {
+  mockDeckGLContainerProps.length = 0;
+  mockGetBuckets.mockReturnValue({});
+  const square = (lng: number, lat: number) => [
+    [lng, lat],
+    [lng + 0.05, lat],
+    [lng + 0.05, lat + 0.05],
+    [lng, lat + 0.05],
+  ];
+  const props = {
+    ...mockProps,
+    formData: { ...mockProps.formData, autozoom: true },
+    payload: {
+      ...mockProps.payload,
+      data: {
+        ...mockProps.payload.data,
+        features: [{ population: 1, polygon: square(-122.45, 37.75) }],
+      },
+    },
+  };
+  const lastLatitude = () =>
+    (
+      mockDeckGLContainerProps.at(-1)?.viewport as
+        | { latitude: number }
+        | undefined
+    )?.latitude;
+
+  const { rerender } = render(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLPolygon {...props} />
+    </ThemeProvider>,
+  );
+  expect(lastLatitude()).toBeCloseTo(37.775, 1);
+
+  // Same form_data, new rows: what a dashboard auto-refresh delivers.
+  rerender(
+    <ThemeProvider theme={supersetTheme}>
+      <DeckGLPolygon
+        {...props}
+        payload={{
+          ...props.payload,
+          data: {
+            ...props.payload.data,
+            features: [{ population: 1, polygon: square(-0.15, 51.48) }],
+          },
+        }}
+      />
+    </ThemeProvider>,
+  );
+  expect(lastLatitude()).toBeCloseTo(51.505, 1);
+});
