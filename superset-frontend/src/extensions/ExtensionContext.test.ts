@@ -125,6 +125,20 @@ test('ctx.window forwards a custom duration to the toast payload', () => {
   );
 });
 
+test('ctx.window ignores undefined duration and unknown options', () => {
+  const ctx = createExtensionContext(createMockExtension('test.ext'));
+  mockDispatch.mockClear();
+
+  ctx.window.showInformationMessage('hello', {
+    duration: undefined,
+    allowHtml: true,
+  } as never);
+
+  const { payload } = mockDispatch.mock.calls[0][0];
+  expect(payload).not.toHaveProperty('allowHtml');
+  expect(payload.duration).toBe(4000);
+});
+
 test('ctx.window is lazily created once per context', () => {
   const ctx = createExtensionContext(createMockExtension('test.ext'));
 
