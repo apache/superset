@@ -106,7 +106,10 @@ from superset.commands.distributed_lock.acquire import AcquireDistributedLock
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
@@ -3172,7 +3175,7 @@ class DashboardRestApi(
         if not upload:
             return self.response_400()
         if is_zipfile(upload):
-            with ZipFile(upload) as bundle:
+            with open_import_bundle(upload) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
             upload.seek(0)
