@@ -441,6 +441,11 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   const yAxisTitleMarginTimeoutRef = useRef<ReturnType<
     typeof setTimeout
   > | null>(null);
+  // The margin timers read controls through this ref so they see the latest
+  // values (e.g. a margin picked during the debounce window), not the render
+  // that scheduled them.
+  const latestControlsRef = useRef(props.controls);
+  latestControlsRef.current = props.controls;
 
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [width, setWidth] = useState(
@@ -821,9 +826,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           clearTimeout(xAxisTitleMarginTimeoutRef.current);
         }
         xAxisTitleMarginTimeoutRef.current = setTimeout(() => {
-          const xAxisTitle = props.controls.x_axis_title?.value || '';
+          const xAxisTitle =
+            latestControlsRef.current.x_axis_title?.value || '';
           const currentMargin = Number(
-            props.controls.x_axis_title_margin?.value ?? 0,
+            latestControlsRef.current.x_axis_title_margin?.value ?? 0,
           );
 
           if (xAxisTitle && currentMargin < 30) {
@@ -846,9 +852,10 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
           clearTimeout(yAxisTitleMarginTimeoutRef.current);
         }
         yAxisTitleMarginTimeoutRef.current = setTimeout(() => {
-          const yAxisTitle = props.controls.y_axis_title?.value || '';
+          const yAxisTitle =
+            latestControlsRef.current.y_axis_title?.value || '';
           const currentMargin = Number(
-            props.controls.y_axis_title_margin?.value ?? 0,
+            latestControlsRef.current.y_axis_title_margin?.value ?? 0,
           );
 
           if (yAxisTitle && currentMargin < 30) {
