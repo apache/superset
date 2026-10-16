@@ -1586,7 +1586,7 @@ class TestUpdateChartPreviewValidation:
             assert "sum_boys" in error["suggestions"]
             mock_create_form_data.assert_not_called()
 
-    @patch.object(update_chart_preview_module, "_find_dataset")
+    @patch.object(update_chart_preview_module, "validate_and_compile")
     @patch.object(update_chart_preview_module, "has_dataset_access", return_value=False)
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
     @patch(
@@ -1597,14 +1597,18 @@ class TestUpdateChartPreviewValidation:
         self,
         mock_create_form_data,
         mock_find_by_id,
-        unused_access_mock,
-        mock_find_dataset,
+        mock_has_dataset_access,
+        mock_validate_and_compile,
         mcp_server,
         mock_auth,
     ):
-        """has_dataset_access=False → DatasetNotAccessible, no cache write."""
-        mock_find_dataset.return_value = _mock_dataset(id=3)
-        mock_find_by_id.return_value = _mock_dataset(id=3)
+        """has_dataset_access=False → DatasetNotAccessible, no compile or cache.
+
+        The real ``_find_dataset`` resolves the dataset, so this covers the
+        tool's own access check rather than a lookup that returns nothing.
+        """
+        dataset = _mock_dataset(id=3)
+        mock_find_by_id.return_value = dataset
 
         config = TableChartConfig(
             chart_type="table", columns=[ColumnRef(name="region")]
@@ -1623,6 +1627,8 @@ class TestUpdateChartPreviewValidation:
             error = result.structured_content["error"]
             assert isinstance(error, dict)
             assert error["error_type"] == "DatasetNotAccessible"
+            mock_has_dataset_access.assert_called_once_with(dataset)
+            mock_validate_and_compile.assert_not_called()
             mock_create_form_data.assert_not_called()
 
     @patch("superset.daos.dataset.DatasetDAO.find_by_id")
@@ -1782,3 +1788,62 @@ def test_gantt_validation_error_includes_response_versions(mock_auth: Mock) -> N
     assert result["error"]["error_type"] == "gantt_semantic_validation_error"
     assert result["schema_version"] == "2.0"
     assert result["api_version"] == "v1"
+
+
+@patch.object(update_chart_preview_module, "validate_and_compile")
+@patch.object(update_chart_preview_module, "has_dataset_access", return_value=True)
+@patch.object(update_chart_preview_module, "analyze_chart_semantics")
+@patch.object(update_chart_preview_module, "analyze_chart_capabilities")
+@patch.object(update_chart_preview_module, "generate_explore_link")
+@patch.object(update_chart_preview_module, "_get_previous_form_data")
+@patch.object(update_chart_preview_module, "_find_dataset")
+def test_cached_sql_trendline_is_kept_by_an_update_that_omits_it(
+    mock_find_dataset: Mock,
+    mock_get_previous_form_data: Mock,
+    mock_generate_explore_link: Mock,
+    mock_analyze_chart_capabilities: Mock,
+    mock_analyze_chart_semantics: Mock,
+    unused_access_mock: Mock,
+    mock_validate_and_compile: Mock,
+    mock_auth: Mock,
+) -> None:
+    """An update that only changes the metric keeps a cached SQL trendline."""
+    sql_time_column = {
+        "expressionType": "SQL",
+        "sqlExpression": "DATE(ds)",
+        "label": "day",
+    }
+    mock_find_dataset.return_value = _mock_dataset(id=99)
+    mock_generate_explore_link.return_value = (
+        "http://localhost:8088/explore/?form_data_key=new_key"
+    )
+    mock_analyze_chart_capabilities.return_value = None
+    mock_analyze_chart_semantics.return_value = None
+    mock_validate_and_compile.return_value = Mock(success=True)
+    mock_get_previous_form_data.return_value = {
+        "viz_type": "big_number",
+        "datasource": "99__table",
+        "metric": "count",
+        "x_axis": sql_time_column,
+        "compare_lag": 7,
+    }
+    request = UpdateChartPreviewRequest(
+        form_data_key="old_key",
+        dataset_id=99,
+        config=BigNumberChartConfig(
+            chart_type="big_number",
+            metric=ColumnRef(name="ds", aggregate="COUNT"),
+        ),
+        generate_preview=False,
+    )
+
+    result = asyncio.run(
+        update_chart_preview_module.update_chart_preview(request=request, ctx=Mock())
+    )
+
+    assert result["success"] is True, result
+    generated = mock_generate_explore_link.call_args.args[1]
+    assert generated["viz_type"] == "big_number"
+    assert generated["x_axis"] == sql_time_column
+    assert generated["metric"]["label"] == "COUNT(ds)"
+    assert generated["compare_lag"] == 7

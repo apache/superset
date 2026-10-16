@@ -130,7 +130,7 @@ jobs:
         with:
           run: playwright_testdata
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
@@ -208,6 +208,20 @@ jobs:
           SUPERSET_FEATURE_SOFT_DELETE: "true"
         with:
           run: playwright-run "${{ matrix.app_root }}" recently-archived/
+      - name: Run Playwright (Semantic View Tests)
+        # Same ./ form as the steps above: cached-dependencies is a submodule.
+        uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          NODE_OPTIONS: "--max-old-space-size=4096"
+          # Scoped to this step's gunicorn, like Soft-delete above: this config
+          # turns on SEMANTIC_LAYERS and ENABLE_EXTENSIONS and loads the
+          # test-only stub provider from tests/e2e_extensions. Every other
+          # step keeps the plain test config, so the stub never serves them.
+          SUPERSET_CONFIG: tests.integration_tests.superset_test_config_semantic
+          # Fail rather than skip when the stub did not load.
+          PLAYWRIGHT_REQUIRE_SEMANTIC_STUB: "true"
+        with:
+          run: playwright-run-semantic "${{ matrix.app_root }}"
       - name: Run Playwright (Embedded Tests)
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -251,7 +265,7 @@ jobs:
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Playwright Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           path: |
@@ -348,7 +362,7 @@ jobs:
         with:
           run: playwright_testdata
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
@@ -420,7 +434,7 @@ jobs:
           SAFE_APP_ROOT=${APP_ROOT//\//_}
           echo "safe_app_root=$SAFE_APP_ROOT" >> $GITHUB_OUTPUT
       - name: Upload Playwright Artifacts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           path: |

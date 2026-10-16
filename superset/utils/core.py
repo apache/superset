@@ -1548,6 +1548,10 @@ def split_adhoc_filters_into_base_filters(  # pylint: disable=invalid-name
                             "col": adhoc_filter.get("subject"),
                             "op": adhoc_filter.get("operator"),
                             "val": adhoc_filter.get("comparator"),
+                            # keep dashboard provenance for semantic-view reporting
+                            **(
+                                {"isExtra": True} if adhoc_filter.get("isExtra") else {}
+                            ),
                         }
                     )
             elif expression_type == "SQL":

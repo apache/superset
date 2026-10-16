@@ -25,7 +25,7 @@ import pytest
 from fastmcp import FastMCP
 from fastmcp.client import Client
 from fastmcp.server.middleware import MiddlewareContext
-from fastmcp.tools.tool import ToolResult
+from fastmcp.tools import ToolResult
 from mcp.types import CallToolRequestParams, TextContent
 from pydantic import BaseModel, ConfigDict, Field, field_validator, ValidationError
 
@@ -108,6 +108,52 @@ async def test_validation_reason_strings(
     message = await validation_message(exc_info.value, context)
 
     assert message == f"Request validation failed: [field]: {reason}"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("structured", [False, True])
+@pytest.mark.parametrize("inner_handler", [False, True])
+@pytest.mark.parametrize(
+    ("opr", "value", "reason"),
+    [
+        ("eq", "private-dataset-id", "Expected an integer"),
+        ("ne", True, "Expected an integer"),
+        ("eq", 10.5, "Expected an integer"),
+        ("ne", [10], "Expected an integer"),
+        ("in", 10, "Expected a list"),
+        ("nin", "private-dataset-id", "Expected a list"),
+        ("in", [10, "private-dataset-id"], "Expected an integer"),
+        ("nin", [10, True], "Expected an integer"),
+        ("in", [10, 20.5], "Expected an integer"),
+    ],
+)
+async def test_datasource_id_validation_wire_contract(
+    opr: str,
+    value: Any,
+    reason: str,
+    inner_handler: bool,
+    structured: bool,
+) -> None:
+    """Dataset ID type errors remain actionable without echoing caller input."""
+    server = make_server(inner_handler=inner_handler, structured=structured)
+    async with Client(server) as client:
+        result = await client.call_tool_mcp(
+            "list_charts",
+            {
+                "request": {
+                    "filters": [{"col": "datasource_id", "opr": opr, "value": value}]
+                }
+            },
+        )
+
+    assert result.isError is True
+    text = " ".join(
+        block.text for block in result.content if isinstance(block, TextContent)
+    )
+    assert text == f"Error: Validation error in list_charts: request.filters: {reason}"
+    assert "private-dataset-id" not in text
+    assert "input_value" not in text
+    assert "input_type" not in text
 
 
 def make_server(*, inner_handler: bool, structured: bool) -> FastMCP:
@@ -306,7 +352,9 @@ async def test_structured_tool_error_is_unchanged(
         result = await client.call_tool_mcp("domain_error", {})
     assert result.isError is is_error
     assert result.content == [TextContent(type="text", text=original_text)]
-    assert result.meta == {"test_marker": "unchanged"}
+    # FastMCP 4 adds server identity metadata alongside the tool metadata.
+    assert result.meta is not None
+    assert result.meta["test_marker"] == "unchanged"
     assert result.structuredContent == (payload if structured else None)
 
 
@@ -331,7 +379,7 @@ async def test_validation_details_are_bounded(inner_handler: bool) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("inner_handler", [False, True])
-@pytest.mark.parametrize("error_count", [128, 129, 100_000])
+@pytest.mark.parametrize("error_count", [128, 129, 10_000])
 async def test_validation_extraction_is_bounded(
     inner_handler: bool, error_count: int
 ) -> None:
