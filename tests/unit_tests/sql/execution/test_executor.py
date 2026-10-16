@@ -978,8 +978,7 @@ def test_async_handle_cancel(
     from superset.models.sql_lab import Query
     from superset.sql.execution.executor import SQLExecutor
 
-    mock_query = MagicMock(spec=Query)
-    mock_query.status = "running"
+    mock_query = Query(status="running")
     mock_query.database = database
     filter_mock = mock_db_session.query.return_value.filter_by.return_value
     filter_mock.one_or_none.return_value = mock_query

@@ -19,6 +19,47 @@
 import { buildQueryContext, VizType } from '@superset-ui/core';
 import * as queryModule from '../../src/query/normalizeTimeColumn';
 
+test('semantic queries omit a positive limit without final series columns', () => {
+  const formData = {
+    datasource: '5__semantic_view',
+    viz_type: VizType.Table,
+    metrics: ['revenue'],
+    series_limit: 2,
+  };
+  const context = buildQueryContext(formData, baseQuery => [
+    { ...baseQuery, series_columns: [] },
+  ]);
+
+  expect(context.queries[0].series_limit).toBe(0);
+  expect(context.form_data?.series_limit).toBe(2);
+  expect(
+    buildQueryContext({ ...formData, datasource: '5__table' }, baseQuery => [
+      { ...baseQuery, series_columns: [] },
+    ]).queries[0].series_limit,
+  ).toBe(2);
+  expect(
+    buildQueryContext(formData, baseQuery => [
+      { ...baseQuery, series_columns: ['product'] },
+    ]).queries[0].series_limit,
+  ).toBe(2);
+  expect(
+    buildQueryContext(formData, baseQuery => [
+      {
+        ...baseQuery,
+        is_timeseries: true,
+        metrics: [],
+        columns: ['product'],
+        series_columns: [],
+      },
+    ]).queries[0].series_limit,
+  ).toBe(0);
+  expect(
+    buildQueryContext(formData, baseQuery => [
+      { ...baseQuery, is_timeseries: true, columns: [], series_columns: [] },
+    ]).queries[0].series_limit,
+  ).toBe(0);
+});
+
 describe('buildQueryContext', () => {
   test('should build datasource for table sources and apply defaults', () => {
     const queryContext = buildQueryContext({

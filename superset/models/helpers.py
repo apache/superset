@@ -1609,6 +1609,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
         sql_shifted_temporal_labels: set[str] | None = None,
+        semantic_cache_status: Optional[str] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1622,6 +1623,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
         self.sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
+        # A ``SemanticCacheStatus`` value, or None for non-semantic sources.
+        self.semantic_cache_status: Optional[str] = semantic_cache_status
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
@@ -1688,17 +1691,59 @@ class CertificationMixin:
     def is_certified(self) -> bool:
         return bool(self.get_extra_dict().get("certification"))
 
+    @is_certified.setter
+    def is_certified(self, value: Optional[bool]) -> None:
+        if value is False:
+            self._update_extra(lambda extra: extra.pop("certification", None))
+
     @property
     def certified_by(self) -> Optional[str]:
         return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @certified_by.setter
+    def certified_by(self, value: Optional[str]) -> None:
+        self._update_certification("certified_by", value)
 
     @property
     def certification_details(self) -> Optional[str]:
         return self.get_extra_dict().get("certification", {}).get("details")
 
+    @certification_details.setter
+    def certification_details(self, value: Optional[str]) -> None:
+        self._update_certification("details", value)
+
     @property
     def warning_markdown(self) -> Optional[str]:
         return self.get_extra_dict().get("warning_markdown")
+
+    @warning_markdown.setter
+    def warning_markdown(self, value: Optional[str]) -> None:
+        def update(extra: dict[str, Any]) -> None:
+            if value:
+                extra["warning_markdown"] = value
+            else:
+                extra.pop("warning_markdown", None)
+
+        self._update_extra(update)
+
+    def _update_extra(self, update: Callable[[dict[str, Any]], None]) -> None:
+        extra = dict(self.get_extra_dict())
+        update(extra)
+        self.extra = json.dumps(extra)
+
+    def _update_certification(self, key: str, value: Optional[str]) -> None:
+        def update(extra: dict[str, Any]) -> None:
+            certification = dict(extra.get("certification") or {})
+            if value:
+                certification[key] = value
+            else:
+                certification.pop(key, None)
+            if certification:
+                extra["certification"] = certification
+            else:
+                extra.pop("certification", None)
+
+        self._update_extra(update)
 
 
 def clone_model(
@@ -2635,7 +2680,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if getattr(self, "enforce_numerical_metrics", True):
             dataframe_utils.df_metrics_to_num(df, query_object)
 
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        # ``mask`` + ``infer_objects`` rather than ``replace``, which emits a
+        # FutureWarning about deprecated silent downcasting on object columns.
+        df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
 
         return df
 
@@ -4070,15 +4117,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif value is not None:
                 value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
-                return utils.cast_to_boolean(value)
+                boolean_value = utils.cast_to_boolean(value)
+                if db_engine_spec is not None:
+                    return db_engine_spec.coerce_boolean_for_sql(boolean_value)
+                return boolean_value
             return value
 
         if isinstance(values, (list, tuple)):
-            values = [handle_single_value(v) for v in values]  # type: ignore
+            values = [handle_single_value(v) for v in values]
         else:
             values = handle_single_value(values)
         if is_list_target and not isinstance(values, (tuple, list)):
-            values = [values]  # type: ignore
+            values = [values]
         elif not is_list_target and isinstance(values, (tuple, list)):
             values = values[0] if values else None
         return values
@@ -5316,6 +5366,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_engine_spec=db_engine_spec,
                     db_extra=self.db_extra,
                 )
+                if op in {
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                } and not isinstance(eq, (tuple, list)):
+                    # A missing or null value (``val`` absent or ``None``)
+                    # leaves ``eq`` as ``None``. Reject it before any branch
+                    # (advanced data types, array columns, plain IN) uses it,
+                    # rather than dropping the filter, which would widen the
+                    # results.
+                    raise QueryObjectValidationError(
+                        _(
+                            "Filter value is required for the IN / NOT IN "
+                            "operator on column %(column)s",
+                            column=get_column_name(flt_col),
+                        )
+                    )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5396,6 +5462,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
                     # are in ``is_list_target``), but are element-level array ops
                     # handled by their own branch below — not IN.
+                    # Non-list values were rejected right after
+                    # ``filter_values_handler`` above.
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
