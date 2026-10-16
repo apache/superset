@@ -483,7 +483,7 @@ export const getSimpleSQLExpression = (
     const [prefix, suffix] = isMulti ? ['(', ')'] : ['', ''];
     if (comparatorArray.length > 0 && showComparator) {
       const formattedComparators = comparatorArray
-        .map(val => optionLabel(val))
+        .map(val => optionLabel(val, /* useConstantLabel= */ false))
         .map(val => {
           // Array-literal values (e.g. ['a', 'b']) are shown as-is rather than
           // quoted/escaped as a string, so array-column filters read naturally.

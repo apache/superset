@@ -57,6 +57,7 @@ from superset import (
 from superset.commands.deletion_retention.window import resolve_retention_window
 from superset.config import _THEME_DARK_BASE, _THEME_DEFAULT_BASE
 from superset.connectors.sqla import models
+from superset.constants import get_constant_label
 from superset.daos.theme import ThemeDAO
 from superset.dashboards.excel_export.storage import is_background_export_available
 from superset.db_engine_specs import get_available_engine_specs
@@ -456,6 +457,13 @@ def get_theme_bootstrap_data() -> dict[str, Any]:
     }
 
 
+def get_shared_constant_labels_bootstrap_data() -> dict[str, Any]:
+    """
+    Load the shared constant labels from backend.
+    """
+    return {"constant_labels": get_constant_label()}
+
+
 def get_default_spinner_svg() -> str | None:
     """
     Load and cache the default spinner SVG content from backend templates.
@@ -660,6 +668,7 @@ def cached_common_bootstrap_data(  # pylint: disable=unused-argument
 
     bootstrap_data.update(app.config["COMMON_BOOTSTRAP_OVERRIDES_FUNC"](bootstrap_data))
     bootstrap_data.update(get_theme_bootstrap_data())
+    bootstrap_data.update(get_shared_constant_labels_bootstrap_data())
 
     return bootstrap_data
 

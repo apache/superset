@@ -17,12 +17,16 @@
  * under the License.
  */
 import {
+  getConstantLabel,
+  NULL_STRING,
+  EMPTY_STRING,
+  FALSE_STRING,
+  TRUE_STRING,
+} from '@superset-ui/core';
+import {
   applyFormattingToTabularData,
   optionFromValue,
   prepareCopyToClipboardTabularData,
-  NULL_STRING,
-  TRUE_STRING,
-  FALSE_STRING,
   TabularDataRow,
   ColumnDefinition,
 } from 'src/utils/common';
@@ -30,19 +34,19 @@ import {
 test('converts values as expected', () => {
   expect(optionFromValue(false)).toEqual({
     value: false,
-    label: FALSE_STRING,
+    label: getConstantLabel(FALSE_STRING),
   });
   expect(optionFromValue(true)).toEqual({
     value: true,
-    label: TRUE_STRING,
+    label: getConstantLabel(TRUE_STRING),
   });
   expect(optionFromValue(null)).toEqual({
     value: NULL_STRING,
-    label: NULL_STRING,
+    label: getConstantLabel(NULL_STRING),
   });
   expect(optionFromValue('')).toEqual({
     value: '',
-    label: '<empty string>',
+    label: getConstantLabel(EMPTY_STRING),
   });
   expect(optionFromValue('foo')).toEqual({ value: 'foo', label: 'foo' });
   expect(optionFromValue(5)).toEqual({ value: 5, label: '5' });

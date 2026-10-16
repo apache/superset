@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { CategoricalColorNamespace, ChartProps } from '@superset-ui/core';
+import {
+  CategoricalColorNamespace,
+  ChartProps,
+  getConstantLabel,
+  NULL_STRING,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
@@ -25,7 +30,6 @@ import {
 } from '../../src/Candlestick/types';
 import transformProps from '../../src/Candlestick/transformProps';
 import { CANDLESTICK_SERIES_NAME } from '../../src/Candlestick/constants';
-import { NULL_STRING } from '../../src/constants';
 
 const data = [
   { date: '2017-10-24', open: 20, close: 34, low: 10, high: 38 },
@@ -778,7 +782,7 @@ test('keeps a SQL null x value distinct from a literal <NULL> category', () => {
     { date: NULL_STRING, open: 40, close: 35, low: 30, high: 50 },
   ]);
   expect((props.echartOptions.xAxis as { data: string[] }).data).toEqual([
-    NULL_STRING,
+    getConstantLabel(NULL_STRING),
     NULL_STRING,
   ]);
   expect(extractSeries(props)[0].data).toEqual([

@@ -630,6 +630,11 @@ class D3Format(TypedDict, total=False):
 
 D3_FORMAT: D3Format = {}
 
+
+# Translate labels for shared constants (e.g., <NULL>, <empty string>, etc)
+TRANSLATE_SHARED_CONSTANT_LABELS: bool = False
+
+
 # Override the default mapbox tiles
 # Default values are equivalent to
 # DECKGL_BASE_MAP = [

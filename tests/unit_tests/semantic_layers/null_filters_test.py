@@ -35,6 +35,7 @@ from superset_core.semantic_layers.types import (
     SemanticResult,
 )
 
+from superset.constants import EMPTY_STRING, NULL_STRING
 from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.mapper import (
     _convert_query_object_filter,
@@ -74,15 +75,15 @@ def _matches(expression: FilterExpression, value: str | None) -> bool:
     "operator,value,expected",
     [
         ("==", None, [None]),
-        ("==", "<NULL>", [None]),
+        ("==", NULL_STRING, [None]),
         ("==", [None], [None]),
         ("==", [], [None]),
         ("==", ["a", "b"], ["a"]),
-        ("IN", ("a", "<NULL>"), [None, "a"]),
-        ("!=", ["<NULL>"], ["a", "b"]),
-        ("IN", ["<NULL>"], [None]),
-        ("IN", ["a", "<NULL>"], [None, "a"]),
-        ("NOT IN", ["a", "<NULL>"], ["b"]),
+        ("IN", ("a", NULL_STRING), [None, "a"]),
+        ("!=", [NULL_STRING], ["a", "b"]),
+        ("IN", [NULL_STRING], [None]),
+        ("IN", ["a", NULL_STRING], [None, "a"]),
+        ("NOT IN", ["a", NULL_STRING], ["b"]),
         ("!=", None, ["a", "b"]),
         ("IN", [None], [None]),
         ("NOT IN", [None], ["a", "b"]),
@@ -176,7 +177,7 @@ def test_or_group_is_hashable_and_keeps_predicate_stage(stage: PredicateType) ->
     assert len({group, OrFilter(frozenset({null, leaf}))}) == 1
     assert {child.type for child in group.filters} == {stage}
     with pytest.raises(FrozenInstanceError):
-        group.filters = frozenset()  # type: ignore[misc]  # Exercise runtime freezing.
+        group.filters = frozenset()
 
 
 @pytest.mark.parametrize(
@@ -272,7 +273,7 @@ def test_mixed_null_membership_preserves_scalar_coercion(
     """NULL splitting must not turn numeric zero or false into missing values."""
     dimension: Dimension = replace(CATEGORY, type=dtype)
     expressions: set[FilterExpression] | None = _convert_query_object_filter(
-        {"col": "category", "op": "IN", "val": [value, "<NULL>"]},
+        {"col": "category", "op": "IN", "val": [value, NULL_STRING]},
         {"category": dimension},
     )
     assert expressions is not None
@@ -303,7 +304,7 @@ def test_null_disjunction_stays_conjoined_with_other_filters() -> None:
 @pytest.mark.parametrize(
     "operator", [">", "<", ">=", "<=", "LIKE", "NOT LIKE", "ILIKE", "NOT ILIKE"]
 )
-@pytest.mark.parametrize("value", [None, [None], "<NULL>", []])
+@pytest.mark.parametrize("value", [None, [None], NULL_STRING, []])
 def test_comparison_requires_non_null_operand(
     operator: str, value: FilterValues | None
 ) -> None:
@@ -327,7 +328,7 @@ def test_integer_membership_checks_every_value_before_deduplicating(
 
 
 @pytest.mark.parametrize(
-    "operator,value", [("==", "<empty string>"), ("IN", ["<empty string>"])]
+    "operator,value", [("==", EMPTY_STRING), ("IN", [EMPTY_STRING])]
 )
 def test_ui_empty_string_sentinel(operator: str, value: FilterValues) -> None:
     """Explore membership and drill-by equality retain empty-string facts."""

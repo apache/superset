@@ -21,12 +21,47 @@
 from collections.abc import Iterable
 from enum import Enum
 
+from flask import current_app as app
+from flask_babel import lazy_gettext as __
+
+from superset.translations.utils import N_
 from superset.utils.backports import StrEnum
 
 DEFAULT_USER_AGENT = "Apache Superset"
 
-NULL_STRING = "<NULL>"
-EMPTY_STRING = "<empty string>"
+# Shared (back/front) constants registry.
+# Keep in sync with @superset-ui/core/src/utils/sharedConstants.ts.
+EMPTY_STRING = N_("<empty string>")
+FALSE_STRING = N_("FALSE")
+NULL_STRING = N_("<NULL>")
+TRUE_STRING = N_("TRUE")
+
+# select-filter masks and dataMask hydration use this exact predicate to recognize
+# an explicit clear.
+EMPTY_FILTER_SQL_EXPRESSION = "1 = 0"
+
+# List of shared constants that have a label.
+SHARED_CONSTANT_LABELS: set[str] = {
+    EMPTY_STRING,
+    FALSE_STRING,
+    NULL_STRING,
+    TRUE_STRING,
+}
+
+
+def get_constant_label(value: str | None = None) -> str | dict[str, str]:
+    """
+    Get the translated label for a given constant,
+    or all shared constant labels if value is None.
+    """
+    if app.config.get("TRANSLATE_SHARED_CONSTANT_LABELS", False):
+        if value is None:
+            return {scl: str(__(scl)) for scl in SHARED_CONSTANT_LABELS}
+        if value in SHARED_CONSTANT_LABELS:
+            return str(__(value))
+
+    return value if value is not None else {}
+
 
 CHANGE_ME_SECRET_KEY = "CHANGE_ME_TO_A_COMPLEX_RANDOM_SECRET"  # noqa: S105
 CHANGE_ME_GUEST_TOKEN_JWT_SECRET = "test-guest-secret-change-me"  # noqa: S105
@@ -49,10 +84,6 @@ EPOCH_FORMATS: dict[str, int] = {
 }
 
 NO_TIME_RANGE = "No filter"
-
-# Keep in sync with superset-frontend/src/utils/common.ts; select-filter masks
-# and dataMask hydration use this exact predicate to recognize an explicit clear.
-EMPTY_FILTER_SQL_EXPRESSION = "1 = 0"
 
 QUERY_CANCEL_KEY = "cancel_query"
 QUERY_EARLY_CANCEL_KEY = "early_cancel_query"
