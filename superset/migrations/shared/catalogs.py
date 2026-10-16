@@ -139,10 +139,16 @@ MODELS: list[tuple[ModelType, str]] = [
 ENGINE_ALIASES = {"postgres": "postgresql"}
 
 
+class CatalogRequiresConnectionError(Exception):
+    """
+    The default catalog of a database can only be determined by connecting to it.
+    """
+
+
 def _get_url_database_prefix(url: URL, extra: dict[str, Any]) -> str | None:
     """
-    The first path component of the URI database, used by Presto, Trino and
-    Snowflake (``trino://host/catalog/schema``).
+    The first path component of the URI database, used by Presto, Trino,
+    Snowflake and Databricks over PyHive (``trino://host/catalog/schema``).
     """
     return url.database.split("/")[0] if url.database else None
 
@@ -160,18 +166,22 @@ def _get_bigquery_project(url: URL, extra: dict[str, Any]) -> str | None:
     ``bigquery:///project``). Otherwise it's inferred from the credentials, which
     requires a connection.
     """
-    return url.host or url.database or None
+    if project := url.host or url.database:
+        return project
+    raise CatalogRequiresConnectionError()
 
 
 def _get_databricks_catalog(url: URL, extra: dict[str, Any]) -> str | None:
     """
-    The Databricks catalog, when explicit.
+    The Databricks catalog, which depends on the driver:
 
-    The native connector (``databricks+connector://``) reads it from
-    ``connect_args.catalog`` in ``extra``; the Python connector (``databricks://``)
-    reads it from the ``catalog`` URI query parameter. Without it the default
-    catalog can only be determined by querying the database. Other Databricks
-    drivers don't support catalogs.
+    - Native connector (``databricks+connector://``): ``connect_args.catalog`` in
+      ``extra``. Without it the default catalog is found by querying the database.
+    - Python connector (``databricks://``): the ``catalog`` URI query parameter.
+      Without it the database has no default catalog.
+    - PyHive (``databricks+pyhive://``): the first path component of the URI
+      database.
+    - Other drivers don't support catalogs.
     """
     driver = url.drivername.partition("+")[2]
     if driver == "connector":
@@ -184,12 +194,18 @@ def _get_databricks_catalog(url: URL, extra: dict[str, Any]) -> str | None:
         catalog = (
             connect_args.get("catalog") if isinstance(connect_args, dict) else None
         )
-    elif driver in {"", "databricks", "databricks-sql-python"}:
-        catalog = url.query.get("catalog")
-    else:
-        return None
+        if not (isinstance(catalog, str) and catalog):
+            raise CatalogRequiresConnectionError()
+        return catalog
 
-    return catalog if isinstance(catalog, str) and catalog else None
+    if driver in {"", "databricks", "databricks-sql-python"}:
+        catalog = url.query.get("catalog")
+        return catalog if isinstance(catalog, str) and catalog else None
+
+    if driver == "pyhive":
+        return _get_url_database_prefix(url, extra)
+
+    return None
 
 
 DEFAULT_CATALOG_GETTERS: dict[str, Callable[[URL, dict[str, Any]], str | None]] = {
@@ -205,16 +221,11 @@ DEFAULT_CATALOG_GETTERS: dict[str, Callable[[URL, dict[str, Any]], str | None]] 
 def parse_database_uri(database: Database) -> tuple[str, URL] | None:
     """
     Return the engine name and parsed URL of a database, without loading its
-    SQLAlchemy dialect.
+    SQLAlchemy dialect. Returns ``None`` if the URI is invalid.
     """
     try:
         url = make_url_safe((database.sqlalchemy_uri or "").strip())
     except Exception:  # pylint: disable=broad-except
-        # the exception message may contain credentials, so it's not logged
-        logger.warning(
-            "Skipping catalog backfill for database %s: invalid SQLAlchemy URI",
-            database.database_name,
-        )
         return None
 
     backend = url.get_backend_name()
@@ -225,7 +236,9 @@ def get_default_catalog(database: Database, engine: str, url: URL) -> str | None
     """
     Derive the default catalog of a database from its stored configuration.
 
-    Returns ``None`` when it can't be determined without connecting to the database.
+    Returns ``None`` when the database has no default catalog, and raises
+    ``CatalogRequiresConnectionError`` when it can only be found by connecting to the
+    database.
     """
     try:
         extra = json.loads(database.extra) if database.extra else {}
@@ -240,29 +253,47 @@ def get_default_catalog(database: Database, engine: str, url: URL) -> str | None
 def get_databases_with_default_catalog(
     session: Session,
     engines: set[str] | None,
+    action: str,
 ) -> list[tuple[Database, str]]:
     """
     Return the databases of the given engines, with their default catalog.
 
-    Databases whose default catalog can't be derived without a connection are
-    skipped.
+    Databases without a default catalog, or whose default catalog can't be derived
+    without a connection, are skipped. ``action`` describes the operation in log
+    messages.
     """
     databases = []
     for database in session.query(Database).all():
         if (result := parse_database_uri(database)) is None:
+            # the URI may contain credentials, so it's not logged
+            logger.warning(
+                "Skipping catalog %s for database %s: invalid SQLAlchemy URI",
+                action,
+                database.database_name,
+            )
             continue
         engine, url = result
         if engine not in DEFAULT_CATALOG_GETTERS or (engines and engine not in engines):
             continue
 
-        if default_catalog := get_default_catalog(database, engine, url):
+        try:
+            default_catalog = get_default_catalog(database, engine, url)
+        except CatalogRequiresConnectionError:
+            logger.warning(
+                "Skipping catalog %s for database %s: its default catalog can't be "
+                "determined without connecting to it. See UPDATING.md for the "
+                "manual steps.",
+                action,
+                database.database_name,
+            )
+            continue
+
+        if default_catalog:
             databases.append((database, default_catalog))
         else:
-            logger.warning(
-                "Skipping catalog backfill for database %s: its default catalog "
-                "can't be determined without connecting to it. Roles with schema "
-                "access to it may need to be granted the catalog-qualified schema "
-                "permissions created by syncing its permissions.",
+            logger.info(
+                "Skipping catalog %s for database %s: no default catalog",
+                action,
                 database.database_name,
             )
 
@@ -511,7 +542,7 @@ def upgrade_catalog_perms(engines: set[str] | None = None) -> None:
     session = db.Session(bind=op.get_bind())
 
     for database, default_catalog in get_databases_with_default_catalog(
-        session, engines
+        session, engines, "backfill"
     ):
         logger.info(
             "Backfilling catalog %s for database %s",
@@ -549,12 +580,16 @@ def downgrade_catalog_perms(engines: set[str] | None = None) -> None:
         - Update `schema_perm` and `catalog_perm` of datasets and charts in the
           default catalog.
 
-    Models and permissions in other catalogs are left untouched.
+    Models and permissions in other catalogs are left untouched. Databases whose
+    default catalog can only be found by connecting to them (BigQuery without a
+    project in the URI, Databricks native connector without ``connect_args.catalog``)
+    are skipped, even if their catalogs were filled in by an upgrade that connected
+    to them.
     """
     session = db.Session(bind=op.get_bind())
 
     for database, default_catalog in get_databases_with_default_catalog(
-        session, engines
+        session, engines, "rollback"
     ):
         logger.info(
             "Removing catalog %s from database %s",
