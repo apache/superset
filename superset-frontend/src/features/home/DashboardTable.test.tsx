@@ -22,8 +22,13 @@ import {
   screen,
   userEvent,
   waitFor,
+  within,
 } from 'spec/helpers/testing-library';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  SupersetClient,
+  isFeatureEnabled,
+  FeatureFlag,
+} from '@superset-ui/core';
 import { createMemoryHistory } from 'history';
 import { Router } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
@@ -31,6 +36,11 @@ import fetchMock from 'fetch-mock';
 import * as hooks from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import DashboardTable from './DashboardTable';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 // Mock the export module
 jest.mock('src/utils/export', () => ({
@@ -45,6 +55,9 @@ jest.mock('src/utils/getBootstrapData', () =>
 const mockExport = handleResourceExport as jest.MockedFunction<
   typeof handleResourceExport
 >;
+const defaultResourceImplementation = (
+  hooks.useListViewResource as jest.Mock
+).getMockImplementation();
 
 jest.mock('src/views/CRUD/utils', () => ({
   ...jest.requireActual('src/views/CRUD/utils'),
@@ -123,6 +136,60 @@ const store = configureStore({
     },
   },
 });
+
+afterEach(() => {
+  (hooks.useListViewResource as jest.Mock).mockImplementation(
+    defaultResourceImplementation,
+  );
+  (isFeatureEnabled as jest.Mock).mockReset();
+});
+
+test.each([
+  [true, 'Archive', false],
+  [false, 'Please confirm', true],
+])(
+  'soft delete %s uses the home dashboard dialog',
+  async (enabled, title, requiresTyping) => {
+    (isFeatureEnabled as jest.Mock).mockImplementation(
+      flag => enabled && flag === FeatureFlag.SoftDelete,
+    );
+    jest.spyOn(hooks, 'useListViewResource').mockImplementation(() => ({
+      state: {
+        loading: false,
+        resourceCollection: mockDashboards,
+        resourceCount: mockDashboards.length,
+        bulkSelectEnabled: false,
+        lastFetched: undefined,
+      },
+      setResourceCollection: jest.fn(),
+      hasPerm: jest.fn().mockReturnValue(true),
+      refreshData: jest.fn(),
+      fetchData: jest.fn(),
+      toggleBulkSelect: jest.fn(),
+    }));
+    render(
+      <Router history={history}>
+        <DashboardTable {...defaultProps} mine={mockDashboards} />
+      </Router>,
+      { store },
+    );
+    await userEvent.click(screen.getAllByLabelText('more')[0]);
+    await userEvent.click(
+      await screen.findByText(enabled ? 'Archive' : 'Delete'),
+    );
+    expect(screen.getByRole('dialog')).toHaveTextContent(title);
+    if (enabled) {
+      expect(screen.getByRole('dialog')).toHaveTextContent('Recently Archived');
+    }
+    expect(Boolean(screen.queryByTestId('delete-modal-input'))).toBe(
+      requiresTyping,
+    );
+    await userEvent.click(screen.getByTestId('close-modal-btn'));
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    });
+  },
+);
 
 beforeEach(() => {
   jest.spyOn(SupersetClient, 'get').mockImplementation(() =>
@@ -241,14 +308,16 @@ test('handles create dashboard button click', async () => {
     assign: assignMock,
   } as Location);
 
-  render(
+  const { container } = render(
     <Router history={history}>
       <DashboardTable {...defaultProps} />
     </Router>,
     { store },
   );
 
-  const createButton = screen.getByRole('button', { name: /dashboard$/i });
+  const createButton = within(container).getAllByRole('button', {
+    name: /dashboard$/i,
+  })[0];
   // No pending state before the click — the button is idle.
   expect(createButton).not.toHaveClass('ant-btn-loading');
   await userEvent.click(createButton);

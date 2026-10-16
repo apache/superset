@@ -18,7 +18,12 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  isFeatureEnabled,
+  FeatureFlag,
+  SupersetClient,
+} from '@superset-ui/core';
+import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
@@ -56,6 +61,7 @@ function DashboardTable({
   otherTabFilters,
   otherTabTitle,
 }: DashboardTableProps) {
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const history = useHistory();
   const defaultTab = getItem(
     LocalStorageKeys.HomepageDashboardFilter,
@@ -238,11 +244,16 @@ function DashboardTable({
       )}
       {dashboardToDelete && (
         <DeleteModal
+          recoverable={softDelete}
           description={
-            <>
-              {t('Are you sure you want to delete')}{' '}
-              <b>{dashboardToDelete.dashboard_title}</b>?
-            </>
+            softDelete ? (
+              archiveConfirmDescription(t('dashboard'))
+            ) : (
+              <>
+                {t('Are you sure you want to delete')}{' '}
+                <b>{dashboardToDelete.dashboard_title}</b>?
+              </>
+            )
           }
           onConfirm={() => {
             handleDashboardDelete(
@@ -258,7 +269,13 @@ function DashboardTable({
           }}
           onHide={() => setDashboardToDelete(null)}
           open={!!dashboardToDelete}
-          title={t('Please confirm')}
+          title={
+            softDelete
+              ? t('Archive %(name)s?', {
+                  name: dashboardToDelete.dashboard_title,
+                })
+              : t('Please confirm')
+          }
         />
       )}
       {dashboards.length > 0 && (

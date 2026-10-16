@@ -36,6 +36,7 @@ import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import { useIsMobile } from 'src/hooks/useIsMobile';
+import { deleteActionLabel } from 'src/utils/softDeleteCopy';
 
 const menuItemButtonCss = css`
   appearance: none;
@@ -82,6 +83,7 @@ function DashboardCard({
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
   const allowEdit = isUserEditorOrAdmin(
     user,
@@ -151,9 +153,13 @@ function DashboardCard({
           title={
             allowEdit
               ? null
-              : t(
-                  'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                )
+              : softDelete
+                ? t(
+                    'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+                  )
+                : t(
+                    'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+                  )
           }
         >
           <button
@@ -163,7 +169,7 @@ function DashboardCard({
             onClick={allowEdit ? () => onDelete(dashboard) : undefined}
             data-test="dashboard-card-option-delete-button"
           >
-            <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
+            <Icons.DeleteOutlined iconSize="l" /> {deleteActionLabel()}
           </button>
         </Tooltip>
       ),

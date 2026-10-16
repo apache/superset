@@ -49,6 +49,8 @@ const mockUser = {
   userId: 1,
   firstName: 'Test',
   lastName: 'User',
+  username: 'admin',
+  permissions: {},
   roles: {
     Admin: [
       ['can_write', 'Dashboard'],
@@ -85,6 +87,41 @@ describe('DashboardList Card View Tests', () => {
     const cardViewButton = cardViewToggle.closest('button');
     expect(cardViewButton).toHaveClass('active');
   });
+
+  test.each([
+    [true, 'Archive', 'Archive', false],
+    [false, 'Delete', 'Please confirm', true],
+  ])(
+    'soft delete %s uses the %s card dialog',
+    async (enabled, action, title, requiresTyping) => {
+      (isFeatureEnabled as jest.Mock).mockImplementation(
+        (flag: string) =>
+          flag === 'LISTVIEWS_DEFAULT_CARD_VIEW' ||
+          (enabled && flag === 'SOFT_DELETE'),
+      );
+      renderDashboardList(mockUser);
+      await screen.findByTestId('dashboard-list-view');
+      fireEvent.click(screen.getAllByLabelText('more')[0]);
+      const deleteOption = await screen.findByTestId(
+        'dashboard-card-option-delete-button',
+      );
+      expect(deleteOption).toHaveTextContent(action);
+      expect(deleteOption.closest('[role="menuitem"]')).toHaveAttribute(
+        'aria-disabled',
+        'false',
+      );
+      fireEvent.click(deleteOption);
+      expect(await screen.findByRole('dialog')).toHaveTextContent(title);
+      if (enabled) {
+        expect(screen.getByRole('dialog')).toHaveTextContent(
+          'Recently Archived',
+        );
+      }
+      expect(Boolean(screen.queryByTestId('delete-modal-input'))).toBe(
+        requiresTyping,
+      );
+    },
+  );
 
   test('switches from card view to list view', async () => {
     renderDashboardList(mockUser);
