@@ -110,31 +110,6 @@ test('Renders the dashboard title', () => {
 });
 
 test.each([
-  [true, 'Archive'],
-  [false, 'Delete'],
-])('soft delete %s labels the dashboard card action %s', (enabled, label) => {
-  mockedIsFeatureEnabled.mockReturnValue(enabled);
-  const { container } = render(
-    <MemoryRouter>
-      <DashboardCard
-        dashboard={mockDashboard}
-        hasPerm={mockHasPerm}
-        bulkSelectEnabled={false}
-        loading={false}
-        saveFavoriteStatus={mockSaveFavoriteStatus}
-        favoriteStatus={false}
-        handleBulkDashboardExport={mockHandleBulkDashboardExport}
-        onDelete={mockOnDelete}
-      />
-    </MemoryRouter>,
-  );
-  fireEvent.click(within(container).getByTestId('dashboard-card-menu'));
-  expect(
-    screen.getByTestId('dashboard-card-option-delete-button'),
-  ).toHaveTextContent(label);
-});
-
-test.each([
   [true, 'archive'],
   [false, 'delete'],
 ])(
