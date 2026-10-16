@@ -310,7 +310,9 @@ def _raise_for_import_binding_access(
             template_params=_config_template_params(config),
             allow_editorship=False,
         )
-    else:
+    elif isinstance(requested_table_name, str):
+        # A physical dataset always carries a table_name (the import schema
+        # requires it); the guard also narrows the type for the check below.
         security_manager.raise_for_access(
             database=database,
             table=Table(
