@@ -34,9 +34,8 @@ again, automatically.
 
 That is by design and does not need admin review to be *safe*, but a
 chart's totals silently changing shape on upgrade is still worth a
-customer-facing heads-up, not silence. This migration does not touch
-``aggregateFunction`` or any other value -- there is nothing to migrate --
-it only:
+customer-facing heads-up, not silence. This migration does not rewrite any
+``aggregateFunction`` value -- there is nothing to migrate -- it only:
 
 1. Tags every ``pivot_table_v2`` chart whose ``aggregateFunction`` is one of
    the pre-SIP-216 values (i.e. would now activate result aggregation) with
@@ -45,10 +44,28 @@ it only:
    restored, please validate" notice (removed automatically the first time
    the chart is opened and accepted, or saved).
 
-This migration deliberately leaves the chart's cached ``query_context``
-snapshot alone rather than clearing it. That cache predates the feature
-entirely (it was built under the old, GROUPING-SETS-only query shape), so it
-will keep serving a stale, pre-restoration result to a report or alert until
+2. Drops, rather than tags, an orphaned ``aggregateFunction`` on a chart
+   that also has a percent "Show values as" (``showValuesAs``) selected.
+   ``showValuesAs`` only exists since #42761, i.e. after SIP-216 removed the
+   control, so a chart carrying both was edited on code where
+   ``aggregateFunction`` had no UI and no effect: the percent choice is the
+   user's later, explicit intent, made on top of database-computed totals
+   (the "Metric" path). Restoring the orphaned value would both change
+   those totals and silently drop the percent display -- a result
+   aggregation always wins over ``showValuesAs`` and hides its control (see
+   controlPanel.tsx), so the chart would show raw values with no visible
+   way back. The orphaned key is removed from ``params`` (and mirrored
+   into ``query_context.form_data``, exactly as #42761's migration did for
+   the fraction values it converted) so the chart keeps rendering what it
+   rendered before, and no tag is applied since nothing changes for it.
+   ``aggregateFunction`` had been dead data on that code path since
+   #41184, so there is nothing to restore on downgrade either.
+
+Other than that mirrored key removal, this migration deliberately leaves
+the chart's cached ``query_context`` snapshot alone rather than clearing it.
+That cache predates the feature entirely (it was built under the old,
+GROUPING-SETS-only query shape), so it will keep serving a stale,
+pre-restoration result to a report or alert until
 the chart is next opened and re-saved in Explore -- the same caveat #42761's
 migration accepted for its own, narrower fraction-value migration. Unlike
 that stale-but-working tradeoff, clearing ``query_context`` outright (an
@@ -66,6 +83,7 @@ Create Date: 2026-09-25 00:00:00.000000
 """
 
 from datetime import datetime
+from typing import Any
 
 from alembic import op
 from sqlalchemy import Column, DateTime, Enum, Integer, String, Text
@@ -84,6 +102,12 @@ Base = declarative_base()
 
 _VIZ_TYPE = "pivot_table_v2"
 _FIELD = "aggregateFunction"
+_SHOW_VALUES_AS_FIELD = "showValuesAs"
+# The percent modes of the "Show values as" control -- kept in sync with
+# ShowValuesAsEnum in
+# superset-frontend/.../plugin-chart-pivot-table/src/types.ts ("actual" is
+# the no-op default and does not count as a percent choice).
+_PERCENT_SHOW_VALUES_AS = frozenset({"percent_row", "percent_col", "percent_total"})
 # The control's default, meaning "no second aggregation pass".
 _DEFAULT_RESULT_AGGREGATION = "Metric"
 
@@ -163,20 +187,58 @@ class TaggedObject(Base):  # type: ignore
     )
 
 
-def _has_legacy_aggregate_function(slc: Slice) -> bool:
-    if not slc.params:
-        return False
+def _load_dict(raw: str | None) -> dict[str, Any] | None:
+    """Parse a JSON column into a dict, or None if it isn't one.
+
+    A slice's params can be malformed (e.g. `[]`/`null`) from unrelated
+    historical bugs; skip rather than let `.get()` raise and abort the whole
+    migration partway through `paginated_update`'s batches.
+    """
+    if not raw:
+        return None
     try:
-        params = json.loads(slc.params)
+        value = json.loads(raw)
     except Exception:  # pylint: disable=broad-except
-        # A slice's params can be malformed (e.g. `[]`/`null`) from unrelated
-        # historical bugs; skip rather than let `.get()` raise and abort the
-        # whole migration partway through `paginated_update`'s batches.
-        return False
-    if not isinstance(params, dict):
+        return None
+    return value if isinstance(value, dict) else None
+
+
+def _has_legacy_aggregate_function(slc: Slice) -> bool:
+    params = _load_dict(slc.params)
+    if params is None:
         return False
     value = params.get(_FIELD)
     return isinstance(value, str) and value in _LEGACY_AGGREGATE_FUNCTIONS
+
+
+def _has_percent_show_values_as(slc: Slice) -> bool:
+    """Whether the chart has a percent "Show values as" selected -- an
+    explicit, post-SIP-216 choice that supersedes any orphaned
+    ``aggregateFunction`` (see module docstring, item 2)."""
+    params = _load_dict(slc.params)
+    if params is None:
+        return False
+    value = params.get(_SHOW_VALUES_AS_FIELD)
+    return isinstance(value, str) and value in _PERCENT_SHOW_VALUES_AS
+
+
+def _drop_orphaned_aggregate_function(slc: Slice) -> None:
+    """Remove the orphaned ``aggregateFunction`` from ``params`` and, so the
+    cached snapshot reports/cache warm-up keep using stays consistent with it,
+    from ``query_context.form_data`` too (the same best-effort mirroring
+    #42761's migration did)."""
+    params = _load_dict(slc.params)
+    if params is not None and _FIELD in params:
+        del params[_FIELD]
+        slc.params = json.dumps(params)
+
+    query_context = _load_dict(slc.query_context)
+    if query_context is None:
+        return
+    form_data = query_context.get("form_data")
+    if isinstance(form_data, dict) and _FIELD in form_data:
+        del form_data[_FIELD]
+        slc.query_context = json.dumps(query_context)
 
 
 def upgrade() -> None:
@@ -195,6 +257,12 @@ def upgrade() -> None:
         lambda current, total: print(f"    {current}/{total}", end="\r"),
     ):
         if not _has_legacy_aggregate_function(slc):
+            continue
+
+        if _has_percent_show_values_as(slc):
+            # The later, explicit percent choice wins (module docstring,
+            # item 2): keep the chart rendering as it did, no tag needed.
+            _drop_orphaned_aggregate_function(slc)
             continue
 
         already_tagged = (
@@ -239,8 +307,10 @@ def _scrub_column(raw: str | None) -> str | None:
 
 
 def downgrade() -> None:
-    # Upgrading never changed an `aggregateFunction` value, and the tag is
-    # harmless on older code. But once the restored control ships, saving an
+    # Upgrading only ever *dropped* an `aggregateFunction` (the orphaned value
+    # on a chart with a percent "Show values as", which older code ignored
+    # anyway -- nothing to restore), and the tag is harmless on older code.
+    # But once the restored control ships, saving an
     # ordinary pivot persists the default `aggregateFunction: "Metric"`,
     # which older code looks up in its aggregation map and fails on (KeyError)
     # when processing CSV/XLSX exports and reports. Strip that default from

@@ -86,6 +86,54 @@ test('surfaces the legacy-aggregation notice and removes the tag on Accept', asy
   );
 });
 
+test('Accept falls back to the chart tag list when the tag route is forbidden', async () => {
+  // A chart owner whose role has `can_write` on Chart but not on Tag: the
+  // tag DELETE 403s, so the notice re-saves the chart's custom tag list
+  // minus the legacy one (which `validate_tags` accepts via `can_tag`).
+  fetchMock.get('glob:*/api/v1/chart/123', {
+    result: {
+      tags: [
+        { id: 3, name: 'keep-me', type: 1 },
+        { id: 7, name: LEGACY_AGGREGATION_TAG, type: 1 },
+      ],
+    },
+  });
+  fetchMock.delete(`glob:*/api/v1/tag/2/123/${LEGACY_AGGREGATION_TAG}`, {
+    status: 403,
+    body: { message: 'Forbidden' },
+  });
+  fetchMock.put('glob:*/api/v1/chart/123', { result: {} });
+
+  render(<LegacyAggregationAlert sliceId={123} />, { useRedux: true });
+
+  expect(
+    await screen.findByText(
+      'This chart was updated to use the restored aggregation',
+    ),
+  ).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Accept' }));
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls('glob:*/api/v1/chart/123', {
+        method: 'PUT',
+      }),
+    ).toHaveLength(1),
+  );
+  const [putCall] = fetchMock.callHistory.calls('glob:*/api/v1/chart/123', {
+    method: 'PUT',
+  });
+  expect(JSON.parse(putCall.options.body as string)).toEqual({ tags: [3] });
+  await waitFor(() =>
+    expect(
+      screen.queryByText(
+        'This chart was updated to use the restored aggregation',
+      ),
+    ).not.toBeInTheDocument(),
+  );
+});
+
 test('a delayed tag-removal response does not clear a newer tag after switching charts', async () => {
   // Chart 1's Accept button fires a DELETE that is still in flight when the
   // user switches to chart 2, which has its own (different) legacy tag.

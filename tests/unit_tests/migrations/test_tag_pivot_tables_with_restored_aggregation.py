@@ -17,10 +17,12 @@
 """Tests for migration
 ``141b8ada7731_tag_pivot_tables_with_restored_aggregation``.
 
-Covers the helper (_has_legacy_aggregate_function), the full upgrade() path
-across multiple slices (tagging, idempotency, and that unaffected slices are
-left alone -- and that query_context is never touched, see the module
-docstring for why), and that downgrade() strips the default "Metric" value.
+Covers the helpers (_has_legacy_aggregate_function,
+_has_percent_show_values_as), the full upgrade() path across multiple slices
+(tagging, idempotency, that unaffected slices are left alone -- and that
+query_context is never cleared, see the module docstring for why -- and that
+an orphaned aggregateFunction next to a percent "Show values as" is dropped
+rather than tagged), and that downgrade() strips the default "Metric" value.
 """
 
 from __future__ import annotations
@@ -45,6 +47,9 @@ Slice = migration.Slice
 Tag = migration.Tag
 TaggedObject = migration.TaggedObject
 _has_legacy_aggregate_function = migration._has_legacy_aggregate_function
+_has_percent_show_values_as = migration._has_percent_show_values_as
+_SHOW_VALUES_AS_FIELD = migration._SHOW_VALUES_AS_FIELD
+_PERCENT_SHOW_VALUES_AS = migration._PERCENT_SHOW_VALUES_AS
 _VIZ_TYPE = migration._VIZ_TYPE
 _FIELD = migration._FIELD
 _LEGACY_AGGREGATE_FUNCTIONS = migration._LEGACY_AGGREGATE_FUNCTIONS
@@ -305,3 +310,152 @@ def test_downgrade_strips_default_metric_from_params_and_query_context(
         second = verify.get(Slice, 2)
         assert json.loads(second.params) == {_FIELD: "Median"}
         assert json.loads(second.query_context) == {"form_data": {_FIELD: "Median"}}
+
+
+@pytest.mark.parametrize("value", sorted(_PERCENT_SHOW_VALUES_AS))
+def test_has_percent_show_values_as_true_for_every_percent_mode(value: str) -> None:
+    slc = Slice(params=json.dumps({_FIELD: "Sum", _SHOW_VALUES_AS_FIELD: value}))
+    assert _has_percent_show_values_as(slc) is True
+
+
+@pytest.mark.parametrize(
+    "params",
+    [
+        {_FIELD: "Sum"},
+        {_FIELD: "Sum", _SHOW_VALUES_AS_FIELD: "actual"},
+        {_FIELD: "Sum", _SHOW_VALUES_AS_FIELD: None},
+        {_FIELD: "Sum", _SHOW_VALUES_AS_FIELD: ["percent_row"]},
+    ],
+)
+def test_has_percent_show_values_as_false_without_a_percent_mode(
+    params: dict[str, object],
+) -> None:
+    assert _has_percent_show_values_as(Slice(params=json.dumps(params))) is False
+
+
+def test_has_percent_show_values_as_false_when_params_unusable() -> None:
+    assert _has_percent_show_values_as(Slice(params=None)) is False
+    assert _has_percent_show_values_as(Slice(params="[]")) is False
+    assert _has_percent_show_values_as(Slice(params="{not json")) is False
+
+
+def test_upgrade_drops_orphaned_aggregate_function_under_percent_display(
+    engine: Engine,
+) -> None:
+    """A percent "Show values as" is an explicit post-SIP-216 choice: the
+    orphaned aggregateFunction next to it is dropped (from params and the
+    query_context snapshot alike) instead of restored, and the chart is not
+    tagged since nothing changes for it. The same legacy value with the
+    "actual" display, or no showValuesAs at all, is still restored + tagged.
+    """
+    percent_query_context = json.dumps(
+        {
+            "form_data": {
+                "viz_type": _VIZ_TYPE,
+                _FIELD: "Sum",
+                _SHOW_VALUES_AS_FIELD: "percent_row",
+            },
+            "queries": [{"columns": ["nation"]}],
+        }
+    )
+    with Session(engine) as seed:
+        seed.add_all(
+            [
+                # The old default "Sum" (persisted on every pre-SIP-216 pivot)
+                # next to a percent display picked later on master.
+                Slice(
+                    id=1,
+                    viz_type=_VIZ_TYPE,
+                    params=json.dumps(
+                        {
+                            "viz_type": _VIZ_TYPE,
+                            _FIELD: "Sum",
+                            _SHOW_VALUES_AS_FIELD: "percent_row",
+                            "rowTotals": True,
+                        }
+                    ),
+                    query_context=percent_query_context,
+                ),
+                # Not only "Sum": any orphaned value yields to the percent choice.
+                Slice(
+                    id=2,
+                    viz_type=_VIZ_TYPE,
+                    params=json.dumps(
+                        {
+                            "viz_type": _VIZ_TYPE,
+                            _FIELD: "Median",
+                            _SHOW_VALUES_AS_FIELD: "percent_total",
+                        }
+                    ),
+                ),
+                # "actual" is the no-op default, not a percent choice: restored
+                # and tagged like any other legacy value.
+                Slice(
+                    id=3,
+                    viz_type=_VIZ_TYPE,
+                    params=json.dumps(
+                        {
+                            "viz_type": _VIZ_TYPE,
+                            _FIELD: "Sum",
+                            _SHOW_VALUES_AS_FIELD: "actual",
+                        }
+                    ),
+                ),
+                # A percent display with no legacy value: nothing to do.
+                Slice(
+                    id=4,
+                    viz_type=_VIZ_TYPE,
+                    params=json.dumps(
+                        {"viz_type": _VIZ_TYPE, _SHOW_VALUES_AS_FIELD: "percent_col"}
+                    ),
+                ),
+            ]
+        )
+        seed.commit()
+
+    _run_upgrade(engine)
+
+    with Session(engine) as verify:
+        tag = verify.query(Tag).filter_by(name=LEGACY_AGGREGATION_TAG).one()
+        tagged_object_ids = {
+            row.object_id
+            for row in verify.query(TaggedObject).filter_by(
+                tag_id=tag.id, object_type=ObjectType.chart
+            )
+        }
+        assert tagged_object_ids == {3}
+
+        dropped = verify.query(Slice).filter_by(id=1).one()
+        assert json.loads(dropped.params) == {
+            "viz_type": _VIZ_TYPE,
+            _SHOW_VALUES_AS_FIELD: "percent_row",
+            "rowTotals": True,
+        }
+        assert json.loads(dropped.query_context) == {
+            "form_data": {"viz_type": _VIZ_TYPE, _SHOW_VALUES_AS_FIELD: "percent_row"},
+            "queries": [{"columns": ["nation"]}],
+        }
+
+        median = verify.query(Slice).filter_by(id=2).one()
+        assert json.loads(median.params) == {
+            "viz_type": _VIZ_TYPE,
+            _SHOW_VALUES_AS_FIELD: "percent_total",
+        }
+        assert median.query_context is None
+
+        actual = verify.query(Slice).filter_by(id=3).one()
+        assert json.loads(actual.params)[_FIELD] == "Sum"
+
+        untouched = verify.query(Slice).filter_by(id=4).one()
+        assert json.loads(untouched.params) == {
+            "viz_type": _VIZ_TYPE,
+            _SHOW_VALUES_AS_FIELD: "percent_col",
+        }
+
+    # Re-running finds nothing left to drop or tag.
+    _run_upgrade(engine)
+    with Session(engine) as verify:
+        assert verify.query(TaggedObject).count() == 1
+        assert _FIELD not in json.loads(
+            verify.query(Slice).filter_by(id=1).one().params
+        )
