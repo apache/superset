@@ -790,6 +790,11 @@ export function exploreJSON(
     // rather than let query building throw after the chart is marked as
     // loading, which would leave it spinning forever.
     if (isDefined(formData.slice_id) && !formData.datasource) {
+      // Cancel a query already running for this chart, so its late response
+      // cannot replace the error below with stale data.
+      if (key != null) {
+        getState().charts?.[key]?.queryController?.abort();
+      }
       const message = t("You don't have access to this chart.");
       dispatch(
         chartUpdateFailed(

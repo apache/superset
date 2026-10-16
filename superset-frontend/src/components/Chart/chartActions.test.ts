@@ -863,3 +863,28 @@ test('exploreJSON fails a chart without a datasource with an access error instea
     getChartDataRequestSpy.mockRestore();
   }
 });
+
+test('exploreJSON aborts a query already running for a chart that turns out to have no datasource', async () => {
+  const pending = new AbortController();
+  const dispatchMock = jest.fn();
+  const getState = jest.fn(() => ({
+    charts: { 9: { queryController: pending } },
+    common: { conf: { SUPERSET_WEBSERVER_TIMEOUT: 60 } },
+  }));
+
+  await actions.exploreJSON(
+    { slice_id: 9 } as unknown as QueryFormData,
+    false,
+    undefined,
+    9,
+  )(
+    dispatchMock as unknown as actions.ChartThunkDispatch,
+    getState as unknown as () => actions.RootState,
+    undefined,
+  );
+
+  // The late response of the in-flight request is then dropped as stale,
+  // rather than overwriting the access error.
+  expect(pending.signal.aborted).toBe(true);
+  expect(dispatchMock.mock.calls[0][0].type).toBe(actions.CHART_UPDATE_FAILED);
+});
