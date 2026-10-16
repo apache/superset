@@ -37,7 +37,9 @@ import { estimateWrappedLegendRowCount } from '../utils/legendLayout';
 
 // Foregrounds for band labels drawn over a custom fill, chosen from the fill's
 // own luminance so they stay readable in both light and dark themes.
+// eslint-disable-next-line theme-colors/no-literal-colors
 const LIGHT_LABEL_COLOR = '#ffffff';
+// eslint-disable-next-line theme-colors/no-literal-colors
 const DARK_LABEL_COLOR = '#1f1f1f';
 const MEASURE_BAR_FRACTION = 0.28;
 // Small pixel gap below the measure bar so the target/marker symbol doesn't
