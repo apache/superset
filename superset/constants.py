@@ -31,7 +31,6 @@ DEFAULT_USER_AGENT = "Apache Superset"
 
 # Shared (back/front) constants registry.
 # Keep in sync with @superset-ui/core/src/utils/sharedConstants.ts.
-
 EMPTY_STRING = N_("<empty string>")
 FALSE_STRING = N_("FALSE")
 NULL_STRING = N_("<NULL>")

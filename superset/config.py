@@ -611,7 +611,7 @@ D3_FORMAT: D3Format = {}
 
 
 # Translate labels for shared constants (e.g., <NULL>, <empty string>, etc)
-TRANSLATE_SHARED_CONSTANT_LABELS: bool = True
+TRANSLATE_SHARED_CONSTANT_LABELS: bool = False
 
 
 # Override the default mapbox tiles
