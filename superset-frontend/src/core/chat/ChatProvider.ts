@@ -19,6 +19,7 @@
 
 import { ComponentType } from 'react';
 import type { chat as chatApi } from '@apache-superset/core';
+import { logging } from '@apache-superset/core/utils';
 import {
   LocalStorageKeys,
   getItem,
@@ -29,6 +30,8 @@ import { createValueEventEmitter, createEventEmitter } from '../utils';
 
 type Chat = chatApi.Chat;
 type DisplayMode = chatApi.DisplayMode;
+type ClientTool = chatApi.ClientTool;
+type RegisterChatOptions = chatApi.RegisterChatOptions;
 
 /**
  * Singleton manager for the chat provider.
@@ -43,9 +46,19 @@ class ChatProvider {
 
   private panel: ComponentType | undefined;
 
+  // The Disposable for the active chat's own `options.tools`, if it
+  // registered any — tracked separately from `clientTools` itself so a
+  // displaced chat's tools can be torn down below, even though the map they
+  // live in is otherwise deliberately decoupled from any one chat.
+  private activeChatTools: Disposable | undefined;
+
   private opened: boolean;
 
   private stateSubscribers = new Set<() => void>();
+
+  // Keyed by the tool's own (fully-qualified) name — same flat-Map shape as
+  // commands.ts's registerCommand, which this mirrors.
+  private clientTools = new Map<string, ClientTool>();
 
   private registerEmitter = createEventEmitter<Chat>();
 
@@ -100,6 +113,7 @@ class ChatProvider {
     chat: Chat,
     trigger: ComponentType,
     panel: ComponentType,
+    options?: RegisterChatOptions,
   ): Disposable {
     if (this.chat) {
       // eslint-disable-next-line no-console
@@ -108,6 +122,12 @@ class ChatProvider {
       );
       this.unregisterEmitter.fire(this.chat);
       if (this.opened) this.closePanel();
+      // The chat being discarded here is never getting its own returned
+      // Disposable called by whoever registered it (they still think
+      // they're the active chat) — so its own options.tools, if any, would
+      // otherwise never get torn down. Do it now, on its behalf.
+      this.activeChatTools?.dispose();
+      this.activeChatTools = undefined;
     }
 
     this.chat = chat;
@@ -116,7 +136,12 @@ class ChatProvider {
     this.registerEmitter.fire(chat);
     this.notifyState();
 
-    return new Disposable(() => {
+    const chatTools = options?.tools?.length
+      ? this.registerClientTools(options.tools)
+      : undefined;
+    this.activeChatTools = chatTools;
+
+    const disposeChat = new Disposable(() => {
       if (this.chat !== chat) return;
       this.chat = undefined;
       this.trigger = undefined;
@@ -124,7 +149,13 @@ class ChatProvider {
       this.unregisterEmitter.fire(chat);
       if (this.opened) this.closePanel();
       this.notifyState();
+      // Only clear the field if it's still this registration's own tools —
+      // a later registerChat() call may have already displaced (and
+      // disposed) them, in the branch above.
+      if (this.activeChatTools === chatTools) this.activeChatTools = undefined;
     });
+
+    return chatTools ? Disposable.from(disposeChat, chatTools) : disposeChat;
   }
 
   public getChat(): Chat | undefined {
@@ -190,10 +221,52 @@ class ChatProvider {
     return this.resizePanelEmitter.subscribe;
   }
 
+  /**
+   * Registers a single client-side tool — mirrors commands.ts's
+   * registerCommand exactly: keyed by the tool's own `name` (fully-qualified,
+   * author-chosen — nothing prefixes or validates it here, same as a
+   * `Command.id`), warns and overwrites on a duplicate name, and the
+   * returned Disposable removes it by name unconditionally on dispose.
+   *
+   * Registering after registerChat() is safe — nothing here depends on call
+   * order. (An earlier version of this method warned about that ordering,
+   * back when ChatPanel snapshotted `chat.getTools()` once at mount via
+   * `useMemo(..., [])`; the actual fix was moving that snapshot to send-time
+   * in ChatPanel itself, which made the order genuinely not matter rather
+   * than just warning about it.)
+   */
+  public registerClientTool(tool: ClientTool): Disposable {
+    const { name } = tool;
+    if (this.clientTools.has(name)) {
+      logging.warn(
+        `[Superset] Client tool "${name}" is already registered. ` +
+          'Overwriting the existing tool.',
+      );
+    }
+    this.clientTools.set(name, tool);
+    return new Disposable(() => {
+      this.clientTools.delete(name);
+    });
+  }
+
+  /**
+   * Registers a list of tools in one call — equivalent to mapping
+   * {@link registerClientTool} over `tools` yourself, bundled into a single
+   * Disposable that unregisters all of them.
+   */
+  public registerClientTools(tools: ClientTool[]): Disposable {
+    return Disposable.from(...tools.map(tool => this.registerClientTool(tool)));
+  }
+
+  public getTools(): ClientTool[] {
+    return [...this.clientTools.values()];
+  }
+
   public reset(): void {
     this.chat = undefined;
     this.trigger = undefined;
     this.panel = undefined;
+    this.activeChatTools = undefined;
     this.opened = false;
     this.registerEmitter = createEventEmitter<Chat>();
     this.unregisterEmitter = createEventEmitter<Chat>();
@@ -202,6 +275,7 @@ class ChatProvider {
     this.resizePanelEmitter = createEventEmitter<{ width: number }>();
     this.modeEmitter = createValueEventEmitter<DisplayMode>('floating');
     this.stateSubscribers.clear();
+    this.clientTools.clear();
     setItem(LocalStorageKeys.ChatState, { open: false, mode: 'floating' });
   }
 }

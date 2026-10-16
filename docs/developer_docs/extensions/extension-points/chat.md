@@ -143,6 +143,39 @@ All methods are available on the `chat` namespace from `@apache-superset/core`:
 | `onDidUnregisterChat(listener)`            | Subscribe to unregistration events.                                                                                                       |
 | `onDidResizePanel(listener)`               | Subscribe to panel resize events (panel mode only). Not all hosts provide a resizer — do not rely on this firing. Returns a `Disposable`. |
 
+## Built-in SQL Lab Tools
+
+Use `chat.getTools()` to discover these actions alongside other registered client tools.
+
+Superset registers these tools at application startup, before loading extensions.
+They remain discoverable on every page; invoking them outside SQL Lab returns
+`{ success: false, message }`. Open SQL Lab before calling them. SQL Lab handlers
+also return this error shape for invalid input, missing tabs, or API errors.
+
+| Tool | Input | Result / behavior |
+| --- | --- | --- |
+| `core.sqlLab__get_current_editor_id` | `{}` | Active `editor_id` |
+| `core.sqlLab__get_editor_tabs` | `{}` | `editors`: IDs, titles, database IDs, catalogs, schemas |
+| `core.sqlLab__get_databases` | `{}` | `databases`: IDs and names already loaded in SQL Lab |
+| `core.sqlLab__get_editor_sql` | `{}` | Active `editor`: metadata, SQL, and selected text |
+| `core.sqlLab__update_editor_sql` | `{ sql: string }` | Replace active editor SQL; empty SQL clears the buffer |
+| `core.sqlLab__create_editor_tab` | `{ title: string, databaseId: number, sql?: string, catalog?: string, schema?: string }` | Open a tab and return its metadata; omitted options use SQL Lab defaults |
+| `core.sqlLab__switch_editor_tab` | `{ editor_id: string }` | Activate an existing tab |
+| `core.sqlLab__close_editor_tab` | `{ editor_id: string }` | Close a tab and discard its editor buffer |
+| `core.sqlLab__run_current_query` | `{}` | Trigger the existing SQL Lab Run action; return `editor_id` and client `query_id` |
+
+Successful results include `success: true`. Read and update tools use the active
+editor; switch tabs explicitly before working with another editor. Listing tabs
+reads metadata only, so it does not wait for inactive editors to mount.
+
+`run_current_query` follows SQL Lab's existing selection, database, catalog,
+schema, template parameter, and row limit behavior. It starts execution through
+the SQL Lab API and returns a client query ID; it does not wait for results.
+Queries can modify database contents, so this tool carries `destructiveHint: true`.
+Updating SQL and closing tabs also carry this hint because they can discard text.
+Query execution permissions remain enforced by the existing backend endpoints.
+Saving SQL as a Saved Query belongs to backend tools and is not provided here.
+
 ## Next Steps
 
 - **[Contribution Types](../contribution-types.md)** — Explore other contribution types
