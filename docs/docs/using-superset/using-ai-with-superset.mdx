@@ -90,6 +90,11 @@ built-in `pivot_table` chart type and is not offered when the host visualization
 is unavailable.
 :::
 
+For saved Bullet charts, updates that omit dimensions preserve Explore's
+hierarchy, including SQL expressions, along with native query metadata such as
+URL parameters. Replacing a metric also updates inherited expression-based
+ordering for that metric output. Raw chart data and CSV/Excel exports do not
+require the selected number formatter to be supported by MCP previews.
 MCP Vega-Lite previews of grouped time-series charts retain each series from
 post-processed chart data, including charts with multiple grouping dimensions.
 Saved line, bar, area, and scatter previews honor the requested width and height
@@ -297,7 +302,10 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `get_catalog`       | Compact, permission-filtered page of databases, datasets, charts, or dashboards (id, uuid, name, description, url) |
 
 Catalog pages are ordered oldest first (by id) and stay within 32 KiB. URLs longer than 2,048 characters are returned as
-`null` with `truncated: true`, rather than shortened into unusable links.
+`null` with `fields_shortened: true`, rather than shortened into unusable links.
+`truncated: true` means byte-bound pagination held entries back, not that fields were shortened;
+otherwise `truncated` is `false`. Use `next_cursor` as the continuation signal: pass it back as
+`cursor` to fetch the next page, or stop when it is `null`.
 Resource-specific read scopes (for example, `superset:dataset:read`) authorize only
 the corresponding catalog asset type, subject to the caller's permissions.
 

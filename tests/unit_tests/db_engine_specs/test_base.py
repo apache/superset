@@ -2045,3 +2045,14 @@ def test_epoch_us_to_dttm(spec: type[BaseEngineSpec], expected: str) -> None:
     microsecond function (via their own override).
     """
     assert spec.epoch_us_to_dttm() == expected
+
+
+def test_expand_nested_columns_default_returns_input() -> None:
+    """
+    By default the columns inferred from ``cursor.description`` are kept as is.
+    """
+    columns = [
+        ResultSetColumnType(name="a", column_name="a", type="INT", is_dttm=False)
+    ]
+
+    assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns

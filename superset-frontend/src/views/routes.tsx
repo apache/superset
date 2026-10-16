@@ -172,6 +172,16 @@ const Register = lazy(
   () => import(/* webpackChunkName: "Register" */ 'src/pages/Register'),
 );
 
+const ForgotPassword = lazy(
+  () =>
+    import(/* webpackChunkName: "ForgotPassword" */ 'src/pages/ForgotPassword'),
+);
+
+const ResetPassword = lazy(
+  () =>
+    import(/* webpackChunkName: "ResetPassword" */ 'src/pages/ResetPassword'),
+);
+
 const GroupsList: LazyExoticComponent<any> = lazy(
   () => import(/* webpackChunkName: "GroupsList" */ 'src/pages/GroupsList'),
 );
@@ -210,6 +220,17 @@ export const routes: Routes = [
   {
     path: RoutePaths.REDIRECT,
     Component: RedirectWarning,
+    mobileSupported: true,
+  },
+  // The route switch matches by prefix, so these must precede LOGIN.
+  {
+    path: RoutePaths.FORGOT_PASSWORD,
+    Component: ForgotPassword,
+    mobileSupported: true,
+  },
+  {
+    path: RoutePaths.RESET_PASSWORD,
+    Component: ResetPassword,
     mobileSupported: true,
   },
   { path: RoutePaths.LOGIN, Component: Login, mobileSupported: true },
