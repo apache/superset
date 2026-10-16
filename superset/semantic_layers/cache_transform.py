@@ -24,6 +24,7 @@ import pandas as pd
 import pyarrow as pa
 from superset_core.semantic_layers.types import (
     AggregationType,
+    Dimension,
     Filter,
     Operator,
     SemanticQuery,
@@ -38,6 +39,7 @@ from superset.semantic_layers.cache_types import (
     ReuseMode,
     ROLLUP_COMPATIBLE_AGGREGATIONS,
 )
+from superset.semantic_layers.ordering import default_order_dimension
 
 
 def _sql_sum(series: pd.Series) -> object:
@@ -197,6 +199,14 @@ def _rollup(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
     )
 
 
+def _sort_by_default_order(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
+    """Restore the default order a rollup's grouping replaced, before the limit."""
+    dimension: Dimension | None = default_order_dimension(query)
+    if dimension is None:
+        return frame
+    return frame.sort_values(dimension.name, kind="stable", ignore_index=True)
+
+
 def _project(frame: pd.DataFrame, query: SemanticQuery) -> pd.DataFrame:
     columns: list[str] = [
         *(dimension.name for dimension in query.dimensions),
@@ -237,7 +247,7 @@ def transform_result(
         frame: pd.DataFrame = result.results.to_pandas(types_mapper=_pandas_dtype)
         frame = _apply_leftovers(frame, decision.leftover_filters, capabilities)
         if decision.mode is ReuseMode.ROLLUP:
-            frame = _rollup(frame, query)
+            frame = _sort_by_default_order(_rollup(frame, query), query)
         frame = _project(frame, query)
         frame = _slice(frame, query)
         return SemanticResult(

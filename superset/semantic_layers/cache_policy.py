@@ -47,6 +47,7 @@ from superset.semantic_layers.cache_types import (
     ROLLUP_COMPATIBLE_AGGREGATIONS,
     SAFE_CONTAINMENT_CAPABILITIES as SAFE_CONTAINMENT_CAPABILITIES,
 )
+from superset.semantic_layers.ordering import with_default_order
 
 
 def _comparable(left: object, right: object) -> bool:
@@ -338,7 +339,11 @@ def select_reuse(
     capabilities: ContainmentCapabilities,
 ) -> ReuseDecision | None:
     """Prove whether and how a cached descriptor can satisfy a query."""
-    query_order_key: str = SemanticCacheIdentityFactory.order(query.order)
+    # Compare the order the rows were cut by, defaults included: two unordered
+    # queries can default to different temporal dimensions.
+    query_order_key: str = SemanticCacheIdentityFactory.order(
+        with_default_order(query).order
+    )
     query_offset: int = query.offset or 0
     pagination_compatible: bool = (
         query_offset == 0

@@ -278,8 +278,8 @@ class PredicateType(enum.Enum):
     """
     The stage a filter applies to.
 
-    ``HAVING`` is reserved. The chart-data path never produces a HAVING
-    predicate, and providers may reject one.
+    ``HAVING`` is reserved. The host does not send HAVING predicates for chart
+    data, and a provider may reject one.
     """
 
     WHERE = "WHERE"
@@ -386,13 +386,16 @@ class SemanticQuery:
     member must be defined by the view; an adhoc expression is only a valid
     order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``.
 
-    **Default chronological order.** When ``order`` is empty and a temporal
-    dimension (date, timestamp or time type) is selected, the result is sorted
-    ascending by the first temporal dimension in ``dimensions``, again before
-    ``offset`` and ``limit``. It is a default, never a prefix: a non-empty
-    ``order`` is used exactly as given. The host fills this in before calling
-    the provider, so a provider that receives an empty ``order`` may return
-    rows in any order.
+    **Default chronological order.** When ``order`` is empty (``None`` or
+    ``[]``) and ``dimensions`` includes a date, timestamp or time dimension, the
+    host sorts ascending by the first such dimension in ``dimensions`` (by list
+    position, not ``SemanticView.preferred_temporal_dimension``), before
+    ``offset`` and ``limit``. Rows that tie on it come back in no particular
+    order. The host applies this both to the query it sends the provider and to
+    results it serves from its cache. It is a default, never a prefix: a
+    non-empty ``order`` is used exactly as given. A provider therefore receives
+    an empty ``order`` only when no temporal dimension is selected, and may then
+    return rows in any order.
 
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.

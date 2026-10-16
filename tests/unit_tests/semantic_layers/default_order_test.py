@@ -17,12 +17,16 @@
 
 """The host's default chronological order for unordered semantic queries."""
 
-from unittest.mock import MagicMock
+from collections.abc import Callable
+from dataclasses import replace
+from datetime import date, datetime
+from unittest.mock import Mock
 
 import pyarrow as pa
 import pytest
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
+    AggregationType,
     Dimension,
     Metric,
     OrderDirection,
@@ -33,6 +37,14 @@ from superset_core.semantic_layers.types import (
 
 from superset.semantic_layers import mapper
 from superset.semantic_layers.cache import SemanticCacheOutcome
+from superset.semantic_layers.cache_policy import ContainmentCapabilities
+from superset.semantic_layers.cache_repository import SemanticCacheRepository
+from superset.semantic_layers.cache_transform import transform_result
+from superset.semantic_layers.cache_types import (
+    CachedResultCandidate,
+    SemanticCacheLookupResult,
+)
+from tests.unit_tests.semantic_layers.conftest import build_view_meta
 
 SALES: Metric = Metric(
     id="orders.total_sales",
@@ -59,7 +71,7 @@ EMPTY_RESULT: SemanticResult = SemanticResult(
 
 def _dispatch(mocker: MockerFixture, query: SemanticQuery) -> SemanticQuery:
     """Dispatch *query* and return the query the provider received."""
-    provider: MagicMock = mocker.Mock(return_value=EMPTY_RESULT)
+    provider: Mock = mocker.Mock(return_value=EMPTY_RESULT)
     mapper._dispatch_semantic_query(mocker.Mock(), provider, query, cacheable=False)
     provider.assert_called_once()
     received: SemanticQuery = provider.call_args.args[0]
@@ -114,9 +126,7 @@ def test_default_order_leaves_the_cache_identity_unchanged(
     mocker: MockerFixture,
 ) -> None:
     """The cache keys and reuses on the query as mapped, not the provider's copy."""
-    service: MagicMock = mocker.patch.object(
-        mapper.semantic_cache, "semantic_cache_service"
-    )
+    service: Mock = mocker.patch.object(mapper.semantic_cache, "semantic_cache_service")
     service.state.effective = True
     mocker.patch.object(
         mapper,
@@ -126,10 +136,128 @@ def test_default_order_leaves_the_cache_identity_unchanged(
     service.execute.side_effect = lambda meta, query, dispatch, **kwargs: (
         SemanticCacheOutcome(dispatch(query), cache_hit=False)
     )
-    provider: MagicMock = mocker.Mock(return_value=EMPTY_RESULT)
+    provider: Mock = mocker.Mock(return_value=EMPTY_RESULT)
     query: SemanticQuery = SemanticQuery(metrics=[SALES], dimensions=[ORDER_DATE])
 
     mapper._dispatch_semantic_query(mocker.Mock(), provider, query)
 
     assert service.execute.call_args.args[1] is query
     assert provider.call_args.args[0].order == [(ORDER_DATE, OrderDirection.ASC)]
+
+
+class _MemoryBackend:
+    """A dict-backed cache backend that keeps every value it is given."""
+
+    def __init__(self) -> None:
+        self.values: dict[str, object] = {}
+
+    def get(self, key: str) -> object | None:
+        return self.values.get(key)
+
+    def has(self, key: str) -> bool:
+        return key in self.values
+
+    def set(self, key: str, value: object, timeout: int | None = None) -> bool:
+        self.values[key] = value
+        return True
+
+    def delete(self, key: str) -> bool:
+        return self.values.pop(key, None) is not None
+
+
+class _InlineCoordinator:
+    def mutate(self, key: str, operation: Callable[[], None]) -> bool:
+        operation()
+        return True
+
+
+PRODUCT: Dimension = Dimension(
+    id="products.product", name="product", type=pa.utf8(), definition="product"
+)
+SUMMED_SALES: Metric = replace(SALES, aggregation=AggregationType.SUM)
+
+
+def _serve_from_cache(
+    stored_query: SemanticQuery,
+    stored_rows: dict[str, list[object]],
+    query: SemanticQuery,
+) -> dict[str, list[object]] | None:
+    """Store a provider result for *stored_query*, then serve *query* from it."""
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        _MemoryBackend(), _InlineCoordinator(), clock=lambda: 10.0
+    )
+    schema: pa.Schema = pa.schema(
+        [
+            *(pa.field(d.name, d.type) for d in stored_query.dimensions),
+            *(pa.field(m.name, m.type) for m in stored_query.metrics),
+        ]
+    )
+    stored: SemanticResult = SemanticResult(
+        requests=[], results=pa.Table.from_pydict(stored_rows, schema=schema)
+    )
+    repository.store(build_view_meta(), stored_query, stored)
+    lookup: SemanticCacheLookupResult = repository.lookup(
+        build_view_meta(), query, ContainmentCapabilities()
+    )
+    if not lookup.candidates:
+        return None
+    candidate: CachedResultCandidate = lookup.candidates[0]
+    served: SemanticResult = transform_result(
+        candidate.result, query, candidate.decision, ContainmentCapabilities()
+    )
+    return served.results.to_pydict()
+
+
+def test_rollup_hit_applies_the_default_order_before_the_limit() -> None:
+    """A rolled-up hit returns the earliest rows overall, as the provider would."""
+    stored_query: SemanticQuery = SemanticQuery(
+        metrics=[SUMMED_SALES], dimensions=[REGION, PRODUCT, ORDER_DATE]
+    )
+    # Rows as a provider returns them for the stored query: by order_date.
+    stored_rows: dict[str, list[object]] = {
+        "region": ["West", "East", "East", "West", "East"],
+        "product": ["p1", "p1", "p2", "p1", "p1"],
+        "order_date": [
+            date(2026, 1, 1),
+            date(2026, 1, 2),
+            date(2026, 1, 2),
+            date(2026, 1, 3),
+            date(2026, 1, 4),
+        ],
+        "total_sales": [5.0, 1.0, 1.0, 3.0, 2.0],
+    }
+    query: SemanticQuery = SemanticQuery(
+        metrics=[SUMMED_SALES], dimensions=[REGION, ORDER_DATE], limit=2
+    )
+
+    assert _serve_from_cache(stored_query, stored_rows, query) == {
+        "region": ["West", "East"],
+        "order_date": [date(2026, 1, 1), date(2026, 1, 2)],
+        "total_sales": [5.0, 2.0],
+    }
+
+
+def test_limited_hit_is_not_reused_under_a_different_default_order() -> None:
+    """A top-N cut by one temporal dimension cannot answer a cut by another."""
+    rows: dict[str, list[object]] = {
+        "order_date": [date(2026, 1, 1), date(2026, 1, 2)],
+        "shipped_at": [datetime(2026, 1, 9), datetime(2026, 1, 3)],
+        "total_sales": [1.0, 2.0],
+    }
+    stored_query: SemanticQuery = SemanticQuery(
+        metrics=[SALES], dimensions=[ORDER_DATE, SHIPPED_AT], limit=2
+    )
+
+    assert (
+        _serve_from_cache(
+            stored_query,
+            rows,
+            replace(stored_query, dimensions=[SHIPPED_AT, ORDER_DATE]),
+        )
+        is None
+    )
+    assert _serve_from_cache(stored_query, rows, replace(stored_query, limit=1)) == {
+        "order_date": [date(2026, 1, 1)],
+        "shipped_at": [datetime(2026, 1, 9)],
+        "total_sales": [1.0],
+    }
