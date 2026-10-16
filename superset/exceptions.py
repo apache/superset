@@ -273,6 +273,12 @@ class QueryObjectValidationMessage(str):
     Chart-data payloads carry a failed query's error as text. This subclass
     serializes as that text, so payload consumers are unaffected, while the
     chart-data command can still report the failure as a validation error.
+
+    ``QueryContextProcessor.get_df_payload_result`` records it and
+    ``ChartDataCommand`` reads it. Rebuilding the text between them (copying,
+    formatting, sanitizing) yields a plain ``str``, and the failure is then
+    reported as an ordinary query failure. It lives beside its cause so the
+    processor and the command share it without importing each other.
     """
 
     cause: QueryObjectValidationError

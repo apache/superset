@@ -268,7 +268,7 @@ def test_full_result_type_fails_fast_on_first_error_in_multiple_queries() -> Non
     assert "First query failed" in str(exc_info.value)
 
 
-def _validation_failure_context() -> tuple[Mock, Exception]:
+def _validation_failure_context() -> tuple[Mock, QueryObjectValidationError]:
     """A data request whose query failed validation while it ran."""
     cause = QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
     payload = {"error": QueryObjectValidationMessage(cause)}

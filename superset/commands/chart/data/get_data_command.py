@@ -55,8 +55,6 @@ class ChartDataCommand(BaseCommand):
         except CacheLoadError as ex:
             raise ChartDataCacheLoadError(ex.message) from ex
 
-        # Skip error check for query-only requests - errors are returned in payload
-        # This allows View Query modal to display validation errors
         for query in payload["queries"]:
             self._raise_for_query_error(query)
 
@@ -91,7 +89,13 @@ class ChartDataCommand(BaseCommand):
         )
 
     def _raise_for_query_error(self, query: dict[str, Any]) -> None:
-        """Raise a failed query's error, keeping validation failures typed."""
+        """
+        Raise a failed query's error, keeping validation failures typed.
+
+        Query-only requests return errors in the payload instead, so the View
+        Query modal can display validation errors. A validation failure arrives
+        as a ``QueryObjectValidationMessage`` recorded by the query processor.
+        """
         error = query.get("error")
         if not error or self._query_context.result_type == ChartDataResultType.QUERY:
             return

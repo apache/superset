@@ -4092,8 +4092,11 @@ EMPTY_IN_QUERY: dict[str, Any] = {
 }
 
 
-def _empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
-    """Save a semantic chart the real mapper refuses while the query runs."""
+def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Patch in a saved semantic chart the real mapper refuses while it runs.
+
+    Returns the provider mock so tests can assert it was never queried.
+    """
     import pyarrow as pa
     from superset_core.semantic_layers.types import Dimension, Metric
     from superset_core.semantic_layers.view import SemanticView as ProviderView
@@ -4109,7 +4112,7 @@ def _empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     provider: MagicMock = MagicMock(spec=ProviderView)
     provider.features = frozenset()
     provider.selection_identity_version = None
-    provider.uid.return_value = "metric-filter-test"
+    provider.uid.return_value = "empty-filter-test"
     provider.get_dimensions.return_value = {
         Dimension(id="orders.STATUS", name="STATUS", type=pa.utf8(), grain=None)
     }
@@ -4162,7 +4165,7 @@ def _empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
     monkeypatch.setattr(
         processor_module.QueryContextProcessor,
         "query_cache_key",
-        lambda *a, **k: "metric-filter-test",
+        lambda *a, **k: "empty-filter-test",
     )
     monkeypatch.setattr(
         processor_module.QueryContextProcessor, "get_cache_timeout", lambda self: -1
@@ -4178,7 +4181,11 @@ async def test_saved_chart_mapper_refusal_is_validation_error(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """The real command path keeps a semantic mapper refusal out of DataError."""
-    provider: MagicMock = _empty_filter_semantic_chart(monkeypatch)
+    from unittest.mock import AsyncMock
+
+    provider: MagicMock = _patch_empty_filter_semantic_chart(monkeypatch)
+    ctx_error: AsyncMock = AsyncMock()
+    monkeypatch.setattr("fastmcp.Context.error", ctx_error)
 
     async with Client(mcp_server) as client:
         result: Any = await client.call_tool(
@@ -4187,8 +4194,10 @@ async def test_saved_chart_mapper_refusal_is_validation_error(
         data: dict[str, Any] = json.loads(result.content[0].text)
 
     assert data["error_type"] == "ValidationError"
-    assert "Semantic IN/NOT IN filters cannot be empty." in data["error"]
+    assert data["error"] == "Semantic IN/NOT IN filters cannot be empty."
     provider.get_table.assert_not_called()
+    # Validation errors are not error-level MCP notifications.
+    ctx_error.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -4202,7 +4211,7 @@ async def test_unsaved_chart_mapper_refusal_is_validation_error(
     from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
     from superset.common.query_context_factory import QueryContextFactory
 
-    provider: MagicMock = _empty_filter_semantic_chart(monkeypatch)
+    provider: MagicMock = _patch_empty_filter_semantic_chart(monkeypatch)
     chart_data_module: Any = importlib.import_module(
         "superset.mcp_service.chart.tool.get_chart_data"
     )
@@ -4232,7 +4241,7 @@ async def test_unsaved_chart_mapper_refusal_is_validation_error(
         data: dict[str, Any] = json.loads(result.content[0].text)
 
     assert data["error_type"] == "ValidationError"
-    assert "Semantic IN/NOT IN filters cannot be empty." in data["error"]
+    assert data["error"] == "Semantic IN/NOT IN filters cannot be empty."
     provider.get_table.assert_not_called()
 
 

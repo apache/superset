@@ -333,6 +333,7 @@ class QueryContextProcessor:
             except SemanticResultCompletenessError:
                 raise
             except QueryObjectValidationError as ex:
+                # Keep the type: ChartDataCommand reads it to answer 400.
                 cache.error_message = QueryObjectValidationMessage(ex)
                 cache.status = QueryStatus.FAILED
             finally:

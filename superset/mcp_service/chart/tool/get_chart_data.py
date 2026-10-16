@@ -132,6 +132,36 @@ def _access_denied_error(exc: SupersetSecurityException) -> ChartError:
     return ChartError(error=bounded_exception_message(exc), error_type="AccessDenied")
 
 
+# Errors the chart-data API answers with 400, whether raised before or while
+# the query runs.
+_VALIDATION_ERRORS = (
+    ChartDataQueryValidationError,
+    QueryObjectValidationError,
+    SemanticLayerQueryRejectedError,
+)
+
+
+def _validation_error(
+    exc: ChartDataQueryValidationError
+    | QueryObjectValidationError
+    | SemanticLayerQueryRejectedError,
+) -> ChartError:
+    """Report an invalid query in the category of the chart-data API's 400."""
+    if isinstance(exc, SemanticLayerQueryRejectedError):
+        # Fixed host guidance; the provider's own text is never carried.
+        return ChartError(error=str(exc), error_type="ValidationError")
+    # A run-time failure carries its validation error as the cause, so both
+    # stages report the same text.
+    cause: BaseException = (
+        exc.__cause__
+        if isinstance(exc, ChartDataQueryValidationError) and exc.__cause__
+        else exc
+    )
+    return ChartError(
+        error=bounded_exception_message(cause), error_type="ValidationError"
+    )
+
+
 _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.NUMERIC: "numeric",
     GenericDataType.STRING: "string",
@@ -1210,15 +1240,11 @@ async def _get_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
-        except (
-            ChartDataQueryValidationError,
-            QueryObjectValidationError,
-            SemanticLayerQueryRejectedError,
-        ) as ex:
+        except _VALIDATION_ERRORS as ex:
             logger.warning(
                 "Chart data validation failed for chart %s: %s", chart_id, ex
             )
-            return ChartError(error=str(ex), error_type="ValidationError")
+            return _validation_error(ex)
         except SupersetSecurityException as ex:
             # The chart-data API answers 403; keep refusals out of DataError.
             logger.warning("Chart data access refused for chart %s", chart_id)
@@ -1461,13 +1487,9 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
-    except (
-        ChartDataQueryValidationError,
-        QueryObjectValidationError,
-        SemanticLayerQueryRejectedError,
-    ) as ex:
+    except _VALIDATION_ERRORS as ex:
         logger.warning("Unsaved chart data validation failed: %s", ex)
-        return ChartError(error=str(ex), error_type="ValidationError")
+        return _validation_error(ex)
     except SupersetSecurityException as ex:
         logger.warning("Unsaved chart data access refused")
         return _access_denied_error(ex)

@@ -1790,7 +1790,7 @@ Datasource responses include an enumerated reason rather than raw driver output;
 internal errors return an error ID rather than implementation details. Tools such
 as `get_chart_data` that return structured error envelopes instead of raising do
 not pass through this handler. `get_chart_data` reports a refused query as
-`AccessDenied`, and a query rejected by a semantic layer provider or failing
+`AccessDenied`, and a query rejected by a semantic layer provider or by query
 validation while it runs as `ValidationError`, the categories of the chart-data
 API's 403 and 400 responses.
 
