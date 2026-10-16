@@ -22,6 +22,7 @@ import {
   clearPermissionSearchCache,
   fetchGroupOptions,
   fetchPermissionOptions,
+  formatPermissionLabel,
 } from './utils';
 
 const getMock = jest.spyOn(SupersetClient, 'get');
@@ -29,6 +30,35 @@ const getMock = jest.spyOn(SupersetClient, 'get');
 afterEach(() => {
   getMock.mockReset();
   clearPermissionSearchCache();
+});
+
+test('formatPermissionLabel displays encoded dots without decoding other characters', () => {
+  expect(
+    formatPermissionLabel(
+      'catalog_access',
+      '[database].[demo%2Emetrics%2emain%2Fbranch]',
+    ),
+  ).toBe('catalog access [database].[demo.metrics.main%2Fbranch]');
+});
+
+test('fetchPermissionOptions displays encoded dots and preserves permission IDs', async () => {
+  getMock.mockResolvedValue({
+    json: {
+      count: 1,
+      result: [
+        {
+          id: 42,
+          permission: { name: 'catalog_access' },
+          view_menu: { name: '[database].[demo%2Emetrics]' },
+        },
+      ],
+    },
+  } as any);
+
+  expect(await fetchPermissionOptions('', 0, 100, jest.fn())).toEqual({
+    data: [{ value: 42, label: 'catalog access [database].[demo.metrics]' }],
+    totalCount: 1,
+  });
 });
 
 test('fetchPermissionOptions fetches all results on page 0 with large page_size', async () => {
