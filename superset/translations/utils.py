@@ -86,6 +86,7 @@ def get_language_pack(locale: str) -> Optional[dict[str, Any]]:
             return None
     return pack
 
+
 def N_(message: str) -> str:  # noqa: N802
     """
     Mark a string literal for static translation extraction without translating it at

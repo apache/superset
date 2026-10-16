@@ -177,7 +177,7 @@ def test_or_group_is_hashable_and_keeps_predicate_stage(stage: PredicateType) ->
     assert len({group, OrFilter(frozenset({null, leaf}))}) == 1
     assert {child.type for child in group.filters} == {stage}
     with pytest.raises(FrozenInstanceError):
-        group.filters = frozenset()  # type: ignore[misc]  # Exercise runtime freezing.
+        group.filters = frozenset()
 
 
 @pytest.mark.parametrize(

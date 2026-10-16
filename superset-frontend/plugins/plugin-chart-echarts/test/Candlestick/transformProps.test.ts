@@ -19,6 +19,7 @@
 import {
   CategoricalColorNamespace,
   ChartProps,
+  getConstantLabel,
   NULL_STRING,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -781,7 +782,7 @@ test('keeps a SQL null x value distinct from a literal <NULL> category', () => {
     { date: NULL_STRING, open: 40, close: 35, low: 30, high: 50 },
   ]);
   expect((props.echartOptions.xAxis as { data: string[] }).data).toEqual([
-    NULL_STRING,
+    getConstantLabel(NULL_STRING),
     NULL_STRING,
   ]);
   expect(extractSeries(props)[0].data).toEqual([
