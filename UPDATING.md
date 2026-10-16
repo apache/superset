@@ -24,6 +24,22 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Catalog migrations no longer connect to databases
+
+The migrations that add catalog support for PostgreSQL, Databricks, BigQuery,
+Presto, Trino and Snowflake no longer connect to analytical databases while
+upgrading. They fill in the default catalog only when it can be read from the
+database's stored connection settings: the database name in the URI for
+PostgreSQL, Presto, Trino and Snowflake, the project in the URI for BigQuery,
+and an explicit `catalog` setting for Databricks. Permissions for other
+catalogs are not created during the upgrade.
+
+Databases where the default catalog isn't in the stored settings are skipped and
+listed in the migration logs. For those, sync the database permissions after
+upgrading and grant the new catalog-qualified schema permissions to roles that
+had schema access; otherwise those roles can lose access to the database's
+schemas in SQL Lab and Explore.
+
 ### Empty MCP chart previews
 
 Saved Bubble and Histogram Vega-Lite previews with zero rows return an empty
