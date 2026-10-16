@@ -418,6 +418,10 @@ def test_import_dedupes_datasets_with_same_uuid(
     mock_import_dataset.assert_called_once()
 
 
+# A dataset id that no import into a fresh database can assign.
+STALE_DATASET_ID = 123456789
+
+
 def test_import_rewrites_stale_chart_datasource_reference(
     app_context: None, session: Session
 ) -> None:
@@ -435,7 +439,7 @@ def test_import_rewrites_stale_chart_datasource_reference(
     SqlaTable.metadata.create_all(session.get_bind())  # pylint: disable=no-member
 
     chart = copy.deepcopy(chart_config)
-    chart["params"]["datasource"] = "21__table"
+    chart["params"]["datasource"] = f"{STALE_DATASET_ID}__table"
     dataset = copy.deepcopy(dataset_config)
     dataset["database_uuid"] = database_config_sqlite["uuid"]
     dataset["uuid"] = chart["dataset_uuid"]
@@ -453,7 +457,6 @@ def test_import_rewrites_stale_chart_datasource_reference(
 
     imported_dataset = session.query(SqlaTable).one()
     imported_chart = session.query(Slice).one()
-    assert imported_dataset.id != 21
     assert imported_chart.datasource_id == imported_dataset.id
     assert (
         utils_json.loads(imported_chart.params)["datasource"]
