@@ -283,6 +283,7 @@ class CompatibleDatabase(TypedDict, total=False):
     name: str
     description: str
     logo: str
+    logo_dark: str
     homepage_url: str
     pypi_packages: list[str]
     connection_string: str
@@ -342,6 +343,7 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     # Basic information
     description: str
     logo: str  # Filename in docs/static/img/databases/ or full URL
+    logo_dark: str  # Optional dark-theme variant; falls back to logo
     homepage_url: str
     docs_url: str
     sqlalchemy_docs_url: str
@@ -2782,6 +2784,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return None
 
+    @classmethod
+    def expand_nested_columns(
+        cls,
+        cursor: Any,
+        columns: list[ResultSetColumnType],
+    ) -> list[ResultSetColumnType]:
+        """
+        Add one column per nested field (e.g. STRUCT members) to the columns
+        inferred from ``cursor.description`` by ``get_columns_description``, so
+        virtual datasets get the dotted columns the inspector returns for
+        physical tables. The default returns ``columns`` unchanged.
+        """
+        return columns
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -3000,6 +3016,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cancelation request has been received. For those cases, the db engine spec
         can record the cancelation intent so that the query can either be stopped
         prior to execution, or canceled once the query id is acquired.
+
+        Only stage changes on the query; do not flush or commit here. The caller
+        persists them with a guarded stop so a concurrent terminal result wins.
         """
         return None
 

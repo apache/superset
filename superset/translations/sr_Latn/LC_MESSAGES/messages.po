@@ -1834,12 +1834,12 @@ msgid "Added '%s' dimension"
 msgstr ""
 
 # ja, lv, mi, ru, sk, uk]
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Dodata je %s nova kolona u virtuelni skup podataka"
-msgstr[1] "Dodate su %s nove kolone u virtuelni skup podataka"
-msgstr[2] "Dodato je %s novih kolona u virtuelni skup podataka"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Dodata je %s nova kolona u skup podataka"
+msgstr[1] "Dodate su %s nove kolone u skup podataka"
+msgstr[2] "Dodato je %s novih kolona u skup podataka"
 
 #, python-format
 msgid "Added a %s"
@@ -9988,7 +9988,7 @@ msgid "Get the last date by the date unit."
 msgstr "Dobavlja zadnji datum prema jedinici datuma."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Dobavlja određeni datum za praznik"
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -12391,12 +12391,12 @@ msgid "Modified %s"
 msgstr "Izmenjeno %s"
 
 # fr, ja, lv, mi, ru, sk, uk]
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Izmenjena %s kolona u virtuelnom skupu podataka"
-msgstr[1] "Izmenjene %s kolone u virtuelnom skupu podataka"
-msgstr[2] "Izmenjeno %s kolona u virtuelnom skupu podataka"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Izmenjena %s kolona u skupu podataka"
+msgstr[1] "Izmenjene %s kolone u skupu podataka"
+msgstr[2] "Izmenjeno %s kolona u skupu podataka"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -15044,12 +15044,12 @@ msgid "Removed '%s' metric"
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Uklonjena je %s kolona iz virtuelnog skupa podataka"
-msgstr[1] "Uklonjene su %s kolone iz virtuelnog skupa podataka"
-msgstr[2] "Uklonjeno je %s kolona iz virtuelnog skupa podataka"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Uklonjena je %s kolona iz skupa podataka"
+msgstr[1] "Uklonjene su %s kolone iz skupa podataka"
+msgstr[2] "Uklonjeno je %s kolona iz skupa podataka"
 
 #, python-format
 msgid "Removed a %s"

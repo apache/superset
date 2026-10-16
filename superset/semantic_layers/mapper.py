@@ -25,8 +25,8 @@ single dataframe.
 """
 
 import logging
-from collections.abc import Collection
-from dataclasses import dataclass
+from collections.abc import Callable, Collection
+from dataclasses import dataclass, replace
 from datetime import date, datetime, time, timedelta, tzinfo
 from time import time as current_time
 from typing import Any, cast, Sequence, TypeGuard
@@ -40,6 +40,7 @@ from superset_core.semantic_layers.types import (
     AdhocExpression,
     Dimension,
     Filter,
+    FilterExpression,
     FilterValues,
     Grain,
     Grains,
@@ -48,6 +49,7 @@ from superset_core.semantic_layers.types import (
     Operator,
     OrderDirection,
     OrderTuple,
+    OrFilter,
     PredicateType,
     SemanticQuery,
     SemanticResult,
@@ -61,12 +63,27 @@ from superset.common.utils.time_range_utils import (
     get_since_until_from_time_range,
 )
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import NO_TIME_RANGE
+from superset.constants import (
+    EMPTY_STRING,
+    NO_TIME_RANGE,
+    NULL_STRING,
+    SemanticCacheStatus,
+)
 from superset.exceptions import QueryObjectValidationError
 from superset.models.helpers import QueryResult
 from superset.result_set import stringify_extension_columns
-from superset.semantic_layers.completeness import provider_completeness
-from superset.superset_typing import AdhocColumn, Column
+from superset.semantic_layers import cache as semantic_cache
+from superset.semantic_layers.cache import SemanticCacheOutcome
+from superset.semantic_layers.cache_host import build_cache_configuration
+from superset.semantic_layers.cache_policy import ContainmentCapabilities
+from superset.semantic_layers.cache_repository import ViewMeta
+from superset.semantic_layers.exceptions import execute_semantic_query
+from superset.semantic_layers.members import members_by_key
+from superset.superset_typing import (
+    AdhocColumn,
+    Column,
+    FilterValues as QueryFilterValues,
+)
 from superset.utils.core import (
     FilterOperator,
     QueryObjectFilterClause,
@@ -127,6 +144,48 @@ class ValidatedQueryObject(QueryObject):
     filter: list[ValidatedQueryObjectFilterClause]  # type: ignore[assignment]
     series_columns: Sequence[str]  # type: ignore[assignment]
     series_limit_metric: str | None
+    # ``_validate_metrics`` rejects adhoc metrics, so by this point every entry
+    # is a member name that can key the mapping built by ``members_by_key``.
+    metrics: list[str] | None  # type: ignore[assignment]
+
+
+def _dispatch_semantic_query(
+    datasource: BaseDatasource,
+    dispatcher: Callable[[SemanticQuery], SemanticResult],
+    query: SemanticQuery,
+    *,
+    force: bool = False,
+    cacheable: bool = True,
+    cache_timeout: int | None = None,
+) -> SemanticCacheOutcome:
+    # Normalize before any store or reuse: a provider may return
+    # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
+    # table would break every later transformation of that entry.
+    def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
+        result: SemanticResult = execute_semantic_query(dispatcher, dispatched_query)
+        return _coerce_empty_result(result, dispatched_query)
+
+    if not cacheable or not semantic_cache.semantic_cache_service.state.effective:
+        return semantic_cache.semantic_cache_service.execute_provider(
+            query, normalized_dispatcher
+        )
+    cache_configuration: tuple[ViewMeta, ContainmentCapabilities] | None = (
+        build_cache_configuration(datasource, cache_timeout=cache_timeout)
+    )
+    if cache_configuration is None:
+        return semantic_cache.semantic_cache_service.execute_provider(
+            query, normalized_dispatcher
+        )
+    meta: ViewMeta
+    capabilities: ContainmentCapabilities
+    meta, capabilities = cache_configuration
+    return semantic_cache.semantic_cache_service.execute(
+        meta,
+        query,
+        normalized_dispatcher,
+        capabilities=capabilities,
+        force=force,
+    )
 
 
 @dataclass(frozen=True)
@@ -170,9 +229,25 @@ def get_results(query_object: QueryObject) -> QueryResult:
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
-    with provider_completeness():
-        main_result = dispatcher(main_query)
+    main_outcome: SemanticCacheOutcome = _dispatch_semantic_query(
+        query_object.datasource,
+        dispatcher,
+        main_query,
+        force=query_object.force_query,
+        # Row-count results share the query's logical identity but not its
+        # shape: a cached table result would satisfy a row-count lookup (and
+        # vice versa) and break server-side pagination. Containment reuse is
+        # only defined over tabular results, so row-count dispatches bypass
+        # the cache entirely. Nonzero row offsets cannot be reused either;
+        # storing those pages would only evict usable first-page descriptors.
+        cacheable=not query_object.is_rowcount and not query_object.row_offset,
+        cache_timeout=query_object.cache_timeout,
+    )
+    main_result: SemanticResult = main_outcome.result
     main_result = _coerce_empty_result(main_result, main_query)
+    # One flag per dispatched semantic query, so the reported provenance
+    # covers the offset queries and not only the main one.
+    cache_hits: list[bool] = [main_outcome.cache_hit]
 
     main_df = stringify_extension_columns(main_result.results).to_pandas(
         integer_object_nulls=True,
@@ -189,6 +264,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             query_object,
             duration,
             metadata,
+            semantic_cache_status=SemanticCacheStatus.from_hits(cache_hits),
         )
 
     # Get metric names from the main query
@@ -206,8 +282,16 @@ def get_results(query_object: QueryObject) -> QueryResult:
         strict=False,
     ):
         # Execute the offset query
-        with provider_completeness():
-            result = dispatcher(offset_query)
+        outcome: SemanticCacheOutcome = _dispatch_semantic_query(
+            query_object.datasource,
+            dispatcher,
+            offset_query,
+            force=query_object.force_query,
+            cacheable=not query_object.is_rowcount and not query_object.row_offset,
+            cache_timeout=query_object.cache_timeout,
+        )
+        cache_hits.append(outcome.cache_hit)
+        result: SemanticResult = outcome.result
         result = _coerce_empty_result(result, offset_query)
 
         # Add this query's requests to the collection
@@ -284,6 +368,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         query_object,
         duration,
         metadata,
+        semantic_cache_status=SemanticCacheStatus.from_hits(cache_hits),
     )
 
 
@@ -318,6 +403,8 @@ def map_semantic_result_to_query_result(
     query_object: ValidatedQueryObject,
     duration: timedelta,
     metadata: _ViewMetadata | None = None,
+    *,
+    semantic_cache_status: SemanticCacheStatus = SemanticCacheStatus.MISS,
 ) -> QueryResult:
     """
     Convert a SemanticResult to a QueryResult.
@@ -375,6 +462,7 @@ def map_semantic_result_to_query_result(
         # Time range - pass through from original query_object
         from_dttm=query_object.from_dttm,
         to_dttm=query_object.to_dttm,
+        semantic_cache_status=semantic_cache_status.value,
     )
 
 
@@ -413,16 +501,20 @@ def _map_query_object(
     view_metrics: tuple[Metric, ...] = metadata.metrics
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
 
-    all_metrics = {metric.name: metric for metric in view_metrics}
-    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
+    all_metrics: dict[str, Metric] = members_by_key(view_metrics)
+    all_dimensions: dict[str, Dimension] = members_by_key(view_dimensions)
 
     validate_filter_columns(query_object.filter, all_dimensions, all_metrics)
 
     # Normalize columns (may be dicts with isColumnReference=True for time-series)
     dimension_names = set(all_dimensions.keys())
-    normalized_columns = {
-        _normalize_column(column, dimension_names) for column in query_object.columns
-    }
+    normalized_column_order: list[str] = list(
+        dict.fromkeys(
+            _normalize_column(column, dimension_names)
+            for column in query_object.columns
+        )
+    )
+    normalized_columns: set[str] = set(normalized_column_order)
 
     metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
 
@@ -435,7 +527,6 @@ def _map_query_object(
     # to any available variant so the axis is never silently dropped; for
     # every other selected column we prefer the raw variant and otherwise
     # take any available variant.
-    dimensions: list[Dimension] = []
     seen_non_axis: dict[str, Dimension] = {}
     axis_variants: list[Dimension] = []
     axis_match: Dimension | None = None
@@ -451,19 +542,25 @@ def _map_query_object(
         if existing is None or (existing.grain is not None and dimension.grain is None):
             seen_non_axis[dimension.name] = dimension
 
-    if axis_match is not None:
-        dimensions.append(axis_match)
+    selected_dimensions: dict[str, Dimension] = dict(seen_non_axis)
+    if axis_match is not None and time_axis_column is not None:
+        selected_dimensions[time_axis_column] = axis_match
     elif axis_variants:
         # No variant matches the requested grain. Prefer the raw (grain=None)
         # variant; otherwise pick a deterministic fallback so the axis stays
         # on the query instead of being silently dropped.
         raw_variant = next((v for v in axis_variants if v.grain is None), None)
-        dimensions.append(
+        selected_axis: Dimension = (
             raw_variant
             if raw_variant is not None
             else min(axis_variants, key=lambda v: v.grain.name if v.grain else "")
         )
-    dimensions.extend(seen_non_axis.values())
+        selected_dimensions[selected_axis.name] = selected_axis
+    dimensions: list[Dimension] = [
+        selected_dimensions[name]
+        for name in normalized_column_order
+        if name in selected_dimensions
+    ]
 
     order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
     limit = query_object.row_limit
@@ -504,14 +601,14 @@ def _get_filters_from_query_object(
     query_object: ValidatedQueryObject,
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter]:
+) -> set[FilterExpression]:
     """
     Extract all filters from the query object, including time range filters.
 
     This simplifies the complexity of from_dttm/to_dttm/inner_from_dttm/inner_to_dttm
     by converting all time constraints into filters.
     """
-    filters: set[Filter] = set()
+    filters: set[FilterExpression] = set()
 
     # 1. Add fetch values predicate if present
     if (
@@ -748,7 +845,7 @@ def _get_time_bounds(
 def _convert_query_object_filter(
     filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter] | None:
+) -> set[FilterExpression] | None:
     """
     Convert a QueryObject filter dict to a semantic layer Filter.
     """
@@ -762,21 +859,16 @@ def _convert_query_object_filter(
 
     dimension = all_dimensions[col]
 
-    val_str = filter_["val"]
-    value: FilterValues | frozenset[FilterValues]
-    if val_str is None:
-        value = None
-    elif isinstance(val_str, (list, tuple)):
-        value = frozenset(val_str)
-    else:
-        value = val_str
+    raw_value: QueryFilterValues | None = filter_["val"]
 
     # Special case for temporal range
     if operator_str == FilterOperator.TEMPORAL_RANGE.value:
-        if not isinstance(value, str) or value == NO_TIME_RANGE:
+        if not isinstance(raw_value, str) or raw_value == NO_TIME_RANGE:
             return None
-        start, end = get_since_until_from_time_range(time_range=value)
-        filters: set[Filter] = set()
+        start: datetime | None
+        end: datetime | None
+        start, end = get_since_until_from_time_range(time_range=raw_value)
+        filters: set[FilterExpression] = set()
         if start is not None:
             filters.add(
                 Filter(
@@ -797,30 +889,77 @@ def _convert_query_object_filter(
             )
         return filters or None
 
-    value = _coerce_filter_value(value, dimension)
-
-    operator = OPERATOR_MAP.get(operator_str)
+    operator: Operator | None = OPERATOR_MAP.get(operator_str)
     if not operator:
         # Unknown operator - raise error to prevent unauthorized access
         raise ValueError(f"Unsupported filter operator: {operator_str}")
 
-    return {
+    value: FilterValues | frozenset[FilterValues]
+    if operator in {Operator.IN, Operator.NOT_IN}:
+        # Coerce before deduplicating: equal raw values (0 and False) may differ
+        # in validity for the selected dimension's type.
+        value = (
+            frozenset(
+                _coerce_scalar_filter_value(item, dimension) for item in raw_value
+            )
+            if isinstance(raw_value, (list, tuple))
+            else _coerce_scalar_filter_value(raw_value, dimension)
+        )
+    elif operator in {Operator.IS_NULL, Operator.IS_NOT_NULL}:
+        value = None
+    else:
+        # Match the native datasource's scalar handling of collection inputs.
+        scalar: FilterValues = (
+            (raw_value[0] if raw_value else None)
+            if isinstance(raw_value, (list, tuple))
+            else raw_value
+        )
+        value = _coerce_scalar_filter_value(scalar, dimension)
+        if value is None and operator not in {Operator.EQUALS, Operator.NOT_EQUALS}:
+            raise QueryObjectValidationError(
+                "Must specify a value for this comparison."
+            )
+
+    return _normalize_membership_filter(
         Filter(
             type=PredicateType.WHERE,
             column=dimension,
             operator=operator,
             value=value,
         )
-    }
+    )
 
 
-def _coerce_filter_value(
-    value: FilterValues | frozenset[FilterValues],
-    dimension: Dimension,
-) -> FilterValues | frozenset[FilterValues]:
-    if isinstance(value, frozenset):
-        return frozenset(_coerce_scalar_filter_value(v, dimension) for v in value)
-    return _coerce_scalar_filter_value(value, dimension)
+def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
+    """Normalize NULL equality/membership and reject empty membership selections."""
+    negated: bool = filter_.operator in {Operator.NOT_EQUALS, Operator.NOT_IN}
+    null_filter: Filter = replace(
+        filter_,
+        operator=Operator.IS_NOT_NULL if negated else Operator.IS_NULL,
+        value=None,
+    )
+    if filter_.operator in {Operator.EQUALS, Operator.NOT_EQUALS}:
+        return {null_filter} if filter_.value is None else {filter_}
+    if filter_.operator not in {Operator.IN, Operator.NOT_IN}:
+        return {filter_}
+
+    values: frozenset[FilterValues] = (
+        frozenset(filter_.value)
+        if isinstance(filter_.value, (tuple, frozenset))
+        else frozenset({filter_.value})
+    )
+    if not values:
+        raise QueryObjectValidationError("Semantic IN/NOT IN filters cannot be empty.")
+    if None not in values:
+        return {filter_}
+
+    non_null_values: frozenset[FilterValues] = values - {None}
+    if not non_null_values:
+        return {null_filter}
+    comparison: Filter = replace(filter_, value=non_null_values)
+    if negated:
+        return {comparison, null_filter}
+    return {OrFilter(frozenset({comparison, null_filter}))}
 
 
 def _timestamp_target_tz(dtype: pa.DataType) -> tzinfo | None:
@@ -839,6 +978,11 @@ def _align_tz(dt: datetime, target_tz: tzinfo | None) -> datetime:
 def _coerce_scalar_filter_value(  # noqa: C901 — type dispatch, complexity is inherent
     value: FilterValues, dimension: Dimension
 ) -> FilterValues:
+    if isinstance(value, str):
+        if value == NULL_STRING:
+            return None
+        if value == EMPTY_STRING:
+            value = ""
     if value is None:
         return None
 
@@ -1029,7 +1173,7 @@ def _get_group_limit_from_query_object(
 def _get_group_limit_filters(
     query_object: ValidatedQueryObject,
     all_dimensions: dict[str, Dimension],
-) -> set[Filter] | None:
+) -> set[FilterExpression] | None:
     """
     Get separate filters for the group limit subquery if needed.
 
@@ -1052,7 +1196,7 @@ def _get_group_limit_filters(
         return None
 
     # Create separate filters for the group limit subquery
-    filters: set[Filter] = set()
+    filters: set[FilterExpression] = set()
     time_bounds_emitted = False
 
     # Add time range filter using inner bounds. The temporal column is resolved
@@ -1294,7 +1438,7 @@ def _validate_granularity(
     Make sure time column and time grain are valid.
     """
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
-    all_dimensions = {dimension.name: dimension for dimension in view_dimensions}
+    all_dimensions: dict[str, Dimension] = members_by_key(view_dimensions)
     dimension_names = set(all_dimensions.keys())
 
     if (legacy_time_column := query_object.granularity) and (

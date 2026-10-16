@@ -19,10 +19,9 @@
 
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
-import { styled, css } from '@apache-superset/core/theme';
+import { css } from '@apache-superset/core/theme';
 import {
   Button,
-  Card,
   Flex,
   Form,
   Input,
@@ -40,6 +39,8 @@ import {
 import { useDispatch } from 'react-redux';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
+import { RoutePaths } from 'src/views/routePaths';
+import { StyledCard, StyledLabel } from './styles';
 
 type OAuthProvider = {
   name: string;
@@ -65,25 +66,6 @@ enum AuthType {
   AuthOauth = 4,
   AuthSAML = 5,
 }
-
-const StyledCard = styled(Card)`
-  ${({ theme }) => css`
-    max-width: 400px;
-    width: 100%;
-    margin-top: ${theme.marginXL}px;
-    color: ${theme.colorBgContainer};
-    background: ${theme.colorBgBase};
-    .ant-form-item-label label {
-      color: ${theme.colorPrimary};
-    }
-  `}
-`;
-
-const StyledLabel = styled(Typography.Text)`
-  ${({ theme }) => css`
-    font-size: ${theme.fontSizeSM}px;
-  `}
-`;
 
 export default function Login() {
   const [form] = Form.useForm<LoginForm>();
@@ -119,6 +101,11 @@ export default function Login() {
   const providers: Provider[] = bootstrapData.common.conf.AUTH_PROVIDERS;
   const authRegistration: boolean =
     bootstrapData.common.conf.AUTH_USER_REGISTRATION;
+  // The backend only sets this for AUTH_DB deployments whose operator has
+  // enabled self-service password recovery.
+  const passwordRecoveryEnabled =
+    authType === AuthType.AuthDB &&
+    Boolean(bootstrapData.common.conf.PASSWORD_RECOVERY_ENABLED);
 
   // Flashed auth messages (failed logins, session invalidation, forced
   // password change) are drained by the login view into the bootstrap
@@ -246,6 +233,16 @@ export default function Login() {
                 rules={[
                   { required: true, message: t('Please enter your password') },
                 ]}
+                extra={
+                  passwordRecoveryEnabled && (
+                    <Typography.Link
+                      href={ensureAppRoot(RoutePaths.FORGOT_PASSWORD)}
+                      data-test="forgot-password-link"
+                    >
+                      {t('Forgot password?')}
+                    </Typography.Link>
+                  )
+                }
               >
                 <Input.Password
                   prefix={<Icons.KeyOutlined iconSize="l" />}
