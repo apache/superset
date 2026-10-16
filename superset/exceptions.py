@@ -266,6 +266,27 @@ class SemanticResultCompletenessError(QueryObjectValidationError):
         super().__init__(message)
 
 
+class QueryObjectValidationMessage(str):
+    """
+    A failed query's error text that keeps its validation cause.
+
+    Chart-data payloads carry a failed query's error as text. This subclass
+    serializes as that text, so payload consumers are unaffected, while the
+    chart-data command can still report the failure as a validation error.
+    """
+
+    cause: QueryObjectValidationError
+
+    def __new__(cls, cause: QueryObjectValidationError) -> QueryObjectValidationMessage:
+        message = super().__new__(cls, str(cause))
+        message.cause = cause
+        return message
+
+    def __reduce__(self) -> tuple[type[str], tuple[str]]:
+        # Copies and pickles degrade to the plain error text.
+        return str, (str(self),)
+
+
 class AdvancedDataTypeResponseError(SupersetException):
     status = 400
 

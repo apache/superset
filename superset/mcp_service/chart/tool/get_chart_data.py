@@ -34,6 +34,7 @@ from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.charts.data.form_data import set_query_context_form_data
+from superset.commands.chart.exceptions import ChartDataQueryValidationError
 from superset.commands.exceptions import CommandException
 from superset.exceptions import (
     OAuth2Error,
@@ -1209,7 +1210,11 @@ async def _get_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
-        except (QueryObjectValidationError, SemanticLayerQueryRejectedError) as ex:
+        except (
+            ChartDataQueryValidationError,
+            QueryObjectValidationError,
+            SemanticLayerQueryRejectedError,
+        ) as ex:
             logger.warning(
                 "Chart data validation failed for chart %s: %s", chart_id, ex
             )
@@ -1456,7 +1461,11 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
-    except (QueryObjectValidationError, SemanticLayerQueryRejectedError) as ex:
+    except (
+        ChartDataQueryValidationError,
+        QueryObjectValidationError,
+        SemanticLayerQueryRejectedError,
+    ) as ex:
         logger.warning("Unsaved chart data validation failed: %s", ex)
         return ChartError(error=str(ex), error_type="ValidationError")
     except SupersetSecurityException as ex:

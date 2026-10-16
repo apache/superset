@@ -4085,6 +4085,157 @@ async def test_unsaved_chart_query_error_keeps_api_category(
     assert message in data["error"]
 
 
+EMPTY_IN_QUERY: dict[str, Any] = {
+    "columns": ["STATUS"],
+    "metrics": ["ORDER_COUNT"],
+    "filters": [{"col": "STATUS", "op": "IN", "val": []}],
+}
+
+
+def _empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Save a semantic chart the real mapper refuses while the query runs."""
+    import pyarrow as pa
+    from superset_core.semantic_layers.types import Dimension, Metric
+    from superset_core.semantic_layers.view import SemanticView as ProviderView
+
+    from superset.semantic_layers.models import SemanticView
+
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    processor_module: Any = importlib.import_module(
+        "superset.common.query_context_processor"
+    )
+    provider: MagicMock = MagicMock(spec=ProviderView)
+    provider.features = frozenset()
+    provider.selection_identity_version = None
+    provider.uid.return_value = "metric-filter-test"
+    provider.get_dimensions.return_value = {
+        Dimension(id="orders.STATUS", name="STATUS", type=pa.utf8(), grain=None)
+    }
+    provider.get_metrics.return_value = {
+        Metric(
+            id="orders.ORDER_COUNT",
+            name="ORDER_COUNT",
+            type=pa.int64(),
+            definition="COUNT(*)",
+        )
+    }
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    view.__dict__["implementation"] = provider
+
+    chart: MagicMock = MagicMock()
+    chart.id = 1
+    chart.slice_name = "Orders by status"
+    chart.viz_type = "table"
+    chart.datasource_id = 7
+    chart.datasource_type = "semantic_view"
+    chart.params = json.dumps({"viz_type": "table"})
+    chart.query_context = json.dumps(
+        {
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [EMPTY_IN_QUERY],
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+    validation: MagicMock = MagicMock(is_valid=True, warnings=[])
+    monkeypatch.setattr(chart_data_module, "is_semantic_layers_enabled", lambda: True)
+    monkeypatch.setattr(
+        chart_data_module, "find_chart_by_identifier", lambda *a, **k: chart
+    )
+    monkeypatch.setattr(
+        chart_data_module, "validate_chart_semantic_view", lambda *a, **k: validation
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        lambda *a, **k: view,
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context.QueryContext.raise_for_access",
+        lambda self: None,
+    )
+    monkeypatch.setattr(
+        "superset.security_manager.raise_for_unsupported_guest_rls",
+        lambda *a, **k: None,
+    )
+    monkeypatch.setattr(
+        processor_module.QueryContextProcessor,
+        "query_cache_key",
+        lambda *a, **k: "metric-filter-test",
+    )
+    monkeypatch.setattr(
+        processor_module.QueryContextProcessor, "get_cache_timeout", lambda self: -1
+    )
+    return provider
+
+
+@pytest.mark.asyncio
+async def test_saved_chart_mapper_refusal_is_validation_error(
+    app_context: None,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The real command path keeps a semantic mapper refusal out of DataError."""
+    provider: MagicMock = _empty_filter_semantic_chart(monkeypatch)
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "ValidationError"
+    assert "Semantic IN/NOT IN filters cannot be empty." in data["error"]
+    provider.get_table.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_unsaved_chart_mapper_refusal_is_validation_error(
+    app_context: None,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The form_data_key path keeps a mapper refusal out of DataError too."""
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+    from superset.common.query_context_factory import QueryContextFactory
+
+    provider: MagicMock = _empty_filter_semantic_chart(monkeypatch)
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "get_cached_form_data",
+        lambda *a, **k: json.dumps(
+            {"datasource": "7__semantic_view", "viz_type": "table"}
+        ),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *a, **k: QueryContextFactory().create(
+            datasource={"id": 7, "type": "semantic_view"},
+            queries=[EMPTY_IN_QUERY],
+            result_type=ChartDataResultType.FULL,
+            result_format=ChartDataResultFormat.JSON,
+            force=True,
+        ),
+    )
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "ValidationError"
+    assert "Semantic IN/NOT IN filters cannot be empty." in data["error"]
+    provider.get_table.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # Tests for _recommend_visualizations
 # ---------------------------------------------------------------------------
