@@ -539,7 +539,10 @@ export default function transformProps(
   // the same way they are hidden from the rendered series (see
   // extractForecastSeriesContext usage above), so the sort key never
   // depends on the forecast trend or confidence bounds.
-  const pivotedColumnsOf = (metricLabel: string): string[] =>
+  const pivotedColumnsOf = (
+    metricLabel: string,
+    { includeForecast = false }: { includeForecast?: boolean } = {},
+  ): string[] =>
     Object.entries(labelMap)
       .filter(
         ([column, parts]) =>
@@ -551,8 +554,9 @@ export default function transformProps(
           parts.length === groupBy.length + 1 &&
           parts[0] === metricLabel &&
           !derivedComparisonSeries.has(column) &&
-          extractForecastSeriesContext(column).type ===
-            ForecastSeriesEnum.Observation,
+          (includeForecast ||
+            extractForecastSeriesContext(column).type ===
+              ForecastSeriesEnum.Observation),
       )
       .map(([column]) => column);
   // rebasedData's keys have already been through rebaseForecastDatum, which
@@ -576,7 +580,12 @@ export default function transformProps(
     .flatMap(label =>
       label === sizeMetricLabel
         ? []
-        : [verboseMap[label] ?? label, ...pivotedColumnsOf(label)],
+        : [
+            verboseMap[label] ?? label,
+            // forecast columns of a sort-only metric stay hidden too, even
+            // though the sort key itself ignores them
+            ...pivotedColumnsOf(label, { includeForecast: true }),
+          ],
     );
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,

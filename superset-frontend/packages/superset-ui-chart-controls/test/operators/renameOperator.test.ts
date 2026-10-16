@@ -356,6 +356,28 @@ test('should not collide a sort-only metric labeled like a time offset with the 
   });
 });
 
+test('should still truncate the metric prefix when a sort-only metric is added', () => {
+  // The sort-only metric is hidden from rendering, so a single displayed
+  // metric with dimensions and `truncate_metric` keeps dropping its prefix.
+  expect(
+    renameOperator(
+      {
+        ...formData,
+        x_axis_sort: 'sales',
+        timeseries_limit_metric: 'sales',
+      },
+      queryObject,
+    ),
+  ).toEqual({
+    operation: 'rename',
+    options: {
+      columns: { 'count(*)': null },
+      inplace: true,
+      level: 0,
+    },
+  });
+});
+
 test('should remove renameOperator', () => {
   expect(
     renameOperator(
