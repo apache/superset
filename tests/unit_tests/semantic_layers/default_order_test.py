@@ -261,3 +261,54 @@ def test_limited_hit_is_not_reused_under_a_different_default_order() -> None:
         "shipped_at": [datetime(2026, 1, 9)],
         "total_sales": [1.0],
     }
+
+
+@pytest.mark.parametrize(
+    "stored_dimensions, query_dimensions, expected",
+    [
+        # Dropping the time dimension: the rollup promises no order.
+        (
+            [REGION, ORDER_DATE],
+            [REGION],
+            {"region": ["East", "West"], "total_sales": [3.0, 5.0]},
+        ),
+        # The entry defaulted to shipped_at; the rollup re-sorts by order_date.
+        (
+            [REGION, SHIPPED_AT, ORDER_DATE],
+            [REGION, ORDER_DATE],
+            {
+                "region": ["West", "East"],
+                "order_date": [date(2026, 1, 1), date(2026, 1, 2)],
+                "total_sales": [5.0, 3.0],
+            },
+        ),
+    ],
+)
+def test_rollup_reuses_an_unlimited_entry_whatever_its_default_order(
+    stored_dimensions: list[Dimension],
+    query_dimensions: list[Dimension],
+    expected: dict[str, list[object]],
+) -> None:
+    columns: dict[str, list[object]] = {
+        "region": ["East", "West", "East"],
+        "shipped_at": [
+            datetime(2026, 1, 1),
+            datetime(2026, 1, 2),
+            datetime(2026, 1, 3),
+        ],
+        "order_date": [date(2026, 1, 2), date(2026, 1, 1), date(2026, 1, 2)],
+        "total_sales": [1.0, 5.0, 2.0],
+    }
+    stored_rows: dict[str, list[object]] = {
+        name: values
+        for name, values in columns.items()
+        if name in {d.name for d in stored_dimensions} or name == "total_sales"
+    }
+    stored_query: SemanticQuery = SemanticQuery(
+        metrics=[SUMMED_SALES], dimensions=stored_dimensions
+    )
+    query: SemanticQuery = SemanticQuery(
+        metrics=[SUMMED_SALES], dimensions=query_dimensions
+    )
+
+    assert _serve_from_cache(stored_query, stored_rows, query) == expected
