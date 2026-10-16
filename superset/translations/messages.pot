@@ -12724,9 +12724,6 @@ msgstr ""
 msgid "Show columns subtotal"
 msgstr ""
 
-msgid "Show columns total"
-msgstr ""
-
 msgid "Show empty columns"
 msgstr ""
 
@@ -12803,9 +12800,6 @@ msgid "Show row summaries"
 msgstr ""
 
 msgid "Show rows subtotal"
-msgstr ""
-
-msgid "Show rows total"
 msgstr ""
 
 msgid "Show series values on the chart"

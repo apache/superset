@@ -984,6 +984,48 @@ test('"Metric" aggregation with "% of Columns" fills the Total cells from the da
   expect(byColumn.getAggregator(['red'], []).value()).toBeCloseTo(0.75, 5);
 });
 
+test('"Metric" aggregation with "% of Rows" fills the Total cells from the database totals', () => {
+  // Mirror of the "% of Columns" case with the metric on the row axis, so the
+  // `selCol.length === 0` branch must keep the Total cells at 25%/75%.
+  const fixture = [
+    {
+      color: 'blue',
+      Metric: 'm1',
+      value: 10,
+      __rows: ['Metric'],
+      __columns: ['color'],
+      __metricKey: 'Metric',
+    },
+    {
+      color: 'red',
+      Metric: 'm1',
+      value: 30,
+      __rows: ['Metric'],
+      __columns: ['color'],
+      __metricKey: 'Metric',
+    },
+    {
+      Metric: 'm1',
+      value: 40,
+      __rows: ['Metric'],
+      __columns: [],
+      __metricKey: 'Metric',
+    },
+    { Metric: 'm1', value: 40, __rows: [], __columns: [] },
+  ] as unknown as PivotRecord[];
+
+  const byRow = new PivotData({
+    data: fixture,
+    rows: ['Metric'],
+    cols: ['color'],
+    vals: ['value'],
+    aggregateFunction: 'Metric',
+    showValuesAs: ShowValuesAsEnum.PERCENT_OF_ROW,
+  });
+  expect(byRow.getAggregator([], ['blue']).value()).toBeCloseTo(0.25, 5);
+  expect(byRow.getAggregator([], ['red']).value()).toBeCloseTo(0.75, 5);
+});
+
 test('"Sum as Fraction of Total" keeps an all-null scope blank while other scopes ignore null inputs', () => {
   const leaves = [
     { color: 'blue', Metric: 'm1', value: null, __metricKey: 'Metric' },
