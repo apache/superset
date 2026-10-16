@@ -25,7 +25,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
-from collections.abc import Callable
+from collections.abc import Callable, Collection
 from functools import partial
 from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
@@ -157,7 +157,7 @@ def get_metric_rollup_reducers(
     return reducers
 
 
-def _collapsed_metric(present: list[Any]) -> Any:
+def _collapsed_metric(present: Collection[Any]) -> Any:
     """
     The metric a rollup spanning `present` stands for, or `None` when `present`
     spans more than one distinct metric.
@@ -191,14 +191,15 @@ def _metric_of_column(column: Any, metric_level: int) -> Any:
     return column[metric_level] if isinstance(column, tuple) else column
 
 
-def _rollup_metric(column: Any, metric_level: int, metrics: list[str]) -> Any:
+def _rollup_metric(column: Any, metric_level: int, metric_names: set[str]) -> Any:
     """The metric to read from a rollup record for a cell in ``column``.
 
     A column carrying a total label instead of a metric name collapses the metric
-    axis; see ``_collapsed_metric``.
+    axis; see ``_collapsed_metric``. ``metric_names`` is a set because this runs
+    once per cell.
     """
     name = _metric_of_column(column, metric_level)
-    return name if name in metrics else _collapsed_metric(metrics)
+    return name if name in metric_names else _collapsed_metric(metric_names)
 
 
 def _reduce(
@@ -283,6 +284,7 @@ def _apply_rollup_totals(  # pylint: disable=too-many-arguments,too-many-locals
     cell blank.
     """
     keyed = _rollup_index(rollup_levels)
+    metric_names = set(metrics)
 
     def lookup(row: Any, column: Any) -> tuple[bool, Any]:
         row_depth = row_prefix_depth.get(row, len(rows))
@@ -294,7 +296,7 @@ def _apply_rollup_totals(  # pylint: disable=too-many-arguments,too-many-locals
         record = keyed(grouped).get(key)
         if record is None:
             return False, None
-        return True, record.get(_rollup_metric(column, metric_level, metrics))
+        return True, record.get(_rollup_metric(column, metric_level, metric_names))
 
     # Index positionally: a tuple label on a MultiIndex is ambiguous to `.loc`.
     for column_position, column in enumerate(df.columns):
@@ -336,6 +338,7 @@ def _rollup_denominators(  # pylint: disable=too-many-arguments,too-many-locals
         the caller fall back to a leaf-derived total.
     """
     keyed = _rollup_index(rollup_levels)
+    metric_names = set(metrics)
 
     def denominator(row: Any, column: Any) -> tuple[bool, Any]:
         if mode == ShowValuesAs.PERCENT_OF_TOTAL:
@@ -356,7 +359,7 @@ def _rollup_denominators(  # pylint: disable=too-many-arguments,too-many-locals
         record = keyed(grouped).get(key)
         if record is None:
             return False, None
-        return True, record.get(_rollup_metric(column, metric_level, metrics))
+        return True, record.get(_rollup_metric(column, metric_level, metric_names))
 
     resolved = [[denominator(row, column) for column in df.columns] for row in df.index]
     values = pd.DataFrame(
@@ -634,6 +637,9 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         keep = [column == metric for column in present]
         return block.loc[:, keep], reducers.get(str(metric), DEFAULT_ROLLUP_REDUCER)
 
+    # Totals that span more than one metric, blanked below and kept blank
+    # once the column totals have run over them.
+    mixed_metric_totals: list[Any] = []
     if show_rows_total:
         # add subtotal for each group and overall total; we start from the
         # overall group, and iterate deeper into subgroups
@@ -661,13 +667,17 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     # to a number. The row totals below already coerce; do the
                     # same here so a total means the same thing on both axes.
                     block = block.apply(pd.to_numeric, errors="coerce")
-                if percent_mode:
-                    source, reducer = collapse(block)
-                    subtotal = (
-                        pd.Series(np.nan, index=block.index)
-                        if source is None
-                        else _reduce(source, reducer, axis=1)
-                    )
+                source, reducer = collapse(block)
+                # A total spanning more than one metric has no single
+                # meaningful value in Actual Values mode any more than in a
+                # percent mode: the chart leaves it blank (#44657), so does
+                # the export. The currency-context pass holds currency codes
+                # rather than metric values and keeps its union.
+                mixed = source is None and aggfunc != CURRENCY_CONTEXT_AGGREGATION
+                if mixed or (percent_mode and source is None):
+                    subtotal = pd.Series(np.nan, index=block.index)
+                elif percent_mode:
+                    subtotal = _reduce(source, reducer, axis=1)
                 else:
                     subtotal = pivot_v2_aggfunc_map[aggfunc](block, axis=1)
                 depth = df.columns.nlevels - len(subgroup) - 1
@@ -676,6 +686,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 # insert column after subgroup
                 df.insert(int(slice_.stop), subtotal_name, subtotal)
                 inserted_columns.append(subtotal_name)
+                if mixed:
+                    mixed_metric_totals.append(subtotal_name)
                 column_prefix_depth[subtotal_name] = (
                     level if combine_metrics else max(0, level - 1)
                 )
@@ -717,6 +729,12 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 )
                 inserted_rows.append(subtotal.name)
                 row_prefix_depth[subtotal.name] = level
+
+    # The column totals reduce every column, the blank mixed-metric ones
+    # included, and ``sum`` turns a column of blanks into 0. Keep those
+    # cells -- the grand-total corner among them -- blank.
+    for column in mixed_metric_totals:
+        df[column] = np.nan
 
     # A non-additive metric's totals come from the database rollups the chart
     # computed, in Actual Values mode as in the percent modes: reducing the
