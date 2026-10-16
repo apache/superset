@@ -353,6 +353,8 @@ def mark_dashboard_time_range_filters(
     saved range with bounds stays the chart's own.
     """
     for filter_ in filters:
+        if not isinstance(filter_, dict):
+            continue  # Malformed saved filters are left to schema validation.
         saved: object = filter_.get("val")
         if filter_.get("op") == "TEMPORAL_RANGE" and (
             saved is None or (isinstance(saved, str) and is_no_time_range(saved))
