@@ -17,7 +17,7 @@
 """update_tag_unique_constraint
 
 Revision ID: b54f3bd8e69
-Revises: c233f5365c9e
+Revises: c179af013f48
 Create Date: 2025-10-06 16:05:00.000000
 
 """
@@ -31,7 +31,7 @@ from sqlalchemy.sql import func, select
 
 # revision identifiers, used by Alembic.
 revision = "b54f3bd8e69"
-down_revision = "c233f5365c9e"
+down_revision = "c179af013f48"
 
 
 class TagType(enum.Enum):
