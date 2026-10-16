@@ -8381,7 +8381,7 @@ msgstr "Sloupec geometrie"
 msgid "Get the last date by the date unit."
 msgstr "Získat poslední datum podle jednotky data."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Získat zadané datum pro svátek"
 
 msgid "Give access to multiple catalogs in a single database connection."
