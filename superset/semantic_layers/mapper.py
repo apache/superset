@@ -149,6 +149,31 @@ class ValidatedQueryObject(QueryObject):
     metrics: list[str] | None  # type: ignore[assignment]
 
 
+def _with_default_order(query: SemanticQuery) -> SemanticQuery:
+    """
+    Sort an unordered query by its first selected temporal dimension, ascending.
+
+    This applies the default stated on ``SemanticQuery``. It runs at the provider
+    boundary rather than in the mapping, so the semantic cache keeps keying and
+    rolling up on the query as mapped.
+    """
+    if query.order:
+        return query
+    temporal: Dimension | None = next(
+        (
+            dimension
+            for dimension in query.dimensions
+            if pa.types.is_date(dimension.type)
+            or pa.types.is_timestamp(dimension.type)
+            or pa.types.is_time(dimension.type)
+        ),
+        None,
+    )
+    if temporal is None:
+        return query
+    return replace(query, order=[(temporal, OrderDirection.ASC)])
+
+
 def _dispatch_semantic_query(
     datasource: BaseDatasource,
     dispatcher: Callable[[SemanticQuery], SemanticResult],
@@ -162,7 +187,9 @@ def _dispatch_semantic_query(
     # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
     # table would break every later transformation of that entry.
     def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
-        result: SemanticResult = execute_semantic_query(dispatcher, dispatched_query)
+        result: SemanticResult = execute_semantic_query(
+            dispatcher, _with_default_order(dispatched_query)
+        )
         return _coerce_empty_result(result, dispatched_query)
 
     if not cacheable or not semantic_cache.semantic_cache_service.state.effective:

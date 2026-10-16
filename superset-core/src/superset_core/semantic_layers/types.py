@@ -275,6 +275,13 @@ FilterValues = str | int | float | bool | datetime | date | time | timedelta | N
 
 
 class PredicateType(enum.Enum):
+    """
+    The stage a filter applies to.
+
+    ``HAVING`` is reserved. The chart-data path never produces a HAVING
+    predicate, and providers may reject one.
+    """
+
     WHERE = "WHERE"
     HAVING = "HAVING"
 
@@ -378,6 +385,14 @@ class SemanticQuery:
     wrong, answer. ``order`` entries are ``(member, direction)`` pairs whose
     member must be defined by the view; an adhoc expression is only a valid
     order key for a view declaring ``ADHOC_EXPRESSIONS_IN_ORDERBY``.
+
+    **Default chronological order.** When ``order`` is empty and a temporal
+    dimension (date, timestamp or time type) is selected, the result is sorted
+    ascending by the first temporal dimension in ``dimensions``, again before
+    ``offset`` and ``limit``. It is a default, never a prefix: a non-empty
+    ``order`` is used exactly as given. The host fills this in before calling
+    the provider, so a provider that receives an empty ``order`` may return
+    rows in any order.
 
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.
