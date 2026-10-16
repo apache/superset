@@ -157,17 +157,30 @@ export const fetchPermissionOptions = async (
     const cacheKey = filterValue.trim().toLowerCase();
     let cached = permissionSearchCache.get(cacheKey);
     if (!cached) {
-      const [byViewMenu, byPermission] = await Promise.all([
+      const encodedFilterValue = filterValue
+        .split('].[')
+        .map(part => part.replace(/\./g, '%2E'))
+        .join('].[');
+      const searches = [
         fetchAllPermissionPages([
           { col: 'view_menu.name', opr: 'ct', value: filterValue },
         ]),
         fetchAllPermissionPages([
           { col: 'permission.name', opr: 'ct', value: filterValue },
         ]),
-      ]);
+      ];
+      if (encodedFilterValue !== filterValue) {
+        searches.push(
+          fetchAllPermissionPages([
+            { col: 'view_menu.name', opr: 'ct', value: encodedFilterValue },
+          ]),
+        );
+      }
+
+      const results = await Promise.all(searches);
 
       const seen = new Set<number>();
-      cached = [...byViewMenu, ...byPermission].filter(item => {
+      cached = results.flat().filter(item => {
         if (seen.has(item.value)) return false;
         seen.add(item.value);
         return true;
