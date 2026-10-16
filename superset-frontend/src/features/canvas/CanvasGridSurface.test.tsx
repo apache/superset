@@ -638,11 +638,23 @@ test('a hidden handle does not take presses', () => {
   );
 });
 
-test("a nested container's resize corner is not on top of its child's", () => {
-  renderSurface();
-  const rootCorner = getComputedStyle(handles('Resize widget')[0]).bottom;
+const cornerBottom = () => getComputedStyle(handles('Resize widget')[0]).bottom;
 
-  expect(rootCorner).toBe('0px');
+test("the root grid's resize corner sits on the widget's own corner", () => {
+  renderSurface();
+
+  expect(cornerBottom()).toBe('0px');
+});
+
+test("a nested grid lifts its resize corner clear of its container's", () => {
+  // A container's box ends where its last child's does and the container's
+  // corner paints later, so sharing the pixel makes the child's unreachable.
+  renderSurface({ depth: 1 });
+
+  const bottom = Number.parseInt(cornerBottom(), 10);
+  expect(bottom).toBeGreaterThan(0);
+  // Still inside the widget, like the grip offsets above.
+  expect(bottom).toBeLessThan(placements.kpi.rowSpan * 40);
 });
 
 test('a drag follows the content when the page scrolls under it', () => {
