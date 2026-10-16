@@ -1618,10 +1618,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "1 ستون جدید به مجموعه داده مجازی اضافه شد"
-msgstr[1] "%s ستون جدید به مجموعه داده مجازی اضافه شد"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "1 ستون جدید به مجموعه داده اضافه شد"
+msgstr[1] "%s ستون جدید به مجموعه داده اضافه شد"
 
 #, python-format
 msgid "Added a %s"
@@ -8716,7 +8716,7 @@ msgstr "ستون خالی"
 msgid "Get the last date by the date unit."
 msgstr "آخرین تاریخ را بر اساس واحد تاریخ بگیرید."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "تاریخ مشخص تعطیلات را دریافت کنید."
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -10863,10 +10863,10 @@ msgstr "ویرایش شده %s"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "۱ ستون در مجموعه داده مجازی تغییر یافت"
-msgstr[1] "%s ستون در مجموعه داده مجازی تغییر یافت"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "۱ ستون در مجموعه داده تغییر یافت"
+msgstr[1] "%s ستون در مجموعه داده تغییر یافت"
 
 msgid "Modified by"
 msgstr "ویرایش شده توسط"
@@ -13134,10 +13134,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "1 ستون از مجموعه داده مجازی حذف شد"
-msgstr[1] "%s ستون از مجموعه داده مجازی حذف شد"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "1 ستون از مجموعه داده حذف شد"
+msgstr[1] "%s ستون از مجموعه داده حذف شد"
 
 #, python-format
 msgid "Removed a %s"

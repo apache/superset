@@ -43,7 +43,12 @@
 # already provides. databend/risingwave/firebird/ydb are the same story:
 # none has a dedicated testcontainers module, so each test uses a generic
 # DockerContainer plus whatever driver its own extra above already
-# provides.
+# provides. bigquery is the same story too, and for the same reason as
+# db2/oceanbase above -- testcontainers-python has no BigQueryContainer in
+# any release yet (still an open upstream PR), so its test vendors one
+# locally against a generic DockerContainer (see
+# tests/testcontainers/db_engine_specs/_bigquery_container.py) using the
+# google-cloud-bigquery client the bigquery extra above already provides.
 testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4.15.0,<5
 
 # gevent (pulled in via the `gevent` extra above) has no direct version

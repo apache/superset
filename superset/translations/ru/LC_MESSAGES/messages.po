@@ -1548,12 +1548,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Добавлен %s новый столбец в виртуальный датасет"
-msgstr[1] "Добавлено %s новых столбца в виртуальный датасет"
-msgstr[2] "Добавлено %s новых столбцов в виртуальный датасет"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Добавлен %s новый столбец в датасет"
+msgstr[1] "Добавлено %s новых столбца в датасет"
+msgstr[2] "Добавлено %s новых столбцов в датасет"
 
 #, python-format
 msgid "Added a %s"
@@ -8103,7 +8103,7 @@ msgstr "Столбец с геометрическими данными"
 msgid "Get the last date by the date unit."
 msgstr "Получает последнюю дату указанного временного периода."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Получает конкретную дату праздника"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -10060,12 +10060,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Изменено %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Изменен %s столбец в виртуальном датасете"
-msgstr[1] "Изменено %s столбца в виртуальном датасете"
-msgstr[2] "Изменено %s столбцов в виртуальном датасете"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Изменен %s столбец в датасете"
+msgstr[1] "Изменено %s столбца в датасете"
+msgstr[2] "Изменено %s столбцов в датасете"
 
 msgid "Modified by"
 msgstr "Кем изменено"
@@ -12196,12 +12196,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Удален %s столбец из виртуального датасета"
-msgstr[1] "Удалено %s столбца из виртуального датасета"
-msgstr[2] "Удалено %s столбцов из виртуального датасета"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Удален %s столбец из датасета"
+msgstr[1] "Удалено %s столбца из датасета"
+msgstr[2] "Удалено %s столбцов из датасета"
 
 #, python-format
 msgid "Removed a %s"

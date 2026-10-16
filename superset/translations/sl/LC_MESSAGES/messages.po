@@ -1604,13 +1604,13 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "V virtualni podatkovni niz je bil dodan %s nov stolpec"
-msgstr[1] "V virtualni podatkovni niz sta bila dodana %s nova stolpca"
-msgstr[2] "V virtualni podatkovni niz so bili dodani %s novi stolpci"
-msgstr[3] "V virtualni podatkovni niz je bilo dodanih %s novih stolpcev"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "V podatkovni niz je bil dodan %s nov stolpec"
+msgstr[1] "V podatkovni niz sta bila dodana %s nova stolpca"
+msgstr[2] "V podatkovni niz so bili dodani %s novi stolpci"
+msgstr[3] "V podatkovni niz je bilo dodanih %s novih stolpcev"
 
 #, python-format
 msgid "Added a %s"
@@ -8359,7 +8359,7 @@ msgstr "Geometrijski stolpec"
 msgid "Get the last date by the date unit."
 msgstr "Pridobi zadnji datum glede na časovno enoto."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Določi datum praznika"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -10370,13 +10370,13 @@ msgstr "Zadnja sprememba %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "V virtualnem podatkovnem nizu je bil spremenjen %s stolpec"
-msgstr[1] "V virtualnem podatkovnem nizu sta bila spremenjena %s stolpca"
-msgstr[2] "V virtualnem podatkovnem nizu so bili spremenjeni %s stolpci"
-msgstr[3] "V virtualnem podatkovnem nizu je bilo spremenjenih %s stolpcev"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "V podatkovnem nizu je bil spremenjen %s stolpec"
+msgstr[1] "V podatkovnem nizu sta bila spremenjena %s stolpca"
+msgstr[2] "V podatkovnem nizu so bili spremenjeni %s stolpci"
+msgstr[3] "V podatkovnem nizu je bilo spremenjenih %s stolpcev"
 
 msgid "Modified by"
 msgstr "Spremenil"
@@ -12544,13 +12544,13 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Iz virtualnega podatkovnega niza je bil odstranjen %s stolpec"
-msgstr[1] "Iz virtualnega podatkovnega niza sta bila odstranjena %s stolpca"
-msgstr[2] "Iz virtualnega podatkovnega niza so bili odstranjeni %s stolpci"
-msgstr[3] "Iz virtualnega podatkovnega niza je bilo odstranjenih %s stolpcev"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Iz podatkovnega niza je bil odstranjen %s stolpec"
+msgstr[1] "Iz podatkovnega niza sta bila odstranjena %s stolpca"
+msgstr[2] "Iz podatkovnega niza so bili odstranjeni %s stolpci"
+msgstr[3] "Iz podatkovnega niza je bilo odstranjenih %s stolpcev"
 
 #, python-format
 msgid "Removed a %s"

@@ -72,7 +72,10 @@ _PROFILE_PAGE_ENDPOINT = "UserInfoView.list"
 # are listed individually rather than by view class on purpose: the same view
 # classes also serve ``guest_token``, the permissions search and the roles
 # listing, none of which a flagged user needs, and a flagged user's own
-# permissions must not unlock them before the password is changed.
+# permissions must not unlock them before the password is changed. The
+# self-service recovery pages and endpoints are exempt as well: they work for
+# anyone holding an emailed token, signed in or not, and a completed recovery
+# satisfies the pending change.
 _EXEMPT_ENDPOINTS = frozenset(
     {
         "static",
@@ -80,6 +83,10 @@ _EXEMPT_ENDPOINTS = frozenset(
         "CurrentUserRestApi.get_me",
         "CurrentUserRestApi.update_me",
         "SecurityRestApi.csrf_token",
+        "SupersetAuthView.forgot_password",
+        "SupersetAuthView.reset_password",
+        "PasswordRecoveryRestApi.request_recovery",
+        "PasswordRecoveryRestApi.reset",
     }
 )
 

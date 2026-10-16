@@ -1596,12 +1596,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Do virtuální sady dat byl přidán %s nový sloupec"
-msgstr[1] "Do virtuální sady dat byly přidány %s nové sloupce"
-msgstr[2] "Do virtuální sady dat bylo přidáno %s nových sloupců"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Do sady dat byl přidán %s nový sloupec"
+msgstr[1] "Do sady dat byly přidány %s nové sloupce"
+msgstr[2] "Do sady dat bylo přidáno %s nových sloupců"
 
 #, python-format
 msgid "Added a %s"
@@ -8381,7 +8381,7 @@ msgstr "Sloupec geometrie"
 msgid "Get the last date by the date unit."
 msgstr "Získat poslední datum podle jednotky data."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Získat zadané datum pro svátek"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -10407,12 +10407,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Změněno %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Upraven %s sloupec ve virtuální sadě dat"
-msgstr[1] "Upraveny %s sloupce ve virtuální sadě dat"
-msgstr[2] "Upraveno %s sloupců ve virtuální sadě dat"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Upraven %s sloupec v sadě dat"
+msgstr[1] "Upraveny %s sloupce v sadě dat"
+msgstr[2] "Upraveno %s sloupců v sadě dat"
 
 msgid "Modified by"
 msgstr "Změnil(a)"
@@ -12618,12 +12618,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Odstraněn %s sloupec z virtuální sady dat"
-msgstr[1] "Odstraněny %s sloupce z virtuální sady dat"
-msgstr[2] "Odstraněno %s sloupců z virtuální sady dat"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Odstraněn %s sloupec ze sady dat"
+msgstr[1] "Odstraněny %s sloupce ze sady dat"
+msgstr[2] "Odstraněno %s sloupců ze sady dat"
 
 #, python-format
 msgid "Removed a %s"
