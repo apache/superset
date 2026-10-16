@@ -1539,11 +1539,11 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "விர்ச்சுவல் தரவுத்தொகுப்பில் %s புதிய நெடுவரிசை சேர்க்கப்பட்டது"
-msgstr[1] "விர்ச்சுவல் தரவுத்தொகுப்பில் %s புதிய நெடுவரிசைகள் சேர்க்கப்பட்டன"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "தரவுத்தொகுப்பில் %s புதிய நெடுவரிசை சேர்க்கப்பட்டது"
+msgstr[1] "தரவுத்தொகுப்பில் %s புதிய நெடுவரிசைகள் சேர்க்கப்பட்டன"
 
 #, python-format
 msgid "Added a %s"
@@ -8151,7 +8151,7 @@ msgstr "வடிவியல் நெடுவரிசை (Geometry Column)"
 msgid "Get the last date by the date unit."
 msgstr "தேதி அலகின் படி கடைசித் தேதியைப் பெறவும்."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "விடுமுறைக்கான குறிப்பிட்ட தேதியைப் பெறவும்"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -10074,11 +10074,11 @@ msgstr ""
 msgid "Modified %s"
 msgstr "%s மாற்றப்பட்டது"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "மெய்நிகர் தரவுத்தொகுப்பில் %s நெடுவரிசை மாற்றப்பட்டது"
-msgstr[1] "மெய்நிகர் தரவுத்தொகுப்பில் %s நெடுவரிசைகள் மாற்றப்பட்டன"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "தரவுத்தொகுப்பில் %s நெடுவரிசை மாற்றப்பட்டது"
+msgstr[1] "தரவுத்தொகுப்பில் %s நெடுவரிசைகள் மாற்றப்பட்டன"
 
 msgid "Modified by"
 msgstr "மாற்றியவர்"
@@ -12171,11 +12171,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "மெய்நிகர் தரவுத்தொகுப்பிலிருந்து %s நெடுவரிசை நீக்கப்பட்டது"
-msgstr[1] "மெய்நிகர் தரவுத்தொகுப்பிலிருந்து %s நெடுவரிசைகள் நீக்கப்பட்டன"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "தரவுத்தொகுப்பிலிருந்து %s நெடுவரிசை நீக்கப்பட்டது"
+msgstr[1] "தரவுத்தொகுப்பிலிருந்து %s நெடுவரிசைகள் நீக்கப்பட்டன"
 
 #, python-format
 msgid "Removed a %s"

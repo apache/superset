@@ -1541,11 +1541,11 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Dem virtuellen Datensatz wurde %s neue Spalte hinzugefügt"
-msgstr[1] "Dem virtuellen Datensatz wurden %s neue Spalten hinzugefügt"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Dem Datensatz wurde %s neue Spalte hinzugefügt"
+msgstr[1] "Dem Datensatz wurden %s neue Spalten hinzugefügt"
 
 #, python-format
 msgid "Added a %s"
@@ -8194,7 +8194,7 @@ msgstr "Geometriespalte"
 msgid "Get the last date by the date unit."
 msgstr "Das letzte Datum anhand der Datumseinheit anfordern."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Abrufen des angegebenen Datums für den Feiertag"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -10149,11 +10149,11 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Geändert %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "%s Spalte im virtuellen Datensatz geändert"
-msgstr[1] "%s Spalten im virtuellen Datensatz geändert"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "%s Spalte im Datensatz geändert"
+msgstr[1] "%s Spalten im Datensatz geändert"
 
 msgid "Modified by"
 msgstr "Geändert durch"
@@ -12323,11 +12323,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "%s Spalte aus dem virtuellen Datensatz entfernt"
-msgstr[1] "%s Spalten aus dem virtuellen Datensatz entfernt"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "%s Spalte aus dem Datensatz entfernt"
+msgstr[1] "%s Spalten aus dem Datensatz entfernt"
 
 #, python-format
 msgid "Removed a %s"
