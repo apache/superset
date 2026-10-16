@@ -36,6 +36,14 @@ type Extension = common.Extension;
 type ExtensionContextType = extensionsApi.ExtensionContext;
 
 /**
+ * Only `duration` is part of the SDK contract, so pick it out rather than
+ * forwarding the whole options object, and omit it when unset so the
+ * host's per-severity default applies.
+ */
+const toToastOptions = (options?: { duration?: number }) =>
+  options?.duration === undefined ? undefined : { duration: options.duration };
+
+/**
  * Extension context with lazy-initialized services bound to the extension ID.
  */
 class ExtensionContext implements ExtensionContextType {
@@ -57,13 +65,13 @@ class ExtensionContext implements ExtensionContextType {
       // callback), not just from within a React render.
       this._window = {
         showInformationMessage: (message: string, options) => {
-          store.dispatch(addInfoToast(message, options));
+          store.dispatch(addInfoToast(message, toToastOptions(options)));
         },
         showWarningMessage: (message: string, options) => {
-          store.dispatch(addWarningToast(message, options));
+          store.dispatch(addWarningToast(message, toToastOptions(options)));
         },
         showErrorMessage: (message: string, options) => {
-          store.dispatch(addDangerToast(message, options));
+          store.dispatch(addDangerToast(message, toToastOptions(options)));
         },
       };
     }
