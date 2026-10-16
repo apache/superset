@@ -70,7 +70,7 @@ function tabMetadata(tab: sqlLabApi.Tab) {
   return {
     editor_id: tab.id,
     title: tab.title,
-    databaseId: tab.databaseId,
+    databaseId: tab.databaseId ?? null,
     catalog: tab.catalog,
     schema: tab.schema,
   };
@@ -209,7 +209,7 @@ const sqlLabTools: chat.ClientTool[] = [
   {
     name: 'sqlLab__run_current_query',
     description:
-      'Trigger SQL Lab Run on the active editor, executing the selection if present, otherwise the full SQL. Returns a client query ID, not query results.',
+      'Trigger SQL Lab Run on the active editor, executing the selection if present, otherwise the full SQL. Success confirms initiation only. Use SQL Lab query success/failure events for the outcome.',
     inputSchema: emptySchema,
     annotations: { readOnlyHint: false, destructiveHint: true },
     handler: async () => {
