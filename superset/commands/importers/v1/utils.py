@@ -14,6 +14,8 @@
 # under the License.
 
 import logging
+import lzma
+import zlib
 from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
 from typing import Any, Callable, Dict, IO, Iterator, Optional, Type, Union
@@ -393,14 +395,33 @@ def open_import_bundle(upload: Union[IO[bytes], FileStorage]) -> Iterator[ZipFil
     Open an uploaded import bundle as a ZIP file.
 
     ``zipfile.is_zipfile`` only validates the end-of-central-directory record,
-    so a corrupt or truncated archive can pass it and still raise
-    ``BadZipFile`` when opened or when a member is read. Convert those errors
-    into ``IncorrectFormatError`` so the API returns a 422 instead of a 500.
+    so a corrupt or truncated archive can pass it and still fail when opened
+    or when a member is read. Depending on the damage, ``zipfile`` raises:
+
+    - ``BadZipFile`` for a corrupt central directory, header, or CRC;
+    - ``zlib.error`` for a corrupt deflate stream;
+    - ``NotImplementedError`` for an unsupported compression method;
+    - ``RuntimeError`` for an encrypted member (password required);
+    - ``EOFError`` for a truncated member;
+    - ``OSError`` for a corrupt bzip2 stream;
+    - ``lzma.LZMAError`` for a corrupt LZMA stream.
+
+    Convert those errors into ``IncorrectFormatError`` so the API returns a 422
+    instead of a 500. Because some of these exception types are broad, the
+    body of the ``with`` block should be limited to reading the bundle.
     """
     try:
         with ZipFile(upload) as bundle:
             yield bundle
-    except BadZipFile as ex:
+    except (
+        BadZipFile,
+        zlib.error,
+        NotImplementedError,
+        RuntimeError,
+        EOFError,
+        OSError,
+        lzma.LZMAError,
+    ) as ex:
         raise IncorrectFormatError("Invalid or corrupted ZIP file") from ex
 
 
