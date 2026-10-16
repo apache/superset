@@ -3829,6 +3829,9 @@ def merge_bullet_form_data(
         "marker_labels",
         "marker_lines",
         "marker_line_labels",
+        # Explore-only per-band colors; the typed config does not model them,
+        # so keep them as opaque saved state across MCP updates.
+        "range_colors",
         "y_axis_format",
         "show_labels",
         "show_legend",
@@ -4239,6 +4242,9 @@ _BULLET_UNMODELED_PRESERVED_KEYS = (
     | FORM_DATA_UPDATE_PRESERVE_KEYS["presentation"]
     | FORM_DATA_UPDATE_PRESERVE_KEYS["time"]
 ) - _get_known_fields(BulletChartConfig)
+# Explore-authored Bullet controls the typed config does not model. They are
+# preserved on update but excluded from the typed validation copy.
+_BULLET_UNMODELED_NATIVE_KEYS = frozenset({"range_colors"})
 
 
 def _strip_inherited_bullet_roles(
@@ -4279,7 +4285,9 @@ def validate_merged_bullet_form_data(
     validation_data = dict(form_data)
     for native_query_key in ("url_params", "extra_form_data", "extra_filters"):
         validation_data.pop(native_query_key, None)
-    for preserved_key in _BULLET_UNMODELED_PRESERVED_KEYS:
+    for preserved_key in (
+        _BULLET_UNMODELED_PRESERVED_KEYS | _BULLET_UNMODELED_NATIVE_KEYS
+    ):
         validation_data.pop(preserved_key, None)
     if not validation_data.get(MCP_DASHBOARD_TIME_FILTER_SUBJECT):
         # A null marker records an explicit subject clear with no binding to

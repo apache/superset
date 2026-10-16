@@ -450,6 +450,21 @@ test('handleDeprecatedControls migrates interval_color_indices into interval_col
   expect(formData.interval_colors).toEqual(['#ff7f0e', '#2ca02c', '#2ca02c']);
 });
 
+test('applyDefaultFormData keeps legacy interval_color_indices unresolved for dashboards', () => {
+  // The dashboard's color_scheme override is applied after hydration, so the
+  // legacy palette-relative indices must not be frozen into literal colors.
+  const result = applyDefaultFormData({
+    viz_type: VizType.Gauge,
+    datasource: '1__table',
+    intervals: '20,40,60',
+    interval_color_indices: '2,3',
+    color_scheme: 'testScheme',
+  } as any);
+
+  expect(result.interval_color_indices).toBe('2,3');
+  expect(result.interval_colors).toEqual([]);
+});
+
 test('handleDeprecatedControls does not override an already-populated interval_colors', () => {
   const formData: any = {
     viz_type: VizType.Gauge,
