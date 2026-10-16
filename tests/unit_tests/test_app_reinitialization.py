@@ -33,6 +33,7 @@ import gc
 import weakref
 from concurrent.futures import ThreadPoolExecutor
 
+from celery import Task
 from flask import current_app, Flask
 
 from superset.app import SupersetApp
@@ -91,13 +92,13 @@ def test_task_registered_under_a_previous_app_runs_under_the_current_app() -> No
     """
     first: SupersetApp = build_app()
     first_ref: weakref.ReferenceType[SupersetApp] = weakref.ref(first)
-    task_name = "tests.app_reinitialization.which_app"
+    task_name: str = "tests.app_reinitialization.which_app"
 
     @celery_app.task(name=task_name)
     def which_app() -> Flask:
         return current_app._get_current_object()
 
-    task = celery_app.tasks[task_name]  # builds the task class under ``first``
+    task: Task = celery_app.tasks[task_name]  # builds the task class under ``first``
     try:
         current: SupersetApp = build_app()
 
