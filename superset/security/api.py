@@ -15,14 +15,19 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
-from typing import Any
+import threading
+from typing import Any, Callable
 
-from flask import current_app, request, Response
+from flask import after_this_request, current_app, request, Response
 from flask_appbuilder import expose
 from flask_appbuilder.api import rison as parse_rison, safe, SQLAInterface
 from flask_appbuilder.api.schemas import get_list_schema
-from flask_appbuilder.security.decorators import permission_name, protect
+from flask_appbuilder.security.decorators import limit, permission_name, protect
+from flask_appbuilder.security.sqla.apis.user.validator import (
+    PasswordComplexityValidator,
+)
 from flask_appbuilder.security.sqla.models import RegisterUser, Role
+from flask_babel import gettext as _
 from flask_wtf.csrf import generate_csrf
 from marshmallow import (
     EXCLUDE,
@@ -41,9 +46,18 @@ from superset.commands.dashboard.embedded.exceptions import (
     EmbeddedDashboardNotFoundError,
 )
 from superset.commands.exceptions import ForbiddenError
+from superset.commands.security.exceptions import (
+    PasswordRecoveryFailedError,
+    PasswordRecoveryInvalidTokenError,
+)
+from superset.commands.security.password_recovery import (
+    RequestPasswordRecoveryCommand,
+    ResetPasswordWithTokenCommand,
+)
 from superset.constants import RouteMethod
 from superset.exceptions import SupersetGenericErrorException
 from superset.extensions import db, event_logger
+from superset.security import password_recovery
 from superset.security.guest_token import (
     build_guest_token_audit_payload,
     GuestTokenResourceType,
@@ -52,6 +66,7 @@ from superset.utils.core import get_user_id
 from superset.views.base_api import (
     BaseSupersetApi,
     BaseSupersetModelRestApi,
+    requires_json,
     statsd_metrics,
 )
 
@@ -477,3 +492,196 @@ class UserRegistrationsRestAPI(BaseSupersetModelRestApi):
         "last_name",
         "registration_date",
     ]
+
+
+class PasswordRecoveryRequestSchema(Schema):
+    email = fields.Email(required=True, validate=validate.Length(1, 320))
+
+
+class PasswordRecoveryResetSchema(Schema):
+    token = fields.String(required=True, validate=validate.Length(1, 256))
+    password = fields.String(
+        required=True,
+        validate=[validate.Length(min=1), PasswordComplexityValidator()],
+    )
+
+
+#: Name of the thread that delivers a recovery email.
+RECOVERY_EMAIL_THREAD_NAME = "password-recovery-email"
+
+
+def _defer_until_response_closed(task: Callable[[], None]) -> None:
+    """Run ``task`` on its own thread once the response has been handed over.
+
+    Keeps SMTP latency out of everything the client can time, so timing does
+    not reveal whether the address matched an account. Running the send inside
+    ``call_on_close`` itself would not be enough: the server only closes the
+    connection, and the worker only takes its next request, once that callback
+    returns. Failures are logged, never surfaced: the client has already been
+    answered.
+
+    The thread is deliberately not a daemon. By the time it runs, the token and
+    the resend cooldown are committed, so a lost email locks the user out of
+    another link until the cooldown ends. Python waits for non-daemon threads
+    before the process exits, so a worker that stops right after answering
+    (``max_requests``, a graceful restart) finishes the send first, within the
+    server's own shutdown timeout. A worker killed outright still loses it.
+    """
+    app = current_app._get_current_object()  # pylint: disable=protected-access
+
+    def _run() -> None:
+        with app.app_context():
+            try:
+                task()
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Failed to send password recovery email", exc_info=True)
+
+    @after_this_request
+    def _register(response: Response) -> Response:
+        response.call_on_close(
+            threading.Thread(
+                target=_run, name=RECOVERY_EMAIL_THREAD_NAME, daemon=False
+            ).start
+        )
+        return response
+
+
+class PasswordRecoveryRestApi(BaseSupersetApi):
+    """Self-service password recovery for ``AUTH_DB`` accounts.
+
+    Both endpoints are anonymous on purpose (no ``@protect``): they are used by
+    people who cannot sign in. They are CSRF-protected like any other Superset
+    API and rate limited per client address through FAB's limiter. They are
+    deliberately not wrapped in ``event_logger.log_this``, which would copy the
+    request body (the token and the new password) into the logs table; the
+    commands write curated audit events instead.
+    """
+
+    resource_name = "security"
+    route_base = "/api/v1/security/password_recovery"
+    openapi_spec_tag = "Security"
+    openapi_spec_component_schemas = (
+        PasswordRecoveryRequestSchema,
+        PasswordRecoveryResetSchema,
+    )
+
+    request_schema = PasswordRecoveryRequestSchema()
+    reset_schema = PasswordRecoveryResetSchema()
+
+    @expose("/", methods=("POST",))
+    @limit(password_recovery.rate_limit, methods=["POST"])
+    @safe
+    @statsd_metrics
+    @requires_json
+    def request_recovery(self) -> Response:
+        """Request a password reset link by email.
+        ---
+        post:
+          summary: Request a password reset link
+          description: >-
+            Emails a single-use password reset link if the address belongs to an
+            active account with a local password. The response is the same
+            whether or not it does.
+          security: []
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PasswordRecoveryRequestSchema'
+          responses:
+            200:
+              description: Request accepted
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              $ref: '#/components/responses/400'
+            404:
+              $ref: '#/components/responses/404'
+            429:
+              description: Too many requests
+        """
+        if not password_recovery.is_enabled():
+            return self.response_404()
+        try:
+            data = self.request_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        RequestPasswordRecoveryCommand(
+            data["email"], dispatch=_defer_until_response_closed
+        ).run()
+        return self.response(
+            200,
+            message=_(
+                "If an account with that email exists, a password reset link "
+                "has been sent."
+            ),
+        )
+
+    @expose("/reset/", methods=("POST",))
+    @limit(password_recovery.rate_limit, methods=["POST"])
+    @safe
+    @statsd_metrics
+    @requires_json
+    def reset(self) -> Response:
+        """Set a new password using a reset link token.
+        ---
+        post:
+          summary: Reset a password with a recovery token
+          description: >-
+            Consumes the single-use token from a password reset link and sets the
+            account's new password. Every existing browser session for the
+            account is signed out.
+          security: []
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/PasswordRecoveryResetSchema'
+          responses:
+            200:
+              description: Password reset
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+            400:
+              description: >-
+                The new password was rejected (``message.password``) or the
+                token is invalid, expired or already used (``message.token``)
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: object
+            404:
+              $ref: '#/components/responses/404'
+            429:
+              description: Too many requests
+        """
+        if not password_recovery.is_enabled():
+            return self.response_404()
+        try:
+            data = self.reset_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+
+        try:
+            ResetPasswordWithTokenCommand(data["token"], data["password"]).run()
+        except PasswordRecoveryInvalidTokenError as ex:
+            return self.response_400(message={"token": [str(ex.message)]})
+        except PasswordRecoveryFailedError as ex:
+            return self.response(500, message=str(ex.message))
+        return self.response(200, message=_("Your password has been reset."))

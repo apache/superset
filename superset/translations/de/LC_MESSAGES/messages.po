@@ -8194,7 +8194,7 @@ msgstr "Geometriespalte"
 msgid "Get the last date by the date unit."
 msgstr "Das letzte Datum anhand der Datumseinheit anfordern."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Abrufen des angegebenen Datums für den Feiertag"
 
 msgid "Give access to multiple catalogs in a single database connection."
