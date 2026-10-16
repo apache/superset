@@ -450,8 +450,26 @@ test('picks a contrasting label color for custom range fills', () => {
   // bands are drawn largest-threshold-first: unset, white, black
   expect(labelColors).toEqual([
     supersetTheme.colorTextSecondary,
-    supersetTheme.colorText,
-    supersetTheme.colorTextLightSolid,
+    '#1f1f1f',
+    '#ffffff',
+  ]);
+});
+
+test('derives the label color from the fill itself, including near-opaque alpha', () => {
+  const { echartOptions } = transformProps(
+    chartProps({
+      showLabels: true,
+      rangeColors: ['#000000fc', '#ffffff', '#00000033'],
+    }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  // drawn largest-threshold-first: mostly transparent, white, near-opaque black
+  expect(labelColors).toEqual([
+    supersetTheme.colorTextSecondary,
+    '#1f1f1f',
+    '#ffffff',
   ]);
 });
 

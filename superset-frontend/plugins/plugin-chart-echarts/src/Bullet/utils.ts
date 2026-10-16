@@ -70,9 +70,14 @@ export function isRangesInputComplete(value?: string): boolean {
 }
 
 /**
- * Relative luminance (0-1) of an opaque `#rgb` / `#rrggbb` / `rgb()` color, or
- * `null` when the value is translucent or cannot be parsed.
+ * Relative luminance (0-1) of a `#rgb` / `#rrggbb` / `#rrggbbaa` / `rgb[a]()`
+ * color, or `null` when the value cannot be parsed or is mostly transparent
+ * (alpha below 0.5), in which case the theme background shows through and the
+ * fill alone says nothing about contrast. Mostly-opaque fills are measured by
+ * their own channels, so a near-opaque `#000000fc` still reads as dark.
  */
+const MIN_LUMINANCE_ALPHA = 0.5;
+
 export function getColorLuminance(color: string): number | null {
   const value = color.trim().toLowerCase();
   let channels: number[] | null = null;
@@ -85,14 +90,22 @@ export function getColorLuminance(color: string): number | null {
             .map(c => c + c)
             .join('')
         : hex[1];
-    if (digits.length === 8 && digits.slice(6) !== 'ff') return null;
+    if (
+      digits.length === 8 &&
+      parseInt(digits.slice(6), 16) / 255 < MIN_LUMINANCE_ALPHA
+    ) {
+      return null;
+    }
     channels = [0, 2, 4].map(i => parseInt(digits.slice(i, i + 2), 16));
   } else {
     const rgb =
       /^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)$/.exec(
         value,
       );
-    if (rgb && (rgb[4] === undefined || Number(rgb[4]) === 1)) {
+    if (
+      rgb &&
+      (rgb[4] === undefined || Number(rgb[4]) >= MIN_LUMINANCE_ALPHA)
+    ) {
       channels = [rgb[1], rgb[2], rgb[3]].map(Number);
     }
   }

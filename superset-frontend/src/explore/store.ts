@@ -66,7 +66,12 @@ type FormData = QueryFormData & {
   color_scheme?: string;
 };
 
-export function handleDeprecatedControls(formData: FormData): void {
+export function handleDeprecatedControls(
+  formData: FormData,
+  {
+    resolveLegacyGaugeColors = true,
+  }: { resolveLegacyGaugeColors?: boolean } = {},
+): void {
   // Reaffectation / handling of deprecated controls
   /* eslint-disable no-param-reassign */
 
@@ -134,7 +139,12 @@ export function handleDeprecatedControls(formData: FormData): void {
   // colors stored by `interval_colors`, which replaced it. Same rationale as
   // the comparison_color_scheme migration above -- `interval_color_indices`
   // is no longer a registered control, so it's otherwise dropped on save.
+  // Skipped on the dashboard hydration path: the dashboard's `color_scheme`
+  // override is applied after this runs, so freezing literal colors here would
+  // pin the chart's own palette. The renderer resolves the legacy indices
+  // against the effective palette instead.
   if (
+    resolveLegacyGaugeColors &&
     formData.viz_type === VizType.Gauge &&
     formData.interval_color_indices &&
     (!formData.interval_colors || formData.interval_colors.length === 0)
@@ -191,7 +201,9 @@ export function applyDefaultFormData(
   // stale matrixify modes are cleaned on the dashboard hydration path too,
   // not just the explore path (getControlsState).
   const cleanedFormData = { ...inputFormData };
-  handleDeprecatedControls(cleanedFormData);
+  handleDeprecatedControls(cleanedFormData, {
+    resolveLegacyGaugeColors: false,
+  });
 
   const datasourceType = cleanedFormData.datasource?.split('__')[1] ?? '';
   const vizType = cleanedFormData.viz_type;
