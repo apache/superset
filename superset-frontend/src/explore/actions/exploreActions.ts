@@ -18,6 +18,7 @@
  */
 /* eslint camelcase: 0 */
 import rison from 'rison';
+import { clearDataMask } from 'src/dataMask/actions';
 import { Dataset } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient, QueryFormData } from '@superset-ui/core';
@@ -28,6 +29,14 @@ import {
 } from 'src/components/MessageToasts/actions';
 import { Slice } from 'src/types/Chart';
 import { CompatibilityResult, SaveActionType } from 'src/explore/types';
+
+export const RESET_SEMANTIC_SELECTIONS = 'RESET_SEMANTIC_SELECTIONS';
+export function resetSemanticSelections(sliceId?: number) {
+  return (dispatch: Dispatch) => {
+    if (sliceId !== undefined) dispatch(clearDataMask(sliceId));
+    dispatch({ type: RESET_SEMANTIC_SELECTIONS });
+  };
+}
 
 export const UPDATE_FORM_DATA_BY_DATASOURCE = 'UPDATE_FORM_DATA_BY_DATASOURCE';
 export function updateFormDataByDatasource(
@@ -273,6 +282,7 @@ export function syncDatasourceMetadata(datasource: Dataset) {
 }
 
 export const exploreActions = {
+  resetSemanticSelections,
   ...toastActions,
   fetchDatasourcesStarted,
   fetchDatasourcesSucceeded,

@@ -183,6 +183,7 @@ def redact_chart_data_model_fields(chart_info: Any) -> Any:
     if isinstance(chart_info, ChartInfo):
         return chart_info.model_copy(
             update={
+                "datasource_id": None,
                 "datasource_name": None,
                 "datasource_type": None,
                 "filters": None,

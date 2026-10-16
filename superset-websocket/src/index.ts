@@ -18,6 +18,7 @@
  */
 import * as http from 'http';
 import * as net from 'net';
+import { readFileSync } from 'fs';
 import { inspect } from 'util';
 import { WebSocket, WebSocketServer } from 'ws';
 import { randomUUID } from 'crypto';
@@ -31,7 +32,12 @@ import StatsD from 'hot-shots';
 
 import { createLogger } from './logger.js';
 import { buildConfig, RedisConfig } from './config.js';
-import { checkServerIdentity, PeerCertificate } from 'tls';
+import {
+  checkServerIdentity,
+  ConnectionOptions,
+  PeerCertificate,
+  rootCertificates,
+} from 'tls';
 
 const REALTIME_JWT_AUDIENCE = 'superset-websocket';
 const REALTIME_JWT_ISSUER = 'superset';
@@ -146,12 +152,69 @@ if (startServer) {
   validateConfiguredJwtSecret(opts.previousJwtSecret, 'previous JWT secret');
 }
 
-export const buildRedisOpts = (baseConfig: RedisConfig) => {
-  const redisOpts: RedisOptions = {
-    port: baseConfig.port,
-    host: baseConfig.host,
-    db: baseConfig.db,
+const readPem = (path: string): string => readFileSync(path, 'utf8');
+
+const buildTlsOptions = (baseConfig: RedisConfig): ConnectionOptions => {
+  const tlsOpts: ConnectionOptions = {
+    checkServerIdentity: (
+      hostname: string,
+      cert: PeerCertificate,
+    ): Error | undefined => {
+      // Note, the cert chain will have been verified already. the role of this method is to
+      // validate that at least one of the SAN's (or subject) of the server's cert matches the provided hostname
+      if (baseConfig.validateHostname) {
+        return checkServerIdentity(hostname, cert);
+      }
+    },
   };
+  if (baseConfig.sslCertReqs === 'none') {
+    tlsOpts.rejectUnauthorized = false;
+  }
+  if (baseConfig.sslCaCerts) {
+    // Supplying `ca` replaces Node's default trust store, so the public roots
+    // are re-added to keep public and private CAs usable together.
+    tlsOpts.ca = [...rootCertificates, readPem(baseConfig.sslCaCerts)];
+  }
+  if (baseConfig.sslCertfile) {
+    tlsOpts.cert = readPem(baseConfig.sslCertfile);
+  }
+  if (baseConfig.sslKeyfile) {
+    tlsOpts.key = readPem(baseConfig.sslKeyfile);
+  }
+  return tlsOpts;
+};
+
+/**
+ * Translate the `redis` config into ioredis options, covering the same modes as
+ * the Python coordination backend: standalone or Sentinel (`sentinels` set),
+ * each optionally over TLS. In Sentinel mode TLS applies to the resolved master
+ * only; the sentinel nodes are reached in plaintext, as on the Python side.
+ */
+export const buildRedisOpts = (baseConfig: RedisConfig) => {
+  const redisOpts: RedisOptions = { db: baseConfig.db };
+
+  if (baseConfig.sentinels.length > 0) {
+    if (!baseConfig.sentinelMaster) {
+      throw new Error(
+        'redis.sentinelMaster (REDIS_SENTINEL_MASTER) is required when ' +
+          'redis.sentinels (REDIS_SENTINELS) is set',
+      );
+    }
+    redisOpts.sentinels = baseConfig.sentinels.map(({ host, port }) => ({
+      host,
+      port,
+    }));
+    redisOpts.name = baseConfig.sentinelMaster;
+    // Drop the connection to a master that has been demoted by a failover so
+    // the subscriber re-resolves the new master and keeps receiving messages.
+    redisOpts.failoverDetector = true;
+    if (baseConfig.sentinelPassword !== '') {
+      redisOpts.sentinelPassword = baseConfig.sentinelPassword;
+    }
+  } else {
+    redisOpts.host = baseConfig.host;
+    redisOpts.port = baseConfig.port;
+  }
 
   const passwd = baseConfig.password;
   if (passwd !== '') {
@@ -160,18 +223,12 @@ export const buildRedisOpts = (baseConfig: RedisConfig) => {
   }
 
   if (baseConfig.ssl) {
-    redisOpts.tls = {
-      checkServerIdentity: (
-        hostname: string,
-        cert: PeerCertificate,
-      ): Error | undefined => {
-        // Note, the cert chain will have been verified already. the role of this method is to
-        // validate that at least one of the SAN's (or subject) of the server's cert matches the provided hostname
-        if (baseConfig.validateHostname) {
-          return checkServerIdentity(hostname, cert);
-        }
-      },
-    };
+    redisOpts.tls = buildTlsOptions(baseConfig);
+    // ioredis ignores `tls` for the Sentinel-resolved master (connecting in
+    // plaintext) unless this flag is set.
+    if (redisOpts.sentinels) {
+      redisOpts.enableTLSForSentinelMode = true;
+    }
   }
 
   return redisOpts;

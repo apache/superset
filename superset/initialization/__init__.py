@@ -206,6 +206,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.reports.logs.api import ReportExecutionLogRestApi
         from superset.row_level_security.api import RLSRestApi
         from superset.security.api import (
+            PasswordRecoveryRestApi,
             RoleRestAPI,
             SecurityRestApi,
             UserRegistrationsRestAPI,
@@ -296,14 +297,13 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(ReportExecutionLogRestApi)
         appbuilder.add_api(RLSRestApi)
         appbuilder.add_api(SavedQueryRestApi)
-        if feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"):
-            from superset.semantic_layers.api import (
-                SemanticLayerRestApi,
-                SemanticViewRestApi,
-            )
+        from superset.semantic_layers.api import (
+            SemanticLayerRestApi,
+            SemanticViewRestApi,
+        )
 
-            appbuilder.add_api(SemanticLayerRestApi)
-            appbuilder.add_api(SemanticViewRestApi)
+        appbuilder.add_api(SemanticLayerRestApi)
+        appbuilder.add_api(SemanticViewRestApi)
         appbuilder.add_api(TagRestApi)
         appbuilder.add_api(SqlLabRestApi)
         appbuilder.add_api(SqlLabPermalinkRestApi)
@@ -553,7 +553,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             category_label=_("Manage"),
             menu_cond=lambda: feature_flag_manager.is_feature_enabled("SOFT_DELETE"),
         )
-        appbuilder.add_api(LogRestApi)
         appbuilder.add_api(UserRegistrationsRestAPI)
         appbuilder.add_view(
             ActionLogView,
@@ -568,6 +567,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
         appbuilder.add_api(SecurityRestApi)
+        appbuilder.add_api(PasswordRecoveryRestApi)
         #
         # Conditionally setup email views
         #
@@ -893,6 +893,10 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         register_baseline_listener()
         register_change_record_listener()
 
+        from superset.versioning.savepoints import register_savepoint_listeners
+
+        register_savepoint_listeners()
+
         # Retention is time-based and runs out-of-band as a Celery beat
         # task — see ``superset/tasks/version_history_retention.py``
         # and the ``version_history.prune_old_versions`` entry in
@@ -1081,6 +1085,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         self.configure_auth_provider()
         self.configure_ssh_manager()
         self.configure_stats_manager()
+        self.configure_semantic_cache()
         self.configure_task_manager()
         self.configure_websocket()
 
@@ -1319,6 +1324,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         register_session_invalidation_events(appbuilder.sm.user_model)
 
+        from superset.models.dashboard import (
+            register_dashboard_copy_events,
+        )
+
+        register_dashboard_copy_events(appbuilder.sm.user_model)
+
         @self.superset_app.context_processor
         def get_common_bootstrap_data() -> dict[str, Any]:
             # Import here to avoid circular imports
@@ -1444,6 +1455,93 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
     def configure_stats_manager(self) -> None:
         stats_logger_manager.init_app(self.superset_app)
+
+    def configure_semantic_cache(self) -> None:
+        """Configure optional semantic containment caching for this process."""
+        from typing import cast
+
+        from superset.semantic_layers.cache import (
+            initialize_semantic_cache,
+            SemanticCacheDisabledReason,
+            SemanticCacheMetrics,
+            SemanticCacheState,
+        )
+        from superset.semantic_layers.cache_repository import SemanticCacheBackend
+
+        requested: bool = feature_flag_manager.is_feature_enabled(
+            "SEMANTIC_LAYER_CONTAINMENT_CACHE"
+        )
+        state: SemanticCacheState = initialize_semantic_cache(
+            parent_enabled=feature_flag_manager.is_feature_enabled("SEMANTIC_LAYERS"),
+            requested=requested,
+            backend=cast(SemanticCacheBackend, cache_manager.data_cache),
+            coordination=cache_manager.semantic_cache_coordination,
+            wait_seconds=self.config["SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS"],
+            lease_seconds=self.config["SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS"],
+            metrics=cast(SemanticCacheMetrics, stats_logger_manager.instance),
+            # The same cap the ordinary result cache applies to a single value;
+            # containment values share that backend.
+            max_value_bytes=self.config.get("DATA_CACHE_MAX_VALUE_SIZE"),
+        )
+        try:
+            stats_logger_manager.instance.gauge(
+                "semantic_cache.containment.enabled",
+                float(state.effective),
+            )
+        except Exception:  # pylint: disable=broad-exception-caught
+            logger.debug("Semantic cache startup metric emission failed", exc_info=True)
+        if (
+            state.disabled_reason
+            is SemanticCacheDisabledReason.UNSUPPORTED_COORDINATION
+        ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.unsupported"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but the configured "
+                "distributed coordination backend does not support owner-token leases; "
+                "containment caching is disabled for this process"
+            )
+        elif state.disabled_reason is SemanticCacheDisabledReason.UNSUPPORTED_BACKEND:
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.unsupported"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but DATA_CACHE_CONFIG "
+                "is not a persistent shared cache that containment can read back "
+                "from (NullCache never retains values; RedisSentinelCache reads "
+                "from replicas); containment caching is disabled for this process"
+            )
+        elif (
+            state.disabled_reason
+            is SemanticCacheDisabledReason.INVALID_COORDINATION_CONFIGURATION
+        ):
+            try:
+                stats_logger_manager.instance.incr(
+                    "semantic_cache.containment.invalid_configuration"
+                )
+            except Exception:  # pylint: disable=broad-exception-caught
+                logger.debug(
+                    "Semantic cache startup metric emission failed",
+                    exc_info=True,
+                )
+            logger.warning(
+                "Semantic containment caching was requested but its coordination "
+                "timing configuration is invalid; containment caching is disabled "
+                "for this process"
+            )
 
     def setup_event_logger(self) -> None:
         _event_logger["event_logger"] = get_event_logger_from_cfg_value(

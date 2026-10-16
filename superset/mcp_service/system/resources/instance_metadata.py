@@ -56,13 +56,12 @@ def get_instance_metadata_resource() -> str:
         from superset.daos.tag import TagDAO
         from superset.daos.user import UserDAO
         from superset.mcp_service.mcp_core import InstanceInfoCore
+        from superset.mcp_service.privacy import user_can_view_data_model_metadata
         from superset.mcp_service.system.schemas import InstanceInfo
         from superset.mcp_service.system.system_utils import (
-            calculate_dashboard_breakdown,
-            calculate_database_breakdown,
-            calculate_instance_summary,
-            calculate_popular_content,
-            calculate_recent_activity,
+            INSTANCE_INFO_METRIC_CALCULATORS,
+            INSTANCE_INFO_TIME_WINDOWS,
+            redact_data_model_metadata,
         )
         from superset.utils import json
 
@@ -76,28 +75,28 @@ def get_instance_metadata_resource() -> str:
                 "tags": cast(Type[BaseDAO[Any]], TagDAO),
             },
             output_schema=InstanceInfo,
-            metric_calculators={
-                "instance_summary": calculate_instance_summary,
-                "recent_activity": calculate_recent_activity,
-                "dashboard_breakdown": calculate_dashboard_breakdown,
-                "database_breakdown": calculate_database_breakdown,
-                "popular_content": calculate_popular_content,
-            },
-            time_windows={
-                "recent": 7,
-                "monthly": 30,
-                "quarterly": 90,
-            },
+            metric_calculators=INSTANCE_INFO_METRIC_CALCULATORS,
+            time_windows=INSTANCE_INFO_TIME_WINDOWS,
             logger=logger,
         )
 
-        # Get base instance info
-        base_result = json.loads(instance_info_core.get_resource())
+        # Get base instance info, redacting data model metadata for principals
+        # that the get_instance_info tool also hides it from.
+        can_view_data_model = user_can_view_data_model_metadata()
+        instance_info = instance_info_core.run_tool()
+        if not can_view_data_model:
+            instance_info = redact_data_model_metadata(instance_info)
+        base_result = json.loads(json.dumps(instance_info.model_dump()))
 
         # Remove empty popular_content if it has no useful data
         popular = base_result.get("popular_content", {})
         if popular and not any(popular.get(k) for k in popular):
             del base_result["popular_content"]
+
+        if not can_view_data_model:
+            base_result["available_datasets"] = []
+            base_result["available_databases"] = []
+            return json.dumps(base_result, indent=2)
 
         # Add available datasets (top 20 by most recent modification)
         dataset_dao = instance_info_core.dao_classes["datasets"]

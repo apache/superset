@@ -506,6 +506,7 @@ def restore_version_endpoint(
     # Deferred: restore.py pulls the model/versioning graph (same
     # bootstrap-cycle rationale as this module's other local imports).
     from superset.versioning.restore import (
+        MissingDatasourceError,
         PrunedChildHistoryError,
         RecycledChildIdentityError,
     )
@@ -516,10 +517,15 @@ def restore_version_endpoint(
         return api.response_404()
     except command_cls.forbidden_exc:
         return api.response_403()
-    except (PrunedChildHistoryError, RecycledChildIdentityError) as ex:
-        # Fail-closed refusals: needed child history was pruned by
-        # retention (sc-120012), or a snapshot child id belongs to a
-        # different live child; the entity was left unchanged. The
+    except (
+        MissingDatasourceError,
+        PrunedChildHistoryError,
+        RecycledChildIdentityError,
+    ) as ex:
+        # Fail-closed refusals: a chart snapshot's datasource no longer
+        # exists, needed child history was pruned by retention
+        # (sc-120012), or a snapshot child id belongs to a different live
+        # child; the entity was left unchanged. The
         # exception's message is user-facing. Passes through the
         # command's @transaction untouched (on_error re-raises
         # non-SQLAlchemy exceptions as-is).

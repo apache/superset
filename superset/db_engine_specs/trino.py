@@ -74,6 +74,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
     engine_name = "Trino"
     allows_alias_to_source_column = False
     supports_grouping_sets = True
+    # The client sets queryId after its first request, then blocks in
+    # execute() until rows arrive or the query ends.
+    has_query_id_during_execute = True
 
     encrypted_extra_sensitive_fields = {
         **PrestoBaseEngineSpec.encrypted_extra_sensitive_fields,
@@ -483,10 +486,25 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
             raise err
 
     @classmethod
+    def get_cancel_query_id(cls, cursor: Cursor, query: Query) -> str | None:
+        """
+        Return the Trino queryId of the cursor's running query.
+
+        It is ``None`` until execution has started, so callers that ask before
+        executing (SQL Lab, chart-data tasks) record nothing and keep using
+        ``handle_cursor``. Another thread can read it while ``execute`` blocks.
+
+        :param cursor: Trino DB-API cursor
+        :param query: Query instance (unused)
+        :return: Trino queryId, or None before execution
+        """
+        return cursor.query_id
+
+    @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:
+        """Stage early-cancel intent for the caller's guarded stop transaction."""
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:

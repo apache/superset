@@ -30,6 +30,10 @@ import {
 // eslint-disable-next-line import/prefer-default-export
 export const NULL_STRING = '<NULL>';
 
+// Marks a cross-filter emitted from the x-axis value, so series-level
+// selection styling is not applied to it when the chart has dimensions.
+export const X_AXIS_CROSS_FILTER_SOURCE = 'xAxis';
+
 export const TIMESERIES_CONSTANTS = {
   gridOffsetRight: 20,
   gridOffsetLeft: 20,
