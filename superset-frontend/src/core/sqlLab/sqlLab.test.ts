@@ -17,6 +17,10 @@
  * under the License.
  */
 import { configureStore, createListenerMiddleware } from '@reduxjs/toolkit';
+import { SupersetClient } from '@superset-ui/core';
+import type { sqlLab as sqlLabApi } from '@apache-superset/core';
+import { notifyLocationChanged } from 'src/core/navigation';
+import sqlLabTools from 'src/core/clientTools/sqlLab';
 import type { QueryEditor } from 'src/SqlLab/types';
 import sqlLabReducer from 'src/SqlLab/reducers/sqlLab';
 import {
@@ -121,7 +125,7 @@ jest.mock('src/views/store', () => ({
 
 // Module under test — imported after mocks
 // eslint-disable-next-line import/first
-import { sqlLab } from '.';
+import { sqlLab, registerEditorHandle, unregisterEditorHandle } from '.';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -168,6 +172,7 @@ function makeSecondEditor() {
 // ---------------------------------------------------------------------------
 
 afterEach(() => {
+  unregisterEditorHandle(EDITOR_ID);
   mockListenerMiddleware.clearListeners();
   resetStore();
 });
@@ -548,6 +553,92 @@ test('getTabs returns all open tabs', () => {
   expect(tabs[0].title).toBe('Untitled Query 1');
 });
 
+test.each(['switch_editor_tab', 'close_editor_tab'])(
+  '%s can address an unvisited persisted tab',
+  async name => {
+    const persisted = { ...makeSecondEditor(), dbId: undefined, loaded: false };
+    mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: persisted });
+    expect(sqlLab.getTabs().find(tab => tab.id === persisted.id)).toMatchObject(
+      {
+        id: persisted.id,
+        databaseId: undefined,
+      },
+    );
+    notifyLocationChanged('/sqllab/');
+    const tool = sqlLabTools.find(item => item.name === `sqlLab__${name}`)!;
+    expect(await tool.handler({ editor_id: persisted.id })).toMatchObject({
+      success: true,
+      editor_id: persisted.id,
+    });
+    if (name === 'switch_editor_tab') {
+      expect(sqlLab.getCurrentTab()?.id).toBe(persisted.id);
+    } else {
+      expect(sqlLab.getTabs().some(tab => tab.id === persisted.id)).toBe(false);
+    }
+  },
+);
+
+test.each(['get_editor_sql', 'update_editor_sql'])(
+  '%s returns an error if the tab closes before the editor mounts',
+  async name => {
+    notifyLocationChanged('/sqllab/');
+    const tool = sqlLabTools.find(item => item.name === `sqlLab__${name}`)!;
+    const result = tool.handler({ sql: 'SELECT 2' });
+    await sqlLab.closeTab(EDITOR_ID);
+    expect(await result).toEqual({
+      success: false,
+      message: `Tab ${EDITOR_ID} has been closed`,
+    });
+  },
+);
+
+test('waiting for an editor ignores other tab closures and resolves on mount', async () => {
+  const tab = sqlLab.getCurrentTab()!;
+  const pending = tab.getEditor();
+  const other = makeSecondEditor();
+  mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: other });
+  await sqlLab.closeTab(other.id);
+  const handle = { getValue: () => 'SELECT 1' } as sqlLabApi.Editor;
+  registerEditorHandle(EDITOR_ID, handle);
+  expect((await pending).getValue()).toBe('SELECT 1');
+});
+
+test('all editor waiters reject on close, including a previously captured tab', async () => {
+  const tab = sqlLab.getCurrentTab()!;
+  const first = expect(tab.getEditor()).rejects.toThrow('closed');
+  const second = expect(tab.getEditor()).rejects.toThrow('closed');
+  await sqlLab.closeTab(tab.id);
+  await Promise.all([first, second]);
+  await expect(tab.getEditor()).rejects.toThrow('closed');
+});
+
+test('a backend query failure is emitted after the run tool confirms initiation', async () => {
+  notifyLocationChanged('/sqllab/');
+  const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({
+    message: 'Invalid SQL',
+  });
+  let subscription: { dispose(): void } | undefined;
+  const failure = new Promise<sqlLabApi.QueryErrorResultContext>(resolve => {
+    subscription = sqlLab.onDidQueryFail(resolve);
+  });
+  try {
+    const tool = sqlLabTools.find(
+      item => item.name === 'sqlLab__run_current_query',
+    )!;
+    const result = await tool.handler({});
+    const event = await failure;
+    expect(result).toEqual({
+      success: true,
+      editor_id: EDITOR_ID,
+      query_id: event.clientId,
+    });
+    expect(event.errorMessage).toBe('Invalid SQL');
+  } finally {
+    subscription?.dispose();
+    post.mockRestore();
+  }
+});
+
 test('getDatabases returns all available databases', () => {
   const databases = sqlLab.getDatabases();
 
@@ -563,6 +654,35 @@ test('createTab dispatches ADD_QUERY_EDITOR and returns the new tab', async () =
   expect(tab.title).toBe('Custom Tab');
   const tabs = sqlLab.getTabs();
   expect(tabs.length).toBeGreaterThanOrEqual(2);
+});
+
+test.each([
+  { databaseId: 2 },
+  { databaseId: 2, catalog: 'explicit_catalog' },
+  { databaseId: 2, schema: 'explicit_schema' },
+])(
+  'createTab does not inherit namespaces across databases: %p',
+  async options => {
+    await sqlLab.setCatalog('private_catalog');
+    const tab = await sqlLab.createTab(options);
+    expect(tab.databaseId).toBe(2);
+    expect(tab.catalog).toBe('catalog' in options ? options.catalog : null);
+    expect(tab.schema).toBe('schema' in options ? options.schema : null);
+  },
+);
+
+test('createTab inherits the namespace only for the same database and supports explicit clearing', async () => {
+  await sqlLab.setCatalog('private_catalog');
+  const inherited = await sqlLab.createTab({ databaseId: 1 });
+  expect(inherited.catalog).toBe('private_catalog');
+  expect(inherited.schema).toBe('public');
+  const cleared = await sqlLab.createTab({
+    databaseId: 1,
+    catalog: null,
+    schema: null,
+  });
+  expect(cleared.catalog).toBeNull();
+  expect(cleared.schema).toBeNull();
 });
 
 test('setActiveTab switches the active tab', async () => {

@@ -150,7 +150,8 @@ Use `chat.getTools()` to discover these actions alongside other registered clien
 Superset registers these tools at application startup, before loading extensions.
 They remain discoverable on every page; invoking them outside SQL Lab returns
 `{ success: false, message }`. Open SQL Lab before calling them. SQL Lab handlers
-also return this error shape for invalid input, missing tabs, or API errors.
+also return this error shape for invalid input, missing tabs, and errors raised
+while handling a tool call. Query execution failures are reported separately.
 
 | Tool | Input | Result / behavior |
 | --- | --- | --- |
@@ -167,10 +168,20 @@ also return this error shape for invalid input, missing tabs, or API errors.
 Successful results include `success: true`. Read and update tools use the active
 editor; switch tabs explicitly before working with another editor. Listing tabs
 reads metadata only, so it does not wait for inactive editors to mount.
+Persisted tabs remain listed before they are visited; their `databaseId` is
+`null` until their state is loaded. SQL reads and updates return an error if
+their tab closes while waiting for its editor to mount. Creating a tab for a
+different database clears omitted catalog and schema values; explicit values
+are preserved, and tabs using the same database inherit omitted values.
 
 `run_current_query` follows SQL Lab's existing selection, database, catalog,
 schema, template parameter, and row limit behavior. It starts execution through
 the SQL Lab API and returns a client query ID; it does not wait for results.
+Its `success: true` confirms only that execution was initiated, not that the
+query succeeded. Backend execution errors (including invalid SQL) are delivered
+through SQL Lab's query lifecycle. Subscribe to `sqlLab.onDidQuerySuccess` and
+`sqlLab.onDidQueryFail` before starting execution, and match the returned
+`query_id` to the event's `clientId` to determine the outcome.
 Queries can modify database contents, so this tool carries `destructiveHint: true`.
 Updating SQL and closing tabs also carry this hint because they can discard text.
 Query execution permissions remain enforced by the existing backend endpoints.

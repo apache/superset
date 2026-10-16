@@ -19,6 +19,8 @@
 import { render, waitFor } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import fetchMock from 'fetch-mock';
+import { chat } from 'src/core/chat';
+import ChatProvider from 'src/core/chat/ChatProvider';
 import ExtensionsStartup from './ExtensionsStartup';
 import ExtensionsLoader from './ExtensionsLoader';
 
@@ -42,6 +44,7 @@ const mockInitialStateNoUser = {
 
 // Clean up global state before each test
 beforeEach(() => {
+  ChatProvider.getInstance().reset();
   // Clear the window.superset object
   delete (window as any).superset;
 
@@ -255,6 +258,9 @@ test('does not initialize ExtensionsLoader when EnableExtensions feature flag is
     expect((window as any).superset).toBeDefined();
     // But extensions should not be initialized
     expect(initializeSpy).not.toHaveBeenCalled();
+    expect(chat.getTools().map(tool => tool.name)).toContain(
+      'core.sqlLab__get_current_editor_id',
+    );
   });
 
   initializeSpy.mockRestore();

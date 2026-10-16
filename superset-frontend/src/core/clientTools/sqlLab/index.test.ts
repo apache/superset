@@ -110,6 +110,14 @@ test('lists tab metadata without waiting for inactive editor handles', async () 
   expect(inactive.getEditor).not.toHaveBeenCalled();
 });
 
+test('lists unvisited persisted tabs with an unknown database', async () => {
+  mockSqlLab.getTabs.mockReturnValue([{ ...tab, databaseId: undefined }]);
+  expect(await invoke('get_editor_tabs')).toMatchObject({
+    success: true,
+    editors: [{ editor_id: tab.id, databaseId: null }],
+  });
+});
+
 test('reads SQL and selection from the live editor', async () => {
   expect(await invoke('get_editor_sql')).toMatchObject({
     success: true,
@@ -220,7 +228,7 @@ test.each([
   expect(mockSqlLab.createTab).not.toHaveBeenCalled();
 });
 
-test('runs the active query using SQL Lab selection and execution semantics', async () => {
+test('returns the client query ID when execution is initiated, without waiting for its outcome', async () => {
   mockSqlLab.executeQuery.mockResolvedValue('client-query-id');
   expect(await invoke('run_current_query')).toEqual({
     success: true,
@@ -230,10 +238,12 @@ test('runs the active query using SQL Lab selection and execution semantics', as
   expect(mockSqlLab.executeQuery).toHaveBeenCalledWith();
 });
 
-test('reports API errors without claiming success', async () => {
-  mockSqlLab.executeQuery.mockRejectedValueOnce(new Error('Query failed'));
+test('reports errors raised while handling a tool call', async () => {
+  mockSqlLab.getCurrentTab.mockImplementationOnce(() => {
+    throw new Error('Unable to read SQL Lab state');
+  });
   expect(await invoke('run_current_query')).toEqual({
     success: false,
-    message: 'Query failed',
+    message: 'Unable to read SQL Lab state',
   });
 });

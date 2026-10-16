@@ -361,6 +361,24 @@ test('registerClientTool works the same regardless of call order relative to reg
   warn.mockRestore();
 });
 
+test.each([false, true])(
+  'disposing an older registration preserves its replacement (same object: %s)',
+  sameObject => {
+    const provider = ChatProvider.getInstance();
+    const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
+    const original = { ...noopTool, name: 'core.sqlLab__example' };
+    const replacement = sameObject ? original : { ...original };
+    const older = provider.registerClientTool(original);
+    const newer = provider.registerClientTool(replacement);
+
+    older.dispose();
+    expect(provider.getTools()).toEqual([replacement]);
+    newer.dispose();
+    expect(provider.getTools()).toEqual([]);
+    warn.mockRestore();
+  },
+);
+
 test('registerChat with options.tools registers those tools too', () => {
   const provider = ChatProvider.getInstance();
   provider.registerChat({ id: 'acme.chat', name: 'Acme' }, trigger, panel, {

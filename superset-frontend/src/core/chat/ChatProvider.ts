@@ -58,7 +58,7 @@ class ChatProvider {
 
   // Keyed by the tool's own (fully-qualified) name — same flat-Map shape as
   // commands.ts's registerCommand, which this mirrors.
-  private clientTools = new Map<string, ClientTool>();
+  private clientTools = new Map<string, { tool: ClientTool }>();
 
   private registerEmitter = createEventEmitter<Chat>();
 
@@ -226,7 +226,7 @@ class ChatProvider {
    * registerCommand exactly: keyed by the tool's own `name` (fully-qualified,
    * author-chosen — nothing prefixes or validates it here, same as a
    * `Command.id`), warns and overwrites on a duplicate name, and the
-   * returned Disposable removes it by name unconditionally on dispose.
+   * returned Disposable removes only its own registration on dispose.
    *
    * Registering after registerChat() is safe — nothing here depends on call
    * order. (An earlier version of this method warned about that ordering,
@@ -243,9 +243,12 @@ class ChatProvider {
           'Overwriting the existing tool.',
       );
     }
-    this.clientTools.set(name, tool);
+    const registration = { tool };
+    this.clientTools.set(name, registration);
     return new Disposable(() => {
-      this.clientTools.delete(name);
+      if (this.clientTools.get(name) === registration) {
+        this.clientTools.delete(name);
+      }
     });
   }
 
@@ -259,7 +262,7 @@ class ChatProvider {
   }
 
   public getTools(): ClientTool[] {
-    return [...this.clientTools.values()];
+    return [...this.clientTools.values()].map(({ tool }) => tool);
   }
 
   public reset(): void {

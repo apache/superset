@@ -24,6 +24,13 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The SQL Lab extension API includes unvisited persisted tabs in `getTabs()`.
+  `Tab.databaseId` can be `undefined` until the tab's state has loaded; consumers
+  must handle this case before using the ID. `Tab.getEditor()` rejects if its
+  tab closes before the editor mounts. `createTab()` inherits omitted catalog
+  and schema values only when reusing the same database, and accepts `null` to
+  clear them explicitly.
+
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
