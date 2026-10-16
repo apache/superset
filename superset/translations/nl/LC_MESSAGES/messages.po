@@ -8910,7 +8910,7 @@ msgstr "Lege kolom"
 msgid "Get the last date by the date unit."
 msgstr "Verkrijg de laatste datum door de datum eenheid."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Zoek de specifieke datum voor de vakantie"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,

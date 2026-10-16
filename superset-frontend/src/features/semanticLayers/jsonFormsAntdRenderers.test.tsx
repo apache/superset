@@ -147,9 +147,14 @@ test('ordinary string controls retain the vendor default display', () => {
   expect(screen.getByRole('textbox', { name: 'Schema' })).toHaveValue('PUBLIC');
 });
 
-test.each([false, true])(
-  'manual fields remain typeable when discovery is pending: %s',
-  refreshingSchema => {
+test.each([
+  [false, false],
+  [true, false],
+  [false, true],
+  [true, true],
+])(
+  'manual fields remain typeable during discovery (refreshing=%s, stale=%s)',
+  (refreshingSchema, staleSchemaOptions) => {
     const schema = {
       type: 'object',
       properties: {
@@ -168,7 +173,11 @@ test.each([false, true])(
         data={{}}
         renderers={renderers}
         cells={cellRegistryEntries}
-        config={{ refreshingSchema, formData: { account: 'synthetic' } }}
+        config={{
+          refreshingSchema,
+          staleSchemaOptions,
+          formData: { account: 'synthetic' },
+        }}
       />,
     );
     expect(screen.getByRole('textbox', { name: 'Database' })).toBeEnabled();
