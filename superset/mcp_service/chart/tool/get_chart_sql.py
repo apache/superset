@@ -585,8 +585,7 @@ async def get_chart_sql(
     except SQLAlchemyError as e:
         await ctx.error(
             "Chart SQL retrieval failed due to database session error: "
-            "identifier=%s, error_type=%s"
-            % (request.identifier, type(e).__name__)
+            "identifier=%s, error_type=%s" % (request.identifier, type(e).__name__)
         )
         logger.exception("SQLAlchemy error in get_chart_sql: %s", e)
         response = ChartError(
