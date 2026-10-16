@@ -58,7 +58,11 @@ export const updateRoleName = async (roleId: number, name: string) =>
 export const formatPermissionLabel = (
   permissionName: string,
   viewMenuName: string,
-) => `${permissionName.replace(/_/g, ' ')} ${viewMenuName.replace(/_/g, ' ')}`;
+) =>
+  `${permissionName.replace(/_/g, ' ')} ${viewMenuName.replace(/_/g, ' ')}`.replace(
+    /%2e/gi,
+    '.',
+  );
 
 type PermissionResult = {
   id: number;
