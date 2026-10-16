@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.2.0, <8",
+    "cachetools>=7.2.1, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.5.0",
     "click-option-group",
@@ -139,10 +139,10 @@ bigquery = [
     "pandas-gbq>=0.35.2",
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
-    "sqlalchemy-bigquery>=1.17.2",
+    "sqlalchemy-bigquery>=1.17.3",
     "google-cloud-bigquery>=3.46.1",
 ]
-clickhouse = ["clickhouse-connect>=1.9.0, <2.0"]
+clickhouse = ["clickhouse-connect>=1.10.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
 # SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
 # sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
@@ -181,7 +181,7 @@ dynamodb = ["pydynamodb>=0.8.2"]
 # SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See
 # superset/db_engine_specs/solr.py's known_incompatibilities metadata.
 solr = ["sqlalchemy-solr>=0.2.4.3"]
-elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
+elasticsearch = ["elasticsearch-dbapi>=0.3.0, <0.4.0"]
 # sqlalchemy-exasol cuts hard from SQLAlchemy 1.4-only (<6.0.0) to 2.0-only
 # (>=6.0.0) with no dual-compat release. Bumped now that Superset's own
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
@@ -221,7 +221,7 @@ firebird = ["sqlalchemy-firebird>=2.2.0"]
 firebolt = ["firebolt-sqlalchemy>=1.1.2, <2"]
 gevent = ["gevent>=26.9.0"]
 gsheets = ["shillelagh[gsheetsapi]>=1.4.5, <2"]
-hana = ["hdbcli==2.30.27", "sqlalchemy_hana==3.0.3"]
+hana = ["hdbcli==2.30.27", "sqlalchemy_hana==5.0.0"]
 hive = [
     "pyhive[hive_pure_sasl]>=0.7.0",
     "tableschema",
@@ -263,7 +263,7 @@ playwright = ["playwright>=1.63.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
 trino = ["trino>=0.340.0"]
-prophet = ["prophet>=1.4.0, <2"]
+prophet = ["prophet>=1.5.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
@@ -410,16 +410,20 @@ module = [
 ]
 warn_unused_ignores = false
 
-# The mirror case: superset-core declares SqlaTable's id/uuid/perm, and
-# Chart's uuid, as plain value types, so column expressions like
-# SqlaTable.uuid.in_() and Slice.uuid.in_() only need a type: ignore when
-# superset-core's sources are part of the same mypy run (full-repo lint)
-# and not when only changed files are checked.
+# The mirror case: superset-core declares SqlaTable's id/uuid/perm,
+# Chart's uuid, and KeyValue's uuid as plain value types, so column
+# expressions like SqlaTable.uuid.in_(), Slice.uuid.in_(), and
+# KeyValueEntry.uuid.is_() only need a type: ignore when superset-core's
+# sources are part of the same mypy run (full-repo lint) and not when only
+# changed files are checked.
 [[tool.mypy.overrides]]
 module = [
     "superset.mcp_service.dataset_scope",
     "tests.unit_tests.mcp_service.dataset.tool.test_dataset_tools",
     "superset.commands.chart.importers.v1",
+    "superset.daos.datasource",
+    "superset.commands.security.reset",
+    "tests.unit_tests.commands.deletion_retention.test_purge_chart_detach",
 ]
 warn_unused_ignores = false
 

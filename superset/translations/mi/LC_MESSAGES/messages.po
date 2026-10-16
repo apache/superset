@@ -8613,7 +8613,7 @@ msgstr "Tīwae Āhuahanga"
 msgid "Get the last date by the date unit."
 msgstr "Tikina te rā whakamutunga mā te waeine rā."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Tikina te rā motuhake mō te hararei"
 
 msgid "Give access to multiple catalogs in a single database connection."
