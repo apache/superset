@@ -164,7 +164,8 @@ def test_stop_before_cancel_id_is_published_uses_live_cursor(
             assert SQLExecutor._cancel_query(query.database, query)
         else:
             assert cancel_query(query)
-        db.session.commit.assert_called_once_with()
+        # The caller commits early intent together with the guarded STOPPED write.
+        db.session.commit.assert_not_called()
 
         cursor: Mock = Mock()
         cursor.status.return_value = "PENDING_STATE"

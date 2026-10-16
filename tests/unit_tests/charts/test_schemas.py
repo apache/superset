@@ -194,14 +194,22 @@ def test_chart_data_prophet_options_schema_time_grain_validation(
     assert "time_grain" in exc_info.value.messages
 
 
+VALID_QUERY_CONTEXT = (
+    '{"datasource": {"id": 1, "type": "table"}, "queries": [{"metrics": ["count"]}]}'
+)
+
+
 def test_chart_put_schema_query_context_json_validation(
     app_context: None,
 ) -> None:
     """ChartPutSchema.query_context must reject invalid JSON (parity with POST)."""
     schema = ChartPutSchema()
 
-    # Valid JSON passes
-    assert schema.load({"query_context": '{"a": 1}'})["query_context"] == '{"a": 1}'
+    # Valid, complete JSON passes
+    assert (
+        schema.load({"query_context": VALID_QUERY_CONTEXT})["query_context"]
+        == VALID_QUERY_CONTEXT
+    )
 
     # None is allowed (allow_none)
     assert schema.load({"query_context": None})["query_context"] is None
@@ -210,6 +218,45 @@ def test_chart_put_schema_query_context_json_validation(
     with pytest.raises(ValidationError) as exc_info:
         schema.load({"query_context": "{not valid json"})
     assert "query_context" in exc_info.value.messages
+
+
+def test_chart_put_schema_query_context_requires_datasource_and_queries(
+    app_context: None,
+) -> None:
+    """apache/superset#35774: a query_context missing 'datasource' or 'queries'
+    must be rejected at save time -- QueryContextFactory.create() requires both
+    as keyword-only arguments, so a chart saved without them fails every
+    subsequent read with a raw TypeError instead of a clear validation error."""
+    schema = ChartPutSchema()
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"query_context": '{"queries": [{"metrics": ["count"]}]}'})
+    assert "query_context" in exc_info.value.messages
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({"query_context": '{"datasource": {"id": 1, "type": "table"}}'})
+    assert "query_context" in exc_info.value.messages
+
+
+def test_chart_post_schema_query_context_requires_datasource_and_queries(
+    app_context: None,
+) -> None:
+    """Same required-fields validation as PUT, on the POST schema."""
+    schema = ChartPostSchema()
+    base = {
+        "slice_name": "test",
+        "datasource_id": 1,
+        "datasource_type": "table",
+    }
+
+    with pytest.raises(ValidationError) as exc_info:
+        schema.load({**base, "query_context": '{"queries": [{}]}'})
+    assert "query_context" in exc_info.value.messages
+
+    assert (
+        schema.load({**base, "query_context": VALID_QUERY_CONTEXT})["query_context"]
+        == VALID_QUERY_CONTEXT
+    )
 
 
 def test_chart_data_prophet_options_schema_periods_range(

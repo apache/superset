@@ -502,9 +502,9 @@ class TrinoEngineSpec(PrestoBaseEngineSpec):
 
     @classmethod
     def prepare_cancel_query(cls, query: Query) -> None:
+        """Stage early-cancel intent for the caller's guarded stop transaction."""
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def cancel_query(cls, cursor: Cursor, query: Query, cancel_query_id: str) -> bool:
