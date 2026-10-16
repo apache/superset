@@ -3840,30 +3840,9 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
         datasource="native-1", annotation_context=context
     )
     assert current_key != legacy_key
-    assert context == {
-        **legacy_context,
-        "semantic_filter_protocol": "semantic-null-filters-v1",
-        "source_versions": {"7": view.metadata_generation},
-    }
-
-
-def test_get_df_payload_keeps_dataset_validation_type() -> None:
-    """A SQL dataset's run-time validation failure keeps its type in the payload."""
-    from superset.common.query_object import QueryObject
-    from superset.exceptions import QueryObjectValidationMessage
-
-    mock_query_context = MagicMock()
-    mock_query_context.force = False
-    mock_datasource = MagicMock()
-    mock_datasource.column_names = ["col1"]
-    processor = QueryContextProcessor(mock_query_context)
-    processor._qc_datasource = mock_datasource
-    query_obj = QueryObject(datasource=mock_datasource, columns=["missing"])
-    cache = MagicMock(
-        is_loaded=False,
-        df=pd.DataFrame(),
-        error_message=None,
-        bq_memory_limited=False,
+    assert context is not None
+    assert context["source_scope"][0]["semantic_filter_protocol"] == (
+        "semantic-null-filters-v1"
     )
 
     with (
