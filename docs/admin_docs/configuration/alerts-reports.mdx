@@ -483,10 +483,11 @@ FEATURE_FLAGS = {
 }
 ```
 
-With the flag enabled, reports (not alerts) can be configured to
-automatically retry when sending fails — this covers rendering/export
-failures (e.g. a chart screenshot or CSV export erroring out) as well as
-delivery failures such as a transient SMTP or Slack error — instead of
+With the flag enabled, alerts and reports can be configured to
+automatically retry when execution fails — this covers rendering/export
+failures (e.g. a chart screenshot or CSV export erroring out), but not
+delivery failures, since a provider may have accepted the notification
+before returning an error — instead of
 moving straight to an `Error` state. A schedule that stays `WORKING` past
 its `working_timeout` always goes straight to `Error` without a retry,
 regardless of setting. Execution timeouts (the Celery soft time limit) and
