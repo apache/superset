@@ -303,11 +303,7 @@ class BrowserHelloMiddleware(BaseHTTPMiddleware):
     endpoint before they reach FastMCP's router (which returns 405 for GET).
     Works regardless of whether MCP_AUTH_ENABLED is True or False.
 
-    Only the MCP endpoint path is intercepted. Every other route on the
-    same app -- an auth provider's browser-facing OAuth routes (e.g.
-    ``/authorize``, ``/consent``, ``/auth/callback``), ``/.well-known/*``,
-    ``/health`` and other custom routes -- passes through untouched, so an
-    OAuth-proxy ``MCP_AUTH_FACTORY`` can complete its browser login flow.
+    Only the MCP endpoint path is intercepted. Other routes are passed through.
 
     When auth_enabled=True the page includes Bearer token setup instructions.
     When auth_enabled=False the page omits the Authorization header from the
