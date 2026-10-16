@@ -320,16 +320,24 @@ def test_chart_no_op_time_range_on_missing_column_is_not_refused(
     metric_view[1].get_table.assert_called_once()
 
 
+@pytest.mark.parametrize(
+    "saved_range", [None, "No filter", "Aucun filtre", "2024-01-01 : 2024-06-01"]
+)
+@pytest.mark.parametrize("column", ["ds", "total_amount"])
 @pytest.mark.parametrize("source", ["chart", "browser", "server", "mismatched"])
 def test_dashboard_time_override_preserves_foreign_filter_provenance(
     client: FlaskClient,
     full_api_access: None,
     metric_view: tuple[SemanticView, MagicMock],
     source: str,
+    saved_range: str | None,
+    column: str,
+    mocker: MockerFixture,
 ) -> None:
-    """Dashboard time rewrites stay incompatible; chart time filters still refuse."""
+    """Only saved unbounded predicates acquire dashboard time provenance."""
+    mocker.patch("superset.utils.date_parser._", return_value="Aucun filtre")
     payload: dict[str, Any] = _request(
-        [{"col": "ds", "op": "TEMPORAL_RANGE", "val": "No filter"}]
+        [{"col": column, "op": "TEMPORAL_RANGE", "val": saved_range}]
     )
     time_range: str = "2025-01-01 : 2025-02-01"
     if source == "server":
@@ -343,14 +351,15 @@ def test_dashboard_time_override_preserves_foreign_filter_provenance(
                 }
             }
     response: TestResponse = client.post("/api/v1/chart/data", json=payload)
-    assert response.status_code == (
-        400 if source in {"chart", "mismatched"} else 200
-    ), response.json
-    if source in {"chart", "mismatched"}:
+    refused: bool = (
+        source in {"chart", "mismatched"} or saved_range == "2024-01-01 : 2024-06-01"
+    )
+    assert response.status_code == (400 if refused else 200), response.json
+    if refused:
         metric_view[1].get_table.assert_not_called()
     else:
         assert response.json is not None
-        assert response.json["result"][0]["rejected_filter_columns"] == ["ds"]
+        assert response.json["result"][0]["rejected_filter_columns"] == [column]
         metric_view[1].get_table.assert_called_once()
         query: SemanticQuery = metric_view[1].get_table.call_args.args[0]
         assert not query.filters

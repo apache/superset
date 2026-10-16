@@ -76,8 +76,10 @@ assists people when migrating to a new version.
   widened the result); edit the chart's filters and select a dimension. This
   differs from SQL datasets, which skip and report such filters. Scheduled
   reports, alerts and thumbnails for such charts fail until the chart is edited.
-  A "No filter" time range on a missing column is not refused; metric filters
-  remain unsupported. This change affects only opt-in, pre-GA deployments with
+  A "No filter" time range on a missing column is not refused. Dashboard time
+  overrides mark only previously unbounded temporal predicates as dashboard
+  filters; bounded chart-defined filters on missing columns or metrics remain
+  refused. This change affects only opt-in, pre-GA deployments with
   `SEMANTIC_LAYERS` enabled. On upgrade, dashboard tabs already open across the
   deploy send filters without `isExtra`; their semantic charts return HTTP 400
   for incompatible dashboard filters until the user reloads the page. This

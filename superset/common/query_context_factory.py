@@ -32,6 +32,7 @@ from superset.models.slice import Slice
 from superset.security.manager import STOCK_RAISE_FOR_ACCESS
 from superset.superset_typing import Column
 from superset.utils.core import DatasourceDict, DatasourceType, is_adhoc_column
+from superset.utils.date_parser import is_no_time_range
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import BaseDatasource
@@ -447,6 +448,10 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
         if query_object.time_range:
             for filter_object in query_object.filter:
                 if filter_object["op"] == "TEMPORAL_RANGE":
+                    saved: object = filter_object.get("val")
+                    was_unbounded: bool = saved is None or (
+                        isinstance(saved, str) and is_no_time_range(saved)
+                    )
                     filter_object["val"] = query_object.time_range
-                    if dashboard_time_override:
+                    if dashboard_time_override and was_unbounded:
                         filter_object["isExtra"] = True
