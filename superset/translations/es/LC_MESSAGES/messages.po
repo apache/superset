@@ -1580,11 +1580,11 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Se ha añadido %s nueva columna al conjunto de datos virtual"
-msgstr[1] "Se han añadido %s nuevas columnas al conjunto de datos virtual"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Se ha añadido %s nueva columna al conjunto de datos"
+msgstr[1] "Se han añadido %s nuevas columnas al conjunto de datos"
 
 #, python-format
 msgid "Added a %s"
@@ -10673,11 +10673,11 @@ msgstr ""
 msgid "Modified %s"
 msgstr "%s modificado"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Se ha modificado %s columna en el conjunto de datos virtual"
-msgstr[1] "Se han modificado %s columnas en el conjunto de datos virtual"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Se ha modificado %s columna en el conjunto de datos"
+msgstr[1] "Se han modificado %s columnas en el conjunto de datos"
 
 msgid "Modified by"
 msgstr "Modificado por"
@@ -12926,11 +12926,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Se ha eliminado %s columna del conjunto de datos virtual"
-msgstr[1] "Se han eliminado %s columnas del conjunto de datos virtual"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Se ha eliminado %s columna del conjunto de datos"
+msgstr[1] "Se han eliminado %s columnas del conjunto de datos"
 
 #, python-format
 msgid "Removed a %s"

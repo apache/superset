@@ -1588,12 +1588,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Do virtuálnej sady dát bol pridaný %s nový stĺpec"
-msgstr[1] "Do virtuálnej sady dát boli pridané %s nové stĺpce"
-msgstr[2] "Do virtuálnej sady dat bolo pridané %s nových stĺpcov"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Do sady dát bol pridaný %s nový stĺpec"
+msgstr[1] "Do sady dát boli pridané %s nové stĺpce"
+msgstr[2] "Do sady dat bolo pridané %s nových stĺpcov"
 
 #, python-format
 msgid "Added a %s"
@@ -10414,12 +10414,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Zmenené %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Upraven %s stĺpec ve virtuálnej sade dat"
-msgstr[1] "Upraveny %s stĺpce ve virtuálnej sade dat"
-msgstr[2] "Upraveno %s stĺpcov ve virtuálnej sade dat"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Upraven %s stĺpec v sade dat"
+msgstr[1] "Upraveny %s stĺpce v sade dat"
+msgstr[2] "Upraveno %s stĺpcov v sade dat"
 
 msgid "Modified by"
 msgstr "Zmenil(a)"
@@ -12627,12 +12627,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Odstranen %s stĺpec z virtuálnej sady dat"
-msgstr[1] "Odstraneny %s stĺpce z virtuálnej sady dat"
-msgstr[2] "Odstránené %s stĺpcov z virtuálnej sady dat"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Odstranen %s stĺpec zo sady dat"
+msgstr[1] "Odstraneny %s stĺpce zo sady dat"
+msgstr[2] "Odstránené %s stĺpcov zo sady dat"
 
 #, python-format
 msgid "Removed a %s"

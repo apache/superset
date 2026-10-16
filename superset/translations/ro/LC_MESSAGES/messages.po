@@ -1691,12 +1691,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Adăugată %s coloană nouă la setul de date virtual"
-msgstr[1] "Adăugate %s coloane noi la setul de date virtual"
-msgstr[2] "Adăugate %s de coloane noi la setul de date virtual"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Adăugată %s coloană nouă la setul de date"
+msgstr[1] "Adăugate %s coloane noi la setul de date"
+msgstr[2] "Adăugate %s de coloane noi la setul de date"
 
 #, python-format
 msgid "Added a %s"
@@ -10918,12 +10918,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Modificat %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Modificată %s coloană în setul de date virtual"
-msgstr[1] "Modificate %s coloane în setul de date virtual"
-msgstr[2] "Modificate %s de coloane în setul de date virtual"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Modificată %s coloană în setul de date"
+msgstr[1] "Modificate %s coloane în setul de date"
+msgstr[2] "Modificate %s de coloane în setul de date"
 
 msgid "Modified by"
 msgstr "Modificat de"
@@ -13186,12 +13186,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Eliminată %s coloană din setul de date virtual"
-msgstr[1] "Eliminate %s coloane din setul de date virtual"
-msgstr[2] "Eliminate %s de coloane din setul de date virtual"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Eliminată %s coloană din setul de date"
+msgstr[1] "Eliminate %s coloane din setul de date"
+msgstr[2] "Eliminate %s de coloane din setul de date"
 
 #, python-format
 msgid "Removed a %s"

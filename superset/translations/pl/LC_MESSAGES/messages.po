@@ -1667,10 +1667,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Dodano 1 nową kolumnę do wirtualnego zestawu danych"
-msgstr[1] "Dodano %s nowe kolumny do wirtualnego zestawu danych"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Dodano 1 nową kolumnę do zestawu danych"
+msgstr[1] "Dodano %s nowe kolumny do zestawu danych"
 
 #, python-format
 msgid "Added a %s"
@@ -11247,10 +11247,10 @@ msgstr "Zmodyfikowano %s"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Zmodyfikowano 1 kolumnę w wirtualnym zestawie danych"
-msgstr[1] "Zmodyfikowano %s kolumny w wirtualnym zestawie danych"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Zmodyfikowano 1 kolumnę w zestawie danych"
+msgstr[1] "Zmodyfikowano %s kolumny w zestawie danych"
 
 msgid "Modified by"
 msgstr "Zmodyfikowane przez"
@@ -13616,11 +13616,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Usunięto %s kolumnę z wirtualnego zestawu danych"
-msgstr[1] "Usunięto %s kolumny z wirtualnego zestawu danych"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Usunięto %s kolumnę z zestawu danych"
+msgstr[1] "Usunięto %s kolumny z zestawu danych"
 
 #, python-format
 msgid "Removed a %s"
