@@ -1704,7 +1704,7 @@ def test_validate_query_object_undefined_metric_error(
         columns=["order_date"],
     )
 
-    with pytest.raises(ValueError, match="All metrics must be defined"):
+    with pytest.raises(QueryObjectValidationError, match="All metrics must be defined"):
         validate_query_object(query_object)
 
 
@@ -1720,7 +1720,9 @@ def test_validate_query_object_undefined_dimension_error(
         columns=["undefined_dimension"],
     )
 
-    with pytest.raises(ValueError, match="All dimensions must be defined"):
+    with pytest.raises(
+        QueryObjectValidationError, match="All dimensions must be defined"
+    ):
         validate_query_object(query_object)
 
 
@@ -1738,7 +1740,9 @@ def test_validate_query_object_time_grain_without_column_error(
         extras={"time_grain_sqla": "P1D"},
     )
 
-    with pytest.raises(ValueError, match="time column must be specified"):
+    with pytest.raises(
+        QueryObjectValidationError, match="time column must be specified"
+    ):
         validate_query_object(query_object)
 
 
@@ -1792,7 +1796,9 @@ def test_validate_query_object_group_limit_not_supported_error(
         series_limit=10,
     )
 
-    with pytest.raises(ValueError, match="Group limit is not supported"):
+    with pytest.raises(
+        QueryObjectValidationError, match="Group limit is not supported"
+    ):
         validate_query_object(query_object)
 
 
@@ -1892,7 +1898,9 @@ def test_validate_query_object_undefined_series_column_error(
         series_limit=10,
     )
 
-    with pytest.raises(ValueError, match="All series columns must be defined"):
+    with pytest.raises(
+        QueryObjectValidationError, match="All series columns must be defined"
+    ):
         validate_query_object(query_object)
 
 
@@ -3263,7 +3271,8 @@ def test_validate_query_object_granularity_not_in_dimensions_error(
     )
 
     with pytest.raises(
-        ValueError, match="time column must be defined in the Semantic View"
+        QueryObjectValidationError,
+        match="time column must be defined in the Semantic View",
     ):
         validate_query_object(query_object)
 
@@ -3283,7 +3292,8 @@ def test_validate_query_object_adhoc_series_column_error(
     )
 
     with pytest.raises(
-        ValueError, match="Adhoc dimensions are not supported in series columns"
+        QueryObjectValidationError,
+        match="Adhoc dimensions are not supported in series columns",
     ):
         validate_query_object(query_object)
 
@@ -3304,7 +3314,8 @@ def test_validate_query_object_series_limit_metric_not_string_error(
     )
 
     with pytest.raises(
-        ValueError, match="series limit metric must be defined in the Semantic View"
+        QueryObjectValidationError,
+        match="series limit metric must be defined in the Semantic View",
     ):
         validate_query_object(query_object)
 
@@ -3339,7 +3350,8 @@ def test_validate_query_object_group_others_not_supported_error(
     )
 
     with pytest.raises(
-        ValueError, match="Grouping others when limit is reached is not supported"
+        QueryObjectValidationError,
+        match="Grouping others when limit is reached is not supported",
     ):
         validate_query_object(query_object)
 
@@ -3372,7 +3384,8 @@ def test_validate_query_object_adhoc_orderby_not_supported_error(
     )
 
     with pytest.raises(
-        ValueError, match="Adhoc expressions in order by are not supported"
+        QueryObjectValidationError,
+        match="Adhoc expressions in order by are not supported",
     ):
         validate_query_object(query_object)
 
@@ -3397,7 +3410,9 @@ def test_validate_query_object_supported_adhoc_orderby(
     )
 
     if include_unknown_name:
-        with pytest.raises(ValueError, match="All order by elements must be defined"):
+        with pytest.raises(
+            QueryObjectValidationError, match="All order by elements must be defined"
+        ):
             validate_query_object(query_object)
     else:
         validate_query_object(query_object)
@@ -3418,7 +3433,9 @@ def test_validate_query_object_orderby_undefined_element_error(
         ],
     )
 
-    with pytest.raises(ValueError, match="All order by elements must be defined"):
+    with pytest.raises(
+        QueryObjectValidationError, match="All order by elements must be defined"
+    ):
         validate_query_object(query_object)
 
 
@@ -5163,7 +5180,7 @@ def test_execution_reuses_members_but_next_query_fetches_fresh_metadata(
     )
     result: QueryResult = get_results(query)
     assert result.df.to_dict("records") == [{"category": "Books", "total_sales": 10.0}]
-    with pytest.raises(ValueError, match="All metrics must be defined"):
+    with pytest.raises(QueryObjectValidationError, match="All metrics must be defined"):
         get_results(query)
     assert (metrics.call_count, dimensions.call_count) == (2, 2)
     execute.assert_called_once()

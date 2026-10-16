@@ -29,7 +29,14 @@ from superset_core.semantic_layers.types import Dimension, Metric, SemanticResul
 from superset_core.semantic_layers.view import SemanticView as ProviderView
 from werkzeug.test import TestResponse
 
+from superset.charts.schemas import ChartDataQueryContextSchema
+from superset.common.query_context import QueryContext
+from superset.common.query_object import QueryObject
+from superset.common.query_serialization import serialize_query
+from superset.exceptions import SupersetException
+from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.models import SemanticView
+from superset.tasks.async_queries import execute_chart_query
 
 
 @pytest.fixture
@@ -81,6 +88,156 @@ def date_view(mocker: MockerFixture) -> MagicMock:
         return_value=-1,
     )
     return provider
+
+
+@pytest.mark.parametrize(
+    "selection,message",
+    [
+        (
+            {"series_columns": ["ORDER_DATE"], "series_limit": 5},
+            "Group limit is not supported in this Semantic View.",
+        ),
+        (
+            {"filters": [{"col": "ORDER_DATE", "op": "==", "val": "not-a-date"}]},
+            "Invalid date value",
+        ),
+    ],
+)
+def test_mapper_refusal_returns_400(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    selection: dict[str, Any],
+    message: str,
+) -> None:
+    """Real validation and mapping refusals are client errors before dispatch."""
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"], **selection}
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 400
+    assert message in response.get_data(as_text=True)
+    date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize("method", ["get_metrics", "get_dimensions"])
+def test_mapper_metadata_fault_is_not_converted(
+    app_context: None,
+    date_view: MagicMock,
+    method: str,
+) -> None:
+    """The mapper leaves provider metadata exceptions unchanged."""
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    view.__dict__["implementation"] = date_view
+    query: QueryObject = QueryObject(columns=["ORDER_DATE"], metrics=["ORDER_COUNT"])
+    query.datasource = view
+    error: ValueError = ValueError("metadata fault")
+    getattr(date_view, method).side_effect = error
+    captured: pytest.ExceptionInfo[ValueError]
+    with pytest.raises(ValueError, match="metadata fault") as captured:
+        get_results(query)
+    assert captured.value is error
+    date_view.get_table.assert_not_called()
+
+
+def test_malformed_provider_timezone_remains_500(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+) -> None:
+    """A provider's malformed timezone is not a correctable query refusal."""
+    date_view.get_dimensions.return_value = {
+        Dimension("order_date", "ORDER_DATE", pa.timestamp("us", tz="/abs"))
+    }
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["ORDER_DATE"],
+                    "metrics": ["ORDER_COUNT"],
+                    "filters": [{"col": "ORDER_DATE", "op": ">=", "val": "2026-01-01"}],
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 500
+    assert "/abs" not in response.get_data(as_text=True)
+    date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "method,status", [("get_metrics", 500), ("get_dimensions", 400)]
+)
+def test_metadata_discovery_fault_http(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    method: str,
+    status: int,
+) -> None:
+    """Dimension discovery fails earlier in schema loading than metric discovery."""
+    getattr(date_view, method).side_effect = ValueError("Metadata unavailable")
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    # Schema loading converts dimension-discovery ValueError to 400 before mapping.
+    assert response.status_code == status
+    date_view.get_table.assert_not_called()
+
+
+def test_totals_prerequisite_refusal_does_not_publish_cache_key(
+    app_context: None, date_view: MagicMock, mocker: MockerFixture
+) -> None:
+    """A failed totals payload fails its task without advertising a cache entry."""
+    context: QueryContext = ChartDataQueryContextSchema().load(
+        {
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["ORDER_DATE"],
+                    "metrics": ["ORDER_COUNT"],
+                    "filters": [{"col": "ORDER_DATE", "op": ">=", "val": "not-a-date"}],
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        }
+    )
+    task_context: MagicMock = mocker.patch(
+        "superset.tasks.async_queries.get_context"
+    ).return_value
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=context
+    )
+    with pytest.raises(SupersetException, match="Invalid date value 'not-a-date'"):
+        execute_chart_query.func(
+            serialize_query(context, 0), user_id=7, is_totals_prerequisite=True
+        )
+    task_context.update_task.assert_not_called()
+    date_view.get_table.assert_not_called()
 
 
 @pytest.mark.parametrize("guest", [False, True])

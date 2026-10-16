@@ -216,10 +216,15 @@ def get_results(query_object: QueryObject) -> QueryResult:
         raise ValueError("QueryObject must have a datasource defined.")
     query_object = cast(ValidatedQueryObject, query_object)
     metadata: _ViewMetadata = _validation_metadata(query_object)
-    _validate_query_object(query_object, metadata)
 
-    # Track execution time
-    start_time = current_time()
+    # Track validation, translation and execution time, excluding discovery.
+    start_time: float = current_time()
+    # Step 1: Translate the main query followed by any time-offset queries.
+    try:
+        _validate_query_object(query_object, metadata)
+        queries: list[SemanticQuery] = _map_query_object(query_object, metadata)
+    except ValueError as ex:
+        raise QueryObjectValidationError(str(ex)) from ex
 
     semantic_view = query_object.datasource.implementation
     dispatcher = (
@@ -227,10 +232,6 @@ def get_results(query_object: QueryObject) -> QueryResult:
         if query_object.is_rowcount
         else semantic_view.get_table
     )
-
-    # Step 1: Convert QueryObject to list of SemanticQuery objects
-    # The first query is the main query, subsequent queries are for time offsets
-    queries: list[SemanticQuery] = _map_query_object(query_object, metadata)
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
@@ -998,8 +999,11 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
 
 
 def _timestamp_target_tz(dtype: pa.DataType) -> tzinfo | None:
-    tz_name = getattr(dtype, "tz", None)
-    return ZoneInfo(tz_name) if tz_name else None
+    tz_name: str | None = getattr(dtype, "tz", None)
+    try:
+        return ZoneInfo(tz_name) if tz_name else None
+    except ValueError as ex:
+        raise RuntimeError("Invalid timezone in semantic dimension metadata") from ex
 
 
 def _align_tz(dt: datetime, target_tz: tzinfo | None) -> datetime:
@@ -1368,7 +1372,10 @@ def validate_query_object(
 
     validated: ValidatedQueryObject = cast(ValidatedQueryObject, query_object)
     metadata: _ViewMetadata = _validation_metadata(validated)
-    _validate_query_object(validated, metadata)
+    try:
+        _validate_query_object(validated, metadata)
+    except ValueError as ex:
+        raise QueryObjectValidationError(str(ex)) from ex
     return True
 
 
