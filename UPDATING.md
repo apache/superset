@@ -138,7 +138,7 @@ reattached to a reachable container by layout repair.
   enforcing completeness should raise the public
   `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
   results are incomplete or cannot be verified (an additive `apache-superset-core`
-  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  API, available from 0.1.1; import it from `superset_core.semantic_layers.errors`,
   not the same-named host class in `superset.exceptions`); the host converts it to
   its client error, and these
   failures do not publish a successful async result cache key. A provider raising
