@@ -714,35 +714,48 @@ def test_async_legacy_payload_without_schema(
     )
 
 
-def test_legacy_cache_without_dtypes(mocker: MockerFixture, app_context: None) -> None:
-    """Record caches written before dtype metadata still load."""
-    from superset_core.queries.types import QueryOptions
-
+@pytest.mark.parametrize("async_execution", [False, True])
+def test_legacy_cache_without_column_metadata_preserves_values(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    async_execution: bool,
+) -> None:
+    """Old record caches retain nullable large integers on both entry points."""
     from superset.extensions import cache_manager
 
+    sql = "SELECT id FROM t"
+    value = 2**60 + 1
     mocker.patch.object(
         cache_manager.data_cache,
         "get",
         return_value={
             "statements": [
                 {
-                    "original_sql": "SELECT value FROM t",
-                    "executed_sql": "SELECT value FROM t",
-                    "data": [{"value": 1}, {"value": None}],
-                    "columns": ["value"],
+                    "original_sql": sql,
+                    "executed_sql": sql,
+                    "data": [{"id": value}, {"id": None}],
                     "row_count": 2,
+                    "truncated": False,
                     "execution_time_ms": 1.0,
                 }
-            ]
+            ],
+            "total_execution_time_ms": 1.0,
         },
     )
-    executor = SQLExecutor(MagicMock())
+    executor = SQLExecutor(database)
     mocker.patch.object(executor, "_generate_cache_key", return_value="legacy")
-    result = executor._get_from_cache("SELECT value FROM t", QueryOptions())
-    assert result is not None
+    result = (
+        executor.execute_async(sql).get_result()
+        if async_execution
+        else executor.execute(sql)
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert result.is_cached
+    assert result.statements[0].data["id"].tolist() == [value, None]
     pd.testing.assert_frame_equal(
         result.statements[0].data,
-        pd.DataFrame({"value": pd.Series([1, None], dtype=object)}),
+        pd.DataFrame({"id": pd.Series([value, None], dtype=object)}),
     )
 
 
@@ -1077,9 +1090,36 @@ def test_decode_legacy_records_without_column_metadata() -> None:
     from superset.sql.execution.executor import _decode_async_statement_data
 
     pd.testing.assert_frame_equal(
-        _decode_async_statement_data({"data": [{"value": 1}]}),
-        pd.DataFrame({"value": [1]}),
+        _decode_async_statement_data({"data": [{"value": 2**60 + 1}, {"value": None}]}),
+        pd.DataFrame({"value": pd.Series([2**60 + 1, None], dtype=object)}),
     )
+
+
+@pytest.mark.parametrize(
+    "records,expected",
+    [
+        pytest.param([], pd.DataFrame(), id="empty"),
+        pytest.param([{}, {}], pd.DataFrame([{}, {}]), id="empty_rows"),
+        pytest.param(
+            [{"b": 2**60 + 1}, {"a": "later"}],
+            pd.DataFrame(
+                {
+                    "b": pd.Series([2**60 + 1, None], dtype=object),
+                    "a": [None, "later"],
+                }
+            ),
+            id="ordered_union",
+        ),
+        pytest.param([(1,), (2,)], pd.DataFrame({0: [1, 2]}), id="positional"),
+    ],
+)
+def test_legacy_record_column_inference(
+    records: list[Any], expected: pd.DataFrame
+) -> None:
+    """Inferred names include later keys in order without losing empty rows."""
+    from superset.sql.execution.executor import _records_to_dataframe
+
+    pd.testing.assert_frame_equal(_records_to_dataframe(records, []), expected)
 
 
 @pytest.mark.parametrize("use_msgpack", [True, False])
@@ -1128,6 +1168,7 @@ def test_msgpack_nested_sidecar_uses_raw_bytes(
         "unknown_tag",
         "invalid_base64",
         "wrong_length",
+        "missing_column",
         "scalar",
         "tag1",
         "tag2",
@@ -1152,6 +1193,7 @@ def test_bad_nested_sidecar_keeps_arrow_and_other_columns(
 
     from superset.sql.execution.serialization import serialize_nested_columns
 
+    bad: bytes | str
     if invalid == "unknown_tag":
         bad = base64.b64encode(msgpack.dumps([msgpack.ExtType(99, b"future")])).decode()
     elif invalid.startswith("tag"):
@@ -1167,6 +1209,8 @@ def test_bad_nested_sidecar_keeps_arrow_and_other_columns(
         bad = data if use_msgpack else base64.b64encode(data).decode("ascii")
     elif invalid == "invalid_base64":
         bad = "!"
+    elif invalid == "missing_column":
+        bad = serialize_nested_columns({"missing": [[1, 2]]})["missing"]
     else:
         bad = base64.b64encode(
             msgpack.dumps(42 if invalid == "scalar" else [])
@@ -1174,7 +1218,10 @@ def test_bad_nested_sidecar_keeps_arrow_and_other_columns(
     good = serialize_nested_columns({"good": [[3, 4]]})["good"]
     mocker.patch(
         "superset.sql.execution.celery_task.serialize_nested_columns",
-        return_value={"bad": bad, "good": good},
+        return_value={
+            "missing" if invalid == "missing_column" else "bad": bad,
+            "good": good,
+        },
     )
     result = _store_and_read(
         mocker,
@@ -1184,6 +1231,7 @@ def test_bad_nested_sidecar_keeps_arrow_and_other_columns(
         read_msgpack=not use_msgpack,
     )
     assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert list(result.statements[0].data.columns) == ["bad", "good"]
     assert result.statements[0].data["bad"].tolist() == ["[1, 2]"]
     assert result.statements[0].data["good"].tolist() == [[3, 4]]
 

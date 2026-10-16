@@ -279,7 +279,9 @@ stores sidecars as raw bytes; JSON uses Base64. Stored payloads are compressed.
 
 Legacy JSON-record results remain readable, but types
 already converted to strings or floats cannot be recovered; rerun those queries
-for typed results. Cached SQL results are rebuilt as DataFrames; an unreadable
+for typed results. Cached SQL results are rebuilt as DataFrames. Legacy entries
+without column metadata infer column names from the record keys and preserve
+nullable integer values without converting them to floats. An unreadable
 cache entry is treated as a cache miss. These
 Python result handles are separate from the SQL Lab results API's JSON format.
 

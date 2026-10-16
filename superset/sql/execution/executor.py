@@ -497,12 +497,17 @@ def _records_to_dataframe(
     objects. The given columns are kept even when there are no records.
 
     :param records: Rows as dicts keyed by column name
-    :param columns: Column names, in order
+    :param columns: Column names, in order; inferred from record keys if absent
     :param dtypes: Original pandas dtypes for cached DataFrames
     :returns: DataFrame of the records
     """
-    if not columns or not all(isinstance(row, dict) for row in records):
+    if not all(isinstance(row, dict) for row in records):
         return pd.DataFrame(records, columns=columns or None)
+
+    if not columns:
+        columns = list(dict.fromkeys(name for row in records for name in row))
+        if not columns:
+            return pd.DataFrame(records)
 
     column_dtypes = dict(zip(columns, dtypes, strict=True)) if dtypes else {}
 
