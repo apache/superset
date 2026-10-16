@@ -1145,7 +1145,7 @@ def test_execute_sql_task_stopped(
     assert result["status"] == QueryStatusEnum.STOPPED
 
 
-@pytest.mark.parametrize("stop_intent", ["early", "status"])
+@pytest.mark.parametrize("stop_intent", ["executor", "early", "status"])
 def test_cancelled_impala_cursor_is_not_finalized_as_success(
     mocker: MockerFixture,
     app_context: None,
@@ -1159,6 +1159,7 @@ def test_cancelled_impala_cursor_is_not_finalized_as_success(
     from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
     from superset.db_engine_specs.impala import ImpalaEngineSpec
     from superset.sql.execution import celery_task
+    from superset.sql.execution.executor import SQLExecutor
 
     mock_query.sql = "SELECT 1"
     mock_query.database = mock_database
@@ -1177,7 +1178,9 @@ def test_cancelled_impala_cursor_is_not_finalized_as_success(
 
     def stop_before_poll() -> str:
         """Stop after dispatch, before handle_cursor checks the intent."""
-        if stop_intent == "early":
+        if stop_intent == "executor":
+            assert SQLExecutor._cancel_query(mock_database, mock_query)
+        elif stop_intent == "early":
             mock_query.extra[QUERY_EARLY_CANCEL_KEY] = True
         else:
             mock_query.status = QueryStatusEnum.STOPPED
