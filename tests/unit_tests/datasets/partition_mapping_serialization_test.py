@@ -160,7 +160,7 @@ def test_the_mapping_summary_reports_the_engine_s_literal_resolution(
 
 
 def test_the_mapping_summary_names_the_characters_this_database_spells_oddly(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     The other gate the Explore indicator cannot work out for itself: whether a
@@ -171,8 +171,13 @@ def test_the_mapping_summary_names_the_characters_this_database_spells_oddly(
     backslash, and one flag would cost quote-bearing filters their glyph for
     nothing.
     """
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
     table = _table()
     table.database.sqlalchemy_uri = "postgresql://user@host/db"
+    # Postgres does not support partition filter mapping, and the summary is
+    # gated on that; opted in here to test the per-character report itself.
+    monkeypatch.setattr(PostgresEngineSpec, "supports_partition_filter_mapping", True)
 
     with app.app_context():
         summary = table.data["partition_filter_mapping"]

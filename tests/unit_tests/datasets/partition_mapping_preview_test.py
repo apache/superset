@@ -1248,7 +1248,11 @@ def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
 
 
 def test_preview_and_the_chart_path_agree_about_a_coarse_column(
-    app: Flask, client: Any, full_api_access: None, dataset: Any
+    app: Flask,
+    client: Any,
+    full_api_access: None,
+    dataset: Any,
+    sqlite_supports_partition_filter_mapping: None,
 ) -> None:
     """
     The invariant behind the fix, asserted in both directions: for the same
