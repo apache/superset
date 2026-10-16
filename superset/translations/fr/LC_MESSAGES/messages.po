@@ -1564,11 +1564,11 @@ msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "1 nouvelle colonne ajoutée au jeu de données virtuel"
-msgstr[1] "%s nouvelles colonnes ajoutées au jeu de données virtuel"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "1 nouvelle colonne ajoutée au jeu de données"
+msgstr[1] "%s nouvelles colonnes ajoutées au jeu de données"
 
 #, python-format
 msgid "Added a %s"
@@ -10326,11 +10326,11 @@ msgstr ""
 msgid "Modified %s"
 msgstr "%s modifié"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "%s colonne modifiée dans le jeu de données virtuel"
-msgstr[1] "%s colonnes modifiées dans le jeu de données virtuel"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "%s colonne modifiée dans le jeu de données"
+msgstr[1] "%s colonnes modifiées dans le jeu de données"
 
 msgid "Modified by"
 msgstr "Modifié"
@@ -12518,11 +12518,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "%s colonne supprimée du jeu de données virtuel"
-msgstr[1] "%s colonnes supprimées du jeu de données virtuel"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "%s colonne supprimée du jeu de données"
+msgstr[1] "%s colonnes supprimées du jeu de données"
 
 #, python-format
 msgid "Removed a %s"

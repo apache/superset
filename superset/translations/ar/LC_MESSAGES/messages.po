@@ -1751,14 +1751,14 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "لم تُضف أي أعمدة جديدة إلى مجموعة البيانات الافتراضية"
-msgstr[1] "تمت إضافة عمود جديد واحد إلى مجموعة البيانات الافتراضية"
-msgstr[2] "تمت إضافة %s عمودين جديدين إلى مجموعة البيانات الافتراضية"
-msgstr[3] "تمت إضافة %s أعمدة جديدة إلى مجموعة البيانات الافتراضية"
-msgstr[4] "تمت إضافة %s عموداً جديداً إلى مجموعة البيانات الافتراضية"
-msgstr[5] "تمت إضافة %s عمود جديد إلى مجموعة البيانات الافتراضية"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "لم تُضف أي أعمدة جديدة إلى مجموعة البيانات"
+msgstr[1] "تمت إضافة عمود جديد واحد إلى مجموعة البيانات"
+msgstr[2] "تمت إضافة %s عمودين جديدين إلى مجموعة البيانات"
+msgstr[3] "تمت إضافة %s أعمدة جديدة إلى مجموعة البيانات"
+msgstr[4] "تمت إضافة %s عموداً جديداً إلى مجموعة البيانات"
+msgstr[5] "تمت إضافة %s عمود جديد إلى مجموعة البيانات"
 
 #, python-format
 msgid "Added a %s"
@@ -11199,14 +11199,14 @@ msgstr "تم التعديل %s"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "لم يتم تعديل أي عمود في مجموعة البيانات الافتراضية"
-msgstr[1] "تم تعديل عمود واحد في مجموعة البيانات الافتراضية"
-msgstr[2] "تم تعديل عمودين في مجموعة البيانات الافتراضية"
-msgstr[3] "تم تعديل %s أعمدة في مجموعة البيانات الافتراضية"
-msgstr[4] "تم تعديل %s عموداً في مجموعة البيانات الافتراضية"
-msgstr[5] "تم تعديل %s عمود في مجموعة البيانات الافتراضية"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "لم يتم تعديل أي عمود في مجموعة البيانات"
+msgstr[1] "تم تعديل عمود واحد في مجموعة البيانات"
+msgstr[2] "تم تعديل عمودين في مجموعة البيانات"
+msgstr[3] "تم تعديل %s أعمدة في مجموعة البيانات"
+msgstr[4] "تم تعديل %s عموداً في مجموعة البيانات"
+msgstr[5] "تم تعديل %s عمود في مجموعة البيانات"
 
 msgid "Modified by"
 msgstr "تم التعديل بواسطة"
@@ -13514,14 +13514,14 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "تمت إزالة %s عمود من مجموعة البيانات الافتراضية"
-msgstr[1] "تمت إزالة عمود واحد من مجموعة البيانات الافتراضية"
-msgstr[2] "تمت إزالة عمودين من مجموعة البيانات الافتراضية"
-msgstr[3] "تمت إزالة %s أعمدة من مجموعة البيانات الافتراضية"
-msgstr[4] "تمت إزالة %s عموداً من مجموعة البيانات الافتراضية"
-msgstr[5] "تمت إزالة %s عمود من مجموعة البيانات الافتراضية"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "تمت إزالة %s عمود من مجموعة البيانات"
+msgstr[1] "تمت إزالة عمود واحد من مجموعة البيانات"
+msgstr[2] "تمت إزالة عمودين من مجموعة البيانات"
+msgstr[3] "تمت إزالة %s أعمدة من مجموعة البيانات"
+msgstr[4] "تمت إزالة %s عموداً من مجموعة البيانات"
+msgstr[5] "تمت إزالة %s عمود من مجموعة البيانات"
 
 #, python-format
 msgid "Removed a %s"

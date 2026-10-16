@@ -1602,11 +1602,11 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Kua tāpiritia %s tīwae hou ki te rārangi raraunga mariko"
-msgstr[1] "Kua tāpiritia %s tīwae hou ki te rārangi raraunga mariko"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Kua tāpiritia %s tīwae hou ki te rārangi raraunga"
+msgstr[1] "Kua tāpiritia %s tīwae hou ki te rārangi raraunga"
 
 #, python-format
 msgid "Added a %s"
@@ -10709,11 +10709,11 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Kua Whakarerekeahia %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "I whakarerekeahia %s tīwae i te rārangi raraunga mariko"
-msgstr[1] "I whakarerekeahia %s tīwae i te rārangi raraunga mariko"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "I whakarerekeahia %s tīwae i te rārangi raraunga"
+msgstr[1] "I whakarerekeahia %s tīwae i te rārangi raraunga"
 
 msgid "Modified by"
 msgstr "I whakarerekeahia e"
@@ -12960,11 +12960,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Kua tangohia %s tīwae mai i te rārangi raraunga mariko"
-msgstr[1] "Kua tangohia %s tīwae mai i te rārangi raraunga mariko"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Kua tangohia %s tīwae mai i te rārangi raraunga"
+msgstr[1] "Kua tangohia %s tīwae mai i te rārangi raraunga"
 
 #, python-format
 msgid "Removed a %s"
