@@ -28,6 +28,22 @@ interface DraftBannerProps {
   token: string;
   revision: number;
   onClose: () => void;
+  /**
+   * Whether a change to the draft is still being saved. Both actions wait on
+   * it. Publishing names a revision, so committing mid-save would publish the
+   * draft as it was before those changes landed and then delete it, losing
+   * them. Discarding deletes the draft, and a save that is mid-flight writes
+   * the draft back to the cache afterwards -- recreating what was just
+   * discarded, under a token the user was told no longer works.
+   */
+  saving?: boolean;
+  /**
+   * Reports whether a publish or discard is running, so the caller can stop
+   * accepting edits: a commit names a revision and then deletes the draft, so
+   * a change accepted after it read that revision is replayed by nothing and
+   * lost while the publish still reports success.
+   */
+  onBusyChange?: (busy: boolean) => void;
 }
 
 /**
@@ -38,6 +54,8 @@ export default function DraftBanner({
   token,
   revision,
   onClose,
+  saving = false,
+  onBusyChange,
 }: DraftBannerProps) {
   const { addSuccessToast, addDangerToast } = useToasts();
   const [busy, setBusy] = useState(false);
@@ -45,6 +63,7 @@ export default function DraftBanner({
 
   const run = async (action: () => Promise<unknown>, done: string) => {
     setBusy(true);
+    onBusyChange?.(true);
     try {
       await action();
       addSuccessToast(done);
@@ -54,6 +73,7 @@ export default function DraftBanner({
       addDangerToast(error.message || error.error || t('Something went wrong'));
     } finally {
       setBusy(false);
+      onBusyChange?.(false);
     }
   };
 
@@ -85,12 +105,21 @@ export default function DraftBanner({
           <Button
             buttonStyle="primary"
             buttonSize="small"
-            loading={busy}
+            loading={busy || saving}
+            disabled={saving}
             onClick={publish}
+            tooltip={saving ? t('Saving your changes…') : undefined}
+            data-test="canvas-draft-publish"
           >
             {t('Publish')}
           </Button>
-          <Button buttonSize="small" disabled={busy} onClick={discard}>
+          <Button
+            buttonSize="small"
+            disabled={busy || saving}
+            onClick={discard}
+            tooltip={saving ? t('Saving your changes…') : undefined}
+            data-test="canvas-draft-discard"
+          >
             {t('Discard')}
           </Button>
         </Space>

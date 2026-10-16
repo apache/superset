@@ -146,7 +146,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
@@ -174,7 +174,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr ""
 
@@ -9098,6 +9098,9 @@ msgstr ""
 msgid "Move only"
 msgstr ""
 
+msgid "Move widget"
+msgstr ""
+
 #, python-format
 msgid "Moved %s '%s'"
 msgstr ""
@@ -10335,6 +10338,9 @@ msgstr ""
 msgid "Plain"
 msgstr ""
 
+msgid "Plan mode"
+msgstr ""
+
 msgid "Please check your query and confirm that all template parameters are surround by double braces, for example, \"{{ ds }}\". Then, try running your query again."
 msgstr ""
 
@@ -11267,6 +11273,9 @@ msgstr ""
 msgid "Resize"
 msgstr ""
 
+msgid "Resize widget"
+msgstr ""
+
 msgid "Resource already has an attached report."
 msgstr ""
 
@@ -11781,6 +11790,9 @@ msgid "Saved query parameters are invalid."
 msgstr ""
 
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saving your changes…"
 msgstr ""
 
 msgid "Saving..."
@@ -13722,6 +13734,12 @@ msgstr ""
 msgid "Text embedded in email"
 msgstr ""
 
+msgid "That change could not be saved."
+msgstr ""
+
+msgid "That plan could not be started."
+msgstr ""
+
 #, python-format
 msgid "The %(aggregate)s aggregate is not supported on this database"
 msgstr ""
@@ -14875,6 +14893,9 @@ msgstr ""
 msgid "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. mydatabase.com)."
 msgstr ""
 
+msgid "This canvas changed while you were editing, so your change was undone."
+msgstr ""
+
 msgid "This canvas does not exist, or you do not have access to it"
 msgstr ""
 
@@ -15113,6 +15134,9 @@ msgid "This name is already taken. Please choose another one."
 msgstr ""
 
 msgid "This option has been disabled by the administrator."
+msgstr ""
+
+msgid "This overlaps another widget"
 msgstr ""
 
 msgid "This page is intended to be embedded in an iframe, but it looks like that is not the case."
@@ -17003,6 +17027,9 @@ msgid "You do not have access to the following tables: %s."
 msgstr ""
 
 msgid "You do not have permission to access this datasource"
+msgstr ""
+
+msgid "You do not have permission to change this layout."
 msgstr ""
 
 #, python-format

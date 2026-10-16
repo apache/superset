@@ -24,6 +24,18 @@ export interface GridPlacement {
   rowSpan: number;
 }
 
+/**
+ * The span limits a widget declares. Absent limits are open; the client
+ * clamps to these so a drag or resize can't produce a layout the server
+ * would reject.
+ */
+export interface SpanConstraints {
+  minColSpan?: number;
+  maxColSpan?: number;
+  minRowSpan?: number;
+  maxRowSpan?: number;
+}
+
 interface CanvasNodeBase {
   layout: Record<string, unknown>;
   children?: string[];
@@ -86,6 +98,24 @@ export interface CanvasDefinitionResult {
   widgetTypes: Record<string, string>;
   /** Grid container node id -> its column count. */
   gridColumns: Record<string, number>;
+  /** Node id -> its widget's span limits, for nodes that declare any. */
+  layoutConstraints: Record<string, SpanConstraints>;
+  /** Whether the current user may apply operations to this canvas. */
+  canEdit: boolean;
+}
+
+/**
+ * `PATCH /api/v1/canvas/<id>/definition` — the revision the write produced
+ * and the placements resolved from it, so a client that just moved a widget
+ * renders the server's collision push-down without refetching.
+ */
+export interface ApplyOperationsResult {
+  revision: number;
+  ops: Record<string, unknown>[];
+  placements: Record<string, GridPlacement>;
+  widgetTypes: Record<string, string>;
+  gridColumns: Record<string, number>;
+  layoutConstraints: Record<string, SpanConstraints>;
 }
 
 /** A row of `GET /api/v1/canvas/`. */

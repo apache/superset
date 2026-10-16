@@ -17,10 +17,16 @@
  * under the License.
  */
 import type { canvas as canvasApi } from '@apache-superset/core';
-import { render, screen } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  within,
+} from 'spec/helpers/testing-library';
 import { canvas } from 'src/core';
 import CanvasGrid, { emptyScopeValues, ScopeValues } from './CanvasGrid';
 import { CanvasDefinitionResult, CanvasSettings } from './types';
+import type { CanvasLayout } from './useCanvasLayout';
 
 const settings: CanvasSettings = {
   refresh: { interval: 0, stagger: 0, exempt: [] },
@@ -73,6 +79,8 @@ const result: CanvasDefinitionResult = {
     unknown: 'test.unknown',
   },
   gridColumns: { g: 12 },
+  layoutConstraints: { c1: { minColSpan: 2 } },
+  canEdit: false,
 };
 
 const Chart = ({
@@ -110,10 +118,23 @@ const registrations = [
   canvas.registerWidgetRenderer('test.odd', CrossSource),
 ];
 
+const layoutOf = (
+  gridResult: CanvasDefinitionResult,
+  place = jest.fn(),
+): CanvasLayout => ({
+  placements: gridResult.placements,
+  revision: gridResult.revision,
+  saving: false,
+  place,
+  dismissError: jest.fn(),
+});
+
 const renderGrid = (
   values: ScopeValues = emptyScopeValues(),
   onValueChange = jest.fn(),
   gridResult: CanvasDefinitionResult = result,
+  place = jest.fn(),
+  editable = false,
 ) =>
   render(
     <CanvasGrid
@@ -122,6 +143,8 @@ const renderGrid = (
       values={values}
       onValueChange={onValueChange}
       refreshKeys={{ c1: 2 }}
+      layout={layoutOf(gridResult, place)}
+      editable={editable}
     />,
   );
 afterAll(() => registrations.forEach(registration => registration.dispose()));
@@ -189,4 +212,103 @@ test('setting a cross-filter does nothing while cross-filters are off', () => {
   screen.getByRole('button', { name: 'cross filter' }).click();
 
   expect(onValueChange).not.toHaveBeenCalled();
+});
+
+test('a canvas that is not editable gets no drag or resize handles', () => {
+  renderGrid();
+
+  expect(
+    screen.queryByRole('button', { name: 'Move widget' }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Resize widget' }),
+  ).not.toBeInTheDocument();
+});
+
+test('an editable canvas gets a handle per placed widget', () => {
+  renderGrid(emptyScopeValues(), jest.fn(), result, jest.fn(), true);
+
+  // Every node with a resolved placement, on the root grid and inside the
+  // nested group, is draggable and resizable.
+  expect(screen.getAllByRole('button', { name: 'Move widget' })).toHaveLength(
+    Object.keys(result.placements).length,
+  );
+  expect(screen.getAllByRole('button', { name: 'Resize widget' })).toHaveLength(
+    Object.keys(result.placements).length,
+  );
+});
+
+/**
+ * jsdom carries none of the properties a gesture needs on its own
+ * `PointerEvent`, so these are built on `MouseEvent` with the pointer id added
+ * -- the same shape `CanvasGridSurface.test.tsx` uses.
+ */
+class TestPointerEvent extends MouseEvent {
+  pointerId: number;
+
+  constructor(type: string, init: MouseEventInit = {}) {
+    super(type, { bubbles: true, cancelable: true, ...init });
+    this.pointerId = 1;
+  }
+}
+
+const dragRight = (handle: HTMLElement, dx: number) =>
+  [
+    new TestPointerEvent('pointerdown', { button: 0, clientX: 0, clientY: 0 }),
+    new TestPointerEvent('pointermove', { clientX: dx, clientY: 0 }),
+    new TestPointerEvent('pointerup', { clientX: dx, clientY: 0 }),
+  ].forEach(event => fireEvent(handle, event));
+
+beforeAll(() => {
+  // jsdom lays nothing out, so every grid is told it is 1000px wide.
+  Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+    configurable: true,
+    get: () => 1000,
+  });
+  // jsdom has no pointer capture; the gesture only needs it not to throw.
+  HTMLElement.prototype.setPointerCapture = jest.fn();
+  HTMLElement.prototype.releasePointerCapture = jest.fn();
+});
+
+test('a nested grid resizes against its own column count, not the root', () => {
+  // 'c1' sits in group 'g', which declares 12 columns against the root's 24.
+  // Handing the root count to the nested surface would let 'c1' grow to 24,
+  // and would halve the column pitch so the same drag reported twice the
+  // movement.
+  const place = jest.fn();
+  renderGrid(emptyScopeValues(), jest.fn(), result, place, true);
+
+  const group = screen.getByRole('region', { name: 'group' });
+  dragRight(
+    within(group).getAllByRole('button', { name: 'Resize widget' })[0],
+    2000,
+  );
+
+  expect(place).toHaveBeenCalledWith('c1', {
+    col: 1,
+    row: 1,
+    colSpan: 12,
+    rowSpan: 1,
+  });
+});
+
+test("a nested resize honours the widget's declared minimum span", () => {
+  // 'c1' declares minColSpan 2 and starts at 6 of the group's 12 columns.
+  // Dragging its corner well past the left edge must stop at 2, not 1: this
+  // is what fails if `layoutConstraints` never reaches the nested surface.
+  const place = jest.fn();
+  renderGrid(emptyScopeValues(), jest.fn(), result, place, true);
+
+  const group = screen.getByRole('region', { name: 'group' });
+  dragRight(
+    within(group).getAllByRole('button', { name: 'Resize widget' })[0],
+    -2000,
+  );
+
+  expect(place).toHaveBeenCalledWith('c1', {
+    col: 1,
+    row: 1,
+    colSpan: 2,
+    rowSpan: 1,
+  });
 });
