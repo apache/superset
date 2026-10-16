@@ -346,7 +346,17 @@ def test_annotation_result_key_uses_saved_source_generation(
         layer.cache_version = 1
         session.info.clear()
         view.forget_metadata()
-        assert processor._annotation_cache_context(query) != first
+        second: dict[str, Any] | None = processor._annotation_cache_context(query)
+        # A scope-derivation failure also yields ``None`` (which differs from
+        # ``first``), so the rotated context must be present and differ only in
+        # the version field.
+        assert second is not None
+        first_scope: dict[str, Any] = first["source_scope"][0]
+        second_scope: dict[str, Any] = second["source_scope"][0]
+        assert second_scope["metadata_version"] != first_scope["metadata_version"]
+        assert {k: v for k, v in second_scope.items() if k != "metadata_version"} == {
+            k: v for k, v in first_scope.items() if k != "metadata_version"
+        }
     # The saved query context's datasource, not the chart's own, is keyed.
     assert chart.get_query_context.call_count == 2
 
@@ -660,5 +670,17 @@ def test_cache_keys_compose_metadata_and_producer_versions(
             provider.result_cache_version = "v2"
         assert view.get_extra_cache_keys({}) != first_result
         assert _column_values_cache_key(view, {"col": "category"}) != first_values
-        assert processor._annotation_cache_context(query) != first_annotation
+        rotated_annotation: dict[str, Any] | None = processor._annotation_cache_context(
+            query
+        )
+        # ``None`` (scope derivation failed) would also differ from the first
+        # context, so require a resolved one and compare field by field.
+        assert rotated_annotation is not None
+        rotated_scope: dict[str, Any] = rotated_annotation["source_scope"][0]
+        if changed == "metadata":
+            assert rotated_scope["metadata_version"] != source_scope["metadata_version"]
+            assert rotated_scope["result_version"] == source_scope["result_version"]
+        else:
+            assert rotated_scope["metadata_version"] == source_scope["metadata_version"]
+            assert rotated_scope["result_version"] != source_scope["result_version"]
         provider.assert_not_called()
