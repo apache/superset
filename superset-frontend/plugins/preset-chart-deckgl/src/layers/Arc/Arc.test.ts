@@ -19,6 +19,12 @@
 import { COLOR_SCHEME_TYPES } from '../../utilities/utils';
 import { getLayer } from './Arc';
 
+// maplibre-gl 6 is ESM-only, so jest can't resolve it; DeckGLContainer.tsx
+// (pulled in via factory.tsx) calls setWorkerUrl() on it at import time.
+jest.mock('maplibre-gl', () => ({ setWorkerUrl: jest.fn() }), {
+  virtual: true,
+});
+
 const baseArgs = {
   payload: { data: { features: [] } },
   setTooltip: () => {},
