@@ -61,6 +61,36 @@ test('fetchPermissionOptions displays encoded dots and preserves permission IDs'
   });
 });
 
+test('fetchPermissionOptions finds encoded names using their displayed dots', async () => {
+  getMock.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    const query = rison.decode(endpoint.split('?q=')[1]) as {
+      filters: { value: string }[];
+    };
+    const result = ['demo%2Emetrics', '[database].[demo%2Emetrics]'].includes(
+      query.filters[0].value,
+    )
+      ? [
+          {
+            id: 42,
+            permission: { name: 'catalog_access' },
+            view_menu: { name: '[database].[demo%2Emetrics]' },
+          },
+        ]
+      : [];
+    return Promise.resolve({
+      json: { count: result.length, result },
+    } as unknown as Awaited<ReturnType<typeof SupersetClient.get>>);
+  });
+
+  for (const search of ['demo.metrics', '[database].[demo.metrics]']) {
+    expect(await fetchPermissionOptions(search, 0, 100, jest.fn())).toEqual({
+      data: [{ value: 42, label: 'catalog access [database].[demo.metrics]' }],
+      totalCount: 1,
+    });
+  }
+  expect(getMock).toHaveBeenCalledTimes(6);
+});
+
 test('fetchPermissionOptions fetches all results on page 0 with large page_size', async () => {
   getMock.mockResolvedValue({
     json: {
