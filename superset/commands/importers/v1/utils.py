@@ -14,9 +14,10 @@
 # under the License.
 
 import logging
+from contextlib import contextmanager
 from pathlib import Path, PurePosixPath
-from typing import Any, Callable, Dict, Optional, Type
-from zipfile import ZipFile
+from typing import Any, Callable, Dict, IO, Iterator, Optional, Type, Union
+from zipfile import BadZipFile, ZipFile
 
 import yaml
 from flask import current_app
@@ -25,9 +26,13 @@ from marshmallow.exceptions import ValidationError
 from sqlalchemy import and_, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from werkzeug.datastructures import FileStorage
 
 from superset import db
-from superset.commands.importers.exceptions import IncorrectVersionError
+from superset.commands.importers.exceptions import (
+    IncorrectFormatError,
+    IncorrectVersionError,
+)
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.extensions import feature_flag_manager
@@ -380,6 +385,23 @@ def is_valid_config(file_name: str) -> bool:
         return False
 
     return True
+
+
+@contextmanager
+def open_import_bundle(upload: Union[IO[bytes], FileStorage]) -> Iterator[ZipFile]:
+    """
+    Open an uploaded import bundle as a ZIP file.
+
+    ``zipfile.is_zipfile`` only validates the end-of-central-directory record,
+    so a corrupt or truncated archive can pass it and still raise
+    ``BadZipFile`` when opened or when a member is read. Convert those errors
+    into ``IncorrectFormatError`` so the API returns a 422 instead of a 500.
+    """
+    try:
+        with ZipFile(upload) as bundle:
+            yield bundle
+    except BadZipFile as ex:
+        raise IncorrectFormatError("Invalid or corrupted ZIP file") from ex
 
 
 def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:

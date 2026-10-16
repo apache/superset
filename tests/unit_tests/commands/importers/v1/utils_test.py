@@ -19,6 +19,7 @@
 import gzip
 import io
 import logging
+import zipfile
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -605,3 +606,52 @@ class TestDatabaseConnectionIdentityUnchanged:
         assert not database_connection_identity_unchanged(
             "postgresql://user:XXXXXXXXXX@host1:5432/db", None
         )
+
+
+def _make_bundle() -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+    return buf.getvalue()
+
+
+def test_open_import_bundle_valid_zip() -> None:
+    """A valid ZIP is opened and its contents are readable."""
+    from superset.commands.importers.v1.utils import (
+        get_contents_from_bundle,
+        open_import_bundle,
+    )
+
+    with open_import_bundle(io.BytesIO(_make_bundle())) as bundle:
+        contents = get_contents_from_bundle(bundle)
+
+    assert contents == {"metadata.yaml": "version: 1.0.0\n"}
+
+
+def test_open_import_bundle_corrupt_central_directory() -> None:
+    """
+    A ZIP with a corrupt central directory passes ``is_zipfile`` but fails to
+    open; it must raise ``IncorrectFormatError`` instead of ``BadZipFile``.
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import open_import_bundle
+
+    corrupt = io.BytesIO(_make_bundle().replace(b"PK\x01\x02", b"XXXX"))
+    assert zipfile.is_zipfile(corrupt)
+
+    with pytest.raises(IncorrectFormatError) as excinfo:
+        with open_import_bundle(corrupt):
+            pass
+
+    assert excinfo.value.message == "Invalid or corrupted ZIP file"
+    assert isinstance(excinfo.value.__cause__, zipfile.BadZipFile)
+
+
+def test_open_import_bundle_bad_member() -> None:
+    """``BadZipFile`` raised while reading members is also converted."""
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import open_import_bundle
+
+    with pytest.raises(IncorrectFormatError):
+        with open_import_bundle(io.BytesIO(_make_bundle())):
+            raise zipfile.BadZipFile("Bad CRC-32 for file 'bundle/metadata.yaml'")
