@@ -52,7 +52,10 @@ from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import ChildMultipleResultsFound
+from superset.models.helpers import (
+    ChildMultipleResultsFound,
+    strip_reserved_template_params,
+)
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
@@ -272,6 +275,8 @@ def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
     same way rendering does, but tolerates the two inputs that property does
     not guard: it raises on malformed JSON and passes non-dict JSON through.
     Either yields an empty dict so the check still runs against the raw SQL.
+    Names the template processor reserves are dropped, since chart execution
+    never renders them.
     """
     try:
         params = dataset.template_params_dict
@@ -280,7 +285,7 @@ def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
             "Unable to decode template_params for dataset %s", dataset.table_name
         )
         return {}
-    return params if isinstance(params, dict) else {}
+    return strip_reserved_template_params(params) if isinstance(params, dict) else {}
 
 
 def import_dataset(  # noqa: C901

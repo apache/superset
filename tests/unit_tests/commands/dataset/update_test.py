@@ -214,21 +214,19 @@ def test_update_dataset_virtual_to_physical_ignores_dataset_editorship(
 @pytest.mark.parametrize(
     "payload,expected_schema,expected_params",
     [
+        pytest.param({"schema": "restricted"}, "restricted", {"tbl": "t"}, id="schema"),
         pytest.param(
-            {"schema": "restricted"}, "restricted", {"table": "t"}, id="schema"
-        ),
-        pytest.param(
-            {"template_params": '{"table": "customer_pii"}'},
+            {"template_params": '{"tbl": "customer_pii"}'},
             "public",
-            {"table": "customer_pii"},
+            {"tbl": "customer_pii"},
             id="template_params",
         ),
         # Rendering reads params with ``json_to_dict``, which accepts a
         # trailing comma, so the check must read them the same way.
         pytest.param(
-            {"template_params": '{"table": "customer_pii",\n}'},
+            {"template_params": '{"tbl": "customer_pii",\n}'},
             "public",
-            {"table": "customer_pii"},
+            {"tbl": "customer_pii"},
             id="template_params_trailing_comma",
         ),
     ],
@@ -256,8 +254,8 @@ def test_update_dataset_unchanged_sql_new_context_checks_access(
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "my_virtual_dataset"
-    mock_dataset.sql = "SELECT * FROM {{ table }}"
-    mock_dataset.template_params = '{"table": "t"}'
+    mock_dataset.sql = "SELECT * FROM {{ tbl }}"
+    mock_dataset.template_params = '{"tbl": "t"}'
     mock_dataset.editors = []
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
@@ -283,7 +281,7 @@ def test_update_dataset_unchanged_sql_new_context_checks_access(
 
     raise_for_access.assert_called_once_with(
         database=mock_database,
-        sql="SELECT * FROM {{ table }}",
+        sql="SELECT * FROM {{ tbl }}",
         catalog="catalog",
         schema=expected_schema,
         template_params=expected_params,

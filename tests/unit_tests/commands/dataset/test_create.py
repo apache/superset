@@ -127,6 +127,13 @@ def test_create_dataset_sql_access_ignores_dataset_editorship() -> None:
             id="trailing_comma",
         ),
         pytest.param(None, {}, id="no_params"),
+        # Chart execution passes ``removed_filters`` to the template processor
+        # as an argument, so it is never a template variable there.
+        pytest.param(
+            '{"removed_filters": [], "t": "SELECT 1"}',
+            {"t": "SELECT 1"},
+            id="reserved_name",
+        ),
     ],
 )
 def test_create_dataset_sql_access_receives_template_params(

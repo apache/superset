@@ -640,15 +640,15 @@ def test_save_skips_table_check_when_not_repointed(
         # renders with change.
         pytest.param(
             {
-                "sql": "SELECT * FROM {{ table }}",
+                "sql": "SELECT * FROM {{ tbl }}",
                 "schema": "public",
-                "template_params": '{"table": "t"}',
+                "template_params": '{"tbl": "t"}',
                 "is_virtual": True,
             },
             {
-                "sql": "SELECT * FROM {{ table }}",
+                "sql": "SELECT * FROM {{ tbl }}",
                 "schema": "public",
-                "template_params": '{"table": "secret_table"}',
+                "template_params": '{"tbl": "secret_table"}',
             },
             id="virtual_template_params_changed",
         ),

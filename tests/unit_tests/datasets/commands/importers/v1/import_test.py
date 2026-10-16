@@ -696,7 +696,9 @@ def test_import_dataset_virtual_sql_check_receives_template_params(
     config["sql"] = (
         "{% if flag %}SELECT * FROM secret_table{% else %}SELECT 1{% endif %}"  # noqa: E501
     )
-    config["template_params"] = {"flag": True}
+    # ``removed_filters`` is a template processor argument, not a variable,
+    # when chart execution renders the SQL, so the check must not see it.
+    config["template_params"] = {"flag": True, "removed_filters": []}
 
     import_dataset(config)
 
