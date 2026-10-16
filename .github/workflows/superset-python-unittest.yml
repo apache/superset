@@ -53,9 +53,10 @@ jobs:
         # exercised separately by the nightly canary (python-nightly-canary.yml)
         # so cross-version breaks don't cost a runner on every push/PR.
         python-version: ["current"]
-        # The suite is split across shards so no single pytest process
-        # accumulates whole-package coverage data for all ~27k tests. Keep this
-        # list's length and the `--splits` value below in sync.
+        # The suite is split across shards so no single pytest process runs
+        # all ~27k tests in one session -- see the step comment below for why
+        # that matters. Keep this list's length and the `--splits` value below
+        # in sync.
         shard: [1, 2, 3]
     env:
       PYTHONPATH: ${{ github.workspace }}
