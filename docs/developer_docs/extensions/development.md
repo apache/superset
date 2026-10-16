@@ -206,6 +206,38 @@ authentication.getCSRFToken().then(token => {
 
 Backend APIs (via `apache-superset-core`) follow a similar pattern, providing access to Superset's models, sessions, and query capabilities. Extensions can register REST API endpoints, access the metadata database, and interact with Superset's core functionality.
 
+#### Python SQL query results
+
+Extensions using `Database.execute_async()` receive SELECT results as pandas
+DataFrames from `handle.get_result()`, including empty results with column names.
+DML statements have `data=None`. Both `RESULTS_BACKEND_USE_MSGPACK` settings use
+Arrow IPC for statement data (Base64-encoded inside the JSON transport), so scalar
+columns follow the synchronous Arrow conversion. Nested lists and dictionaries
+retain JSON scalar types (including arbitrary-sized integers), `datetime`
+(naive or with `datetime.timezone` fixed offsets, including microseconds),
+`date`, `time`, `timedelta`, `UUID`, `Decimal`, and `bytes` values in both transports. These values match
+synchronous execution rather than Arrow's
+string representation. Other nested types (for example, sets or tuples) use the
+Arrow string representation for the entire affected column, not Python objects.
+This fallback also applies to scalar subclasses (including numpy scalars and `pandas.Timestamp`) and
+datetimes/times with other timezone implementations (for example, pytz or
+`zoneinfo.ZoneInfo`). A debug log records each column that uses this fallback.
+An unreadable sidecar or unknown type tag also falls back to Arrow strings for
+that column, without discarding other columns or statements.
+
+For these async results, `SQLLAB_PAYLOAD_MAX_MB` counts the uncompressed payload
+with raw Arrow IPC bytes instead of their Base64 representation. Nested-value
+sidecar contents are excluded to avoid charging twice for values already stored
+in Arrow; envelope and sidecar metadata still count. Both copies are retained in
+storage so a reader can fall back to Arrow strings for unknown tags. MessagePack
+stores sidecars as raw bytes; JSON uses Base64. Stored payloads are compressed.
+
+Legacy JSON-record results remain readable, but types
+already converted to strings or floats cannot be recovered; rerun those queries
+for typed results. Cached SQL results are rebuilt as DataFrames; an unreadable
+cache entry is treated as a cache miss. These
+Python result handles are separate from the SQL Lab results API's JSON format.
+
 Extension endpoints are registered under a dedicated `/extensions` namespace to avoid conflicting with built-in endpoints and also because they don't share the same version constraints. By grouping all extension endpoints under `/extensions`, Superset establishes a clear boundary between core and extension functionality, making it easier to manage, document, and secure both types of APIs.
 
 ```python

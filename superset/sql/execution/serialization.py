@@ -17,12 +17,15 @@
 """Lossless, transport-independent sidecars for supported nested SQL values."""
 
 import base64
-from datetime import datetime, timezone
+import logging
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 from uuid import UUID
 
 import msgpack
+
+logger = logging.getLogger(__name__)
 
 
 def _encode_nested_scalar(value: Any) -> msgpack.ExtType:
@@ -37,6 +40,14 @@ def _encode_nested_scalar(value: Any) -> msgpack.ExtType:
         return msgpack.ExtType(3, value.bytes)
     if type(value) is Decimal:
         return msgpack.ExtType(4, str(value).encode("ascii"))
+    if type(value) is date:
+        return msgpack.ExtType(5, value.isoformat().encode("ascii"))
+    if type(value) is time and (value.tzinfo is None or type(value.tzinfo) is timezone):
+        return msgpack.ExtType(6, value.isoformat().encode("ascii"))
+    if type(value) is timedelta:
+        return msgpack.ExtType(
+            7, msgpack.dumps([value.days, value.seconds, value.microseconds])
+        )
     raise TypeError("Unsupported nested SQL value")
 
 
@@ -66,19 +77,28 @@ def _decode_nested_scalar(code: int, data: bytes) -> Any:
         return UUID(bytes=data)
     if code == 4:
         return Decimal(data.decode("ascii"))
+    if code == 5:
+        return date.fromisoformat(data.decode("ascii"))
+    if code == 6:
+        return time.fromisoformat(data.decode("ascii"))
+    if code == 7:
+        days, seconds, microseconds = msgpack.loads(data)
+        return timedelta(days=days, seconds=seconds, microseconds=microseconds)
     raise ValueError("Unsupported nested SQL type tag")
 
 
-def serialize_nested_columns(columns: dict[str, list[Any]]) -> dict[str, str]:
-    """Encode nested columns as Base64 MessagePack, or keep Arrow's fallback.
+def serialize_nested_columns(
+    columns: dict[str, list[Any]], *, use_msgpack: bool = False
+) -> dict[str, bytes | str]:
+    """Encode nested columns as MessagePack, using Base64 only for JSON.
 
-    Explicit extensions preserve arbitrary-sized integers, datetime, UUID and
-    Decimal; MessagePack retains bytes without text decoding. Strict types
+    Explicit extensions preserve arbitrary-sized integers, temporal scalars, UUID
+    and Decimal; MessagePack retains bytes without text decoding. Strict types
     prevent silent conversions (for example, tuples into lists). A column
     containing unsupported values is omitted so its Arrow string column is
     used instead. Sidecars never rely on executable object deserialization.
     """
-    encoded: dict[str, str] = {}
+    encoded: dict[str, bytes | str] = {}
     for name, values in columns.items():
         try:
             data = msgpack.dumps(
@@ -86,17 +106,22 @@ def serialize_nested_columns(columns: dict[str, list[Any]]) -> dict[str, str]:
                 use_bin_type=True,
                 strict_types=True,
             )
-        except (TypeError, ValueError, OverflowError):
+        except (TypeError, ValueError, OverflowError, RecursionError):
+            logger.debug(
+                "Unable to encode nested SQL column %s; using Arrow strings", name
+            )
             continue
-        encoded[name] = base64.b64encode(data).decode("ascii")
+        encoded[name] = data if use_msgpack else base64.b64encode(data).decode("ascii")
     return encoded
 
 
-def deserialize_nested_columns(columns: dict[str, str]) -> dict[str, list[Any]]:
+def deserialize_nested_columns(
+    columns: dict[str, bytes | str],
+) -> dict[str, list[Any]]:
     """Decode nested sidecars independently of the outer results codec."""
     return {
         name: msgpack.loads(
-            base64.b64decode(data),
+            base64.b64decode(data) if isinstance(data, str) else data,
             raw=False,
             strict_map_key=False,
             ext_hook=_decode_nested_scalar,

@@ -176,6 +176,8 @@ def _finalize_successful_query(
     total_execution_time_ms: float,
 ) -> None:
     """Update query metadata and payload after successful execution."""
+    from superset import results_backend_use_msgpack
+
     # Calculate total rows across all statements
     total_rows = 0
     statements_data: list[dict[str, Any]] = []
@@ -213,7 +215,10 @@ def _finalize_successful_query(
                 # Keep supported nested values out of the outer JSON/MessagePack
                 # serializer, which coerces types or rejects oversized integers.
                 statements_data[-1]["nested_columns_msgpack"] = (
-                    serialize_nested_columns(result_set.nested_columns)
+                    serialize_nested_columns(
+                        result_set.nested_columns,
+                        use_msgpack=results_backend_use_msgpack,
+                    )
                 )
 
         else:
@@ -250,7 +255,7 @@ def _finalize_successful_query(
 
 
 def _get_payload_size(payload: dict[str, Any], serialized_payload: bytes) -> int:
-    """Count uncompressed bytes without the JSON transport's Arrow Base64 overhead."""
+    """Count raw Arrow and metadata, excluding duplicate nested sidecar values."""
     size = len(serialized_payload)
     for statement in payload.get("statements", []):
         if isinstance(data := statement.get("data"), str):
@@ -258,6 +263,11 @@ def _get_payload_size(payload: dict[str, Any], serialized_payload: bytes) -> int
             # copy of the Arrow data just to determine its size.
             arrow_size = len(data) // 4 * 3 - data.endswith("=") - data.endswith("==")
             size -= len(data) - arrow_size
+        # Arrow retains the full nested column as text for older readers and
+        # unknown tags. Its typed copy must not charge the same values twice.
+        size -= sum(
+            len(value) for value in statement.get("nested_columns_msgpack", {}).values()
+        )
     return size
 
 

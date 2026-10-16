@@ -802,7 +802,7 @@ def test_store_results_in_backend_raw_arrow_size_boundary(
     mocker.patch("superset.sql.execution.celery_task.uuid.uuid4", return_value="key")
     mock_result_set.pa_table = pa.table({"text": ["x" * text_length]})
     data, columns = _serialize_result_set(mock_result_set)
-    payload = {
+    payload: dict[str, Any] = {
         "query": {"resultsKey": "key"},
         "statements": [
             {"data": None, "columns": []},
@@ -810,7 +810,7 @@ def test_store_results_in_backend_raw_arrow_size_boundary(
                 "data": data,
                 "columns": columns,
                 "nested_columns_msgpack": serialize_nested_columns(
-                    {"nested": [{"value": "x"}]}
+                    {"nested": [{"value": "x"}]}, use_msgpack=use_msgpack
                 ),
             },
             {"data": data, "columns": columns},
@@ -818,7 +818,10 @@ def test_store_results_in_backend_raw_arrow_size_boundary(
         "metadata": "x" * 1000,
     }
     serialized = _serialize_payload(payload)
-    expected_size = len(serialized)
+    expected_size = len(serialized) - sum(
+        len(value)
+        for value in payload["statements"][1]["nested_columns_msgpack"].values()
+    )
     if isinstance(data, str):
         expected_size -= 2 * (len(data) - len(base64.b64decode(data)))
     mocker.patch.dict(

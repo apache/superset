@@ -28,34 +28,6 @@ under the License.
 
 Model Context Protocol (MCP) integration allows extensions to register custom AI agent capabilities that integrate seamlessly with Superset's MCP service. Extensions can provide both **tools** (executable functions) and **prompts** (interactive guidance) that AI agents can discover and use.
 
-## Python SQL query results
-
-Extensions using `Database.execute_async()` receive SELECT results as pandas
-DataFrames from `handle.get_result()`, including empty results with column names.
-DML statements have `data=None`. Both `RESULTS_BACKEND_USE_MSGPACK` settings use
-Arrow IPC for statement data (Base64-encoded inside the JSON transport), so scalar
-columns follow the synchronous Arrow conversion. Nested lists and dictionaries
-retain JSON scalar types (including arbitrary-sized integers), `datetime`
-(naive or with `datetime.timezone` fixed offsets, including microseconds),
-`UUID`, `Decimal`, and `bytes` values in both transports. These values match
-synchronous execution rather than Arrow's
-string representation. Other nested types (for example, sets or tuples) use the
-Arrow string representation for the entire affected column, not Python objects.
-This fallback also applies to scalar subclasses and datetimes with other timezone
-implementations (for example, `zoneinfo.ZoneInfo`).
-
-For these async results, `SQLLAB_PAYLOAD_MAX_MB` counts the uncompressed payload
-with raw Arrow IPC bytes instead of their Base64 representation. The remaining
-payload metadata and nested-value sidecars still count toward the limit. The
-stored JSON payload remains Base64-encoded and compressed; storage encoding
-overhead alone does not cause an otherwise in-limit Arrow result to be rejected.
-
-Legacy JSON-record results and untyped nested sidecars remain readable, but types
-already converted to strings or floats cannot be recovered; rerun those queries
-for typed results. Cached SQL results are rebuilt as DataFrames; an unreadable
-cache entry is treated as a cache miss. These
-Python result handles are separate from the SQL Lab results API's JSON format.
-
 ## Chart dataset changes
 
 The built-in `update_chart` tool requires a complete `config` when rebinding

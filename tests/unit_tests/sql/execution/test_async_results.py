@@ -25,7 +25,7 @@ the results backend contract are exercised together without mocking the
 compression or serialization layers.
 """
 
-from datetime import datetime, time, timedelta, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from decimal import Decimal
 from typing import Any
 from unittest.mock import MagicMock
@@ -1028,18 +1028,19 @@ def test_async_unsupported_nested_types_use_arrow_strings(
     assert actual["value"][2] is None
 
 
-def test_legacy_nested_sidecar_remains_readable() -> None:
-    """Read the untyped sidecar without interpreting JSON-looking strings."""
+def test_intermediate_nested_sidecar_is_ignored() -> None:
+    """An unreleased untyped sidecar must not override Arrow results."""
     from superset.sql.execution.executor import _decode_async_statement_data
     from superset.sqllab.utils import write_ipc_buffer
 
     result_set = _result_set(["value"], [({"a": [1]},), (None,)])
     statement = {
         "data": write_ipc_buffer(result_set.pa_table).to_pybytes(),
-        "nested_columns": {"value": [{"a": [1]}, None]},
+        "nested_columns": {"value": [{"a": [999]}, None]},
     }
     pd.testing.assert_frame_equal(
-        _decode_async_statement_data(statement), result_set.to_pandas_df()
+        _decode_async_statement_data(statement),
+        SupersetResultSet.convert_table_to_df(result_set.pa_table),
     )
 
 
@@ -1079,3 +1080,237 @@ def test_decode_legacy_records_without_column_metadata() -> None:
         _decode_async_statement_data({"data": [{"value": 1}]}),
         pd.DataFrame({"value": [1]}),
     )
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize("row_count", [1, 50_000])
+def test_nested_payload_limit_does_not_charge_duplicate_sidecar(
+    mocker: MockerFixture, app_context: None, use_msgpack: bool, row_count: int
+) -> None:
+    """Nested data below ten MiB is not charged twice by its typed sidecar."""
+    mocker.patch.dict(current_app.config, {"SQLLAB_PAYLOAD_MAX_MB": 10})
+    value = {"text": "x" * (6 * 1024 * 1024 // row_count)}
+    rows = [(value,)] * row_count
+    result = _store_and_read(
+        mocker,
+        "SELECT value",
+        [_select("SELECT value", ["value"], rows)],
+        write_msgpack=use_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert result.statements[0].data["value"].tolist() == [value] * row_count
+
+
+def test_msgpack_nested_sidecar_uses_raw_bytes(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """MessagePack does not need a Base64 wrapper around nested values."""
+    import msgpack
+
+    mocker.patch("superset.results_backend_use_msgpack", True)
+    payload: dict[str, Any] = {}
+    _finalize_successful_query(
+        MagicMock(),
+        SQLScript("SELECT value", engine="sqlite"),
+        [_select("SELECT value", ["value"], [([1, 2],)])],
+        payload,
+        1.0,
+    )
+    data = payload["statements"][0]["nested_columns_msgpack"]["value"]
+    assert isinstance(data, bytes)
+    assert msgpack.loads(data) == [[1, 2]]
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize(
+    "invalid", ["unknown_tag", "invalid_base64", "wrong_length", "scalar"]
+)
+def test_bad_nested_sidecar_keeps_arrow_and_other_columns(
+    mocker: MockerFixture, app_context: None, use_msgpack: bool, invalid: str
+) -> None:
+    """One unreadable sidecar cannot discard statements or valid sidecars."""
+    import base64
+
+    import msgpack
+
+    from superset.sql.execution.serialization import serialize_nested_columns
+
+    if invalid == "unknown_tag":
+        bad = base64.b64encode(msgpack.dumps([msgpack.ExtType(99, b"future")])).decode()
+    elif invalid == "invalid_base64":
+        bad = "!"
+    else:
+        bad = base64.b64encode(
+            msgpack.dumps(42 if invalid == "scalar" else [])
+        ).decode()
+    good = serialize_nested_columns({"good": [[3, 4]]})["good"]
+    mocker.patch(
+        "superset.sql.execution.celery_task.serialize_nested_columns",
+        return_value={"bad": bad, "good": good},
+    )
+    result = _store_and_read(
+        mocker,
+        "SELECT bad, good",
+        [_select("SELECT bad, good", ["bad", "good"], [([1, 2], [3, 4])])],
+        write_msgpack=use_msgpack,
+        read_msgpack=not use_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    assert result.statements[0].data["bad"].tolist() == ["[1, 2]"]
+    assert result.statements[0].data["good"].tolist() == [[3, 4]]
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize(
+    "value",
+    [
+        date(2026, 1, 1),
+        time(3, 4, 5, 123456),
+        time(3, 4, 5, tzinfo=timezone(timedelta(hours=3))),
+        timedelta(days=-2, seconds=3, microseconds=456),
+    ],
+)
+def test_nested_temporal_scalars_match_sync(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    use_msgpack: bool,
+    value: Any,
+) -> None:
+    """Date, time and interval tags preserve values without losing nearby rows."""
+    rows = [([value],), ([1, 2],), (None,)]
+    sync = _execute_sync(mocker, database, "SELECT value", ["value"], rows)
+    result = _store_and_read(
+        mocker,
+        "SELECT value",
+        [_select("SELECT value", ["value"], rows)],
+        write_msgpack=use_msgpack,
+        read_msgpack=not use_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(result.statements[0].data, sync.statements[0].data)
+    assert type(result.statements[0].data["value"][0][0]) is type(value)
+
+
+@pytest.mark.parametrize("use_msgpack", [True, False])
+def test_deep_nested_sidecar_falls_back_to_arrow(
+    mocker: MockerFixture, app_context: None, use_msgpack: bool
+) -> None:
+    """Recursion limits in optional sidecars must not fail an async result."""
+    value: Any = 1
+    for _ in range(550):
+        value = [value]
+    result_set = _result_set(["value"], [(value,)])
+    result = _store_and_read(
+        mocker,
+        "SELECT value",
+        [("SELECT value", result_set, 1.0, 1)],
+        write_msgpack=use_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(
+        result.statements[0].data,
+        SupersetResultSet.convert_table_to_df(result_set.pa_table),
+    )
+
+
+def test_unsupported_nested_sidecar_logs_fallback(
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unsupported column fallback is observable without logging SQL values."""
+    import logging
+
+    from superset.sql.execution.serialization import serialize_nested_columns
+
+    with caplog.at_level(logging.DEBUG):
+        assert serialize_nested_columns({"value": [[{1, 2}], [3, 4]]}) == {}
+    assert "value" in caplog.text
+    assert "Arrow" in caplog.text
+    assert "{1, 2}" not in caplog.text
+
+
+@pytest.mark.parametrize("failure", ["backend", "decode"])
+@pytest.mark.parametrize("async_execution", [True, False])
+def test_cache_failure_logs_exception_and_source(
+    mocker: MockerFixture,
+    app_context: None,
+    database: Database,
+    caplog: pytest.LogCaptureFixture,
+    failure: str,
+    async_execution: bool,
+) -> None:
+    """Cache backend outages and malformed entries retain distinct diagnostics."""
+    import logging
+
+    from superset.extensions import cache_manager
+
+    sql = "SELECT 1 AS value"
+    _execute_sync(mocker, database, sql, ["value"], [(1,)])
+    executor = SQLExecutor(database)
+    mocker.patch.object(executor, "_generate_cache_key", return_value="broken")
+    error = (
+        ConnectionError("cache unavailable")
+        if failure == "backend"
+        else ValueError("bad cache")
+    )
+    get = mocker.patch.object(cache_manager.data_cache, "get")
+    if failure == "backend":
+        get.side_effect = error
+    else:
+        get.return_value = {
+            "statements": [
+                {
+                    "original_sql": sql,
+                    "executed_sql": sql,
+                    "data": [],
+                    "columns": ["value"],
+                }
+            ]
+        }
+        mocker.patch(
+            "superset.sql.execution.executor._records_to_dataframe", side_effect=error
+        )
+    with caplog.at_level(logging.WARNING):
+        if async_execution:
+            mocker.patch("superset.sql.execution.celery_task.execute_sql_task.delay")
+            mocker.patch.object(executor, "_create_query_record").return_value.id = 42
+            assert executor.execute_async(sql).query_id == 42
+        else:
+            assert executor.execute(sql).status == QueryStatus.SUCCESS
+    records = [
+        record
+        for record in caplog.records
+        if record.exc_info and record.exc_info[1] is error
+    ]
+    assert len(records) == 1
+    assert (
+        "read SQL result cache" if failure == "backend" else "decode cached SQL result"
+    ) in records[0].message
+
+
+def test_async_payload_decoder_uses_module_imports() -> None:
+    """The transport decoder uses its module's existing dependencies."""
+    import ast
+    import inspect
+
+    from superset.sql.execution import executor
+
+    tree = ast.parse(inspect.getsource(executor._decode_async_results_payload))
+    assert not any(
+        isinstance(node, (ast.Import, ast.ImportFrom)) for node in ast.walk(tree)
+    )
+    assert executor.msgpack.loads(b"\x80") == {}
+    assert executor.json.loads("{}") == {}
+
+
+def test_python_sql_results_documented_under_backend_apis() -> None:
+    """The generic Python result contract belongs with extension backend APIs."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[4]
+    development = (root / "docs/developer_docs/extensions/development.md").read_text()
+    mcp = (root / "docs/developer_docs/extensions/mcp.md").read_text()
+    assert "Python SQL query results" not in mcp
+    section = development.split("### Backend APIs", 1)[1]
+    assert "#### Python SQL query results" in section
+    assert "untyped nested sidecars" not in development

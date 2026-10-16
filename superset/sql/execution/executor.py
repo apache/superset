@@ -65,6 +65,7 @@ import uuid
 from datetime import datetime
 from typing import Any, cast, NoReturn, TYPE_CHECKING
 
+import msgpack
 import pandas as pd
 import pyarrow as pa
 from flask import current_app as app, g, has_app_context
@@ -84,7 +85,7 @@ from superset.extensions import cache_manager
 from superset.sql.execution.serialization import deserialize_nested_columns
 from superset.sql.parse import SQLScript
 from superset.superset_typing import FetchedRows
-from superset.utils import core as utils
+from superset.utils import core as utils, json
 
 if TYPE_CHECKING:
     from superset_core.queries.types import (
@@ -421,10 +422,6 @@ def _decode_async_results_payload(blob: bytes) -> dict[str, Any]:
     :param blob: Compressed payload read from the results backend
     :returns: The deserialized payload
     """
-    import msgpack
-
-    from superset.utils import json
-
     decompressed = cast(bytes, utils.zlib_decompress(blob, decode=False))
     if decompressed.lstrip()[:1] == b"{":
         return json.loads(decompressed)
@@ -454,13 +451,27 @@ def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | No
 
         table = pa.ipc.open_stream(pa.BufferReader(data)).read_all()
         df = SupersetResultSet.convert_table_to_df(table)
-        # Older sidecars contain untyped values; do not guess lost types.
-        nested_columns = {
-            **stmt_data.get("nested_columns", {}),
-            **deserialize_nested_columns(stmt_data.get("nested_columns_msgpack", {})),
-        }
-        for name, values in nested_columns.items():
-            df[name] = values
+        for name, data in stmt_data.get("nested_columns_msgpack", {}).items():
+            try:
+                values = deserialize_nested_columns({name: data})[name]
+                if name not in df.columns:
+                    raise ValueError("Nested sidecar has no Arrow column")
+                if not isinstance(values, list) or len(values) != len(df):
+                    raise ValueError("Nested sidecar does not match Arrow row count")
+                df[name] = values
+            except (
+                ValueError,
+                TypeError,
+                msgpack.UnpackException,
+                OverflowError,
+                RecursionError,
+            ):
+                # Readers in a rolling deployment may not know newer type tags.
+                logger.warning(
+                    "Unable to decode nested SQL column %s; using Arrow strings",
+                    name,
+                    exc_info=True,
+                )
         return df
 
     columns = [
@@ -1201,7 +1212,15 @@ class SQLExecutor:
             return None
 
         try:
-            if (cached := cache_manager.data_cache.get(cache_key)) is not None:
+            cached = cache_manager.data_cache.get(cache_key)
+        except Exception:  # pylint: disable=broad-except
+            logger.warning(
+                "Unable to read SQL result cache; treating as a miss", exc_info=True
+            )
+            return None
+
+        try:
+            if cached is not None:
                 # Reconstruct statement results from cached data
                 statements = [
                     StatementResult(
@@ -1231,7 +1250,9 @@ class SQLExecutor:
                 )
         except Exception:  # pylint: disable=broad-except
             # A stale or unreadable cache entry must not prevent query execution.
-            logger.warning("Unable to decode cached SQL result; treating as a miss")
+            logger.warning(
+                "Unable to decode cached SQL result; treating as a miss", exc_info=True
+            )
 
         return None
 
