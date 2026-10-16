@@ -24,6 +24,7 @@ import builtins
 import copy
 import dataclasses
 import logging
+import math
 import re
 import uuid
 from collections.abc import Hashable, Iterator
@@ -218,6 +219,53 @@ def build_like_predicate(
     the latter is not portable across engines.
     """
     return sa.func.lower(expr).contains(search.lower(), autoescape=True)
+
+
+def build_native_like_predicate(
+    expr: ColumnElement[Any], search: str, engine_spec: type["BaseEngineSpec"]
+) -> ColumnElement[Any]:
+    """Build the internal native search predicate with dialect-specific literals."""
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    lowered = sa.func.lower(expr)
+    if engine_spec.engine == "bigquery":
+        # STRPOS has no LIKE escape layer: trailing backslashes remain plain data.
+        return sa.func.strpos(lowered, sa.func.lower(sa.literal(search))) > 0
+    escaped = search.replace("/", "//").replace("%", "/%").replace("_", "/_")
+    if issubclass(engine_spec, MssqlEngineSpec):
+        # SQL Server and its derivatives treat '[' as a wildcard-class opener.
+        escaped = escaped.replace("[", "/[")
+    return lowered.like(sa.func.lower(sa.literal("%" + escaped + "%")), escape="/")
+
+
+def _validate_literal_filter_value(operator: str, value: Any) -> None:
+    """Reject malformed private predicates before SQLAlchemy receives them."""
+    list_operators = {
+        utils.FilterOperator.IN,
+        utils.FilterOperator.NOT_IN,
+        utils.FilterOperator.CONTAINS_ANY,
+        utils.FilterOperator.CONTAINS_ALL,
+    }
+    if operator in list_operators:
+        if not isinstance(value, (list, tuple)) or not value:
+            raise QueryObjectValidationError(
+                _(
+                    "Literal membership filters require "
+                    "a non-empty list of scalar values"
+                )
+            )
+        values = value
+    else:
+        values = [value]
+    if any(
+        item is not None
+        and (
+            type(item) not in (str, bool, int, float)
+            or (isinstance(item, float) and not math.isfinite(item))
+        )
+        for item in values
+    ):
+        raise QueryObjectValidationError(_("Literal filters require scalar values"))
 
 
 def _is_parenthesized(sqla_col: ColumnElement) -> bool:
@@ -2633,6 +2681,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param sql_shifted_temporal_labels: labels already shifted in generated SQL
         :return: Normalized dataframe
         """
+        literal_columns = {
+            name: df[name].copy()
+            for name in query_object.column_names
+            if query_object.extras.get("preserve_literal_values") and name in df
+        }
         sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
         labels = self._collect_dttm_labels(query_object)
 
@@ -2694,6 +2747,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         # ``mask`` + ``infer_objects`` rather than ``replace``, which emits a
         # FutureWarning about deprecated silent downcasting on object columns.
         df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
+        # Native choices need the stored grouping scalars: infer_objects can
+        # round nullable large integers, and mask hides nonfinite values. The
+        # opt-in is part of extras, so it also partitions the dataframe cache.
+        for name, values in literal_columns.items():
+            df[name] = values
 
         return df
 
@@ -5368,14 +5426,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     target_generic_type = adhoc_generic_type
                 else:
                     target_generic_type = GenericDataType.STRING
-                eq = self.filter_values_handler(
-                    values=val,
-                    operator=op,
-                    target_generic_type=target_generic_type,
-                    target_native_type=col_type,
-                    is_list_target=is_list_target,
-                    db_engine_spec=db_engine_spec,
-                    db_extra=self.db_extra,
+                # Literal discovery predicates preserve whitespace and sentinel-like
+                # strings. Keep values as SQLAlchemy data, never SQL/Jinja text.
+                literal_filter = flt.get("is_literal") is True
+                if literal_filter:
+                    _validate_literal_filter_value(op, val)
+                eq = (
+                    val
+                    if literal_filter
+                    else self.filter_values_handler(
+                        values=val,
+                        operator=op,
+                        target_generic_type=target_generic_type,
+                        target_native_type=col_type,
+                        is_list_target=is_list_target,
+                        db_engine_spec=db_engine_spec,
+                        db_extra=self.db_extra,
+                    )
                 )
                 if op in {
                     utils.FilterOperator.IN,
@@ -5393,6 +5460,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             column=get_column_name(flt_col),
                         )
                     )
+
+                if literal_filter and target_generic_type == GenericDataType.BOOLEAN:
+                    # Spark/Databricks drivers bind Python booleans as integers.
+                    # Keep the engine's explicit SQL boolean representation while
+                    # avoiding the legacy string/sentinel normalization above.
+                    if isinstance(eq, (list, tuple)):
+                        eq = [
+                            db_engine_spec.coerce_boolean_for_sql(value)
+                            if type(value) is bool
+                            else value
+                            for value in eq
+                        ]
+                    elif type(eq) is bool:
+                        eq = db_engine_spec.coerce_boolean_for_sql(eq)
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5485,13 +5566,36 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # SQLAlchemy may infer the bind parameter type from the
                     # first element and silently truncate other values
                     # (see #33206)
-                    if target_generic_type == utils.GenericDataType.NUMERIC and any(
-                        isinstance(v, float) for v in eq
+                    if (
+                        not literal_filter
+                        and target_generic_type == utils.GenericDataType.NUMERIC
+                        and any(isinstance(v, float) for v in eq)
                     ):
                         eq = [
                             float(v) if isinstance(v, (int, float)) else v for v in eq
                         ]
 
+                    if literal_filter:
+                        # Each literal keeps its SQL type; a mixed numeric list must
+                        # not inherit the type of its first bind parameter.
+                        values_without_none = [
+                            value
+                            if isinstance(value, ColumnElement)
+                            else sa.literal(value)
+                            for value in eq
+                            if value is not None
+                        ]
+                        literal_condition = sqla_col.in_(values_without_none)
+                        if any(v is None for v in eq):
+                            literal_condition = or_(
+                                sqla_col.is_(None), literal_condition
+                            )
+                        target_clause_list.append(
+                            ~literal_condition
+                            if op == utils.FilterOperator.NOT_IN
+                            else literal_condition
+                        )
+                        continue
                     if len(eq) > len(
                         eq_without_none := [x for x in eq if x is not None]
                     ):
@@ -5616,7 +5720,24 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         if op == utils.FilterOperator.LIKE:
                             target_clause_list.append(sqla_col.like(eq))
                         elif op == utils.FilterOperator.ILIKE:
-                            target_clause_list.append(sqla_col.ilike(eq))
+                            if literal_filter:
+                                if (
+                                    target_generic_type != GenericDataType.STRING
+                                    or not isinstance(eq, str)
+                                ):
+                                    raise QueryObjectValidationError(
+                                        _(
+                                            "Literal substring filters require "
+                                            "a string column and value"
+                                        )
+                                    )
+                                target_clause_list.append(
+                                    build_native_like_predicate(
+                                        sqla_col, eq, db_engine_spec
+                                    )
+                                )
+                            else:
+                                target_clause_list.append(sqla_col.ilike(eq))
                         elif op == utils.FilterOperator.NOT_LIKE:
                             target_clause_list.append(sqla_col.not_like(eq))
                         else:
