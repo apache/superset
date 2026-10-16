@@ -8716,7 +8716,7 @@ msgstr "ستون خالی"
 msgid "Get the last date by the date unit."
 msgstr "آخرین تاریخ را بر اساس واحد تاریخ بگیرید."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "تاریخ مشخص تعطیلات را دریافت کنید."
 
 msgid "Give access to multiple catalogs in a single database connection."

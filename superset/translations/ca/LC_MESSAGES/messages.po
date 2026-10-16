@@ -8680,7 +8680,7 @@ msgstr "Columna de Geometria"
 msgid "Get the last date by the date unit."
 msgstr "Obtenir l'última data per la unitat de data."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Obtenir la data especificada per al festiu"
 
 msgid "Give access to multiple catalogs in a single database connection."

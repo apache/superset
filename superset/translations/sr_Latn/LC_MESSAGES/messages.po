@@ -9988,7 +9988,7 @@ msgid "Get the last date by the date unit."
 msgstr "Dobavlja zadnji datum prema jedinici datuma."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Dobavlja određeni datum za praznik"
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
