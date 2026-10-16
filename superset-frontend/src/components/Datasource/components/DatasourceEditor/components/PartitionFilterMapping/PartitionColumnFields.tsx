@@ -122,17 +122,29 @@ export default function PartitionColumnFields({
 
   const mappedColumn = resolveMappedColumn(datasource);
   const isImplicit = mappedColumnIsImplicit(datasource);
+  const liveTransform =
+    allColumns.find(column => column.column_name === mappedColumn)
+      ?.partition_value_transform ?? null;
+  // The stored refusal, but only while the box still holds the expression it
+  // was about. It is a verdict on one transform, and it outlived it: reopen a
+  // dataset whose stored `no_such_fn(:value)` failed its last probe, replace it
+  // with something that works, watch the row's own preview come back valid --
+  // and the banner still said nothing would mirror, because this read a summary
+  // computed when the editor opened.
+  const storedVerdictApplies =
+    liveTransform === datasource.partition_filter_mapping?.evaluated_transform;
   // The static checks are necessary, not sufficient: an unparseable expression
   // or a function the database does not have needs the engine to spot, and the
   // mapped column's row already asks it. Deferring to that answer where there
   // is one is what keeps this banner and that panel from contradicting each
-  // other. A stored transform whose last probe failed says the same thing
-  // through the datasource's own summary, which is what an owner sees on
-  // reopening the editor.
+  // other.
   const isActive =
     mappingIsActive(datasource, allColumns) &&
     previewMirrors !== false &&
-    datasource.partition_filter_mapping?.evaluable !== false;
+    !(
+      storedVerdictApplies &&
+      datasource.partition_filter_mapping?.evaluable === false
+    );
   const { partition_column: partitionColumn } = datasource;
 
   // `field` is what the issues carry it for: a message about the partition
@@ -143,7 +155,15 @@ export default function PartitionColumnFields({
     [datasource, allColumns],
   );
   const issueFor = (field: PartitionMappingIssue['field']) =>
-    issues.find(issue => issue.field === field)?.message;
+    issues.find(issue => issue.field === field);
+  // Non-blocking issues are saveable, so they read as warnings. The implicit
+  // self-mapping is the one that reaches here: the owner can save through it,
+  // and danger styling on a message beside an enabled Save button says the
+  // opposite of what the button is doing.
+  const issueType = (issue: PartitionMappingIssue) =>
+    issue.blocking === false ? 'warning' : 'danger';
+  const partitionColumnIssue = issueFor('partition_column');
+  const mappedColumnIssue = issueFor('partition_mapped_column');
 
   // "Map a different column instead" normally opens the currently-mapped
   // column's row, which is where the picker lives. When the mapped column *is*
@@ -181,13 +201,18 @@ export default function PartitionColumnFields({
         allowClear
         data-test="partition-column-select"
       />
-      {issueFor('partition_column') && (
-        <Typography.Text type="danger" data-test="partition-column-error">
-          {issueFor('partition_column')}
+      {partitionColumnIssue && (
+        <Typography.Text
+          type={issueType(partitionColumnIssue)}
+          data-test="partition-column-error"
+        >
+          {partitionColumnIssue.message}
         </Typography.Text>
       )}
       <Typography.Text type="secondary">
-        {t('Column used for partition pruning on this table.')}
+        {t(
+          'Column used for partition pruning on this table. Its Is filterable and Is dimension settings decide whether Explore offers it.',
+        )}
       </Typography.Text>
 
       {partitionColumn && (
@@ -262,12 +287,12 @@ export default function PartitionColumnFields({
                   <Label>{mappedColumn}</Label>
                 )}
               </Flex>
-              {issueFor('partition_mapped_column') && (
+              {mappedColumnIssue && (
                 <Typography.Text
-                  type="danger"
+                  type={issueType(mappedColumnIssue)}
                   data-test="partition-mapped-column-error"
                 >
-                  {issueFor('partition_mapped_column')}
+                  {mappedColumnIssue.message}
                 </Typography.Text>
               )}
               <Typography.Text type="secondary">
@@ -311,10 +336,17 @@ export default function PartitionColumnFields({
                 <Alert
                   type="warning"
                   showIcon
-                  message={t(
-                    'No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition.',
-                    { mapped: mappedColumn },
-                  )}
+                  message={
+                    liveTransform
+                      ? t(
+                          'The value transform on %(mapped)s is not mirroring filters, so queries will scan every partition.',
+                          { mapped: mappedColumn },
+                        )
+                      : t(
+                          'No value transform is set on %(mapped)s, so nothing is mirrored yet and queries will scan every partition.',
+                          { mapped: mappedColumn },
+                        )
+                  }
                 />
               )}
             </>
@@ -353,7 +385,7 @@ export default function PartitionColumnFields({
                 type="warning"
                 showIcon
                 message={t(
-                  '%(partition)s is hidden from Explore, but no filter is mirrored onto it — queries will scan every partition until a column is mapped.',
+                  'No filter is mirrored onto %(partition)s — queries will scan every partition until a column is mapped.',
                   { partition: partitionColumn },
                 )}
               />

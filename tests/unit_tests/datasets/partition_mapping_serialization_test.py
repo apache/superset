@@ -118,9 +118,15 @@ def test_the_mapping_summary_survives_dashboard_payload_pruning(app: Flask) -> N
         # Nothing has probed this transform, which is not the same as its
         # having failed -- see `known_mirror_verdict`.
         "evaluable": None,
+        # Which transform `evaluable` is a verdict about. The dataset editor
+        # applies a stored refusal only while the box still holds this text.
+        "evaluated_transform": "unix_timestamp(:value)",
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
+        # SQLite's driver and engine spell both characters the same way, so
+        # nothing is declined on these grounds here.
+        "unmirrorable_value_chars": [],
         "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
     }
 
@@ -151,6 +157,28 @@ def test_the_mapping_summary_reports_the_engine_s_literal_resolution(
 
     assert summary is not None
     assert summary["literal_resolution"] == "day"
+
+
+def test_the_mapping_summary_names_the_characters_this_database_spells_oddly(
+    app: Flask,
+) -> None:
+    """
+    The other gate the Explore indicator cannot work out for itself: whether a
+    quote or a backslash in a filter value survives the trip through the driver
+    and back out of the engine's lexer is a property of that pair, not of the
+    value. Postgres is the case that shows why it is reported per character
+    rather than as one flag -- it agrees about the apostrophe and not about the
+    backslash, and one flag would cost quote-bearing filters their glyph for
+    nothing.
+    """
+    table = _table()
+    table.database.sqlalchemy_uri = "postgresql://user@host/db"
+
+    with app.app_context():
+        summary = table.data["partition_filter_mapping"]
+
+    assert summary is not None
+    assert summary["unmirrorable_value_chars"] == ["\\"]
 
 
 def test_the_mapping_summary_calls_a_text_mapping_full_resolution(
@@ -317,9 +345,15 @@ def test_the_mapping_summary_still_names_the_columns_when_inactive(
         # Nothing has probed this transform, which is not the same as its
         # having failed -- see `known_mirror_verdict`.
         "evaluable": None,
+        # An inactive mapping has no verdict, so there is no transform for one
+        # to be about -- `None` rather than the stored text.
+        "evaluated_transform": None,
         "is_monotonic": True,
         # SQLite renders a timestamp with ``timespec="seconds"``.
         "literal_resolution": "second",
+        # SQLite's driver and engine spell both characters the same way, so
+        # nothing is declined on these grounds here.
+        "unmirrorable_value_chars": [],
         "mirrorable_operators": ["<", "<=", "==", ">", ">=", "IN", "TEMPORAL_RANGE"],
     }
 

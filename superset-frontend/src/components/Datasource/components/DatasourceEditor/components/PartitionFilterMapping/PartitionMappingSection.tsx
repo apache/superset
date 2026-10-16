@@ -140,14 +140,45 @@ export default function PartitionMappingSection({
     operator: previewOperatorFor(item),
     isMonotonic,
     enabled: state === 'mapped',
+    // The endpoint belongs to the saved dataset and resolves these names
+    // against its persisted columns. `datasource.columns` is the set the modal
+    // opened with -- the editor never writes it back -- so a column only
+    // synced from source is absent here, and asking would report it missing.
+    //
+    // No list at all means no information, which falls back to asking: that is
+    // the behaviour every caller had before, and suppressing a preview on an
+    // absence would be a worse failure than the one this avoids.
+    columnsAreSaved:
+      datasource.columns === undefined ||
+      [columnName, datasource.partition_column].every(
+        name =>
+          !name || datasource.columns!.some(col => col.column_name === name),
+      ),
   });
 
   // Reported rather than read upward, because the transform the preview judges
   // is the local, debounced one this panel holds. `null` while a request is in
   // flight: the previous verdict belongs to text that is no longer on screen.
+  //
+  // Only from the mapped row. Every expanded column renders this component and
+  // they all report to the same `onPreviewVerdict`, but only the mapped one
+  // previews anything (`enabled: state === 'mapped'`) -- so the others reported
+  // a permanent `null`. Expanding any other column after the mapped row's
+  // preview had failed therefore reset the dataset banner to claiming filters
+  // will mirror, while the mapped row went on showing the failure.
   useEffect(() => {
-    onPreviewVerdict?.(loading || !preview ? null : preview.valid);
-  }, [loading, preview, onPreviewVerdict]);
+    if (state !== 'mapped') {
+      return;
+    }
+    // `unsaved` is not a verdict: the preview has not asked. Reporting `false`
+    // would have the dataset banner claim nothing mirrors on the strength of a
+    // question nobody answered.
+    onPreviewVerdict?.(
+      loading || !preview || preview.reason === 'unsaved'
+        ? null
+        : preview.valid,
+    );
+  }, [state, loading, preview, onPreviewVerdict]);
 
   if (state === 'none' || state === 'partition') {
     return null;
@@ -346,15 +377,28 @@ export default function PartitionMappingSection({
       {/* Only one of preview and error is ever visible. */}
       {!loading && preview && !preview.valid && (
         <Alert
-          // A range that won't mirror is a live warning about the checkbox
-          // above, not a broken transform; calling it an error would be wrong.
-          type={preview.reason === 'operator' ? 'warning' : 'error'}
+          // A range that won't mirror, an operator this column's type puts out
+          // of reach, a bound whose time frame the transform would discard, or
+          // a value the driver and the database spell differently, is a live
+          // warning about the checkbox and the column above -- not a broken
+          // transform; calling it an error would be wrong.
+          type={
+            preview.reason === 'operator' ||
+            preview.reason === 'resolution' ||
+            preview.reason === 'offset' ||
+            preview.reason === 'escaping' ||
+            preview.reason === 'unsaved'
+              ? 'warning'
+              : 'error'
+          }
           showIcon
           data-test="partition-mapping-error"
           message={
             preview.reason === 'parse'
               ? t("Can't parse transform")
-              : t('Filters will not be mirrored')
+              : preview.reason === 'unsaved'
+                ? t('Not previewed yet')
+                : t('Filters will not be mirrored')
           }
           description={preview.error}
         />

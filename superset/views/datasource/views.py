@@ -14,8 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import logging
 from collections import Counter
-from typing import Any
+from typing import Any, cast
 
 from flask import redirect, request, url_for
 from flask_appbuilder import expose, permission_name
@@ -25,13 +26,18 @@ from flask_babel import _
 from marshmallow import ValidationError
 from sqlalchemy.exc import NoResultFound, NoSuchTableError
 
-from superset import db, event_logger, security_manager
+from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
 )
 from superset.connectors.sqla.models import SqlaTable
-from superset.connectors.sqla.partition_mapping import stored_expression_error
+from superset.connectors.sqla.partition_mapping import (
+    drop_unmapped_value_transforms,
+    stored_expression_error,
+    validate_partition_mapping,
+    validate_transform,
+)
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
@@ -54,6 +60,8 @@ from superset.views.datasource.schemas import (
 from superset.views.datasource.utils import get_samples
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import sanitize_datasource_data
+
+logger = logging.getLogger(__name__)
 
 # Datasource types whose ``datasource_id`` refers to a dataset row.
 _DATASET_TYPES = frozenset({DatasourceType.TABLE.value, DatasourceType.DATASET.value})
@@ -99,6 +107,16 @@ def _partition_transform_error(
     actually changes is worth refusing over -- re-sending a value already in
     storage is what a GET-then-PUT client does, and a transform stored before
     this check existed is disarmed at probe time instead.
+
+    Both gates the other writers apply, not just the storability one.
+    `stored_expression_error` asks whether the expression may be *run*;
+    `validate_transform`'s blocking tier asks whether it may be *stored* --
+    Jinja, an executable comment, a non-deterministic function, a placeholder
+    the engine will not read. The REST PUT and the importer reach both, and this
+    endpoint reached only the first, so `random() + :value` saved here with a
+    200 and then failed `UpdateDatasetCommand`'s validation on every later edit,
+    including a description-only PUT. The dataset could not be saved again until
+    someone edited the transform.
     """
     incoming = [
         column
@@ -117,12 +135,22 @@ def _partition_transform_error(
         transform = column["partition_value_transform"]
         if transform == stored.get(column.get("column_name")):
             continue
-        if reason := stored_expression_error(
+        reason = stored_expression_error(
             database,
             orm_datasource.catalog,
             orm_datasource.schema,
             transform,
-        ):
+        )
+        if reason is None:
+            reason = next(
+                (
+                    str(issue.message)
+                    for issue in validate_transform(transform, database.backend)
+                    if issue.blocking
+                ),
+                None,
+            )
+        if reason:
             return str(
                 _(
                     "The value transform on %(column)s cannot be saved: %(reason)s",
@@ -130,6 +158,200 @@ def _partition_transform_error(
                     reason=reason,
                 )
             )
+    return None
+
+
+def _partition_mapping_reference_error(
+    orm_datasource: Any,
+    datasource_dict: dict[str, Any],
+) -> str | None:
+    """
+    Why this request's partition mapping references cannot be stored, if any.
+
+    Its sibling above covers the transform. `partition_column` and
+    `partition_mapped_column` ride in on `update_from_object` too, and nothing
+    checked them: a payload naming a column the dataset does not have was
+    stored and answered 200, and then *every* later
+    ``PUT /api/v1/dataset/<pk>`` failed `_validate_partition_mapping` with a
+    column-not-found error -- including a description-only one, which carries no
+    columns payload and so cannot reach the branch that forgives a stored-only
+    dangle. The dataset was left in a state it could not be saved from until
+    someone repaired the reference by hand.
+
+    Only the blocking issues. The implicit self-mapping -- a null override where
+    ``main_dttm_col`` happens to equal the partition column -- is Tier 2 by
+    design in `validate_partition_mapping`, and refusing it here would recreate
+    exactly the unsaveable dataset this function exists to prevent.
+
+    Gated on the feature flag, like `UpdateDatasetCommand`'s own call: with the
+    flag off nothing mirrors, and a deployment that never turned the feature on
+    should not start failing saves over a reference nothing reads.
+    """
+    if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
+        return None
+
+    partition_column = datasource_dict.get("partition_column")
+    if not partition_column:
+        return None
+
+    database = getattr(orm_datasource, "database", None)
+    if database is None:
+        return None
+
+    # The columns the request is about to write, not the ones in storage:
+    # `update_from_object` replaces the collection, so a reference has to be
+    # checked against what will be there afterwards.
+    column_names = {
+        column.get("column_name")
+        for column in datasource_dict.get("columns") or []
+        if column.get("column_name")
+    }
+    for issue in validate_partition_mapping(
+        column_names=column_names,
+        partition_column=partition_column,
+        partition_mapped_column=datasource_dict.get("partition_mapped_column"),
+        main_dttm_col=datasource_dict.get("main_dttm_col"),
+        transform=None,
+        engine=database.backend,
+    ):
+        if issue.blocking:
+            return str(issue.message)
+    return None
+
+
+def _repoints_table(
+    datasource: DatasourceModel,
+    database_changed: bool,
+    requested_sql: str | None,
+    requested_table: Table,
+) -> bool:
+    """
+    Would the request point ``datasource`` at a different physical table?
+
+    Moving to another database connection always does, whatever the target
+    looks like. Within one connection, a virtual dataset's ``table_name`` is a
+    label rather than a pointer, as in
+    ``UpdateDatasetCommand._validate_dataset_source``, so dropping the SQL
+    binds that label to a real table: a repoint even when the label is
+    unchanged.
+    """
+    # Ahead of the dataset check on purpose: a move to another connection is
+    # a repoint whatever the datasource is, and must not go unchecked.
+    if database_changed:
+        return True
+    if not isinstance(datasource, SqlaTable) or requested_sql:
+        return False
+    if datasource.is_virtual:
+        return True
+    # Compared field by field because ``Table.__eq__`` compares the ``str``
+    # rendering, which drops empty parts and so conflates distinct targets.
+    return (requested_table.table, requested_table.schema, requested_table.catalog) != (
+        datasource.table_name,
+        datasource.schema or None,
+        datasource.catalog or None,
+    )
+
+
+def _repoints_sql(
+    datasource: DatasourceModel,
+    database_changed: bool,
+    requested_sql: str | None,
+    requested_table: Table,
+) -> bool:
+    """
+    Would the request change what the SQL on ``datasource`` reads?
+
+    Supplying ``sql`` aims the dataset at whatever that SQL reads, converting
+    a physical dataset on the way. Unchanged SQL still lands somewhere new
+    when the connection, catalog or schema it resolves unqualified names
+    against moves, which ``UpdateDatasetCommand._validate_sql_access`` gates
+    on changed SQL text alone and so does not yet cover.
+    """
+    if not isinstance(datasource, SqlaTable) or not requested_sql:
+        return False
+    return (
+        database_changed
+        or requested_sql != datasource.sql
+        or (requested_table.schema, requested_table.catalog)
+        != (datasource.schema or None, datasource.catalog or None)
+    )
+
+
+def _requested_target(datasource_dict: dict[str, Any]) -> tuple[str | None, Table]:
+    """The SQL and table a save aims the dataset at.
+
+    ``update_from_object`` applies an omitted key as ``None``, so the request
+    body alone describes the target: no stored value feeds into it. The body
+    is free-form JSON, so each field is type-checked here, since the access
+    checks below parse these values and only a string survives that.
+
+    Raises ``ValueError`` naming the offending field.
+    """
+
+    def string(field: str) -> str | None:
+        value = datasource_dict.get(field)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(field)
+        return value
+
+    return string("sql"), Table(
+        # ``Table`` is annotated for a table that exists, but an omitted
+        # ``table_name`` lands as ``None`` and has to be compared as one.
+        cast(str, string("table_name")),
+        string("schema") or None,
+        string("catalog") or None,
+    )
+
+
+def _authorize_repoint(
+    datasource: DatasourceModel,
+    database_id: int,
+    database_changed: bool,
+    requested_sql: str | None,
+    requested_table: Table,
+) -> FlaskResponse | None:
+    """Authorise the target a save aims ``datasource`` at.
+
+    Editorship of the dataset alone is not sufficient to repoint it. Ports
+    ``UpdateDatasetCommand``'s table and SQL checks, which are independent:
+    one save can do both, and each needs its own ``raise_for_access`` call
+    because passing ``sql`` builds an ephemeral query that supersedes
+    ``table``.
+
+    Returns an error response when the target cannot be resolved, and ``None``
+    once the target is authorised or the save does not repoint at all.
+    """
+    repoints_table = _repoints_table(
+        datasource, database_changed, requested_sql, requested_table
+    )
+    repoints_sql = _repoints_sql(
+        datasource, database_changed, requested_sql, requested_table
+    )
+    if not (repoints_table or repoints_sql):
+        return None
+
+    target_database = (
+        DatasetDAO.get_database_by_id(database_id)
+        if database_changed
+        else datasource.database
+    )
+    if target_database is None:
+        return json_error_response(_("Database not found."), status=422)
+    try:
+        if repoints_table:
+            security_manager.raise_for_access(
+                database=target_database,
+                table=requested_table,
+            )
+        if repoints_sql:
+            security_manager.raise_for_access(
+                database=target_database,
+                sql=requested_sql,
+                catalog=requested_table.catalog,
+                schema=requested_table.schema,
+            )
+    except SupersetSecurityException as ex:
+        raise DatasetForbiddenError() from ex
     return None
 
 
@@ -167,25 +389,25 @@ class Datasource(BaseSupersetView):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        if database_id != orm_datasource.database_id:
-            new_database = DatasetDAO.get_database_by_id(database_id)
-            if new_database is None:
-                return json_error_response(_("Database not found."), status=422)
-            try:
-                security_manager.raise_for_access(
-                    database=new_database,
-                    # Check access against the table/schema/catalog the
-                    # request is repointing to, not the dataset's current
-                    # values -- update_from_object (below) applies whatever
-                    # table_name/schema/catalog the request supplies.
-                    table=Table(
-                        datasource_dict.get("table_name", orm_datasource.table_name),
-                        datasource_dict.get("schema", orm_datasource.schema),
-                        datasource_dict.get("catalog", orm_datasource.catalog),
-                    ),
-                )
-            except SupersetSecurityException as ex:
-                raise DatasetForbiddenError() from ex
+        database_changed = database_id != orm_datasource.database_id
+        try:
+            requested_sql, requested_table = _requested_target(datasource_dict)
+        except ValueError as ex:
+            return json_error_response(
+                _("The `%(field)s` field must be a string.", field=str(ex)),
+                status=422,
+            )
+
+        if error := _authorize_repoint(
+            orm_datasource,
+            database_id,
+            database_changed,
+            requested_sql,
+            requested_table,
+        ):
+            return error
+
+        if database_changed:
             orm_datasource.database_id = database_id
 
         duplicates = [
@@ -203,6 +425,61 @@ class Datasource(BaseSupersetView):
                 ),
                 status=409,
             )
+        # The mapping's one-transform invariant, against the columns this
+        # request is about to write. `update_from_object` sets every field in
+        # `update_from_object_fields` straight onto the column, so nothing
+        # between here and storage would notice a transform parked on a column
+        # the mapping does not mirror -- invisible in the editor, since no row
+        # but the mapped one renders a transform, and live the moment the mapped
+        # column resolves back to it. `DatasetDAO.update` runs a model-level
+        # pass for this; this endpoint bypasses that along with the rest of
+        # `UpdateDatasetCommand`.
+        #
+        # Corrected rather than refused, unlike the gates below. Those are about
+        # a value that may not be stored anywhere; this is about a value in the
+        # wrong place, and the payload a GET-then-POST client sends back carries
+        # whatever a previous writer left there -- so a 422 would punish the
+        # client that is merely echoing the state it was given.
+        #
+        # Which is also why it runs *first*. A parked transform that is not a
+        # storable expression would otherwise fail the gate below and 422 every
+        # save, leaving the dataset uneditable over a value nobody asked to
+        # keep; dropped here, there is nothing left for that gate to refuse.
+        # What it still guards is the transform this request actually stores,
+        # the one on the mapped column.
+        #
+        # Read from the payload alone, with no fallback to the model: every
+        # field here rides in on `update_from_object`, which writes
+        # `obj.get(attr)` for each one, so what this request says *is* what the
+        # mapping will be.
+        if cleared := drop_unmapped_value_transforms(
+            datasource_dict.get("columns"),
+            partition_column=datasource_dict.get("partition_column"),
+            partition_mapped_column=datasource_dict.get("partition_mapped_column"),
+            main_dttm_col=datasource_dict.get("main_dttm_col"),
+            # With the flag off, an unchanged echo of stored configuration
+            # survives: this endpoint's own client does GET-then-POST. With it
+            # on nothing is exempt, since no model-level pass runs here to clear
+            # a transform the mapping no longer mirrors -- the REST path has
+            # one, so exempting an echo here left the old mapped column holding
+            # its transform, and clearing the override through this same
+            # endpoint later re-armed it.
+            stored_by_name=None
+            if is_feature_enabled("PARTITION_FILTER_MAPPING")
+            else {
+                column.column_name: (
+                    column.partition_value_transform,
+                    bool(column.partition_transform_is_monotonic),
+                )
+                for column in getattr(orm_datasource, "columns", None) or []
+            },
+        ):
+            logger.info(
+                "Dataset %s: dropped an incoming partition value transform "
+                "from %s, which the mapping does not mirror",
+                datasource_id,
+                ", ".join(cleared),
+            )
         # `partition_value_transform` rides in on `update_from_object`, which
         # writes every field in `update_from_object_fields` straight onto the
         # column. That bypasses `UpdateDatasetCommand`, and with it the gate
@@ -213,6 +490,11 @@ class Datasource(BaseSupersetView):
         # correct it, not a bundle where failing the whole dataset over one
         # expression is the worse trade.
         if error := _partition_transform_error(orm_datasource, datasource_dict):
+            return json_error_response(error, status=422)
+        # And the mapping's own column references, for the same reason: they
+        # ride in on `update_from_object` with no validation, and a dangling one
+        # fails every later PUT rather than this request.
+        if error := _partition_mapping_reference_error(orm_datasource, datasource_dict):
             return json_error_response(error, status=422)
 
         orm_datasource.update_from_object(datasource_dict)

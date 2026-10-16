@@ -46,16 +46,25 @@ def mock_query_context():
 
 
 def _wire_contribution_totals(mock_query_context: MagicMock) -> None:
-    """Give a mock query context the real ``prepare_contribution_totals`` behavior.
+    """Give a mock query context real totals normalization and cache metadata.
 
     ``QueryContext`` owns the normalization and the processor delegates to it, so a
     bare MagicMock would return a value the processor cannot unpack.
     """
+    from superset.common.query_object import QueryObject
+
     mock_query_context.prepare_contribution_totals.side_effect = lambda: (
         normalize_contribution_totals(
             mock_query_context.queries, mock_query_context.cache_values
         )
     )
+    mock_query_context.custom_cache_timeout = 300
+    mock_query_context.is_async_execution = False
+    mock_query_context.force = False
+    query: QueryObject
+    for query in mock_query_context.queries:
+        assert query.datasource is not None
+        query.datasource.database.extra = "{}"
 
 
 def _query_timing() -> QueryTiming:
@@ -2859,20 +2868,153 @@ def test_get_viz_annotation_data_reports_missing_query_context(app_context) -> N
     )
 
 
-def test_get_viz_annotation_data_ignores_source_chart_annotations(
-    app_context,
+def test_completeness_error_escapes_failed_payload_conversion(
+    processor: QueryContextProcessor,
 ) -> None:
-    """
-    The source chart's own annotation layers are dropped, so charts that use
-    each other as annotation sources don't recurse.
-    """
-    query_object = MagicMock(
+    from superset.exceptions import SemanticResultCompletenessError
+
+    query: MagicMock = MagicMock()
+    query.columns = []
+    query.metrics = []
+    query.filter = []
+    cache: MagicMock = MagicMock()
+    cache.is_loaded = False
+    error: SemanticResultCompletenessError = SemanticResultCompletenessError(
+        "unverified"
+    )
+    with (
+        patch.object(processor, "query_cache_key", return_value="new-generation"),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager.get",
+            return_value=cache,
+        ),
+        patch.object(processor, "get_query_result", side_effect=error),
+    ):
+        with pytest.raises(SemanticResultCompletenessError):
+            processor.get_df_payload_result(query)
+    cache.set_query_result.assert_not_called()
+
+
+def test_semantic_annotation_generation_versions_sql_parent(
+    processor: QueryContextProcessor,
+) -> None:
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+    query: MagicMock = MagicMock()
+    query.annotation_layers = [{"sourceType": "line", "value": 7}]
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    from superset.models.slice import Slice
+
+    chart: Slice = Slice(
+        datasource_type="semantic_view", datasource_id=17, semantic_view=view
+    )
+    provider: MagicMock = MagicMock(result_cache_version=None)
+    with (
+        patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch("superset.common.query_context_processor.get_user_id", return_value=42),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=["scope"],
+        ),
+    ):
+        old: dict[str, Any] = processor._annotation_cache_context(query)
+        provider.result_cache_version = "guarded-v1"
+        new: dict[str, Any] = processor._annotation_cache_context(query)
+    assert old == {
+        "user_id": 42,
+        "source_rls": {"7": ["scope"]},
+        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "source_versions": {"7": view.metadata_generation},
+    }
+    assert new != old
+    assert new["user_id"] == old["user_id"]
+    assert new["source_rls"] == old["source_rls"]
+    provider.assert_not_called()
+
+
+def test_completeness_annotation_failure_preserves_subtype(app_context: Any) -> None:
+    from superset.exceptions import SemanticResultCompletenessError
+
+    chart: MagicMock = MagicMock(id=7)
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
+            side_effect=SemanticResultCompletenessError("incomplete"),
+        ),
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand.validate"
+        ),
+    ):
+        with pytest.raises(SemanticResultCompletenessError):
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 7, "name": "fixture"}, force=False
+            )
+
+
+def test_data_generation_separates_late_legacy_writer_and_task_keys(
+    processor: QueryContextProcessor,
+) -> None:
+    from unittest.mock import PropertyMock
+
+    from superset.common.query_object import QueryObject
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+    from superset.tasks.async_queries import _query_task_cache_key
+
+    view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
+    provider: MagicMock = MagicMock(result_cache_version=None)
+    query: QueryObject = QueryObject(columns=[], metrics=[], row_limit=5000)
+    processor._qc_datasource = view
+    context: MagicMock = MagicMock(queries=[query])
+    context.query_cache_key.side_effect = processor.query_cache_key
+    with (
+        patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
+        patch.object(
+            SemanticView, "uid", new_callable=PropertyMock, return_value="fixture-uid"
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=["scope-a"],
+        ),
+    ):
+        legacy: str | None = processor.query_cache_key(query)
+        provider.result_cache_version = "guarded-v1"
+        guarded: str | None = processor.query_cache_key(query)
+        assert legacy is not None
+        assert guarded is not None
+        assert legacy != guarded
+        stored: dict[str, str] = {legacy: "partial"}
+        assert guarded not in stored
+        stored[guarded] = "complete"
+        stored[legacy] = "late partial writer"
+        readback: str | None = processor.query_cache_key(query)
+        assert readback is not None
+        assert stored[readback] == "complete"
+        assert _query_task_cache_key(context, 0) == guarded
+        query.force_nonce = "task-uuid"
+        assert processor.query_cache_key(query) == guarded
+    provider.assert_not_called()
+
+
+def test_get_viz_annotation_data_ignores_source_chart_annotations(
+    app_context: Any,
+) -> None:
+    """The source chart's annotation layers are dropped to avoid recursion."""
+    query_object: MagicMock = MagicMock(
         annotation_layers=[{"sourceType": "line", "value": 1, "name": "Back"}],
     )
-    query_context = MagicMock(queries=[query_object])
-    chart = MagicMock(id=42)
+    query_context: MagicMock = MagicMock(queries=[query_object])
+    chart: MagicMock = MagicMock(id=42)
     chart.get_query_context.return_value = query_context
-    command = MagicMock()
+    command: MagicMock = MagicMock()
     command.run.return_value = {"queries": [{"data": [{"x": 1}]}]}
     with (
         patch(
@@ -2884,9 +3026,112 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
             return_value=command,
         ),
     ):
-        result = QueryContextProcessor.get_viz_annotation_data(
+        result: dict[str, Any] = QueryContextProcessor.get_viz_annotation_data(
             {"value": 42, "name": "Source"}, force=False
         )
 
     assert result == {"records": [{"x": 1}]}
     assert query_object.annotation_layers == []
+
+
+def test_semantic_annotation_null_protocol_versions_parent_cache(
+    app_context: Any,
+) -> None:
+    """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
+    from superset.common.query_context import QueryContext
+    from superset.common.query_object import QueryObject
+    from superset.models.slice import Slice
+    from superset.semantic_layers.models import SemanticLayer, SemanticView
+
+    view: SemanticView = SemanticView(
+        id=17, name="fixture", semantic_layer=SemanticLayer(type="fixture")
+    )
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = None
+    provider.get_dimensions.return_value = []
+    view.__dict__["implementation"] = provider
+    chart: Slice = Slice(
+        id=7,
+        datasource_id=17,
+        datasource_type="semantic_view",
+        query_context=superset_json.dumps(
+            {
+                "datasource": {"id": 17, "type": "semantic_view"},
+                "queries": [
+                    {
+                        "columns": [],
+                        "metrics": [],
+                        "filters": [
+                            {"col": "country", "op": "IN", "val": [None, "US"]}
+                        ],
+                    }
+                ],
+            }
+        ),
+    )
+    chart.semantic_view = view
+    assert chart.datasource is None
+    captured: list[QueryContext] = []
+
+    def payload(context: QueryContext, **kwargs: Any) -> dict[str, Any]:
+        """Capture real query routing while isolating provider execution."""
+        captured.append(context)
+        return {"queries": [{"data": [{"country": None}, {"country": "US"}]}]}
+
+    layer: dict[str, Any] = {
+        "sourceType": "line",
+        "annotationType": "TIME_SERIES",
+        "value": 7,
+        "name": "semantic source",
+    }
+    with (
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+        ),
+        patch.object(QueryContext, "raise_for_access"),
+        patch.object(QueryContext, "get_payload", payload),
+    ):
+        result: dict[str, Any] = QueryContextProcessor.get_viz_annotation_data(
+            layer, force=False
+        )
+    assert result == {"records": [{"country": None}, {"country": "US"}]}
+    assert len(captured) == 1
+    assert captured[0].datasource is view
+    assert captured[0].queries[0].filter == [
+        {"col": "country", "op": "IN", "val": [None, "US"]}
+    ]
+    processor: QueryContextProcessor = QueryContextProcessor(MagicMock())
+    query: QueryObject = QueryObject(columns=[], metrics=[], annotation_layers=[layer])
+    with (
+        patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}),
+        patch(
+            "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=view
+        ),
+        patch(
+            "superset.common.query_context_processor.security_manager.get_rls_cache_key",
+            return_value=[],
+        ),
+        patch(
+            "superset.common.query_context_processor.ChartDAO.find_by_id",
+            return_value=chart,
+        ),
+        patch("superset.common.query_context_processor.get_user_id", return_value=42),
+    ):
+        context: dict[str, Any] = processor._annotation_cache_context(query)
+    legacy_context: dict[str, Any] = {"user_id": 42, "source_rls": {"7": []}}
+    legacy_key: str = query.cache_key(
+        datasource="native-1", annotation_context=legacy_context
+    )
+    current_key: str = query.cache_key(
+        datasource="native-1", annotation_context=context
+    )
+    assert current_key != legacy_key
+    assert context == {
+        **legacy_context,
+        "semantic_filter_protocol": "semantic-null-filters-v1",
+        "source_versions": {"7": view.metadata_generation},
+    }

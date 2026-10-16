@@ -24,11 +24,12 @@ import {
   useRef,
   useMemo,
   useState,
+  useContext,
   memo,
   RefObject,
 } from 'react';
 import type { ChartCustomization, JsonObject } from '@superset-ui/core';
-import { VizType } from '@superset-ui/core';
+import { DatasourceType, VizType } from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
 import { debounce } from 'lodash-es';
@@ -83,6 +84,7 @@ import {
 import getFormDataWithExtraFilters from '../../../util/charts/getFormDataWithExtraFilters';
 import { useChartCustomizationFromRedux } from '../../nativeFilters/state';
 import { PLACEHOLDER_DATASOURCE } from '../../../constants';
+import { DashboardDatasetsContext } from '../../../contexts/DashboardDatasetsContext';
 
 interface ChartProps {
   id: number;
@@ -170,6 +172,7 @@ const createOwnStateWithChartState = (
 };
 
 const Chart = (props: ChartProps) => {
+  const currentDashboardDatasets = useContext(DashboardDatasetsContext);
   const dispatch = useDispatch();
   const descriptionRef = useRef<HTMLElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -469,47 +472,74 @@ const Chart = (props: ChartProps) => {
     ),
   );
 
-  const formData = useMemo(
-    () =>
-      getFormDataWithExtraFilters({
-        chart: { id: chart?.id ?? props.id, form_data: chart?.form_data }, // avoid passing the whole chart object
-        chartConfiguration,
-        chartCustomizationItems:
-          chartCustomizationItems as ChartCustomization[],
-        filters: getAppliedFilterValues(props.id),
-        colorScheme,
-        colorNamespace,
-        sliceId: props.id,
-        nativeFilters,
-        allSliceIds,
-        dataMask,
-        extraControls: (props.extraControls || {}) as Record<
-          string,
-          string | boolean | null
-        >,
-        labelsColor,
-        labelsColorMap,
-        sharedLabelsColors,
-        ownColorScheme,
-      }),
-    [
-      chart?.id,
-      chart?.form_data,
+  const formData = useMemo(() => {
+    const filteredFormData = getFormDataWithExtraFilters({
+      chart: { id: chart?.id ?? props.id, form_data: chart?.form_data }, // avoid passing the whole chart object
       chartConfiguration,
-      chartCustomizationItems,
-      props.id,
-      props.extraControls,
+      chartCustomizationItems: chartCustomizationItems as ChartCustomization[],
+      filters: getAppliedFilterValues(props.id),
       colorScheme,
       colorNamespace,
+      sliceId: props.id,
       nativeFilters,
       allSliceIds,
       dataMask,
+      extraControls: (props.extraControls || {}) as Record<
+        string,
+        string | boolean | null
+      >,
       labelsColor,
       labelsColorMap,
       sharedLabelsColors,
       ownColorScheme,
-    ],
-  );
+    });
+    if (
+      chart?.form_data?.viz_type !== VizType.Table ||
+      !chart.form_data.datasource?.endsWith(`__${DatasourceType.SemanticView}`)
+    ) {
+      return filteredFormData;
+    }
+
+    // Saved dashboard form data may predate the current semantic view schema.
+    // Missing metadata is unknown, never proof that an axis is non-temporal.
+    const currentDatasource =
+      currentDashboardDatasets?.dashboardId === props.dashboardId
+        ? currentDashboardDatasets.datasets.find(
+            candidate =>
+              candidate.uid === chart.form_data.datasource &&
+              candidate.type === DatasourceType.SemanticView,
+          )
+        : undefined;
+    const temporalColumnsLookup = currentDatasource
+      ? Object.fromEntries(
+          (currentDatasource.columns ?? [])
+            .filter(column => typeof column.is_dttm === 'boolean')
+            .map(column => [column.column_name, column.is_dttm]),
+        )
+      : undefined;
+    return {
+      ...filteredFormData,
+      temporal_columns_lookup: temporalColumnsLookup,
+    };
+  }, [
+    chart?.id,
+    chart?.form_data,
+    chartConfiguration,
+    chartCustomizationItems,
+    props.id,
+    props.extraControls,
+    colorScheme,
+    colorNamespace,
+    nativeFilters,
+    allSliceIds,
+    dataMask,
+    labelsColor,
+    labelsColorMap,
+    sharedLabelsColors,
+    ownColorScheme,
+    currentDashboardDatasets,
+    props.dashboardId,
+  ]);
 
   (formData as JsonObject).dashboardId = dashboardInfo.id;
 
@@ -770,6 +800,7 @@ const Chart = (props: ChartProps) => {
         filters={getActiveFilters() || EMPTY_OBJECT}
         addSuccessToast={boundActionCreators.addSuccessToast}
         addDangerToast={boundActionCreators.addDangerToast}
+        addWarningToast={boundActionCreators.addWarningToast}
         handleToggleFullSize={props.handleToggleFullSize}
         isFullSize={props.isFullSize}
         chartStatus={chartStatus || ''}

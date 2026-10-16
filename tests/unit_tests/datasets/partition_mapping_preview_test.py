@@ -98,6 +98,11 @@ def dataset(session: Session) -> Any:
             # else in a text comparison and one of them compares it as never
             # equal rather than refusing it.
             TableColumn(column_name="part_ts", type="TIMESTAMP"),
+            # A text *mapped* column. A temporal one will not stand in for it:
+            # a sample that is not an ISO instant declines on a column the
+            # engine compares more coarsely than the value carries, which is
+            # the right answer there and noise in a test about anything else.
+            TableColumn(column_name="country", type="VARCHAR"),
         ],
     )
     table.partition_column = "dt_epoch"
@@ -208,6 +213,37 @@ def test_preview_refuses_a_range_when_the_transform_is_not_monotonic(
     assert "preserves ordering" in result["error"]
 
 
+def test_preview_names_the_comparison_when_text_equality_cannot_mirror(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    On an engine whose string comparison is not byte-exact, `=` and `IN` on a
+    text column are withdrawn whatever the owner declares about ordering. The
+    reason has to say so, or it sends them to a checkbox that changes nothing.
+    """
+    with patch.object(
+        dataset.database.db_engine_spec, "binary_string_comparison", False
+    ):
+        with patch(PROBE, side_effect=AssertionError("probe must not run")):
+            response = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "country",
+                    "partition_column": "region_key",
+                    "value_transform": "lower(:value)",
+                    "sample_values": ["US"],
+                    "operator": "IN",
+                    "is_monotonic": True,
+                },
+            )
+
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "operator"
+    assert "preserves ordering" not in result["error"]
+    assert "case or trailing spaces" in result["error"]
+
+
 def test_preview_mirrors_in_element_wise(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
@@ -219,7 +255,7 @@ def test_preview_mirrors_in_element_wise(
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
-                "mapped_column": "event_time",
+                "mapped_column": "country",
                 "partition_column": "region_key",
                 "value_transform": "lower(:value)",
                 "sample_values": ["US", "CA"],
@@ -229,7 +265,7 @@ def test_preview_mirrors_in_element_wise(
 
     assert response.json["result"] == {
         "valid": True,
-        "sample_input": "event_time IN ('US', 'CA')",
+        "sample_input": "country IN ('US', 'CA')",
         "emitted_predicate": "region_key IN ('us', 'ca') OR region_key IS NULL",
     }
 
@@ -461,14 +497,19 @@ def test_preview_is_rate_limited_per_user_and_dataset(
         "value_transform": "unix_timestamp(:value)",
         "sample_values": ["2026-01-15"],
     }
+    # Frozen, because the budget is bucketed on
+    # `int(time.time()) // PREVIEW_RATE_LIMIT_WINDOW`: a minute rolling over
+    # part-way through the sequence hands the later requests a fresh bucket and
+    # fails this on a build that is working correctly.
     with patch(PROBE, return_value=[1]):
-        statuses = [
-            client.post(
-                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
-            ).status_code
-            for day in range(1, 5)
-        ]
+        with patch("superset.datasets.api.time.time", return_value=1_800_000_000):
+            statuses = [
+                client.post(
+                    f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                    json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
+                ).status_code
+                for day in range(1, 5)
+            ]
 
     assert statuses[:2] == [200, 200]
     assert 429 in statuses[2:]
@@ -489,14 +530,18 @@ def test_the_budget_is_spent_exactly_once_per_request(
         "value_transform": "unix_timestamp(:value)",
         "sample_values": ["2026-01-15"],
     }
+    # Frozen for the same reason as the sequence above, and more sharply: this
+    # asserts the exact statuses, so one rolled-over bucket turns the tail into
+    # `[200, 200]` and fails a correct build.
     with patch(PROBE, return_value=[1]):
-        statuses = [
-            client.post(
-                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
-                json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
-            ).status_code
-            for day in range(1, 6)
-        ]
+        with patch("superset.datasets.api.time.time", return_value=1_800_000_000):
+            statuses = [
+                client.post(
+                    f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                    json={**payload, "sample_values": [f"2026-01-{day:02d}"]},
+                ).status_code
+                for day in range(1, 6)
+            ]
 
     assert statuses == [200, 200, 200, 429, 429]
 
@@ -617,7 +662,7 @@ def test_a_probe_that_returns_null_reports_a_reason_not_a_predicate(
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
-                "mapped_column": "event_time",
+                "mapped_column": "country",
                 "value_transform": "unix_timestamp(:value)",
                 "sample_values": ["not a date"],
             },
@@ -639,7 +684,7 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
         response = client.post(
             f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
             json={
-                "mapped_column": "event_time",
+                "mapped_column": "country",
                 "partition_column": "region_key",
                 "value_transform": "lower(:value)",
                 "sample_values": ["O'Hara"],
@@ -651,7 +696,7 @@ def test_a_probed_string_is_quoted_and_escaped_by_the_dialect(
     assert result["emitted_predicate"] == "region_key = 'o''hara' OR region_key IS NULL"
     # The sample input is display-only but still reads as SQL, so the value it
     # echoes back is quoted and escaped the same way.
-    assert result["sample_input"] == "event_time == 'O''Hara'"
+    assert result["sample_input"] == "country == 'O''Hara'"
 
 
 def test_an_over_long_transform_is_rejected_before_the_engine(
@@ -896,6 +941,52 @@ def test_preview_is_authorized_as_a_write() -> None:
     )
 
 
+def test_preview_refuses_a_caller_who_cannot_edit_the_dataset(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The real editorship gate, not the autouse mock.
+
+    Its sibling above asserts only the permission-map entry, so deleting the
+    route's ``raise_for_editorship(dataset)`` call left the whole suite green:
+    every other test in this file runs with ``allow_editorship`` patching the
+    gate out, and `full_api_access` makes the caller pass ``@protect()``. This
+    puts the real method back and denies it the two ways out it has -- admin,
+    and editorship of this dataset -- so a caller with ``can_write`` who does
+    not own the dataset gets a 403.
+
+    The probe is booby-trapped as well as the status asserted: a 403 that still
+    ran the warehouse query would have leaked the transform's result through
+    timing even without a body to read it from.
+    """
+    from functools import partial
+
+    from superset import security_manager
+    from superset.security import SupersetSecurityManager
+
+    real_gate = SupersetSecurityManager.raise_for_editorship
+
+    with (
+        patch(
+            "superset.datasets.api.security_manager.raise_for_editorship",
+            new=partial(real_gate, security_manager),
+        ),
+        patch("superset.datasets.api.security_manager.is_admin", return_value=False),
+        patch("superset.datasets.api.security_manager.is_editor", return_value=False),
+        patch(PROBE, side_effect=AssertionError("probe must not run")),
+    ):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "date(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+            },
+        )
+
+    assert response.status_code == 403
+
+
 def test_preview_coerces_a_sample_the_way_a_chart_filter_is_coerced(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:
@@ -967,3 +1058,248 @@ def test_preview_leaves_a_string_column_s_sample_alone(
 
     assert response.status_code == 200
     assert probed == [["02134"]]
+
+
+def test_preview_probes_an_array_column_with_the_chart_path_s_literal(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    An array column's predicate compares the engine's array literal built from
+    the raw value, so the chart path probes `array(1, 2)`. Preview has to probe
+    the same thing, or `length(:value)` previews 6 -- the length of the text
+    `[1, 2]` -- where the chart emits 2.
+    """
+    from superset.connectors.sqla.models import TableColumn
+    from superset.connectors.sqla.partition_mapping import RawProbeValue
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    dataset.columns.append(TableColumn(column_name="tags", type="Array(Int32)"))
+    db.session.flush()
+
+    probed: list[list[Any]] = []
+
+    def record(*args: Any, **kwargs: Any) -> list[Any]:
+        probed.append(list(args[-1]))
+        return [2]
+
+    with patch(PROBE, side_effect=record):
+        with patch.object(
+            type(dataset.database),
+            "db_engine_spec",
+            new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+        ):
+            response = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "tags",
+                    "value_transform": "length(:value)",
+                    "sample_values": ["[1, 2]"],
+                },
+            )
+
+    assert response.status_code == 200
+    assert probed == [[RawProbeValue("array(1, 2)")]]
+    assert response.json["result"]["valid"] is True
+
+
+@pytest.mark.parametrize("sample", ["[[1, 2]]", "[1j]"])
+def test_preview_declines_an_array_element_the_dialect_cannot_render(
+    client: Any, full_api_access: None, dataset: Any, sample: str
+) -> None:
+    """
+    A nested or otherwise non-scalar element has no literal the dialect can
+    render, so building the array literal raises `CompileError`. That has to
+    decline like any other unmirrorable value rather than surface as a 500.
+    """
+    from superset.connectors.sqla.models import TableColumn
+    from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
+
+    dataset.columns.append(
+        TableColumn(column_name="nested", type="Array(Array(Int32))")
+    )
+    db.session.flush()
+
+    with patch(PROBE, side_effect=AssertionError("probe must not run")):
+        with patch.object(
+            type(dataset.database),
+            "db_engine_spec",
+            new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+        ):
+            response = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "nested",
+                    "value_transform": "length(:value)",
+                    "sample_values": [sample],
+                },
+            )
+
+    assert response.status_code == 200
+    assert response.json["result"]["valid"] is False
+
+
+def test_preview_declines_an_equality_the_chart_path_declines(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The preview used to hand its coerced sample straight to
+    `build_mirrored_predicates`, while a chart filter first goes through
+    `mirror_probe_request`. So where the engine compares less of a value than
+    the filter carries, previewing `==` reported a valid predicate while the
+    chart emitted no mirror at all -- the owner was shown pruning they would
+    never get.
+
+    SQLite renders a temporal literal to the second, so a sample carrying
+    microseconds is the shape that declines here; the bare-day case that
+    Presto, Trino and BigQuery produce for a `DATE` column is the same gate and
+    is covered against those renderings in `partition_mirroring_test.py`.
+
+    An equality has nowhere to widen to, so declining is the answer -- with its
+    own reason, because the transform is fine and the engine evaluates it.
+    """
+    with patch(PROBE, return_value=["20260706100811"]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "region_key",
+                "value_transform": "to_char(:value, 'YYYYMMDDHH24MISS')",
+                "sample_values": ["2026-07-06 10:08:11.123456"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "resolution"
+    assert "emitted_predicate" not in result
+    # Declined before the engine, as the chart path declines before the engine.
+    probe.assert_not_called()
+
+
+def test_preview_explains_a_value_the_driver_cannot_write_as_its_own_case(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    A value the driver and the engine spell differently declines whatever the
+    column, the operator or the transform -- so none of the advice the other
+    declines carry applies, and the precision-loss message would send the owner
+    to map a different column over something no column fixes.
+
+    Postgres is the backend here because its driver really does over-escape a
+    backslash: SQLAlchemy only learns whether the server honours one when the
+    dialect connects, which the probe's dialect never does.
+    """
+    dataset.database.sqlalchemy_uri = "postgresql://user@host/db"
+    db.session.flush()
+
+    with patch(PROBE, return_value=["a\\b"]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "country",
+                "partition_column": "region_key",
+                "value_transform": "lower(:value)",
+                "sample_values": ["a\\b"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "escaping"
+    assert "backslash" in result["error"]
+    # The advice the resolution decline carries must not appear here.
+    assert "compares in full" not in result["error"]
+    assert "emitted_predicate" not in result
+    probe.assert_not_called()
+
+
+def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    A value carrying a UTC offset declines whatever the column's resolution,
+    because a transform is evaluated in the database's own frame. Reported
+    through the precision-loss message, that told the owner to "map a column
+    the engine compares in full" -- which a full-resolution column already is,
+    so the advice was unfollowable.
+    """
+    with patch(PROBE, return_value=[1767229200]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "partition_column": "region_key",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-01T01:00:00+01:00"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "offset"
+    assert "UTC offset" in result["error"]
+    # The advice the resolution decline carries must not appear here.
+    assert "compares in full" not in result["error"]
+    assert "emitted_predicate" not in result
+    probe.assert_not_called()
+
+
+def test_preview_and_the_chart_path_agree_about_a_coarse_column(
+    app: Flask, client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The invariant behind the fix, asserted in both directions: for the same
+    filter, the preview's verdict and the query's emitted SQL say the same
+    thing. Pinned because the two paths drifted twice -- once over coercion,
+    once over resolution -- and each time the symptom was a preview promising a
+    mirror the chart does not emit.
+    """
+    # Two previews, and the rate-limit tests above leave a budget of one behind
+    # on the shared `app.config`.
+    app.config["PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT"] = 30
+
+    transform = "to_char(:value, 'YYYYMMDDHH24MISS')"
+    for column in dataset.columns:
+        if column.column_name == "event_time":
+            column.partition_value_transform = transform
+    dataset.partition_column = "region_key"
+    db.session.flush()
+
+    def preview_and_query(sample: str) -> tuple[Any, str]:
+        with patch(PROBE, return_value=["20260706100811"]):
+            previewed = client.post(
+                f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+                json={
+                    "mapped_column": "event_time",
+                    "partition_column": "region_key",
+                    "value_transform": transform,
+                    "sample_values": [sample],
+                },
+            ).json["result"]
+            sql = str(
+                dataset.get_sqla_query(
+                    columns=["country"],
+                    metrics=[],
+                    orderby=[],
+                    extras={},
+                    granularity=None,
+                    is_timeseries=False,
+                    filter=[{"col": "event_time", "op": "==", "val": sample}],
+                ).sqla_query.compile(compile_kwargs={"literal_binds": True})
+            )
+        return previewed, sql
+
+    # More of the value than SQLite compares: neither mirrors.
+    coarse, coarse_sql = preview_and_query("2026-07-06 10:08:11.123456")
+    assert coarse["valid"] is False
+    assert coarse["reason"] == "resolution"
+    assert "region_key" not in coarse_sql
+
+    # Exactly what it compares: both do.
+    exact, exact_sql = preview_and_query("2026-07-06 10:08:11")
+    assert exact["valid"] is True
+    assert "region_key = '20260706100811'" in exact["emitted_predicate"]
+    assert "region_key = '20260706100811'" in exact_sql

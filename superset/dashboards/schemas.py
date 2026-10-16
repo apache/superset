@@ -379,8 +379,13 @@ class DashboardDatasetSchema(Schema):
     granularity_sqla = fields.List(fields.List(fields.Str()))
     normalize_columns = fields.Bool()
     always_filter_main_dttm = fields.Bool()
-    partition_column = fields.Str()
-    partition_mapped_column = fields.Str()
+    # Nullable, because `SqlaTable.data` includes all three unconditionally:
+    # the first two are `None` on any dataset without a mapping, and
+    # `partition_mapped_column` is `None` whenever the mapping follows
+    # `main_dttm_col`. Declared non-nullable, the generated spec rejected an
+    # ordinary successful response under strict client validation.
+    partition_column = fields.Str(allow_none=True)
+    partition_mapped_column = fields.Str(allow_none=True)
     partition_filter_mapping = fields.Dict(allow_none=True)
 
     # pylint: disable=unused-argument
@@ -392,7 +397,11 @@ class DashboardDatasetSchema(Schema):
             serialized.pop("semantic_view_features", None)
             serialized.pop("editors", None)
             # Guest users should never receive fields that expose internal
-            # connection or query details.
+            # connection or query details. The partition filter mapping is in
+            # the list for the reason `sql` is: `evaluated_transform` is a SQL
+            # expression, and the other two name columns. Only the dataset
+            # editor and Explore's pruning indicator read them, neither of
+            # which is a guest surface.
             for key in (
                 "sql",
                 "select_star",
@@ -400,6 +409,9 @@ class DashboardDatasetSchema(Schema):
                 "edit_url",
                 "fetch_values_predicate",
                 "template_params",
+                "partition_column",
+                "partition_mapped_column",
+                "partition_filter_mapping",
             ):
                 serialized.pop(key, None)
         return serialized
@@ -518,10 +530,15 @@ class DashboardPutSchema(DiscardIsManagedExternallyMixin, BaseDashboardSchema):
         allow_none=True,
         validate=validate_json,
     )
+    # Not validated here: a dashboard PUT sends the full object on every save
+    # (renaming, moving a chart, editing a filter all resend the unchanged
+    # css), so a field-level validator would re-reject a dashboard's existing
+    # css on any edit, not just an edit to css itself. UpdateDashboardCommand
+    # validates it, but only when the incoming value actually differs from
+    # what's stored.
     css = fields.String(
         metadata={"description": css_description},
         allow_none=True,
-        validate=validate_css,
     )
     theme_id = fields.Integer(
         metadata={"description": "Theme ID for the dashboard"}, allow_none=True
@@ -607,7 +624,15 @@ class GetFavStarIdsSchema(Schema):
 class ImportV1DashboardSchema(Schema):
     dashboard_title = fields.String(required=True)
     description = fields.String(allow_none=True)
-    css = fields.String(allow_none=True)
+    # Unlike DashboardPutSchema, this is validated unconditionally, even for
+    # a value that matches what's already stored under the same uuid. A ZIP
+    # bundle is an untrusted input -- it may come from another instance, a
+    # different export era, or a tampered file -- so there's no equivalent
+    # to the PUT grandfather clause here: exempting "unchanged" css would
+    # only be safe if the existing row itself were still known-safe, which
+    # this path can't establish. A bundle carrying css that predates this
+    # check needs its css cleaned (or dropped) before it's importable again.
+    css = fields.String(allow_none=True, validate=validate_css)
     slug = fields.String(allow_none=True)
     uuid = fields.UUID(required=True)
     position = fields.Dict()

@@ -37,6 +37,7 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.connectors.sqla.partition_mapping import RawProbeValue
 from superset.db_engine_specs.clickhouse import ClickHouseEngineSpec
 from superset.db_engine_specs.presto import PrestoEngineSpec
+from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.models.core import Database
 from superset.superset_typing import QueryObjectDict
 from superset.utils import json
@@ -169,6 +170,162 @@ def test_equality_filter_mirrors_onto_the_partition_column(app: Flask) -> None:
 
     assert "region_key = 'us'" in sql
     assert "country = 'US'" in sql
+
+
+def _with_date_partition_column(table: SqlaTable) -> SqlaTable:
+    """Re-point the mapping's partition column at a ``DATE`` column."""
+    table.columns.append(
+        TableColumn(column_name="part_date", is_dttm=True, type="DATE")
+    )
+    table.partition_column = "part_date"
+    return table
+
+
+def test_ordinary_text_does_not_mirror_onto_a_temporal_partition_column(
+    app: Flask,
+) -> None:
+    """
+    `lower(:value)` on a `VARCHAR` mapped column answers with text, and a
+    temporal partition column admits text -- a day key is legitimately text.
+    But it admitted *any* text: `country = 'US'` probed to `'us'` and emitted
+    `part_date = 'us'`, which PostgreSQL refuses as a date. By then the mirror
+    is in the statement, so a chart that worked before the mapping returned an
+    error rather than losing its pruning. The preview called it valid.
+    """
+    table = _with_date_partition_column(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us"]):
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert "part_date" not in sql
+    assert "country = 'US'" in sql
+
+
+def test_a_text_column_s_bound_is_not_rounded_as_though_it_were_temporal(
+    app: Flask,
+) -> None:
+    """
+    SQLite's `convert_dttm` renders for `types.String` as well as the date
+    types, so a VARCHAR mapped column read as second-resolution -- and a filter
+    value that merely *looks* like an instant had its bound rounded as though
+    the engine had truncated it.
+
+    On a VARCHAR `country` mapped onto VARCHAR `region_key` by `:value`,
+    `country < '2026-07-06T10:08:11.500000'` was mirrored as
+    `region_key <= '2026-07-06 10:08:12.000000'`. A space sorts before `T`, so a
+    row holding `2026-07-06T09:00:00` -- which the filter keeps -- fell outside
+    the mirror and was dropped.
+
+    `_column_literal_resolution` already guarded on `is_dttm` and said in its
+    docstring that the per-instant callers never met this case. They do: the
+    value parses as an instant while the column is still text.
+    """
+    table = _table(
+        transform=":value",
+        monotonic=True,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["2026-07-06T10:08:11.500000"]) as probe:
+            _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.LESS_THAN.value,
+                        "val": "2026-07-06T10:08:11.500000",
+                    }
+                ],
+            )
+
+    # Handed through untouched: no rounding, and no seconds-shaped rewrite.
+    assert probe.call_args.args[-1] == ["2026-07-06T10:08:11.500000"]
+
+
+def test_a_day_key_still_mirrors_onto_a_temporal_partition_column(
+    app: Flask,
+) -> None:
+    """
+    The narrowing above must not cost the case the text admission exists for:
+    `to_char(:value, 'YYYYMMDD')` answers with a day key, which PostgreSQL
+    reads as a date and so declares in `temporal_literal_formats`.
+
+    Its sibling `test_a_day_key_still_mirrors_onto_a_text_partition_column`
+    covers the same transform onto a *text* key, which is the other axis --
+    that one is about `GenericDataType.STRING` and never reached this gate.
+    """
+    table = _with_date_partition_column(
+        _table(
+            transform="to_char(:value, 'YYYYMMDD')",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+        )
+    )
+
+    with app.app_context():
+        with patch.object(SqliteEngineSpec, "temporal_literal_formats", ("%Y%m%d",)):
+            with patch(PROBE, return_value=["20260101"]):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "country",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "US",
+                        }
+                    ],
+                )
+
+    assert "part_date = '20260101'" in sql
+
+
+def test_a_day_key_declines_where_the_engine_has_not_claimed_it(
+    app: Flask,
+) -> None:
+    """
+    BigQuery coerces a STRING literal to `DATE` only in the canonical
+    `YYYY-MM-DD` form and Trino wants an explicit cast, so `part_date =
+    '20260101'` fails the whole chart there rather than merely losing its
+    pruning. An engine that has not declared the format declines instead.
+    """
+    table = _with_date_partition_column(
+        _table(
+            transform="to_char(:value, 'YYYYMMDD')",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+        )
+    )
+
+    assert SqliteEngineSpec.temporal_literal_formats == ()
+
+    with app.app_context():
+        with patch(PROBE, return_value=["20260101"]):
+            sql = _query(
+                table,
+                filter=[
+                    {"col": "country", "op": FilterOperator.EQUALS.value, "val": "US"}
+                ],
+            )
+
+    assert "part_date" not in sql
 
 
 def test_in_filter_mirrors_element_wise(app: Flask) -> None:
@@ -781,7 +938,53 @@ def test_the_probe_honours_a_per_column_date_format_from_db_extra(
 ) -> None:
     """
     `dttm_sql_literal` falls back to ``python_date_format_by_column_name`` in
-    the database's extra, so the probe has to read the same fallback.
+    the database's extra, so the probe has to read the same fallback -- on a
+    column where that fallback is actually reached. `event_epoch` is a BIGINT,
+    so SQLite's `convert_dttm` answers nothing and the format decides the
+    literal.
+
+    Its sibling below is the same configuration on a column where the engine
+    *does* answer, which is the case this test used to assert by accident.
+    """
+    table = _table(mapped_column="event_epoch", main_dttm_col="event_epoch")
+    table.columns.append(
+        TableColumn(column_name="event_epoch", is_dttm=True, type="BIGINT")
+    )
+    table.columns[-1].partition_value_transform = "to_date(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+    table.database.extra = json.dumps(
+        {"python_date_format_by_column_name": {"event_epoch": "%Y%m%d"}}
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1, 2]) as probe:
+            _query(
+                table,
+                granularity="event_epoch",
+                from_dttm=datetime(2026, 1, 1),
+                to_dttm=datetime(2026, 2, 1),
+            )
+
+    assert probe.call_args.args[-1] == ["20260101", "20260201"]
+
+
+def test_a_date_format_the_engine_literal_preempts_is_not_probed(
+    app: Flask,
+) -> None:
+    """
+    `dttm_sql_literal` asks `convert_dttm` first and reaches the format only if
+    the engine answers nothing. `event_time` is a TIMESTAMP, so SQLite answers
+    `'2026-01-01 00:00:00'` and the `%Y%m%d` format never applies to the real
+    predicate -- but the probe applied it anyway.
+
+    The mirror therefore described a different bound from the filter it stands
+    in for: `event_time >= '2026-01-01 00:00:00'` became
+    `dt_epoch >= '20260101'`, and a January 15 row keyed `2026-01-15` sorts
+    below that string, so the chart dropped a row the filter keeps.
+
+    The `datetime` goes to the probe unchanged, which is what already happens
+    for every temporal column carrying no format -- `_engine_literal_resolution`
+    then widens the bound for whatever the engine's own literal throws away.
     """
     table = _table()
     table.database.extra = json.dumps(
@@ -797,7 +1000,7 @@ def test_the_probe_honours_a_per_column_date_format_from_db_extra(
                 to_dttm=datetime(2026, 2, 1),
             )
 
-    assert probe.call_args.args[-1] == ["20260101", "20260201"]
+    assert probe.call_args.args[-1] == [datetime(2026, 1, 1), datetime(2026, 2, 1)]
 
 
 def test_the_probe_rounds_outward_when_the_engine_drops_subseconds(
@@ -900,6 +1103,39 @@ def test_the_probe_widens_to_the_day_when_the_engine_drops_the_time(
         datetime(2026, 1, 3, 0, 0),
     ]
     assert "dt_epoch <= 2" in sql
+
+
+def test_the_probe_widens_to_the_day_on_a_date_column_not_flagged_temporal(
+    app: Flask,
+) -> None:
+    """
+    `get_time_filter` renders a bound through `convert_dttm` for a DATE column
+    whether or not the owner ticked "Is temporal", so an unflagged DATE column
+    still compares `DATE '2026-01-01'` for a 10:00 bound. Keying the resolution
+    check on `is_dttm` alone handed the probe 10:00 there, and the mirror
+    dropped the first day.
+    """
+    table = _table(mapped_column="event_date", main_dttm_col="event_date")
+    table.columns.append(
+        TableColumn(column_name="event_date", is_dttm=False, type="DATE")
+    )
+    table.columns[-1].partition_value_transform = "unix_timestamp(:value)"
+    table.columns[-1].partition_transform_is_monotonic = True
+
+    with app.app_context():
+        with _rendering_dates_like_presto(table):
+            with patch(PROBE, return_value=[1, 2]) as probe:
+                _query(
+                    table,
+                    granularity="event_date",
+                    from_dttm=datetime(2026, 1, 1, 10, 0),
+                    to_dttm=datetime(2026, 1, 2, 10, 0),
+                )
+
+    assert probe.call_args.args[-1] == [
+        datetime(2026, 1, 1, 0, 0),
+        datetime(2026, 1, 3, 0, 0),
+    ]
 
 
 def test_a_day_resolution_bound_already_at_midnight_is_left_alone(
@@ -1429,6 +1665,127 @@ def test_an_unreadable_string_is_left_alone_on_a_full_precision_engine(
     assert "dt_epoch = 1783332491" in sql
 
 
+def _on_postgres(table: SqlaTable) -> SqlaTable:
+    """
+    Re-point the dataset at Postgres, whose driver over-escapes a backslash.
+
+    SQLAlchemy only learns whether the server honours a backslash escape when
+    the dialect connects, which the probe's dialect never does, so it renders
+    ``a\\b`` as ``'a\\\\b'`` and a server with the standard setting reads four
+    characters. A real backend rather than a patched helper, so the test is
+    tied to what the installed driver actually emits.
+    """
+    table.database.sqlalchemy_uri = "postgresql://user@host/db"
+    return table
+
+
+def test_a_value_the_engine_cannot_read_back_declines_rather_than_mirroring(
+    app: Flask,
+) -> None:
+    """
+    The probe evaluates the transform at a literal, so a value the driver and
+    the engine spell differently would be probed as something nobody filtered
+    on -- and the mirror would ask for a partition key holding none of the rows
+    the filter keeps. Declining costs the query its pruning and nothing else.
+    """
+    table = _on_postgres(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+            partition_column="region_key",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["a\\b"]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": "a\\b",
+                    }
+                ],
+            )
+
+    probe.assert_not_called()
+    assert "region_key" not in sql
+    # The filter the author wrote is untouched, so the query is correct and
+    # merely unpruned.
+    assert "country = 'a" in sql
+
+
+def test_a_member_the_dialect_cannot_write_faithfully_declines_the_whole_list(
+    app: Flask,
+) -> None:
+    """
+    One member is the whole list's problem, exactly as one carrying a UTC
+    offset is: mirroring the rest would be narrower than the filter and would
+    lose the rows it named.
+    """
+    table = _on_postgres(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="country",
+            partition_mapped_column="country",
+            partition_column="region_key",
+        )
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us", "a\\b"]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.IN.value,
+                        "val": ["US", "a\\b"],
+                    }
+                ],
+            )
+
+    probe.assert_not_called()
+    assert "region_key" not in sql
+
+
+def test_a_quote_bearing_value_still_mirrors_where_the_engine_reads_it_back(
+    app: Flask,
+) -> None:
+    """
+    And the gate is not a blanket refusal of the character. On SQLite the
+    driver's doubling is the engine's own escape, so the probe asks about the
+    value the filter compares and the mirror stands.
+    """
+    table = _table(
+        transform="lower(:value)",
+        monotonic=False,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, return_value=["o'brien"]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": "O'Brien",
+                    }
+                ],
+            )
+
+    probe.assert_called_once()
+    assert "region_key = 'o''brien'" in sql
+
+
 def test_an_offset_bearing_bound_declines_rather_than_narrowing(app: Flask) -> None:
     """
     Rounding an offset-bearing bound outward would first have to place it in the
@@ -1454,6 +1811,92 @@ def test_an_offset_bearing_bound_declines_rather_than_narrowing(app: Flask) -> N
 
     probe.assert_not_called()
     assert "dt_epoch" not in sql
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.EQUALS, FilterOperator.GREATER_THAN_OR_EQUALS],
+)
+def test_an_offset_bearing_string_declines_on_a_full_resolution_column(
+    app: Flask, operator: FilterOperator
+) -> None:
+    """
+    An engine that compares the whole instant still does not help a transform
+    that drops the offset. On a TIMESTAMPTZ column with
+    `extract(epoch from CAST(:value AS TIMESTAMP))`, a row at
+    `2026-01-01 00:00:00Z` matches `event_time = '2026-01-01T01:00:00+01:00'`,
+    but the cast discards the `+01:00` and the probe asks for the key an hour
+    later -- so the mirror would exclude the row. Declined like any other
+    offset-bearing value.
+    """
+    table = _table()
+
+    with app.app_context():
+        with patch(PROBE, return_value=[1767229200]) as probe:
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "event_time",
+                        "op": operator.value,
+                        "val": "2026-01-01T01:00:00+01:00",
+                    }
+                ],
+            )
+
+    probe.assert_not_called()
+    assert "dt_epoch" not in sql
+
+
+@pytest.mark.parametrize(
+    "native_type, filter_value, probed",
+    [
+        # The engine compares `n = '1.0'` numerically and keeps the row holding
+        # 1, so the probe has to see the 1 the row holds, not the 1.0 typed.
+        ("INTEGER", "1.0", [1]),
+        ("INTEGER", 1.0, [1]),
+        # A non-integral value matches no integer row; nothing to protect.
+        ("INTEGER", 1.5, [1.5]),
+        # A REAL column is left alone: PostgreSQL renders the column's own
+        # value as `'1'` but the literal `1.0` as `'1.0'`, so coercing would
+        # mirror onto a key no matching row holds.
+        ("REAL", 1, [1]),
+        # A DECIMAL's text depends on a scale the spec does not expose.
+        ("DECIMAL", 1, [1]),
+    ],
+)
+def test_a_numeric_equality_is_probed_in_the_column_s_number_type(
+    app: Flask, native_type: str, filter_value: Any, probed: list[Any]
+) -> None:
+    """
+    A transform such as `CAST(:value AS TEXT)` answers differently for `1` and
+    `1.0`, so probing at the number the filter happened to carry -- rather than
+    the one the column stores -- mirrors onto a partition key no matching row
+    holds.
+    """
+    table = _table(partition_column="region_key", mapped_column="n")
+    table.columns.append(TableColumn(column_name="n", type=native_type))
+    table.partition_mapped_column = "n"
+    table.columns[-1].partition_value_transform = "CAST(:value AS TEXT)"
+    table.columns[-1].partition_transform_is_monotonic = False
+
+    with app.app_context():
+        with patch(PROBE, return_value=["1"]) as probe:
+            _query(
+                table,
+                filter=[
+                    {
+                        "col": "n",
+                        "op": FilterOperator.EQUALS.value,
+                        "val": filter_value,
+                    }
+                ],
+            )
+
+    assert probe.call_args.args[-1] == probed
+    assert [type(value) for value in probe.call_args.args[-1]] == [
+        type(value) for value in probed
+    ]
 
 
 def test_a_non_temporal_string_equality_is_unaffected(app: Flask) -> None:
@@ -2528,6 +2971,51 @@ def test_an_array_column_is_probed_with_the_literal_the_predicate_compares(
     assert probed == [[RawProbeValue("array(1, 2)")]]
 
 
+def test_an_array_element_the_driver_cannot_write_declines_the_mirror(
+    app: Flask,
+) -> None:
+    """
+    The element has to be checked before the engine spec renders it: once the
+    elements are inside ``array(...)`` there is no single value left for a
+    parse of the finished literal to be compared against.
+    """
+    table = _on_postgres(
+        _table(
+            transform="lower(:value)",
+            monotonic=False,
+            mapped_column="tags",
+            partition_mapped_column="tags",
+            partition_column="region_key",
+        )
+    )
+    table.columns.append(TableColumn(column_name="tags", type="Array(String)"))
+    for column in table.columns:
+        if column.column_name == "tags":
+            column.partition_value_transform = "lower(:value)"
+            column.partition_transform_is_monotonic = False
+
+    with app.app_context():
+        with patch(PROBE, return_value=["us"]) as probe:
+            with patch.object(
+                type(table.database),
+                "db_engine_spec",
+                new_callable=lambda: property(lambda self: ClickHouseEngineSpec),
+            ):
+                sql = _query(
+                    table,
+                    filter=[
+                        {
+                            "col": "tags",
+                            "op": FilterOperator.EQUALS.value,
+                            "val": "['a\\\\b']",
+                        }
+                    ],
+                )
+
+    probe.assert_not_called()
+    assert "region_key" not in sql
+
+
 # ---------------------------------------------------------------------------
 # `time_groupby_inline`
 # ---------------------------------------------------------------------------
@@ -2631,3 +3119,42 @@ def test_no_inner_mirror_for_main_dttm_which_the_subquery_never_filters(
     # The outer query does filter `main_dttm_col`, so it still prunes.
     assert "dt_epoch >= 1767225600" in outer
     assert "dt_epoch <= 1769904000" in outer
+
+
+def test_a_null_member_of_an_in_list_declines_the_whole_mirror(app: Flask) -> None:
+    """
+    The NULL tests elsewhere cover a NULL *probe result*; this covers a NULL
+    member of the filter's own list, which is a different guard.
+
+    A `None` in an `IN` list widens the real predicate to
+    `country IS NULL OR country IN ('US')`. Mirroring only the non-null members
+    would be *narrower* than that, so the list has to decline entire. With
+    `coalesce(lower(:value), 'unknown')`, mirroring the rest would emit
+    `region_key IN ('us')` and drop a row with `country IS NULL,
+    region_key = 'unknown'` -- a row the original filter keeps.
+
+    The probe is booby-trapped rather than stubbed: the decline happens before
+    any transform is evaluated, so reaching the warehouse at all is the defect.
+    """
+    table = _table(
+        transform="coalesce(lower(:value), 'unknown')",
+        monotonic=False,
+        mapped_column="country",
+        partition_mapped_column="country",
+        partition_column="region_key",
+    )
+
+    with app.app_context():
+        with patch(PROBE, side_effect=AssertionError("the probe must not run")):
+            sql = _query(
+                table,
+                filter=[
+                    {
+                        "col": "country",
+                        "op": FilterOperator.IN.value,
+                        "val": ["US", None],
+                    }
+                ],
+            )
+
+    assert "region_key" not in sql

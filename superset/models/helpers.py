@@ -29,6 +29,7 @@ import uuid
 from collections.abc import Hashable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
+from decimal import Decimal
 from enum import Enum
 from typing import (
     Any,
@@ -94,13 +95,18 @@ from superset.common.utils.time_range_utils import (
 from superset.connectors.sqla.partition_mapping import (
     build_mirrored_predicates,
     grain_bucket_width,
+    is_unmirrorable,
     LOWER_BOUND_OPERATORS,
     mirror_operator,
     normalize_mixed_numbers,
     PartitionMapping,
     raw_probe_value,
     resolve_partition_mapping,
+    UNMIRRORABLE,
+    UNMIRRORABLE_ESCAPING,
+    UNMIRRORABLE_OFFSET,
     UPPER_BOUND_OPERATORS,
+    value_round_trips,
 )
 from superset.constants import (
     CacheRegion,
@@ -468,13 +474,21 @@ def _shift_grainless_temporal_source(
 #: filter value in its own right.
 _UNRENDERABLE = object()
 
-#: Returned by `ExploreMixin._mirror_probe_input` when the engine compares less
-#: of the filter's value than any mirror could be built from. A sentinel rather
-#: than `None` for the same reason `_UNRENDERABLE` is, and a *separate* sentinel
-#: because the two decline for different reasons: that one is an engine that
-#: cannot render a literal at all, which is worth a warning, and this one is an
-#: ordinary filter the mirror has to stay quiet about.
-_UNMIRRORABLE = object()
+#: `_UNMIRRORABLE` is `UNMIRRORABLE`, imported from
+#: `superset.connectors.sqla.partition_mapping` so the preview path can
+#: recognise the same object. Kept under the private name here because it
+#: appears throughout this module, and separate from `_UNRENDERABLE` because the
+#: two decline for different reasons: that one is an engine that cannot render a
+#: literal at all, which is worth a warning, and this one is an ordinary filter
+#: the mirror has to stay quiet about.
+#:
+#: `_UNMIRRORABLE_OFFSET` and `_UNMIRRORABLE_ESCAPING` are the same decline
+#: with the reasons the preview needs to explain them -- a bound in a time
+#: frame the transform would discard, and a value the driver and the engine
+#: would not spell the same way. `is_unmirrorable` recognises any of them.
+_UNMIRRORABLE = UNMIRRORABLE
+_UNMIRRORABLE_OFFSET = UNMIRRORABLE_OFFSET
+_UNMIRRORABLE_ESCAPING = UNMIRRORABLE_ESCAPING
 
 
 def _instant_from_filter_value(value: Any) -> Optional[datetime]:
@@ -1704,6 +1718,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
         sql_shifted_temporal_labels: set[str] | None = None,
+        semantic_cache_status: Optional[str] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1717,6 +1732,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
         self.sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
+        # A ``SemanticCacheStatus`` value, or None for non-semantic sources.
+        self.semantic_cache_status: Optional[str] = semantic_cache_status
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
@@ -1783,17 +1800,59 @@ class CertificationMixin:
     def is_certified(self) -> bool:
         return bool(self.get_extra_dict().get("certification"))
 
+    @is_certified.setter
+    def is_certified(self, value: Optional[bool]) -> None:
+        if value is False:
+            self._update_extra(lambda extra: extra.pop("certification", None))
+
     @property
     def certified_by(self) -> Optional[str]:
         return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @certified_by.setter
+    def certified_by(self, value: Optional[str]) -> None:
+        self._update_certification("certified_by", value)
 
     @property
     def certification_details(self) -> Optional[str]:
         return self.get_extra_dict().get("certification", {}).get("details")
 
+    @certification_details.setter
+    def certification_details(self, value: Optional[str]) -> None:
+        self._update_certification("details", value)
+
     @property
     def warning_markdown(self) -> Optional[str]:
         return self.get_extra_dict().get("warning_markdown")
+
+    @warning_markdown.setter
+    def warning_markdown(self, value: Optional[str]) -> None:
+        def update(extra: dict[str, Any]) -> None:
+            if value:
+                extra["warning_markdown"] = value
+            else:
+                extra.pop("warning_markdown", None)
+
+        self._update_extra(update)
+
+    def _update_extra(self, update: Callable[[dict[str, Any]], None]) -> None:
+        extra = dict(self.get_extra_dict())
+        update(extra)
+        self.extra = json.dumps(extra)
+
+    def _update_certification(self, key: str, value: Optional[str]) -> None:
+        def update(extra: dict[str, Any]) -> None:
+            certification = dict(extra.get("certification") or {})
+            if value:
+                certification[key] = value
+            else:
+                certification.pop(key, None)
+            if certification:
+                extra["certification"] = certification
+            else:
+                extra.pop("certification", None)
+
+        self._update_extra(update)
 
 
 def clone_model(
@@ -2730,7 +2789,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if getattr(self, "enforce_numerical_metrics", True):
             dataframe_utils.df_metrics_to_num(df, query_object)
 
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        # ``mask`` + ``infer_objects`` rather than ``replace``, which emits a
+        # FutureWarning about deprecated silent downcasting on object columns.
+        df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
 
         return df
 
@@ -4165,15 +4226,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif value is not None:
                 value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
-                return utils.cast_to_boolean(value)
+                boolean_value = utils.cast_to_boolean(value)
+                if db_engine_spec is not None:
+                    return db_engine_spec.coerce_boolean_for_sql(boolean_value)
+                return boolean_value
             return value
 
         if isinstance(values, (list, tuple)):
-            values = [handle_single_value(v) for v in values]  # type: ignore
+            values = [handle_single_value(v) for v in values]
         else:
             values = handle_single_value(values)
         if is_list_target and not isinstance(values, (tuple, list)):
-            values = [values]  # type: ignore
+            values = [values]
         elif not is_list_target and isinstance(values, (tuple, list)):
             values = values[0] if values else None
         return values
@@ -4399,9 +4463,32 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Only the ``python_date_format`` branches of `dttm_sql_literal` are
         reproduced, because only those produce a *value*. `convert_dttm` yields
         engine-specific SQL text, which cannot be bound as a parameter; its own
-        divergence from the probe is handled by widening the bounds instead.
+        divergence from the probe is handled by widening the bounds instead
+        (`_engine_literal_resolution`).
+
+        In `dttm_sql_literal`'s own order, though: it asks ``convert_dttm``
+        first and reaches the format only when the engine answers nothing. A
+        column can carry both -- a TIMESTAMP with a ``%Y%m%d``
+        ``python_date_format``, or an entry in
+        ``python_date_format_by_column_name`` -- and applying the format
+        unconditionally probed a value the real predicate never compares.
+        ``event_time >= '2026-01-01 00:00:00'`` mirrored as
+        ``partition_col >= '20260101'``, and a January 15 row keyed
+        ``2026-01-15`` sorts below that string, so the chart lost a row the
+        filter keeps.
+
+        Where the engine does answer, the `datetime` is returned unchanged and
+        the widening path takes over -- which is exactly what already happens
+        for every temporal column that carries no format at all.
         """
         if col is None:
+            return dttm
+
+        if col.type and self.db_engine_spec.convert_dttm(
+            col.type, dttm, db_extra=self.db_extra
+        ):
+            # The format is unreachable in `dttm_sql_literal` for this column,
+            # so reproducing it here would describe a different bound.
             return dttm
 
         tf = col.python_date_format
@@ -4456,8 +4543,29 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Likewise both sub-second probes carry a non-zero remainder. Comparing
         against ``dttm`` truncated to the second looks like the obvious test and
         is wrong for the same formatting-boundary reason.
+
+        A non-temporal column has no answer here, and asking anyway gets a wrong
+        one. SQLite's ``convert_dttm`` renders for ``types.String`` as well as
+        for the date types, so a ``VARCHAR`` mapped column reads as
+        second-resolution -- and a filter value that happens to *look* like an
+        instant then has its bound rounded as though the engine had truncated
+        it. On a VARCHAR ``code`` mapped onto a VARCHAR ``p`` by ``:value``,
+        ``code < '2026-07-06T10:08:11.500000'`` was mirrored as
+        ``p <= '2026-07-06 10:08:12.000000'``; a space sorts before ``T``, so a
+        row holding ``2026-07-06T09:00:00`` fell outside the mirror while
+        matching the filter.
+
+        The guard lives here rather than in each caller so this and
+        `_column_literal_resolution` cannot disagree about which column is
+        coarse -- which is the same reason that helper delegates to this one.
+
+        "Temporal" is the column's generic type, not just its ``is_dttm`` flag.
+        `get_time_filter` renders a bound through ``convert_dttm`` for any
+        ``DATE`` column, flagged or not, so a ``DATE`` column left unflagged
+        still compares a bare day -- and skipping the resolution check there
+        would hand the probe 10:00 for a bound the engine reads as midnight.
         """
-        if col is None or not col.type:
+        if col is None or not col.type or col.type_generic != GenericDataType.TEMPORAL:
             return LiteralResolution.FULL
 
         def render(moment: datetime) -> Optional[str]:
@@ -4562,12 +4670,14 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         SQLite's ``convert_dttm`` renders for ``types.String`` as well as for the
         date types, so a reference instant makes a ``VARCHAR`` mapped column look
         second-resolution -- and ``country = 'US'``, the text half of this
-        feature, reads as a value the engine compares coarsely. The per-instant
-        callers never meet this, because they arrive only with a value that
-        parsed as an instant.
+        feature, reads as a value the engine compares coarsely.
+
+        That guard is `_engine_literal_resolution`'s, not this function's. It
+        used to be here, on the belief that the per-instant callers never met
+        the case because they arrive only with a value that parsed as an
+        instant -- which is untrue of a text column holding ISO-shaped text,
+        where the value parses and the column is still not temporal.
         """
-        if col is None or not col.is_dttm:
-            return LiteralResolution.FULL
         return self._engine_literal_resolution(_RESOLUTION_REFERENCE_INSTANT, col)
 
     def _round_bound_outward(
@@ -4596,6 +4706,60 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         )
         rounded = end_dttm if is_upper else start_dttm
         return rounded if rounded is not None else instant
+
+    def _in_column_number_type(self, value: Any, col: Optional["TableColumn"]) -> Any:
+        """
+        A numeric ``value`` in the number type the mapped column stores.
+
+        The engine compares a number against the column in the column's own
+        domain, so ``n = '1.0'`` on an integer ``n`` matches the row holding
+        ``1``. `filter_values_handler` hands over ``1.0``, though, and a
+        transform whose output depends on the representation --
+        ``CAST(:value AS TEXT)`` answers ``'1.0'`` where the row's key is
+        ``'1'`` -- then mirrors to a partition value no matching row holds.
+        Probing at the value the column would hold keeps ``T(col) = T(v)``.
+
+        Integer columns only. A non-integral value on an integer column is
+        returned unchanged -- it matches no row, so its mirror cannot drop one.
+
+        Nothing is converted for an approximate or exact decimal column, even
+        though ``1`` and ``1.0`` are the same number to a ``REAL``. What the
+        transform sees is the *literal*, and how an engine renders one is not
+        something the engine spec exposes: on PostgreSQL ``CAST(1.0 AS TEXT)``
+        is ``'1.0'`` while the ``REAL`` column holding that value renders as
+        ``'1'``, so coercing the value to ``float`` mirrored onto a partition
+        key no matching row holds -- the same failure this helper exists to
+        stop, in the other direction. A ``DECIMAL`` column says it louder,
+        since its text also depends on a scale the spec does not carry. For
+        both, the rendering stays the owner's assumption, like
+        ``p = T(mapped_col)`` itself.
+        """
+        if (
+            col is None
+            or not col.type
+            or isinstance(value, bool)
+            or not isinstance(value, (int, float, Decimal))
+        ):
+            return value
+        try:
+            column_spec = self.db_engine_spec.get_column_spec(
+                col.type, db_extra=self.db_extra
+            )
+        except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+            return value
+        if column_spec is None:
+            return value
+        sqla_type = column_spec.sqla_type
+        type_class = sqla_type if isinstance(sqla_type, type) else type(sqla_type)
+        if issubclass(type_class, sa.Integer):
+            if isinstance(value, int):
+                return value
+            try:
+                return int(value) if value == int(value) else value
+            except (OverflowError, ValueError):
+                # Infinity and NaN have no integer, and match no integer row.
+                return value
+        return value
 
     def _mirror_probe_input(
         self,
@@ -4653,7 +4817,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         `filter_values_handler` returns for an epoch-millisecond bound arrives
         here as a `RawProbeValue` rather than text -- and that literal was
         rendered by the engine at the engine's own resolution, so it is the one
-        thing on this path with nothing left to resolve.
+        thing on this path with nothing left to resolve. The escaping gate has
+        run too, on the value as it arrived; a string this method *returns* is a
+        fresh one, which is why `evaluate_transform` asks again.
 
         Where the engine compares the whole instant, a string is returned
         exactly as it arrived -- down to the type the probe binds and the cache
@@ -4663,6 +4829,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         is a function of an integer, and a `datetime` is not the value the real
         predicate compares.
         """
+        value = self._in_column_number_type(value, col)
         parsed = _instant_from_filter_value(value)
         if parsed is None:
             if (
@@ -4672,18 +4839,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 return _UNMIRRORABLE
             return value
 
-        if (
-            self._engine_literal_resolution(parsed.replace(tzinfo=None), col)
-            is LiteralResolution.FULL
-        ):
+        # Ahead of the full-resolution return: a transform such as
+        # `CAST(:value AS TIMESTAMP)` drops the offset, so even an engine that
+        # compares the whole instant would probe it in the wrong frame. Its own
+        # reason, because mapping a column the engine compares in full -- the
+        # advice the resolution decline carries -- does not help here.
+        if parsed.tzinfo is not None:
+            return _UNMIRRORABLE_OFFSET
+
+        if self._engine_literal_resolution(parsed, col) is LiteralResolution.FULL:
             return (
                 self._mirror_probe_value(parsed, col)
                 if isinstance(value, datetime)
                 else value
             )
-
-        if parsed.tzinfo is not None:
-            return _UNMIRRORABLE
 
         if operator in LOWER_BOUND_OPERATORS:
             instant = self._round_bound_outward(parsed, col, is_upper=False)
@@ -4800,16 +4969,27 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         The result is SQL text rather than a value, because an array literal is
         an expression; `RawProbeValue` carries it and `build_probe_sql`
         substitutes rather than binds. Returns `None` when the engine spec
-        claims multi-value columns without implementing a literal for them,
-        which costs the query its pruning and nothing else.
+        claims multi-value columns without implementing a literal for them, or
+        when an element has no literal the dialect can render -- a nested array
+        such as ``[[1, 2]]`` -- which costs the query its pruning and nothing
+        else.
+
+        An element the driver and the engine would not spell the same way
+        declines with `_UNMIRRORABLE_ESCAPING` instead, which the preview can
+        explain. It has to be asked here: once the elements are inside the
+        engine's own array syntax there is no single value left for
+        `value_round_trips` to compare a parse against.
         """
 
         def literal(entry: Any) -> Any:
+            elements = coerce_array_values(parse_array_literal(entry), element_type)
+            if not all(
+                value_round_trips(self.database, element) for element in elements
+            ):
+                return _UNMIRRORABLE_ESCAPING
             return raw_probe_value(
                 self.database,
-                db_engine_spec.array_literal(
-                    coerce_array_values(parse_array_literal(entry), element_type)
-                ),
+                db_engine_spec.array_literal(elements),
             )
 
         try:
@@ -4817,9 +4997,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 candidates = (
                     list(value) if isinstance(value, (list, tuple)) else [value]
                 )
-                return tuple(literal(candidate) for candidate in candidates)
+                members = tuple(literal(candidate) for candidate in candidates)
+                # One element's problem is the whole list's, for the reason
+                # `mirror_probe_request` gives: mirroring the rest would be
+                # narrower than the filter.
+                return next(
+                    (member for member in members if is_unmirrorable(member)),
+                    members,
+                )
             return literal(value)
-        except NotImplementedError:
+        except (NotImplementedError, sa.exc.CompileError):
             return None
 
     def _as_probe_input(self, value: Any) -> Any:
@@ -4839,6 +5026,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Returns `_UNRENDERABLE` when the engine cannot render the literal, which
         costs the query its pruning and nothing else -- the same thing the probe
         itself does on failure.
+
+        Rendering is only half of what has to hold about a literal: whether the
+        engine reads the rendered text back as the value the filter compares is
+        asked separately, by `mirror_probe_request` through
+        `partition_mapping.value_round_trips`.
         """
 
         def rendered(entry: Any) -> Any:
@@ -4872,34 +5064,79 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         Only operators the mapping declares safe are recorded; see the operator
         matrix in `superset.connectors.sqla.partition_mapping`.
 
-        Every value then goes through `_mirror_probe_input`, which is where what
-        the engine actually compares is applied. Routing per *value* rather than
-        per Python type is what makes a bound widen and an equality decline
-        whichever shape the value arrived in -- a `datetime` from
-        drill-to-detail, or the raw string a simple filter binds.
+        The value itself is resolved by `mirror_probe_request`, which the preview
+        endpoint calls too so that the two cannot answer differently.
         """
         if mapping is None or column_name != mapping.mapped_column:
             return
         if not mapping.mirrors(operator):
             return
 
+        mapped_col = next(
+            (col for col in self.columns if col.column_name == column_name), None
+        )
+        probe_value = self.mirror_probe_request(operator, value, mapped_col)
+        if is_unmirrorable(probe_value):
+            return
+        sink.append((operator, probe_value))
+
+    def mirror_probe_request(
+        self,
+        operator: utils.FilterOperator,
+        value: Any,
+        col: Optional["TableColumn"],
+    ) -> Any:
+        """
+        ``value`` as the mirror may probe the transform at, or an `Unmirrorable`.
+
+        The whole of what has to happen to a filter value before it can be
+        probed, in one place because two callers need it: the chart query path,
+        and the dataset editor's preview endpoint. The preview used to coerce the
+        value and then probe it directly, so it reported a mirror for a request
+        the chart path declines -- an owner was shown a valid predicate on a
+        `DATE` mapped column whose equality filters never mirror at all.
+
+        Routing per *value* rather than per Python type is what makes a bound
+        widen and an equality decline whichever shape the value arrived in -- a
+        `datetime` from drill-to-detail, or the raw string a simple filter binds.
+        """
+        # A decline the caller already made, passed through: the array branch
+        # and the preview's own coercion both answer with an `Unmirrorable` of
+        # their own, and re-reading it as a filter value here would lose the
+        # reason the preview is about to explain.
+        if is_unmirrorable(value):
+            return value
+
         # First, and ahead of anything that reads the value as an instant: a
         # value `filter_values_handler` already turned into engine SQL is
         # carried as text from here on, and the probe has to receive exactly
         # that literal -- it is what the real predicate compares, so there is
-        # nothing left to resolve about it.
-        probe_input = self._as_probe_input(value)
-        if probe_input is _UNRENDERABLE:
-            return
-        value = probe_input
+        # nothing left to resolve about it. Idempotent, so a caller that has
+        # already rendered its own values may still come through here.
+        value = self._as_probe_input(value)
+        if value is _UNRENDERABLE:
+            return UNMIRRORABLE
 
-        mapped_col = next(
-            (col for col in self.columns if col.column_name == column_name), None
-        )
+        # Then, before any of the resolution rules: whether this database's
+        # driver and engine would write the value down the same way. They do
+        # not always -- see `partition_mapping.literal_round_trips` -- and a
+        # value they disagree about is either probed as something nobody
+        # filtered on or, where it closes its own quote, read as SQL. Its own
+        # reason, because nothing about the column, the operator or the
+        # transform is what went wrong, so none of the advice the resolution
+        # branch carries applies.
+        #
+        # One member is the whole list's problem, as below: mirroring the rest
+        # would be narrower than the filter.
+        candidates = value if isinstance(value, (list, tuple)) else [value]
+        if not all(
+            value_round_trips(self.database, candidate) for candidate in candidates
+        ):
+            return UNMIRRORABLE_ESCAPING
 
         if operator == utils.FilterOperator.IN:
             if not isinstance(value, (list, tuple)) or not value:
-                return
+                return UNMIRRORABLE
             if any(item is None for item in value):
                 # A `None` in the list widens the real predicate to
                 # `col IS NULL OR col IN (...)`. Mirroring only the non-null
@@ -4907,22 +5144,25 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 # would drop rows it keeps. Checked before the conversion
                 # below, which passes a `None` straight through and could not
                 # be told apart from a value afterwards.
-                return
+                return UNMIRRORABLE
             members = tuple(
-                self._mirror_probe_input(operator, item, mapped_col) for item in value
+                self._mirror_probe_input(operator, item, col) for item in value
             )
-            if any(member is _UNMIRRORABLE for member in members):
+            if declined := next(
+                (member for member in members if is_unmirrorable(member)), None
+            ):
                 # One member the engine compares more coarsely than the mirror
                 # can be built from is the whole list's problem: dropping just
                 # that member is the same narrowing the `None` guard above
-                # refuses. So the list declines entire.
-                return
-            sink.append((operator, members))
-        elif value is not None:
-            probe_value = self._mirror_probe_input(operator, value, mapped_col)
-            if probe_value is _UNMIRRORABLE:
-                return
-            sink.append((operator, probe_value))
+                # refuses. So the list declines entire, carrying the first
+                # member's reason -- the one an owner reading the preview would
+                # have to fix first anyway.
+                return declined
+            return members
+
+        if value is None:
+            return UNMIRRORABLE
+        return self._mirror_probe_input(operator, value, col)
 
     def _build_partition_mirror_predicates(
         self,
@@ -6072,6 +6312,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_engine_spec=db_engine_spec,
                     db_extra=self.db_extra,
                 )
+                if op in {
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                } and not isinstance(eq, (tuple, list)):
+                    # A missing or null value (``val`` absent or ``None``)
+                    # leaves ``eq`` as ``None``. Reject it before any branch
+                    # (advanced data types, array columns, plain IN) uses it,
+                    # rather than dropping the filter, which would widen the
+                    # results.
+                    raise QueryObjectValidationError(
+                        _(
+                            "Filter value is required for the IN / NOT IN "
+                            "operator on column %(column)s",
+                            column=get_column_name(flt_col),
+                        )
+                    )
 
                 # Hoisted above the mirror collection below, which has to
                 # record the values the real predicate *binds*. SQLAlchemy
@@ -6215,6 +6471,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
                     # are in ``is_list_target``), but are element-level array ops
                     # handled by their own branch below — not IN.
+                    # Non-list values were rejected right after
+                    # ``filter_values_handler`` above.
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(

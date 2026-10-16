@@ -30,7 +30,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from flask import current_app as app, g
-from sqlalchemy import Column, text, types
+from sqlalchemy import Column, false, text, true, types
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
@@ -83,6 +83,22 @@ def upload_to_s3(filename: str, upload_prefix: str, table: Table) -> str:
         Config=TransferConfig(use_threads=False),  # Threading is broken in Python 3.9.
     )
     return location
+
+
+class SparkSqlBooleanEqualityMixin:
+    """
+    Shared boolean-filter coercion for the Databricks and Spark SQL specs,
+    whose dialects render bound Python booleans as integer literals in some
+    binding paths and apply strict type checking to the result (#36765).
+    """
+
+    use_equality_for_boolean_filters: bool = True
+
+    @classmethod
+    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
+        if value is None:
+            return None
+        return true() if value else false()
 
 
 class HiveEngineSpec(PrestoEngineSpec):

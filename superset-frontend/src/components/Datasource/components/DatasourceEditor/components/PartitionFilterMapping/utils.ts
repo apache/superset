@@ -261,10 +261,22 @@ export function partitionMappingErrors(
 
   const mappedColumnName = resolveMappedColumn(datasource);
   if (mappedColumnName === partitionColumn) {
-    // No transform check can follow: the transform is a property of the mapped
-    // column, and there is no coherent mapped column to read it from.
+    // Only the *explicit* self-mapping blocks the save, matching
+    // `validate_partition_mapping`: an override naming the partition column is
+    // something the owner asked for and can take back, so it is Tier 1 there.
+    //
+    // The implicit one -- no override, and `main_dttm_col` happens to equal the
+    // partition column -- is Tier 2 on purpose. Blocking it here disabled Save
+    // on a dataset already in that state (metadata sync used to be able to
+    // produce one) even for a description-only edit, which is exactly the
+    // unsaveable dataset the backend comment says it avoids. The owner gets the
+    // same message, as a warning they can save through.
+    //
+    // No transform check can follow either way: the transform is a property of
+    // the mapped column, and there is no coherent mapped column to read it from.
     issues.push({
       field: 'partition_column',
+      blocking: Boolean(datasource.partition_mapped_column),
       message: t(
         'The partition column cannot be mapped onto itself. %(name)s is both the partition column and the mapped column.',
         { name: partitionColumn },
@@ -327,6 +339,74 @@ export function defaultTransformFor(
 const NUMERIC_TYPE_RE =
   /INT|NUMERIC|DECIMAL|DOUBLE|FLOAT|REAL|NUMBER|BIGNUMERIC/i;
 
+/** The sample instant, 2026-01-15 00:00:00 UTC, in each epoch representation. */
+const EPOCH_SAMPLES: Record<string, string> = {
+  epoch_s: '1768435200',
+  epoch_ms: '1768435200000',
+};
+
+/** The sample instant as ISO text, which is what an unformatted column gets. */
+const TIMESTAMP_SAMPLE = '2026-01-15 00:00:00';
+
+/**
+ * Declared types the engine renders a datetime for on its own.
+ *
+ * `python_date_format` only reaches the comparison when the engine's
+ * `convert_dttm` answers nothing (`dttm_sql_literal`), which is the case for a
+ * column flagged temporal whose *declared* type is not. A real `TIMESTAMP`
+ * column carrying a format still compares the engine's own literal, so it
+ * keeps the ISO sample.
+ */
+const TEMPORAL_TYPE_RE = /DATE|TIME|TIMESTAMP|DATETIME/i;
+
+/**
+ * Each `strftime` directive's value for the sample instant.
+ *
+ * A table rather than a date library because the instant is a constant: there
+ * is nothing to compute, and a partial `strftime` implementation that silently
+ * got a field wrong would be worse than not rendering at all.
+ */
+const STRFTIME_FIELDS: Record<string, string> = {
+  Y: '2026',
+  y: '26',
+  m: '01',
+  d: '15',
+  H: '00',
+  I: '12',
+  M: '00',
+  S: '00',
+  f: '000000',
+  j: '015',
+  p: 'AM',
+  '%': '%',
+};
+
+/**
+ * The sample instant rendered through a column's `python_date_format`.
+ *
+ * Returns `undefined` for a format carrying a directive the table above does
+ * not know, so the caller can fall back rather than send a string with a
+ * literal `%c` in it.
+ */
+function renderSampleWithFormat(format: string): string | undefined {
+  let rendered = '';
+  for (let i = 0; i < format.length; i += 1) {
+    if (format[i] !== '%') {
+      rendered += format[i];
+      continue;
+    }
+    const directive = format[i + 1];
+    const value =
+      directive === undefined ? undefined : STRFTIME_FIELDS[directive];
+    if (value === undefined) {
+      return undefined;
+    }
+    rendered += value;
+    i += 1;
+  }
+  return rendered;
+}
+
 /**
  * Samples the preview evaluates the transform at.
  *
@@ -339,14 +419,43 @@ const NUMERIC_TYPE_RE =
  * configuration, and evaluating it at `'US'` makes the engine reject a transform
  * that an actual `IN (2025, 2026)` filter would mirror perfectly well -- the
  * preview was reporting a fault in its own sample data.
+ *
+ * That includes a temporal column stored as a number. A `BIGINT` epoch column
+ * marked temporal compares epoch integers, and a chart's time range reaches it
+ * as one; a timestamp string coerces to nothing on that column, so the preview
+ * would report a broken mapping that the chart path mirrors correctly. Such a
+ * column gets the sample instant in its epoch representation, or the plain
+ * numeric samples when its format is not an epoch.
  */
 export function sampleValuesFor(
   column: PartitionMappingColumn | undefined,
 ): string[] {
+  const isNumeric = Boolean(column?.type && NUMERIC_TYPE_RE.test(column.type));
   if (column?.is_dttm) {
-    return ['2026-01-15 00:00:00'];
+    const format = column.python_date_format ?? '';
+    if (!isNumeric) {
+      // A column flagged temporal whose declared type is not reaches the probe
+      // rendered through its own format: `dttm_sql_literal` falls back to
+      // `python_date_format` when the engine's `convert_dttm` answers nothing,
+      // so a `STRING` column stored as `%Y%m%d` compares `'20260115'`.
+      // Previewing the ISO timestamp evaluated the transform on a sample no
+      // chart bound produces and reported a working mapping as broken.
+      //
+      // Only a real `strftime` pattern: `epoch_s`/`epoch_ms` are Superset's
+      // own sentinels rather than formats, and are handled below for the
+      // numeric columns that can hold them.
+      const formatted =
+        format.includes('%') && !TEMPORAL_TYPE_RE.test(column.type ?? '')
+          ? renderSampleWithFormat(format)
+          : undefined;
+      return [formatted || TIMESTAMP_SAMPLE];
+    }
+    const epochSample = EPOCH_SAMPLES[format];
+    if (epochSample) {
+      return [epochSample];
+    }
   }
-  if (column?.type && NUMERIC_TYPE_RE.test(column.type)) {
+  if (isNumeric) {
     return ['2025', '2026'];
   }
   return ['US', 'CA'];
@@ -439,20 +548,105 @@ function withMappingOn<T extends PartitionMappingColumn>(
 }
 
 /**
+ * Every column with the mapping held by the column it is actually mapped to.
+ *
+ * The client half of `DatasetDAO.clear_unmapped_partition_transforms`. The
+ * editor is not the only writer -- a PUT, an `override_columns=true` metadata
+ * sync and an import all reach the columns directly -- so a dataset can arrive
+ * holding a transform on a column the mapping does not mirror, and the editor
+ * must not be the thing that arms it. See `clearMappingTransforms` for why one
+ * parked anywhere else is not dormant.
+ *
+ * Takes the datasource rather than a column name so the resolution is
+ * `resolveMappedColumn`'s and cannot drift from the one the rest of the panel
+ * reads. Hands back the array it was given when nothing had to change, like
+ * `clearMappingTransforms`.
+ */
+export function clearUnmappedTransforms<T extends PartitionMappingColumn>(
+  datasource: PartitionMappingDatasource,
+  columns: T[],
+): T[] {
+  const mappedColumn = resolveMappedColumn(datasource);
+  const stray = (column: T) =>
+    column.column_name !== mappedColumn && holdsMapping(column);
+  if (!columns.some(stray)) {
+    return columns;
+  }
+  return columns.map(column =>
+    stray(column)
+      ? {
+          ...column,
+          partition_value_transform: null,
+          partition_transform_is_monotonic: false,
+        }
+      : column,
+  );
+}
+
+/**
+ * `clearUnmappedTransforms` for a change that *moves* which column is mapped.
+ *
+ * One pass can only ever answer for one resolution, and the bug lives between
+ * them. Run only against the mapping the change leaves behind, the pass finds
+ * the newly-mapped column effective and skips it -- so a transform parked
+ * there, which nobody in this edit asked to activate, goes live. A column sync
+ * that drops the mapped column is exactly that shape: the override is repaired
+ * to null, the mapping falls back to the default datetime column, and whatever
+ * was stranded on it starts mirroring. The row counts go quietly short while
+ * the pruning indicator still reports a healthy mapping.
+ *
+ * So a transform survives only where its column is the mapped one on *both*
+ * sides. `DatasetDAO.update` does the same thing for the same reason, running
+ * `clear_unmapped_partition_transforms` before and after it applies a request;
+ * the difference there is that a transform the request itself supplies lands
+ * between the two passes and survives, because the owner typed it. A sync
+ * supplies nothing -- `updateColumns` passes an unchanged column through
+ * verbatim -- so there is nothing here for the gap between the passes to keep.
+ */
+export function clearUnmappedTransformsAcrossMove<
+  T extends PartitionMappingColumn,
+>(
+  before: PartitionMappingDatasource,
+  after: PartitionMappingDatasource,
+  columns: T[],
+): T[] {
+  return clearUnmappedTransforms(
+    after,
+    clearUnmappedTransforms(before, columns),
+  );
+}
+
+/**
  * Columns updated for a mapping moving to `nextColumnName`.
  *
- * A transform the column already had wins over the engine's default: the owner
- * wrote it for this column, and offering to overwrite it is not what picking it
- * up again means. Every other column is cleared, for the reason
- * `clearMappingTransforms` gives.
+ * A transform already on the column is picked back up only when that column is
+ * the one already mapped -- re-selecting where the mapping sits is not a move,
+ * and overwriting what the owner wrote there is not what it should mean.
+ *
+ * Moving the mapping *elsewhere* installs `nextTransform` and nothing else,
+ * even when the target column appears to be holding something. Under the
+ * invariant it cannot be: the mapping has one mirrored column, so a transform
+ * on any other one is a leftover some writer stranded there, not an expression
+ * written about this column. Picking it up turned a click with no typing into a
+ * live mapping emitting predicates nobody authored -- the move arrives inert
+ * instead, which is a state the panel's own warning describes and the owner can
+ * fix deliberately. `partition_transform_is_monotonic` does not carry over for
+ * the same reason; it is a claim about a transform that is no longer there.
+ *
+ * Every other column is cleared, for the reason `clearMappingTransforms` gives.
  */
 export function applyMappingMove<T extends PartitionMappingColumn>(
+  datasource: PartitionMappingDatasource,
   columns: T[],
   nextColumnName: string,
   nextTransform: string,
 ): T[] {
   const next = columns.find(column => column.column_name === nextColumnName);
-  const nextValue = next?.partition_value_transform || nextTransform || null;
+  const isAlreadyMapped = resolveMappedColumn(datasource) === nextColumnName;
+  const nextValue =
+    (isAlreadyMapped && next?.partition_value_transform) ||
+    nextTransform ||
+    null;
   return withMappingOn(
     columns,
     nextColumnName,
@@ -460,10 +654,10 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
     // A fresh pre-fill of the identity `:value` may declare monotonicity for
     // the owner, because that placeholder provably preserves ordering. Any
     // other pre-fill (an engine default) is the owner's to declare, so leave
-    // whatever the column already carried.
+    // whatever the mapped column already carried.
     nextValue === IDENTITY_TRANSFORM
       ? true
-      : Boolean(next?.partition_transform_is_monotonic),
+      : Boolean(isAlreadyMapped && next?.partition_transform_is_monotonic),
   );
 }
 
@@ -471,15 +665,16 @@ export function applyMappingMove<T extends PartitionMappingColumn>(
  * Columns updated for a mapping following the default datetime column.
  *
  * With no override the mapped column *is* `main_dttm_col`, so re-pointing that
- * column moves the mapping whole rather than orphaning it: the transform and its
- * ordering declaration travel to the new column, and the old column is left
- * holding nothing that could come back to life if the default datetime column
- * ever pointed at it again.
+ * column moves the mapping. What does *not* move is the value transform: it
+ * states how one particular column relates to the partition column, and the
+ * owner wrote it about the column they were looking at. Re-asserting it on a
+ * different column turns mirroring on with an expression nobody checked against
+ * it, and the rows it prunes are wrong without anything saying so.
  *
- * A destination this list has no row for -- a calculated column, whose row never
- * renders the transform editor -- carries nothing, and the mapping goes inert
- * and says so. Writing a live transform onto a column the owner cannot see is
- * the very thing this is here to prevent.
+ * So the mapping arrives inert on its new column, and the editor's existing
+ * warning says a transform is still needed. The old column is left holding
+ * nothing either -- a transform waiting there would come back to life the next
+ * time the default datetime column pointed at it.
  */
 export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
   columns: T[],
@@ -491,15 +686,7 @@ export function applyImplicitMappingMove<T extends PartitionMappingColumn>(
   if (previousColumnName === nextColumnName) {
     return columns;
   }
-  const previous = columns.find(
-    column => column.column_name === previousColumnName,
-  );
-  return withMappingOn(
-    columns,
-    nextColumnName,
-    previous?.partition_value_transform ?? null,
-    Boolean(previous?.partition_transform_is_monotonic),
-  );
+  return clearMappingTransforms(columns);
 }
 
 /**

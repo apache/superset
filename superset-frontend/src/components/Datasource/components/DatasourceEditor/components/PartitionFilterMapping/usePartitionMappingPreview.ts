@@ -31,6 +31,16 @@ interface PreviewRequest {
   sampleValues: string[];
   operator: string;
   isMonotonic: boolean;
+  /**
+   * Whether both mapped and partition column exist in the *saved* dataset.
+   *
+   * The endpoint belongs to the saved dataset and resolves these names against
+   * its persisted columns, while the editor validates against its unsaved
+   * state. Mapping onto a column that has only been synced from source, not
+   * saved, therefore had the editor accept it while the preview reported that
+   * the column does not exist -- a valid candidate shown as broken.
+   */
+  columnsAreSaved: boolean;
   /** Skip entirely when the section isn't showing a mapping. */
   enabled: boolean;
 }
@@ -54,6 +64,7 @@ export function usePartitionMappingPreview({
   operator,
   isMonotonic,
   enabled,
+  columnsAreSaved,
 }: PreviewRequest) {
   const [preview, setPreview] = useState<PartitionMappingPreview | null>(null);
   const [loading, setLoading] = useState(false);
@@ -78,9 +89,33 @@ export function usePartitionMappingPreview({
     const requestId = latestRequest.current;
 
     if (
+      enabled &&
+      datasetId &&
+      mappedColumn &&
+      !columnsAreSaved &&
+      transformCanPreview(transform, mappedColumn, partitionColumn)
+    ) {
+      // Answered without asking: the endpoint would resolve these names
+      // against the saved dataset and report a column that does not exist
+      // there yet. Said plainly rather than guessed at -- sending the
+      // candidate columns instead would have the probe build SQL from
+      // whatever the client claims their types are.
+      setPreview({
+        valid: false,
+        reason: 'unsaved',
+        error: t(
+          'Save the dataset to preview this mapping. The preview runs against the saved columns, and this mapping uses one that has not been saved yet.',
+        ),
+      });
+      setLoading(false);
+      return undefined;
+    }
+
+    if (
       !enabled ||
       !datasetId ||
       !mappedColumn ||
+      !columnsAreSaved ||
       !transformCanPreview(transform, mappedColumn, partitionColumn)
     ) {
       setPreview(null);
@@ -123,10 +158,27 @@ export function usePartitionMappingPreview({
           return;
         }
         const clientError = await getClientErrorObject(error);
+        // Asked again: normalizing the error reads the response body, so a
+        // newer request can resolve while this one is still in that await, and
+        // writing then put a stale error over a current valid preview -- the
+        // panel reporting a failure for the transform the box no longer holds.
+        if (requestId !== latestRequest.current) {
+          return;
+        }
         setPreview({
           valid: false,
+          // `message` first only when it really is a string. A marshmallow
+          // rejection -- a transform past the 1,024-character bound, say --
+          // answers 400 with an object-valued `message`
+          // (`{value_transform: [...]}`), which `getClientErrorObject` leaves
+          // as it found it while putting the normalized text in `error`.
+          // Preferring `message` unconditionally handed that object to
+          // `Alert description`, and React threw "Objects are not valid as a
+          // React child" instead of showing the owner the validation error.
           error:
-            clientError.message ||
+            (typeof clientError.message === 'string'
+              ? clientError.message
+              : undefined) ||
             clientError.error ||
             t('The preview could not be loaded.'),
         });
@@ -147,6 +199,7 @@ export function usePartitionMappingPreview({
     operator,
     isMonotonic,
     enabled,
+    columnsAreSaved,
   ]);
 
   return { preview, loading };

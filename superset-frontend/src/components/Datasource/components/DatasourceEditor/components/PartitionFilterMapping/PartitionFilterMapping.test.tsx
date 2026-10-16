@@ -26,8 +26,20 @@ import {
   waitFor,
   within,
 } from 'spec/helpers/testing-library';
+import { getClientErrorObject } from '@superset-ui/core';
 import PartitionColumnFields from './PartitionColumnFields';
 import PartitionMappingSection from './PartitionMappingSection';
+
+// Only `getClientErrorObject`, and only so one test can hold an error mid
+// normalization; everything else in the module behaves as it really does.
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  getClientErrorObject: jest.fn((...args: unknown[]) =>
+    jest
+      .requireActual('@superset-ui/core')
+      .getClientErrorObject(...(args as [unknown])),
+  ),
+}));
 
 const COLUMNS = [
   { column_name: 'event_time', type: 'TIMESTAMP', is_dttm: true },
@@ -53,6 +65,10 @@ const PREVIEW_URL = 'glob:*/api/v1/dataset/1/partition_mapping/preview/';
 
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
+  // Call history only: the module-level implementation delegates to the real
+  // `getClientErrorObject`, and `mockReset` would throw that away for every
+  // test after this one.
+  (getClientErrorObject as jest.Mock).mockClear();
 });
 
 test('the mapped column shows as following the default datetime column', () => {
@@ -169,7 +185,12 @@ test('the banner also defers to the stored mapping the engine refused', () => {
       datasource={{
         main_dttm_col: 'event_time',
         partition_column: 'dt_epoch',
-        partition_filter_mapping: { evaluable: false },
+        // Naming the transform the verdict was about is what makes it apply:
+        // it is a statement about one expression, and the box still holds it.
+        partition_filter_mapping: {
+          evaluable: false,
+          evaluated_transform: 'unix_timestamp(:value)',
+        },
       }}
       columns={MAPPED_COLUMNS}
       allColumns={MAPPED_COLUMNS}
@@ -364,6 +385,122 @@ test('a failed preview shows the error instead of a predicate', async () => {
   expect(
     screen.queryByTestId('partition-mapping-preview'),
   ).not.toBeInTheDocument();
+});
+
+test('only the mapped row publishes a preview verdict', async () => {
+  // Every expanded column renders this component and they all report to the
+  // same `onPreviewVerdict`, but only the mapped one previews anything
+  // (`enabled: state === 'mapped'`) -- so the others reported a permanent
+  // `null`. Expanding any other column after the mapped row's preview had
+  // failed therefore reset the dataset banner to claiming filters would mirror,
+  // while the mapped row went on showing the failure.
+  const onPreviewVerdict = jest.fn();
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'country' }}
+      value={null}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+      onPreviewVerdict={onPreviewVerdict}
+    />,
+  );
+
+  // The row renders -- it offers to take the mapping over -- and stays silent.
+  expect(
+    await screen.findByText('Move mapping to this column →'),
+  ).toBeInTheDocument();
+  expect(onPreviewVerdict).not.toHaveBeenCalled();
+});
+
+test('a validation error with an object-valued message still renders', async () => {
+  // The preview schema rejects a transform past the 1,024-character bound with
+  // HTTP 400 and an *object* `message` (`{value_transform: [...]}`).
+  // `getClientErrorObject` leaves that as it found it and puts the normalized
+  // text in `error`, so preferring `message` handed an object to
+  // `Alert description` and React threw "Objects are not valid as a React
+  // child" -- the owner saw a blank panel instead of the reason.
+  fetchMock.post(PREVIEW_URL, {
+    status: 400,
+    body: {
+      message: { value_transform: ['Longer than maximum length 1024.'] },
+    },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      value={`lower(${' '.repeat(1100)}:value)`}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(await screen.findByRole('alert')).toBeInTheDocument();
+  expect(
+    screen.queryByTestId('partition-mapping-preview'),
+  ).not.toBeInTheDocument();
+});
+
+test('a stored refusal stops applying once the transform changes', () => {
+  // The stored verdict is a statement about one expression, and it outlived it:
+  // reopen a dataset whose `no_such_fn(:value)` failed its last probe, replace
+  // it with something that works, and the banner still said nothing would
+  // mirror -- because it read a summary computed when the editor opened.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_filter_mapping: {
+          evaluable: false,
+          evaluated_transform: 'no_such_fn(:value)',
+        },
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  // `MAPPED_COLUMNS` holds `unix_timestamp(:value)`, not the refused text.
+  expect(
+    screen.getByText(/will automatically apply an equivalent filter to/),
+  ).toBeInTheDocument();
+});
+
+test('designating a partition column does not claim it is hidden from Explore', () => {
+  // `handlePartitionColumnChange` deliberately leaves `filterable`/`groupby`
+  // alone, so the warning telling the owner the column was hidden from Explore
+  // described something that had stopped happening.
+  render(
+    <PartitionColumnFields
+      datasource={{ main_dttm_col: null, partition_column: 'dt_epoch' }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByText(/No filter is mirrored onto dt_epoch/),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(/hidden from Explore/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/hides it from Explore/)).not.toBeInTheDocument();
 });
 
 test('the ordering checkbox reports back which column it belongs to', async () => {
@@ -1033,7 +1170,15 @@ test('an unparseable-but-nonblank transform is not announced as mirroring', () =
   expect(
     screen.queryByText(/will automatically apply an equivalent filter/),
   ).not.toBeInTheDocument();
-  expect(screen.getByText(/No value transform is set/)).toBeInTheDocument();
+  // A transform *is* set -- `unix_timestamp(event_time)` -- it just names the
+  // column where `:value` belongs, so nothing mirrors. The banner used to read
+  // "No value transform is set", which sent the owner looking for an empty box.
+  expect(
+    screen.getByText(/The value transform on event_time is not mirroring/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/No value transform is set/),
+  ).not.toBeInTheDocument();
 });
 
 test('the spinner stops when the transform stops being previewable', async () => {
@@ -1128,6 +1273,72 @@ test('a superseded preview response does not overwrite the current one', async (
 
   await waitFor(() => {
     expect(screen.queryByText('dt_epoch = 1')).not.toBeInTheDocument();
+  });
+  expect(screen.getByText('dt_epoch = 2')).toBeInTheDocument();
+});
+
+test('a superseded preview failure does not overwrite the current one', async () => {
+  // The identity check ran before `getClientErrorObject`, which reads the
+  // response body and so awaits. The race needs the *first* request to fail
+  // while it is still current -- so it passes that check -- and the second to
+  // become current and resolve valid while the first is inside the await.
+  // The stale error then landed on top of the valid preview, and the panel
+  // reported a failure for the transform the box actually holds.
+  let releaseNormalization: (value: unknown) => void = () => {};
+  const held = new Promise(resolve => {
+    releaseNormalization = resolve;
+  });
+  const normalize = getClientErrorObject as jest.Mock;
+  // Cleared here as well as in `afterEach`: the count below is this test's
+  // own, and every earlier test that took the error path added to it.
+  normalize.mockClear();
+  normalize.mockImplementationOnce(async () => {
+    await held;
+    return { error: 'the first transform was rejected' };
+  });
+
+  let call = 0;
+  fetchMock.post(PREVIEW_URL, () => {
+    call += 1;
+    if (call === 1) {
+      return { status: 422, body: { message: 'rejected' } };
+    }
+    return {
+      body: { result: { valid: true, emitted_predicate: 'dt_epoch = 2' } },
+    };
+  });
+
+  const props = {
+    item: { column_name: 'event_time', is_dttm: true },
+    datasource: {
+      id: 1,
+      main_dttm_col: 'event_time',
+      partition_column: 'dt_epoch',
+    },
+    onMoveMappingHere: jest.fn(),
+    onRemoveMapping: jest.fn(),
+    onMonotonicChange: jest.fn(),
+  };
+
+  const { rerender } = render(
+    <PartitionMappingSection {...props} value="first(:value)" />,
+  );
+  // The first request has failed and is parked inside the normalization.
+  await waitFor(() => {
+    expect(normalize).toHaveBeenCalledTimes(1);
+  });
+
+  // The second becomes current and comes back valid.
+  rerender(<PartitionMappingSection {...props} value="second(:value)" />);
+  expect(await screen.findByText('dt_epoch = 2')).toBeInTheDocument();
+
+  // Only now does the first finish normalizing its error.
+  releaseNormalization(undefined);
+
+  await waitFor(() => {
+    expect(
+      screen.queryByText('the first transform was rejected'),
+    ).not.toBeInTheDocument();
   });
   expect(screen.getByText('dt_epoch = 2')).toBeInTheDocument();
 });
@@ -1248,4 +1459,151 @@ test('a mapped column that really is absent is still reported', () => {
   expect(
     screen.getByText(/long_gone is not a column on this dataset/),
   ).toBeInTheDocument();
+});
+
+test('a self-mapping the owner can save through reads as a warning', () => {
+  // The implicit self-mapping -- no override, and `main_dttm_col` happens to
+  // equal the partition column -- is non-blocking on purpose, on both sides:
+  // a dataset already in that state has to stay editable. Danger styling on a
+  // message beside an enabled Save button said the opposite of what the button
+  // was doing.
+  const { rerender } = render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'dt_epoch',
+        partition_column: 'dt_epoch',
+        partition_mapped_column: null,
+      }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  const implicit = screen.getByTestId('partition-column-error');
+  expect(implicit).toHaveTextContent(/mapped onto itself/);
+  expect(implicit).toHaveClass('ant-typography-warning');
+
+  // The explicit one is something the owner asked for and can take back, so it
+  // blocks the save and keeps the error styling.
+  rerender(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        partition_mapped_column: 'dt_epoch',
+      }}
+      columns={COLUMNS}
+      allColumns={COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  const explicit = screen.getByTestId('partition-column-error');
+  expect(explicit).toHaveTextContent(/mapped onto itself/);
+  expect(explicit).toHaveClass('ant-typography-danger');
+});
+
+test('a mapping onto an unsaved column says so instead of previewing', async () => {
+  // The endpoint belongs to the *saved* dataset and resolves the column names
+  // against its persisted columns, while the editor validates against its
+  // unsaved state. Syncing a column from source and mapping onto it before
+  // saving therefore had the editor accept it while the preview reported that
+  // the column does not exist -- a valid candidate shown as broken.
+  fetchMock.post(PREVIEW_URL, {
+    body: { result: { valid: true, emitted_predicate: 'dt_epoch = 1' } },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'synced_at', is_dttm: true }}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'synced_at',
+        partition_column: 'dt_epoch',
+        // `synced_at` is not among them: it has been synced from source but
+        // not saved.
+        columns: [{ column_name: 'event_time' }, { column_name: 'dt_epoch' }],
+      }}
+      value="unix_timestamp(:value)"
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(
+    await screen.findByText(/Save the dataset to preview/),
+  ).toBeInTheDocument();
+  // Said rather than asked: no request is made *for this column*. Asserted on
+  // the body rather than on an empty history, because a neighbouring test's
+  // 500ms debounce can still land in this window under a full-directory run.
+  expect(
+    fetchMock.callHistory
+      .calls(PREVIEW_URL)
+      .map(call => String(call.options?.body ?? ''))
+      .filter(body => body.includes('synced_at')),
+  ).toHaveLength(0);
+  // And it is a warning, not an error: nothing is wrong with the mapping.
+  expect(screen.getByText('Not previewed yet')).toBeInTheDocument();
+});
+
+test('a mapping onto saved columns still previews', async () => {
+  // The other half: supplying the column list must not suppress the ordinary
+  // case.
+  fetchMock.post(PREVIEW_URL, {
+    body: { result: { valid: true, emitted_predicate: 'dt_epoch = 1' } },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'event_time', is_dttm: true }}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+        columns: [{ column_name: 'event_time' }, { column_name: 'dt_epoch' }],
+      }}
+      value="unix_timestamp(:value)"
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+    />,
+  );
+
+  expect(await screen.findByText('dt_epoch = 1')).toBeInTheDocument();
+});
+
+test('the unsaved notice is not reported as a failed verdict', async () => {
+  // `unsaved` is not a verdict -- the preview has not asked. Reporting `false`
+  // would have the dataset banner claim nothing mirrors on the strength of a
+  // question nobody answered.
+  const onPreviewVerdict = jest.fn();
+  fetchMock.post(PREVIEW_URL, {
+    body: { result: { valid: true, emitted_predicate: 'dt_epoch = 1' } },
+  });
+
+  render(
+    <PartitionMappingSection
+      item={{ column_name: 'synced_at', is_dttm: true }}
+      datasource={{
+        id: 1,
+        main_dttm_col: 'synced_at',
+        partition_column: 'dt_epoch',
+        columns: [{ column_name: 'dt_epoch' }],
+      }}
+      value="unix_timestamp(:value)"
+      onMoveMappingHere={jest.fn()}
+      onRemoveMapping={jest.fn()}
+      onMonotonicChange={jest.fn()}
+      onPreviewVerdict={onPreviewVerdict}
+    />,
+  );
+
+  expect(
+    await screen.findByText(/Save the dataset to preview/),
+  ).toBeInTheDocument();
+  expect(onPreviewVerdict).not.toHaveBeenCalledWith(false);
 });

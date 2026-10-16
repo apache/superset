@@ -20,6 +20,8 @@ import {
   applyImplicitMappingMove,
   applyMappingMove,
   clearMappingTransforms,
+  clearUnmappedTransforms,
+  clearUnmappedTransformsAcrossMove,
   defaultTransformFor,
   mappedColumnIsImplicit,
   mappingIsActive,
@@ -46,6 +48,13 @@ const COLUMNS = [
   { column_name: 'dt_epoch', type: 'BIGINT', filterable: true, groupby: true },
   { column_name: 'country', type: 'TEXT', filterable: true, groupby: true },
 ];
+
+/** Mapping `event_time` onto the `dt_epoch` partition, with no override. */
+const MAPPED_TO_EVENT_TIME = {
+  main_dttm_col: 'event_time',
+  partition_column: 'dt_epoch',
+  partition_mapped_column: null,
+};
 
 test('the mapped column follows the default datetime column', () => {
   const datasource = {
@@ -79,7 +88,7 @@ test('there is no mapped column without a partition column', () => {
 });
 
 test('a partition column with no datetime column maps to nothing', () => {
-  // Wireframe 1g: the column is hidden from Explore but nothing mirrors onto it.
+  // Wireframe 1g: a partition column is designated but nothing mirrors onto it.
   const datasource = { main_dttm_col: null, partition_column: 'dt_epoch' };
 
   expect(resolveMappedColumn(datasource)).toBeNull();
@@ -153,7 +162,7 @@ test('moving the mapping discards the previous transform', () => {
     { column_name: 'country' },
   ];
 
-  const moved = applyMappingMove(columns, 'country', '');
+  const moved = applyMappingMove(MAPPED_TO_EVENT_TIME, columns, 'country', '');
 
   expect(moved[0]).toMatchObject({
     partition_value_transform: null,
@@ -173,7 +182,12 @@ test('moving the mapping clears a transform on any column, not just the last one
     { column_name: 'country' },
   ];
 
-  const moved = applyMappingMove(columns, 'country', 'lower(:value)');
+  const moved = applyMappingMove(
+    MAPPED_TO_EVENT_TIME,
+    columns,
+    'country',
+    'lower(:value)',
+  );
 
   expect(moved[0].partition_value_transform).toBeNull();
   expect(moved[1].partition_value_transform).toBe('lower(:value)');
@@ -185,6 +199,7 @@ test('moving the mapping pre-fills the new column when we have a default', () =>
   ];
 
   const moved = applyMappingMove(
+    { main_dttm_col: null, partition_column: 'dt_epoch' },
     columns,
     'event_time',
     'unix_timestamp(:value)',
@@ -193,17 +208,53 @@ test('moving the mapping pre-fills the new column when we have a default', () =>
   expect(moved[0].partition_value_transform).toBe('unix_timestamp(:value)');
 });
 
-test('moving the mapping keeps a transform the column already had', () => {
+test('moving the mapping does not pick up a leftover transform', () => {
+  // The mapping has one mirrored column, so a transform on any *other* column
+  // is a leftover some writer stranded there -- not an expression written about
+  // this column. Picking it up made "Move mapping to this column" a live
+  // mapping with no typing, emitting predicates nobody authored while the
+  // pruning indicator stayed green: NEW-R11-01.
   const columns = [
+    { column_name: 'event_time', is_dttm: true },
     {
       column_name: 'country',
       partition_value_transform: 'lower(:value)',
+      partition_transform_is_monotonic: true,
     },
   ];
 
-  const moved = applyMappingMove(columns, 'country', '');
+  const moved = applyMappingMove(MAPPED_TO_EVENT_TIME, columns, 'country', '');
 
-  expect(moved[0].partition_value_transform).toBe('lower(:value)');
+  expect(moved[1]).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+});
+
+test('moving the mapping installs the engine default over a leftover', () => {
+  // The move is not refused, only disarmed: it arrives holding whatever the
+  // engine offers, which is the same thing a clean column would get.
+  const columns = [
+    { column_name: 'event_time', is_dttm: true },
+    {
+      column_name: 'other_time',
+      is_dttm: true,
+      partition_value_transform: 'to_unixtime(:value)',
+      partition_transform_is_monotonic: true,
+    },
+  ];
+
+  const moved = applyMappingMove(
+    MAPPED_TO_EVENT_TIME,
+    columns,
+    'other_time',
+    'unix_timestamp(:value)',
+  );
+
+  expect(moved[1]).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+    partition_transform_is_monotonic: false,
+  });
 });
 
 test('re-selecting the column already mapped keeps its transform', () => {
@@ -215,7 +266,12 @@ test('re-selecting the column already mapped keeps its transform', () => {
     },
   ];
 
-  const moved = applyMappingMove(columns, 'event_time', '');
+  const moved = applyMappingMove(
+    MAPPED_TO_EVENT_TIME,
+    columns,
+    'event_time',
+    '',
+  );
 
   expect(moved[0]).toMatchObject({
     partition_value_transform: 'unix_timestamp(:value)',
@@ -263,7 +319,139 @@ test('clearing a mapping nothing holds hands back the same columns', () => {
   expect(clearMappingTransforms(columns)).toBe(columns);
 });
 
-test('the mapping follows the default datetime column to its new home', () => {
+test('a transform on a column the mapping does not mirror is cleared', () => {
+  // The editor is not the only writer: a PUT, an `override_columns` sync and an
+  // import all reach the columns directly, so a dataset can arrive already
+  // violating the invariant. The mapped column's own transform stays.
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+    {
+      column_name: 'other_time',
+      partition_value_transform: 'to_unixtime(:value)',
+      partition_transform_is_monotonic: true,
+    },
+  ];
+
+  const cleared = clearUnmappedTransforms(MAPPED_TO_EVENT_TIME, columns);
+
+  expect(cleared[0]).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+    partition_transform_is_monotonic: true,
+  });
+  expect(cleared[1]).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+});
+
+test('with no mapping at all, no column may hold a transform', () => {
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+    },
+  ];
+
+  expect(
+    clearUnmappedTransforms({ main_dttm_col: 'event_time' }, columns)[0]
+      .partition_value_transform,
+  ).toBeNull();
+});
+
+test('a sync that re-points the mapping cannot arm what the new column holds', () => {
+  // NEW-R12-01. The mapping sits explicitly on `country`; `event_time` is the
+  // default datetime column and is holding a transform some earlier writer
+  // stranded there. A column sync drops `country`, so the override is repaired
+  // to null and the mapping falls back to `event_time`.
+  //
+  // Asked only about the mapping the repair leaves behind, the invariant reads
+  // `event_time` as the mapped column and keeps its transform -- which then
+  // goes live from a sync nobody typed into: 181 rows instead of 183, 0 instead
+  // of 1 for an equality, and the pruning indicator still green. It has to be
+  // asked on both sides of the move.
+  const before = {
+    main_dttm_col: 'event_time',
+    partition_column: 'dt_epoch',
+    partition_mapped_column: 'country',
+  };
+  const after = { ...before, partition_mapped_column: null };
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+  ];
+
+  // The bug, stated as the single-sided answer this replaced.
+  expect(clearUnmappedTransforms(after, columns)[0]).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+  });
+
+  expect(
+    clearUnmappedTransformsAcrossMove(before, after, columns)[0],
+  ).toMatchObject({
+    partition_value_transform: null,
+    partition_transform_is_monotonic: false,
+  });
+});
+
+test('a sync that moves nothing leaves the mapped transform alone', () => {
+  // The limit of the rule above: with both sides agreeing on the mapped column
+  // there is no move, and a sync must not cost the owner the transform they
+  // wrote. Only a transform parked elsewhere goes.
+  const datasource = {
+    main_dttm_col: 'event_time',
+    partition_column: 'dt_epoch',
+    partition_mapped_column: null,
+  };
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+      partition_transform_is_monotonic: true,
+    },
+    {
+      column_name: 'other_time',
+      partition_value_transform: 'to_unixtime(:value)',
+    },
+  ];
+
+  const kept = clearUnmappedTransformsAcrossMove(
+    datasource,
+    datasource,
+    columns,
+  );
+
+  expect(kept[0]).toMatchObject({
+    partition_value_transform: 'unix_timestamp(:value)',
+    partition_transform_is_monotonic: true,
+  });
+  expect(kept[1].partition_value_transform).toBeNull();
+});
+
+test('clearing strays when there are none hands back the same columns', () => {
+  // Same contract as `clearMappingTransforms`, and for the same reason: the
+  // editor's validation pass keys off column state's identity.
+  const columns = [
+    {
+      column_name: 'event_time',
+      partition_value_transform: 'unix_timestamp(:value)',
+    },
+    { column_name: 'country' },
+  ];
+
+  expect(clearUnmappedTransforms(MAPPED_TO_EVENT_TIME, columns)).toBe(columns);
+});
+
+test('the value transform does not follow the default datetime column', () => {
+  // A transform states how *this* column relates to the partition column, so
+  // re-asserting it on a different one turns mirroring on with an expression
+  // nobody wrote for it -- and the rows it prunes are silently wrong.
   const columns = [
     {
       column_name: 'event_time',
@@ -280,12 +468,10 @@ test('the mapping follows the default datetime column to its new home', () => {
     partition_value_transform: null,
     partition_transform_is_monotonic: false,
   });
-  // The ordering declaration travels too: leaving it behind would quietly
-  // downgrade a mirrored range to a mirrored equality.
-  expect(moved[1]).toMatchObject({
-    partition_value_transform: 'unix_timestamp(:value)',
-    partition_transform_is_monotonic: true,
-  });
+  // The destination never held a mapping, so it is handed back untouched --
+  // which is the same thing as holding no transform.
+  expect(moved[1].partition_value_transform ?? null).toBeNull();
+  expect(moved[1].partition_transform_is_monotonic ?? false).toBe(false);
 });
 
 test('following the default datetime column leaves no transform behind anywhere', () => {
@@ -310,10 +496,10 @@ test('following the default datetime column leaves no transform behind anywhere'
   });
 });
 
-test('the mapping cannot follow the default datetime column onto a column this list has no row for', () => {
+test('moving the default datetime column onto a column this list has no row for clears too', () => {
   // A calculated column can be the default datetime column but never renders a
-  // transform editor, so carrying one there would make a live mapping the owner
-  // has no way to see or undo.
+  // transform editor, so a transform left live there is one the owner has no
+  // way to see or undo.
   const columns = [
     {
       column_name: 'event_time',
@@ -330,18 +516,17 @@ test('the mapping cannot follow the default datetime column onto a column this l
   });
 });
 
-test('a default datetime column with no transform carries none over', () => {
-  // Annotated so `applyImplicitMappingMove` infers its type parameter as the
-  // full column, not the two-key literal: the assertion below reads a field the
-  // literal does not carry.
-  const columns: PartitionMappingColumn[] = [
+test('moving the default datetime column when nothing holds a mapping is not a change', () => {
+  // `clearMappingTransforms` hands back the same array when no column held
+  // anything, and the editor's validation effect keys off column identity.
+  const columns = [
     { column_name: 'event_time' },
     { column_name: 'event_time2' },
   ];
 
-  const moved = applyImplicitMappingMove(columns, 'event_time', 'event_time2');
-
-  expect(moved[1].partition_value_transform ?? null).toBeNull();
+  expect(applyImplicitMappingMove(columns, 'event_time', 'event_time2')).toBe(
+    columns,
+  );
 });
 
 test('re-selecting the same default datetime column leaves the mapping alone', () => {
@@ -381,7 +566,12 @@ test('pre-filling the identity :value auto-declares the transform monotonic', ()
   // the box for the owner rather than making them assert what cannot be false.
   const columns: PartitionMappingColumn[] = [{ column_name: 'country' }];
 
-  const moved = applyMappingMove(columns, 'country', ':value');
+  const moved = applyMappingMove(
+    MAPPED_TO_EVENT_TIME,
+    columns,
+    'country',
+    ':value',
+  );
 
   expect(moved[0]).toMatchObject({
     partition_value_transform: ':value',
@@ -397,6 +587,7 @@ test('pre-filling an engine default leaves monotonicity for the owner', () => {
   ];
 
   const moved = applyMappingMove(
+    MAPPED_TO_EVENT_TIME,
     columns,
     'event_time',
     'unix_timestamp(:value)',
@@ -453,6 +644,92 @@ test('a non-temporal column previews the IN shape a category filter produces', (
   expect(sampleValuesFor({ column_name: 'event_time', is_dttm: true })).toEqual(
     ['2026-01-15 00:00:00'],
   );
+});
+
+test('a temporal column stored as a number previews in its stored representation', () => {
+  expect(
+    sampleValuesFor({
+      column_name: 'event_epoch',
+      type: 'BIGINT',
+      is_dttm: true,
+      python_date_format: 'epoch_s',
+    }),
+  ).toEqual(['1768435200']);
+  expect(
+    sampleValuesFor({
+      column_name: 'event_epoch_ms',
+      type: 'BIGINT',
+      is_dttm: true,
+      python_date_format: 'epoch_ms',
+    }),
+  ).toEqual(['1768435200000']);
+  // A numeric temporal column without an epoch format still gets numbers,
+  // never a timestamp string its own type cannot hold.
+  expect(
+    sampleValuesFor({ column_name: 'ds_int', type: 'INTEGER', is_dttm: true }),
+  ).toEqual(['2025', '2026']);
+  expect(
+    sampleValuesFor({
+      column_name: 'event_time',
+      type: 'TIMESTAMP',
+      is_dttm: true,
+      python_date_format: 'epoch_s',
+    }),
+  ).toEqual(['2026-01-15 00:00:00']);
+});
+
+test('a temporal column stored as formatted text previews in that format', () => {
+  // A `STRING` column flagged temporal with `%Y%m%d` compares `'20260115'`:
+  // `dttm_sql_literal` falls back to `python_date_format` when the engine's
+  // `convert_dttm` answers nothing. Previewing the ISO timestamp evaluated the
+  // transform on a sample no chart bound produces, so a working mapping --
+  // `PARSE_DATE('%Y%m%d', :value)` onto a `DATE` key -- reported as broken.
+  expect(
+    sampleValuesFor({
+      column_name: 'ds',
+      type: 'STRING',
+      is_dttm: true,
+      python_date_format: '%Y%m%d',
+    }),
+  ).toEqual(['20260115']);
+  expect(
+    sampleValuesFor({
+      column_name: 'ds',
+      type: 'VARCHAR(20)',
+      is_dttm: true,
+      python_date_format: '%Y-%m-%d %H:%M:%S',
+    }),
+  ).toEqual(['2026-01-15 00:00:00']);
+  expect(
+    sampleValuesFor({
+      column_name: 'ds',
+      type: 'TEXT',
+      is_dttm: true,
+      python_date_format: '%d/%m/%Y',
+    }),
+  ).toEqual(['15/01/2026']);
+
+  // A declared temporal type keeps the ISO sample: the engine renders its own
+  // literal, so the format never reaches the comparison.
+  expect(
+    sampleValuesFor({
+      column_name: 'event_time',
+      type: 'TIMESTAMP',
+      is_dttm: true,
+      python_date_format: '%Y%m%d',
+    }),
+  ).toEqual(['2026-01-15 00:00:00']);
+
+  // And a directive the renderer does not know falls back rather than sending
+  // a sample with a literal `%c` in it.
+  expect(
+    sampleValuesFor({
+      column_name: 'ds',
+      type: 'STRING',
+      is_dttm: true,
+      python_date_format: '%c',
+    }),
+  ).toEqual(['2026-01-15 00:00:00']);
 });
 
 test('"map a column" suggests a temporal column over whatever sorts first', () => {
@@ -595,7 +872,31 @@ test('a mapped column override that is not on the dataset stops the save', () =>
   expect(issues[0].message).toContain('dropped_col');
 });
 
-test('a column mapped onto itself stops the save', () => {
+test('an explicit self-mapping stops the save', () => {
+  // An override naming the partition column is something the owner asked for
+  // and can take back, so it is blocking -- Tier 1 in
+  // `validate_partition_mapping` too.
+  const issues = partitionMappingErrors(
+    {
+      main_dttm_col: 'event_time',
+      partition_column: 'dt_epoch',
+      partition_mapped_column: 'dt_epoch',
+    },
+    COLUMNS,
+  );
+
+  expect(issues).toHaveLength(1);
+  expect(issues[0].field).toBe('partition_column');
+  expect(issues[0].message).toContain('mapped onto itself');
+  expect(issues[0].blocking).toBe(true);
+});
+
+test('an implicit self-mapping warns but does not stop the save', () => {
+  // No override, and `main_dttm_col` happens to equal the partition column.
+  // Tier 2 in `validate_partition_mapping` on purpose: metadata sync used to
+  // be able to produce this state, and blocking it disabled Save on such a
+  // dataset even for a description-only edit -- exactly the unsaveable dataset
+  // the backend comment says it avoids.
   const issues = partitionMappingErrors(
     {
       main_dttm_col: 'dt_epoch',
@@ -608,6 +909,7 @@ test('a column mapped onto itself stops the save', () => {
   expect(issues).toHaveLength(1);
   expect(issues[0].field).toBe('partition_column');
   expect(issues[0].message).toContain('mapped onto itself');
+  expect(issues[0].blocking).toBe(false);
 });
 
 test('Jinja in the transform stops the save', () => {

@@ -79,6 +79,7 @@ from superset.connectors.sqla.partition_mapping import (
     mirrorable_operators,
     partition_mapping_supported,
     resolve_partition_mapping,
+    value_round_trips,
 )
 from superset.connectors.sqla.utils import (
     get_columns_description,
@@ -182,6 +183,27 @@ def _is_calculated_column(column: TableColumn) -> bool:
     name = column.column_name or ""
     quoted_path = ".".join(f'"{part}"' for part in name.split("."))
     return column.expression != quoted_path
+
+
+def _without_shadowed_nested_fields(
+    new_columns: list[ResultSetColumnType],
+    old_columns_by_name: dict[str, TableColumn],
+) -> list[ResultSetColumnType]:
+    """Drop expanded nested fields named like an existing calculated column.
+
+    Such calculated columns (e.g. ``calendar.day`` on a BigQuery STRUCT) are
+    user-defined and must keep their expression; ``fetch_metadata`` adds them
+    back with the other calculated columns.
+    """
+    return [
+        col
+        for col in new_columns
+        if not (
+            col.get("nested_field")
+            and (old_column := old_columns_by_name.get(col["column_name"]))
+            and _is_calculated_column(old_column)
+        )
+    ]
 
 
 METRIC_FORM_DATA_PARAMS = [
@@ -816,7 +838,9 @@ class BaseDatasource(
         match it. Since the fields are different for the different
         connectors, the implementation uses ``update_from_object_fields``
         which can be defined for each connector and
-        defines which fields should be synced"""
+        defines which fields should be synced. Note that this replaces rather
+        than merges: a key omitted from ``obj`` clears the field rather than
+        leaving it untouched."""
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
@@ -2073,6 +2097,12 @@ class SqlaTable(
                 if active and transform
                 else None
             ),
+            # The transform `evaluable` above is a verdict *about*. The dataset
+            # editor applies a stored refusal only while the expression in the
+            # box still is this one -- without it, reopening a dataset whose
+            # stored transform had failed and then fixing the transform left the
+            # banner reporting the old failure against the new text.
+            "evaluated_transform": transform if active else None,
             "is_monotonic": is_monotonic,
             # How much of a value this engine compares on the mapped column, so
             # the Explore indicator can replay the gates it otherwise cannot
@@ -2083,6 +2113,21 @@ class SqlaTable(
             # helper the query path uses, for the same reason
             # `mirrorable_operators` is.
             "literal_resolution": self._column_literal_resolution(mapped_column).value,
+            # Which characters this database's driver and engine would not
+            # spell the same way, for the same reason and read by the same
+            # glyph: a filter value carrying one is declined by the query path
+            # (see `partition_mapping.literal_round_trips`), and the glyph has
+            # no way to work that out for itself -- it is a property of the
+            # renderer and lexer pair, not of the value. Reported as the
+            # characters rather than as one flag so an engine that disagrees
+            # about only one of them, as Postgres does about the backslash,
+            # does not cost the other its glyph. Asked through the query path's
+            # own function, at the two characters that can end a literal early.
+            "unmirrorable_value_chars": [
+                character
+                for character in ("'", "\\")
+                if not value_round_trips(self.database, f"a{character}b")
+            ],
             "mirrorable_operators": sorted(
                 operator.value
                 for operator in mirrorable_operators(
@@ -2564,6 +2609,7 @@ class SqlaTable(
         old_columns_by_name: dict[str, TableColumn] = {
             col.column_name: col for col in old_columns
         }
+        new_columns = _without_shadowed_nested_fields(new_columns, old_columns_by_name)
         results = MetadataResult(
             removed=[
                 col

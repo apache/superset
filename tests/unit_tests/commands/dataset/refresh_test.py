@@ -349,6 +349,9 @@ def test_refresh_disarms_a_transform_the_new_default_datetime_column_holds(
     `fetch_metadata` can also *set* `main_dttm_col`, which moves the effective
     mapped column when no override is stored -- bringing a transform parked on
     the newly-default column live under a mapping nobody authored.
+
+    Which is why the cleanup runs on both sides of the move. See the assertion
+    at the end for what each side catches.
     """
     dataset = _mapped_dataset()
     dataset.partition_mapped_column = None
@@ -373,8 +376,18 @@ def test_refresh_disarms_a_transform_the_new_default_datetime_column_holds(
         RefreshDatasetCommand(model_id=dataset.id).run()
 
     transforms = {c.column_name: c.partition_value_transform for c in dataset.columns}
-    # `other_time` is now the effective mapped column, so the transform it was
-    # holding is the one that survives -- and `event_time`'s, which the mapping
-    # no longer mirrors, is the one that must go.
+    # Both go, and that is the point. `other_time`'s transform was *parked*: no
+    # row rendered it, nobody asked for it, and the only thing that made it
+    # effective was `fetch_metadata` moving `main_dttm_col`. Cleared only after
+    # the move, the cleanup resolved the new mapping, found `other_time`
+    # effective and skipped it -- so an epoch transform nobody chose went live
+    # and started adding `other_time`-derived predicates to every filter,
+    # dropping rows that do not match. Meanwhile `event_time`'s real transform,
+    # the one the owner actually wrote, was the one erased.
+    #
+    # Running the cleanup on both sides of the move leaves the mapping inert
+    # instead: it points at `other_time` with no transform, which is a state the
+    # owner can see in the editor and fix deliberately. This is what
+    # `DatasetDAO.update` already does, for the same reason.
     assert transforms["event_time"] is None
-    assert transforms["other_time"] == "to_unixtime(:value)"
+    assert transforms["other_time"] is None

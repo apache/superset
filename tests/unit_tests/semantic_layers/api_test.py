@@ -28,6 +28,7 @@ from pytest_mock import MockerFixture
 from werkzeug.test import TestResponse
 
 from superset.commands.semantic_layer.exceptions import (
+    SemanticDeleteDependentsError,
     SemanticLayerCreateFailedError,
     SemanticLayerDeleteFailedError,
     SemanticLayerForbiddenError,
@@ -389,6 +390,10 @@ def test_configuration_schema_with_partial_config(
         {"snowflake": mock_cls},
         clear=True,
     )
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
+    )
 
     response = client.post(
         "/api/v1/semantic_layer/schema/configuration",
@@ -396,6 +401,75 @@ def test_configuration_schema_with_partial_config(
     )
 
     assert response.status_code == 200
+    mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_read_only_user_gets_static_schema(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Without write access the submitted configuration is not used at all."""
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.get_configuration_schema.return_value = {"type": "object"}
+
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"metricflow": mock_cls},
+        clear=True,
+    )
+    can_access: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        side_effect=lambda permission, view: permission != "can_write",
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "metricflow", "configuration": {"admin_host": "example"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"] == {"type": "object"}
+    can_access.assert_any_call("can_write", "SemanticLayer")
+    mock_cls.configuration_class.model_validate.assert_not_called()
+    mock_cls.get_configuration_schema.assert_called_once_with(None)
+
+
+@SEMANTIC_LAYERS_APP
+def test_configuration_schema_writer_gets_enriched_schema(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """With write access the submitted configuration enriches the schema."""
+    mock_config_obj: MagicMock = MagicMock()
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.configuration_class.model_json_schema.return_value = {"properties": {}}
+    mock_cls.configuration_class.model_validate.return_value = mock_config_obj
+    mock_cls.get_configuration_schema.return_value = {
+        "type": "object",
+        "properties": {"account": {"enum": ["a1"]}},
+    }
+
+    mocker.patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"metricflow": mock_cls},
+        clear=True,
+    )
+    can_access: MagicMock = mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "metricflow", "configuration": {"admin_host": "example"}},
+    )
+
+    assert response.status_code == 200
+    assert response.json["result"]["properties"] == {"account": {"enum": ["a1"]}}
+    can_access.assert_any_call("can_write", "SemanticLayer")
     mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
 
 
@@ -931,6 +1005,89 @@ def test_delete_semantic_layer_failed(
     response = client.delete(f"/api/v1/semantic_layer/{uuid_lib.uuid4()}")
 
     assert response.status_code == 422
+
+
+@SEMANTIC_LAYERS_APP
+@pytest.mark.parametrize(
+    ("path", "command"),
+    [
+        ("/api/v1/semantic_view/1", "DeleteSemanticViewCommand"),
+        ("/api/v1/semantic_view/?q=(1,2)", "BulkDeleteSemanticViewCommand"),
+        (
+            "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001",
+            "DeleteSemanticLayerCommand",
+        ),
+    ],
+)
+def test_semantic_delete_reports_dependents_as_conflict(
+    client: Any,
+    full_api_access: None,
+    mocker: MockerFixture,
+    path: str,
+    command: str,
+) -> None:
+    """Every REST delete entry point returns the bounded conflict details."""
+    import prison as rison_lib
+
+    dependent: dict[str, str | int] = {
+        "type": "chart",
+        "id": 7,
+        "name": "Revenue",
+    }
+    mock_command: MagicMock = mocker.patch(f"superset.semantic_layers.api.{command}")
+    mock_command.return_value.run.side_effect = SemanticDeleteDependentsError(
+        25, [dependent], 24
+    )
+
+    request_path: str = (
+        f"/api/v1/semantic_view/?q={rison_lib.dumps([1, 2])}"
+        if command == "BulkDeleteSemanticViewCommand"
+        else path
+    )
+    response: TestResponse = client.delete(request_path)
+
+    assert response.status_code == 409
+    assert response.json["total"] == 25
+    assert response.json["dependents"] == [dependent]
+    assert response.json["inaccessible_count"] == 24
+    assert response.json["message"] == (
+        "Semantic source is used by 25 dependent assets and cannot be deleted."
+    )
+
+
+@pytest.mark.parametrize(
+    ("api_class", "method"),
+    [
+        (SemanticViewRestApi, "delete"),
+        (SemanticViewRestApi, "bulk_delete"),
+        (SemanticLayerRestApi, "delete"),
+    ],
+)
+def test_semantic_delete_openapi_conflict_schema(
+    api_class: type[SemanticViewRestApi] | type[SemanticLayerRestApi], method: str
+) -> None:
+    """The generated operation documents every field in the 409 response."""
+    api: SemanticViewRestApi | SemanticLayerRestApi = object.__new__(api_class)
+    operations: dict[str, Any] = {}
+    api.operation_helper(
+        path="/api/v1/semantic_source/delete",
+        operations=operations,
+        methods=["DELETE"],
+        func=getattr(api, method),
+    )
+    schema: dict[str, Any] = operations["delete"]["responses"][409]["content"][
+        "application/json"
+    ]["schema"]
+    assert set(schema["required"]) == {
+        "message",
+        "total",
+        "dependents",
+        "inaccessible_count",
+    }
+    assert schema["properties"]["dependents"]["maxItems"] == 20
+    assert schema["properties"]["dependents"]["items"]["properties"]["type"][
+        "enum"
+    ] == ["chart", "dashboard", "alert", "report"]
 
 
 @SEMANTIC_LAYERS_APP
@@ -1482,6 +1639,10 @@ def test_configuration_schema_enrichment_error_fallback(
         "superset.semantic_layers.api.registry",
         {"snowflake": mock_cls},
         clear=True,
+    )
+    mocker.patch(
+        "superset.semantic_layers.api.security_manager.can_access",
+        return_value=True,
     )
 
     response = client.post(

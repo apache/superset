@@ -22,6 +22,7 @@ export interface PartitionMappingColumn {
   column_name: string;
   type?: string | null;
   is_dttm?: boolean;
+  python_date_format?: string | null;
   filterable?: boolean;
   groupby?: boolean;
   partition_value_transform?: string | null;
@@ -37,11 +38,22 @@ export interface PartitionMappingDatasource {
   partition_value_transform_default?: string | null;
   supports_partition_filter_mapping?: boolean;
   /**
+   * The dataset's columns *as saved*. `DatasourceEditor` never writes
+   * `columns` back onto its `datasource` state -- the props-sync effect
+   * re-seeds the two column collections instead -- so this stays the set the
+   * modal opened with, which is what the preview endpoint resolves against.
+   */
+  columns?: { column_name?: string }[];
+  /**
    * The backend's own read of the stored mapping. Only `evaluable` is read
    * here, and only to stop the banner claiming a mirror the last probe of the
    * stored transform refused -- the rest of the summary is Explore's.
    */
-  partition_filter_mapping?: { evaluable?: boolean | null } | null;
+  partition_filter_mapping?: {
+    evaluable?: boolean | null;
+    /** The transform `evaluable` is a verdict about. */
+    evaluated_transform?: string | null;
+  } | null;
 }
 
 /** Response shape of `POST /api/v1/dataset/<pk>/partition_mapping/preview/`. */
@@ -55,6 +67,10 @@ export interface PartitionMappingPreview {
     | 'parse'
     | 'validation'
     | 'operator'
+    | 'resolution'
+    | 'offset'
+    | 'escaping'
+    | 'unsaved'
     | 'engine'
     | 'type'
     | 'unconfigured';
@@ -89,4 +105,11 @@ export interface PartitionMappingIssue {
     | 'partition_mapped_column'
     | 'partition_value_transform';
   message: string;
+  /**
+   * Whether this issue stops the save. Absent means it does -- every issue did
+   * before one of them needed not to, and defaulting the other way would have
+   * silently un-blocked the rest. Mirrors `validate_partition_mapping`'s two
+   * tiers; see the self-mapping branch in `partitionMappingErrors`.
+   */
+  blocking?: boolean;
 }

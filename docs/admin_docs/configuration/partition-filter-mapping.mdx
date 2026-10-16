@@ -47,8 +47,12 @@ FEATURE_FLAGS = {
 }
 ```
 
-Configure it as a **static boolean**. `FEATURE_FLAGS` also accepts per-request callables,
-but a flag that resolves differently per user or tenant would let a user with the feature
+Configure it as a **static boolean**. A callable placed in `FEATURE_FLAGS` is *not*
+evaluated: `FeatureFlagManager` stores the configured values unchanged, so
+`"PARTITION_FILTER_MAPPING": lambda: False` resolves to a truthy function object and turns
+the feature **on**. Per-request resolution comes only from `GET_FEATURE_FLAGS_FUNC` and
+`IS_FEATURE_ENABLED_FUNC`, and for this flag both must return the same answer for every
+user: a flag that resolves differently per user or tenant would let a user with the feature
 off read a cached chart result that was produced from pruned SQL by a user with it on.
 
 ### Supported engines
@@ -122,6 +126,20 @@ an exception: `to_char(:value, 'YYYYMMDD')`, `date(:value)` and
 partition key, which is exactly what a daily-partitioned table wants. Check the
 box for these.
 
+One caveat if your partition column is **temporal** and the transform answers with *text*: a
+mirror such as `part_date = '20260115'` compares a date column against a string, which is an
+implicit coercion the database has to actually have. **PostgreSQL and Redshift** do, in both
+the ISO and unseparated spellings, so a text day key mirrors there. Trino has no
+varchar-to-date comparison at all, BigQuery coerces only a canonical `YYYY-MM-DD` *literal*,
+and Snowflake reads an all-digit string as epoch seconds — on those the predicate would fail
+the whole query rather than merely lose its pruning, so Superset declines it and the preview
+says why. Any other engine declines too, until it is confirmed and declared.
+
+If your partition column is temporal and your transform returns text, the robust answer is
+to make the transform's return type match the column: `date(:value)` or
+`cast(... as date)` rather than `to_char(...)`. A *numeric* partition column — the
+`unix_timestamp(:value)` / epoch shape — is unaffected by any of this.
+
 When the box is unchecked, `=` and `IN` filters still mirror; ranges do not.
 
 ## What is and isn't mirrored
@@ -154,6 +172,12 @@ case-insensitively would mirror no `=` or `IN` filter through a text mapping. Nu
 temporal comparison is exact everywhere, and ranges are unaffected either way — checking
 **Transform preserves ordering** is already a statement about the column's own ordering.
 
+A **fixed-width** character type is its own case, on every engine: `CHAR(2)`, `CHARACTER(2)`
+and PostgreSQL's `bpchar` compare without their trailing blanks, so a stored `'US'` matches a
+filter for `'US '` while `lower('US ')` does not match the partition key. Mapping such a
+column stores and shows, and `=` and `IN` do not mirror through it. `VARCHAR` and `CHARACTER
+VARYING` are unaffected.
+
 One case Superset cannot check for you: a column that declares its own collation, such as
 `country COLLATE NOCASE`, on an engine that is otherwise exact. Nothing in the metadata
 exposes that, so it falls under the same pipeline assumption as the partition key itself.
@@ -178,9 +202,28 @@ compares coarsely, a datetime typed in any other format — `07/06/2026 10:08:11
 `2026/07/06 10:08:11`, `July 6 2026 10:08:11` — does not mirror, for any operator, and no
 pruning indicator appears. The filter itself is unaffected; the query is correct and simply
 reads the whole table. Write the bound in ISO 8601, or pick it from the filter popover, and
-the mirror comes back. None of this applies where the engine compares the whole value: on a
-`TIMESTAMP` column any format your database accepts mirrors, because there is nothing left
-for Superset to resolve.
+the mirror comes back. Most of this stops applying where the engine compares the whole
+value: on a `TIMESTAMP` column any format your database accepts mirrors, because there is
+nothing left for Superset to resolve.
+
+**One exception on every column: a UTC offset.** A bound written as
+`2026-01-01T01:00:00+01:00` does not mirror, on a `TIMESTAMP` column as much as on a `DATE`
+one, and no pruning indicator appears. Your transform is evaluated by the database in its
+own time frame — `CAST(:value AS TIMESTAMP)` discards the offset rather than converting
+through it — so a mirror built from the offset-bearing value could ask for a partition the
+matching rows are not in. Write the bound without an offset, in the frame the column is
+stored in, and it mirrors. The preview says so in those words when a sample carries one.
+
+**One exception on some databases: a quote or a backslash.** A value is written into the
+probe as a literal, and on some databases the driver that writes it and the engine that reads
+it disagree about what a quote or a backslash inside it means -- Hive and Spark honour a
+backslash escape and not a doubled apostrophe, which is the other way round from the driver.
+Superset checks each value rather than assuming either spelling, so where the two disagree a
+filter value carrying one of those characters does not mirror, for any operator, and no
+pruning indicator appears. The query is unaffected and simply reads more partitions. Values
+carrying neither still mirror everywhere, and which of the two is affected depends on the
+database: Hive and Spark decline both, Postgres declines only a backslash, and MySQL, SQLite
+and Trino decline neither. The preview says so in those words when a sample carries one.
 
 If `=` and `IN` on a date column matter to you, map a `TIMESTAMP` column instead: the engine
 then compares the whole value and every operator mirrors.
@@ -209,6 +252,10 @@ Known gaps, all of which are out of scope rather than bugs:
   predicate shape from translated values, so there is no operator/value pair to mirror.
 - Dashboard native filters and cross-filters *do* mirror — they arrive as ordinary filters —
   they just carry no visual indicator in the filter bar.
+- **The Explore glyph is advisory.** It is computed from the dataset's mapping, which knows
+  nothing about any one chart's SQL. A virtual dataset whose SQL consumes a filter through
+  `get_filters(..., remove_filter=True)` gets neither that filter nor its mirror — the
+  query path skips both — yet the glyph still shows. **View query** is the authority.
 
 ## The assumption this rests on
 
@@ -290,6 +337,14 @@ refused when you save:
   probe's own query.
 - More than 1,024 characters. A transform is one hand-written expression, and the stored
   value is parsed on every Explore load.
+- Anything that changes data — `nextval(:value)`, a call to a stored procedure, a
+  PostgreSQL large-object writer. The transform is evaluated against the engine to check
+  that it mirrors, and that evaluation is cached and repeated, so it has to be a read.
+
+Only the mapped column may carry a transform. Setting one on any other column through the
+API, or in an import bundle, has no effect: Superset drops it on write, because a value parked on a column the
+mapping does not mirror is invisible in the editor and would go live the moment the mapped
+column resolved back to it.
 
 ## Related configuration
 

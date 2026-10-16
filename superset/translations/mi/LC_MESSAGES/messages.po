@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-05 23:38+0000\n"
+"POT-Creation-Date: 2026-10-14 20:29+0000\n"
 "PO-Revision-Date: 2026-01-25 16:09+1300\n"
 "Last-Translator: karo.co.nz\n"
 "Language: mi\n"
@@ -30,7 +30,7 @@ msgstr ""
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=utf-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Generated-By: Babel 2.17.0\n"
+"Generated-By: Babel 2.18.0\n"
 
 #, python-format
 msgid ""
@@ -315,12 +315,6 @@ msgid "%(object)s does not exist in this database."
 msgstr "Karekau %(object)s i roto i tēnei pātengi raraunga."
 
 #, python-format
-msgid ""
-"%(partition)s is hidden from Explore, but no filter is mirrored onto it —"
-" queries will scan every partition until a column is mapped."
-msgstr ""
-
-#, python-format
 msgid "%(prefix)s %(title)s"
 msgstr "%(prefix)s %(title)s"
 
@@ -529,6 +523,12 @@ msgid ""
 msgstr ""
 "Kāore i taea te tohu %s taonga nā te mea kāore ō mōtika whakatika ki ngā "
 "mea katoa kua tīpakohia."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy, python-format
 msgid "%s metric"
@@ -1037,6 +1037,13 @@ msgid ""
 "ordering, which this one is not declared to do."
 msgstr ""
 
+#, python-format
+msgid ""
+"A %(operator)s filter on this text column is not mirrored: the database "
+"may treat strings that differ in case or trailing spaces as equal, and "
+"the mirrored predicate could then drop rows the filter keeps."
+msgstr ""
+
 msgid "A Big Number"
 msgstr "He Tau Nui"
 
@@ -1119,6 +1126,20 @@ msgstr ""
 "Pandas a Python mō ngā momo raraunga e tautokona ana."
 
 msgid ""
+"A filter value carrying a UTC offset is not mirrored: a transform is "
+"evaluated in the database's own time frame, so the mirrored predicate "
+"could ask for a partition the matching rows are not in. Write the bound "
+"without an offset to mirror this filter."
+msgstr ""
+
+msgid ""
+"A filter value containing a quote or a backslash is not mirrored on this "
+"database: the driver and the database do not agree on how to write it "
+"into a query, so the transform would be evaluated at a value the filter "
+"does not compare. Filters whose values carry neither still mirror."
+msgstr ""
+
+msgid ""
 "A full URL pointing to the location of the built plugin (could be hosted "
 "on a CDN for example)"
 msgstr ""
@@ -1194,7 +1215,29 @@ msgstr ""
 msgid "A partition value transform cannot call %(functions)s."
 msgstr ""
 
+msgid ""
+"A partition value transform cannot change data. It is evaluated against "
+"the database to check that it mirrors, so it has to be a read."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot contain a MySQL executable comment, "
+"which the database executes and every validator reads as a comment."
+msgstr ""
+
 msgid "A partition value transform cannot contain a sub-query."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot name anything through a U&\"...\" "
+"escape sequence, which the database decodes and every validator reads "
+"literally."
+msgstr ""
+
+msgid ""
+"A partition value transform cannot read a sequence. NEXTVAL advances the "
+"sequence every time it is evaluated, and the transform is evaluated on a "
+"cache schedule."
 msgstr ""
 
 msgid ""
@@ -1233,6 +1276,16 @@ msgstr ""
 "kauwhata."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
 msgstr ""
 
 msgid ""
@@ -1280,6 +1333,18 @@ msgstr "I puta he wā-pau i te tangohanga o tētahi hopuataata."
 
 msgid "A valid color scheme is required"
 msgstr "E hiahiatia ana he kaupapa tae whaimana"
+
+msgid ""
+"A value transform cannot contain a MySQL executable comment (/*! ... */ "
+"or /*M! ... */). Those are comments to every validator and statement text"
+" to the database, so what would run is not what was checked."
+msgstr ""
+
+msgid ""
+"A value transform cannot name anything through a U&\"...\" escape "
+"sequence. The database decodes it and every validator reads it literally,"
+" so what would run is not what was checked."
+msgstr ""
 
 #, python-format
 msgid ""
@@ -1480,6 +1545,11 @@ msgstr "Tāpiri Matohi"
 
 msgid "Add an annotation layer"
 msgstr "Tāpiri papa tohu"
+
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
 
 msgid "Add an item"
 msgstr "Tāpiri mea"
@@ -1855,6 +1925,9 @@ msgstr "I kitea e te Matohi he hapa i te whakatutukitanga o tētahi pātai."
 msgid "Alert is active"
 msgstr "Kei te hohe te matohi"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Ingoa matohi"
 
@@ -1910,6 +1983,18 @@ msgstr "Matohi"
 msgid "Alerts & Reports"
 msgstr "Matohi me ngā Pūrongo"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "Matohi me ngā pūrongo"
 
@@ -1919,6 +2004,9 @@ msgstr "Whakarite +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Whakaatu tīwae katoa"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Katoa"
@@ -1945,6 +2033,9 @@ msgstr "Āhuahanga"
 
 msgid "All filters"
 msgstr "Tātari katoa"
+
+msgid "All groupable columns"
+msgstr ""
 
 msgid "All panels"
 msgstr "Papa katoa"
@@ -2026,6 +2117,9 @@ msgstr "Ka taea te tīpako i ngā uara maha"
 msgid "Allowed Domains (comma separated)"
 msgstr "Rohe Whakāetia (māmā wehea)"
 
+msgid "Allowed e-mail domains"
+msgstr ""
+
 msgid "Alphabetical"
 msgstr "Arapū"
 
@@ -2055,6 +2149,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "Tātari i te tīwae wā matua i ngā wā katoa"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "I Puta He Hapa"
@@ -2337,9 +2437,6 @@ msgstr "I puta he hapa i te poroporo o te kī."
 msgid "An error occurred while pruning logs "
 msgstr "I puta he hapa i te puretanga o ngā rārangi "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -2358,6 +2455,9 @@ msgstr ""
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "I puta he hapa i te whakaatutanga o te whakakitenga: %s"
+
+msgid "An error occurred while saving the configuration"
+msgstr ""
 
 #, fuzzy
 msgid "An error occurred while saving the semantic view"
@@ -2578,6 +2678,9 @@ msgstr ""
 "Ka taea te tāpiri i ngā pātengi raraunga katoa e whakāe ana i ngā hononga"
 " mā ngā URI SQL Alchemy. Akona me pēhea te hono i tētahi taraiwa pātengi "
 "raraunga "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -2976,6 +3079,8 @@ msgstr "Hoki"
 msgid "Back to all"
 msgstr "Hoki ki te katoa"
 
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Tuarongo"
 
@@ -3212,6 +3317,9 @@ msgstr "Rahi pōro"
 msgid "Bubble size number format"
 msgstr "Hōputu tau rahi pōro"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "Tohu wehe peeke"
 
@@ -3346,6 +3454,9 @@ msgstr "Ehara i te kīanga SELECT te pātai CVAS (hanga tirohanga hei tīpako)."
 
 msgid "Cache Timeout (seconds)"
 msgstr "Wā Kore-mahi Keteroki (hēkona)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -4281,11 +4392,18 @@ msgstr "SQL Kua Tāruahia!"
 msgid "Collapse"
 msgstr "Hīngonga rārangi"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 #, fuzzy
 msgid "Collapse All"
 msgstr "Hīngonga katoa"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4296,6 +4414,9 @@ msgstr "Hīngonga papa raraunga"
 
 msgid "Collapse row"
 msgstr "Hīngonga rārangi"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Whakaiti tautuhinga"
@@ -4494,7 +4615,9 @@ msgstr ""
 msgid "Column type"
 msgstr "Momo tīwae"
 
-msgid "Column used for partition pruning on this table."
+msgid ""
+"Column used for partition pruning on this table. Its Is filterable and Is"
+" dimension settings decide whether Explore offers it."
 msgstr ""
 
 msgid "Columnar upload"
@@ -4562,6 +4685,9 @@ msgstr "Tīwae hei pānui"
 #, fuzzy
 msgid "Columns to show in the tooltip."
 msgstr "Kītukutuku pane tīwae"
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Whakakotahi ine"
@@ -4811,6 +4937,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Kei roto he kuputuhi (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "Hōputu ihirangi"
 
@@ -4851,6 +4983,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -4951,6 +5086,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Kāore i taea te hono ki te pātengi raraunga: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Kāore i taea te tiki i ngā kauwhata katoa kua tiakina"
 
@@ -4980,6 +5119,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Kāore i taea te whakaoti i te ingoa tūmau: \"%(host)s\"."
@@ -5003,6 +5147,12 @@ msgstr "Tatau"
 
 msgid "Country"
 msgstr "Whenua"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Kaupapa Tae Whenua"
@@ -7143,6 +7293,9 @@ msgstr "Whakamana Matrixify"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7555,6 +7708,9 @@ msgstr "Whakakorehia ngā uara kua tīpakohia"
 msgid "Excluded subjects"
 msgstr "Ngā kaupapa kua aukatia"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "SQL kua whakatutukia"
 
@@ -7570,6 +7726,10 @@ msgstr "Rārangi whakatutuki"
 msgid "Existing dataset"
 msgstr "Rārangi raraunga kei te tīari"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7579,9 +7739,16 @@ msgstr "Puta i te mata-katoa"
 msgid "Expand"
 msgstr "Whakawhānui"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 #, fuzzy
 msgid "Expand All"
 msgstr "Whakawhānui katoa"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Whakawhānui katoa"
@@ -7599,6 +7766,9 @@ msgstr "Whakawhānui rārangi"
 msgid "Expand settings"
 msgstr "Whakawhānui tautuhinga"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7612,6 +7782,12 @@ msgstr "Whakamātautau"
 #, fuzzy
 msgid "Expired"
 msgstr "Tūhura"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Tūhura"
@@ -7895,6 +8071,9 @@ msgstr "I rahua te uta i ngā raraunga kauwhata."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8144,6 +8323,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Tātari kauwhata"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "He uara taunoa tō te tātari"
 
@@ -8185,6 +8370,10 @@ msgstr "Tātari i ō kauwhata"
 
 msgid "Filters"
 msgstr "Tātari"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -8476,6 +8665,9 @@ msgstr ""
 " e tohu ana i tētahi rārangi hou. Hāngaitanga ECharts:\n"
 "{a} (raupapa), {b} (ingoa), {c} (uara), {d} (ōrau)"
 
+msgid "Format dates in email subjects"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8601,6 +8793,13 @@ msgstr "Tīwae GeoJson"
 msgid "GeoJson Settings"
 msgstr "Tautuhinga GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8706,6 +8905,9 @@ msgstr "Ingoa rōpū"
 #, fuzzy
 msgid "Group remaining as \"Others\""
 msgstr "Whakaropu i ngā toenga hei \"Ētahi Atu\""
+
+msgid "Groupable columns"
+msgstr ""
 
 #, fuzzy
 msgid "Grouping"
@@ -8825,6 +9027,11 @@ msgstr "Whakapae (Runga)"
 msgid "Horizontal alignment"
 msgstr "Whakarite whakapae"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Tūmau"
 
@@ -8868,11 +9075,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Nui rawa"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Waehere ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -9049,15 +9262,25 @@ msgstr "Whakauru he whakamārama ka tukuna me tō pūrongo"
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Whakauru whakamārama hei tuku me %s"
+
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
 
 msgid "Include series name as an axis"
 msgstr "Whakauru ingoa raupapa hei tukutuku"
 
 msgid "Include time"
 msgstr "Whakauru wā"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Piki"
@@ -9271,6 +9494,14 @@ msgstr "Waehere moni muhu i ngā ine kua tiakina"
 msgid "Invalid date/timestamp format"
 msgstr "Hōputu rā/waitohu muhu"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 msgid "Invalid executor type"
 msgstr "Momo kaiwhakatutuki muhu"
 
@@ -9331,6 +9562,9 @@ msgstr "Momo hua muhu: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Rolling_type muhu: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Tūnga muhu."
@@ -9440,6 +9674,9 @@ msgstr "Whirihora Tīwae"
 
 msgid "JSON Metadata"
 msgstr "Metadata JSON"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "Metadata json"
@@ -9719,6 +9956,11 @@ msgid "Leave blank to keep the current password"
 msgstr ""
 
 msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
+msgstr ""
+
+msgid ""
 "Leave on the deployment default unless you need to force asynchronous "
 "loading on or off for this dashboard."
 msgstr ""
@@ -9752,6 +9994,9 @@ msgstr "Uara mauī"
 
 msgid "Legacy"
 msgstr "Tawhito"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Kōrero"
@@ -9837,6 +10082,9 @@ msgstr "Rite (kore aro reta iti/nui)"
 #, fuzzy
 msgid "Limit"
 msgstr "TEPE"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "Momo tepe"
@@ -9983,6 +10231,9 @@ msgstr "Raraunga kua utaina i te keteroki"
 msgid "Loaded from cache"
 msgstr "Kua utaina mai i te keteroki"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "E uta ana..."
@@ -10097,6 +10348,10 @@ msgstr "Paepae Raro"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10252,6 +10507,11 @@ msgstr "Rahi tohu"
 
 msgid "Markers"
 msgstr "Tohu"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Momo tohu"
@@ -10670,6 +10930,9 @@ msgstr "Kei te ngaro ngā tawhā URL"
 msgid "Mixed Chart"
 msgstr "Kauwhata Whakananu"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Kua Whakarerekeahia"
 
@@ -10786,6 +11049,12 @@ msgid ""
 msgstr ""
 "Ka whakaae i ngā hōputu maha, tirohia te whare pukapuka Python "
 "geopy.points mō ētahi taipitopito atu"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Kaiwhakarea"
@@ -11012,6 +11281,9 @@ msgstr "Kāore he tātari kua whakahaeretia"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Kāore he tātari wātea."
 
@@ -11066,6 +11338,12 @@ msgstr "Kāore he pūtahi kei te whai i tēnei tohu i tēnei wā"
 
 msgid "No filter"
 msgstr "Kāore he tātari"
+
+#, python-format
+msgid ""
+"No filter is mirrored onto %(partition)s — queries will scan every "
+"partition until a column is mapped."
+msgstr ""
 
 msgid "No filter is selected."
 msgstr "Kāore i tīpakohia he tātari."
@@ -11122,6 +11400,9 @@ msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Kāore he tātari kua tāpiritia ki tēnei papatohu i tēnei wā."
 
 msgid "No partition column is set."
+msgstr ""
+
+msgid "No provider query is available for this run."
 msgstr ""
 
 msgid "No records found"
@@ -11314,8 +11595,15 @@ msgstr "Kāore i kitea te kauwhata"
 msgid "Not in"
 msgstr "Kāore i roto i"
 
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
+
 msgid "Not null"
 msgstr "Ehara i te kore"
+
+msgid "Not previewed yet"
+msgstr ""
 
 msgid "Not set"
 msgstr ""
@@ -11519,6 +11807,9 @@ msgstr "Ine kotahi, nui ake rānei hei whakaatu"
 msgid "One or more annotation layers failed loading."
 msgstr "I rahua te utanga o tētahi, nui ake rānei papa tohu."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Kua tīari kētia tētahi, nui ake rānei tīwae"
 
@@ -11558,11 +11849,17 @@ msgstr "Te Tapeke Anake"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Ko ngā kīanga `SELECT` anake e whakāetia ana"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Ka pā anake ina kāore te \"Momo Tapanga\" i tautuhia hei ōrau."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Ka pā anake ina tautuhia te \"Momo Tapanga\" ki te whakaatu i ngā uara."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -11630,6 +11927,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Huaki ripa Puna Raraunga"
+
+msgid "Open JSON"
+msgstr ""
 
 #, fuzzy
 msgid "Open SQL Lab in a new tab"
@@ -12468,13 +12768,18 @@ msgid "Prefix or suffix"
 msgstr "Kūmua, kūmuri rānei"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
 msgstr ""
 
 msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 msgid "Preview"
@@ -12841,6 +13146,12 @@ msgstr "E whakahou ana i ngā kauwhata"
 msgid "Refreshing columns"
 msgstr "E whakahou ana i ngā tīwae"
 
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
+
 #, fuzzy
 msgid "Register"
 msgstr "Tātari-i-mua"
@@ -12890,6 +13201,9 @@ msgstr "Uta-anō"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Utahia anō te SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13002,6 +13316,12 @@ msgstr ""
 msgid "Replace"
 msgstr "Whakakapi"
 
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
+
 msgid "Report"
 msgstr "Pūrongo"
 
@@ -13073,6 +13393,12 @@ msgstr "Kei te mahi tonu te Hōtaka Pūrongo, e whakakore ana ki te tatau-anō."
 msgid "Report Schedule log prune failed."
 msgstr "I rahua te pure rārangi Hōtaka Pūrongo."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Kāore i kitea te Hōtaka Pūrongo."
 
@@ -13096,6 +13422,9 @@ msgstr "I rahua te pūrongo"
 
 msgid "Report is active"
 msgstr "Kei te hohe te pūrongo"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Ingoa pūrongo"
@@ -13131,6 +13460,9 @@ msgstr "Pūrongo kua whakahouhia"
 
 msgid "Reports"
 msgstr "Pūrongo"
+
+msgid "Reports require a content format"
+msgstr ""
 
 msgid "Repulsion"
 msgstr "Panapana"
@@ -13524,6 +13856,18 @@ msgstr "Whakahaere pātai hei whakaatu i te hītori pātai"
 msgid "Run a query to display results"
 msgstr "Whakahaere pātai hei whakaatu i ngā hua"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Whakahaere pātai o nāianei"
 
@@ -13606,6 +13950,11 @@ msgstr ""
 msgid "SQL Query"
 msgstr "Pātai SQL"
 
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr "Kīanga SQL"
 
@@ -13665,6 +14014,9 @@ msgstr "AHO"
 
 msgid "SUN"
 msgstr "RĀT"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -13770,6 +14122,11 @@ msgstr ""
 
 msgid "Save query"
 msgstr "Tiaki pātai"
+
+msgid ""
+"Save the dataset to preview this mapping. The preview runs against the "
+"saved columns, and this mapping uses one that has not been saved yet."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
@@ -14516,6 +14873,9 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Tīpakohia kaupapa tae"
 
+msgid "Select user"
+msgstr ""
+
 #, fuzzy
 msgid "Select users"
 msgstr "Tīpakohia rangatira"
@@ -14524,6 +14884,7 @@ msgstr "Tīpakohia rangatira"
 msgid "Select values"
 msgstr "Tīpakohia tūranga"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14575,6 +14936,9 @@ msgstr "Tirohanga Tikanga"
 msgid "Semantic Views"
 msgstr "Ngā Tirohanga Tikanga"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Papa tohu"
@@ -14611,6 +14975,16 @@ msgstr "Momo papa tohu"
 msgid "Semantic layer updated"
 msgstr "Kua whakahouhia te tauira tohu"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 #, fuzzy
 msgid "Semantic view could not be created."
 msgstr "Kāore i taea te hanga i te rārangi raraunga."
@@ -14643,6 +15017,9 @@ msgstr "Kua whakahōungia te tirohanga tikanga"
 msgid "Semantic views"
 msgstr "ngā tirohanga tikanga"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -14662,6 +15039,9 @@ msgid "Send as text"
 msgstr "Tuku hei kupu"
 
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -15114,6 +15494,9 @@ msgstr "Whakaatu whakarāpopototanga"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Whakaatu tapeke"
 
@@ -15268,6 +15651,7 @@ msgstr "Mārō"
 msgid "Slider and range input"
 msgstr "Paheke me te tāuru āhua"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -15304,6 +15688,11 @@ msgid "Solid background"
 msgstr ""
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
 msgstr ""
 
 msgid ""
@@ -15535,6 +15924,9 @@ msgstr "Tauwāhi"
 msgid "Specific Date/Time"
 msgstr "Rā/Wā Motuhake"
 
+msgid "Specific user"
+msgstr ""
+
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Tohua ingoa hei CREATE TABLE AS hanga i: public"
 
@@ -15633,6 +16025,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16358,9 +16755,16 @@ msgstr ""
 "Kāore te tukutuku-X i runga i te rārangi tātari, ā, ka aukati tēnei i te "
 "whakamahitanga i ngā"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
+msgstr ""
+
+msgid "The alert query executor is only allowed on alerts"
 msgstr ""
 
 msgid "The annotation has been saved"
@@ -16472,6 +16876,11 @@ msgstr "I mukua, i whakaingoahia-anō rānei te tīwae i te pātengi raraunga."
 msgid ""
 "The column whose filters are mirrored. It follows the default datetime "
 "column unless a different column holds the mapping."
+msgstr ""
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
 msgstr ""
 
 msgid "The configuration for the map layers"
@@ -16711,6 +17120,12 @@ msgstr ""
 "Ko ngā kīwaha e whai ake nei kua tohua te kōwhiringa 'Tīpakohia te uara "
 "kīwaha tuatahi hei taunoa' ā, kāore i taea te uta, e aukati ana i te "
 "whakaatu o te papatohu: %s"
+
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
 
 #, fuzzy
 msgid "The font size of the point labels"
@@ -17048,6 +17463,9 @@ msgstr "Ka whakamahia te ine matua hei tautuhi i ngā rahi wāhanga kopeka"
 msgid "The provided table was not found in the provided database"
 msgstr "Kāore i kitea te ripanga kua tukuna i te pātengi raraunga kua tukuna"
 
+msgid "The provider query will be available after the chart runs."
+msgstr ""
+
 msgid "The query associated with the results was deleted."
 msgstr "I mukua te pātai e hāngai ana ki ngā hua."
 
@@ -17230,6 +17648,26 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Te url ratonga o te papa"
 
@@ -17403,6 +17841,18 @@ msgstr "I tiakina pai tēnei papatohu."
 msgid "The user was updated successfully"
 msgstr "I tiakina pai tēnei papatohu."
 
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
+
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
 "Kāore e whaimana te whakakotahitanga kaiwhakamahi/kupuhipa (Kupuhipa hē "
@@ -17443,6 +17893,12 @@ msgstr ""
 
 #, python-format
 msgid "The value transform on %(column)s cannot be saved: %(reason)s"
+msgstr ""
+
+#, python-format
+msgid ""
+"The value transform on %(mapped)s is not mirroring filters, so queries "
+"will scan every partition."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
@@ -17824,6 +18280,12 @@ msgstr "Ko ēnei ngā rārangi raraunga ka whakahaeretia ki reira tēnei tātari
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -17893,6 +18355,12 @@ msgid "This action will permanently delete the user."
 msgstr "Mā tēnei mahi ka mukua pūmau te kaiwhakamahi."
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr ""
@@ -17933,6 +18401,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18102,6 +18582,14 @@ msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "Kei te hono kē tēnei īmēra ki tētahi kaute."
+
+#, python-format
+msgid ""
+"This engine compares less of a %(operator)s value on %(column)s than the "
+"filter carries, so there is no mirror a predicate on the partition column"
+" could stand in for. Map a column the engine compares in full to mirror "
+"this operator."
+msgstr ""
 
 #, python-format
 msgid "This export was requested on %(when)s UTC."
@@ -18315,6 +18803,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
+msgstr ""
+
+msgid ""
 "This section allows you to configure how to use the slice\n"
 "              to generate annotations."
 msgstr "Kei roto i tēnei wāhanga ngā hapa manatoko"
@@ -18330,6 +18823,19 @@ msgid "This section contains validation errors"
 msgstr "Kei roto i tēnei wāhanga ngā hapa manatoko"
 
 msgid "This semantic layer has no dependent semantic views."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
 msgstr ""
 
 msgid ""
@@ -18907,6 +19413,9 @@ msgstr "Tūrei"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -19015,6 +19524,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Kāore e taea te tatau i tētahi rerekētanga rā pēnei"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Kāore e taea te hono ki te kātaloka ko \"%(catalog_name)s\" te ingoa."
@@ -19106,6 +19618,9 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "Kāore e taea te uta i te papatohu"
+
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -19257,6 +19772,17 @@ msgstr "Wetekina mai i te papa hua"
 msgid "Unpin from top"
 msgstr "Wetekina mai i runga"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19276,6 +19802,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Momo rerenga kāore e tautokona: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -19406,6 +19935,9 @@ msgstr "Whakamahinga"
 msgid "Use %s to open in a new tab."
 msgstr "Whakamahia %s hei huaki i tētahi ripa hou."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use :value for the filter bound."
 msgstr ""
 
@@ -19453,6 +19985,12 @@ msgstr "Whakamahia te whānuitanga o nāianei"
 
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Whakamahia hōputu rā ahakoa karekau te uara ine he waitohu"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 #, fuzzy
 msgid "Use gradient"
@@ -19511,6 +20049,9 @@ msgstr "Ingoa kaiwhakamahi"
 #, fuzzy
 msgid "User Registrations"
 msgstr "Whakamahia Ōwehenga Horahanga"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Karekau ō mōtika tika a te kaiwhakamahi."
@@ -19636,6 +20177,9 @@ msgstr "Hōputu Uara"
 
 msgid "Value and Percentage"
 msgstr "Uara me te Ōrau"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Rohe uara"
@@ -20126,6 +20670,11 @@ msgstr "Ina tukuna tētahi ine tuarua, ka whakamahia tētahi tauine tae rārangi
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Ina pātia, ka topa te mahere ki ō raraunga i muri i ia pātai"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
 
 msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
@@ -20694,6 +21243,19 @@ msgid ""
 msgstr ""
 "Ka taea e koe te hanga i tētahi kauwhata hou, te whakamahi rānei i ērā "
 "kua tīari mai i te papa i te taha matau"
+
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
 
 msgid "You can enter a value that is not listed."
 msgstr ""
@@ -21543,6 +22105,9 @@ msgstr "ia meneti"
 msgid "every month"
 msgstr "ia marama"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "whakawhānui"
 
@@ -21757,6 +22322,9 @@ msgstr "meneti"
 msgid "minute(s)"
 msgstr "meneti"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "marama"
 
@@ -21933,6 +22501,10 @@ msgstr "tīmata-anō"
 msgid "recent"
 msgstr "tata nei"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "kaiwhakawhiti"
 
@@ -21957,11 +22529,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "rowlevelsecurity"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "e rere ana"
 
 msgid "save"
 msgstr "tiaki"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

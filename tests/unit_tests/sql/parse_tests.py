@@ -1830,6 +1830,23 @@ def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT JSON_VALUE(h, '$.a' RETURNING BIGINT) AS x FROM t",
+        "SELECT JSON_VALUE(h, CONCAT('$[''', d, ''']') RETURNING BIGINT) AS x FROM t",
+    ],
+)
+def test_druid_parses_json_value_returning(sql: str) -> None:
+    """
+    Regression for #36954: Druid's ``JSON_VALUE`` takes a ``RETURNING <type>``
+    clause, and a virtual dataset using it failed with "Unable to parse SQL"
+    even though Druid itself runs the query. sqlglot parses the clause for the
+    Druid dialect since 30.12.0, so this pins it against a future upgrade.
+    """
+    assert "RETURNING BIGINT" in SQLScript(sql, "druid").format()
+
+
+@pytest.mark.parametrize(
     "engine",
     ["oracle", "postgresql", "trino", "presto", "hive", "base"],
 )
@@ -7368,6 +7385,33 @@ def test_count_bare_column_references(
 ) -> None:
     """Check the `count_bare_column_references` method."""
     assert SQLStatement(sql, engine).count_bare_column_references(name) == expected
+
+
+@pytest.mark.parametrize(
+    ("sql", "engine", "expected"),
+    [
+        # Unqualified, and qualified: the qualifier is dropped, which is what a
+        # caller asking about a sequence pseudo-column needs, since there the
+        # qualifier is the sequence's own name.
+        ("SELECT country", "hive", {"country"}),
+        ("SELECT orders_seq.NEXTVAL", "oracle", {"nextval"}),
+        ('SELECT "Schema"."Seq".NEXTVAL', "oracle", {"nextval"}),
+        ("SELECT a.x + b.y", "hive", {"x", "y"}),
+        # Lowercased, since a dialect may normalize the case of an unquoted
+        # identifier.
+        ("SELECT COUNTRY", "hive", {"country"}),
+        # Not a column reference: a string literal holds no parseable node...
+        ("SELECT 'country'", "hive", set()),
+        # ...a comment is not parsed at all...
+        ("SELECT 1 -- country", "hive", set()),
+        # ...and a function name is not a column.
+        ("SELECT lower('x')", "hive", set()),
+        ("SELECT 1", "hive", set()),
+    ],
+)
+def test_get_column_names(sql: str, engine: str, expected: set[str]) -> None:
+    """Check the `get_column_names` method."""
+    assert SQLStatement(sql, engine).get_column_names() == expected
 
 
 @pytest.mark.parametrize("engine", ["hive", "postgresql", "trino", "bigquery"])

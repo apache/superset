@@ -112,6 +112,28 @@ So a ``DATE``-typed mapped column mirrors a range at day granularity, and does
 not mirror an equality whose value carries a time of day at all. Map a
 ``TIMESTAMP`` column instead and every operator is available again.
 
+Writing the value into the probe
+--------------------------------
+The probe evaluates the transform at a *literal*, because it runs with no bound
+parameters at all -- so every value is written into SQL text by the driver's
+literal renderer and read back by the engine's lexer, and the two do not always
+agree. SQLAlchemy's default renderer doubles apostrophes and leaves backslashes
+alone; Hive honours backslash escapes and not doubling, so ``'O''Brien'`` is
+read there as two adjacent literals and ``'x\\''`` ends four characters into a
+value the filter carries whole. A disagreement is either a mirror built from a
+value nobody filtered on -- dropping rows the filter keeps -- or, where the
+value closes its own quote, an expression of the filterer's choosing running in
+the probe.
+
+Which side is right is not knowable from the driver: it is a per-session server
+setting (``standard_conforming_strings``, ``NO_BACKSLASH_ESCAPES``,
+``spark.sql.parser.escapedStringLiterals``), and SQLAlchemy's own view of it is
+only correct on a dialect that has connected. So escaping is not what makes
+this safe. `literal_round_trips` renders the literal and reads it back in the
+engine's own dialect instead, and a value that does not survive the trip is not
+mirrored -- the usual trade, pruning for correctness. `probe_sql_is_evaluable`
+re-reads the finished statement behind it.
+
 Negations are never safe because ``T`` need not be injective:
 ``lower(:value)`` with ``country != 'US'`` mirrors to ``region_key != 'us'``,
 which wrongly excludes rows whose ``country`` is already lowercase ``'us'`` --
@@ -175,7 +197,7 @@ from superset.extensions import cache_manager, feature_flag_manager
 from superset.sql.parse import SQLScript, SQLStatement
 from superset.superset_typing import FilterValues
 from superset.utils import core as utils, json
-from superset.utils.core import FilterOperator
+from superset.utils.core import FilterOperator, get_username
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable, TableColumn
@@ -204,9 +226,57 @@ MAX_TRANSFORM_LENGTH = 1024
 #: Matched with word boundaries so ``:values`` is not mistaken for it.
 VALUE_PLACEHOLDER_RE = re.compile(r":value\b")
 
-#: Balanced Jinja blocks. The probe would render these in a different context
-#: at a different time from the chart query, so they are rejected at save time.
-JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
+#: The opening and closing delimiters of each kind of Jinja block. The probe
+#: would render these in a different context at a different time from the chart
+#: query, so a transform holding one is rejected at save time.
+JINJA_BLOCK_DELIMITERS = (("{{", "}}"), ("{%", "%}"), ("{#", "#}"))
+
+#: MySQL and MariaDB "executable comments": ``/*!50000 ... */`` and
+#: ``/*M!50000 ... */`` are comments to every other reader and *statement text*
+#: to those two engines.
+#:
+#: This is the one construct that breaks the premise the probe's shape gates
+#: rest on -- that the parse this module inspects and the statement the engine
+#: runs are the same statement. ``1 /*!50000 + (SELECT secret FROM vault) */``
+#: parses with no sub-query and no FROM, clears `stored_expression_error` and
+#: `probe_sql_is_evaluable` alike, and then reads a table on MySQL. The result
+#: comes back to a dataset owner through the preview's ``emitted_predicate``,
+#: with no RLS applied and no SQL Lab access needed.
+#:
+#: Refused on every engine rather than only the two that honour it. A transform
+#: is a scalar function of ``:value``; there is no legitimate reason for one to
+#: carry a comment of any kind, let alone this one, and a per-engine gate would
+#: store a transform on Postgres that detonates when the dataset is re-pointed
+#: at MySQL.
+EXECUTABLE_COMMENT_RE = re.compile(r"/\*M?!")
+
+#: A PostgreSQL Unicode-escaped identifier, ``U&"..."``.
+#:
+#: The second construct that breaks the premise above, and in the same way:
+#: ``U&"\\0071uery_to_xml"(...)`` parses as an anonymous function whose name is
+#: the *literal* ``\\0071uery_to_xml``, so the function denylist is matching a
+#: name the engine never sees -- PostgreSQL decodes the escape and runs
+#: ``query_to_xml``, handing a dataset owner rows from outside their RLS scope
+#: through the preview's ``emitted_predicate``.
+#:
+#: Normalizing the escapes and re-checking would be the other repair, and is
+#: worse: it means reimplementing one engine's identifier decoding well enough
+#: to be a security boundary. Refusing the construct is exact, and costs
+#: nothing real -- a transform is a scalar function of ``:value``, and there is
+#: no reason to name a function or column through an escape sequence.
+#:
+#: Refused on every engine, like the executable comment, so a transform stored
+#: on SQLite cannot detonate when the dataset is re-pointed at PostgreSQL. The
+#: ``&`` may be separated from the ``U`` by nothing at all, but whitespace or a
+#: comment between the prefix and the string is not accepted by PostgreSQL
+#: either, so the strict form is the whole surface.
+#:
+#: Matched in raw text, so the prefix is refused inside a string literal too.
+#: That is the same trade the executable comment makes and has the same
+#: justification: a gate whose contract is to fire *before* the parse cannot
+#: ask the parse whether the text was quoted. ``concat(:value, 'u&"x"')`` is
+#: refused, which costs an owner nothing anyone writes.
+UNICODE_ESCAPED_IDENTIFIER_RE = re.compile(r'\bU&"', re.IGNORECASE)
 
 #: Substituted for ``:value`` before parsing -- sqlglot rejects a bare ``:value``
 #: on most dialects. Mirrors the ``_JINJA_BLOCK_RE`` -> ``NULL`` trick used by
@@ -229,16 +299,89 @@ _PLACEHOLDER_STANDIN = "superset_pfm_value_standin"
 #: Functions whose value depends on wall-clock time or randomness. The probe
 #: runs in a different session at a different moment from the chart query and
 #: its result is then cached, so any of these freezes a snapshot of probe time
-#: into the emitted predicate.
+#: into the emitted predicate: a transform such as
+#: ``datediff(day, :value, LOCALTIMESTAMP)`` for a relative partition key is
+#: evaluated once and then keeps emitting yesterday's answer, so the chart
+#: silently drops rows after midnight.
+#:
+#: Matched by SQL function name, so every engine's spelling of "now" has to be
+#: named -- the ANSI four were not enough. Listed rather than delegated to the
+#: engine specs because the risk is the same everywhere and a spec that had not
+#: got round to declaring its own would fail open; a name no engine has is
+#: inert, so over-listing costs nothing.
 NON_DETERMINISTIC_FUNCTIONS = {
+    # ANSI, and the engines that spell it this way.
     "CURRENT_DATE",
     "CURRENT_TIME",
     "CURRENT_TIMESTAMP",
+    "LOCALTIME",
+    "LOCALTIMESTAMP",
     "NOW",
     "RAND",
     "RANDOM",
     "UUID",
+    # PostgreSQL. `now()` is statement-stable; these two are not even that.
+    "CLOCK_TIMESTAMP",
+    "STATEMENT_TIMESTAMP",
+    "TIMEOFDAY",
+    # MySQL and MariaDB.
+    "CURDATE",
+    "CURTIME",
+    "SYSDATE",
+    "UTC_DATE",
+    "UTC_TIME",
+    "UTC_TIMESTAMP",
+    "UUID_SHORT",
+    # Oracle.
+    "SYSTIMESTAMP",
+    "SYS_GUID",
+    # SQL Server.
+    "GETDATE",
+    "GETUTCDATE",
+    "SYSDATETIME",
+    "SYSUTCDATETIME",
+    "SYSDATETIMEOFFSET",
+    "NEWID",
+    # BigQuery.
+    "CURRENT_DATETIME",
+    "GENERATE_UUID",
+    # Snowflake.
+    "RANDSTR",
+    "UUID_STRING",
+    # ClickHouse.
+    "NOW64",
+    "RANDCANONICAL",
+    "GENERATEUUIDV4",
+    # H2 and Derby, which the test fixtures use.
+    "RANDOM_UUID",
 }
+
+#: The wall-clock names an engine evaluates with no parentheses at all.
+#:
+#: These parse as *column references*, not functions, so the name-based walk
+#: below cannot see them: `datediff(UTC_DATE, :value)` on MySQL and
+#: `:value - SYSDATE` on Oracle both cleared the gate and froze probe time into
+#: a cached mirror.
+#:
+#: A subset of `NON_DETERMINISTIC_FUNCTIONS` rather than the whole of it,
+#: because refusing a bare name costs an owner a column genuinely called that.
+#: Only the names SQL lets you write without ``()`` are listed -- the datetime
+#: keywords -- so `rand`, `uuid` and `newid`, which always need parentheses and
+#: are plausible column names, stay out.
+BARE_WALL_CLOCK_KEYWORDS = frozenset(
+    {
+        "current_date",
+        "current_time",
+        "current_timestamp",
+        "localtime",
+        "localtimestamp",
+        "utc_date",
+        "utc_time",
+        "utc_timestamp",
+        "sysdate",
+        "systimestamp",
+    }
+)
 
 #: Functions that mean "now" only in their zero-argument form. On Hive and
 #: Impala ``unix_timestamp()`` is the current time while ``unix_timestamp(x)``
@@ -269,6 +412,64 @@ MIRRORABLE_OPERATORS = MIRRORABLE_ALWAYS | MIRRORABLE_IF_MONOTONIC
 #: a since/until pair, so there is no range for it to build. The editor never
 #: asks for one either: `previewOperatorFor` sends `>=`, `=` or `IN`.
 PREVIEWABLE_OPERATORS = MIRRORABLE_OPERATORS - {FilterOperator.TEMPORAL_RANGE}
+
+
+class Unmirrorable:
+    """
+    A filter no mirror can stand in for, and why.
+
+    Returned by `ExploreMixin.mirror_probe_request` for a value the engine
+    compares more coarsely than the filter carries, one it cannot render as a
+    literal, one whose rendered literal the engine would not read back as the
+    same value, one in a time frame the transform would discard, or an ``IN``
+    list with a member of any of those kinds. An object rather than `None`,
+    because `None` is a filter value in its own right.
+
+    The reason rides along because the preview has to explain the decline to
+    the owner, and the two declines want different advice: "the engine compares
+    less of this value than you typed, so map a column it compares in full" is
+    sound guidance for a `DATE` column and actively misleading for an
+    offset-bearing bound on a `TIMESTAMP` one, which already is such a column.
+    Carried rather than re-derived so the preview's explanation cannot come
+    apart from the chart path's decision.
+
+    Lives here rather than beside that method so the preview can read it too:
+    `superset.models.helpers` imports this module, so these can only cross the
+    boundary in this direction. Both callers recognise the same instances -- a
+    preview that answered "valid" for a request the chart path declines is the
+    drift this is here to prevent.
+    """
+
+    __slots__ = ("reason",)
+
+    def __init__(self, reason: str) -> None:
+        self.reason = reason
+
+    def __repr__(self) -> str:
+        return f"<Unmirrorable {self.reason}>"
+
+
+#: The ordinary decline: whatever the mirror cannot be built from, with the
+#: engine's own comparison resolution as the reason an owner can act on.
+UNMIRRORABLE = Unmirrorable("resolution")
+
+#: A value carrying a UTC offset, declined whatever the column's resolution.
+#: A transform such as ``CAST(:value AS TIMESTAMP)`` drops the offset, so even
+#: an engine that compares the whole instant would be probed in the wrong
+#: frame -- which is not something mapping a different column fixes.
+UNMIRRORABLE_OFFSET = Unmirrorable("offset")
+
+#: A value the driver and the engine would not spell the same way, declined
+#: whatever the column's resolution and whatever the operator. Nothing about
+#: the column or the transform fixes it -- see `literal_round_trips` -- so the
+#: advice the resolution reason carries would send an owner after the wrong
+#: thing entirely.
+UNMIRRORABLE_ESCAPING = Unmirrorable("escaping")
+
+
+def is_unmirrorable(value: Any) -> bool:
+    """Whether `mirror_probe_request` declined this request."""
+    return isinstance(value, Unmirrorable)
 
 
 #: A transform that preserves ordering need not be *strictly* increasing: a day
@@ -323,6 +524,72 @@ def mirrorable_operators(
     return set(operators)
 
 
+def _native_generic_type(
+    column: "TableColumn",
+) -> utils.GenericDataType | None:
+    """
+    What the engine spec makes of ``column``'s declared type.
+
+    `TableColumn.type_generic` answers ``TEMPORAL`` for every column carrying
+    ``is_dttm``, which is the right answer for a chart's time axis and the
+    wrong one for a comparison: an epoch ``BIGINT`` is a number to the engine
+    however it is labelled here. Falls back to the flag where the spec has no
+    answer, so a type Superset cannot resolve is no worse off than before.
+    """
+    try:
+        column_spec = column.db_engine_spec.get_column_spec(
+            column.type, db_extra=column.db_extra
+        )
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        column_spec = None
+    if column_spec is not None and column_spec.generic_type is not None:
+        return column_spec.generic_type
+    try:
+        return column.type_generic
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return None
+
+
+#: Declared types whose comparison ignores trailing blanks.
+#:
+#: The fixed-width character types, which the SQL standard has compare as
+#: though both sides were padded to the same length -- so ``'US'`` and
+#: ``'US '`` are equal in a ``CHARACTER(3)``, while ``lower()`` of the two is
+#: not. Spelled out rather than matched by prefix because the variable-width
+#: names start with the same letters: ``VARCHAR`` and ``CHARACTER VARYING``
+#: compare the blanks and must not land here.
+PADDED_CHARACTER_TYPES = frozenset(
+    {
+        "CHAR",
+        "NCHAR",
+        # PostgreSQL's own name for ``CHARACTER``, which is what reflection
+        # reports for a ``CHAR(n)`` column there.
+        "BPCHAR",
+        "CHARACTER",
+        "NATIONAL CHAR",
+        "NATIONAL CHARACTER",
+    }
+)
+
+
+def _is_padded_character_type(column: TableColumn) -> bool:
+    """
+    Whether ``column``'s declared type compares without its trailing blanks.
+
+    Read off the declared type rather than the engine spec's resolved one: the
+    specs map ``CHAR`` and ``VARCHAR`` onto the same `sqlalchemy.String`, so
+    the distinction this needs is gone by then. The length suffix is dropped
+    and the name matched against `PADDED_CHARACTER_TYPES`, so an unfamiliar
+    spelling answers ``False`` and the engine-level flag decides as before --
+    this gate adds a decline rather than lifting one. A column with no
+    declared type has nothing to read, and answers the same way.
+    """
+    if not isinstance(column.type, str):
+        return False
+    native = re.sub(r"\s+", " ", column.type.strip().upper())
+    return native.split("(")[0].strip() in PADDED_CHARACTER_TYPES
+
+
 def equality_mirrors_safely(
     column: TableColumn | None,
     db_engine_spec: type[BaseEngineSpec],
@@ -345,6 +612,30 @@ def equality_mirrors_safely(
     which is an assertion about the same comparison semantics this is checking
     for -- so the declaration covers it where equality has nothing to cover it.
 
+    Padding is asked about per column, because it is a property of the *type*
+    rather than of the engine. ``binary_string_comparison`` speaks for an
+    engine's default text comparison, and on PostgreSQL -- which declares it
+    -- a ``CHAR(2)`` still matches a filter for ``'US '`` against a stored
+    ``'US'``, because the standard says a padded character type compares
+    without its trailing blanks. The mirror ``region_key = lower('US ')`` then
+    excludes the row. So a fixed-width character type declines whatever the
+    engine says, and an engine that ignores trailing blanks on its *variable*
+    types says so by not declaring the flag at all (see `RedshiftEngineSpec`).
+
+    The type asked for is the engine spec's reading of the column's declared
+    type, not `TableColumn.type_generic`, which answers ``TEMPORAL`` for
+    anything carrying ``is_dttm``. A ``VARCHAR`` flagged temporal is still text
+    to the engine: on MySQL a filter for ``'2026-01-01T00:00:00'`` matches a
+    stored ``'...t00:00:00'``, while the mirror ``p = hex('...T...')`` excludes
+    it -- and asking the semantic flag skipped the check entirely.
+
+    A type the spec cannot classify declines, which is what the paragraph above
+    promises and what only the exception branch used to do. PostgreSQL's
+    ``citext`` matches no type pattern, so it answered ``None`` -- neither
+    string nor not-string -- and was waved through, which is precisely wrong
+    for a type whose whole purpose is case-insensitive comparison. Declining
+    costs the pruning; admitting it costs rows.
+
     What this cannot see is a column that declares its own collation
     (``country COLLATE NOCASE``) on an otherwise byte-exact engine. Neither
     SQLAlchemy's reflection nor the engine specs expose it, so on such a column
@@ -352,13 +643,16 @@ def equality_mirrors_safely(
     """
     if column is None:
         return True
-    try:
-        is_string = column.type_generic == utils.GenericDataType.STRING
-    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
-        # An unresolvable type is treated as a string: the gate exists to stop
-        # a silent wrong answer, so it fails closed.
+    # Ahead of the generic-type question, which a padded type can lose: the
+    # specs map ``CHARACTER`` onto no generic type at all on some engines, and
+    # a fixed-width character type is a string whether or not Superset can say
+    # so from the name.
+    if _is_padded_character_type(column):
         return False
-    if not is_string:
+    generic_type = _native_generic_type(column)
+    if generic_type is None:
+        return False
+    if generic_type != utils.GenericDataType.STRING:
         return True
     return bool(db_engine_spec.binary_string_comparison)
 
@@ -451,9 +745,94 @@ def contains_value_placeholder(transform: str | None) -> bool:
     return bool(transform) and VALUE_PLACEHOLDER_RE.search(transform or "") is not None
 
 
+def contains_executable_comment(transform: str | None) -> bool:
+    """Whether the transform carries a MySQL/MariaDB executable comment.
+
+    See `EXECUTABLE_COMMENT_RE`. Answered on raw text, like
+    `contains_jinja` and for the same reason: the whole point is that no
+    parser this module can reach reports the construct at all.
+    """
+    return bool(transform) and EXECUTABLE_COMMENT_RE.search(transform or "") is not None
+
+
+def contains_unicode_escaped_identifier(transform: str | None) -> bool:
+    """Whether the transform names something through a ``U&"..."`` escape.
+
+    See `UNICODE_ESCAPED_IDENTIFIER_RE`. Answered on raw text for the same
+    reason as the comment above: the parse reports a name the engine does not
+    use, which is exactly what makes the denylist blind to it.
+    """
+    return (
+        bool(transform)
+        and UNICODE_ESCAPED_IDENTIFIER_RE.search(transform or "") is not None
+    )
+
+
+#: Sequence pseudo-columns, which advance a sequence when they are *read*.
+#:
+#: ``orders_seq.NEXTVAL`` parses as a qualified column reference, not a
+#: function call, so neither `SQLStatement.is_mutating` -- which walks function
+#: names -- nor the function denylist can see it. The probe would then run
+#: ``SELECT orders_seq.NEXTVAL + 1 FROM DUAL`` and advance the sequence, again
+#: on every cache expiry, for a dataset editor holding neither SQL Lab nor a
+#: DML grant. Reading one is a write however the parser classifies it.
+#:
+#: The function spelling (``nextval('s')`` on PostgreSQL) is a different shape
+#: and is caught as a function; this is only about the suffix form.
+SEQUENCE_PSEUDO_COLUMNS = frozenset({"nextval", "currval"})
+
+#: The same thing written as a call.
+#:
+#: Only the suffix form parses as a column; `nextval('s')` on PostgreSQL and
+#: DuckDB, `NEXTVAL(s)`/`SETVAL(s, 1)` on MySQL and MariaDB, and SQL Server's
+#: `NEXT VALUE FOR s` all parse as functions. `SQLStatement.is_mutating` walks
+#: function names on PostgreSQL alone -- deliberately, since the same names are
+#: read-only elsewhere -- so every other engine let these through.
+#:
+#: Matched on the name whatever the engine, because advancing a sequence is a
+#: write wherever it happens and a transform has no reason to call one.
+SEQUENCE_FUNCTIONS = frozenset(
+    {"nextval", "setval", "next_value_for", "nextvalfor", "prevval", "lastval"}
+)
+
+
+def references_sequence(statement: SQLStatement) -> bool:
+    """Whether the statement reads or advances a sequence.
+
+    Both spellings: the pseudo-column suffix, which parses as a column (see
+    `SEQUENCE_PSEUDO_COLUMNS`), and the call, which parses as a function (see
+    `SEQUENCE_FUNCTIONS`).
+
+    Answered on the parse rather than on raw text, because position is what
+    makes it the construct: a column or alias merely *called* ``nextval`` is
+    an ordinary column, and a string literal holding the word is text.
+    """
+    return bool(
+        statement.get_column_names() & SEQUENCE_PSEUDO_COLUMNS
+        or statement.get_disallowed_functions(set(SEQUENCE_FUNCTIONS))
+    )
+
+
 def contains_jinja(transform: str | None) -> bool:
-    """Whether the transform contains a balanced Jinja block."""
-    return bool(transform) and JINJA_BLOCK_RE.search(transform or "") is not None
+    """
+    Whether the transform contains a balanced Jinja block.
+
+    A block is an opening delimiter followed, anywhere later, by its closing
+    one -- the same thing ``{{.*?}}`` and its two siblings match under
+    ``re.DOTALL``. Scanned with `str.find` rather than that pattern, because a
+    lazy match retried from every opening delimiter is quadratic in a run of
+    them, and this runs on stored transforms with no length bound of its own:
+    `is_transform_active` reads whatever the column holds. The earliest opening
+    delimiter is the only one worth trying, since any closing delimiter after a
+    later one is also after it.
+    """
+    if not transform:
+        return False
+    for opening, closing in JINJA_BLOCK_DELIMITERS:
+        start = transform.find(opening)
+        if start != -1 and transform.find(closing, start + len(opening)) != -1:
+            return True
+    return False
 
 
 def parse_skeleton(transform: str, standin: str = _PARSE_STANDIN) -> str:
@@ -674,6 +1053,11 @@ def find_non_deterministic_functions(transform: str, engine: str) -> set[str]:
     ``UNIX_TIMESTAMP`` is only reported in its zero-argument form, which means
     "now" on Hive and Impala; the one-argument form is the canonical temporal
     transform and stays allowed.
+
+    Three spellings have to be looked for, because one name reaches the parse
+    three ways: as a function call, as a zero-argument call a dialect resolves
+    itself, and -- for the datetime keywords -- as a bare word that parses as a
+    column reference.
     """
     statement = _parse_skeleton(transform, engine)
     if statement is None:
@@ -683,6 +1067,12 @@ def find_non_deterministic_functions(transform: str, engine: str) -> set[str]:
         name
         for name in NON_DETERMINISTIC_FUNCTIONS
         if statement.check_functions_present({name})
+    }
+    # The parenthesis-free spellings, which parse as columns rather than
+    # functions and so are invisible to the walk above. See
+    # `BARE_WALL_CLOCK_KEYWORDS`.
+    found |= {
+        name.upper() for name in BARE_WALL_CLOCK_KEYWORDS & statement.get_column_names()
     }
     return found | _find_niladic_calls(statement)
 
@@ -858,7 +1248,7 @@ def _denylist_engine_key(database: "Database") -> str:
         return database.backend
 
 
-def stored_expression_error(
+def stored_expression_error(  # noqa: C901
     database: "Database",
     catalog: str | None,
     schema: str | None,
@@ -881,6 +1271,11 @@ def stored_expression_error(
     ``partition_col = T(mapped_col)``, which only type-checks for scalar ``T``
     -- and it is what makes the table denylist and the RLS rewrite moot here,
     since neither has a table reference left to govern.
+
+    And it must be a *read*. Shape is a separate question from effect: a bare
+    scalar expression can still write, so `SQLStatement.is_mutating` is asked
+    too -- the same question SQL Lab and the chart executor ask before letting
+    SQL run. See the gate itself for what that reaches and what it does not.
 
     Returns the engine-agnostic reason as a string rather than raising,
     because its four callers disagree about what to do with it: the preview
@@ -908,6 +1303,31 @@ def stored_expression_error(
             )
         )
 
+    # Also ahead of the parse, and for a stronger reason than cost: every gate
+    # below reasons about the parse tree, and this is the one construct that
+    # makes the parse tree describe a different statement from the one the
+    # engine runs. Checked here as well as in `validate_transform` because this
+    # is the door a row written by an earlier release still comes through.
+    if contains_executable_comment(transform):
+        return str(
+            _(
+                "A partition value transform cannot contain a MySQL "
+                "executable comment, which the database executes and every "
+                "validator reads as a comment."
+            )
+        )
+
+    if contains_unicode_escaped_identifier(transform):
+        return str(
+            _(
+                "A partition value transform cannot name anything through a "
+                'U&"..." escape sequence, which the database decodes and '
+                "every validator reads literally."
+            )
+        )
+
+    # Same door, same reason: the name the denylist below would match is not
+    # the name the engine resolves. See `UNICODE_ESCAPED_IDENTIFIER_RE`.
     statement = _parse_skeleton(transform, database.backend)
     if statement is None:
         return str(
@@ -935,6 +1355,55 @@ def stored_expression_error(
     # sub-query there is no table reference for either to govern.
     if statement.has_subquery():
         return str(_("A partition value transform cannot contain a sub-query."))
+
+    # The read-only gate, which nothing above implies. The shape gates ask what
+    # the transform *selects*; this asks what evaluating it *does*, and a bare
+    # scalar expression can still write. `nextval(:value)` on PostgreSQL
+    # advances a sequence: one function call, no clause, no sub-query, and not
+    # in the default `DISALLOWED_SQL_FUNCTIONS` either -- so every gate above
+    # passes it and the probe then runs it. `setval` is the same shape, and
+    # `exp.Execute` and the opaque-`exp.Command` forms arrive the same way.
+    #
+    # The large-object writers (`lo_export`, `lowrite`, `lo_from_bytea`, ...)
+    # are caught here too, and the shipped denylist happens to name them as
+    # well -- but that is config an operator can replace, while this is not.
+    #
+    # `is_mutating` is the same question SQL Lab, `get_virtual_table_metadata`
+    # and the chart executor ask before letting SQL run, so a transform is held
+    # to the bar the rest of Superset already sets rather than to one invented
+    # here. Unconditional rather than gated on `Database.allow_dml`: a transform
+    # is a scalar function of `:value` by definition, so there is no legitimate
+    # mutating one, and the probe runs on a cache schedule nobody chose -- a
+    # write would repeat every time the entry expired.
+    #
+    # It bears saying what this does not reach. A user-defined function whose
+    # body writes is a plain call no parser can tell from `lower(:value)`, and
+    # `is_mutating`'s function-name walk is PostgreSQL-only by design, since the
+    # same names are read-only elsewhere. Neither residual is specific to this
+    # feature -- a dataset editor can already have the engine evaluate an
+    # arbitrary expression through a calculated column or a virtual dataset's
+    # SQL -- and closing them means authorizing the preview against the
+    # database, not parsing harder.
+    if statement.is_mutating():
+        return str(
+            _(
+                "A partition value transform cannot change data. It is "
+                "evaluated against the database to check that it mirrors, so "
+                "it has to be a read."
+            )
+        )
+
+    # Not reached by the walk above, which is why it is its own gate: a
+    # sequence pseudo-column is a *column* to the parser and a write to the
+    # engine. See `SEQUENCE_PSEUDO_COLUMNS`.
+    if references_sequence(statement):
+        return str(
+            _(
+                "A partition value transform cannot read a sequence. "
+                "NEXTVAL advances the sequence every time it is evaluated, "
+                "and the transform is evaluated on a cache schedule."
+            )
+        )
 
     # The shape gates above read the transform with `:value` replaced by the
     # `NULL` keyword, which leaves no trace of where the placeholder was -- so
@@ -1010,10 +1479,12 @@ def raw_probe_value(database: "Database", element: Any) -> RawProbeValue:
     Freeze an engine-built expression into probe-ready SQL text.
 
     The text is produced entirely by SQLAlchemy and the engine spec from values
-    that have already been coerced, so no caller-supplied text reaches the probe
-    uninspected -- string elements are escaped by the dialect's own literal
-    processor. `probe_sql_is_evaluable` then re-reads the finished query, which
-    is what bounds the splice.
+    that have already been coerced, so no caller-supplied text reaches the
+    probe uninspected. Rendering is not what makes that true: a string element
+    is checked by `literal_round_trips` before it is rendered -- the dialect's
+    literal processor and the engine's lexer do not always agree about what a
+    rendered literal says -- and `probe_sql_is_evaluable` re-reads the finished
+    query, which is what bounds the splice.
 
     :param database: the database whose dialect renders the literal
     :param element: a SQLAlchemy expression, e.g. from ``array_literal``
@@ -1049,6 +1520,153 @@ def normalize_mixed_numbers(values: Sequence[Any]) -> list[Any]:
     ]
 
 
+def _placeholder_is_bindable(transform: str) -> bool:
+    """
+    Whether SQLAlchemy's ``text()`` can see ``:value`` as a bound parameter.
+
+    `VALUE_PLACEHOLDER_RE` is ``:value\b``, which matches the placeholder in a
+    Postgres cast such as ``:value::bigint``. SQLAlchemy's own bind scan is
+    ``(?<![:\\w$]):([\\w$]+)(?![:\\w$])`` -- note the trailing exclusion -- so a
+    following colon stops it: ``text(":value::bigint")`` reports a parameter
+    named ``valu``, and ``.bindparams(bindparam("value"))`` then raises
+    ``ArgumentError``.
+
+    `_probe` swallows that, so the only symptom was a perfectly valid transform
+    whose mapping silently never pruned, and a preview reporting an engine
+    failure for SQL that was never sent. Every write-side gate passes the
+    transform: it parses, it is a bare expression, and the placeholder *is* in
+    an executable position.
+
+    Answered by attempting the bind itself rather than by pattern-matching
+    ``::`` or reading ``text()``'s private parameter map, so this cannot
+    disagree with what `build_probe_sql` is about to do -- on any dialect, or on
+    a SQLAlchemy whose scan changes.
+    """
+    try:
+        sa.text(transform).bindparams(sa.bindparam("value", value=None))
+    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
+        return False
+    return True
+
+
+def escape_foreign_colons(transform: str) -> str:
+    """
+    ``transform`` with every colon but the ``:value`` placeholder escaped.
+
+    `sqlalchemy.text` reads any ``:word`` as a bind parameter, including one
+    inside a string literal, and an unbound parameter renders as ``NULL``
+    under literal binds rather than raising. So ``:value || \':suffix\'``
+    compiled to ``'us' || 'NULL'``: the mirror asked for a partition value no
+    row holds and the chart dropped rows, with no error for `_probe` to
+    swallow and nothing on screen to say so.
+
+    Escaped rather than refused, because a colon in a literal is ordinary --
+    ``concat(:value, \':\', region)`` builds a composite key -- and the
+    placeholder is the only colon this module means to interpret. `text()`
+    reads ``\\:`` as a literal colon.
+
+    Only the bound path needs this. A `RawProbeValue` or an unbindable
+    placeholder is substituted as text by `parse_skeleton`, which never hands
+    the transform to `text()` at all.
+    """
+    pieces: list[str] = []
+    cursor = 0
+    for match in VALUE_PLACEHOLDER_RE.finditer(transform):
+        pieces.append(transform[cursor : match.start()].replace(":", r"\:"))
+        pieces.append(match.group(0))
+        cursor = match.end()
+    pieces.append(transform[cursor:].replace(":", r"\:"))
+    return "".join(pieces)
+
+
+def literal_round_trips(value: Any, dialect: Dialect | None, engine: str) -> bool:
+    """
+    Whether the engine reads a rendered ``value`` back as that same value.
+
+    The probe runs with no bound parameters, so every value reaches the engine
+    as literal text the driver wrote (see `build_probe_sql`). Whether that text
+    says what the value says is a question about two independent spellings: the
+    driver's escaping, and the engine's lexer. SQLAlchemy's default renderer
+    doubles apostrophes and passes backslashes through; Hive and Spark honour
+    the backslash and not the doubling, so ``'O''Brien'`` is read there as two
+    adjacent literals -- the transform is evaluated at ``OBrien``, and the
+    mirror asks for a partition key that holds none of the rows the filter
+    keeps. The same gap in the other direction lets a value close its own quote
+    and have the rest of it read as SQL.
+
+    Escaping is not the repair. Whether a backslash introduces an escape is a
+    per-session server setting -- ``standard_conforming_strings`` on Postgres,
+    ``NO_BACKSLASH_ESCAPES`` on MySQL, ``escapedStringLiterals`` on Spark -- and
+    nothing in the engine specs exposes it. SQLAlchemy reads it off the server
+    into ``_backslash_escapes`` during ``initialize(connection)``, which the
+    probe's dialect never reaches: `_dialect_for` asks the ``Database`` for a
+    dialect, not for a connection, so Postgres renders ``a\\b`` as
+    ``'a\\\\b'`` and a server with the standard setting reads four
+    characters. An engine-spec flag would have to be defaulted, and either
+    default is wrong for a dozen engines: one leaves the hole open, the other
+    corrupts the probed value.
+
+    So the premise is verified rather than declared, the way
+    `probe_sql_is_evaluable` verifies the finished statement. A value that does
+    not survive the round trip is not mirrored, which costs the query its
+    pruning and nothing else.
+
+    The short-circuit is a proof, not a guess, and it matters for cost: a
+    200-member ``IN`` list would otherwise parse 200 times on the chart path.
+    If the renderer emitted the value between two quotes and changed nothing in
+    it, and the value carries neither a quote nor a backslash, then no lexer in
+    play can read it as anything but itself. Both exclusions are load-bearing:
+    on Hive ``a\\b`` renders verbatim and reads as ``a`` followed by a
+    backspace.
+
+    :param value: a filter value about to be rendered into the probe
+    :param dialect: the dialect that will render it, as `_dialect_for` reports
+    :param engine: ``database.backend``, whose lexer reads the result
+    :return: whether the two agree about what the literal says
+    """
+    if isinstance(value, RawProbeValue):
+        # Already SQL, with no single value for a parse to be compared against:
+        # its elements are checked before they are rendered, by
+        # `ExploreMixin._array_mirror_probe_value`. A backslash surviving into
+        # the finished text is refused here all the same, as the backstop for a
+        # renderer this module does not own.
+        return "\\" not in value.sql
+    if not isinstance(value, str):
+        # Numbers and instants are not written between delimiters, so there is
+        # no escaping for the two sides to disagree about.
+        return True
+
+    rendered = _compile_literal(sa.literal(value), dialect)
+    if rendered == f"'{value}'" and "'" not in value and "\\" not in value:
+        return True
+
+    try:
+        return (
+            SQLStatement(f"SELECT {rendered}", engine).get_select_literal_value()
+            == value
+        )
+    except SupersetParseError:
+        # A rendered literal the engine's own dialect will not parse is the
+        # strongest form of disagreement there is.
+        return False
+
+
+def value_round_trips(database: Database, value: Any) -> bool:
+    """
+    `literal_round_trips` for a caller holding a database, not a dialect.
+
+    Which renderer and which lexer apply is this module's business, so the two
+    callers outside it -- the chart path's own gate in
+    `ExploreMixin.mirror_probe_request` and the mapping summary Explore reads
+    -- ask in these terms and stay out of it.
+
+    :param database: the database whose driver renders and whose engine reads
+    :param value: a filter value about to be rendered into the probe
+    :return: whether the two agree about what the literal says
+    """
+    return literal_round_trips(value, _dialect_for(database), database.backend)
+
+
 def build_probe_sql(
     transform: str,
     values: list[Any],
@@ -1060,7 +1678,12 @@ def build_probe_sql(
 
     Values are attacker-controlled (a Gamma user picks filter values), so they
     are bound as parameters and rendered by the dialect's own literal processor
-    rather than interpolated into the SQL text.
+    rather than interpolated into the SQL text. That is not itself a boundary:
+    the processor's escaping is not always the escaping the engine honours, and
+    a value can close its own quote through the gap. The boundary is
+    `literal_round_trips` on the way in -- which callers must have run, like
+    `stored_expression_error` below -- and `probe_sql_is_evaluable` on the way
+    out.
 
     ``from_suffix`` comes from the engine spec's ``select_without_from_suffix``.
     A ``SELECT`` with no ``FROM`` is not universal SQL: Oracle and Db2 need a
@@ -1076,6 +1699,7 @@ def build_probe_sql(
     alias and ``from_suffix`` are only safe on a transform with no clause of its
     own; on one carrying its own FROM they attach to that instead.
     """
+    bindable = _placeholder_is_bindable(transform)
     selections = []
     for index, value in enumerate(values):
         if isinstance(value, RawProbeValue):
@@ -1083,9 +1707,29 @@ def build_probe_sql(
             # not run through `_compile_literal`, which has nothing to compile
             # and would undouble percent signs the owner typed on purpose.
             rendered = parse_skeleton(transform, value.sql)
-        else:
-            clause = sa.text(transform).bindparams(sa.bindparam("value", value=value))
+        elif bindable:
+            # Every other colon escaped first: `text()` would read one inside a
+            # string literal as a second bind parameter and render it `NULL`.
+            # See `escape_foreign_colons`.
+            clause = sa.text(escape_foreign_colons(transform)).bindparams(
+                sa.bindparam("value", value=value)
+            )
             rendered = _compile_literal(clause, dialect)
+        else:
+            # `text()` cannot see the placeholder (see
+            # `_placeholder_is_bindable`), so the value is rendered by the
+            # dialect's own literal processor first and substituted as SQL
+            # text. The same two steps in the other order: binding exists to
+            # get the value through that processor, and `_compile_literal`
+            # inlines the result either way, so this is the same string by a
+            # different route -- not a loosening of the "never interpolate a
+            # raw value" rule. `parse_skeleton` substitutes literally, so the
+            # rendered literal arrives here exactly as it was rendered, which
+            # is what makes `literal_round_trips`' verdict on it good for this
+            # branch as much as for the bound one.
+            rendered = parse_skeleton(
+                transform, _compile_literal(sa.literal(value), dialect)
+            )
         selections.append(f"{rendered} AS v{index}")
     return "SELECT " + ", ".join(selections) + from_suffix
 
@@ -1105,7 +1749,7 @@ def probe_sql_is_evaluable(
     are supplied by whoever is filtering a chart, not only by the owner who
     wrote the transform.
 
-    Four things have to hold, and all four are about the probe still being
+    Five things have to hold, and all five are about the probe still being
     readable rather than about taste:
 
     * One statement. A value that closes the expression and starts another
@@ -1123,12 +1767,29 @@ def probe_sql_is_evaluable(
       ``FROM`` of its own without disturbing the aliases that follow it, which
       is a read of a table the mapping has no business reading; the same value
       could append a ``WHERE`` and nothing would notice either.
+    * No comment, anywhere. A value that closes its own quote has to hide the
+      text `build_probe_sql` appended after it, and a comment is the only way
+      to do that and still balance the quotes -- so this is what makes the
+      alias check above sufficient rather than merely necessary. Read off the
+      parse rather than the text, so a comment *inside* a literal is data and
+      costs no pruning, and so the question is asked in the engine's own
+      dialect. A transform has no legitimate reason to carry one either; see
+      `EXECUTABLE_COMMENT_RE`.
 
     Both FROM clauses are compared as sqlglot renders them, so the suffix's own
     spacing does not have to match what the probe emitted. Identifier case does,
     which costs nothing: `_probe` hands the same engine constant to
     `build_probe_sql` and to this gate.
     """
+    # Before the parse, because this gate's whole contract is that what the
+    # parse describes is what the engine will run, and an executable comment is
+    # precisely the text where that stops being true. The transform is already
+    # refused for carrying one; this covers the compiled statement, so no later
+    # change to how values are rendered can reintroduce it behind the gates
+    # below.
+    if contains_executable_comment(sql) or contains_unicode_escaped_identifier(sql):
+        return False
+
     try:
         script = SQLScript(sql, engine)
     except SupersetParseError:
@@ -1142,6 +1803,8 @@ def probe_sql_is_evaluable(
         # inspection below is implemented for SQL statements only, and the
         # alternative to declining here is an `AttributeError` that `_probe`
         # swallows into the same outcome, less legibly.
+        return False
+    if statement.has_comment():
         return False
     if statement.has_subquery():
         return False
@@ -1208,6 +1871,32 @@ def evaluate_transform(
             seen.add(key)
             distinct.append(value)
 
+    # The value side of the premise `probe_sql_is_evaluable` checks on the
+    # finished statement: a value the driver and the engine would spell
+    # differently is not probed at all -- see `literal_round_trips`.
+    #
+    # `ExploreMixin.mirror_probe_request` declines one earlier, with a reason
+    # the preview can explain, and that is the gate an owner sees. This is the
+    # one that cannot be walked around. `_collect_partition_mirror_range`
+    # appends its bounds into the sink without passing through that method at
+    # all, and both paths can hand back a value the gate never saw: on a column
+    # carrying a `python_date_format`, what is probed is
+    # `strftime(that format)` -- text no mapping gate has ever read.
+    #
+    # Above `_run_probe` on purpose. This is a property of one input, not of
+    # the transform, and a verdict recorded here would withdraw the mirror for
+    # every later value of a transform the engine evaluates perfectly well.
+    dialect = _dialect_for(database)
+    if not all(
+        literal_round_trips(value, dialect, database.backend) for value in distinct
+    ):
+        logger.warning(
+            "A filter value is not written the same way by the driver and the "
+            "database, so the partition transform is not probed at it; this "
+            "query will not prune"
+        )
+        return None
+
     cache_key = _probe_cache_key(database, catalog, schema, transform, distinct)
     cached = _cache_get(cache_key)
     if cached is None:
@@ -1241,6 +1930,17 @@ def _run_probe(
     One place rather than one per `return`, because every way out of `_probe`
     is a verdict and the next reader of `known_mirror_verdict` cannot tell the
     difference between "declined" and "never asked".
+
+    The verdict is about the *transform*: whether the engine evaluated it at
+    all. A ``NULL`` among the results is not that -- it is this input's answer,
+    and `NULLIF(:value, 0)` returning ``NULL`` for ``n = 0`` says nothing about
+    the same transform on ``n = 2``. Counting it withdrew the promise for the
+    whole transform, and nothing restored it: a *failed* probe is deliberately
+    not cached, so the next chart re-probes and re-records, but a ``NULL`` is a
+    successful probe and *is* cached -- so the false verdict outlived every
+    later hit, and the editor reported a working mapping as not mirroring
+    while the query went on pruning. The per-input skip still happens where it
+    belongs, in the caller's own ``NULL`` guard.
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
     record_mirror_verdict(
@@ -1248,7 +1948,7 @@ def _run_probe(
         catalog,
         schema,
         transform,
-        mirrors=values is not None and not any(value is None for value in values),
+        mirrors=values is not None,
     )
     return values
 
@@ -1372,6 +2072,40 @@ def _to_python_scalar(value: Any) -> Any:
     return value
 
 
+def _execution_identity(database: Database) -> str | None:
+    """
+    Who the warehouse will run the probe as, when that can vary by caller.
+
+    `_probe_cache_key` keys on the `Database` record, which is the *connection*
+    -- not the identity it is opened under. Two hooks make that identity a
+    function of the Superset user instead:
+
+    * ``impersonate_user`` on the database, which hands the effective username
+      to `db_engine_spec.impersonate_user`;
+    * ``DB_CONNECTION_MUTATOR``, which receives the effective username and may
+      return an entirely different account's URL.
+
+    Under either one, a cached probe result computed under user A's grants was
+    served to user B, and the preview echoed it back in ``emitted_predicate``.
+    A transform wrapping a read-capable function the denylist does not name --
+    Oracle's ``DBMS_XMLGEN.GETXML`` is the worked example -- then leaks across
+    users who were never allowed the same rows.
+
+    Returns ``None`` when neither hook is configured, which is the common case
+    and deliberately leaves the key as it was: the cache exists to keep a
+    synchronous warehouse round trip off the chart-query path, and keying every
+    deployment on the username would cost every deployment the hit rate to fix
+    the two that need it.
+
+    The *Superset* username rather than the resolved warehouse account, because
+    it is the input both hooks branch on, and reading it needs no URL parse and
+    puts no credential in the key.
+    """
+    if not (database.impersonate_user or app.config["DB_CONNECTION_MUTATOR"]):
+        return None
+    return get_username()
+
+
 def _probe_cache_key(
     database: Database,
     catalog: str | None,
@@ -1403,6 +2137,7 @@ def _probe_cache_key(
             schema,
             transform,
             [repr(value) for value in values],
+            _execution_identity(database),
         ],
         default=repr,
     )
@@ -1448,6 +2183,11 @@ def _mirror_verdict_cache_key(
             catalog,
             schema,
             transform,
+            # Whether a transform *can* be evaluated is a property of the
+            # transform and the connection -- but under impersonation the
+            # connection is per-user, and a function one account may call can
+            # be refused to another. See `_execution_identity`.
+            _execution_identity(database),
         ],
         default=repr,
     )
@@ -1680,6 +2420,113 @@ def validate_partition_mapping(  # pylint: disable=too-many-arguments
     return issues
 
 
+def drop_unmapped_value_transforms(
+    columns: list[dict[str, Any]] | None,
+    *,
+    partition_column: str | None,
+    partition_mapped_column: str | None,
+    main_dttm_col: str | None,
+    names_by_id: dict[int, str] | None = None,
+    stored_by_name: dict[str, tuple[str | None, bool]] | None = None,
+) -> list[str]:
+    """
+    Null the value transform on every *incoming* column the mapping cannot mirror.
+
+    The write-side twin of `DatasetDAO.clear_unmapped_partition_transforms`,
+    which answers for the model. A mapping has exactly one mirrored column, so
+    at most one column may carry a transform. One parked on any other column is
+    invisible -- no row but the mapped one renders a transform -- and yet it is
+    stored, and it goes live the moment the mapped column resolves back to it.
+    Clearing an override is enough to do that: a null
+    ``partition_mapped_column`` means "follow ``main_dttm_col``".
+
+    Ungated on the feature flag, unlike its model-level twin, and the difference
+    is what each one discards. That one drops stored configuration, so with the
+    flag off it would be pure loss. This one drops only a value the request in
+    hand is asking to write where the invariant says none may live -- and the
+    flag-off window is precisely when such a value gets parked for later, since
+    the editor hides these fields and the model-level pass declines to run.
+
+    Three writers reach the columns with no effective model-level pass between
+    them, which is why this exists at all: the deprecated
+    ``POST /datasource/save/``, which writes straight through
+    `update_from_object` and so never had one; and a
+    ``PUT /api/v1/dataset/<pk>`` or a dataset import made while the flag is
+    off, where the pass runs on both sides of the write and declines on both.
+
+    Mutates the payload in place, because every caller hands its own request
+    dict straight on to the code that writes it. Returns the names it cleared,
+    so the caller can say so in a log: this is a silent correction to a payload
+    whose author may have meant it.
+
+    A column whose payload mentions neither field is left alone. "Incoming" is
+    the whole scope -- a transform already in storage on a column this request
+    says nothing about is the model-level pass's business, under its own flag.
+
+    The mapped column resolves the way every other reader resolves it,
+    ``partition_mapped_column or main_dttm_col``, and resolves to nothing
+    without a partition column -- in which case no column may hold a transform
+    either.
+
+    :param names_by_id: how to read the name off a payload entry that gives
+        only an ``id``. `DatasetDAO._upsert_columns` identifies an existing
+        column by its primary key and lets ``column_name`` be omitted -- the
+        column keeps the name it has -- so without this an ordinary PUT looked
+        like a payload of nameless columns, none of which matched the mapped
+        one, and every transform in it was dropped. Callers whose writer keys
+        on the name instead (`update_from_object`, the importer) pass nothing.
+        An entry this cannot name is left alone rather than guessed at.
+    :param stored_by_name: ``(transform, is_monotonic)`` as currently stored,
+        per column name, so an *echo* can be told from an introduction. A
+        GET-then-PUT client sends back every column exactly as it received it,
+        so changing the default datetime column away from the mapped one made
+        the payload's unchanged copy of its transform look like a value being
+        parked -- and nulling it destroyed configuration the owner never
+        touched, unrecoverably, with the flag off and the editor's own fields
+        hidden. An unchanged value is the model-level pass's business under its
+        own flag, which is the same line this function's docstring already
+        draws for a column the payload omits. Callers that cannot see storage
+        pass nothing and keep the stricter behaviour.
+    """
+    mapped_column = (
+        (partition_mapped_column or main_dttm_col) if partition_column else None
+    )
+    cleared: list[str] = []
+    for column in columns or []:
+        name = column.get("column_name")
+        if name is None and names_by_id is not None:
+            column_id = column.get("id")
+            if column_id is not None:
+                name = names_by_id.get(column_id)
+        if name is None or name == mapped_column:
+            continue
+        transform = column.get("partition_value_transform")
+        is_monotonic = column.get("partition_transform_is_monotonic")
+        if not transform and not is_monotonic:
+            continue
+        if stored_by_name is not None and name in stored_by_name:
+            stored_transform, stored_monotonic = stored_by_name[name]
+            # A key the entry does not carry is unchanged, not `False`:
+            # `_upsert_columns` writes only the keys present, so echoing the
+            # transform without the declaration is a valid partial update. Read
+            # as a change, it failed the exemption and wrote both fields back
+            # as null -- the loss the exemption exists to prevent.
+            monotonic_echoes = "partition_transform_is_monotonic" not in column or bool(
+                is_monotonic
+            ) == bool(stored_monotonic)
+            transform_echoes = (
+                "partition_value_transform" not in column
+                or transform == stored_transform
+            )
+            if transform_echoes and monotonic_echoes:
+                # An echo, not an introduction. See `stored_by_name`.
+                continue
+        column["partition_value_transform"] = None
+        column["partition_transform_is_monotonic"] = False
+        cleared.append(name)
+    return cleared
+
+
 def validate_transform(
     transform: str | None,
     engine: str,
@@ -1696,6 +2543,44 @@ def validate_transform(
                     "transform. The transform is evaluated in a different "
                     "context and at a different time from the chart query, so "
                     "a template would not render the same way."
+                ),
+                blocking=True,
+            )
+        ]
+
+    if contains_executable_comment(transform):
+        # Blocking, and checked on raw text next to the Jinja gate because no
+        # parse reports it: sqlglot reads `/*!50000 ... */` as comment data
+        # while MySQL and MariaDB execute it, so every shape gate downstream
+        # inspects a statement the engine will not run. See
+        # `EXECUTABLE_COMMENT_RE`.
+        return [
+            MappingValidationIssue(
+                field=field,
+                message=_(
+                    "A value transform cannot contain a MySQL executable "
+                    "comment (/*! ... */ or /*M! ... */). Those are comments "
+                    "to every validator and statement text to the database, "
+                    "so what would run is not what was checked."
+                ),
+                blocking=True,
+            )
+        ]
+
+    if contains_unicode_escaped_identifier(transform):
+        # Beside the comment gate, for the same reason and on raw text: the
+        # parse reports the escape sequence verbatim as the function's name,
+        # so the function denylist compares against a name PostgreSQL never
+        # uses -- it decodes `U&"\0071uery_to_xml"` and runs `query_to_xml`.
+        # See `UNICODE_ESCAPED_IDENTIFIER_RE`.
+        return [
+            MappingValidationIssue(
+                field=field,
+                message=_(
+                    'A value transform cannot name anything through a U&"..." '
+                    "escape sequence. The database decodes it and every "
+                    "validator reads it literally, so what would run is not "
+                    "what was checked."
                 ),
                 blocking=True,
             )
@@ -1951,6 +2836,23 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             ),
         }
 
+    if operator in MIRRORABLE_ALWAYS and not mapping.equality_is_safe:
+        # Withdrawn by `equality_mirrors_safely`, which no declaration about
+        # ordering can change -- so naming monotonicity here would send the
+        # owner to a checkbox that leaves the answer as it is.
+        return {
+            "valid": False,
+            "reason": "operator",
+            "sample_input": sample_input,
+            "error": _(
+                "A %(operator)s filter on this text column is not mirrored: "
+                "the database may treat strings that differ in case or "
+                "trailing spaces as equal, and the mirrored predicate could "
+                "then drop rows the filter keeps.",
+                operator=operator.value,
+            ),
+        }
+
     if not mapping.mirrors(operator):
         return {
             "valid": False,
@@ -1963,9 +2865,93 @@ def preview_partition_mapping(  # pylint: disable=too-many-return-statements
             ),
         }
 
-    value = _probe_input(
-        datasource, columns_by_name[mapped_column], operator, sample_values
+    return _preview_probe(
+        datasource,
+        mapping,
+        columns_by_name[mapped_column],
+        operator,
+        sample_values,
+        sample_input,
     )
+
+
+def _preview_probe(
+    datasource: SqlaTable,
+    mapping: PartitionMapping,
+    mapped_col: "TableColumn",
+    operator: FilterOperator,
+    sample_values: list[str],
+    sample_input: str,
+) -> dict[str, Any]:
+    """
+    The half of a preview that needs the warehouse.
+
+    Split out from `preview_partition_mapping` so that the gates which answer
+    from the stored mapping alone stay readable as the single run of guard
+    clauses they are. Everything here has either run a query or decided not to.
+    """
+    value = datasource.mirror_probe_request(
+        operator,
+        _probe_input(datasource, mapped_col, operator, sample_values),
+        mapped_col,
+    )
+    if is_unmirrorable(value):
+        # The same step the chart path applies, so the preview cannot promise a
+        # mirror the query declines -- and it reports the reason that step
+        # recorded rather than deriving one of its own, which is what let the
+        # offset case be explained as a precision loss it is not.
+        if value.reason == "offset":
+            # The transform is fine and the column may well compare the whole
+            # instant; what cannot be mirrored is the frame. Advising a
+            # different column here would send the owner after a column they
+            # already have.
+            return {
+                "valid": False,
+                "reason": "offset",
+                "sample_input": sample_input,
+                "error": _(
+                    "A filter value carrying a UTC offset is not mirrored: a "
+                    "transform is evaluated in the database's own time frame, "
+                    "so the mirrored predicate could ask for a partition the "
+                    "matching rows are not in. Write the bound without an "
+                    "offset to mirror this filter.",
+                ),
+            }
+        if value.reason == "escaping":
+            # Nothing about the column, the operator or the transform is wrong
+            # here, so none of the advice the other branches carry applies: the
+            # driver and the database disagree about how to write this value
+            # down. Said in terms of the value, which is the only thing the
+            # owner can change.
+            return {
+                "valid": False,
+                "reason": "escaping",
+                "sample_input": sample_input,
+                "error": _(
+                    "A filter value containing a quote or a backslash is not "
+                    "mirrored on this database: the driver and the database do "
+                    "not agree on how to write it into a query, so the "
+                    "transform would be evaluated at a value the filter does "
+                    "not compare. Filters whose values carry neither still "
+                    "mirror.",
+                ),
+            }
+        # The transform is fine and the engine evaluates it, the filter just
+        # carries more of the value than the engine compares on this column --
+        # which is the column's type talking, not a broken expression.
+        return {
+            "valid": False,
+            "reason": "resolution",
+            "sample_input": sample_input,
+            "error": _(
+                "This engine compares less of a %(operator)s value on "
+                "%(column)s than the filter carries, so there is no mirror a "
+                "predicate on the partition column could stand in for. Map a "
+                "column the engine compares in full to mirror this operator.",
+                operator=operator.value,
+                column=mapped_col.column_name,
+            ),
+        }
     errors: list[str] = []
     type_errors: list[str] = []
     predicates = build_mirrored_predicates(
@@ -2029,14 +3015,46 @@ def _probe_input(
     `preview_partition_mapping`'s docstring did not actually hold.
 
     Coerced by `filter_values_handler`, the same function the query path uses,
-    rather than by a second implementation of the same rules.
+    rather than by a second implementation of the same rules. Everything the
+    query path then does to the coerced value -- rendering an expression as a
+    literal, widening a bound, declining a comparison the engine resolves too
+    coarsely -- is `ExploreMixin.mirror_probe_request`'s, and the caller hands
+    this result straight to it.
 
     Ranges are not previewable (see `PREVIEWABLE_OPERATORS`), so the bound
     conversion `_collect_partition_mirror_range` applies -- a ``datetime`` into
     the column's stored representation -- has no counterpart here.
+
+    An array column is the exception to `filter_values_handler`: its predicate
+    is built from the raw value, parsed into elements and rendered as the
+    engine's own array literal, so the chart path probes that literal
+    (`ExploreMixin._array_mirror_probe_value`) and this does too. Passing the
+    handled text instead previewed ``length('[1, 2]')`` for a filter whose
+    query probes ``length(array(1, 2))``.
+
+    Answers with a value, or `None` where an engine spec claims array columns
+    without an array literal -- which `mirror_probe_request` then declines, as
+    the chart path declines it. It may also answer with an `Unmirrorable` the
+    array branch raised itself, which `mirror_probe_request` passes through;
+    otherwise the decline is that method's to make, and the caller hands this
+    straight to it.
     """
     is_list = operator == FilterOperator.IN
     column_spec = datasource.db_engine_spec.get_column_spec(native_type=column.type)
+    if (
+        column_spec
+        and column_spec.generic_type == utils.GenericDataType.MULTI_VALUE
+        and operator in MIRRORABLE_ALWAYS
+    ):
+        # `=` and `IN` are the previewable operators the array branch builds a
+        # literal for; a bound on an array column binds the handled value on
+        # the chart path too, so it falls through to the same here.
+        return datasource._array_mirror_probe_value(  # noqa: SLF001
+            sample_values if is_list else sample_values[0],
+            operator,
+            datasource.db_engine_spec.get_array_element_type(column.type),
+            datasource.db_engine_spec,
+        )
     handled = datasource.filter_values_handler(
         # `list[str]` is not a `list[FilterValue]` to mypy, invariantly, even
         # though every `str` is a `FilterValue`.
@@ -2050,19 +3068,10 @@ def _probe_input(
         db_engine_spec=datasource.db_engine_spec,
         db_extra=datasource.db_extra,
     )
-
-    def bindable(value: Any) -> Any:
-        # An epoch-milliseconds sample on a temporal column comes back as
-        # engine SQL rather than a value, and SQL cannot be the value of a bind
-        # parameter -- carried as text so the probe substitutes it, the same way
-        # an array literal is.
-        if isinstance(value, ColumnElement):
-            return raw_probe_value(datasource.database, value)
-        return value
-
-    if is_list and isinstance(handled, (list, tuple)):
-        return [bindable(entry) for entry in handled]
-    return bindable(handled)
+    # No `ColumnElement` conversion here: an epoch-milliseconds sample comes back
+    # as engine SQL rather than a value, and `mirror_probe_request` renders it --
+    # the same step, on the same values, as for a chart filter.
+    return handled
 
 
 def _render_sample_input(
@@ -2191,13 +3200,17 @@ def build_mirrored_predicates(
         )
         if type_errors is not None:
             type_errors.append(reason)
-        record_mirror_verdict(
-            datasource.database,
-            datasource.catalog,
-            datasource.schema,
-            mapping.value_transform,
-            mirrors=False,
-        )
+        # Deliberately *not* recorded as a mirror verdict. The transform
+        # evaluated perfectly; what failed is the comparison against this
+        # dataset's partition column -- and `_mirror_verdict_cache_key` is
+        # keyed on database, catalog, schema and transform, with no partition
+        # column in it. Recorded, this dataset-specific outcome answered for
+        # every other dataset sharing the transform: `CAST(:value AS text)`
+        # mirroring happily onto a text key in dataset A was reported
+        # `evaluable: false` -- and its pruning indicator hidden -- because
+        # someone previewed the same transform against a numeric key in
+        # dataset B. A probe cache hit on A never rewrites the verdict, so it
+        # stayed wrong until the entry expired.
         return []
 
     sqla_col = datasource.convert_tbl_column_to_sqla_col(partition_column)
@@ -2282,7 +3295,9 @@ UPPER_BOUND_OPERATORS = {
 _PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
     utils.GenericDataType.NUMERIC: (numbers.Number,),
     utils.GenericDataType.BOOLEAN: (bool,),
-    # A day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately text.
+    # A day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately text,
+    # so ``str`` is admitted -- but only for text *this* engine reads as an
+    # instant. `_reads_as_temporal` is the second half of this entry.
     utils.GenericDataType.TEMPORAL: (datetime, date, str),
     # Text, and not a number rendered as one. Not every engine accepts a number
     # in a text comparison: Postgres refuses ``character varying = integer``,
@@ -2294,6 +3309,52 @@ _PROBE_RESULT_TYPES: dict[utils.GenericDataType, tuple[type, ...]] = {
     # really is text writes the cast into the transform.
     utils.GenericDataType.STRING: (str,),
 }
+
+
+def _reads_as_temporal(value: str, db_engine_spec: type[BaseEngineSpec]) -> bool:
+    """
+    Whether this engine would read this text as a date or timestamp.
+
+    `_PROBE_RESULT_TYPES` admits ``str`` for a temporal partition column
+    because a day key such as ``to_char(:value, 'YYYYMMDD')`` is legitimately
+    text -- but it admitted *every* string, so a transform that answers with
+    ordinary text passed the gate and failed the chart instead. On PostgreSQL a
+    ``VARCHAR`` mapped column under ``lower(:value)`` probes ``'US'`` to
+    ``'us'`` and emits ``p = 'us'`` against a ``DATE`` key, which the engine
+    refuses once the predicate is already in the statement -- so a chart that
+    worked before the mapping returns an error rather than losing its pruning.
+
+    Which text counts is the engine's answer, in full: there is no universal
+    form. Comparing a temporal column against a text value is an implicit
+    coercion, and an engine is free not to have one -- Trino has no
+    VARCHAR-to-DATE comparison at all and BigQuery coerces only a canonical
+    ``YYYY-MM-DD`` *literal*, so even plain ISO text fails the whole chart on
+    those rather than merely losing its pruning. An earlier cut of this gate
+    admitted extended ISO everywhere and only asked the spec about the
+    unseparated forms; that is the hole. So every accepted form is declared in
+    `BaseEngineSpec.temporal_literal_formats`, which is empty by default --
+    an engine Superset has not confirmed declines, and declining costs only
+    the pruning.
+
+    Answered by parsing, not by asking the engine: the check runs on the
+    chart-query path, where a second round trip is the cost this module spends
+    its effort avoiding. Parsing is also the conservative direction -- anything
+    unrecognised declines.
+    """
+    for fmt in db_engine_spec.temporal_literal_formats:
+        try:
+            # Round-tripped, because `strptime` accepts unpadded fields: a bare
+            # epoch such as ``1767225600`` otherwise parses as
+            # ``%Y%m%d%H%M%S`` -- 1767-02-25 06:00 -- and is emitted as
+            # ``part_date = '1767225600'``, which is the bad-literal error this
+            # whole gate exists to stop. Re-rendering and comparing is what
+            # makes "parses" mean "is in this format" rather than "the parser
+            # found something in it".
+            if datetime.strptime(value, fmt).strftime(fmt) == value:
+                return True
+        except ValueError:
+            continue
+    return False
 
 
 def probed_value_type_error(
@@ -2322,11 +3383,19 @@ def probed_value_type_error(
     clear mismatch. ``bool`` is excluded from ``NUMERIC`` on purpose: it
     satisfies `isinstance(x, int)` -- and `numbers.Number` -- while rendering
     as ``true``, which is not a number to any engine that cares.
+
+    The type asked for is the one the engine spec reads out of the column's
+    *native* type, not `TableColumn.type_generic`, which answers ``TEMPORAL``
+    for anything carrying ``is_dttm`` whatever the column physically stores.
+    What this gate is about is the comparison the engine will perform, and a
+    ``BIGINT`` partition key flagged temporal through ``python_date_format =
+    epoch_s`` compares as a number: asking the semantic flag refused the
+    integer such a transform correctly returns, and cost a working mapping its
+    mirror. Same source as `ExploreMixin._in_column_number_type` uses for the
+    same reason, with the flag kept as the fallback for a type the spec cannot
+    resolve.
     """
-    try:
-        generic_type = partition_column.type_generic
-    except Exception:  # pylint: disable=broad-except  # noqa: BLE001
-        return None
+    generic_type = _native_generic_type(partition_column)
     if generic_type is None:
         return None
 
@@ -2343,6 +3412,16 @@ def probed_value_type_error(
         held = isinstance(value, allowed) and (
             bool in allowed or not isinstance(value, bool)
         )
+        # A temporal column admits text, but only text the engine will read as
+        # an instant -- `isinstance` alone let any string through, and which
+        # text an engine reads is its own answer. See `_reads_as_temporal`.
+        if (
+            held
+            and generic_type == utils.GenericDataType.TEMPORAL
+            and isinstance(value, str)
+            and not _reads_as_temporal(value, partition_column.db_engine_spec)
+        ):
+            held = False
         if not held:
             return str(
                 _(

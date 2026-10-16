@@ -29,16 +29,24 @@ import pandas as pd
 import pytest
 from dateutil.relativedelta import relativedelta
 from flask import Flask
+from pytest_mock import MockerFixture
 from sqlalchemy.dialects import mysql, postgresql
 
 from superset.config import DISALLOWED_SQL_FUNCTIONS
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.connectors.sqla.partition_mapping import (
+    _mirror_verdict_cache_key,
+    _placeholder_is_bindable,
     _probe_cache_key,
+    _reads_as_temporal,
     _render_literal,
+    BARE_WALL_CLOCK_KEYWORDS,
+    build_mirrored_predicates,
     build_probe_sql,
+    contains_executable_comment,
     contains_jinja,
     contains_value_placeholder,
+    drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
     find_non_deterministic_functions,
@@ -49,11 +57,13 @@ from superset.connectors.sqla.partition_mapping import (
     is_transform_active,
     is_unfinished,
     known_mirror_verdict,
+    literal_round_trips,
     MappingValidationIssue,
     mirror_operator,
     MIRRORABLE_ALWAYS,
     MIRRORABLE_IF_MONOTONIC,
     mirrorable_operators,
+    NON_DETERMINISTIC_FUNCTIONS,
     parse_error_detail,
     placeholder_is_executable,
     probe_sql_is_evaluable,
@@ -66,9 +76,12 @@ from superset.connectors.sqla.partition_mapping import (
 )
 from superset.constants import TimeGrain
 from superset.db_engine_specs.base import BaseEngineSpec
+from superset.db_engine_specs.mysql import MySQLEngineSpec
 from superset.db_engine_specs.oracle import OracleEngineSpec
+from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.models.core import Database
-from superset.utils.core import FilterOperator
+from superset.sql.parse import SQLStatement
+from superset.utils.core import FilterOperator, GenericDataType, override_user
 
 pytestmark = pytest.mark.usefixtures("sqlite_supports_partition_filter_mapping")
 
@@ -289,18 +302,102 @@ def test_equality_mirrors_safely_only_guards_string_columns(
         assert equality_mirrors_safely(_column(type_), _Spec) is expected
 
 
+@pytest.mark.parametrize(
+    "type_, expected",
+    [
+        # The padded types: `'US'` and `'US '` are equal in the column, and
+        # `lower()` of the two is not.
+        ("CHAR(2)", False),
+        ("CHAR", False),
+        ("CHARACTER(2)", False),
+        ("NCHAR(2)", False),
+        # What PostgreSQL reflection reports for a `CHAR(n)` column.
+        ("BPCHAR", False),
+        ("bpchar(2)", False),
+        ("NATIONAL CHARACTER(2)", False),
+        # The variable-width types start with the same letters and must not be
+        # caught by it.
+        ("VARCHAR(2)", True),
+        ("NVARCHAR(2)", True),
+        ("CHARACTER VARYING(2)", True),
+        ("TEXT", True),
+    ],
+)
+def test_a_padded_character_column_declines_equality_on_a_byte_exact_engine(
+    app: Flask, type_: str, expected: bool
+) -> None:
+    """
+    `binary_string_comparison` speaks for the engine's default comparison,
+    which PostgreSQL declares -- and a `CHAR(2)` there still matches a filter
+    for `'US '` against a stored `'US'`, so the mirror `lower('US ')` excludes
+    the row. Padding is a property of the type, so it is asked per column.
+    """
+
+    class _Spec(BaseEngineSpec):
+        binary_string_comparison = True
+
+    with app.app_context():
+        assert equality_mirrors_safely(_column(type_), _Spec) is expected
+
+
+def test_redshift_does_not_opt_in_to_byte_exact_comparison() -> None:
+    """
+    Redshift ignores trailing blanks for `VARCHAR` as well as `CHAR`, so the
+    `True` it inherits from `PostgresBaseEngineSpec` would be wrong.
+    """
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    assert RedshiftEngineSpec.binary_string_comparison is False
+
+
+@pytest.mark.parametrize(
+    "type_",
+    [
+        # PostgreSQL's case-insensitive text type matches no type pattern, so
+        # the spec cannot classify it -- and its whole purpose is the
+        # comparison this gate is about.
+        "citext",
+        # A column with no declared type at all.
+        "",
+        "SOME_EXTENSION_TYPE",
+    ],
+)
 def test_equality_mirrors_safely_fails_closed_on_an_unresolvable_type(
-    app: Flask,
+    app: Flask, type_: str
 ) -> None:
     """
     The gate exists to stop a silent wrong answer, so a column whose type it
     cannot read is treated as the risky case rather than waved through.
-    """
-    column = MagicMock()
-    type(column).type_generic = PropertyMock(side_effect=ValueError("no type"))
 
+    `type_generic` answers `None` for these -- neither string nor not-string --
+    and the old reading waved them through, which for `citext` admitted exactly
+    the case-insensitive equality the gate is for. Only the exception branch
+    failed closed, though the docstring claimed otherwise.
+    """
     with app.app_context():
-        assert equality_mirrors_safely(column, BaseEngineSpec) is False
+        assert equality_mirrors_safely(_column(type_), PostgresEngineSpec) is False
+
+
+def test_equality_mirrors_safely_reads_past_the_temporal_flag(app: Flask) -> None:
+    """
+    `TableColumn.type_generic` answers `TEMPORAL` for anything carrying
+    `is_dttm`, so a `VARCHAR` flagged temporal skipped the string check
+    entirely: on MySQL a filter for `'2026-01-01T00:00:00'` matches a stored
+    `'...t00:00:00'` while the mirror `hex('...T...')` excludes it.
+    """
+    with app.app_context():
+        flagged = _column("VARCHAR")
+        flagged.is_dttm = True
+        assert flagged.type_generic == GenericDataType.TEMPORAL
+        # Declines where plain text declines...
+        assert equality_mirrors_safely(flagged, MySQLEngineSpec) is False
+        # ...and is admitted where plain text is admitted.
+        assert equality_mirrors_safely(flagged, PostgresEngineSpec) is True
+
+        # A column that really is temporal is unaffected.
+        real = _column("TIMESTAMP")
+        real.is_dttm = True
+        assert equality_mirrors_safely(real, MySQLEngineSpec) is True
 
 
 def test_no_mapped_column_leaves_the_matrix_alone(app: Flask) -> None:
@@ -702,6 +799,56 @@ def test_contains_jinja(transform: str, expected: bool) -> None:
     assert contains_jinja(transform) is expected
 
 
+def test_contains_jinja_answers_as_the_block_pattern_does() -> None:
+    """
+    The scan has to agree with the lazy, ``DOTALL`` pattern it stands in for
+    on every input, including overlapping and unclosed delimiters, so that no
+    stored transform changes verdict. Every string of up to seven characters
+    over the delimiter characters, a newline and a filler is checked.
+    """
+    import itertools
+    import re
+
+    pattern = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
+    for length in range(8):
+        for chars in itertools.product("{}%#\na", repeat=length):
+            text = "".join(chars)
+            assert contains_jinja(text) is (pattern.search(text) is not None), text
+
+
+@pytest.mark.parametrize("opening", ["{{", "{%", "{#"])
+def test_contains_jinja_is_linear_in_a_run_of_opening_delimiters(
+    opening: str,
+) -> None:
+    """
+    A run of opening delimiters with no closing one made the lazy pattern retry
+    from every position, which is quadratic. Stored transforms are not
+    length-bounded here, so a long run has to stay cheap.
+    """
+    import time
+
+    started = time.monotonic()
+    assert contains_jinja(opening * 200_000) is False
+    assert time.monotonic() - started < 1
+
+
+@pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        ("lower(:value)", False),
+        ("lower(:value) /* an ordinary comment */", False),
+        ("lower(:value) -- a line comment", False),
+        (":value /*!50000 + 1 */", True),
+        (":value /*M!50000 + 1 */", True),
+        (":value /*! + 1 */", True),
+        ("", False),
+        (None, False),
+    ],
+)
+def test_contains_executable_comment(transform: str | None, expected: bool) -> None:
+    assert contains_executable_comment(transform) is expected
+
+
 @pytest.mark.parametrize(
     "transform",
     [
@@ -736,6 +883,100 @@ def test_non_deterministic_functions_are_reported(
     assert expected_name in find_non_deterministic_functions(transform, "hive")
 
 
+@pytest.mark.parametrize(
+    ("engine", "transform", "expected_name"),
+    [
+        # `now()` is statement-stable on PostgreSQL; these two are not even
+        # that, and the ANSI four did not name them.
+        ("postgresql", "age(clock_timestamp(), :value)", "CLOCK_TIMESTAMP"),
+        ("postgresql", "age(statement_timestamp(), :value)", "STATEMENT_TIMESTAMP"),
+        # Every engine spells "now" its own way, and the gate matches by name.
+        ("mysql", "datediff(sysdate(), :value)", "SYSDATE"),
+        ("mysql", "datediff(curdate(), :value)", "CURDATE"),
+        ("oracle", "datediff(day, :value, LOCALTIMESTAMP)", "LOCALTIMESTAMP"),
+        ("oracle", "SYSTIMESTAMP - :value", "SYSTIMESTAMP"),
+        ("mssql", "DATEDIFF(day, :value, GETDATE())", "GETDATE"),
+        ("mssql", "DATEDIFF(day, :value, SYSUTCDATETIME())", "SYSUTCDATETIME"),
+        ("clickhouse", "now64() - :value", "NOW64"),
+        ("bigquery", "DATE_DIFF(CURRENT_DATETIME(), :value, DAY)", "CURRENT_DATETIME"),
+    ],
+)
+def test_every_engine_s_spelling_of_now_is_reported(
+    engine: str, transform: str, expected_name: str
+) -> None:
+    """
+    The list is matched by SQL function name, so a spelling it does not carry
+    passes the gate. A relative partition key such as
+    `datediff(day, :value, LOCALTIMESTAMP)` is then probed once, cached, and
+    keeps emitting yesterday's partition value after midnight -- so the chart
+    silently drops rows.
+    """
+    assert expected_name in find_non_deterministic_functions(transform, engine)
+
+
+@pytest.mark.parametrize(
+    ("engine", "transform", "expected_name"),
+    [
+        # MySQL takes these with no parentheses at all...
+        ("mysql", "datediff(UTC_DATE, :value)", "UTC_DATE"),
+        ("mysql", "datediff(utc_timestamp, :value)", "UTC_TIMESTAMP"),
+        ("mysql", "datediff(CURRENT_DATE, :value)", "CURRENT_DATE"),
+        # ...as do Oracle and PostgreSQL for their own spellings.
+        # sqlglot normalizes Oracle's bare `SYSDATE` to `CURRENT_TIMESTAMP`,
+        # so it is caught as a function under that name -- which is a pass:
+        # what matters is that the gate reports it, not what it is called.
+        ("oracle", ":value - SYSDATE", "CURRENT_TIMESTAMP"),
+        ("oracle", ":value - SYSTIMESTAMP", "SYSTIMESTAMP"),
+        ("postgresql", "age(LOCALTIMESTAMP, :value)", "LOCALTIMESTAMP"),
+    ],
+)
+def test_a_bare_wall_clock_keyword_is_reported(
+    engine: str, transform: str, expected_name: str
+) -> None:
+    """
+    Written without parentheses these parse as *column references*, so the
+    function-name walk could not see them and probe time was frozen into a
+    cached mirror.
+    """
+    assert expected_name in find_non_deterministic_functions(transform, engine)
+
+
+def test_the_bare_list_stays_to_names_that_need_no_parentheses() -> None:
+    """
+    Refusing a bare name costs an owner a column genuinely called that, so the
+    list is only the datetime keywords SQL lets you write without `()`.
+    `rand`, `uuid` and `newid` always need them, and are plausible column
+    names.
+    """
+    assert BARE_WALL_CLOCK_KEYWORDS <= {
+        name.lower() for name in NON_DETERMINISTIC_FUNCTIONS
+    }
+    assert not BARE_WALL_CLOCK_KEYWORDS & {"rand", "random", "uuid", "newid"}
+    # A column by one of those names is still an ordinary column.
+    assert find_non_deterministic_functions("lower(:value) || uuid", "postgresql") == (
+        set()
+    )
+
+
+@pytest.mark.parametrize(
+    ("engine", "transform"),
+    [
+        # The canonical transforms, which must not be swept up by the names
+        # added above.
+        ("hive", "unix_timestamp(:value)"),
+        ("postgresql", "to_char(:value, 'YYYYMMDD')"),
+        ("postgresql", "extract(epoch from :value)"),
+        ("mysql", "date_format(:value, '%Y%m%d')"),
+        ("oracle", "trunc(:value)"),
+        ("mssql", "CONVERT(date, :value)"),
+    ],
+)
+def test_the_canonical_transforms_are_still_pure(engine: str, transform: str) -> None:
+    """The list grew; this is the half that says it did not grow into the
+    transforms this feature exists for."""
+    assert find_non_deterministic_functions(transform, engine) == set()
+
+
 def test_niladic_unix_timestamp_is_rejected_but_the_unary_form_is_not() -> None:
     """
     On Hive/Impala ``unix_timestamp()`` means "now" while ``unix_timestamp(x)``
@@ -751,6 +992,14 @@ def test_niladic_unix_timestamp_is_rejected_but_the_unary_form_is_not() -> None:
 # ---------------------------------------------------------------------------
 # §4.2 — probe evaluation
 # ---------------------------------------------------------------------------
+
+
+def _user(username: str) -> Any:
+    """A stand-in for `override_user`, which only needs `.username` here."""
+    user = MagicMock()
+    user.username = username
+    user.is_anonymous = False
+    return user
 
 
 def _database_returning(values: list[Any]) -> Database:
@@ -822,6 +1071,79 @@ def test_evaluate_transform_binds_values_rather_than_interpolating(
     assert "O''Brien" in sql
 
 
+@pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        ("lower(:value)", True),
+        ("CAST(:value AS BIGINT)", True),
+        ("date_format(:value, '%Y%m%d')", True),
+        # The cast shorthand: a trailing colon stops SQLAlchemy's bind scan.
+        (":value::bigint", False),
+        ("(:value::date)::text", False),
+    ],
+)
+def test_a_postgres_cast_shorthand_is_not_bindable(
+    transform: str, expected: bool
+) -> None:
+    """
+    `VALUE_PLACEHOLDER_RE` is `:value\b`, which matches inside `:value::bigint`.
+    SQLAlchemy's own scan ends with `(?![:\\w$])`, so the following colon stops
+    it: `text(":value::bigint")` reports a parameter named `valu`, and asking it
+    to bind `value` raises.
+
+    Pinned because the two regexes disagreeing is the whole bug: every
+    write-side gate accepted the transform and the probe then died on an
+    `ArgumentError` that `_probe` swallows.
+    """
+    assert _placeholder_is_bindable(transform) is expected
+
+
+def test_a_cast_shorthand_transform_still_probes(app: Flask) -> None:
+    """
+    The transform is valid SQL, passes every gate, and used to prune nothing:
+    `build_probe_sql` raised, `_probe` swallowed it, and the only symptom was a
+    mapping that silently never mirrored -- with the preview reporting an engine
+    failure for SQL that was never sent.
+    """
+    database = _database_returning([20260115])
+
+    with app.app_context():
+        result = evaluate_transform(
+            database, None, None, ":value::bigint", ["20260115"]
+        )
+
+    assert result == [20260115]
+    assert _probe(database).call_count == 1
+    assert "::bigint" in _probe(database).call_args.kwargs["sql"]
+
+
+def test_a_cast_shorthand_value_is_still_escaped_by_the_dialect(
+    app: Flask,
+) -> None:
+    """
+    The fallback substitutes where the bind path binds, so it has to earn the
+    same guarantee its sibling above pins: the value is rendered by the
+    dialect's literal processor, not pasted in.
+
+    Binding was only ever the vehicle for reaching that processor --
+    `_compile_literal` inlines the result either way -- so this renders first
+    and substitutes second. Same string, different order.
+
+    Rendering is necessary and not sufficient: whether the engine reads the
+    rendered text back as this value is a separate question, and the one
+    `literal_round_trips` answers. SQLite's engine honours the doubling its
+    driver emits, which is why this value is probed here at all.
+    """
+    database = _database_returning(["x"])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, ":value::text", ["O'Brien"])
+
+    sql = _probe(database).call_args.kwargs["sql"]
+    assert "O'Brien" not in sql
+    assert "O''Brien" in sql
+
+
 def test_evaluate_transform_dedupes_repeated_values(app: Flask) -> None:
     """Three inputs, two distinct: the probe evaluates the transform twice."""
     database = _database_returning(["us", "us"])
@@ -853,17 +1175,28 @@ def test_evaluate_transform_fails_open_on_a_wide_result_row(app: Flask) -> None:
     Too many columns is the dangerous direction. A transform whose select list
     holds two expressions returns 2N columns for N inputs, and reading the first
     N interleaves the expressions instead of taking one per value -- a predicate
-    built from the wrong values rather than one that is merely short. Here
-    `lower('US'), 'x', lower('CA'), 'x'` would have yielded `('us', 'x')` and
-    dropped every CA row.
+    built from the wrong values rather than one that is merely short. A frame of
+    `('us', 'x', 'ca', 'x')` read as the first two columns would have yielded
+    `('us', 'x')` and dropped every CA row.
+
+    The transform is a perfectly ordinary `lower(:value)` and the width comes
+    from the stubbed frame, which is the only way to reach the guard: a
+    transform that really does carry two expressions -- `lower(:value), 'x'` --
+    is refused by `stored_expression_error` for not being a single expression,
+    so `get_df` is never called and `None` comes back for an unrelated reason.
+    Asserting the probe *ran* is what separates the two, and it is what makes
+    relaxing the guard from `!=` to `<` fail here rather than pass: four columns
+    for two inputs is not fewer than two.
     """
     database = _database_returning(["us", "x", "ca", "x"])
 
     with app.app_context():
         assert (
-            evaluate_transform(database, None, None, "lower(:value), 'x'", ["US", "CA"])
+            evaluate_transform(database, None, None, "lower(:value)", ["US", "CA"])
             is None
         )
+
+    assert _probe(database).call_count == 1
 
 
 def test_the_probe_select_carries_the_engine_s_from_clause(app: Flask) -> None:
@@ -879,6 +1212,84 @@ def test_the_probe_select_carries_the_engine_s_from_clause(app: Flask) -> None:
     )
     assert OracleEngineSpec.select_without_from_suffix == " FROM DUAL"
     assert BaseEngineSpec.select_without_from_suffix == ""
+
+
+@pytest.mark.parametrize(
+    ("module", "spec_name", "suffix"),
+    [
+        ("oracle", "OracleEngineSpec", " FROM DUAL"),
+        ("db2", "Db2EngineSpec", " FROM SYSIBM.SYSDUMMY1"),
+    ],
+)
+def test_the_probe_reads_the_from_suffix_off_the_engine_spec(
+    app: Flask, mocker: MockerFixture, module: str, spec_name: str, suffix: str
+) -> None:
+    """
+    The sibling above hands `build_probe_sql` a suffix directly, so it never
+    exercises the step that reads `select_without_from_suffix` off the engine
+    spec and forwards it. Drop that forwarding and the sibling stays green
+    while Oracle and Db2 stop pruning entirely -- a bare `SELECT ...` raises
+    there, `evaluate_transform` swallows it, and the only symptom is a
+    correctly configured mapping that silently never prunes.
+
+    So this drives the real entry point and asserts on the SQL the engine is
+    handed, plus that the result is accepted.
+    """
+    spec = getattr(import_module(f"superset.db_engine_specs.{module}"), spec_name)
+    database = _database_returning(["us"])
+    mocker.patch.object(
+        type(database), "db_engine_spec", PropertyMock(return_value=spec)
+    )
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["US"]) == [
+            "us"
+        ]
+
+    sql = _probe(database).call_args.kwargs["sql"]
+    assert sql.endswith(suffix)
+    # And the gate that re-parses the compiled probe accepts that shape, rather
+    # than the suffix being appended only to be refused downstream.
+    assert probe_sql_is_evaluable(sql, spec.engine, 1, suffix) is True
+
+
+@pytest.mark.parametrize(
+    ("transform", "expected"),
+    [
+        (":value || ':suffix'", "SELECT 'us' || ':suffix' AS v0"),
+        ("concat(:value, ':x')", "SELECT concat('us', ':x') AS v0"),
+        ("replace(:value, ':a', ':b')", "SELECT replace('us', ':a', ':b') AS v0"),
+        # The separator shape, which is the ordinary reason to write one.
+        ("concat(:value, ':', 'x')", "SELECT concat('us', ':', 'x') AS v0"),
+        # A time format carries two.
+        (
+            "to_char(:value, 'HH24:MI:SS')",
+            "SELECT to_char('us', 'HH24:MI:SS') AS v0",
+        ),
+        # And the placeholder itself still binds.
+        ("lower(:value)", "SELECT lower('us') AS v0"),
+    ],
+)
+def test_a_colon_in_a_literal_is_not_read_as_a_bind(
+    transform: str, expected: str
+) -> None:
+    """
+    `text()` reads any `:word` as a bind parameter, including inside a string
+    literal, and an unbound one renders as `NULL` under literal binds rather
+    than raising. So `:value || ':suffix'` compiled to `'us' || 'NULL'`: the
+    mirror asked for a partition value no row holds and the chart dropped
+    rows, with no error for `_probe` to swallow.
+    """
+    assert build_probe_sql(transform, ["us"]) == expected
+
+
+def test_a_colon_literal_survives_the_unbindable_path_too() -> None:
+    """
+    The other branch substitutes textually through `parse_skeleton` and never
+    hands the transform to `text()`, so it was never affected -- pinned so the
+    escaping added for the bound path cannot leak into it as a stray backslash.
+    """
+    assert build_probe_sql(":value::bigint", [7]) == "SELECT 7::bigint AS v0"
 
 
 @pytest.mark.parametrize("dialect", [mysql.dialect(), postgresql.dialect()])
@@ -1138,6 +1549,153 @@ def test_a_subquery_transform_is_refused_even_with_adhoc_subquery_enabled(
     assert "sub-query" in reason
 
 
+@pytest.mark.parametrize(
+    "comment",
+    ["/*!50000 + (SELECT secret FROM vault LIMIT 1) */", "/*M!50000 + 1 */"],
+)
+def test_an_executable_comment_is_refused_by_every_gate(
+    app: Flask, comment: str
+) -> None:
+    """
+    The one construct that made the shape gates describe a statement the engine
+    would not run.
+
+    sqlglot reads a MySQL executable comment as comment data: the pinned parse
+    below reports no sub-query and no clause, so `stored_expression_error` and
+    `probe_sql_is_evaluable` both passed it, while MySQL and MariaDB execute
+    what is inside. An owner with dataset write and no SQL Lab could put one in
+    a transform, call the preview and read a table back out of
+    `emitted_predicate`, with no RLS on the hidden query.
+
+    Refused on every engine, not only the two that honour it -- hence SQLite
+    here. There is no legitimate transform carrying one, and a per-engine gate
+    would store on Postgres what detonates after the dataset is re-pointed.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    transform = f"(:value {comment})"
+
+    # The premise: no parse-tree gate can see it.
+    statement = SQLStatement(f"SELECT (1 {comment}) AS v0", "mysql")
+    assert statement.has_subquery() is False
+    assert statement.get_clause_names() == set()
+
+    with app.app_context():
+        assert stored_expression_error(database, None, None, transform) is not None
+
+    blocking = [
+        issue for issue in validate_transform(transform, "mysql") if issue.blocking
+    ]
+    assert len(blocking) == 1
+    assert "executable comment" in str(blocking[0].message)
+
+
+def test_an_executable_comment_stops_the_probe_before_the_engine(app: Flask) -> None:
+    """
+    The gate above is the save path. This is the row an earlier release stored:
+    `_probe` consults `stored_expression_error` on every call, so a transform
+    already in the metadata database never reaches `get_df`.
+    """
+    database = _database_returning(["x"])
+    transform = "(:value /*!50000 + (SELECT secret FROM vault LIMIT 1) */)"
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, transform, ["US"]) is None
+
+    assert _probe(database).call_count == 0
+
+
+def test_a_unicode_escaped_identifier_is_refused_by_every_gate(app: Flask) -> None:
+    """
+    The second construct that made the gates reason about a name the engine
+    does not use. sqlglot reports `U&"\\0071uery_to_xml"` as an anonymous
+    function literally called `\\0071uery_to_xml`, so the function denylist --
+    which matches on the reported name -- never sees `query_to_xml`, while
+    PostgreSQL decodes the escape and runs it. An owner with dataset write and
+    no SQL Lab could read rows outside their RLS scope back out of
+    `emitted_predicate`.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://u@h/d")
+    transform = "CAST(U&\"\\0071uery_to_xml\"(:value, false, true, '') AS TEXT)"
+
+    # The premise: the denylist is matching the wrong name.
+    statement = SQLStatement(
+        "SELECT CAST(U&\"\\0071uery_to_xml\"('x', false, true, '') AS TEXT) AS v0",
+        "postgresql",
+    )
+    assert statement.get_disallowed_functions({"query_to_xml"}) == set()
+
+    with app.app_context():
+        assert stored_expression_error(database, None, None, transform) is not None
+
+    blocking = [
+        issue for issue in validate_transform(transform, "postgresql") if issue.blocking
+    ]
+    assert len(blocking) == 1
+    assert "escape sequence" in str(blocking[0].message)
+
+
+def test_a_unicode_escaped_identifier_stops_the_probe_before_the_engine(
+    app: Flask,
+) -> None:
+    """The row an earlier release stored, as for the executable comment."""
+    database = _database_returning(["x"])
+    transform = "U&\"\\0071uery_to_xml\"(:value, false, true, '') || ''"
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, transform, ["US"]) is None
+
+    assert _probe(database).call_count == 0
+
+
+def test_an_ordinary_quoted_identifier_is_still_allowed(app: Flask) -> None:
+    """
+    Only the escape prefix is refused. A plainly quoted identifier names what
+    it says, so the denylist sees the real name and rejecting it would cost an
+    owner a transform that works.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://u@h/d")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, 'lower("Mixed Case")') is None
+        )
+
+
+def test_the_escape_gate_reads_raw_text_and_says_so(app: Flask) -> None:
+    """
+    The prefix is refused wherever it appears, including inside a string
+    literal -- the same trade the executable-comment gate makes, and for the
+    same reason: a gate whose whole job is to fire before the parse cannot ask
+    the parse whether the text is quoted. `concat(:value, 'u&"x"')` is refused,
+    which costs an owner nothing anyone writes.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://u@h/d")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, "concat(:value, 'u&\"x\"')")
+            is not None
+        )
+
+
+def test_a_plain_comment_is_still_allowed_through_the_shape_gates(
+    app: Flask,
+) -> None:
+    """
+    Only the executable form is refused. An ordinary comment is inert on every
+    engine, so rejecting it would cost an owner a transform that works -- and
+    the placeholder gate already covers the case that matters, a `:value` the
+    comment swallows.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, "lower(:value) /* ok */")
+            is None
+        )
+
+
 def test_a_transform_calling_a_disallowed_function_is_refused(app: Flask) -> None:
     """
     The probe executes the transform, so the operator's function denylist has
@@ -1236,6 +1794,53 @@ def test_the_postgres_full_text_query_functions_are_denied_by_default(
     assert function in DISALLOWED_SQL_FUNCTIONS["postgresql"]
 
 
+@pytest.mark.parametrize(
+    "function",
+    [
+        "getxml",
+        "getxmltype",
+        "newcontext",
+        "newcontextfromhierarchy",
+        # No function argument to inspect at all: the table is named by the
+        # path string handed to the constructor.
+        "dburitype",
+        # The same reader reached through its factory, and the sibling URI
+        # types. Without a case each, deleting these three from `config.py`
+        # left the suite green and reopened the factory path.
+        "geturi",
+        "xdburitype",
+        "httpuritype",
+    ],
+)
+def test_the_oracle_query_running_xml_functions_are_denied_by_default(
+    function: str,
+) -> None:
+    """
+    `DBMS_XMLGEN.GETXML('select secret from vault')` runs its text argument as
+    a query -- the same blind spot as the PostgreSQL families above, on the
+    engine both reviewers named. Listed bare because the package prefix never
+    reaches the matcher: sqlglot parses the call as an anonymous function named
+    `GETXML`, and `get_disallowed_functions` compares against that name.
+    """
+    assert function in DISALLOWED_SQL_FUNCTIONS["oracle"]
+
+
+def test_a_package_qualified_denied_function_is_refused(app: Flask) -> None:
+    """
+    The wiring half for the bare-name listing above: the denylist entry has to
+    match a call written with its package prefix, which is the only way anyone
+    writes these.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="oracle://u@h/d")
+    transform = "DBMS_XMLGEN.GETXML('select secret from vault') || :value"
+
+    with app.app_context():
+        reason = stored_expression_error(database, None, None, transform)
+
+    assert reason is not None
+    assert "getxml" in reason
+
+
 def test_a_denied_query_running_text_function_is_refused(app: Flask) -> None:
     """
     The wiring half, and the only thing that proves the *name* matching works
@@ -1259,28 +1864,49 @@ def test_a_denied_query_running_text_function_is_refused(app: Flask) -> None:
     assert "ts_stat" in reason
 
 
-def test_the_function_denylist_is_keyed_on_the_engine_spec_name(app: Flask) -> None:
+def test_the_function_denylist_is_keyed_on_the_engine_spec_name(
+    app: Flask, monkeypatch: pytest.MonkeyPatch
+) -> None:
     """
     Every other denylist gate in the codebase keys on the engine spec's own
     name, which is also the name the config documentation tells an operator to
     write, so this one does too -- a spec covering several SQLAlchemy backends
     through `engine_aliases` reports the one canonical name under which its
     entry exists.
+
+    Tested through an *aliased* engine, which is the only way to tell the two
+    names apart. On `sqlite://` the backend and the spec name are both
+    `"sqlite"`, so the assertion held whichever one the gate read, and the test
+    did not check what its name promises. `postgres://` is
+    `PostgresEngineSpec.engine_aliases`, so the URL's backend is `postgres`
+    while the spec -- and the config key an operator writes -- is `postgresql`.
     """
-    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgres://u@h/d")
 
     with app.app_context():
-        app.config["DISALLOWED_SQL_FUNCTIONS"] = {
-            database.db_engine_spec.engine: {"version"}
-        }
-        assert (
-            stored_expression_error(database, None, None, "version() || :value")
-            is not None
+        # The premise, asserted rather than assumed: if this alias ever goes
+        # away, the test below stops discriminating and should say so here.
+        assert database.backend == "postgres"
+        assert database.db_engine_spec.engine == "postgresql"
+
+        # Denied only under the spec's name. Keyed on `database.backend` the
+        # gate would find no entry and let the call through.
+        #
+        # `monkeypatch`, because `app` is module-scoped: assigning to
+        # `app.config` outlived the test and the next one to read the shipped
+        # defaults -- `test_a_package_qualified_denied_function_is_refused` --
+        # then found this stub and failed under any ordering that put it second.
+        monkeypatch.setitem(
+            app.config, "DISALLOWED_SQL_FUNCTIONS", {"postgresql": {"version"}}
         )
+        reason = stored_expression_error(database, None, None, "version() || :value")
+
+    assert reason is not None
+    assert "version" in reason
 
 
 def test_the_denylist_key_falls_back_when_the_engine_spec_cannot_load(
-    app: Flask,
+    app: Flask, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """
     Resolving the engine spec loads the SQLAlchemy dialect entrypoint, which
@@ -1301,7 +1927,11 @@ def test_the_denylist_key_falls_back_when_the_engine_spec_cannot_load(
             ),
         ),
     ):
-        app.config["DISALLOWED_SQL_FUNCTIONS"] = {"sqlite": {"version"}}
+        # `monkeypatch` for the same reason as the test above: `app` is
+        # module-scoped, so a plain assignment leaks into every later test.
+        monkeypatch.setitem(
+            app.config, "DISALLOWED_SQL_FUNCTIONS", {"sqlite": {"version"}}
+        )
         assert (
             stored_expression_error(database, None, None, "version() || :value")
             is not None
@@ -1636,9 +2266,243 @@ def test_probe_cache_key_tracks_the_connection(app: Flask) -> None:
     assert after_uri != after_extra
 
 
+def test_the_probe_cache_ignores_the_caller_without_a_per_user_connection(
+    app: Flask,
+) -> None:
+    """
+    The common case keeps its hit rate.
+
+    The cache exists to keep a synchronous warehouse round trip off the
+    chart-query path, so keying it on the username everywhere would cost every
+    deployment the sharing that makes it worth having -- to fix the two hooks
+    that actually make the connection per-user.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+
+    with app.app_context():
+        with override_user(_user("alice")):
+            as_alice = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        with override_user(_user("bob")):
+            as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+
+    assert as_alice == as_bob
+
+
+def test_an_impersonating_connection_keys_the_probe_cache_per_caller(
+    app: Flask,
+) -> None:
+    """
+    With impersonation the warehouse runs the probe as the Superset user, so the
+    values the transform returns are computed under *that* user's grants.
+    Shared, the cache handed user B what the transform saw as user A, and the
+    preview echoed it in `emitted_predicate` -- a cross-user read for a
+    transform wrapping any read-capable function the denylist does not name.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+    database.impersonate_user = True
+
+    with app.app_context():
+        with override_user(_user("alice")):
+            as_alice = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+            alice_verdict = _mirror_verdict_cache_key(
+                database, None, None, "lower(:value)"
+            )
+        with override_user(_user("bob")):
+            as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+            bob_verdict = _mirror_verdict_cache_key(
+                database, None, None, "lower(:value)"
+            )
+
+    assert as_alice != as_bob
+    # The verdict too: a function one account may call can be refused to
+    # another, so "this transform evaluates" is not a shared answer either.
+    assert alice_verdict != bob_verdict
+
+
+def test_a_connection_mutator_keys_the_probe_cache_per_caller(app: Flask) -> None:
+    """
+    `DB_CONNECTION_MUTATOR` receives the effective username and may return an
+    entirely different account's URL, so it makes the connection per-user even
+    with `impersonate_user` off -- which is why the gate checks both.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.id = 1
+
+    with app.app_context():
+        app.config["DB_CONNECTION_MUTATOR"] = lambda *args: args[:2]
+        try:
+            with override_user(_user("alice")):
+                as_alice = _probe_cache_key(
+                    database, None, None, "lower(:value)", ["US"]
+                )
+            with override_user(_user("bob")):
+                as_bob = _probe_cache_key(database, None, None, "lower(:value)", ["US"])
+        finally:
+            app.config["DB_CONNECTION_MUTATOR"] = None
+
+    assert as_alice != as_bob
+
+
 # ---------------------------------------------------------------------------
 # A probe result the partition column cannot hold
 # ---------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        # Even plain ISO: comparing a temporal column against text is an
+        # implicit coercion, and Trino has none while BigQuery coerces only a
+        # canonical literal -- so on an engine Superset has not confirmed, this
+        # declines rather than risking the whole chart.
+        "2026-01-01",
+        "2026-01-01 00:00:00",
+        "2026-01-01T10:08:11",
+        # The unseparated forms, same answer.
+        "20260101",
+        "20260706100811",
+        # Ordinary text, which is the whole point.
+        "us",
+        "US",
+        "",
+        "x20260101",
+        "202601",
+        "1767225600",
+        "1767225600000",
+    ],
+)
+def test_an_undeclared_engine_reads_no_text_as_an_instant(value: str) -> None:
+    """
+    `_PROBE_RESULT_TYPES` admits `str` for a temporal partition column so a day
+    key keeps working. It admitted every string, so `lower(:value)` answering
+    `'us'` passed and the chart failed at the database instead.
+
+    An earlier cut admitted extended ISO everywhere and only asked the spec
+    about the unseparated forms. That is the hole: on Trino a monotonic
+    `date_format(CAST(:value AS TIMESTAMP), '%Y-%m-%d')` probes to
+    `'2026-01-15'`, and `part_date >= '2026-01-15'` errors there rather than
+    losing the pruning.
+    """
+    assert _reads_as_temporal(value, BaseEngineSpec) is False
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        # PostgreSQL's date/time input reads both spellings, so the day key
+        # this feature exists for mirrors there.
+        ("2026-01-01", True),
+        ("2026-01-01 00:00:00", True),
+        ("2026-01-01T10:08:11", True),
+        ("2026-01-01 10:08:11.123456", True),
+        ("20260101", True),
+        ("20260706100811", True),
+        # Still not a date, declared formats or not. `strptime` accepts
+        # unpadded fields, so a bare epoch parsed happily as `%Y%m%d%H%M%S`
+        # (1767-02-25 06:00) and was emitted as a date literal -- the exact
+        # bad-literal error this gate exists to stop. The round-trip rejects it.
+        ("1767225600", False),
+        ("1767225600000", False),
+        ("202601", False),
+        ("us", False),
+    ],
+)
+def test_an_engine_that_reads_a_day_key_says_so(value: str, expected: bool) -> None:
+    """
+    Which text reads as an instant is the engine's answer, declared in
+    `temporal_literal_formats`.
+    """
+    assert _reads_as_temporal(value, PostgresEngineSpec) is expected
+
+
+@pytest.mark.parametrize(
+    ("module", "spec_name"),
+    [
+        # Inherit `PostgresBaseEngineSpec`, so declaring the formats there
+        # handed them Postgres's date input. Snowflake's AUTO input does not
+        # take `YYYYMMDD` and reads an all-digit string as epoch seconds.
+        ("snowflake", "SnowflakeEngineSpec"),
+        ("vertica", "VerticaEngineSpec"),
+        ("hana", "HanaEngineSpec"),
+        ("netezza", "NetezzaEngineSpec"),
+        ("hologres", "HologresEngineSpec"),
+        # And the engines the reviewer named as failing the query outright.
+        ("trino", "TrinoEngineSpec"),
+        ("bigquery", "BigQueryEngineSpec"),
+    ],
+)
+def test_a_postgres_relative_does_not_inherit_the_day_key(
+    module: str, spec_name: str
+) -> None:
+    """
+    The declaration lives on the concrete `PostgresEngineSpec` and
+    `RedshiftEngineSpec`, not on the base class seven other specs extend.
+    """
+    spec = getattr(import_module(f"superset.db_engine_specs.{module}"), spec_name)
+    assert spec.temporal_literal_formats == ()
+
+
+def test_redshift_shares_the_postgres_day_key() -> None:
+    """Redshift shares PostgreSQL's date/time input, and names it itself."""
+    from superset.db_engine_specs.redshift import RedshiftEngineSpec
+
+    assert RedshiftEngineSpec.temporal_literal_formats == (
+        PostgresEngineSpec.temporal_literal_formats
+    )
+
+
+def test_the_base_spec_claims_no_day_key_format() -> None:
+    """
+    Default closed: an engine that has not said it reads a day key declines
+    the mirror, which costs the pruning rather than the query.
+    """
+    assert BaseEngineSpec.temporal_literal_formats == ()
+
+
+def test_a_type_mismatch_does_not_poison_the_shared_transform_verdict(
+    app: Flask,
+) -> None:
+    """
+    The decline is about *this* dataset's partition column, and
+    `_mirror_verdict_cache_key` holds no partition column -- only database,
+    catalog, schema and transform.
+
+    Recorded there, a dataset-specific outcome answered for every other dataset
+    sharing the transform: `cast(:value as text)` mirroring happily onto a text
+    key in dataset A was reported `evaluable: false`, and its pruning indicator
+    hidden, because an owner previewed the same transform against a numeric key
+    in dataset B. A probe cache hit on A never rewrites the verdict, so A
+    stayed wrong until the entry expired.
+
+    `evaluate_transform` is patched out here, so it records no verdict of its
+    own and anything left in the cache can only have come from the branch under
+    test. `real_probe_cache` is autouse in this module, so `None` is a real
+    reading rather than what a null cache returns for everything.
+    """
+    table = _mapped_table(transform="cast(:value as text)")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["2026-01-01 00:00:00"],
+        ):
+            predicates = build_mirrored_predicates(
+                table, mapping, [(FilterOperator.EQUALS, "2026-01-01")]
+            )
+
+        # `dt_epoch` is a BIGINT and the transform answered with text, so the
+        # mirror is declined -- that part is `probed_value_type_error`'s job.
+        assert predicates == []
+        # And nothing was written to the verdict every other dataset reads.
+        # Before this, the branch above recorded `mirrors=False` here.
+        assert (
+            known_mirror_verdict(table.database, None, None, "cast(:value as text)")
+            is None
+        )
 
 
 def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:
@@ -1677,8 +2541,11 @@ def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:
         ("BOOLEAN", True, False),
         ("BOOLEAN", 1, True),
         ("TIMESTAMP", datetime(2026, 1, 1), False),
-        # A `to_char` day key is legitimately text.
-        ("TIMESTAMP", "2026-01-01", False),
+        # A `to_char` day key is legitimately text, but only where the engine
+        # reads it: this fixture's database is SQLite, which declares nothing,
+        # so the mirror declines and the query keeps working. The declared case
+        # is `test_an_engine_that_reads_a_day_key_says_so`.
+        ("TIMESTAMP", "2026-01-01", True),
         ("TIMESTAMP", 1767225600, True),
     ],
 )
@@ -1698,6 +2565,31 @@ def test_a_probe_result_is_judged_against_the_partition_column(
     if mismatched:
         assert error is not None
         assert "dt_epoch" in error
+
+
+def test_a_numeric_partition_column_flagged_temporal_takes_a_number() -> None:
+    """
+    A `BIGINT` partition key bucketed by `python_date_format = epoch_s` is
+    temporal to `TableColumn.type_generic` and a number to the engine. The gate
+    is about the comparison, so it asks the engine spec: an epoch transform's
+    integer is held, where the semantic flag refused it and cost a working
+    mapping its mirror.
+    """
+    column = _partition_column("BIGINT", is_dttm=True, python_date_format="epoch_s")
+
+    assert column.type_generic == GenericDataType.TEMPORAL
+    assert probed_value_type_error(column, [1767225600]) is None
+
+
+def test_a_timestamp_column_still_refuses_a_number() -> None:
+    """
+    The fallback is per-column, not blanket: a real `TIMESTAMP` resolves to
+    `TEMPORAL` through the engine spec too, so it keeps refusing the epoch a
+    transform returns for it.
+    """
+    column = _partition_column("TIMESTAMP", is_dttm=True)
+
+    assert probed_value_type_error(column, [1767225600]) is not None
 
 
 def test_a_column_whose_type_says_nothing_is_left_alone() -> None:
@@ -1774,17 +2666,55 @@ def test_a_failed_probe_records_that_it_does_not_mirror(app: Flask) -> None:
         assert known_mirror_verdict(database, None, None, "no_such_fn(:value)") is False
 
 
-def test_a_probe_that_returns_null_does_not_mirror_either(app: Flask) -> None:
+def test_a_probe_that_returns_null_leaves_the_verdict_alone(app: Flask) -> None:
     """
-    The transform evaluated and gave nothing to build a predicate from, so the
-    query carries no mirror -- which is the same claim, reached differently.
+    A `NULL` is this input's answer, not the transform's. The verdict is keyed
+    without the values -- see the test below -- so recording one input's `NULL`
+    against the whole transform is the same category error the type-mismatch
+    decline already avoids.
+
+    The filter itself still gets no mirror: that is the caller's own `NULL`
+    guard, which is per request and where it belongs.
     """
     database = _database_returning([None])
 
     with app.app_context():
         evaluate_transform(database, None, None, "lower(:value)", ["x"])
 
-        assert known_mirror_verdict(database, None, None, "lower(:value)") is False
+        assert known_mirror_verdict(database, None, None, "lower(:value)") is True
+
+
+def test_a_null_for_one_input_does_not_outlive_itself(app: Flask) -> None:
+    """
+    The reason it matters that a `NULL` is not a withdrawal: a *failed* probe
+    is deliberately not cached, so the next chart re-probes and re-records --
+    but a `NULL` is a successful probe and is cached, so the false verdict
+    outlived every later hit.
+
+    `NULLIF(:value, 0)` is the shape: `n = 2` probes to 2, `n = 0` probes to
+    `NULL`, and `n = 2` again is served from cache. Explore hid the glyph and
+    the editor said filters were not mirrored while the query went on pruning.
+    """
+    transform = "NULLIF(:value, 0)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        """`NULLIF('0', 0)` is NULL; `NULLIF('2', 0)` is 2."""
+        value = None if "'0'" in sql else 2
+        return pd.DataFrame([[value]], columns=["v0"])
+
+    database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, transform, ["2"]) == [2]
+        assert known_mirror_verdict(database, None, None, transform) is True
+
+        # The input that answers NULL.
+        assert evaluate_transform(database, None, None, transform, ["0"]) == [None]
+
+        # ...and the first input again, now served from the probe cache.
+        assert evaluate_transform(database, None, None, transform, ["2"]) == [2]
+        assert known_mirror_verdict(database, None, None, transform) is True
 
 
 def test_one_filter_s_verdict_answers_for_the_next(app: Flask) -> None:
@@ -2035,3 +2965,522 @@ def test_the_probe_backstop_accepts_only_a_plain_projection_per_value(
     and `_probe` hands the same constant to the builder and to this gate.
     """
     assert probe_sql_is_evaluable(sql, "sqlite", expected, suffix) is evaluable
+
+
+def test_a_backslash_escaped_quote_really_does_break_out_of_the_probe_literal() -> None:
+    """
+    Why `literal_round_trips` exists, in the shape of the escape it was written
+    for.
+
+    SQLAlchemy's default literal processor doubles apostrophes and leaves
+    backslashes alone. Hive and Spark read it the other way round, so a value
+    of ``x\\'`` ends its own literal four characters in: everything after it is
+    SQL, the value supplies the ``AS v0`` the gate looks for, and ``--`` hides
+    the one `build_probe_sql` appended. The probe then evaluates an expression
+    of the filterer's choosing and hands the answer back in the mirrored
+    predicate -- reachable by anyone who can filter a chart.
+
+    Both halves are pinned because each is independently sufficient: the value
+    never reaches the probe (`literal_round_trips`), and the compiled statement
+    would be refused if it did (`probe_sql_is_evaluable`, on the comment).
+    """
+    payload = 'x\\\' || reflect("java.lang.System","getenv","HOME") AS v0 --'
+    sql = build_probe_sql(":value", [payload])
+
+    # Where the renderer and the lexer agree, that same compiled text is one
+    # literal holding the value, whole, and the probe is harmless.
+    assert SQLStatement(sql, "sqlite").get_select_literal_value() == payload
+    # Where they do not, the literal ends four characters in: the projection is
+    # no longer a literal at all, and the alias the builder appended is inside
+    # the comment the value opened.
+    assert SQLStatement(sql, "hive").get_select_literal_value() is None
+    assert SQLStatement(sql, "hive").has_comment() is True
+
+    assert literal_round_trips(payload, None, "hive") is False
+    assert probe_sql_is_evaluable(sql, "hive", 1) is False
+
+
+@pytest.mark.parametrize(
+    ("engine", "dialect", "value", "faithful"),
+    [
+        # Hive and Spark honour the backslash and not the doubling, so both of
+        # the characters that can end a literal early are ambiguous there.
+        ("hive", None, "plain", True),
+        ("hive", None, "O'Brien", False),
+        ("hive", None, "a\\b", False),
+        ("spark", None, "O'Brien", False),
+        # Postgres agrees about the apostrophe. It does not agree about the
+        # backslash: SQLAlchemy only learns whether the server honours one in
+        # `initialize(connection)`, which the probe's dialect never reaches, so
+        # it renders `a\b` as `'a\\b'` and a server with the standard setting
+        # reads four characters.
+        ("postgresql", postgresql.dialect(), "O'Brien", True),
+        ("postgresql", postgresql.dialect(), "a\\b", False),
+        # And where the two agree, nothing is declined -- this is not a blanket
+        # refusal of either character.
+        ("mysql", mysql.dialect(), "O'Brien", True),
+        ("mysql", mysql.dialect(), "a\\b", True),
+        ("sqlite", None, "O'Brien", True),
+        ("sqlite", None, "a\\b", True),
+        # Nor of anything else that merely looks like syntax.
+        ("hive", None, 'a"b', True),
+        ("hive", None, "a--b", True),
+        ("hive", None, "a\nb", True),
+        # A number is not written between delimiters at all.
+        ("hive", None, 42, True),
+    ],
+)
+def test_a_literal_the_engine_reads_back_differently_is_not_mirrored(
+    engine: str, dialect: Any, value: Any, faithful: bool
+) -> None:
+    """
+    The rule, stated as the verdict per renderer-and-lexer pair.
+
+    Verified rather than escaped: which spelling the engine honours is a
+    per-session server setting no engine spec exposes, so an escape would have
+    to guess, and a wrong guess either leaves the hole open or probes a value
+    nobody filtered on. Rendering the literal and reading it back answers the
+    question that actually matters, and the answer is only ever used to
+    decline.
+    """
+    assert literal_round_trips(value, dialect, engine) is faithful
+
+
+def test_a_comment_in_the_compiled_probe_is_refused() -> None:
+    """
+    The value-blind half, which is what makes the alias check sufficient rather
+    than merely necessary: a value that closes its own quote has to hide the
+    text appended after it, and a comment is the only way to do that and still
+    balance the quotes.
+
+    Read off the parse, so a comment *inside* a literal is data and costs no
+    pruning.
+    """
+    assert probe_sql_is_evaluable("SELECT lower('a') AS v0", "sqlite", 1) is True
+    assert (
+        probe_sql_is_evaluable("SELECT lower('a') AS v0 /* note */", "sqlite", 1)
+        is False
+    )
+    assert probe_sql_is_evaluable("SELECT lower('a--b') AS v0", "sqlite", 1) is True
+
+
+def test_a_value_the_dialect_cannot_write_faithfully_is_never_probed(
+    app: Flask,
+) -> None:
+    """
+    The backstop, above `_run_probe` on purpose.
+
+    `ExploreMixin.mirror_probe_request` declines such a value earlier with a
+    reason the preview explains, but it is not the only door into the probe:
+    a range's bounds are collected without passing through it, and on a
+    formatted column what is probed is `strftime(python_date_format)` -- text
+    no mapping gate has read.
+
+    And no verdict is recorded. This is a property of one input, so withdrawing
+    the mirror for the whole transform would report a working mapping as broken
+    for every later value, the way a `NULL` result once did.
+    """
+    database = Database(
+        database_name="probe_db", sqlalchemy_uri="hive://localhost:10000/default"
+    )
+    database.get_df = MagicMock()  # type: ignore[method-assign]
+
+    with app.app_context():
+        assert (
+            evaluate_transform(database, None, None, "lower(:value)", ["O'Brien"])
+            is None
+        )
+        assert known_mirror_verdict(database, None, None, "lower(:value)") is None
+
+    cast(MagicMock, database.get_df).assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        # Advances a sequence. One function call, no clause, no sub-query, and
+        # absent from the shipped `DISALLOWED_SQL_FUNCTIONS` -- so every other
+        # gate in `stored_expression_error` passes it.
+        "nextval(:value)",
+        "setval('s', :value)",
+        # Also caught by the shipped denylist, which is config an operator can
+        # replace; this gate is not.
+        "lo_export(:value, '/tmp/x')",
+    ],
+)
+def test_a_transform_that_changes_data_is_refused(app: Flask, transform: str) -> None:
+    """
+    Shape is not effect. The gates around this one ask what the transform
+    *selects*; a bare scalar expression can still write, and the probe then
+    runs it -- on a cache schedule, so the write repeats every time the entry
+    expires, with no SQL Lab access needed and nothing on screen to say so.
+
+    `is_mutating` is the question SQL Lab and the chart executor already ask
+    before letting SQL run, so the transform is held to the bar the rest of
+    Superset sets rather than to one invented here.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+
+    with app.app_context():
+        original = app.config["DISALLOWED_SQL_FUNCTIONS"]
+        try:
+            # Emptied so the verdict is this gate's and not the denylist's --
+            # `lo_export` is on both, and the point is that it does not need to
+            # be.
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = {}
+            reason = stored_expression_error(database, None, None, transform)
+        finally:
+            app.config["DISALLOWED_SQL_FUNCTIONS"] = original
+
+    assert reason is not None
+    assert "cannot change data" in reason
+
+
+@pytest.mark.parametrize(
+    ("backend", "transform"),
+    [
+        # The suffix form, which parses as a qualified column.
+        ("oracle", "orders_seq.NEXTVAL + :value"),
+        ("oracle", "orders_seq.CURRVAL + :value"),
+        ("oracle", "ORDERS_SEQ.nextval + :value"),
+        ("oracle", 'lower("Schema"."Seq".NEXTVAL || :value)'),
+        # And the call, which parses as a function. `is_mutating` walks
+        # function names on PostgreSQL alone, so every other engine let these
+        # through -- the suffix check cannot see them either.
+        ("postgresql", "nextval('s') + :value"),
+        ("duckdb", "nextval('s') + :value"),
+        ("mysql", "NEXTVAL(s) + :value"),
+        ("mysql", "SETVAL(s, 1) + :value"),
+        ("mssql", "NEXT VALUE FOR s + :value"),
+    ],
+)
+def test_a_transform_reading_a_sequence_is_refused(
+    app: Flask, backend: str, transform: str
+) -> None:
+    """
+    The gate above walks *function* names, and `orders_seq.NEXTVAL` is a
+    qualified **column** reference to the parser -- so it passed every shape
+    check, the denylist included, while advancing the sequence each time the
+    probe ran. On a cache schedule, from a dataset editor holding neither SQL
+    Lab nor a DML grant.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri=f"{backend}://u@h/d")
+
+    with app.app_context():
+        reason = stored_expression_error(database, None, None, transform)
+
+    assert reason is not None
+    # Either gate is a pass: on PostgreSQL `is_mutating` already walks
+    # function names and answers first with "cannot change data". What matters
+    # is that no spelling reaches the probe.
+    assert "cannot read a sequence" in reason or "cannot change data" in reason
+
+
+def test_a_column_merely_named_like_a_sequence_is_not_refused(app: Flask) -> None:
+    """
+    The premise of asking the parse rather than the raw text: the construct is
+    the name *in column position*, so a string literal holding the word, or a
+    mapped column called `nextval_count`, is ordinary.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="oracle://u@h/d")
+
+    with app.app_context():
+        assert (
+            stored_expression_error(database, None, None, "lower(:value) || 'nextval'")
+            is None
+        )
+        assert (
+            stored_expression_error(database, None, None, "nextval_count + :value")
+            is None
+        )
+
+
+@pytest.mark.parametrize(
+    "transform",
+    [
+        "unix_timestamp(:value)",
+        ":value::bigint",
+        "lower(:value)",
+        "to_char(:value, 'YYYYMMDD')",
+    ],
+)
+def test_an_ordinary_transform_still_reads(app: Flask, transform: str) -> None:
+    """The read-only gate must not cost the canonical mappings."""
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+
+    with app.app_context():
+        assert stored_expression_error(database, None, None, transform) is None
+
+
+def test_a_transform_that_changes_data_stops_the_probe_before_the_engine(
+    app: Flask,
+) -> None:
+    """
+    The gate above is the save path. This is the row an earlier release stored,
+    or one an operator's own denylist let through: `_probe` consults
+    `stored_expression_error` on every call, so it never reaches `get_df`.
+    """
+    # PostgreSQL rather than the sibling helper's SQLite, because
+    # `is_mutating`'s function-name walk is dialect-gated -- the same names are
+    # read-only on other engines. `get_df` is stubbed, so nothing connects.
+    database = Database(database_name="probe_db", sqlalchemy_uri="postgresql://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        return_value=pd.DataFrame([["x"]], columns=["v0"])
+    )
+
+    with app.app_context():
+        assert (
+            evaluate_transform(database, None, None, "nextval(:value)", ["US"]) is None
+        )
+
+    assert _probe(database).call_count == 0
+
+
+def test_an_incoming_transform_on_a_non_mapped_column_is_dropped() -> None:
+    """
+    NEW-R11-01. The mapping mirrors one column, so only that column may carry a
+    transform; one parked anywhere else is invisible -- no row but the mapped
+    one renders a transform -- and goes live the moment the mapped column
+    resolves back to it.
+
+    `DatasetDAO.clear_unmapped_partition_transforms` answers for the model, but
+    it is gated on the feature flag because it discards stored configuration.
+    This answers for the payload, which is how the leftover arrives.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        },
+        {
+            "column_name": "other_time",
+            "partition_value_transform": "to_unixtime(:value)",
+            "partition_transform_is_monotonic": True,
+        },
+    ]
+
+    cleared = drop_unmapped_value_transforms(
+        columns,
+        partition_column="dt_epoch",
+        partition_mapped_column=None,
+        main_dttm_col="event_time",
+    )
+
+    assert cleared == ["other_time"]
+    # The mapped column keeps what the owner wrote for it.
+    assert columns[0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert columns[0]["partition_transform_is_monotonic"] is True
+    assert columns[1]["partition_value_transform"] is None
+    assert columns[1]["partition_transform_is_monotonic"] is False
+
+
+def test_an_override_decides_which_incoming_transform_survives() -> None:
+    """
+    The mapped column is `partition_mapped_column or main_dttm_col`, so the
+    override moves which column may hold one -- and both can be part of the same
+    request, which is why the caller passes all three rather than a resolved
+    name.
+    """
+    columns = [
+        {"column_name": "event_time", "partition_value_transform": "a(:value)"},
+        {"column_name": "country", "partition_value_transform": "lower(:value)"},
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column="region_key",
+        partition_mapped_column="country",
+        main_dttm_col="event_time",
+    ) == ["event_time"]
+    assert columns[1]["partition_value_transform"] == "lower(:value)"
+
+
+def test_without_a_partition_column_no_incoming_transform_survives() -> None:
+    """
+    No partition column means nothing is mirrored, so no column is the mapped
+    one -- which is how the model-level pass resolves it too. A transform stored
+    here would be waiting for a partition column nobody has chosen yet.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+        }
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column=None,
+        partition_mapped_column=None,
+        main_dttm_col="event_time",
+    ) == ["event_time"]
+    assert columns[0]["partition_value_transform"] is None
+
+
+def test_an_echo_of_a_stored_transform_is_not_dropped() -> None:
+    """
+    The GET-then-PUT shape every client of these endpoints uses: the payload
+    carries every column back exactly as it arrived. Changing the default
+    datetime column away from the mapped one then made the unchanged copy of
+    its transform look like a value being parked, and nulling it destroyed
+    configuration the owner never touched -- unrecoverably, since with the flag
+    off the editor hides the fields and the model-level pass declines to run.
+
+    An unchanged value is the model-level pass's business, under its own flag,
+    which is the line this function already draws for a column the payload
+    omits entirely.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+            "partition_transform_is_monotonic": True,
+        }
+    ]
+    stored: dict[str, tuple[str | None, bool]] = {
+        "event_time": ("unix_timestamp(:value)", True)
+    }
+
+    # `event_time2` is the newly chosen default, so `event_time` is no longer
+    # the mapped column -- and its transform is nonetheless an echo.
+    assert (
+        drop_unmapped_value_transforms(
+            columns,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time2",
+            stored_by_name=stored,
+        )
+        == []
+    )
+    assert columns[0]["partition_value_transform"] == "unix_timestamp(:value)"
+    assert columns[0]["partition_transform_is_monotonic"] is True
+
+
+@pytest.mark.parametrize(
+    ("transform", "monotonic"),
+    [
+        # A different expression...
+        ("to_unixtime(:value)", True),
+        # ...or the same expression with the flag flipped. Either is the
+        # request introducing something, which is what the gate is for.
+        ("unix_timestamp(:value)", False),
+    ],
+)
+def test_a_changed_transform_on_an_unmapped_column_is_still_dropped(
+    transform: str, monotonic: bool
+) -> None:
+    """
+    The other half: knowing what is stored must not turn the gate off. A
+    flag-off window is precisely when a value gets parked for later, and this
+    is the writer that stops it.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": transform,
+            "partition_transform_is_monotonic": monotonic,
+        }
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column="dt_epoch",
+        partition_mapped_column=None,
+        main_dttm_col="event_time2",
+        stored_by_name={"event_time": ("unix_timestamp(:value)", True)},
+    ) == ["event_time"]
+    assert columns[0]["partition_value_transform"] is None
+
+
+@pytest.mark.parametrize(
+    "entry",
+    [
+        # The transform echoed, the declaration simply absent.
+        {"id": 7, "partition_value_transform": "unix_timestamp(:value)"},
+        # And the reverse: the declaration echoed, the transform absent.
+        {"id": 7, "partition_transform_is_monotonic": True},
+    ],
+)
+def test_a_partial_echo_counts_as_unchanged(entry: dict[str, Any]) -> None:
+    """
+    `_upsert_columns` writes only the keys an entry carries, so a payload
+    echoing one of the two fields is a valid partial update. Read as a change,
+    it failed the exemption and both fields were written back as null -- the
+    same unrecoverable loss the exemption exists to prevent.
+    """
+    columns = [dict(entry)]
+
+    assert (
+        drop_unmapped_value_transforms(
+            columns,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time2",
+            names_by_id={7: "event_time"},
+            stored_by_name={"event_time": ("unix_timestamp(:value)", True)},
+        )
+        == []
+    )
+    assert columns[0] == entry
+
+
+def test_a_caller_that_cannot_see_storage_keeps_the_stricter_behaviour() -> None:
+    """
+    `stored_by_name` is optional, and omitting it drops an unmapped column's
+    transform whether or not it is an echo -- the behaviour every caller had
+    before. A column storage does not mention is treated as an introduction
+    for the same reason.
+    """
+    columns = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp(:value)",
+        }
+    ]
+
+    assert drop_unmapped_value_transforms(
+        columns,
+        partition_column="dt_epoch",
+        partition_mapped_column=None,
+        main_dttm_col="event_time2",
+    ) == ["event_time"]
+
+
+def test_a_column_the_payload_says_nothing_about_is_left_alone() -> None:
+    """
+    "Incoming" is the whole scope. A transform already in storage on a column
+    this request does not mention belongs to the model-level pass, under its own
+    feature flag -- adding a null here would discard stored configuration from a
+    request that never asked to.
+    """
+    columns: list[dict[str, Any]] = [
+        {"column_name": "event_time"},
+        {"column_name": "other_time", "partition_transform_is_monotonic": False},
+    ]
+
+    assert (
+        drop_unmapped_value_transforms(
+            columns,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time",
+        )
+        == []
+    )
+    assert "partition_value_transform" not in columns[0]
+    assert "partition_value_transform" not in columns[1]
+
+
+def test_dropping_incoming_transforms_tolerates_no_columns() -> None:
+    """A request can carry no columns payload at all; both callers pass `.get`."""
+    assert (
+        drop_unmapped_value_transforms(
+            None,
+            partition_column="dt_epoch",
+            partition_mapped_column=None,
+            main_dttm_col="event_time",
+        )
+        == []
+    )
