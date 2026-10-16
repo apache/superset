@@ -313,6 +313,8 @@ def test_import_passes_ignore_permissions_to_all_importers(
         "charts/test/chart.yaml": {
             "uuid": chart_uuid,
             "dataset_uuid": dataset_uuid,
+            # ids carried over from the instance the fixture was exported from
+            "params": {"datasource": "21__table", "viz_type": "table"},
         },
         "dashboards/test.yaml": {
             "uuid": dashboard_uuid,
@@ -343,6 +345,11 @@ def test_import_passes_ignore_permissions_to_all_importers(
 
     mock_import_chart.assert_called_once()
     assert mock_import_chart.call_args[1].get("ignore_permissions") is True
+    # the chart is bound to the dataset created by this import, including the
+    # reference kept in params
+    imported_chart_config = mock_import_chart.call_args[0][0]
+    assert imported_chart_config["datasource_id"] == 10
+    assert imported_chart_config["params"]["datasource"] == "10__table"
 
     mock_import_dashboard.assert_called_once()
     assert mock_import_dashboard.call_args[1].get("ignore_permissions") is True
