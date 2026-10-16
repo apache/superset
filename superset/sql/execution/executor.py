@@ -63,6 +63,7 @@ import logging
 import time
 import uuid
 from datetime import datetime
+from decimal import DecimalException
 from typing import Any, cast, NoReturn, TYPE_CHECKING
 
 import msgpack
@@ -462,6 +463,7 @@ def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | No
             except (
                 ValueError,
                 TypeError,
+                DecimalException,
                 msgpack.UnpackException,
                 OverflowError,
                 RecursionError,

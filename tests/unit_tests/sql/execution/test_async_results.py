@@ -1123,7 +1123,24 @@ def test_msgpack_nested_sidecar_uses_raw_bytes(
 
 @pytest.mark.parametrize("use_msgpack", [True, False])
 @pytest.mark.parametrize(
-    "invalid", ["unknown_tag", "invalid_base64", "wrong_length", "scalar"]
+    "invalid",
+    [
+        "unknown_tag",
+        "invalid_base64",
+        "wrong_length",
+        "scalar",
+        "tag1",
+        "tag2",
+        "tag3",
+        "tag4",
+        "tag5",
+        "tag6",
+        "tag7_unpack",
+        "tag7_shape",
+        "tag7_type",
+        "tag7_overflow",
+        "tag4_nonascii",
+    ],
 )
 def test_bad_nested_sidecar_keeps_arrow_and_other_columns(
     mocker: MockerFixture, app_context: None, use_msgpack: bool, invalid: str
@@ -1137,6 +1154,17 @@ def test_bad_nested_sidecar_keeps_arrow_and_other_columns(
 
     if invalid == "unknown_tag":
         bad = base64.b64encode(msgpack.dumps([msgpack.ExtType(99, b"future")])).decode()
+    elif invalid.startswith("tag"):
+        code = int(invalid[3])
+        payload = {
+            "tag7_unpack": b"\xc1",
+            "tag7_shape": msgpack.dumps([1, 2]),
+            "tag7_type": msgpack.dumps(["bad", 0, 0]),
+            "tag7_overflow": msgpack.dumps([2**63, 0, 0]),
+            "tag4_nonascii": b"\xff",
+        }.get(invalid, b"malformed")
+        data = msgpack.dumps([msgpack.ExtType(code, payload)])
+        bad = data if use_msgpack else base64.b64encode(data).decode("ascii")
     elif invalid == "invalid_base64":
         bad = "!"
     else:
@@ -1312,5 +1340,11 @@ def test_python_sql_results_documented_under_backend_apis() -> None:
     mcp = (root / "docs/developer_docs/extensions/mcp.md").read_text()
     assert "Python SQL query results" not in mcp
     section = development.split("### Backend APIs", 1)[1]
-    assert "#### Python SQL query results" in section
+    backend, sql_results = section.split("#### Python SQL query results", 1)
+    sql_results = sql_results.split("\n### ", 1)[0]
+    assert "Extension endpoints are registered" in backend
+    assert "`/extensions` namespace" in backend
+    assert "class DatasetReferencesAPI(RestApi):" in backend
+    assert "Extension endpoints are registered" not in sql_results
+    assert "class DatasetReferencesAPI(RestApi):" not in sql_results
     assert "untyped nested sidecars" not in development
