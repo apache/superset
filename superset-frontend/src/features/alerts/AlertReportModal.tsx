@@ -24,10 +24,12 @@ import {
   useEffect,
   useMemo,
   useCallback,
+  useRef,
   ReactNode,
 } from 'react';
 
 import { t } from '@apache-superset/core/translation';
+import { logging } from '@apache-superset/core/utils';
 import { Alert } from '@apache-superset/core/components';
 import {
   isFeatureEnabled,
@@ -35,6 +37,8 @@ import {
   SupersetClient,
   VizType,
   getExtensionsRegistry,
+  ClientErrorObject,
+  getClientErrorObject,
 } from '@superset-ui/core';
 import {
   css,
@@ -45,6 +49,7 @@ import {
 import rison from 'rison';
 import { useSingleViewResource } from 'src/views/CRUD/hooks';
 import withToasts from 'src/components/MessageToasts/withToasts';
+import { ErrorAlert, ErrorMessageWithStackTrace } from 'src/components';
 import SubjectPicker, {
   mapSubjectPickerValuesToIds,
   mapSubjectsToPickerValues,
@@ -630,6 +635,21 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     ],
   );
 
+  const [loadingNativeFilterIds, setLoadingNativeFilterIds] = useState<
+    Set<string>
+  >(() => new Set());
+  const requestIdRef = useRef<Record<string, number>>({});
+  const [nativeFilterErrors, setNativeFilterErrors] = useState<
+    Record<
+      string,
+      | {
+          error: ClientErrorObject;
+          isNetworkError: boolean;
+          retry: () => void;
+        }
+      | undefined
+    >
+  >({});
   // Validation
   const [validationStatus, setValidationStatus] = useState<ValidationObject>({
     [Sections.General]: {
@@ -881,6 +901,93 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
     return data;
   };
 
+  /** Track option requests by filter identity so deleting rows cannot misroute responses. */
+  const loadNativeFilterOptions = (
+    nativeFilterId: string,
+    fetchOptions: () => Promise<SelectValue[] | undefined>,
+  ) => {
+    const requestId = (requestIdRef.current[nativeFilterId] ?? 0) + 1;
+    requestIdRef.current[nativeFilterId] = requestId;
+    setNativeFilterErrors(current => ({
+      ...current,
+      [nativeFilterId]: undefined,
+    }));
+    setNativeFilterData(current =>
+      current.map(filter =>
+        filter.nativeFilterId === nativeFilterId
+          ? { ...filter, optionFilterValues: undefined }
+          : filter,
+      ),
+    );
+    setLoadingNativeFilterIds(current => new Set(current).add(nativeFilterId));
+
+    const isLatestRequest = () =>
+      requestId === requestIdRef.current[nativeFilterId];
+    const handlers = {
+      updateOptions: (optionFilterValues: SelectValue[] | undefined) => {
+        setNativeFilterData(current =>
+          current.map(filter =>
+            filter.nativeFilterId === nativeFilterId && isLatestRequest()
+              ? { ...filter, optionFilterValues }
+              : filter,
+          ),
+        );
+      },
+      handleError: async (
+        error: Parameters<typeof getClientErrorObject>[0],
+      ) => {
+        const clientError = await getClientErrorObject(error);
+        if (isLatestRequest()) {
+          logging.warn('Failed to load filter values', clientError);
+          setNativeFilterErrors(current => ({
+            ...current,
+            [nativeFilterId]: {
+              error: clientError,
+              retry: () => {
+                if (isLatestRequest()) {
+                  loadNativeFilterOptions(nativeFilterId, fetchOptions);
+                }
+              },
+              isNetworkError:
+                error instanceof TypeError &&
+                !clientError.status &&
+                !clientError.errors?.length,
+            },
+          }));
+        }
+      },
+      finishLoading: () => {
+        setLoadingNativeFilterIds(current => {
+          if (!isLatestRequest()) return current;
+          const next = new Set(current);
+          next.delete(nativeFilterId);
+          return next;
+        });
+      },
+    };
+    fetchOptions()
+      .then(handlers.updateOptions)
+      .catch(handlers.handleError)
+      .finally(handlers.finishLoading);
+  };
+
+  /** Invalidate responses when their selected filter is cleared or removed. */
+  const invalidateNativeFilterRequest = (nativeFilterId: string | null) => {
+    if (nativeFilterId) {
+      setNativeFilterErrors(current => ({
+        ...current,
+        [nativeFilterId]: undefined,
+      }));
+      requestIdRef.current[nativeFilterId] =
+        (requestIdRef.current[nativeFilterId] ?? 0) + 1;
+      setLoadingNativeFilterIds(current => {
+        const next = new Set(current);
+        next.delete(nativeFilterId);
+        return next;
+      });
+    }
+  };
+
   const addNativeFilterOptions = (nativeFilters: NativeFilterObject[]) => {
     nativeFilterData.map(nativeFilter => {
       if (!nativeFilter.nativeFilterId) return;
@@ -898,26 +1005,22 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         return;
       }
 
-      // eslint-disable-next-line consistent-return
-      return fetchDashboardFilterValues(
-        dashboardId,
-        columnName,
-        datasetId,
-        filterType,
-      ).then(optionFilterValues => {
-        setNativeFilterData(prev =>
-          prev.map(filter =>
-            filter.nativeFilterId === nativeFilter.nativeFilterId
-              ? {
-                  ...filter,
-                  filterType,
-                  filterName,
-                  optionFilterValues,
-                }
-              : filter,
-          ),
-        );
-      });
+      setNativeFilterData(current =>
+        current.map(filter =>
+          filter.nativeFilterId === nativeFilter.nativeFilterId
+            ? { ...filter, filterType, filterName }
+            : filter,
+        ),
+      );
+      loadNativeFilterOptions(nativeFilter.nativeFilterId, () =>
+        fetchDashboardFilterValues(
+          dashboardId,
+          columnName,
+          datasetId,
+          filterType,
+          filter.adhoc_filters,
+        ),
+      );
     });
   };
 
@@ -1519,9 +1622,12 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   };
 
   const handleRemoveFilterField = (filterIdx: number) => {
-    const filters = nativeFilterData || [];
-    filters.splice(filterIdx, 1);
-    setNativeFilterData(filters);
+    invalidateNativeFilterRequest(
+      nativeFilterData[filterIdx]?.nativeFilterId ?? null,
+    );
+    setNativeFilterData(current =>
+      current.filter((_, idx) => idx !== filterIdx),
+    );
   };
 
   const onCustomWidthChange = (value: number | string | null | undefined) => {
@@ -1586,6 +1692,9 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       setNativeFilterOptions([]);
     }
     if (filtersEnabled) {
+      Object.keys(requestIdRef.current).forEach(invalidateNativeFilterRequest);
+      setLoadingNativeFilterIds(new Set());
+      setNativeFilterErrors({});
       setNativeFilterData([
         {
           filterName: '',
@@ -1721,76 +1830,47 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       ownState: {},
     };
 
-    // todo(hugh): put this into another function
-    if (
-      filterType === 'filter_time' ||
-      filterType === 'filter_timecolumn' ||
-      filterType === 'filter_timegrain'
-    ) {
-      fetchDashboardFilterValues(
-        dashboardId,
-        columnName,
-        datasetId,
-        filterType,
-        adhocFilters,
-      ).then(optionFilterValues => {
-        setNativeFilterData(
-          nativeFilterData.map((filter, index) =>
-            index === idx
-              ? {
-                  ...filter,
-                  filterName,
-                  filterType,
-                  nativeFilterId,
-                  columnLabel,
-                  columnName,
-                  optionFilterValues,
-                  filterValues: [], // reset filter values on filter change
-                }
-              : filter,
-          ),
+    invalidateNativeFilterRequest(
+      nativeFilterData[idx]?.nativeFilterId ?? null,
+    );
+
+    setNativeFilterData(current =>
+      current.map((currentFilter, index) =>
+        index === idx
+          ? {
+              ...currentFilter,
+              filterName,
+              filterType,
+              nativeFilterId,
+              columnLabel,
+              columnName,
+              optionFilterValues: [],
+              filterValues: [],
+            }
+          : currentFilter,
+      ),
+    );
+    loadNativeFilterOptions(nativeFilterId, () => {
+      if (
+        filterType === 'filter_time' ||
+        filterType === 'filter_timecolumn' ||
+        filterType === 'filter_timegrain'
+      ) {
+        return fetchDashboardFilterValues(
+          dashboardId,
+          columnName,
+          datasetId,
+          filterType,
+          adhocFilters,
         );
-      });
+      }
 
-      setNativeFilterData(
-        nativeFilterData.map((filter, index) =>
-          index === idx
-            ? {
-                ...filter,
-                filterName,
-                filterType,
-                nativeFilterId,
-                columnLabel,
-                columnName,
-                optionFilterValues: [],
-                filterValues: [], // reset filter values on filter change
-              }
-            : filter,
-        ),
-      );
-      return;
-    }
-
-    getChartDataRequest(filterValues).then(response => {
-      const newFilterValues = response.json.result[0].data.map((item: any) => ({
-        value: item[columnName],
-        label: item[columnName],
-      }));
-
-      setNativeFilterData(
-        nativeFilterData.map((filter, index) =>
-          index === idx
-            ? {
-                ...filter,
-                filterName,
-                filterType,
-                nativeFilterId,
-                columnLabel,
-                columnName,
-                optionFilterValues: newFilterValues,
-                filterValues: [], // reset filter values on filter change
-              }
-            : filter,
+      return getChartDataRequest(filterValues).then(response =>
+        response.json.result[0].data.map(
+          (item: Record<string, string | number>) => ({
+            value: item[columnName],
+            label: item[columnName],
+          }),
         ),
       );
     });
@@ -1865,27 +1945,6 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
   const renderFilterValueSelect = (filter: ExtraNativeFilter, idx: number) => {
     if (!filter) return null;
     const { filterType, filterValues } = filter;
-    let mode = 'multiple';
-    if (filterType === 'filter_time') {
-      return (
-        <DateFilterComponent
-          name="time_range"
-          onChange={timeRange => {
-            setNativeFilterData(
-              nativeFilterData.map((f: any) =>
-                filter.nativeFilterId === f.nativeFilterId
-                  ? {
-                      ...f,
-                      filterValues: [timeRange],
-                    }
-                  : f,
-              ),
-            );
-          }}
-          value={filterValues?.[0]} // only showing first value in the array for filter_time
-        />
-      );
-    }
     if (filterType === 'filter_range') {
       const min = filterValues?.[0];
       const max = filterValues?.[1];
@@ -1924,6 +1983,54 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
         </div>
       );
     }
+    const filterError = nativeFilterErrors[filter.nativeFilterId ?? ''];
+    if (filterError) {
+      const { error, isNetworkError, retry } = filterError;
+      return (
+        <ErrorMessageWithStackTrace
+          error={error.errors?.[0]}
+          compact
+          closable={false}
+          errorMitigationFunction={retry}
+          fallback={
+            <ErrorAlert
+              errorType={
+                isNetworkError ? t('Network error') : t('Cannot load filter')
+              }
+              message={
+                isNetworkError
+                  ? t('Network error while attempting to fetch resource')
+                  : t('Sorry, something went wrong. Try again later.')
+              }
+              type="error"
+              compact
+            />
+          }
+        />
+      );
+    }
+    let mode = 'multiple';
+    if (filterType === 'filter_time') {
+      return (
+        <DateFilterComponent
+          name="time_range"
+          onChange={timeRange => {
+            setNativeFilterData(
+              nativeFilterData.map((f: any) =>
+                filter.nativeFilterId === f.nativeFilterId
+                  ? {
+                      ...f,
+                      filterValues: [timeRange],
+                    }
+                  : f,
+              ),
+            );
+          }}
+          value={filterValues?.[0]} // only showing first value in the array for filter_time
+        />
+      );
+    }
+    const isLoading = loadingNativeFilterIds.has(filter.nativeFilterId ?? '');
 
     if (
       filterType === 'filter_timegrain' ||
@@ -1936,7 +2043,8 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
       <Select
         ariaLabel={t('Select Value')}
         placeholder={t('Select Value')}
-        disabled={!filter?.optionFilterValues}
+        loading={isLoading}
+        disabled={isLoading || !filter?.optionFilterValues}
         value={filter?.filterValues}
         options={filter?.optionFilterValues || []}
         onChange={value =>
@@ -2955,6 +3063,10 @@ const AlertReportModal: FunctionComponent<AlertReportModalProps> = ({
                                               )
                                             }
                                             onClear={() => {
+                                              invalidateNativeFilterRequest(
+                                                nativeFilterData[idx]
+                                                  ?.nativeFilterId ?? null,
+                                              );
                                               const updatedFilters = [
                                                 ...nativeFilterData,
                                               ];

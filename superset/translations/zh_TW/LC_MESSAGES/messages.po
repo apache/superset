@@ -8978,7 +8978,7 @@ msgstr "空的列"
 msgid "Get the last date by the date unit."
 msgstr "按日期單位獲取最後的日期。"
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "獲取指定節假日的日期"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,

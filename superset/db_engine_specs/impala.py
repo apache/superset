@@ -242,7 +242,6 @@ class ImpalaEngineSpec(BaseEngineSpec):
         """
         if QUERY_CANCEL_KEY not in query.extra:
             query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
-            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> Optional[str]:

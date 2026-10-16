@@ -2212,3 +2212,60 @@ describe('async actions', () => {
     });
   });
 });
+
+test.each(['success', 'failed', 'timed_out'])(
+  'postStopQuery refreshes an already %s query without a toast',
+  async state => {
+    const finishedQuery = { ...queryFixture, id: queryId, state };
+    const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({
+      status: 422,
+      json: async () => ({
+        message: 'Could not cancel query',
+        query: finishedQuery,
+      }),
+    });
+    const store = mockStore(initialState);
+    await store.dispatch(
+      actions.postStopQuery({ ...queryFixture, id: queryId }),
+    );
+    expect(store.getActions()).toEqual([
+      actions.refreshQueries({ [finishedQuery.id]: finishedQuery }),
+    ]);
+    post.mockRestore();
+  },
+);
+
+test('postStopQuery retains the error toast for an unsupported stop', async () => {
+  const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({
+    status: 422,
+    json: async () => ({ message: 'Could not cancel query' }),
+  });
+  const store = mockStore(initialState);
+  await store.dispatch(actions.postStopQuery({ ...queryFixture, id: queryId }));
+  expect(store.getActions()).toEqual([
+    expect.objectContaining({
+      type: ADD_TOAST,
+      payload: expect.objectContaining({ toastType: ToastType.Danger }),
+    }),
+  ]);
+  post.mockRestore();
+});
+
+test('postStopQuery keeps the error toast when a target commit wins before publication', async () => {
+  const post = jest.spyOn(SupersetClient, 'post').mockRejectedValueOnce({
+    status: 422,
+    json: async () => ({
+      message: 'Could not cancel query',
+      query: { ...queryFixture, id: queryId, state: 'running' },
+    }),
+  });
+  const store = mockStore(initialState);
+  await store.dispatch(actions.postStopQuery({ ...queryFixture, id: queryId }));
+  expect(store.getActions()).toEqual([
+    expect.objectContaining({
+      type: ADD_TOAST,
+      payload: expect.objectContaining({ toastType: ToastType.Danger }),
+    }),
+  ]);
+  post.mockRestore();
+});

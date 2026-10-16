@@ -39,6 +39,7 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   SupersetClient,
+  DatasourceType,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import fetchMock from 'fetch-mock';
@@ -1024,7 +1025,10 @@ fetchMock.get(COLUMN_VALUES_ENDPOINT, (...args: unknown[]) =>
     : columnValuesResponse,
 );
 
-const setupWithFilterValuesResponse = (response: unknown) => {
+const setupWithFilterValuesResponse = (
+  response: unknown,
+  datasourceType = TestDataset.type,
+) => {
   columnValuesResponse = response;
   const onChange = jest.fn();
   const validHandler = jest.fn();
@@ -1043,6 +1047,7 @@ const setupWithFilterValuesResponse = (response: unknown) => {
     options,
     datasource: {
       ...TestDataset,
+      type: datasourceType,
       columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
       filter_select: true,
     },
@@ -1406,6 +1411,68 @@ test('versioned suggestions are unavailable without a failure and allow manual i
   await userEvent.type(comparator, 'manual');
   await userEvent.click(await screen.findByTitle('manual'));
   expect(onChange).toHaveBeenCalled();
+});
+
+test('shows semantic provider rejection guidance and keeps manual entry', async () => {
+  const guidance =
+    'A semantic query filter is invalid. Check its operator and values, then try again.';
+  const props = setupWithFilterValuesResponse(
+    { status: 400, body: { message: guidance } },
+    DatasourceType.SemanticView,
+  );
+  const comparator = await openComparator();
+  expect(await screen.findByText(guidance)).toBeInTheDocument();
+  await userEvent.type(comparator, 'manual-value');
+  await userEvent.click(await screen.findByTitle('manual-value'));
+  await waitFor(() => expect(props.onChange).toHaveBeenCalled());
+  expect(props.onChange.mock.calls.at(-1)[0].comparator).toEqual([
+    'manual-value',
+  ]);
+});
+
+test('semantic bounded suggestions do not promise search beyond the page', async () => {
+  setupWithFilterValuesResponse(
+    { result: ['alpha', 'beta'], limit: 2 },
+    DatasourceType.SemanticView,
+  );
+  await openComparator();
+  expect(
+    await screen.findByText(/Only the first 2 values are listed/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/Type to search all of them/),
+  ).not.toBeInTheDocument();
+});
+
+test('ignores semantic rejection guidance parsed after a newer successful search', async () => {
+  let releaseBody: (value: { message: string }) => void = () => {};
+  const pendingBody = new Promise<{ message: string }>(resolve => {
+    releaseBody = resolve;
+  });
+  const response = new Response(JSON.stringify({ message: 'stale guidance' }), {
+    status: 400,
+  });
+  const cloned = response.clone();
+  const parseBody = jest.spyOn(cloned, 'json').mockReturnValueOnce(pendingBody);
+  jest.spyOn(response, 'clone').mockReturnValueOnce(cloned);
+  jest.spyOn(SupersetClient, 'get').mockRejectedValueOnce(response);
+  setupWithFilterValuesResponse(
+    { result: ['alpha'], limit: 10000 },
+    DatasourceType.SemanticView,
+  );
+  const comparator = await openComparator();
+  await waitFor(() => expect(parseBody).toHaveBeenCalledTimes(1));
+  await userEvent.type(comparator, 'al');
+  expect(
+    await screen.findByTitle('alpha', {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
+  await act(async () => {
+    releaseBody({ message: 'stale guidance' });
+    await pendingBody;
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+  expect(screen.queryByText('stale guidance')).not.toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
 });
 
 test.each([
