@@ -5900,3 +5900,27 @@ def test_get_query_result_wraps_post_processing_type_error(
         pytest.raises(QueryObjectValidationError),
     ):
         table.get_query_result(query_object)
+
+
+@pytest.mark.parametrize(
+    "template_params,expected",
+    [
+        pytest.param('{"t": "x"}', {"t": "x"}, id="dict"),
+        pytest.param('{"t": "x",\n}', {"t": "x"}, id="trailing_comma"),
+        pytest.param(None, {}, id="none"),
+        pytest.param("", {}, id="empty"),
+        pytest.param("{not json", {}, id="malformed"),
+        pytest.param("[1, 2]", {}, id="non_dict"),
+        pytest.param({"t": "x"}, {}, id="non_string"),
+    ],
+)
+def test_template_params_for_access_check(
+    template_params: Any, expected: dict[str, Any]
+) -> None:
+    """
+    Params are read the way rendering reads them; anything rendering can't
+    use yields an empty dict so the access check still runs.
+    """
+    from superset.models.helpers import template_params_for_access_check
+
+    assert template_params_for_access_check(template_params) == expected

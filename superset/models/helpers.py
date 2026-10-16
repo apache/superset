@@ -653,6 +653,24 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
+def template_params_for_access_check(template_params: Any) -> dict[Any, Any]:
+    """
+    Parse a dataset's ``template_params`` for a SQL access check.
+
+    Uses ``json_to_dict`` so the check reads the params exactly as rendering
+    does. Input rendering would reject (malformed JSON, a non-string) or
+    could not use (non-dict JSON) yields an empty dict, so the check still
+    runs against the SQL rendered without params.
+    """
+    if not isinstance(template_params, str):
+        return {}
+    try:
+        params = json_to_dict(template_params)
+    except json.JSONDecodeError:
+        return {}
+    return params if isinstance(params, dict) else {}
+
+
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
     r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
 )

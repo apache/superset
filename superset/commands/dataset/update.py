@@ -56,8 +56,8 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.core import Database
+from superset.models.helpers import template_params_for_access_check
 from superset.sql.parse import Table
-from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -310,7 +310,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 sql=sql,
                 catalog=catalog,
                 schema=schema,
-                template_params=self._get_template_params(),
+                template_params=template_params_for_access_check(
+                    self._properties.get("template_params", self._model.template_params)
+                ),
                 allow_dataset_editorship=False,
             )
         except SupersetSecurityException as ex:
@@ -324,24 +326,6 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             )
         except TemplateError as ex:
             exceptions.append(ValidationError(f"Invalid SQL: {ex}", field_name="sql"))
-
-    def _get_template_params(self) -> dict[str, Any]:
-        """
-        Return the template params the dataset's SQL renders with after the
-        update, so a Jinja-templated query is checked against the tables it
-        really reads. Malformed or non-dict JSON yields an empty dict and the
-        check runs against the SQL rendered without params.
-        """
-        # we know we have a valid model
-        self._model = cast(SqlaTable, self._model)
-        raw = self._properties.get("template_params", self._model.template_params)
-        if not raw or not isinstance(raw, str):
-            return {}
-        try:
-            params = json.loads(raw)
-        except json.JSONDecodeError:
-            return {}
-        return params if isinstance(params, dict) else {}
 
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model

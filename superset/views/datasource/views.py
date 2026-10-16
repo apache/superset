@@ -38,6 +38,7 @@ from superset.daos.datasource import Datasource as DatasourceModel, DatasourceDA
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
+from superset.models.helpers import template_params_for_access_check
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -147,19 +148,6 @@ def _repoints_sql(
     )
 
 
-def _parse_template_params(template_params: str | None) -> dict[str, Any]:
-    """
-    Parse template params for the SQL access check. Malformed or non-dict
-    JSON yields an empty dict, so the check runs against the SQL rendered
-    without params.
-    """
-    try:
-        params = json.loads(template_params) if template_params else {}
-    except json.JSONDecodeError:
-        return {}
-    return params if isinstance(params, dict) else {}
-
-
 def _requested_target(
     datasource_dict: dict[str, Any],
 ) -> tuple[str | None, Table, str | None]:
@@ -244,7 +232,9 @@ def _authorize_repoint(
                 sql=requested_sql,
                 catalog=requested_table.catalog,
                 schema=requested_table.schema,
-                template_params=_parse_template_params(requested_template_params),
+                template_params=template_params_for_access_check(
+                    requested_template_params
+                ),
                 allow_dataset_editorship=False,
             )
     except SupersetSecurityException as ex:

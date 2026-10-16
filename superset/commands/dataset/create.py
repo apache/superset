@@ -19,6 +19,7 @@ from functools import partial
 from typing import Any
 
 from flask_appbuilder.models.sqla import Model
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand, CreateMixin
@@ -46,7 +47,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.extensions import security_manager
-from superset.models.helpers import json_to_dict
+from superset.models.helpers import json_to_dict, template_params_for_access_check
 from superset.sql.parse import process_jinja_sql, Table
 from superset.utils.decorators import on_error, transaction
 
@@ -225,6 +226,11 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                     sql=sql,
                     catalog=catalog,
                     schema=schema,
+                    # Jinja-templated SQL only reveals the tables it reads
+                    # once rendered with the params the dataset is saved with.
+                    template_params=template_params_for_access_check(
+                        self._properties.get("template_params")
+                    ),
                     allow_dataset_editorship=False,
                 )
             except SupersetSecurityException as ex:
@@ -235,6 +241,10 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                         f"Invalid SQL: {ex.error.message}",
                         field_name="sql",
                     )
+                )
+            except TemplateError as ex:
+                exceptions.append(
+                    ValidationError(f"Invalid SQL: {ex}", field_name="sql")
                 )
         elif database:
             try:

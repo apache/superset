@@ -223,6 +223,14 @@ def test_update_dataset_virtual_to_physical_ignores_dataset_editorship(
             {"table": "customer_pii"},
             id="template_params",
         ),
+        # Rendering reads params with ``json_to_dict``, which accepts a
+        # trailing comma, so the check must read them the same way.
+        pytest.param(
+            {"template_params": '{"table": "customer_pii",\n}'},
+            "public",
+            {"table": "customer_pii"},
+            id="template_params_trailing_comma",
+        ),
     ],
 )
 def test_update_dataset_unchanged_sql_new_context_checks_access(
