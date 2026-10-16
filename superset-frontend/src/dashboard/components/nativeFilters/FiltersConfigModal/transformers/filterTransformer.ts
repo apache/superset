@@ -32,7 +32,10 @@ import {
   NativeFilterDivider,
   ChartCustomizationsFormItem,
 } from '../types';
-import { buildNativeFilterTarget } from './buildTarget';
+import {
+  buildNativeFilterTarget,
+  buildNativeFilterDefaultDataMask,
+} from './buildTarget';
 
 type FilterFormInput =
   | NativeFiltersFormItem
@@ -113,7 +116,10 @@ function transformFormInput(
     targets: [buildFilterTarget(formInputs)],
     scope: formInputs.scope || defaultScope,
     controlValues: formInputs.controlValues ?? {},
-    defaultDataMask: formInputs.defaultDataMask ?? getInitialDataMask(),
+    defaultDataMask: buildNativeFilterDefaultDataMask(
+      formInputs,
+      formInputs.defaultDataMask ?? getInitialDataMask(),
+    ),
     cascadeParentIds: formInputs.dependencies || [],
     adhoc_filters: formInputs.adhoc_filters,
     time_range: formInputs.time_range,

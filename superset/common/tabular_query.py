@@ -134,9 +134,10 @@ def _resolve_time_column(
 ) -> str | None:
     """Resolve and validate the temporal column a time range applies to.
 
-    Datasets carry ``main_dttm_col``; semantic views do not, so a lone datetime
-    dimension is inferred. Only inferred when a time range was given — an
-    unfiltered query must not acquire a temporal axis it did not ask for.
+    Both datasets and semantic views may carry ``main_dttm_col``; otherwise a
+    lone datetime dimension is inferred. Only inferred when a time range was
+    given — an unfiltered query must not acquire a temporal axis it did not ask
+    for.
     """
     valid_columns = {column.column_name for column in explorable.columns}
     dttm_columns = [
@@ -336,6 +337,7 @@ def build_query_dict(
     order: Sequence[OrderSpec] | None = None,
     order_desc: bool = True,
     rewrite_one_sided_time_range: bool = False,
+    semantic_selection_version: str | None = None,
 ) -> dict[str, Any]:
     """Assemble a QueryObject-shaped dict from a name-based request.
 
@@ -387,8 +389,13 @@ def build_query_dict(
         query_dict["row_offset"] = offset
     if time_column:
         query_dict["granularity"] = time_column
+    extras: dict[str, str] = {}
     if time_grain:
-        query_dict["extras"] = {"time_grain_sqla": time_grain}
+        extras["time_grain_sqla"] = time_grain
+    if semantic_selection_version is not None:
+        extras["semantic_selection_version"] = semantic_selection_version
+    if extras:
+        query_dict["extras"] = extras
     if order:
         # QueryObject.orderby is (name, ascending); the wire carries per-column
         # descending flags, so invert each one rather than applying a single

@@ -71,6 +71,7 @@ The Alerts & Reports feature relies on Celery for task scheduling and execution.
 
 - Redis running on `localhost:6379`
 - [MailHog](https://github.com/mailhog/MailHog) installed (a local SMTP server with a web UI for viewing caught emails)
+- Playwright and Chromium installed, for report screenshots
 
 ### superset_config.py
 
@@ -124,8 +125,6 @@ ALERT_REPORTS_EXECUTORS = [ExecutorType.EDITOR]
 
 FEATURE_FLAGS = {
     "ALERT_REPORTS": True,
-    # Recommended for better screenshot support (WebGL/DeckGL charts)
-    "PLAYWRIGHT_REPORTS_AND_THUMBNAILS": True,
 }
 ```
 

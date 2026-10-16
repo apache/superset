@@ -31,7 +31,7 @@ from superset.common.query_serialization import (
     SerializedQuery,
 )
 from superset.constants import CacheRegion
-from superset.exceptions import SupersetException
+from superset.exceptions import SemanticResultCompletenessError, SupersetException
 from superset.extensions import (
     security_manager,
 )
@@ -52,6 +52,7 @@ from superset.utils.core import override_user
 if TYPE_CHECKING:
     from superset_core.tasks.models import Task as CoreTask
 
+    from superset.common.chart_data_timing import QueryAcquisitionResult
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
     from superset.models.tasks import Task
@@ -315,8 +316,18 @@ def execute_chart_query(
         if requires_totals:
             _inject_contribution_totals(query_obj, _get_dependency_cache_key())
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
-        with _capture_query_cancellation(query_context):
-            result = query_context.get_df_payload_result(query_obj)
+        try:
+            with _capture_query_cancellation(query_context):
+                result: QueryAcquisitionResult = query_context.get_df_payload_result(
+                    query_obj
+                )
+        except SemanticResultCompletenessError as error:
+            # Task details remain subscriber-authorized. Publish only a closed
+            # reason code so clients never need to display raw worker errors.
+            get_context().update_task(
+                payload={"semantic_result_error": error.reason}, immediate=True
+            )
+            raise
         if cache_key := result.payload.get(CACHE_KEY_PAYLOAD_KEY):
             # Write synchronously: a dependent contribution query reads this
             # cache key via get_dependency_payloads once the DAG gate releases,

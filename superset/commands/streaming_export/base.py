@@ -34,7 +34,7 @@ from werkzeug.local import LocalProxy
 
 from superset import db
 from superset.commands.base import BaseCommand
-from superset.utils.csv import escape_value
+from superset.utils.csv import escape_value, format_decimal
 
 logger = logging.getLogger(__name__)
 
@@ -192,10 +192,17 @@ class BaseStreamingCSVExportCommand(BaseCommand):
             # (float, decimal.Decimal, numpy numeric types, ...). Booleans are
             # technically a numeric type in Python but should never be rewritten
             # as numbers in CSV output.
+            elif isinstance(value, Decimal):
+                decimal_value = format_decimal(value)
+                if active_decimal_separator is not None:
+                    decimal_value = str(decimal_value).replace(
+                        ".", active_decimal_separator
+                    )
+                formatted.append(decimal_value)
             elif isinstance(value, bool):
                 formatted.append(value)
             elif active_decimal_separator is not None and isinstance(
-                value, (float, Decimal, Real)
+                value, (float, Real)
             ):
                 # Format numeric values with custom decimal separator
                 formatted.append(str(value).replace(".", active_decimal_separator))

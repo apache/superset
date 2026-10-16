@@ -31,6 +31,7 @@ from fastmcp import Context
 from sqlalchemy.exc import SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset_core.semantic_layers.types import Dimension
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset.commands.exceptions import CommandException
 from superset.common.tabular_query import (
@@ -40,6 +41,11 @@ from superset.common.tabular_query import (
 )
 from superset.exceptions import OAuth2Error, OAuth2RedirectError, SupersetException
 from superset.extensions import event_logger
+from superset.mcp_service.chart.query_result import validate_query_result_envelope
+from superset.mcp_service.chart.response_preflight import (
+    bounded_exception_message,
+    finalize_get_table_response,
+)
 from superset.mcp_service.chart.schemas import PerformanceMetadata
 from superset.mcp_service.privacy import (
     DATA_MODEL_METADATA_ERROR_TYPE,
@@ -54,6 +60,11 @@ from superset.mcp_service.semantic_layer.schemas import (
 from superset.mcp_service.utils.cache_utils import get_cache_status_from_result
 from superset.mcp_service.utils.oauth2_utils import build_oauth2_redirect_message
 from superset.mcp_service.utils.response_utils import format_data_columns
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
+from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.semantic_layers.models import SemanticView
@@ -182,21 +193,43 @@ def _resolve_external_view(
         view.raise_for_access()
     except SupersetSecurityException as ex:
         return SemanticLayerError.create(
-            error=str(ex.error.message),
+            error=bounded_exception_message(ex),
             error_type="AccessDenied",
         )
 
-    display_name = view.name
-    valid_columns = {c.column_name for c in view.columns}
-    valid_dttm_columns = {c.column_name for c in view.columns if c.is_dttm}
-    valid_metrics = {m.metric_name for m in view.metrics}
+    try:
+        implementation: SemanticViewABC = view.implementation
+    except json.JSONDecodeError:
+        return SemanticLayerError.create(
+            error="The semantic view configuration is invalid.",
+            error_type="ConfigurationError",
+        )
+    try:
+        implementation.validate_selection_version(request.semantic_selection_version)
+    except ValueError as ex:
+        return SemanticLayerError.create(
+            error=str(ex),
+            error_type="ValidationError",
+        )
+
+    return _resolve_external_view_metadata(request, view)
+
+
+def _resolve_external_view_metadata(
+    request: GetTableRequest, view: "SemanticView"
+) -> _ResolvedDatasource | SemanticLayerError:
+    """Validate query fields on an accessible view with current selections."""
+    display_name: str = view.name
+    valid_columns: set[str] = {c.column_name for c in view.columns}
+    valid_dttm_columns: set[str] = {c.column_name for c in view.columns if c.is_dttm}
+    valid_metrics: set[str] = {m.metric_name for m in view.metrics}
 
     warnings: list[str] = []
-    time_col = request.time_column
+    time_col: str | None = request.time_column
     if time_col is None and request.time_range:
-        dttm_cols = [c for c in view.columns if c.is_dttm]
+        dttm_cols: list[str] = [c.column_name for c in view.columns if c.is_dttm]
         if dttm_cols:
-            time_col = dttm_cols[0].column_name
+            time_col = dttm_cols[0]
         else:
             return SemanticLayerError.create(
                 error=(
@@ -309,6 +342,7 @@ def _build_query_dict(
         dimensions=request.dimensions,
         filters=[{"col": f.col, "op": f.op, "val": f.val} for f in request.filters],
         time_range=request.time_range,
+        semantic_selection_version=request.semantic_selection_version,
         limit=request.row_limit,
         order=[(name, request.order_desc) for name in request.order_by],
         order_desc=request.order_desc,
@@ -349,15 +383,27 @@ def _build_response(
     """Format the query result into a GetTableResponse."""
     data = query_result.get("data", [])
     raw_columns = query_result.get("colnames", [])
+    coltypes = query_result.get("coltypes", [])
     cache_status = get_cache_status_from_result(
         query_result, force_refresh=request.force_refresh
+    )
+    # Semantic views return grain variants as <temporal dimension>__<grain>.
+    result_temporal_columns: set[str] = {
+        name
+        for name in raw_columns
+        if _is_temporal_result_column(
+            name, temporal_columns or set(), valid_grains or {}
+        )
+    }
+    columns_meta = format_data_columns(
+        data, raw_columns, coltypes, temporal_columns=result_temporal_columns
     )
 
     if not data:
         return GetTableResponse(
             from_dttm=query_result.get("from_dttm"),
             to_dttm=query_result.get("to_dttm"),
-            columns=[],
+            columns=columns_meta,
             data=[],
             row_count=0,
             total_rows=0,
@@ -375,17 +421,6 @@ def _build_response(
             warnings=warnings,
         )
 
-    # Semantic views return grain variants as <temporal dimension>__<grain>.
-    result_temporal_columns: set[str] = {
-        name
-        for name in raw_columns
-        if _is_temporal_result_column(
-            name, temporal_columns or set(), valid_grains or {}
-        )
-    }
-    columns_meta = format_data_columns(
-        data, raw_columns, temporal_columns=result_temporal_columns
-    )
     cache_label = "cached" if cache_status and cache_status.cache_hit else "fresh"
     summary = (
         f"'{display_name}': {len(data)} rows, "
@@ -484,13 +519,12 @@ async def _run_get_table_query(
             use_cache=request.use_cache,
             force=request.force_refresh,
         )
-
     query_duration_ms = int((time.time() - start_time) * 1000)
 
-    if not result or "queries" not in result or not result["queries"]:
+    if result_error := validate_query_result_envelope(result):
         return SemanticLayerError.create(
-            error="Query returned no results.",
-            error_type="EmptyQuery",
+            error=result_error.error,
+            error_type=result_error.error_type,
         )
 
     await ctx.report_progress(5, 5, "Formatting results")
@@ -505,7 +539,6 @@ async def _run_get_table_query(
         resolved.temporal_columns,
         resolved.valid_grains,
     )
-
     await ctx.info(
         "get_table complete: rows=%d, columns=%d, duration=%dms"
         % (
@@ -537,18 +570,7 @@ def _validate_datasource_selection(
     return None
 
 
-@tool(
-    tags=["data", "semantic"],
-    class_permission_name="Dataset",
-    annotations=ToolAnnotations(
-        title="Get table",
-        readOnlyHint=True,
-        destructiveHint=False,
-        openWorldHint=False,
-    ),
-)
-@requires_data_model_metadata_access
-async def get_table(
+async def _get_table(
     request: GetTableRequest,
     ctx: Context,
 ) -> GetTableResponse | SemanticLayerError:
@@ -569,7 +591,10 @@ async def get_table(
     Workflow:
     1. list_metrics -> discover metrics
     2. get_compatible_dimensions -> discover dimensions for the chosen metrics
-    3. get_table -> query with chosen metrics and dimensions
+    3. Explicitly select current member IDs from those discovery responses.
+    4. get_table -> query with those IDs and, for a versioned external view,
+       its semantic_selection_version from list_metrics. Never upgrade old
+       saved title keys automatically, even if a title looks like an ID.
 
     Example (built-in):
     ```json
@@ -582,12 +607,13 @@ async def get_table(
     }
     ```
 
-    Example (external):
+    Example (versioned external view; use the discovered version and IDs):
     ```json
     {
         "view_id": 5,
-        "metrics": ["bookings"],
-        "dimensions": ["listing__country_name"],
+        "metrics": ["Orders.bookings"],
+        "dimensions": ["Orders.country"],
+        "semantic_selection_version": "cube-member-id-v1",
         "row_limit": 100
     }
     ```
@@ -603,6 +629,12 @@ async def get_table(
             request.row_limit,
         )
     )
+
+    if request.view_id is not None and not is_semantic_layers_enabled():
+        return SemanticLayerError.create(
+            error=SemanticLayersDisabledError.message,
+            error_type="SemanticLayersDisabledError",
+        )
 
     if not user_can_view_data_model_metadata():
         return SemanticLayerError.create(
@@ -637,32 +669,81 @@ async def get_table(
         )
 
     except OAuth2Error as exc:
-        await ctx.error("OAuth2 error: %s" % str(exc))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("OAuth2 error: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"OAuth2 authentication error: {exc}",
+            error=f"OAuth2 authentication error: {error_text}",
             error_type="OAuth2Error",
         )
 
     except (CommandException, SupersetException) as exc:
-        await ctx.error("Query failed: %s" % str(exc))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("Query failed: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"Query execution failed: {exc}",
+            error=f"Query execution failed: {error_text}",
             error_type="QueryError",
         )
 
     except SQLAlchemyError as exc:
-        await ctx.error("Database error: %s" % str(exc))
+        error_text = bounded_exception_message(exc)
+        await ctx.error("Database error: %s" % error_text)
         return SemanticLayerError.create(
-            error=f"Database error: {exc}",
+            error=f"Database error: {error_text}",
             error_type="DatabaseError",
         )
 
-    except Exception as exc:
-        logger.exception(
-            "Unexpected error in get_table: %s: %s", type(exc).__name__, str(exc)
+
+def _semantic_table_internal_error() -> SemanticLayerError:
+    """Build the static public fallback for unexpected semantic-table failures."""
+    return SemanticLayerError.create(
+        error="An internal error occurred while querying the semantic table.",
+        error_type="InternalError",
+    )
+
+
+def _log_semantic_table_failure(message: str) -> None:
+    """Write a fixed best-effort log record without exception formatting."""
+    try:
+        logger.exception(message, exc_info=False)
+    except Exception:  # noqa: S110 - containment logging is best effort
+        pass
+
+
+async def _finalized_get_table(
+    request: GetTableRequest,
+    ctx: Context,
+) -> GetTableResponse | SemanticLayerError:
+    """Contain and preflight one semantic-table producer invocation."""
+    try:
+        response = await _get_table(request, ctx)
+    except Exception:
+        _log_semantic_table_failure(
+            "Unhandled exception while querying a semantic table"
         )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
-        return SemanticLayerError.create(
-            error=f"Internal error executing get_table: {exc}",
-            error_type="InternalError",
+        response = _semantic_table_internal_error()
+    try:
+        return finalize_get_table_response(response)
+    except Exception:
+        _log_semantic_table_failure(
+            "Unhandled exception while finalizing a semantic table response"
         )
+        return _semantic_table_internal_error()
+
+
+@tool(
+    tags=["data", "semantic"],
+    class_permission_name="Dataset",
+    annotations=ToolAnnotations(
+        title="Get table",
+        readOnlyHint=True,
+        destructiveHint=False,
+        openWorldHint=False,
+    ),
+)
+@requires_data_model_metadata_access
+async def get_table(
+    request: GetTableRequest,
+    ctx: Context,
+) -> GetTableResponse | SemanticLayerError:
+    """Query a data source and preflight every public response branch."""
+    return await _finalized_get_table(request, ctx)

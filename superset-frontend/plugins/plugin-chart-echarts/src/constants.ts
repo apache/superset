@@ -30,6 +30,10 @@ import {
 // eslint-disable-next-line import/prefer-default-export
 export const NULL_STRING = '<NULL>';
 
+// Marks a cross-filter emitted from the x-axis value, so series-level
+// selection styling is not applied to it when the chart has dimensions.
+export const X_AXIS_CROSS_FILTER_SOURCE = 'xAxis';
+
 export const TIMESERIES_CONSTANTS = {
   gridOffsetRight: 20,
   gridOffsetLeft: 20,
@@ -111,12 +115,25 @@ export const WEEKLY_TIME_GRAINS: ReadonlySet<string> = new Set([
 ]);
 
 export const TIMEGRAIN_TO_TIMESTAMP = {
+  [TimeGranularity.SECOND]: 1000,
+  [TimeGranularity.MINUTE]: 60 * 1000,
+  [TimeGranularity.FIVE_MINUTES]: 5 * 60 * 1000,
+  [TimeGranularity.TEN_MINUTES]: 10 * 60 * 1000,
+  [TimeGranularity.FIFTEEN_MINUTES]: 15 * 60 * 1000,
+  [TimeGranularity.THIRTY_MINUTES]: 30 * 60 * 1000,
   [TimeGranularity.HOUR]: 3600 * 1000,
   [TimeGranularity.DAY]: 3600 * 1000 * 24,
   [TimeGranularity.MONTH]: 3600 * 1000 * 24 * 31,
   [TimeGranularity.QUARTER]: 3600 * 1000 * 24 * 31 * 3,
   [TimeGranularity.YEAR]: 3600 * 1000 * 24 * 31 * 12,
 };
+
+// ECharts' own fallback for a degenerate single-point time-axis domain
+// (min === max): it pads by exactly this much on each side, regardless of
+// grain (see calcNiceForTimeScale in echarts/lib/scale/Time.js). Bar-width
+// sizing for a sparse single-bucket chart mirrors this fixed padding rather
+// than guessing at a different visible span.
+export const ONE_DAY_MS = 3600 * 1000 * 24;
 
 export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {
   legendMargin: null,

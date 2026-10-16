@@ -160,3 +160,115 @@ testWithAssets(
     await applyAfterClearPromise;
   },
 );
+
+testWithAssets(
+  'Re-selecting the value Clear All removed re-enables Apply (#44530)',
+  async ({ page, testAssets }) => {
+    testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
+
+    const dataset = await getDatasetByName(page, DATASET_NAME);
+    if (!dataset) {
+      throw new Error(`Dataset ${DATASET_NAME} not found`);
+    }
+    const datasetId = dataset.id;
+
+    // Same fixture as the test above: one chart targeted by a gender
+    // native filter rendered in the vertical filter bar.
+    const chartParams = {
+      datasource: `${datasetId}__table`,
+      viz_type: 'big_number_total',
+      metric: 'count',
+      adhoc_filters: [],
+      header_font_size: 0.4,
+      subheader_font_size: 0.15,
+    };
+    const chartResp = await apiPost(page, 'api/v1/chart/', {
+      slice_name: `clear_all_reselect_${Date.now()}`,
+      viz_type: 'big_number_total',
+      datasource_id: datasetId,
+      datasource_type: 'table',
+      params: JSON.stringify(chartParams),
+    });
+    expect(chartResp.ok()).toBe(true);
+    const chartId = await extractIdFromResponse(chartResp);
+    testAssets.trackChart(chartId);
+
+    const positionJson = buildSingleRowDashboardLayout([
+      {
+        id: chartId,
+        sliceName: 'clear_all_reselect',
+        width: 6,
+        height: 50,
+      },
+    ]);
+
+    const jsonMetadata = buildFilterJsonMetadata({
+      chartsInScope: [chartId],
+      nativeFilters: [
+        buildSelectFilter({
+          datasetId,
+          column: FILTER_COLUMN,
+          chartsInScope: [chartId],
+          name: 'Gender',
+        }),
+      ],
+    });
+
+    const dashResp = await apiPostDashboard(page, {
+      dashboard_title: `clear_all_reselect_${Date.now()}`,
+      published: true,
+      position_json: JSON.stringify(positionJson),
+      json_metadata: JSON.stringify(jsonMetadata),
+    });
+    expect(dashResp.ok()).toBe(true);
+    const dashboardId = await extractIdFromResponse(dashResp);
+    testAssets.trackDashboard(dashboardId);
+
+    const linkResp = await apiPut(page, `api/v1/chart/${chartId}`, {
+      dashboards: [dashboardId],
+    });
+    expect(linkResp.ok()).toBe(true);
+
+    const dashboardPage = new DashboardPage(page);
+    await dashboardPage.gotoById(dashboardId);
+    await dashboardPage.waitForLoad({ timeout: TIMEOUT.SLOW_TEST });
+    await dashboardPage.waitForChartsToLoad();
+    const filterBar = await dashboardPage.waitForFilterBar();
+
+    const chartDataPost = () =>
+      page.waitForResponse(
+        r =>
+          r.url().includes('/api/v1/chart/data') &&
+          r.request().method() === 'POST',
+        { timeout: 10_000 },
+      );
+
+    // Pin the plugin's local selection to 'boy' by applying it
+    const firstApply = chartDataPost();
+    await filterBar.selectOption('boy');
+    await filterBar.apply();
+    await firstApply;
+    await dashboardPage.waitForChartsToLoad();
+
+    // Clear all and commit the clear
+    const clearApply = chartDataPost();
+    await filterBar.clearAll();
+    await filterBar.apply();
+    await clearApply;
+    await dashboardPage.waitForChartsToLoad();
+    await expect(filterBar.getApplyButton().element).toBeDisabled();
+
+    // Re-select the very value Clear All removed. Before the fix, the
+    // vertical bar never forwarded clearAllTriggers to FilterControls, so
+    // the Select plugin's local state stayed pinned to 'boy' and the
+    // reducer discarded the equal-valued re-selection as a no-op — Apply
+    // stayed disabled and the value was unrecoverable without a reload.
+    await filterBar.selectOption('boy');
+    await expect(filterBar.getApplyButton().element).toBeEnabled();
+
+    const reselectApply = chartDataPost();
+    await filterBar.apply();
+    await reselectApply;
+    await dashboardPage.waitForChartsToLoad();
+  },
+);

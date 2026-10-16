@@ -152,6 +152,9 @@ function ActionLogList() {
       {
         accessor: 'user',
         Header: t('User'),
+        // The log API only orders by scalar fields (e.g. `user.username`),
+        // not the `user` relationship itself.
+        disableSortBy: true,
         Cell: ({
           row: {
             original: { user },

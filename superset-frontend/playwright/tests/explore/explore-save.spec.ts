@@ -111,12 +111,16 @@ testWithAssets(
     // Overwrite, selecting the now-existing dashboard by the same title.
     const saveModal2 = await explorePage.openSaveModal();
     await saveModal2.selectSaveAction('overwrite');
-    await saveModal2.selectDashboard(dashboardTitle);
+    await saveModal2.selectExistingDashboard(dashboardTitle);
     const updated = waitForPut(page, `api/v1/chart/${newChartId}`, {
       pathMatch: true,
     });
     await saveModal2.clickSave();
-    expect((await updated).ok()).toBe(true);
+    const updatedResponse = await updated;
+    expect(updatedResponse.ok()).toBe(true);
+    expect(updatedResponse.request().postDataJSON().dashboards).toContain(
+      dashboardId,
+    );
 
     expect((await getChartsByName(page, newChartName)).count).toBe(1);
     expect((await getDashboardsByName(page, dashboardTitle)).count).toBe(1);

@@ -395,10 +395,8 @@ def test_raise_for_access_table_chart_resolution_unchanged(app_context):
 def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context, monkeypatch):
     """Chart viewer bypasses datasource access when VIEWER_PROMISCUOUS_MODE on."""
     sm = _make_sm()
-    datasource = MagicMock()
-    datasource.id = 42
-    chart = MagicMock()
-    chart.datasource_id = 42
+    datasource: MagicMock = MagicMock(id=42, type="table")
+    chart: MagicMock = MagicMock(datasource_id=42, datasource_type="table")
     chart.datasource = datasource
 
     mock_session = MagicMock()
@@ -430,10 +428,8 @@ def test_raise_for_access_datasource_chart_viewer_promiscuous(app_context, monke
 def test_raise_for_access_datasource_chart_editor_promiscuous(app_context, monkeypatch):
     """Chart editor also bypasses datasource access via promiscuous mode."""
     sm = _make_sm()
-    datasource = MagicMock()
-    datasource.id = 42
-    chart = MagicMock()
-    chart.datasource_id = 42
+    datasource: MagicMock = MagicMock(id=42, type="table")
+    chart: MagicMock = MagicMock(datasource_id=42, datasource_type="table")
     chart.datasource = datasource
 
     mock_session = MagicMock()

@@ -40,8 +40,8 @@ async def quickstart_prompt(
     Guide new users through their first experience with the platform.
 
     Args:
-        user_type: Type of user (analyst, executive, developer)
-        focus_area: Area of interest (sales, marketing, operations, general)
+        user_type (str): Type of user (analyst, executive, developer)
+        focus_area (str): Area of interest (sales, marketing, operations, general)
     """
     app_name = _get_app_name()
 

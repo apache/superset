@@ -17,6 +17,7 @@
 
 """Ensure published MCP chart examples remain parseable."""
 
+import asyncio
 from unittest.mock import Mock, patch
 
 import pytest
@@ -46,7 +47,7 @@ def test_chart_configs_resource_examples_parse() -> None:
         "superset.mcp_service.auth.get_user_from_request",
         return_value=Mock(id=1, username="admin"),
     ):
-        resource = json.loads(get_chart_configs_resource())
+        resource = json.loads(asyncio.run(get_chart_configs_resource()))
     count = 0
     for examples in resource.values():
         if not isinstance(examples, dict):
