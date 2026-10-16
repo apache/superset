@@ -1475,6 +1475,7 @@ def build_applied_dashboard_filters(
                 "Ignoring malformed native filter %s for dashboard %s.",
                 flt.get("id"),
                 dashboard_id,
+                exc_info=True,
             )
             return None
         operator, value = _resolve_filter_operator_and_value(extra_form_data, column)
