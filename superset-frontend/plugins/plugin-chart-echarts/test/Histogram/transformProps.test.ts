@@ -134,3 +134,18 @@ test('dims bars outside the selected bin and uses a pointer cursor', () => {
   expect(points[1].itemStyle?.opacity).toBe(0.3);
   expect(series[0].cursor).toBe('pointer');
 });
+
+test('renders an empty chart when the query returns no rows', () => {
+  const props = new ChartProps({
+    formData,
+    width: 800,
+    height: 600,
+    queriesData: [{ data: [] }],
+    theme: supersetTheme,
+  });
+
+  const { xAxis, series } = readChart(props);
+
+  expect(xAxis.data).toEqual([]);
+  expect(series).toEqual([]);
+});

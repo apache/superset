@@ -16,12 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { GenericDataType } from '@apache-superset/core/common';
 import {
   HistogramBin,
   getHistogramCrossFilterDataMask,
   getHistogramCrossFilterKey,
-  getHistogramDrillFilters,
   getSelectedHistogramKeys,
   parseBinKey,
 } from '../../src/Histogram/crossFilter';
@@ -31,8 +29,6 @@ const bin = (start: number, end: number, isLast = false): HistogramBin => ({
   end,
   isLast,
   label: `${start} - ${end}`,
-  startLabel: String(start),
-  endLabel: String(end),
 });
 
 test('parseBinKey keeps a negative left edge', () => {
@@ -147,25 +143,4 @@ test('getHistogramCrossFilterDataMask stores bigint group values as strings', ()
     val: ['10'],
   });
   expect(() => JSON.stringify(dataMask)).not.toThrow();
-});
-
-test('getHistogramDrillFilters formats a temporal group without abbreviating it', () => {
-  const filters = getHistogramDrillFilters({
-    column: 'price',
-    groupby: ['order_date'],
-    bin: bin(0, 5, true),
-    groupbyValues: [Date.parse('2024-01-02T00:00:00.000Z')],
-    coltypeMapping: { order_date: GenericDataType.Temporal },
-  });
-
-  expect(filters[0]).toEqual(
-    expect.objectContaining({ op: '>=', val: 0, formattedVal: '0' }),
-  );
-  expect(filters[1]).toEqual(
-    expect.objectContaining({ op: '<=', val: 5, formattedVal: '5' }),
-  );
-  expect(filters[2].op).toBe('==');
-  expect(String(filters[2].formattedVal)).not.toBe(
-    String(Date.parse('2024-01-02T00:00:00.000Z')),
-  );
 });

@@ -84,8 +84,8 @@ export default function transformProps(
     yAxisTitle,
     yAxisFormat,
   } = formData;
-  const queryData = queriesData[0];
-  const { data } = queryData;
+  const queryData = queriesData[0] ?? { data: [] };
+  const data = queryData.data ?? [];
   const coltypeMapping = getColtypesMapping(queryData);
   const selectedKeys = getSelectedHistogramKeys(filterState?.selectedValues);
   const colorFn = CategoricalColorNamespace.getScale(colorScheme);
@@ -103,12 +103,12 @@ export default function transformProps(
 
   const percentFormatter = getPercentFormatter(NumberFormats.PERCENT_2_POINT);
   const groupbySet = new Set(groupby.map(getColumnLabel));
-  const binKeys = Object.keys(data[0]).filter(key => {
-    if (groupbySet.has(key)) {
-      return false;
-    }
-    return parseBinKey(key) !== undefined;
-  });
+  const firstRow = data[0];
+  const binKeys = firstRow
+    ? Object.keys(firstRow).filter(
+        key => !groupbySet.has(key) && parseBinKey(key) !== undefined,
+      )
+    : [];
   const bins: HistogramBin[] = binKeys.map((key, index) => {
     const edges = parseBinKey(key);
     const start = edges?.start ?? Number.NaN;
@@ -120,8 +120,6 @@ export default function transformProps(
       end,
       isLast: index === binKeys.length - 1,
       label: `${startLabel} - ${endLabel}`,
-      startLabel,
-      endLabel,
     };
   });
   const xAxisData = bins.map(bin => bin.label);

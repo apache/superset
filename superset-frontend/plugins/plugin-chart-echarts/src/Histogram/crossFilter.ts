@@ -35,8 +35,6 @@ export type HistogramBin = {
   /** Numpy's last bin includes its right edge. Earlier bins do not. */
   isLast: boolean;
   label: string;
-  startLabel: string;
-  endLabel: string;
 };
 
 const BIN_SEPARATOR = ' - ';
@@ -196,49 +194,4 @@ export function getHistogramCrossFilterDataMask({
     },
     isCurrentValueSelected,
   };
-}
-
-export function getHistogramDrillFilters({
-  column,
-  groupby,
-  bin,
-  groupbyValues,
-  coltypeMapping,
-}: {
-  column: QueryFormColumn;
-  groupby: QueryFormColumn[];
-  bin: HistogramBin;
-  groupbyValues: DataRecordValue[];
-  coltypeMapping?: Record<string, number>;
-}): QueryObjectFilterClause[] {
-  const rangeFilters: QueryObjectFilterClause[] = [
-    {
-      col: column,
-      op: '>=',
-      val: bin.start,
-      formattedVal: bin.startLabel,
-    },
-    {
-      col: column,
-      op: bin.isLast ? '<=' : '<',
-      val: bin.end,
-      formattedVal: bin.endLabel,
-    },
-  ];
-  const dimensionFilters: QueryObjectFilterClause[] = groupby.map(
-    (col, index) => {
-      const value = groupbyValues[index];
-      const formattedVal = formatGroupbyValue(col, value, coltypeMapping);
-      if (value == null) {
-        return { col, op: 'IS NULL' as const, formattedVal };
-      }
-      return {
-        col,
-        op: '==' as const,
-        val: toJsonSafeFilterValue(value),
-        formattedVal,
-      };
-    },
-  );
-  return [...rangeFilters, ...dimensionFilters];
 }

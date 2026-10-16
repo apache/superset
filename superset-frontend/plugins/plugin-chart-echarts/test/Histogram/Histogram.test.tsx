@@ -172,7 +172,7 @@ test('click does nothing when cross-filtering is disabled', () => {
   expect(setDataMask).not.toHaveBeenCalled();
 });
 
-test('context menu exposes the bin range, the group, and drill by', () => {
+test('context menu exposes the cross-filter for the clicked bar', () => {
   const { eventHandlers, onContextMenu } = setup();
 
   eventHandlers.contextmenu({
@@ -184,12 +184,7 @@ test('context menu exposes the bin range, the group, and drill by', () => {
   const [[x, y, payload]] = onContextMenu.mock.calls;
   expect(x).toBe(4);
   expect(y).toBe(8);
-  expect(payload.drillToDetail).toEqual([
-    expect.objectContaining({ col: 'price', op: '>=', val: 5 }),
-    expect.objectContaining({ col: 'price', op: '<=', val: 10 }),
-    expect.objectContaining({ col: 'region', op: '==', val: 'EAST' }),
-  ]);
-  expect(payload.drillBy.groupbyFieldName).toBe('groupby');
+  expect(payload.drillToDetail).toBeUndefined();
   expect(payload.crossFilter.dataMask.extraFormData.filters).toEqual([
     { col: 'price', op: '>=', val: 5 },
     { col: 'price', op: '<=', val: 10 },

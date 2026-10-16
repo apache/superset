@@ -17,14 +17,13 @@
  * under the License.
  */
 import { useMemo } from 'react';
-import { ContextMenuFilters, QueryFormColumn } from '@superset-ui/core';
+import { QueryFormColumn } from '@superset-ui/core';
 import { HistogramTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers } from '../types';
 import { useLegendEventHandlers } from '../utils/legendEventHandlers';
 import {
   getHistogramCrossFilterDataMask,
-  getHistogramDrillFilters,
   getSelectedHistogramKeys,
 } from './crossFilter';
 
@@ -112,22 +111,10 @@ export default function Histogram(props: HistogramTransformedProps) {
         if (!pointerEvent) {
           return;
         }
-        // IS NULL is unary. The menu types only binary operators, and both
-        // drill paths forward `op` unchanged.
-        const drillFilters = getHistogramDrillFilters({
-          column,
-          groupby: groupbyColumns,
-          bin: match.bin,
-          groupbyValues: match.groupbyValues,
-          coltypeMapping,
-        }) as NonNullable<ContextMenuFilters['drillToDetail']>;
+        // Histogram queries have no metrics, so the menu disables drill to
+        // detail. The context menu is only used to apply the cross-filter.
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
-          drillToDetail: drillFilters,
           crossFilter: match.mask,
-          drillBy: {
-            filters: drillFilters,
-            groupbyFieldName: 'groupby',
-          },
         });
       },
     };

@@ -62,11 +62,7 @@ export default class EchartsHistogramChartPlugin extends ChartPlugin<
           { url: example1, urlDark: example1Dark },
           { url: example2, urlDark: example2Dark },
         ],
-        behaviors: [
-          Behavior.InteractiveChart,
-          Behavior.DrillToDetail,
-          Behavior.DrillBy,
-        ],
+        behaviors: [Behavior.InteractiveChart],
         name: t('Histogram'),
         tags: [t('Comparison'), t('ECharts'), t('Pattern'), t('Range')],
         thumbnail,
