@@ -5348,6 +5348,151 @@ class TestQueryContextAccuracyWarning:
         ), data["insights"]
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("response_format", ["csv", "excel"])
+    async def test_missing_query_context_fallback_is_visible_in_export_formats(
+        self,
+        mcp_server: Any,
+        mock_auth: Any,
+        monkeypatch: pytest.MonkeyPatch,
+        response_format: str,
+    ) -> None:
+        """_export_data_as_csv and the Excel builders build their own
+        ``insights`` list, so the missing-query_context caveat must be
+        threaded into those too, not only the default JSON response."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        chart = SimpleNamespace(
+            id=203,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=None,
+            params=json.dumps(
+                {
+                    "viz_type": "big_number",
+                    "metric": {"label": "SUM(revenue)"},
+                    "time_grain_sqla": "P3M",
+                    "compare_lag": 1,
+                    "show_trend_line": True,
+                }
+            ),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        class _Factory:
+            def create(self, **_kwargs: Any) -> object:
+                return object()
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            "superset.common.query_context_factory.QueryContextFactory", _Factory
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 203, "format": response_format}},
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any(
+            "query_context" in insight.lower() for insight in data["insights"]
+        ), data["insights"]
+
+    @pytest.mark.asyncio
+    async def test_cached_form_data_override_is_flagged_in_response(
+        self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """A form_data_key override on a saved chart bypasses the chart's
+        query_context the same way an unsaved chart does — it goes through
+        build_query_context_from_form_data, which calls the same
+        build_query_dicts_from_form_data fallback used when a chart has no
+        saved query_context at all — so it must carry the same caveat."""
+        module = importlib.import_module(
+            "superset.mcp_service.chart.tool.get_chart_data"
+        )
+        cached_form_data = {
+            "datasource": "1__table",
+            "viz_type": "big_number",
+            "metric": {"label": "SUM(revenue)"},
+            "time_grain_sqla": "P3M",
+            "compare_lag": 1,
+            "show_trend_line": True,
+        }
+        chart = SimpleNamespace(
+            id=206,
+            slice_name="QoQ growth",
+            viz_type="big_number",
+            datasource_id=1,
+            datasource_type="table",
+            query_context=json.dumps(
+                {"datasource": {"id": 1, "type": "table"}, "queries": []}
+            ),
+            params=json.dumps(cached_form_data),
+        )
+
+        class Command:
+            def __init__(self, _context: Any) -> None: ...
+            def validate(self) -> None: ...
+            def run(self) -> dict[str, Any]:
+                return chart_data_command_result(
+                    [{"SUM(revenue)": 100}],
+                    columns=["SUM(revenue)"],
+                    coltypes=[GenericDataType.NUMERIC],
+                )
+
+        monkeypatch.setattr(module, "find_chart_by_identifier", lambda *a, **k: chart)
+        monkeypatch.setattr(
+            module,
+            "validate_chart_dataset",
+            lambda *a, **k: SimpleNamespace(is_valid=True, warnings=[], error=None),
+        )
+        monkeypatch.setattr(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand", Command
+        )
+        monkeypatch.setattr(
+            module,
+            "build_query_context_from_form_data",
+            lambda *_args, **_kwargs: SimpleNamespace(queries=[], form_data={}),
+        )
+        monkeypatch.setattr(module, "set_query_context_form_data", lambda *_a: None)
+        monkeypatch.setattr(module.guest_scope, "is_guest_read", lambda: False)
+        monkeypatch.setattr(
+            module, "get_cached_form_data", lambda _key: json.dumps(cached_form_data)
+        )
+
+        async with Client(mcp_server) as client:
+            response = await client.call_tool(
+                "get_chart_data",
+                {"request": {"identifier": 206, "form_data_key": "edited-growth"}},
+            )
+
+        data = json.loads(response.content[0].text)
+        assert any("form_data" in insight.lower() for insight in data["insights"]), (
+            data["insights"]
+        )
+
+    @pytest.mark.asyncio
     async def test_explore_saved_query_context_is_not_flagged(
         self, mcp_server: Any, mock_auth: Any, monkeypatch: pytest.MonkeyPatch
     ) -> None:
