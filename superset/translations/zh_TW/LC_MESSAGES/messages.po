@@ -14265,6 +14265,9 @@ msgstr ""
 msgid "Reset state"
 msgstr "狀態重置"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "刷新預設值"
@@ -18035,6 +18038,10 @@ msgstr ""
 #, fuzzy
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "等值帶閾值範圍的下限"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

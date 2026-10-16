@@ -14126,6 +14126,9 @@ msgstr ""
 msgid "Reset state"
 msgstr "إعادة ضبط الحالة"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "قم بتحديث القيم الافتراضية"
@@ -17864,6 +17867,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "الحد الأدنى لنطاق عتبة Isoband"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

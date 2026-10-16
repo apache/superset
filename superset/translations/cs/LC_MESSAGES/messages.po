@@ -13210,6 +13210,9 @@ msgstr "Resetovat heslo"
 msgid "Reset state"
 msgstr "Resetovat stav"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Opravdu chcete resetovat na výchozí složky?"
@@ -16744,6 +16747,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Dolní limit prahového rozsahu izopásu"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"

@@ -90,6 +90,7 @@ import SubjectPicker, {
   type SubjectPickerValue,
 } from 'src/features/subjects/SubjectPicker';
 import { DatabaseSelector } from '../../../DatabaseSelector';
+import type { DatabaseObject } from '../../../DatabaseSelector/types';
 import SpatialControl from 'src/explore/components/controls/SpatialControl';
 import CollectionTable from '../CollectionTable';
 import Fieldset from '../Fieldset';
@@ -111,6 +112,7 @@ import {
   clearUnmappedTransformsAcrossMove,
   defaultTransformFor,
   nextMappedColumnOverride,
+  partitionFilterMappingEnabled,
   partitionMappingErrors,
 } from './components/PartitionFilterMapping/utils';
 import {
@@ -221,6 +223,9 @@ interface DatasourceObject {
   partition_mapped_column?: string | null;
   // Engine-supplied pre-fill for a temporal column's value transform. Read-only.
   partition_value_transform_default?: string | null;
+  // Whether the engine's tables are partition-directory laid out. Gates whether
+  // the partition filter mapping UI is offered at all. Engine-supplied, read-only.
+  supports_partition_filter_mapping?: boolean;
   template_params?: string;
   spatials?: SpatialConfig[];
   all_cols?: string[];
@@ -475,9 +480,11 @@ const ColumnButtonWrapper = styled.div`
 const StyledLabelWrapper = styled.div`
   display: flex;
   align-items: center;
-  span {
-    margin-right: ${({ theme }) => theme.sizeUnit}px;
-  }
+  /* Space the row's items (certified badge, column-name control, PARTITION tag)
+     with a flex gap rather than a span margin: the name is rendered via
+     EditableTitle/TextControl, not a plain span, so the old span-only rule left
+     the tag touching the name. */
+  gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
 // The partition column is a technical key rather than something an analyst
@@ -680,8 +687,7 @@ function ColumnCollectionTable({
     />
   );
 
-  const partitionMappingEnabled =
-    isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && Boolean(datasource);
+  const partitionMappingEnabled = partitionFilterMappingEnabled(datasource);
   const partitionColumn = partitionMappingEnabled
     ? datasource?.partition_column
     : null;
@@ -1242,7 +1248,7 @@ function DatasourceEditor({
       // that is a blocking error with no way out -- the partition-column
       // dropdown is physical-only, so reopening such a dataset and changing
       // nothing but its description left Save permanently disabled.
-      if (isFeatureEnabled(FeatureFlag.PartitionFilterMapping)) {
+      if (partitionFilterMappingEnabled(datasource)) {
         validationErrors = validationErrors.concat(
           partitionMappingErrors(datasource, [
             ...databaseColumns,
@@ -1320,6 +1326,24 @@ function DatasourceEditor({
       const newDatasource = { ...prev, [attr]: value };
       return newDatasource;
     });
+  }, []);
+
+  // The partition mapping capability and its transform pre-fill belong to the
+  // engine, and arrive on the dataset payload for the database it was loaded
+  // with. Pointing the dataset at another database has to re-derive both from
+  // the selected database's engine, or the editor keeps offering (or keeps
+  // hiding) partition mapping according to the engine it just left.
+  const onDatabaseChange = useCallback((db: DatabaseObject | undefined) => {
+    if (db === undefined) return;
+    setDatasource(prev => ({
+      ...prev,
+      database: db,
+      supports_partition_filter_mapping: Boolean(
+        db.supports_partition_filter_mapping,
+      ),
+      partition_value_transform_default:
+        db.partition_value_transform_default ?? null,
+    }));
   }, []);
 
   // Effect to trigger validation after datasource changes (skip initial mount)
@@ -1489,23 +1513,35 @@ function DatasourceEditor({
     // calculated column, so both lists are cleared.
     setDatabaseColumns(prev => clearMappingTransforms(prev));
     setCalculatedColumns(prev => clearMappingTransforms(prev));
-    // The partition column stays designated; only the mapping goes away, which
-    // is the 1g state -- nothing mirrored onto it, and the panel's warning
-    // saying so. The column's own `filterable`/`groupby` flags are untouched:
-    // designating a partition column has never hidden it from Explore (see
-    // `handlePartitionColumnChange`).
+    // The partition column stays designated and the override is cleared. A null
+    // `partition_mapped_column` means "follow `main_dttm_col`", so when the
+    // dataset has a default datetime column the mapping returns to it rather
+    // than going away. Only without one does this reach the 1g state -- no
+    // mapped column, nothing mirrored onto the partition column. The column's
+    // own `filterable`/`groupby` flags are untouched: designating a partition
+    // column has never hidden it from Explore (see `handlePartitionColumnChange`).
     setDatasource(prev => ({ ...prev, partition_mapped_column: null }));
   }, []);
 
   const handleMonotonicChange = useCallback(
     (columnName: string, isMonotonic: boolean) => {
-      setDatabaseColumns(prev =>
-        prev.map(column =>
+      setDatabaseColumns(prev => {
+        const target = prev.find(column => column.column_name === columnName);
+        // A no-op write still mints a new array, and a new array restarts the
+        // whole commit round trip -- which is the thing that resets a
+        // controlled input mid-keystroke. Returning `prev` lets React bail out.
+        if (
+          !target ||
+          Boolean(target.partition_transform_is_monotonic) === isMonotonic
+        ) {
+          return prev;
+        }
+        return prev.map(column =>
           column.column_name === columnName
             ? { ...column, partition_transform_is_monotonic: isMonotonic }
             : column,
-        ),
-      );
+        );
+      });
     },
     [],
   );
@@ -1529,8 +1565,13 @@ function DatasourceEditor({
       // an explicit null inside the `columns` payload, which `update_columns`
       // writes whatever the flag says. The datetime column select itself is
       // not gated, since it predates this feature.
+      //
+      // The engine gate applies for the same reason. On an engine without the
+      // capability the mapping is hidden and ignored but kept, so it comes
+      // back if the dataset is pointed at a supported engine; clearing it here
+      // would save the loss as explicit nulls behind a control nobody can see.
       if (
-        isFeatureEnabled(FeatureFlag.PartitionFilterMapping) &&
+        partitionFilterMappingEnabled(datasource) &&
         datasource.partition_column &&
         !datasource.partition_mapped_column
       ) {
@@ -1548,6 +1589,7 @@ function DatasourceEditor({
       datasource.main_dttm_col,
       datasource.partition_column,
       datasource.partition_mapped_column,
+      datasource.supports_partition_filter_mapping,
     ],
   );
 
@@ -2134,7 +2176,7 @@ function DatasourceEditor({
               data-test="currency-code-column-select"
             />
           </Flex>
-          {isFeatureEnabled(FeatureFlag.PartitionFilterMapping) && (
+          {partitionFilterMappingEnabled(datasource) && (
             <PartitionColumnFields
               datasource={datasource}
               columns={databaseColumns}
@@ -2455,8 +2497,7 @@ function DatasourceEditor({
                               onDatasourcePropChange('schema', schema)
                             }
                             onDbChange={db =>
-                              isEditMode &&
-                              onDatasourcePropChange('database', db)
+                              isEditMode && onDatabaseChange(db)
                             }
                             formMode={false}
                             handleError={addDangerToast}
@@ -2654,11 +2695,7 @@ function DatasourceEditor({
                             ? schema => onDatasourcePropChange('schema', schema)
                             : undefined
                         }
-                        onDbChange={
-                          isEditMode
-                            ? db => onDatasourcePropChange('database', db)
-                            : undefined
-                        }
+                        onDbChange={isEditMode ? onDatabaseChange : undefined}
                         onTableSelectChange={
                           isEditMode
                             ? table =>

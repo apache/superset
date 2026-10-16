@@ -1781,6 +1781,23 @@ def test_base_spec_public_information_includes_supports_offset() -> None:
     assert info["supports_offset"] is True
 
 
+def test_public_information_exposes_the_partition_mapping_capability() -> None:
+    """
+    The dataset editor re-derives partition mapping support from this when the
+    owner switches a dataset to another database.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    base = BaseEngineSpec.get_public_information()
+    assert base["supports_partition_filter_mapping"] is False
+    assert base["partition_value_transform_default"] is None
+
+    hive = HiveEngineSpec.get_public_information()
+    assert hive["supports_partition_filter_mapping"] is True
+    assert hive["partition_value_transform_default"] == "unix_timestamp(:value)"
+
+
 def _parameters(encryption: bool) -> BasicParametersType:
     parameters: dict[str, Any] = {
         "username": "user",
