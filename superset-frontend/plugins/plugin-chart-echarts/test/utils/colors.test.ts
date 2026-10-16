@@ -21,9 +21,9 @@ import { normalizeRgbaColor } from '../../src/utils/colors';
 const fallback = { r: 1, g: 2, b: 3, a: 1 };
 
 test('passes through an rgb object', () => {
-  expect(
-    normalizeRgbaColor({ r: 10, g: 20, b: 30, a: 0.5 }, fallback),
-  ).toEqual({ r: 10, g: 20, b: 30, a: 0.5 });
+  expect(normalizeRgbaColor({ r: 10, g: 20, b: 30, a: 0.5 }, fallback)).toEqual(
+    { r: 10, g: 20, b: 30, a: 0.5 },
+  );
 });
 
 test('parses 6 and 3 digit hex strings', () => {

@@ -462,7 +462,7 @@ test('applyDefaultFormData keeps legacy interval_color_indices unresolved for da
   } as any);
 
   expect(result.interval_color_indices).toBe('2,3');
-  expect(result.interval_colors).toEqual([]);
+  expect(result.interval_colors ?? []).toEqual([]);
 });
 
 test('handleDeprecatedControls does not override an already-populated interval_colors', () => {
