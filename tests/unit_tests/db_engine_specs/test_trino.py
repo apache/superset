@@ -2368,17 +2368,25 @@ def test_expand_columns_survives_rows_nested_beyond_recursion_limit() -> None:
     Known defect, hence ``xfail(strict=True)``: ``_expand_columns`` recurses
     once per ROW level with no maximum depth and raises ``RecursionError``. Once
     a guard lands this test passes, strict mode turns that into a failure, and
-    the marker should be removed. The type is built programmatically because
-    ``parse_sqltype`` is itself recursive and would fail first on a string this
-    deep.
+    the marker should be removed.
+
+    The type is built programmatically because ``parse_sqltype`` is itself
+    recursive and would fail first on a string this deep. Each level also
+    renders as a fixed string: ``_expand_columns`` serializes every inner type
+    (``str(inner_type)``) before recursing, and that rendering must not be what
+    raises, or a depth guard would never make this test pass.
     """
     import sys
 
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
+    class _FixedStrRow(datatype.ROW):
+        def __str__(self) -> str:
+            return "row(a varchar)"
+
     col_type: Any = types.String()
     for _ in range(sys.getrecursionlimit() + 100):
-        col_type = datatype.ROW([("a", col_type)])
+        col_type = _FixedStrRow([("a", col_type)])
     col = ResultSetColumnType(
         name="field", column_name="field", type=col_type, is_dttm=False
     )
@@ -2782,23 +2790,46 @@ def test_expired_token_is_refreshed_and_query_retried(
     """
     A Trino 401 raised before the query has made progress (token expired) is
     recognized by ``TrinoEngineSpec.needs_oauth2``, which makes
-    ``execute_with_oauth2_retry`` force one token refresh and replay the query.
+    ``execute_with_oauth2_retry`` *force* a refresh of the rejected token and
+    replay the query, and the replay authenticates with the new token.
     """
+    from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.utils.oauth2 import execute_with_oauth2_retry
 
     database = _oauth2_database_for_trino(mocker, oauth2_config)
+    stored_token = mocker.MagicMock(access_token="stale-token")  # noqa: S106
+    db = mocker.patch("superset.utils.oauth2.db")
+    db.session.query().filter_by().one_or_none.return_value = stored_token
+
+    def _refresh(*args: Any, **kwargs: Any) -> str:
+        stored_token.access_token = "new-token"  # noqa: S105
+        return "new-token"
+
     refresh = mocker.patch(
-        "superset.utils.oauth2.refresh_oauth2_token", return_value="new-token"
+        "superset.utils.oauth2.refresh_oauth2_token", side_effect=_refresh
     )
-    mocker.patch("superset.utils.oauth2.db")
-    operation = mocker.Mock(side_effect=[HttpError("error 401: Unauthorized"), "rows"])
+    tokens_used: list[str] = []
+
+    def _query_with_stored_token() -> str:
+        tokens_used.append(stored_token.access_token)
+        if stored_token.access_token != "new-token":  # noqa: S105
+            raise HttpError("error 401: Unauthorized")
+        return "rows"
 
     with app.test_request_context("/"):
         g.user = mocker.Mock(id=2)
-        assert execute_with_oauth2_retry(database, operation) == "rows"
+        assert execute_with_oauth2_retry(database, _query_with_stored_token) == "rows"
 
-    assert operation.call_count == 2
-    refresh.assert_called_once()
+    assert tokens_used == ["stale-token", "new-token"]
+    refresh.assert_called_once_with(
+        oauth2_config,
+        1,
+        2,
+        TrinoEngineSpec,
+        force=True,
+        rejected_access_token="stale-token",  # noqa: S106
+    )
+    db.session.expire.assert_called_once_with(stored_token)
     database.start_oauth2_dance.assert_not_called()
 
 
@@ -3004,15 +3035,20 @@ def test_handle_cursor_stops_polling_after_time_limit(
 ) -> None:
     """
     Progress polling gives up once ``SQLLAB_ASYNC_TIME_LIMIT_SEC`` has elapsed
-    instead of looping forever on a query that never reaches a terminal state.
+    since polling started, instead of looping forever on a query that never
+    reaches a terminal state. The clock is controlled: polling starts at t=0,
+    the first pass (t=5) is inside the limit and records progress, and the next
+    check (t=11) is past it.
     """
     from superset.db_engine_specs.trino import TrinoEngineSpec
     from superset.models.sql_lab import Query
 
     mock_app.config = {
         "DB_POLL_INTERVAL_SECONDS": {"trino": 0},
-        "SQLLAB_ASYNC_TIME_LIMIT_SEC": -1,
+        "SQLLAB_ASYNC_TIME_LIMIT_SEC": 10,
     }
+    mock_time = mocker.patch("superset.db_engine_specs.trino.time")
+    mock_time.time.side_effect = [0, 5, 11]
     cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
     cursor_mock.query_id = "test-query-id"
     cursor_mock.stats = {"state": "RUNNING", "completedSplits": 5, "totalSplits": 10}
@@ -3021,5 +3057,6 @@ def test_handle_cursor_stops_polling_after_time_limit(
 
     TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
 
-    assert query.progress is None
+    assert query.progress == 50
+    assert mock_time.sleep.call_count == 1
     mock_cancel_query.assert_not_called()
