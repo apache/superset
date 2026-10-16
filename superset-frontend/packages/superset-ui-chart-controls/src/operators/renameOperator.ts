@@ -105,7 +105,9 @@ export const renameOperator: PostProcessingFactory<PostProcessingRename> = (
         ComparisonType.Percentage,
         ComparisonType.Ratio,
       ].includes(formData.comparison_type) &&
-      metricCountWithExtras === 1 &&
+      // the sort-only extra metric is hidden from rendering, so the displayed
+      // metric count decides whether the metric prefix is dropped here
+      metrics.length === 1 &&
       renamePairs.length === 0
     ) {
       renamePairs.push([getMetricLabel(metrics[0]), null]);
