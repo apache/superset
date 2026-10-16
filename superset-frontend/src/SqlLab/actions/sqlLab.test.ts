@@ -883,6 +883,141 @@ describe('async actions', () => {
     );
   });
 
+  // The numeric prefix of a `<id>__query` datasource key is a query id, not a
+  // dataset id, so it must never be resolved through the dataset API.
+  // The mock serves every endpoint a correct resolution of the query
+  // datasource could use; `datasetWithSameId` controls whether a dataset that
+  // happens to share the numeric id exists.
+  const mockDatasourceLookups = (datasetWithSameId: boolean) =>
+    jest
+      .spyOn(SupersetClient, 'get')
+      .mockClear()
+      .mockImplementation(async ({ endpoint }: { endpoint?: string }) => {
+        if (endpoint?.startsWith('/api/v1/dataset/42')) {
+          if (!datasetWithSameId) {
+            throw new Error('Not found');
+          }
+          return {
+            json: {
+              result: {
+                name: 'unrelated_dataset',
+                schema: 'unrelated_schema',
+                database: { id: 99 },
+                select_star: 'SELECT * FROM unrelated_dataset',
+              },
+            },
+          } as any;
+        }
+        if (endpoint?.startsWith('/api/v1/query/42')) {
+          return {
+            json: {
+              result: {
+                tab_name: 'My tab',
+                schema: 'analytics',
+                catalog: null,
+                database: { id: 7 },
+                sql: 'SELECT 1',
+              },
+            },
+          } as any;
+        }
+        if (endpoint?.includes('fetch_datasource_metadata')) {
+          return {
+            json: {
+              name: 'My tab',
+              schema: 'analytics',
+              catalog: null,
+              database: { id: 7 },
+              sql: 'SELECT 1',
+            },
+          } as any;
+        }
+        throw new Error(`unexpected request: ${endpoint}`);
+      });
+
+  test('popDatasourceQuery does not resolve a query datasource key as a dataset id', async () => {
+    const getSpy = mockDatasourceLookups(true);
+    const store = mockStore(initialState);
+
+    await actions.popDatasourceQuery('42__query', 'SELECT 1')(
+      store.dispatch,
+      () => typedInitialState,
+      undefined,
+    );
+
+    const endpoints = getSpy.mock.calls.map(([request]) => request.endpoint);
+    expect(endpoints).not.toContainEqual(
+      expect.stringContaining('/api/v1/dataset/42'),
+    );
+    getSpy.mockRestore();
+  });
+
+  test.each([{ datasetWithSameId: false }, { datasetWithSameId: true }])(
+    'popDatasourceQuery opens an editor on the query database and schema for a query datasource (dataset with the same id exists: $datasetWithSameId)',
+    async ({ datasetWithSameId }) => {
+      const getSpy = mockDatasourceLookups(datasetWithSameId);
+      const store = mockStore(initialState);
+
+      await actions.popDatasourceQuery('42__query', 'SELECT 1')(
+        store.dispatch,
+        () => typedInitialState,
+        undefined,
+      );
+
+      const dispatched = store.getActions();
+      expect(dispatched).not.toContainEqual(
+        expect.objectContaining({ type: ADD_TOAST }),
+      );
+      expect(dispatched).toContainEqual(
+        expect.objectContaining({
+          type: actions.ADD_QUERY_EDITOR,
+          queryEditor: expect.objectContaining({
+            dbId: 7,
+            schema: 'analytics',
+            sql: 'SELECT 1',
+            autorun: false,
+          }),
+        }),
+      );
+      getSpy.mockRestore();
+    },
+  );
+
+  test('popDatasourceQuery still resolves a table datasource key as a dataset id', async () => {
+    const getSpy = jest.spyOn(SupersetClient, 'get').mockResolvedValue({
+      json: {
+        result: {
+          name: 'my_dataset',
+          schema: 'public',
+          database: { id: 3 },
+          select_star: 'SELECT * FROM my_dataset',
+        },
+      },
+    } as any);
+    const store = mockStore(initialState);
+
+    await actions.popDatasourceQuery('5__table')(
+      store.dispatch,
+      () => typedInitialState,
+      undefined,
+    );
+
+    expect(getSpy).toHaveBeenCalledWith({
+      endpoint: expect.stringContaining('/api/v1/dataset/5?'),
+    });
+    expect(store.getActions()).toContainEqual(
+      expect.objectContaining({
+        type: actions.ADD_QUERY_EDITOR,
+        queryEditor: expect.objectContaining({
+          dbId: 3,
+          schema: 'public',
+          sql: 'SELECT * FROM my_dataset',
+        }),
+      }),
+    );
+    getSpy.mockRestore();
+  });
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('addQueryEditor', () => {
     test('creates new query editor', () => {
