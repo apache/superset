@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import time
 from collections.abc import Iterator
 from datetime import datetime, timedelta
 from decimal import Decimal
@@ -32,6 +33,7 @@ from superset.common.query_context_processor import (
     normalize_contribution_totals,
     QueryContextProcessor,
 )
+from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.exceptions import (
     CacheLoadError,
     QueryObjectValidationError,
@@ -169,10 +171,21 @@ def test_annotation_cache_key_shares_across_same_access_scope() -> None:
     query_obj_a = MagicMock(annotation_layers=[layer])
     query_obj_b = MagicMock(annotation_layers=[layer])
 
-    with patch(
-        "superset.common.query_context_processor.security_manager",
-        new_callable=MagicMock,
-    ) as security_manager:
+    # The requesting user differs between the two calls. Binding user identity
+    # into the context (by name, from either module) would make the contexts
+    # diverge, so equality below proves the key is scope-based.
+    with (
+        patch(
+            "superset.common.query_context_processor.security_manager",
+            new_callable=MagicMock,
+        ) as security_manager,
+        patch(
+            "superset.common.query_context_processor.get_user_id",
+            create=True,
+            side_effect=[1, 2],
+        ),
+        patch("superset.utils.core.get_user_id", side_effect=[1, 2]),
+    ):
         security_manager.can_access.return_value = True
         context_a = processor_a._annotation_cache_context(query_obj_a)
         context_b = processor_b._annotation_cache_context(query_obj_b)
@@ -298,10 +311,21 @@ def test_annotation_source_scope_applies_overrides_before_keying(
     finer grain."""
     mock_query_object = MagicMock()
     mock_query_object.extras = {}
+    mock_query_object.time_shift = None
     mock_query_context = MagicMock()
     mock_query_context.queries = [mock_query_object]
-    mock_query_context.query_cache_key.return_value = "referenced-chart-key"
     mock_annotation_chart.get_query_context.return_value = mock_query_context
+
+    def key_after_overrides(query_object: MagicMock) -> str:
+        # Moving the override application after key derivation would leave the
+        # key built from the saved, un-overridden query.
+        assert query_object.extras["time_grain_sqla"] == "P1D"
+        assert query_object.time_range == "Last week"
+        assert query_object.from_dttm is not None
+        assert query_object.to_dttm is not None
+        return "referenced-chart-key"
+
+    mock_query_context.query_cache_key.side_effect = key_after_overrides
     layer = {
         "value": 1,
         "overrides": {"time_grain_sqla": "P1D", "time_range": "Last week"},
@@ -318,6 +342,47 @@ def test_annotation_source_scope_applies_overrides_before_keying(
     # rather than on the freshly resolved bounds (which would change on every
     # request for a relative range and defeat cache/nonce reuse).
     assert mock_query_object.time_range == "Last week"
+    mock_query_context.query_cache_key.assert_called_once_with(mock_query_object)
+
+
+def test_annotation_overrides_apply_saved_time_shift() -> None:
+    """The override range is resolved with the saved query's ``time_shift``,
+    matching the query object factory, so the window that executes is the one
+    a normal run of the same range and shift would execute (they share a key)."""
+    query_object = MagicMock()
+    query_object.extras = {}
+    query_object.time_shift = "1 year ago"
+    query_context = MagicMock()
+    query_context.queries = [query_object]
+    time_range = "2025-01-01 : 2025-02-01"
+    QueryContextProcessor._apply_annotation_overrides(
+        query_context, {"overrides": {"time_range": time_range}}
+    )
+    unshifted = get_since_until_from_time_range(time_range)
+    assert (query_object.from_dttm, query_object.to_dttm) == (
+        get_since_until_from_time_range(time_range, "1 year ago")
+    )
+    assert query_object.from_dttm != unshifted[0]
+
+
+def test_annotation_source_scope_skips_data_key_when_access_denied(
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
+) -> None:
+    """A denied requester never reads a cached payload, so no data identity
+    (which can render the dataset's Jinja) is derived for them."""
+    mock_query_context: MagicMock = MagicMock()
+    mock_query_context.queries = [MagicMock()]
+    mock_query_context.raise_for_access.side_effect = SupersetSecurityException(
+        MagicMock()
+    )
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ):
+        scope = processor._annotation_source_scope({"value": 1})
+    assert scope == {"access": False, "data_key": None}
+    mock_query_context.query_cache_key.assert_not_called()
 
 
 def test_annotation_source_scope_fails_closed_on_any_derivation_error(
@@ -377,7 +442,7 @@ def test_annotation_source_scope_uses_saved_query_context_without_datasource(
         scope_a = processor._annotation_source_scope({"value": 1})
         scope_b = processor._annotation_source_scope({"value": 1})
     assert scope_a == {"access": True, "data_key": ["referenced-chart-key"]}
-    assert scope_b == {"access": False, "data_key": ["referenced-chart-key"]}
+    assert scope_b == {"access": False, "data_key": None}
 
 
 def test_annotation_source_scope_none_without_query_context_or_datasource(
@@ -2658,6 +2723,10 @@ def test_get_df_payload_result_decouples_annotation_cache_from_dataframe_cache()
     mock_get_annotation.assert_called_once()
     _, kwargs = mock_get_annotation.call_args
     assert kwargs["cache_key"] == "ann-key"
+    # The call site must forward the caller's flags, or an async cache
+    # preflight could run the annotation SQL instead of missing the cache.
+    assert kwargs["force_cached"] is False
+    assert kwargs["force_query"] is False
 
     # The payload serves the freshly-resolved annotation data, not whatever
     # (stale) value happened to sit on the dataframe's cache object.
@@ -3843,6 +3912,227 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     assert context is not None
     assert context["source_scope"][0]["semantic_filter_protocol"] == (
         "semantic-null-filters-v1"
+    )
+    assert context["source_scope"][0]["metadata_version"] == view.metadata_generation
+
+
+def _annotated_payload_fixture(
+    *, status: str = "success"
+) -> tuple[QueryContextProcessor, Any, MagicMock]:
+    """A processor, annotated query object, and a dataframe cache hit."""
+    from superset.common.query_object import QueryObject
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["col1"],
+        annotation_layers=[
+            {
+                "annotationType": "EVENT",
+                "sourceType": "NATIVE",
+                "name": "a",
+                "value": 1,
+            }
+        ],
+    )
+    cache = MagicMock()
+    cache.is_loaded = True
+    cache.applied_filter_columns = ["col1"]
+    cache.df = pd.DataFrame({"col1": [1, 2, 3]})
+    cache.query = ""
+    cache.status = status
+    cache.error_message = "dataframe failed" if status == QueryStatus.FAILED else None
+    cache.is_cached = True
+    cache.applied_template_filters = []
+    cache.rejected_filter_columns = []
+    cache.bq_memory_limited = False
+    cache.result_persisted = False
+    return processor, query_obj, cache
+
+
+def _run_annotated_payload(
+    processor: QueryContextProcessor,
+    query_obj: Any,
+    cache: MagicMock,
+    *,
+    force_cached: bool = False,
+) -> Any:
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as mock_cache_manager,
+        patch.object(query_obj, "validate", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="df-key"),
+        patch.object(processor, "annotation_cache_key", return_value="ann-key"),
+        patch.object(processor, "get_cache_timeout", return_value=3600),
+    ):
+        mock_cache_manager.get.return_value = cache
+        return processor.get_df_payload_result(query_obj, force_cached=force_cached)
+
+
+def test_get_df_payload_result_skips_annotations_when_dataframe_failed() -> None:
+    """A failed dataframe keeps its own error and never triggers the fetch."""
+    processor, query_obj, cache = _annotated_payload_fixture(status=QueryStatus.FAILED)
+    with patch.object(processor, "_get_annotation_data_cached") as mock_annotation:
+        result = _run_annotated_payload(processor, query_obj, cache)
+    mock_annotation.assert_not_called()
+    assert result.payload["annotation_data"] == {}
+    assert result.payload["error"] == "dataframe failed"
+
+
+def test_get_df_payload_result_force_cached_misses_without_annotation_entry() -> None:
+    """Through the real helper, ``force_cached`` with no annotation entry
+    raises ``CacheLoadError`` instead of running the annotation SQL."""
+    processor, query_obj, cache = _annotated_payload_fixture()
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cm,
+        patch.object(processor, "get_annotation_data") as mock_live,
+    ):
+        cm.data_cache.get.return_value = None
+        with pytest.raises(CacheLoadError):
+            _run_annotated_payload(processor, query_obj, cache, force_cached=True)
+    mock_live.assert_not_called()
+
+
+def test_get_df_payload_result_annotation_failure_marks_payload_failed() -> None:
+    """An annotation error on a good dataframe fails the payload."""
+    processor, query_obj, cache = _annotated_payload_fixture()
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cm,
+        patch.object(
+            processor,
+            "get_annotation_data",
+            side_effect=QueryObjectValidationError("annotation boom"),
+        ),
+    ):
+        cm.data_cache.get.return_value = None
+        result = _run_annotated_payload(processor, query_obj, cache)
+    assert cache.status == QueryStatus.FAILED
+    assert result.payload["error"] == "annotation boom"
+
+
+def test_get_df_payload_result_completeness_error_escapes_annotation_fetch() -> None:
+    """A semantic annotation's incomplete-result signal must propagate (as the
+    dataframe path does) so the async task is not reported successful."""
+    from superset.exceptions import SemanticResultCompletenessError
+
+    processor, query_obj, cache = _annotated_payload_fixture()
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cm,
+        patch.object(
+            processor,
+            "get_annotation_data",
+            side_effect=SemanticResultCompletenessError("unverified"),
+        ),
+    ):
+        cm.data_cache.get.return_value = None
+        with pytest.raises(SemanticResultCompletenessError):
+            _run_annotated_payload(processor, query_obj, cache)
+
+
+def test_get_df_payload_result_times_annotation_fetch_as_data_acquisition() -> None:
+    """Annotation work lands in ``data_acquisition_ns`` even on a dataframe
+    cache hit (which otherwise reports no acquisition time)."""
+    processor, query_obj, cache = _annotated_payload_fixture()
+
+    def slow_annotations(*_: Any, **__: Any) -> dict[str, Any]:
+        time.sleep(0.01)
+        return {}
+
+    with patch.object(
+        processor, "_get_annotation_data_cached", side_effect=slow_annotations
+    ):
+        result = _run_annotated_payload(processor, query_obj, cache)
+    assert result.timing.data_acquisition_ns is not None
+    assert result.timing.data_acquisition_ns >= 10_000_000
+
+
+@pytest.mark.parametrize("persisted", [True, False])
+def test_get_annotation_data_cached_marks_nonce_only_when_persisted(
+    processor: QueryContextProcessor, persisted: bool
+) -> None:
+    """The force-nonce marker write is driven by the cache write's result and
+    keyed on the annotation key."""
+    query_obj = MagicMock()
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cm,
+        patch(
+            "superset.common.query_context_processor.set_and_log_cache",
+            return_value=persisted,
+        ),
+        patch.object(processor, "get_annotation_data", return_value={"a": 1}),
+        patch.object(processor, "_mark_force_executed") as mock_mark,
+    ):
+        cm.data_cache.get.return_value = None
+        processor._get_annotation_data_cached(
+            query_obj=query_obj,
+            cache_key="ak",
+            force_query=True,
+            force_cached=False,
+            timeout=60,
+            datasource_uid="ds",
+        )
+    mock_mark.assert_called_once_with(query_obj, "ak", persisted)
+
+
+def test_get_annotation_data_cached_cache_read_error_falls_back(
+    processor: QueryContextProcessor,
+) -> None:
+    """A cache backend error on read degrades to a live fetch, but never when
+    ``force_cached`` forbids computing."""
+    query_obj = MagicMock()
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cm,
+        patch("superset.common.query_context_processor.set_and_log_cache"),
+        patch.object(
+            processor, "get_annotation_data", return_value={"live": 1}
+        ) as mock_live,
+    ):
+        cm.data_cache.get.side_effect = ConnectionError("cache down")
+        result = processor._get_annotation_data_cached(
+            query_obj=query_obj,
+            cache_key="ak",
+            force_query=False,
+            force_cached=False,
+            timeout=60,
+            datasource_uid="ds",
+        )
+        assert result == {"live": 1}
+        mock_live.reset_mock()
+        with pytest.raises(CacheLoadError):
+            processor._get_annotation_data_cached(
+                query_obj=query_obj,
+                cache_key="ak",
+                force_query=False,
+                force_cached=True,
+                timeout=60,
+                datasource_uid="ds",
+            )
+        mock_live.assert_not_called()
+
+
+def test_get_df_payload_keeps_dataset_validation_type() -> None:
+    """A SQL dataset's run-time validation failure keeps its type in the payload."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationMessage
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["missing"])
+    cache = MagicMock(
+        is_loaded=False,
+        df=pd.DataFrame(),
+        error_message=None,
+        bq_memory_limited=False,
     )
 
     with (

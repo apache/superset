@@ -373,6 +373,7 @@ class QueryContextProcessor:
             and query_obj.annotation_layers
             and cache.status != QueryStatus.FAILED
         ):
+            annotation_start_ns = time.perf_counter_ns()
             try:
                 annotation_data = self._get_annotation_data_cached(
                     query_obj=query_obj,
@@ -382,9 +383,17 @@ class QueryContextProcessor:
                     timeout=self.get_cache_timeout(),
                     datasource_uid=self._qc_datasource.uid,
                 )
+            except SemanticResultCompletenessError:
+                raise
             except QueryObjectValidationError as ex:
                 cache.error_message = str(ex)
                 cache.status = QueryStatus.FAILED
+            finally:
+                # Annotation work is part of data acquisition, summed with the
+                # dataframe time when both ran.
+                data_acquisition_ns = (data_acquisition_ns or 0) + max(
+                    0, time.perf_counter_ns() - annotation_start_ns
+                )
 
         payload_assembly_start_ns = time.perf_counter_ns()
         # the N-dimensional DataFrame has converted into flat DataFrame
@@ -621,10 +630,17 @@ class QueryContextProcessor:
                     access: Any = True
                 except SupersetSecurityException:
                     access = False
-                data_key: Any = [
-                    annotation_query_context.query_cache_key(query_object)
-                    for query_object in annotation_query_context.queries
-                ]
+                # A denied requester never reads or writes a cached payload,
+                # so skip deriving a data identity (which can render the
+                # dataset's Jinja) for a resource they cannot access.
+                data_key: Any = (
+                    [
+                        annotation_query_context.query_cache_key(query_object)
+                        for query_object in annotation_query_context.queries
+                    ]
+                    if access
+                    else None
+                )
                 annotation_datasource: Any = annotation_query_context.datasource
             else:
                 # Fall back to the RLS-clause identity when the chart has no
@@ -1169,9 +1185,14 @@ class QueryContextProcessor:
                 query_object.extras["time_grain_sqla"] = time_grain_sqla
 
         if time_range := overrides.get("time_range"):
-            from_dttm, to_dttm = get_since_until_from_time_range(time_range)
-
             for query_object in query_context.queries:
+                # Resolved per query, applying the saved query's own
+                # ``time_shift`` the way the query object factory does, so the
+                # override executes the same window a normal run of this range
+                # and shift would (and so shares its cache key legitimately).
+                from_dttm, to_dttm = get_since_until_from_time_range(
+                    time_range, query_object.time_shift, query_object.extras
+                )
                 query_object.from_dttm = from_dttm
                 query_object.to_dttm = to_dttm
                 # Keep the logical range alongside the resolved bounds:
