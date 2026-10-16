@@ -383,11 +383,14 @@ class TestTagsDAO(SupersetTestCase):
         db.session.commit()
 
     @pytest.mark.usefixtures("with_tagging_system_feature")
-    @pytest.mark.parametrize(
-        "object_type",
-        [ObjectType.chart, ObjectType.query],
-    )
-    def test_tagged_object_cleanup_on_object_delete(self, object_type):
+    def test_tagged_object_cleanup_on_chart_delete(self):
+        self._assert_tagged_object_cleanup_on_delete(ObjectType.chart)
+
+    @pytest.mark.usefixtures("with_tagging_system_feature")
+    def test_tagged_object_cleanup_on_saved_query_delete(self):
+        self._assert_tagged_object_cleanup_on_delete(ObjectType.query)
+
+    def _assert_tagged_object_cleanup_on_delete(self, object_type):
         """Deleting a tagged chart or saved query cleans up its tagged_object
         rows, guarding the delete listeners registered for those models."""
         obj = (
