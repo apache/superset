@@ -446,6 +446,30 @@ def test_get_virtual_table_metadata(mocker: MockerFixture) -> None:
     assert get_virtual_table_metadata(dataset) == [{"name": "one", "type": "INTEGER"}]
 
 
+def test_get_virtual_table_metadata_drops_reserved_template_params(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Chart execution never exposes ``removed_filters`` and the other names the
+    template processor reserves as template variables, and neither does the
+    access check. Column sync must render the same SQL, or a template that
+    branches on one of them would run a branch the check never saw.
+    """
+    mocker.patch(
+        "superset.connectors.sqla.utils.get_columns_description",
+        return_value=[{"name": "one", "type": "INTEGER"}],
+    )
+    dataset = mocker.MagicMock(sql="SELECT 1 AS one")
+    dataset.template_params_dict = {"removed_filters": [], "table": 1, "t": "x"}
+    dataset.database.db_engine_spec.engine = "postgresql"
+    process_template = dataset.get_template_processor().process_template
+    process_template.return_value = dataset.sql
+
+    get_virtual_table_metadata(dataset)
+
+    process_template.assert_called_once_with(dataset.sql, t="x")
+
+
 def test_get_virtual_table_metadata_mutating(mocker: MockerFixture) -> None:
     """
     Test the `get_virtual_table_metadata` function with mutating SQL.

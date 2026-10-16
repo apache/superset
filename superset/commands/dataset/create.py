@@ -47,7 +47,11 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.extensions import security_manager
-from superset.models.helpers import json_to_dict, template_params_for_access_check
+from superset.models.helpers import (
+    json_to_dict,
+    strip_reserved_template_params,
+    template_params_for_access_check,
+)
 from superset.sql.parse import process_jinja_sql, Table
 from superset.utils.decorators import on_error, transaction
 
@@ -121,7 +125,11 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                     template_params_raw: str | None = self._properties.get(
                         "template_params"
                     )
-                    template_params = json_to_dict(template_params_raw or "")
+                    # Render with the params chart execution exposes, so the
+                    # derived schema comes from the SQL the access check sees.
+                    template_params = strip_reserved_template_params(
+                        json_to_dict(template_params_raw or "")
+                    )
                     parse_result = process_jinja_sql(
                         sql,
                         database,
