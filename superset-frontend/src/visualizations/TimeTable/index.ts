@@ -21,8 +21,8 @@ import { ChartMetadata, ChartPlugin } from '@superset-ui/core';
 import { transformProps, controlPanel } from './config';
 import thumbnail from './images/thumbnail.png';
 import thumbnailDark from './images/thumbnail-dark.png';
-import example from './images/example.jpg';
-import exampleDark from './images/example-dark.jpg';
+import example from './images/custom_thumb_example.jpg';
+import exampleDark from './images/custom_thumb_example-dark.jpg';
 
 const metadata = new ChartMetadata({
   category: t('Table'),

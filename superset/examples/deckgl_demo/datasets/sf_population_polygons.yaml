@@ -66,6 +66,19 @@ columns:
   python_date_format: null
   type: VARCHAR
   verbose_name: null
+- advanced_data_type: null
+  column_name: geojson
+  description: Each zip code's boundary as a serialized GeoJSON Feature (derived
+    from `contour`), for the GeoJSON deck.gl layer.
+  expression: ''
+  extra: null
+  filterable: false
+  groupby: false
+  is_active: true
+  is_dttm: false
+  python_date_format: null
+  type: VARCHAR
+  verbose_name: null
 data_file: sf_population_polygons.parquet
 database_uuid: a2dc77af-e654-49bb-b321-40f6b559a1ee
 default_endpoint: null
