@@ -38,7 +38,16 @@ const mockToasts = {
   addSuccessToast: jest.fn(),
 };
 
-jest.mock('./utils');
+// Auto-mock the API helpers but keep the pure formatting/sorting helpers real,
+// since an auto-mocked sort would return undefined instead of the options.
+jest.mock('./utils', () => {
+  const actual = jest.requireActual('./utils');
+  return {
+    ...jest.createMockFromModule<typeof actual>('./utils'),
+    formatPermissionLabel: actual.formatPermissionLabel,
+    sortPermissionOptions: actual.sortPermissionOptions,
+  };
+});
 const mockUpdateRoleName = jest.mocked(updateRoleName);
 const mockUpdateRoleGroups = jest.mocked(updateRoleGroups);
 const mockUpdateRolePermissions = jest.mocked(updateRolePermissions);
@@ -288,6 +297,48 @@ describe('RoleListEditModal', () => {
       expect(mockToasts.addDangerToast).toHaveBeenCalledWith(
         'Some groups could not be resolved and are shown as IDs.',
       );
+    });
+  });
+
+  test('sorts selected permission tags naturally, including unresolved IDs', async () => {
+    const mockGet = SupersetClient.get as jest.Mock;
+    mockGet.mockImplementation(({ endpoint }) => {
+      if (endpoint?.includes(`/api/v1/security/roles/2/permissions/`)) {
+        // Resolve only id=10; ids 30 and 4 fall back to ID placeholders
+        return Promise.resolve({
+          json: {
+            result: [
+              {
+                id: 10,
+                permission_name: 'can_read',
+                view_menu_name: 'Dashboard',
+              },
+            ],
+          },
+        });
+      }
+      return Promise.resolve({ json: { count: 0, result: [] } });
+    });
+
+    render(
+      <RoleListEditModal
+        {...mockProps}
+        role={{
+          ...mockRole,
+          id: 2,
+          permission_ids: [10, 30, 4],
+          group_ids: [],
+        }}
+      />,
+    );
+
+    await waitFor(() => {
+      const tags = Array.from(
+        screen
+          .getByTestId('permissions-select')
+          .querySelectorAll('.ant-select-selection-item-content'),
+      ).map(tag => tag.textContent);
+      expect(tags).toEqual(['4', '30', 'can read Dashboard']);
     });
   });
 

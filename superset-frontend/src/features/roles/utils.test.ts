@@ -20,8 +20,10 @@ import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import {
   clearPermissionSearchCache,
+  comparePermissionOptions,
   fetchGroupOptions,
   fetchPermissionOptions,
+  sortPermissionOptions,
 } from './utils';
 
 const getMock = jest.spyOn(SupersetClient, 'get');
@@ -554,4 +556,62 @@ test('fetchPermissionOptions normalizes whitespace and case for cache keys', asy
   // " Dataset " (leading + trailing space) — same normalized key, cache hit
   await fetchPermissionOptions(' Dataset ', 0, 50, addDangerToast);
   expect(getMock).not.toHaveBeenCalled();
+});
+
+const datasourceOption = (n: number) => ({
+  value: n,
+  label: `datasource access [xxx].[yyy${n}](id:${n})`,
+});
+
+test('sortPermissionOptions orders embedded numbers naturally', () => {
+  const options = [111, 10, 2, 100, 1, 11, 20].map(datasourceOption);
+
+  expect(sortPermissionOptions(options).map(o => o.value)).toEqual([
+    1, 2, 10, 11, 20, 100, 111,
+  ]);
+});
+
+test('sortPermissionOptions does not mutate its input', () => {
+  const options = [10, 2, 1].map(datasourceOption);
+
+  sortPermissionOptions(options);
+
+  expect(options.map(o => o.value)).toEqual([10, 2, 1]);
+});
+
+test('comparePermissionOptions orders by label when no search is given', () => {
+  const canRead = { value: 1, label: 'can read Dashboard' };
+  const allDatasource = { value: 2, label: 'all datasource access' };
+
+  expect(comparePermissionOptions(canRead, allDatasource)).toBeGreaterThan(0);
+  expect(comparePermissionOptions(allDatasource, canRead)).toBeLessThan(0);
+});
+
+test('comparePermissionOptions ranks better search matches first', () => {
+  const prefixMatch = { value: 1, label: 'yyy table' };
+  const substringMatch = { value: 2, label: 'datasource access [yyy]' };
+
+  expect(
+    comparePermissionOptions(substringMatch, prefixMatch, 'yyy'),
+  ).toBeGreaterThan(0);
+});
+
+test('comparePermissionOptions orders equal search matches naturally', () => {
+  const options = [100, 10, 2, 1].map(datasourceOption);
+
+  const sorted = [...options].sort((a, b) =>
+    comparePermissionOptions(a, b, 'yyy'),
+  );
+
+  expect(sorted.map(o => o.value)).toEqual([1, 2, 10, 100]);
+});
+
+test('comparePermissionOptions breaks prefix ties on case-sensitive substring', () => {
+  // Both are case-insensitive prefix matches for "CAN", but only the second
+  // also contains "CAN" verbatim, so it ranks first (as rankedSearchCompare does).
+  const canRead = { value: 1, label: 'can read Dashboard' };
+  const canWrite = { value: 2, label: 'can write CANReport' };
+
+  expect(comparePermissionOptions(canRead, canWrite, 'CAN')).toBeGreaterThan(0);
+  expect(comparePermissionOptions(canWrite, canRead, 'CAN')).toBeLessThan(0);
 });
