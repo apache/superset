@@ -42,6 +42,7 @@ from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import DatasourceType
+from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView, deprecated, json_error_response
 from superset.views.datasource.schemas import (
     ExternalMetadataParams,
@@ -444,6 +445,13 @@ class Datasource(BaseSupersetView):
             datasource=dataset,
             dashboard_id=dashboard_id,
         )
+        # Drill to detail is available to embedded guests (see the guest branch
+        # above), and the samples payload carries the generated SQL under
+        # ``query``. Apply the same guest redaction as ``/api/v1/chart/data``
+        # (CVE-2025-55673, gated on "can view query on Dashboard" since #43151)
+        # so the SQL is not disclosed to a guest whose role lacks that
+        # permission.
+        redact_sensitive_query_fields([rv])
         return self.json_response({"result": rv})
 
 
