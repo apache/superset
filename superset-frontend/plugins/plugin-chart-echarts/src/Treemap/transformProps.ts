@@ -184,13 +184,16 @@ export default function transformProps(
         }),
       });
       const newPath = path.concat(name);
+      // Nested leaves are left without a color so that ECharts derives it
+      // from their parent's color using colorSaturation.
+      const hasOwnColor = !!treeNode.children?.length || path.length === 0;
       let item: TreemapSeriesNodeItemOption = {
         name,
         value,
         colorSaturation: COLOR_SATURATION,
         itemStyle: {
           borderColor: BORDER_COLOR,
-          color: colorFn(name, sliceId),
+          ...(hasOwnColor && { color: colorFn(name, sliceId) }),
           borderWidth: BORDER_WIDTH,
           gapWidth: GAP_WIDTH,
         },
