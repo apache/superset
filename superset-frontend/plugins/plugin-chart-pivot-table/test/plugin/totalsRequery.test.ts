@@ -1,0 +1,216 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+import { QueryFormMetric, QueryObject } from '@superset-ui/core';
+import buildQuery from '../../src/plugin/buildQuery';
+import controlPanel from '../../src/plugin/controlPanel';
+import buildGroupbyCombinations from '../../src/plugin/utilities';
+import {
+  MetricsLayoutEnum,
+  PivotTableQueryFormData,
+  ShowValuesAsEnum,
+} from '../../src/types';
+
+type GroupingSetsQuery = QueryObject & { grouping_sets: string[][] };
+
+// Non-additive metrics (AVG) make totals/subtotals database-computed rollup
+// levels, so which levels are queried must follow the Options toggles.
+const metrics = [
+  {
+    expressionType: 'SIMPLE',
+    aggregate: 'SUM',
+    column: { column_name: 'sales' },
+    label: 'sum_sales',
+  },
+  {
+    expressionType: 'SIMPLE',
+    aggregate: 'AVG',
+    column: { column_name: 'sales' },
+    label: 'avg_sales',
+  },
+] as QueryFormMetric[];
+
+const noOptions = {
+  groupbyRows: ['territory'],
+  groupbyColumns: ['quarter'],
+  metrics,
+  metricsLayout: MetricsLayoutEnum.ROWS,
+  transposePivot: false,
+  combineMetric: false,
+  rowTotals: false,
+  rowSubTotals: false,
+  colTotals: false,
+  colSubTotals: false,
+  datasource: '5__table',
+  viz_type: 'pivot_table_v2',
+} as unknown as PivotTableQueryFormData;
+
+function findControlConfig(name: string) {
+  const control = controlPanel.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(
+      item =>
+        item !== null &&
+        typeof item === 'object' &&
+        'name' in item &&
+        item.name === name,
+    );
+  if (!control || typeof control === 'string' || !('config' in control)) {
+    throw new Error(`Control ${name} is missing`);
+  }
+  return control.config;
+}
+
+// Totals and subtotals come from rollup levels fetched by the query. A
+// renderTrigger control re-renders the chart from the stored result without
+// querying, so its toggle can never add a level the stored result lacks.
+test.each(['rowTotals', 'rowSubTotals', 'colTotals', 'colSubTotals'])(
+  '%s is not a renderTrigger control, so toggling it re-queries',
+  name => {
+    expect(findControlConfig(name).renderTrigger).toBeFalsy();
+  },
+);
+
+// With metrics on rows, the renderer's row hierarchy is [metric, ...rowDims],
+// so the level with every row dimension collapsed is the per-metric group
+// subtotal, not only the bottom Total row.
+test('rowSubTotals alone requests the per-metric subtotal level (metrics on rows)', () => {
+  const levels = buildGroupbyCombinations({
+    ...noOptions,
+    rowSubTotals: true,
+  });
+  expect(levels).toContainEqual({ rows: [], columns: ['quarter'] });
+});
+
+// Mirror image for metrics on columns: the column hierarchy is
+// [metric, ...columnDims].
+test('colSubTotals alone requests the per-metric subtotal level (metrics on columns)', () => {
+  const levels = buildGroupbyCombinations({
+    ...noOptions,
+    metricsLayout: MetricsLayoutEnum.COLUMNS,
+    colSubTotals: true,
+  });
+  expect(levels).toContainEqual({ rows: ['territory'], columns: [] });
+});
+
+test('rowSubTotals alone changes the query, so it cannot share the no-options cache entry', () => {
+  const groupingSets = (formData: PivotTableQueryFormData) =>
+    (buildQuery(formData).queries[0] as GroupingSetsQuery).grouping_sets;
+
+  const withRowSubTotals = groupingSets({ ...noOptions, rowSubTotals: true });
+
+  expect(withRowSubTotals).not.toEqual(groupingSets(noOptions));
+  expect(withRowSubTotals).toContainEqual(['quarter']);
+});
+
+// The metric pseudo-dimension is drawn on the other axis for these, so the
+// subtotal toggle has no metric group to subtotal and adds no level.
+test('a subtotal toggle on the axis without the metrics requests no collapsed level', () => {
+  expect(
+    buildGroupbyCombinations({ ...noOptions, colSubTotals: true }),
+  ).toEqual(buildGroupbyCombinations(noOptions));
+  expect(
+    buildGroupbyCombinations({
+      ...noOptions,
+      metricsLayout: MetricsLayoutEnum.COLUMNS,
+      rowSubTotals: true,
+    }),
+  ).toEqual(buildGroupbyCombinations(noOptions));
+});
+
+// With combined metrics the metric is the innermost key, so no per-metric
+// Subtotal line exists. A percent mode forces its denominator level through
+// the combineMetric filter, which must not let the subtotal toggle's level
+// ride along with it.
+test.each([
+  [
+    MetricsLayoutEnum.ROWS,
+    ShowValuesAsEnum.PERCENT_OF_ROW,
+    'rowSubTotals',
+    false,
+  ],
+  [
+    MetricsLayoutEnum.ROWS,
+    ShowValuesAsEnum.PERCENT_OF_ROW,
+    'rowSubTotals',
+    true,
+  ],
+  [
+    MetricsLayoutEnum.COLUMNS,
+    ShowValuesAsEnum.PERCENT_OF_COLUMN,
+    'colSubTotals',
+    false,
+  ],
+  [
+    MetricsLayoutEnum.COLUMNS,
+    ShowValuesAsEnum.PERCENT_OF_COLUMN,
+    'colSubTotals',
+    true,
+  ],
+])(
+  'combined metrics (%s, %s) with only %s (transposed: %s) request no extra level',
+  (metricsLayout, showValuesAs, subtotalToggle, transposePivot) => {
+    const combined = {
+      ...noOptions,
+      combineMetric: true,
+      metricsLayout,
+      showValuesAs,
+      transposePivot,
+    };
+    expect(
+      buildGroupbyCombinations({ ...combined, [subtotalToggle]: true }),
+    ).toEqual(buildGroupbyCombinations(combined));
+  },
+);
+
+// With transposePivot the display axes are swapped: display rows are
+// `groupbyColumns` ('quarter') and display columns are `groupbyRows`
+// ('territory'). The metric axis follows metricsLayout in display coordinates,
+// so the collapsed level appears on that display axis only.
+const transposedLeaf = { rows: ['quarter'], columns: ['territory'] };
+const metricAxisSubtotalCases: [
+  MetricsLayoutEnum,
+  'rowSubTotals' | 'colSubTotals',
+  { rows: string[]; columns: string[] }[],
+][] = [
+  [
+    MetricsLayoutEnum.ROWS,
+    'rowSubTotals',
+    [{ rows: [], columns: ['territory'] }, transposedLeaf],
+  ],
+  [
+    MetricsLayoutEnum.COLUMNS,
+    'colSubTotals',
+    [{ rows: ['quarter'], columns: [] }, transposedLeaf],
+  ],
+  [MetricsLayoutEnum.COLUMNS, 'rowSubTotals', [transposedLeaf]],
+  [MetricsLayoutEnum.ROWS, 'colSubTotals', [transposedLeaf]],
+];
+
+test.each(metricAxisSubtotalCases)(
+  'transposed, non-combined metrics (%s) with only %s request the expected levels',
+  (metricsLayout, subtotalToggle, expectedLevels) => {
+    const transposed = { ...noOptions, metricsLayout, transposePivot: true };
+
+    expect(buildGroupbyCombinations(transposed)).toEqual([transposedLeaf]);
+    expect(
+      buildGroupbyCombinations({ ...transposed, [subtotalToggle]: true }),
+    ).toEqual(expectedLevels);
+  },
+);
