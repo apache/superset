@@ -426,7 +426,7 @@ def test_export_yields_dataset_files_for_display_controls():
         mock_charts_cls.return_value.run.return_value = iter([])
         results = list(ExportDashboardsCommand._export(mock_dashboard))
 
-    mock_datasets_cls.assert_called_once_with([dataset_id])
+    mock_datasets_cls.assert_called_once_with([dataset_id], include_deleted=True)
     mock_datasets_cmd.run.assert_called_once()
     filenames = [name for name, _ in results]
     assert "datasets/my_dataset.yaml" in filenames

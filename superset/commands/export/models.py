@@ -114,9 +114,10 @@ class ExportModelsCommand(BaseCommand):
                     seen.add(file_name)
 
     def validate(self) -> None:
-        self._models = self.dao.find_by_ids(
-            self.model_ids,
-            skip_visibility_filter=self.include_deleted,
+        self._models = (
+            self.dao.find_by_ids(self.model_ids, skip_visibility_filter=True)
+            if self.include_deleted
+            else self.dao.find_by_ids(self.model_ids)
         )
         if len(self._models) != len(self.model_ids):
             raise self.not_found()
