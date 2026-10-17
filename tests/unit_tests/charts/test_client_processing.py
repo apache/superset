@@ -2488,6 +2488,60 @@ def test_table_applies_currency_format() -> None:
     assert formatted["amount"].tolist() == ["$ 1,234.50"]
 
 
+def test_table_applies_time_format_alongside_number_format() -> None:
+    """
+    Table reports honor an explicit ``d3TimeFormat`` on a temporal column,
+    mirroring the Table plugin's first formatter branch, while still applying
+    number formats on the same call. Without the time branch the timestamp was
+    left raw even though the browser formats it.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ds": {
+                0: pd.Timestamp("2024-01-15 13:45:00"),
+                1: pd.Timestamp("2024-06-30 08:00:00"),
+            },
+            "SUM(num)": {0: 1234567.0, 1: 42.0},
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["SUM(num)"],
+        "column_config": {
+            "ds": {"d3TimeFormat": "%Y"},
+            "SUM(num)": {"d3NumberFormat": ",.2f"},
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ds"].tolist() == ["2024", "2024"]
+    assert formatted["SUM(num)"].tolist() == ["1,234,567.00", "42.00"]
+
+
+def test_table_leaves_adaptive_time_format_alone() -> None:
+    """
+    ``smart_date`` ("Adaptive formatting") is an alias the browser resolves to a
+    formatter, not a format string, so it is skipped rather than passed to
+    ``strftime``, which would print it as literal text in every cell.
+    """
+    df = pd.DataFrame.from_dict(
+        {
+            "ds": {
+                0: pd.Timestamp("2024-01-15 13:45:00"),
+                1: pd.Timestamp("2024-06-30 08:00:00"),
+            },
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "smart_date"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["ds"].tolist() == [
+        pd.Timestamp("2024-01-15 13:45:00"),
+        pd.Timestamp("2024-06-30 08:00:00"),
+    ]
+
+
 def test_table_applies_si_number_format() -> None:
     """
     Table reports honor d3 formats that Python's str.format cannot express.

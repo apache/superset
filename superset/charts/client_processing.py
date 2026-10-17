@@ -73,6 +73,11 @@ PERCENT_1_POINT = ",.1%"
 # The Excel equivalent, applied as a cell format so the value stays numeric.
 EXCEL_PERCENT_FORMAT = "0.0%"
 
+# "Adaptive formatting" in the time format controls, mirroring ``SMART_DATE_ID``
+# in ``superset-ui-core/time-format``. It is an alias the browser resolves to a
+# formatter that picks a representation per value, not a format string.
+SMART_DATE = "smart_date"
+
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -835,6 +840,19 @@ pivot_v2_aggfunc_map = {
 }
 
 
+def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> None:
+    """Format a temporal column in place with an explicit d3 time format.
+
+    Only the directives shared between d3-time-format and ``strftime``
+    (``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S`` and similar) are supported,
+    which covers the formats users configure in practice. Null values are left
+    as-is rather than rendered as the string ``"NaT"``.
+    """
+    df[column] = df[column].apply(
+        lambda value: value.strftime(d3_time_format) if pd.notna(value) else value
+    )
+
+
 def format_column(
     df: pd.DataFrame,
     column: Any,
@@ -1237,6 +1255,27 @@ def table(
     # left untouched, matching the browser.
     for column in df.columns:
         config = config_by_label.get(column) or {}
+
+        # Mirror the Table plugin's first formatter branch
+        # (``if (isTime || config.d3TimeFormat)`` in ``transformProps.ts``):
+        # an explicit per-column ``d3TimeFormat`` formats a temporal column and
+        # takes precedence over number formatting. Scoped to datetime columns
+        # with an explicit ``strftime``-style format; ``smart_date`` and any
+        # other alias is skipped so it is never rendered as literal text. The
+        # bare ``isTime`` fallback, ``tableTimestampFormat`` default,
+        # SMART_DATE granularity, and string temporal columns are left to a
+        # follow-up, since they need a full server-side d3-time-format port
+        # rather than ``strftime``.
+        time_format = config.get("d3TimeFormat")
+        if (
+            time_format
+            and time_format != SMART_DATE
+            and "%" in time_format
+            and pd.api.types.is_datetime64_any_dtype(df[column])
+        ):
+            format_time_column(df, column, time_format)
+            continue
+
         configured_currency = config.get("currencyFormat") or {}
         number_format = config.get("d3NumberFormat") or number_format_by_label.get(
             column
