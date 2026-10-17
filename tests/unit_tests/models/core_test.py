@@ -3931,3 +3931,56 @@ def test_a_rejected_fallback_credential_is_logged_for_admins(
         assert "embedded_svc" not in rendered
     else:
         assert rejections == []
+
+
+@pytest.mark.parametrize("guest", [True, False])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_rejected_fallback_credential_is_logged_on_the_raw_connection_path(
+    mocker: MockerFixture, guest: bool
+) -> None:
+    """
+    Chart data on a physical table connects through ``get_raw_connection``
+    (sc-127710). SQLAlchemy 2 doesn't dispatch ``handle_error`` for a failed
+    ``raw_connection()``, so that path must log the rejection itself, once.
+    """
+    mocker.patch("superset.models.core._ENGINE_CACHE", {})
+    mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite:////nonexistent/dir/embedded.db"),
+    )
+    if guest:
+        _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    warning = mocker.patch("superset.models.core.logger.warning")
+
+    with pytest.raises(Exception, match="unable to open database file"):
+        with _embedded_snowflake_database().get_raw_connection():
+            pass
+
+    rejections = [call for call in warning.call_args_list if "rejected" in call.args[0]]
+    if guest:
+        assert len(rejections) == 1
+        assert rejections[0].args[1] == "snowflake_db"
+        assert rejections[0].args[3] == "OperationalError"
+    else:
+        assert rejections == []
+
+
+def test_a_rejection_reported_by_two_paths_is_logged_once(
+    mocker: MockerFixture,
+) -> None:
+    """The engine event and the raw path can both see one failure; log it once."""
+    import sqlite3
+
+    from superset.models.core import _log_embedded_rejection
+
+    warning = mocker.patch("superset.models.core.logger.warning")
+    original = sqlite3.OperationalError("unable to open database file")
+    wrapped = sqlalchemy.exc.OperationalError("connect", {}, original)
+
+    _log_embedded_rejection(12, "snowflake_db", original, wrapped)
+    _log_embedded_rejection(12, "snowflake_db", original)
+    _log_embedded_rejection(12, "snowflake_db", wrapped)
+
+    warning.assert_called_once()
+    assert warning.call_args.args[3] == "OperationalError"

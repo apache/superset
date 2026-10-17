@@ -25,6 +25,7 @@ import builtins
 import logging
 import textwrap
 import threading
+import weakref
 from ast import literal_eval
 from contextlib import (
     AbstractContextManager,
@@ -122,6 +123,42 @@ T = TypeVar("T")
 # different kwargs naturally falls through to a fresh engine.
 _ENGINE_CACHE: dict[tuple[int, str, str], Engine] = {}
 _ENGINE_CACHE_LOCK = threading.Lock()
+
+# Engines that authenticate an embedded guest with the fallback credential. A failed
+# sign-in on them is logged for administrators (see
+# ``Database._log_rejected_embedded_credential``).
+_EMBEDDED_FALLBACK_ENGINES: weakref.WeakSet[Engine] = weakref.WeakSet()
+# Set on an exception once its rejection is logged, so a path that both dispatches
+# ``handle_error`` and catches the error itself logs it once.
+_EMBEDDED_REJECTION_LOGGED = "_superset_embedded_rejection_logged"
+
+
+def _log_embedded_rejection(
+    database_id: int | None,
+    database_name: str,
+    *exceptions: BaseException | None,
+) -> None:
+    """
+    Log one rejected embedded sign-in, however many paths report it.
+
+    Only the exception class is logged: the driver's message can carry the username.
+    """
+    raised = [ex for ex in exceptions if ex is not None]
+    if not raised or any(
+        getattr(ex, _EMBEDDED_REJECTION_LOGGED, False) for ex in raised
+    ):
+        return
+    for ex in raised:
+        setattr(ex, _EMBEDDED_REJECTION_LOGGED, True)
+    # Name the driver's own exception class whether or not SQLAlchemy wrapped it.
+    original = getattr(raised[0], "orig", None) or raised[0]
+    logger.warning(
+        "Embedded fallback credential rejected for database %s (id=%s): %s",
+        database_name,
+        database_id,
+        type(original).__name__,
+    )
+
 
 if TYPE_CHECKING:
     from superset_core.queries.types import AsyncQueryHandle, QueryOptions, QueryResult
@@ -898,17 +935,19 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         finds a wrong password, an expired token or a mismatched key. Only the
         exception class is logged: the driver's message can carry the username.
         """
+        # Captured now: a cached engine can outlive this instance's session.
         database_id, database_name = self.id, self.database_name
+        _EMBEDDED_FALLBACK_ENGINES.add(engine)
 
         def log_rejection(context: ExceptionContext) -> None:
             # No connection means the failure happened while connecting, not in
             # a statement.
             if context.connection is None:
-                logger.warning(
-                    "Embedded fallback credential rejected for database %s (id=%s): %s",
-                    database_name,
+                _log_embedded_rejection(
                     database_id,
-                    type(context.original_exception).__name__,
+                    database_name,
+                    context.original_exception,
+                    context.sqlalchemy_exception,
                 )
 
         sqla.event.listen(engine, "handle_error", log_rejection)
@@ -948,7 +987,17 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
                 source=source,
             ) as engine:
                 with check_for_oauth2(self):
-                    with closing(engine.raw_connection()) as conn:
+                    try:
+                        raw_connection = engine.raw_connection()
+                    except Exception as ex:
+                        # SQLAlchemy 2 doesn't dispatch ``handle_error`` for a
+                        # failed ``raw_connection()``, which is how chart data on
+                        # a physical table connects, so log a rejected embedded
+                        # sign-in here too (sc-127710).
+                        if engine in _EMBEDDED_FALLBACK_ENGINES:
+                            _log_embedded_rejection(self.id, self.database_name, ex)
+                        raise
+                    with closing(raw_connection) as conn:
                         yield conn
 
         with self._open_with_oauth2_retry(open_connection) as conn:
