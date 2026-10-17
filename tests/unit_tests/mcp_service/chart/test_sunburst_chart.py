@@ -70,6 +70,7 @@ from superset.mcp_service.chart.schemas import (
     ColumnRef,
     CountryMapChartConfig,
     DeckScatterChartConfig,
+    FunnelChartConfig,
     GanttChartConfig,
     GanttSortByConfig,
     GaugeChartConfig,
@@ -396,6 +397,7 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
         BubbleChartConfig(
             entity=ColumnRef(name="region"), x=metric, y=metric, size=metric
         ),
+        FunnelChartConfig(dimension=ColumnRef(name="stage"), metric=metric),
         *[
             XYChartConfig(
                 kind=kind,
