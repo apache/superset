@@ -276,12 +276,15 @@ each optionally over TLS. Redis Cluster is not supported by either side.
 | `sentinels`                      | `REDIS_SENTINELS`          | Enables Sentinel mode. JSON: `[{"host": "s1", "port": 26379}]`; env: `s1:26379,s2:26379` |
 | `sentinelMaster`                 | `REDIS_SENTINEL_MASTER`    | Master name; required when `sentinels` is set                         |
 | `sentinelPassword`               | `REDIS_SENTINEL_PASSWORD`  | Password for the sentinel nodes themselves                            |
+| `sentinelSsl`                    | `REDIS_SENTINEL_SSL`       | TLS to the sentinel nodes (default `false`); `ssl` secures the master |
 
 With no `sslCaCerts`, the server certificate is validated against the public CA
 roots bundled with Node, so a certificate from a public CA works with just
-`ssl: true`. In Sentinel mode TLS applies to the resolved master; the sentinel
-nodes are contacted in plaintext, matching the Python backend. The server follows
-failovers by re-resolving the master through the sentinels.
+`ssl: true`. In Sentinel mode `ssl` secures the connection to the resolved master
+and `sentinelSsl` the connections to the sentinel nodes; set both for a
+TLS-only deployment. The same CA, client certificate and verification settings
+apply to both. The server follows failovers by re-resolving the master through
+the sentinels.
 
 ## StatsD monitoring
 
