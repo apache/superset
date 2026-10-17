@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-15 06:36+0000\n"
+"POT-Creation-Date: 2026-10-17 20:00+0530\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: Jan Šmejkal <jan.smejkal@orgis.cz>\n"
 "Language: cs\n"
@@ -1153,6 +1153,12 @@ msgstr "Bude vytvořen nový graf."
 msgid "A new dashboard will be created."
 msgstr "Bude vytvořena nová nástěnka."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1601,12 +1607,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Do virtuální sady dat byl přidán %s nový sloupec"
-msgstr[1] "Do virtuální sady dat byly přidány %s nové sloupce"
-msgstr[2] "Do virtuální sady dat bylo přidáno %s nových sloupců"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Do sady dat byl přidán %s nový sloupec"
+msgstr[1] "Do sady dat byly přidány %s nové sloupce"
+msgstr[2] "Do sady dat bylo přidáno %s nových sloupců"
 
 #, python-format
 msgid "Added a %s"
@@ -2903,6 +2909,9 @@ msgstr "Zpět"
 msgid "Back to all"
 msgstr "Zpět na vše"
 
+msgid "Back to sign in"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3829,6 +3838,9 @@ msgstr "Podívejte se na tuto nástěnku: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Zaškrtněte pro vynucení stejné výšky datových oddílů"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3856,6 +3868,9 @@ msgstr "Vyberte oddělovač"
 
 msgid "Choose a metric for right axis"
 msgstr "Vyberte metriku pro pravou osu"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Vyberte formát čísla"
@@ -7143,6 +7158,11 @@ msgstr "Zadejte minimální a maximální hodnoty pro filtr rozsahu"
 msgid "Enter report name"
 msgstr "Zadejte název reportu"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 msgid "Enter the group's description"
 msgstr "Zadejte popis skupiny"
 
@@ -8257,6 +8277,12 @@ msgstr "Cizí klíč"
 msgid "Forest Green"
 msgstr "Lesní zelená"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "Data formuláře nenalezena v mezipaměti, vracím se k metadatům grafu."
 
@@ -8424,7 +8450,7 @@ msgstr "Sloupec geometrie"
 msgid "Get the last date by the date unit."
 msgstr "Získat poslední datum podle jednotky data."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Získat zadané datum pro svátek"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8717,6 +8743,15 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Pokud je zadána metrika, řazení bude provedeno na základě hodnoty metriky"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -8734,6 +8769,11 @@ msgid "If table already exists"
 msgstr "Pokud tabulka již existuje"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -9513,6 +9553,9 @@ msgstr "Typ rozložení stromu"
 
 msgid "Least recently modified"
 msgstr "Nejméně nedávno změněné"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -10470,12 +10513,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Změněno %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Upraven %s sloupec ve virtuální sadě dat"
-msgstr[1] "Upraveny %s sloupce ve virtuální sadě dat"
-msgstr[2] "Upraveno %s sloupců ve virtuální sadě dat"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Upraven %s sloupec v sadě dat"
+msgstr[1] "Upraveny %s sloupce v sadě dat"
+msgstr[2] "Upraveno %s sloupců v sadě dat"
 
 msgid "Modified by"
 msgstr "Změnil(a)"
@@ -11363,6 +11406,12 @@ msgstr "Podporován je pouze výchozí katalog pro toto připojení."
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -12697,12 +12746,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Odstraněn %s sloupec z virtuální sady dat"
-msgstr[1] "Odstraněny %s sloupce z virtuální sady dat"
-msgstr[2] "Odstraněno %s sloupců z virtuální sady dat"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Odstraněn %s sloupec ze sady dat"
+msgstr[1] "Odstraněny %s sloupce ze sady dat"
+msgstr[2] "Odstraněno %s sloupců ze sady dat"
 
 #, python-format
 msgid "Removed a %s"
@@ -12892,6 +12941,12 @@ msgstr "Síla odpuzování mezi uzly"
 msgid "Request Access"
 msgstr "Požádat o přístup"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -12975,6 +13030,10 @@ msgstr "Resetovat stav"
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Opravdu chcete resetovat na výchozí složky?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 #, fuzzy
 msgid "Resize"
@@ -14309,6 +14368,12 @@ msgstr "Sémantické pohledy"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Vrstva anotací"
@@ -14408,6 +14473,9 @@ msgstr "Odeslat jako PNG"
 
 msgid "Send as text"
 msgstr "Odeslat jako text"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -14917,6 +14985,9 @@ msgstr "Přihlásit se"
 msgid "Sign in with"
 msgstr "Přihlásit se pomocí"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "Úroveň významnosti"
 
@@ -15087,6 +15158,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "Něco se pokazilo."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -16593,6 +16667,9 @@ msgstr[0] "Parametr %(parameters)s ve vašem dotazu není definován."
 msgstr[1] "Následující parametry ve vašem dotazu nejsou definovány: %(parameters)s."
 msgstr[2] "Následující parametry ve vašem dotazu nejsou definovány: %(parameters)s."
 
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Zadané heslo pro uživatelské jméno „%(username)s“ je nesprávné."
@@ -17840,6 +17917,10 @@ msgstr ""
 "dynamicky při úpravě velikosti a pozic widgetů pomocí přetahování v "
 "zobrazení nástěnky"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -17904,6 +17985,12 @@ msgstr "Tato stránka je určena k vložení do iframe, ale zdá se, že tomu ta
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Toto heslo je příliš běžné; zvolte prosím méně předvídatelné."
+
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -18310,6 +18397,9 @@ msgstr[2] ""
 
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
+
+msgid "Too many requests. Please wait and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
@@ -20451,6 +20541,11 @@ msgstr ""
 "a požádejte o úpravy nebo přístup k úpravám."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -20461,6 +20556,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -20468,6 +20568,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -20586,6 +20691,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"

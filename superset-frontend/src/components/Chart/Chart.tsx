@@ -436,6 +436,14 @@ function Chart({
   // Suppress spinner during auto-refresh to avoid visual flicker
   const showSpinner = isLoading && !suppressLoadingSpinner;
 
+  if (datasource?.metadata_error) {
+    return (
+      <ErrorContainer height={height}>
+        {renderErrorMessage({ message: datasource.metadata_error })}
+      </ErrorContainer>
+    );
+  }
+
   if (chartStatus === 'failed') {
     return (
       <ErrorContainer height={height}>

@@ -58,8 +58,8 @@ class SemanticView(ABC):
       :attr:`selection_identity_version`.
     - **Grain variants.** Several dimension variants may share one ``name``, at
       most one per ``(name, grain)``. See
-      :class:`~superset_core.semantic_layers.types.Grains` for the intended
-      preference, which not every host lookup applies yet, and for why grains
+      :class:`~superset_core.semantic_layers.types.Grains` for the selection
+      preference and for why grains
       must not be ordered by name.
     - **NULL in filters.** ``None`` is never a comparison operand; splitting
       nullness into ``IS_NULL``/``IS_NOT_NULL`` is the host's responsibility.
@@ -72,8 +72,9 @@ class SemanticView(ABC):
     Uniqueness works at two levels. In the **catalog**, dimensions are unique
     per ``(name, grain)`` -- so several grain variants of one name are expected
     -- while metric names are unique on their own and must not collide with a
-    dimension name. These are provider obligations the host does not currently
-    check. In a **query**, at most one variant per name is selected, so a result
+    dimension name. The host rejects conflicting dimension variants, but metric
+    name uniqueness remains a provider obligation. In a **query**, at most one
+    variant per name is selected, so a result
     carries one column per selected member name.
     """
 
@@ -146,9 +147,11 @@ class SemanticView(ABC):
         never return a partial result instead.
         Do not drop ``filters`` and retry when a filtered request is incomplete.
 
-        ``SemanticQueryRejectedError`` is not part of this method's contract: the
-        host treats a search filter as best-effort and retries without it, so a
-        rejection would not reach the user.
+        Raise SemanticQueryRejectedError for deliberate input rejection, such as a
+        search filter the dimension cannot apply; the host returns it to the user
+        as a client error with host-owned guidance. Leave operational and
+        unexpected failures unclassified; the host reports them as server errors.
+        The host never retries a failed request without its ``filters``.
         """
 
     @abstractmethod

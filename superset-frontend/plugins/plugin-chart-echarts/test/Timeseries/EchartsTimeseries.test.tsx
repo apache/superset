@@ -523,6 +523,7 @@ test('emits TEMPORAL_RANGE cross-filter from time axis label click on day bucket
           val: '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
         },
       ],
+      time_range: '2021-01-01T00:00:00 : 2021-01-02T00:00:00',
     },
     filterState: {
       label: ['2021-01-01T00:00:00 : 2021-01-02T00:00:00'],
@@ -569,6 +570,11 @@ test('emits upper-exclusive TEMPORAL_RANGE from time point click on month bucket
       val: '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
     },
   ]);
+  // Target charts' own TEMPORAL_RANGE filters are rewritten from time_range on
+  // the backend, so the clicked bucket must be sent as time_range as well.
+  expect(setDataMask.mock.calls[0][0].extraFormData.time_range).toBe(
+    '2021-01-01T00:00:00 : 2021-02-01T00:00:00',
+  );
 });
 
 test('uses resolved time grain for temporal point-click cross-filter', () => {

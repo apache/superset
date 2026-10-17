@@ -295,6 +295,19 @@ playwright-run() {
   return $status
 }
 
+playwright-run-semantic() {
+  local APP_ROOT=$1
+
+  cd "$GITHUB_WORKSPACE"
+
+  if [ "${SUPERSET_CONFIG:-}" != "tests.integration_tests.superset_test_config_semantic" ]; then
+    echo "::error::SUPERSET_CONFIG must be tests.integration_tests.superset_test_config_semantic for this step."
+    return 1
+  fi
+
+  playwright-run "$APP_ROOT" semantic-view/
+}
+
 playwright-run-gaq() {
   # Global Async Queries needs more than a feature flag: submissions are handed
   # to Celery, so without a worker consuming the queue the API returns 202 and
