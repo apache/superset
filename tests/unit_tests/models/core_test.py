@@ -54,6 +54,60 @@ from superset.sql.parse import LimitMethod, Table
 from superset.utils import json
 from tests.unit_tests.conftest import with_feature_flags
 
+
+@pytest.mark.parametrize(
+    "flag,enabled,engine,threshold,expected",
+    [
+        (True, True, "bigquery", 1024, 1024),
+        (True, True, "bigquery", 0, 0),
+        (False, True, "bigquery", 1024, None),
+        (True, False, "bigquery", 1024, None),
+        (True, True, "postgresql", 1024, None),
+        (True, True, "bigquery", -1, None),
+        (True, True, "bigquery", True, None),
+        (True, True, "bigquery", None, None),
+    ],
+)
+@pytest.mark.parametrize("warnings_enabled", [None, False, True])
+def test_cost_warning_policy(
+    mocker: MockerFixture,
+    request: pytest.FixtureRequest,
+    flag: bool,
+    enabled: bool,
+    engine: str,
+    threshold: int | None,
+    expected: int | None,
+    warnings_enabled: bool | None,
+) -> None:
+    """Only an opted-in BigQuery connection exposes an actionable threshold."""
+    request.addfinalizer(Database.get_db_engine_spec.cache_clear)
+    mocker.patch("superset.models.core.is_feature_enabled", return_value=flag)
+    mocker.patch.object(
+        Database,
+        "allows_cost_estimate",
+        new_callable=mocker.PropertyMock,
+        return_value=enabled,
+    )
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri=f"{engine}://",
+        extra=json.dumps(
+            {
+                "cost_estimate_enabled": enabled,
+                "cost_estimate_warning_threshold_bytes": threshold,
+                **(
+                    {"cost_estimate_warning_enabled": warnings_enabled}
+                    if warnings_enabled is not None
+                    else {}
+                ),
+            }
+        ),
+    )
+    assert database.cost_estimate_warning_threshold_bytes == (
+        expected if warnings_enabled is not False else None
+    )
+
+
 # sample config for OAuth2 tests
 oauth2_client_info = {
     "oauth2_client_info": {

@@ -25,6 +25,49 @@ from pytest_mock import MockerFixture
 
 from superset.utils import json
 
+
+@pytest.mark.parametrize(
+    "threshold", [-1, 1.5, "100", True, None, 2**53, float("inf"), float("nan")]
+)
+def test_cost_warning_threshold_rejects_invalid_values(threshold: object) -> None:
+    """Database create/update and import both reject invalid byte thresholds."""
+    from superset.databases.schemas import extra_validator, ImportV1DatabaseExtraSchema
+
+    extra = {"cost_estimate_warning_threshold_bytes": threshold}
+    with pytest.raises(ValidationError):
+        extra_validator(json.dumps(extra))
+    with pytest.raises(ValidationError):
+        ImportV1DatabaseExtraSchema().load(extra)
+
+
+@pytest.mark.parametrize("enabled", ["true", 1, None, 0])
+def test_cost_warning_enabled_rejects_non_boolean_values(enabled: object) -> None:
+    """Warning activation uses a JSON boolean, not truthy strings or numbers."""
+    from superset.databases.schemas import extra_validator
+
+    with pytest.raises(ValidationError):
+        extra_validator(json.dumps({"cost_estimate_warning_enabled": enabled}))
+
+
+@pytest.mark.parametrize("threshold", [0, 100, 2**53 - 1])
+def test_cost_warning_threshold_accepts_integer_bytes(threshold: int) -> None:
+    """Zero and exact non-negative integer byte thresholds are valid."""
+    from superset.databases.schemas import extra_validator, ImportV1DatabaseExtraSchema
+
+    extra = {"cost_estimate_warning_threshold_bytes": threshold}
+    extra_validator(json.dumps(extra))
+    assert ImportV1DatabaseExtraSchema().load(extra) == extra
+
+
+def test_cost_warning_enable_flag_imports_as_boolean() -> None:
+    """Database imports accept the optional boolean warning toggle."""
+    from superset.databases.schemas import ImportV1DatabaseExtraSchema
+
+    assert ImportV1DatabaseExtraSchema().load(
+        {"cost_estimate_warning_enabled": False}
+    ) == {"cost_estimate_warning_enabled": False}
+
+
 if TYPE_CHECKING:
     from superset.databases.schemas import DatabaseParametersSchemaMixin
 

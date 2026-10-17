@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from flask import current_app as app
 from flask_babel import gettext as __
@@ -52,6 +52,7 @@ class EstimateQueryCostType(TypedDict):
     template_params: dict[str, Any]
     catalog: str | None
     schema: str | None
+    include_raw: NotRequired[bool]
 
 
 class QueryEstimationCommand(BaseCommand):
@@ -61,6 +62,7 @@ class QueryEstimationCommand(BaseCommand):
     _schema: str
     _database: Database
     _catalog: str | None
+    _include_raw: bool
 
     def __init__(self, params: EstimateQueryCostType) -> None:
         self._database_id = params["database_id"]
@@ -68,6 +70,7 @@ class QueryEstimationCommand(BaseCommand):
         self._template_params = params.get("template_params", {})
         self._schema = params.get("schema") or ""
         self._catalog = params.get("catalog")
+        self._include_raw = params.get("include_raw", False)
 
     def validate(self) -> None:
         # Load the database through the DAO so ``DatabaseFilter`` scopes
@@ -166,7 +169,7 @@ class QueryEstimationCommand(BaseCommand):
 
     def run(
         self,
-    ) -> list[dict[str, Any]]:
+    ) -> list[dict[str, Any]] | dict[str, Any]:
         self.validate()
 
         sql = self._sql
@@ -190,6 +193,11 @@ class QueryEstimationCommand(BaseCommand):
         # probe disallowed functions/tables, bypass the DML guard, or confirm
         # the existence of rows hidden by row-level security.
         sql = self._apply_sql_security(sql)
+
+        if self._include_raw:
+            script = SQLScript(sql, engine=self._database.db_engine_spec.engine)
+            if len(script.statements) != 1 or not script.statements[0].is_select():
+                return {"estimate": [], "bytes_processed": [None]}
 
         timeout = app.config["SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT"]
         timeout_msg = f"The estimation exceeded the {timeout} seconds timeout."
@@ -245,5 +253,13 @@ class QueryEstimationCommand(BaseCommand):
         query_cost_formatter = query_cost_formatters.get(
             spec.engine, spec.query_cost_formatter
         )
-        cost = query_cost_formatter(cost)
+        raw_bytes = [row.get("bytes_processed") for row in cost]
+        cost = query_cost_formatter(
+            [
+                {key: value for key, value in row.items() if key != "bytes_processed"}
+                for row in cost
+            ]
+        )
+        if self._include_raw:
+            return {"estimate": cost, "bytes_processed": raw_bytes}
         return cost

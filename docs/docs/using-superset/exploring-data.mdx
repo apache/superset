@@ -443,6 +443,31 @@ to be drawn as zero across the entire day rather than only around the hours that
 Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboard. Go to the
 tutorial dashboard to see the four charts side by side and compare the different outputs.
 
+### BigQuery pre-run cost warnings
+
+Operators can enable `ESTIMATE_QUERY_COST` and turn on **Enable query cost
+estimation** in a BigQuery connection's SQL Lab settings. Check **Enable pre-run
+cost warnings**, then enter an amount and select **Bytes**, **MB**, or **GB**.
+The amount is stored as integer bytes in `cost_estimate_warning_threshold_bytes`.
+Unchecking the warning checkbox disables warnings and preserves the threshold;
+clearing the amount disables warnings until you enter another threshold.
+The checkbox is stored as `cost_estimate_warning_enabled` and requires query cost
+estimation to be enabled.
+
+The SQL editor's Run button and keyboard shortcuts request a dry-run estimate
+before executing. A positive estimate at or below the threshold proceeds
+automatically; a larger estimate asks for confirmation. Failed, missing, zero-byte,
+and unsupported-statement estimates also ask for confirmation. Changing the query
+or its parameters while the estimate is pending discards the response; click Run
+again to estimate the changed query.
+
+This advisory check supports single BigQuery SELECT statements, including selected
+text. It does not cover CTAS/CVAS, query-history reruns, dashboards, scheduled
+queries, or direct execution API calls. Bytes processed are an estimate, not an
+exact bill or an enforced spending limit. Estimation and execution use separate
+requests, so dynamic templates, SQL transformations, and changes in warehouse
+data can affect the actual work. Warehouse billing limits remain applicable.
+
 ### SQL Lab Tips
 
 **Stopping queries**: An accepted Stop shows “Query was stopped.” even if engine cancellation fails. A finished query refreshes its completed outcome without a stop-failure toast. A Stop rejected after the target commit, while result preparation is still running, shows the “Failed to stop query.” toast. See [Stopping a SQL Lab query](#stopping-a-sql-lab-query) for transaction guarantees and metadata-database limitations.

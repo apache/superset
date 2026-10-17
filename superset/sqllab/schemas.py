@@ -50,6 +50,7 @@ class EstimateQueryCostSchema(Schema):
     schema = fields.String(
         allow_none=True, metadata={"description": "The database schema"}
     )
+    include_raw = fields.Boolean(load_default=False)
 
 
 class FormatQueryPayloadSchema(Schema):
@@ -175,6 +176,7 @@ class SQLLabBootstrapDatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_multi_catalog = fields.Boolean()
     allows_cost_estimate = fields.Boolean(allow_none=True)
+    cost_estimate_warning_threshold_bytes = fields.Integer(allow_none=True)
     allows_subquery = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean()
     disable_data_preview = fields.Boolean()

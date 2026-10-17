@@ -339,6 +339,34 @@ export function dbReducer(
       };
     }
     case ActionType.ExtraInputChange:
+      if (action.payload.name === 'cost_estimate_warning_enabled') {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            cost_estimate_warning_enabled: action.payload.checked,
+            cost_estimate_warning_threshold_bytes:
+              extraJson.cost_estimate_warning_threshold_bytes ??
+              (action.payload.checked ? 100000000 : undefined),
+          }),
+        };
+      }
+      if (action.payload.name === 'cost_estimate_warning_threshold_bytes') {
+        return {
+          ...trimmedState,
+          extra: JSON.stringify({
+            ...extraJson,
+            cost_estimate_warning_enabled:
+              action.payload.value === ''
+                ? false
+                : (extraJson.cost_estimate_warning_enabled ?? true),
+            cost_estimate_warning_threshold_bytes:
+              action.payload.value === ''
+                ? undefined
+                : Number(action.payload.value),
+          }),
+        };
+      }
       if (
         action.payload.name === 'schema_cache_timeout' ||
         action.payload.name === 'table_cache_timeout'

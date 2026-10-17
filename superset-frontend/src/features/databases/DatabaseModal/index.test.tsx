@@ -2121,6 +2121,43 @@ describe('dbReducer', () => {
     });
   });
 
+  test.each(['0', '1025', ''])(
+    'cost warning threshold %s is saved as integer bytes or removed',
+    value => {
+      const currentState = dbReducer(databaseFixture, {
+        type: ActionType.ExtraInputChange,
+        payload: { name: 'cost_estimate_warning_threshold_bytes', value },
+      });
+      expect(JSON.parse(currentState.extra || '{}')).toEqual(
+        value === ''
+          ? { cost_estimate_warning_enabled: false }
+          : {
+              cost_estimate_warning_enabled: true,
+              cost_estimate_warning_threshold_bytes: Number(value),
+            },
+      );
+    },
+  );
+
+  test('cost warnings can be disabled without losing the threshold', () => {
+    const enabled = dbReducer(databaseFixture, {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'cost_estimate_warning_enabled', checked: true },
+    });
+    expect(JSON.parse(enabled.extra || '{}')).toEqual({
+      cost_estimate_warning_enabled: true,
+      cost_estimate_warning_threshold_bytes: 100000000,
+    });
+    const disabled = dbReducer(enabled, {
+      type: ActionType.ExtraInputChange,
+      payload: { name: 'cost_estimate_warning_enabled', checked: false },
+    });
+    expect(JSON.parse(disabled.extra || '{}')).toEqual({
+      cost_estimate_warning_enabled: false,
+      cost_estimate_warning_threshold_bytes: 100000000,
+    });
+  });
+
   test('it will set state to payload from encrypted extra input change', () => {
     const action: DBReducerActionType = {
       type: ActionType.EncryptedExtraInputChange,

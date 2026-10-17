@@ -31,6 +31,8 @@ import {
   Collapse,
   InfoTooltip,
   CollapseLabelInModal,
+  Flex,
+  Select,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
@@ -41,6 +43,9 @@ import {
   no_margin_bottom,
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
+
+const costWarningUnits = { Bytes: 1, MB: 1000000, GB: 1000000000 };
+type CostWarningUnit = keyof typeof costWarningUnits;
 
 const ExtraOptions = ({
   db,
@@ -100,6 +105,29 @@ const ExtraOptions = ({
     }
     return value;
   });
+
+  const warningBytes = extraJson.cost_estimate_warning_threshold_bytes;
+  const warningsEnabled =
+    extraJson.cost_estimate_warning_enabled ?? warningBytes !== undefined;
+  const [warningUnit, setWarningUnit] = useState<CostWarningUnit>(() => {
+    if (warningBytes === undefined) return 'MB';
+    if (warningBytes >= 1e9 && warningBytes % 1e9 === 0) return 'GB';
+    if (warningBytes >= 1e6 && warningBytes % 1e6 === 0) return 'MB';
+    return 'Bytes';
+  });
+  const warningAmount =
+    warningBytes === undefined
+      ? ''
+      : warningBytes / costWarningUnits[warningUnit];
+  const updateWarningBytes = (value: number | '') => {
+    onExtraInputChange({
+      target: {
+        name: 'cost_estimate_warning_threshold_bytes',
+        type: 'number',
+        value: value === '' ? '' : String(Math.round(value)),
+      },
+    } as ChangeEvent<HTMLInputElement>);
+  };
 
   // JSON validation hooks for the three editors
   const secureExtraAnnotations = useJsonValidation(db?.masked_encrypted_extra, {
@@ -288,6 +316,95 @@ const ExtraOptions = ({
                       />
                     </div>
                   </StyledInputContainer>
+                  {(db?.backend === 'bigquery' ||
+                    db?.engine === 'bigquery') && (
+                    <StyledInputContainer css={no_margin_bottom}>
+                      <div className="input-container">
+                        <Checkbox
+                          id="cost_estimate_warning_enabled"
+                          name="cost_estimate_warning_enabled"
+                          checked={warningsEnabled}
+                          disabled={!extraJson.cost_estimate_enabled}
+                          onChange={onExtraInputChange}
+                        >
+                          {t('Enable pre-run cost warnings')}
+                        </Checkbox>
+                      </div>
+                      {warningsEnabled && (
+                        <Flex
+                          vertical
+                          gap="small"
+                          css={{
+                            marginInlineStart: theme.sizeUnit * 8,
+                            marginTop: theme.sizeUnit * 2,
+                          }}
+                        >
+                          <label htmlFor="cost_estimate_warning_threshold_bytes">
+                            {t('Warn when estimated data processed exceeds')}
+                          </label>
+                          <Flex gap="small">
+                            <Input
+                              id="cost_estimate_warning_threshold_bytes"
+                              type="number"
+                              min={0}
+                              max={
+                                Number.MAX_SAFE_INTEGER /
+                                costWarningUnits[warningUnit]
+                              }
+                              step={warningUnit === 'Bytes' ? 1 : 'any'}
+                              value={warningAmount}
+                              disabled={!extraJson.cost_estimate_enabled}
+                              onChange={event =>
+                                updateWarningBytes(
+                                  event.target.value === ''
+                                    ? ''
+                                    : Number(event.target.value) *
+                                        costWarningUnits[warningUnit],
+                                )
+                              }
+                            />
+                            <Select
+                              css={{
+                                width: theme.sizeUnit * 24,
+                                flexShrink: 0,
+                              }}
+                              ariaLabel={t('Threshold size unit')}
+                              allowClear={false}
+                              value={warningUnit}
+                              disabled={!extraJson.cost_estimate_enabled}
+                              options={Object.keys(costWarningUnits).map(
+                                value => ({
+                                  value,
+                                  label: value === 'Bytes' ? t('Bytes') : value,
+                                }),
+                              )}
+                              onChange={unit => {
+                                if (
+                                  typeof unit !== 'string' ||
+                                  !(unit in costWarningUnits)
+                                ) {
+                                  return;
+                                }
+                                const selectedUnit = unit as CostWarningUnit;
+                                setWarningUnit(selectedUnit);
+                                if (warningAmount !== '') {
+                                  updateWarningBytes(
+                                    warningAmount *
+                                      costWarningUnits[selectedUnit],
+                                  );
+                                }
+                              }}
+                            />
+                          </Flex>
+                          <small>
+                            {t(
+                              'The analyst can still choose to run the query. 1 MB = 1,000,000 bytes; 1 GB = 1,000,000,000 bytes.',
+                            )}
+                          </small>
+                        </Flex>
+                      )}
+                    </StyledInputContainer>
+                  )}
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
                       <Checkbox

@@ -21,6 +21,7 @@ import {
   fireEvent,
   render,
   screen,
+  selectOption,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { t } from '@apache-superset/core/translation';
@@ -118,6 +119,87 @@ describe('ExtraOptions Component', () => {
     const checkbox = screen.getByLabelText(t('Enable query cost estimation'));
     fireEvent.click(checkbox);
     expect(onExtraInputChange).toHaveBeenCalled();
+  });
+
+  test.each([false, true])(
+    'pre-run warnings require estimation (%s)',
+    estimationEnabled => {
+      renderComponent({
+        ...defaultDb,
+        backend: 'bigquery',
+        extra: JSON.stringify({ cost_estimate_enabled: estimationEnabled }),
+      });
+      fireEvent.click(screen.getByText('SQL Lab'));
+      const checkbox = screen.getByRole('checkbox', {
+        name: 'Enable pre-run cost warnings',
+      });
+      expect(checkbox).not.toBeChecked();
+      if (estimationEnabled) {
+        expect(checkbox).toBeEnabled();
+        fireEvent.click(checkbox);
+        expect(onExtraInputChange).toHaveBeenCalledWith(
+          expect.objectContaining({
+            target: expect.objectContaining({
+              name: 'cost_estimate_warning_enabled',
+              checked: true,
+            }),
+          }),
+        );
+      } else {
+        expect(checkbox).toBeDisabled();
+      }
+      expect(
+        screen.queryByLabelText('Warn when estimated data processed exceeds'),
+      ).not.toBeInTheDocument();
+    },
+  );
+
+  test('warning amount and size selector convert MB and GB to bytes', async () => {
+    renderComponent({
+      ...defaultDb,
+      backend: 'bigquery',
+      extra: JSON.stringify({
+        cost_estimate_enabled: true,
+        cost_estimate_warning_enabled: true,
+        cost_estimate_warning_threshold_bytes: 100000000,
+      }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    expect(
+      screen.getByRole('checkbox', { name: 'Enable pre-run cost warnings' }),
+    ).toBeChecked();
+    const amount = screen.getByLabelText(
+      'Warn when estimated data processed exceeds',
+    );
+    expect(amount).toHaveValue(100);
+    fireEvent.change(amount, { target: { value: '250' } });
+    expect(onExtraInputChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({
+          name: 'cost_estimate_warning_threshold_bytes',
+          value: '250000000',
+        }),
+      }),
+    );
+    await selectOption('GB', 'Threshold size unit');
+    expect(onExtraInputChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({ value: '100000000000' }),
+      }),
+    );
+    fireEvent.change(amount, { target: { value: '0.5' } });
+    expect(onExtraInputChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({ value: '500000000' }),
+      }),
+    );
+    await selectOption('Bytes', 'Threshold size unit');
+    fireEvent.change(amount, { target: { value: '123' } });
+    expect(onExtraInputChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        target: expect.objectContaining({ value: '123' }),
+      }),
+    );
   });
 
   test('calls onExtraEditorChange when metadata_params json editor changes', async () => {
