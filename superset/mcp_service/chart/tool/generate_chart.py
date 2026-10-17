@@ -138,7 +138,8 @@ async def generate_chart(  # noqa: C901
       The two ID spaces are unrelated. Use saved metrics and named dimensions;
       ad-hoc aggregation and SQL metrics are not supported on semantic views.
     - MUST include chart_type in config (one of: 'xy', 'table', 'pie', 'bullet',
-      'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'pivot_table', 'mixed_timeseries',
+      'sunburst', 'gauge', 'treemap_v2', 'bubble_v2', 'heatmap_v2', 'pivot_table',
+      'mixed_timeseries',
       'handlebars', 'big_number', 'histogram', 'box_plot', 'waterfall',
       'gantt', 'country_map', 'world_map', 'deck_scatter', plus host-gated
       types returned by get_chart_type_schema such as 'interactive_pivot')
@@ -166,6 +167,7 @@ async def generate_chart(  # noqa: C901
     - "gauge" / "dial" / "speedometer" -> chart_type='gauge'
     - "treemap" / "hierarchy" -> chart_type='treemap_v2'
     - "bubble" / "bubble chart" -> chart_type='bubble_v2'
+    - "heatmap" / "density grid" -> chart_type='heatmap_v2'
     - "custom HTML template" -> chart_type='handlebars'
     - "histogram" / "distribution" -> chart_type='histogram'
     - "box plot" / "box and whisker" -> chart_type='box_plot'
