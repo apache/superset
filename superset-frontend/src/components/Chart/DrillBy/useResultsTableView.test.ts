@@ -104,3 +104,43 @@ test('Displays results for 2 queries', async () => {
   });
   expect(screen.getByText('boy')).toBeInTheDocument();
 });
+
+const MOCK_CHART_DATA_RESULT_WITH_ROWCOUNTS = [
+  { ...MOCK_CHART_DATA_RESULT[0], rowcount: 4, sql_rowcount: 57 },
+  { ...MOCK_CHART_DATA_RESULT[1], rowcount: 2, sql_rowcount: 42 },
+];
+
+test('Uses rowcount instead of sql_rowcount for 1 query', () => {
+  const { result } = renderHook(() =>
+    useResultsTableView(
+      MOCK_CHART_DATA_RESULT_WITH_ROWCOUNTS.slice(0, 1),
+      '1__table',
+      true,
+    ),
+  );
+  render(result.current, { useRedux: true });
+
+  expect(screen.getByText('4 rows')).toBeInTheDocument();
+  expect(screen.queryByText('57 rows')).not.toBeInTheDocument();
+});
+
+test('Uses rowcount instead of sql_rowcount for each of multiple queries', async () => {
+  const { result } = renderHook(() =>
+    useResultsTableView(
+      MOCK_CHART_DATA_RESULT_WITH_ROWCOUNTS,
+      '1__table',
+      true,
+    ),
+  );
+  render(result.current, { useRedux: true });
+
+  expect(screen.getByText('4 rows')).toBeInTheDocument();
+  expect(screen.queryByText('57 rows')).not.toBeInTheDocument();
+
+  userEvent.click(screen.getByText('Results 2'));
+
+  await waitFor(() => {
+    expect(screen.getByText('2 rows')).toBeInTheDocument();
+  });
+  expect(screen.queryByText('42 rows')).not.toBeInTheDocument();
+});
