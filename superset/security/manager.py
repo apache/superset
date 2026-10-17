@@ -123,7 +123,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.models.sql_lab import Query
+    from superset.models.sql_lab import Query, SavedQuery
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 logger = logging.getLogger(__name__)
@@ -4681,6 +4681,74 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
                 .values(perm=new_perm)
             )
+
+    def saved_query_before_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SavedQuery",
+    ) -> None:
+        """
+        Keep a saved query's dependent charts' denormalized permission
+        columns in sync when its database, catalog, or schema changes.
+
+        ``SavedQuery.perm``/``catalog_perm``/``schema_perm`` are computed
+        properties, not persisted columns (unlike ``SqlaTable`` and
+        ``SemanticView``, which each get a PVM-rename dance in
+        ``dataset_before_update``/``semantic_view_before_update``), so there
+        is no FAB ViewMenu here to rename -- saved queries never get a
+        ``datasource_access`` PVM of their own. But ``Slice``'s
+        ``before_insert``/``before_update`` listener (``set_related_perm``)
+        copies those computed strings onto the chart at save time, and
+        nothing re-copies them if the saved query moves afterwards: a chart
+        would otherwise keep matching stale schema/catalog grants
+        indefinitely. This is the dependent-chart half of
+        ``semantic_view_before_update``, without the PVM-rename half.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.sql_lab import SavedQuery
+
+        sq_table = SavedQuery.__table__  # pylint: disable=no-member
+        current = connection.execute(
+            sq_table.select().where(sq_table.c.id == target.id)
+        ).one()
+
+        if (
+            current.db_id == target.db_id
+            and current.catalog == target.catalog
+            and current.schema == target.schema
+        ):
+            return
+
+        if target.database is None:
+            return
+
+        new_perm = f"[{target.database.database_name}].[{target.name}](id:{target.id})"
+        new_catalog_perm = self.get_catalog_perm(
+            target.database.database_name, target.catalog
+        )
+        new_schema_perm = self.get_schema_perm(
+            target.database.database_name,
+            target.catalog or target.database.get_default_catalog(),
+            target.schema,
+        )
+
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id == target.id,
+            )
+            .values(
+                perm=new_perm,
+                catalog_perm=new_catalog_perm,
+                schema_perm=new_schema_perm,
+            )
+        )
 
     def semantic_view_after_delete(
         self,
