@@ -278,6 +278,9 @@ class LimitMethod(enum.Enum):
     FORCE_LIMIT = enum.auto()
     WRAP_SQL = enum.auto()
     FETCH_MANY = enum.auto()
+    # Wrap the query and filter on Oracle's `ROWNUM`, for releases before 12c,
+    # which have no `FETCH FIRST`.
+    WRAP_ROWNUM = enum.auto()
 
 
 class CTASMethod(enum.Enum):
@@ -1024,6 +1027,89 @@ def _comment_re_for(dialect: Dialects | None) -> re.Pattern[str]:
         ),
         re.DOTALL | re.VERBOSE,
     )
+
+
+# Oracle 11g and older cap identifiers at 30 bytes.
+ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH = 30
+
+
+def _oracle_output_identifier(projection: exp.Expression) -> exp.Identifier | None:
+    """
+    Return the identifier naming a projected column, if it has one.
+    """
+    if isinstance(projection, exp.Alias):
+        identifier = projection.args.get("alias")
+    elif isinstance(projection, exp.Column):
+        identifier = projection.this
+    else:
+        return None
+    return identifier if isinstance(identifier, exp.Identifier) else None
+
+
+def _oracle_name_key(identifier: exp.Identifier) -> str:
+    """
+    Return the name Oracle compares, since unquoted names are case-insensitive.
+    """
+    return identifier.name if identifier.quoted else identifier.name.upper()
+
+
+def _unique_oracle_alias(identifier: exp.Identifier, taken: set[str]) -> exp.Identifier:
+    """
+    Return a `_2`, `_3`, ... variant of the identifier that isn't taken yet.
+
+    The limit is in bytes, so a multibyte name is cut on a character boundary.
+    """
+    suffix = 2
+    while True:
+        tail = f"_{suffix}"
+        budget = ORACLE_LEGACY_MAX_IDENTIFIER_LENGTH - len(tail)
+        stem = identifier.name.encode()[:budget].decode(errors="ignore")
+        alias = exp.to_identifier(stem + tail, quoted=identifier.quoted)
+        if _oracle_name_key(alias) not in taken:
+            return alias
+        suffix += 1
+
+
+def _deduplicate_oracle_output_names(query: exp.Expression) -> None:
+    """
+    Rename repeated output columns so the query can be wrapped on Oracle.
+
+    Before 12c the row limit wraps the query in `SELECT * FROM (<query>) WHERE
+    ROWNUM <= n`, and Oracle 11g rejects that wrapper when the query returns two
+    columns with the same name, as in `SELECT a.id, b.id FROM a JOIN b ...`, with
+    "ORA-00918: column ambiguously defined". The second and later copies get a
+    `_2`, `_3`, ... suffix instead. A set operation takes its column names from
+    its leftmost query, so that is the one renamed, and parentheses around the
+    query are looked through.
+
+    Two shapes are left as they are and still fail with ORA-00918 once wrapped:
+    qualified stars such as `a.*, b.*` or `a.*, b.id`, whose names aren't known
+    without the schema (a bare `*` over a join works), and a repeated expression
+    without an alias, such as `SELECT 1 + 1, 1 + 1`, which Oracle names after its
+    text. Neither ran before 12c without this rewrite either, since `FETCH FIRST`
+    fails there, and listing the columns with aliases avoids both.
+    """
+    while isinstance(query, (exp.SetOperation, exp.Subquery)):
+        query = query.this
+    if not isinstance(query, exp.Select):
+        return
+
+    identifiers = [_oracle_output_identifier(p) for p in query.expressions]
+    taken = {_oracle_name_key(identifier) for identifier in identifiers if identifier}
+    seen: set[str] = set()
+    for projection, identifier in zip(query.expressions, identifiers, strict=True):
+        if identifier is None:
+            continue
+        if _oracle_name_key(identifier) not in seen:
+            seen.add(_oracle_name_key(identifier))
+            continue
+
+        alias = _unique_oracle_alias(identifier, taken)
+        taken.add(_oracle_name_key(alias))
+        if isinstance(projection, exp.Alias):
+            projection.set("alias", alias)
+        else:
+            projection.replace(exp.alias_(projection.copy(), alias))
 
 
 class SQLStatement(BaseSQLStatement[exp.Expression]):
@@ -2134,7 +2220,55 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             if isinstance(literal, exp.Literal) and literal.is_int:
                 return int(literal.name)
 
-        return None
+        return self._get_rownum_limit()
+
+    def _get_rownum_limit(self) -> int | None:
+        """
+        Return the row cap of a top-level Oracle `ROWNUM` filter, if any.
+
+        Oracle releases before 12c have no `FETCH FIRST`, so a `ROWNUM <= n`
+        condition in the outer `WHERE` is how a query caps its rows there. It is
+        also the shape `set_limit_value()` produces with `WRAP_ROWNUM`. Only
+        conditions that are `AND`-ed into the filter count: under an `OR` the
+        comparison no longer bounds the result.
+        """
+        if self._dialect != Dialects.ORACLE or not isinstance(self._parsed, exp.Select):
+            return None
+
+        where = self._parsed.args.get("where")
+        if where is None:
+            return None
+
+        condition = where.this.unnest()
+        conditions = (
+            condition.flatten() if isinstance(condition, exp.And) else [condition]
+        )
+        caps = []
+        for predicate in conditions:
+            predicate = predicate.unnest()
+            if isinstance(predicate, (exp.LTE, exp.LT)):
+                rownum, bound = predicate.this, predicate.expression
+            elif isinstance(predicate, (exp.GTE, exp.GT)):
+                bound, rownum = predicate.this, predicate.expression
+            else:
+                continue
+
+            rownum = rownum.unnest()
+            bound = bound.unnest()
+            if (
+                isinstance(rownum, exp.Column)
+                and not rownum.table
+                # A quoted "rownum" is a column of that name, not the pseudocolumn.
+                and not rownum.this.quoted
+                and rownum.name.upper() == "ROWNUM"
+                and isinstance(bound, exp.Literal)
+                and bound.is_int
+            ):
+                # `ROWNUM < n` keeps one row fewer than `ROWNUM <= n`.
+                strict = isinstance(predicate, (exp.LT, exp.GT))
+                caps.append(max(int(bound.name) - strict, 0))
+
+        return min(caps, default=None)
 
     def cap_limit_value(
         self,
@@ -2194,6 +2328,36 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
         # special-case so it holds for every non-query statement, including ones
         # whose generators may learn to render a `limit` arg in a later sqlglot.
         if not isinstance(self._parsed, exp.Query):
+            return
+
+        # Oracle only gained `FETCH FIRST` in 12c, and that is how sqlglot
+        # renders every Oracle limit, so on 10g and 11g a limited query fails
+        # with "ORA-00933: SQL command not properly ended". There, cap the rows
+        # by filtering the original query on `ROWNUM` from outside. `ROWNUM` is
+        # assigned after the inner `ORDER BY` runs, so the first `n` rows are
+        # still the top `n`. SQLAlchemy uses the same rewrite for pre-12c
+        # servers. The wrapper rejects duplicate output column names (ORA-00918)
+        # on 11g and 23ai alike, so they are renamed first, and later releases
+        # keep `FETCH FIRST`, which accepts them.
+        if method == LimitMethod.WRAP_ROWNUM:
+            inner = self._parsed.copy()
+            # Keep CTEs at statement level rather than inside the derived table.
+            cte = inner.args.pop("with_", None)
+            _deduplicate_oracle_output_names(inner)
+            wrapper = exp.Select(
+                expressions=[exp.Star()],
+                from_=exp.From(this=exp.Subquery(this=inner)),
+                where=exp.Where(
+                    this=exp.LTE(
+                        this=exp.column("ROWNUM"),
+                        expression=exp.Literal.number(limit),
+                    )
+                ),
+            )
+            if cte:
+                wrapper.set("with_", cte)
+
+            self._parsed = wrapper
             return
 
         # A ClickHouse `LIMIT ... BY` occupies the very `limit`/`offset` slot that
