@@ -3135,3 +3135,38 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
         "semantic_filter_protocol": "semantic-null-filters-v1",
         "source_versions": {"7": view.metadata_generation},
     }
+
+
+def test_get_df_payload_keeps_dataset_validation_type() -> None:
+    """A SQL dataset's run-time validation failure keeps its type in the payload."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationMessage
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["missing"])
+    cache = MagicMock(
+        is_loaded=False,
+        df=pd.DataFrame(),
+        error_message=None,
+        bq_memory_limited=False,
+    )
+
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as cache_manager,
+        patch.object(query_obj, "validate", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=3600),
+    ):
+        cache_manager.get.return_value = cache
+        payload = processor.get_df_payload(query_obj)
+
+    assert isinstance(payload["error"], QueryObjectValidationMessage)
+    assert payload["error"] == "Columns missing in dataset: ['missing']"
+    cache.set_query_result.assert_not_called()
