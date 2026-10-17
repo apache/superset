@@ -224,9 +224,77 @@ const groupedRowsWithColTotals = {
   queriesData: groupedRowsQueriesData,
 };
 
+const groupedRowsWithColumnDimData = [
+  { country: 'France', city: 'Paris', quarter: 'Q1', 'SUM(sales)': 1000 },
+  { country: 'Germany', city: 'Berlin', quarter: 'Q1', 'SUM(sales)': 2000 },
+  { country: 'Spain', city: 'Barcelona', quarter: 'Q2', 'SUM(sales)': 1200 },
+  { country: 'Spain', city: 'Madrid', quarter: 'Q1', 'SUM(sales)': 1500 },
+];
+
+const groupedRowsWithColumnDimQueriesData = [
+  {
+    ...basicQueryResult,
+    colnames: ['country', 'city', 'quarter', 'SUM(sales)'],
+    coltypes: [
+      GenericDataType.String,
+      GenericDataType.String,
+      GenericDataType.String,
+      GenericDataType.Numeric,
+    ],
+    data: groupedRowsWithColumnDimData,
+  },
+];
+
+/**
+ * Two row dimensions AND a column dimension, so the thead has both a
+ * `pvtCornerLabel` column-attribute-name cell and a `pvtAxisLabel`
+ * row-header-row cell -- exercising the `canFreezeRowLabels` non-sticky
+ * fallback on both selector groups instead of leaving the `pvtCornerLabel`
+ * group vacuously empty (there is no column dimension to produce it) the way
+ * `groupedRowsWithoutColTotals` does.
+ */
+const groupedRowsWithColumnDim = {
+  ...new ChartProps({
+    ...basicChartProps,
+    formData: {
+      ...basicFormData,
+      groupbyRows: ['country', 'city'],
+      groupbyColumns: ['quarter'],
+      colTotals: false,
+      rowTotals: false,
+      rowSubTotals: false,
+      colSubTotals: false,
+    },
+  }),
+  queriesData: groupedRowsWithColumnDimQueriesData,
+};
+
+/**
+ * Column dimensions only (no row dimensions): the thead has no row-header
+ * row, so the last header row is a column-attribute row whose leading
+ * cell is the column attribute name, not a corner cell.
+ */
+const columnsOnly = {
+  ...new ChartProps({
+    ...basicChartProps,
+    formData: {
+      ...basicFormData,
+      groupbyRows: [],
+      groupbyColumns: ['city'],
+      colTotals: false,
+      rowTotals: false,
+      rowSubTotals: false,
+      colSubTotals: false,
+    },
+  }),
+  queriesData: basicQueriesData,
+};
+
 export default {
   withColTotals,
   withoutColTotals,
   groupedRowsWithoutColTotals,
   groupedRowsWithColTotals,
+  groupedRowsWithColumnDim,
+  columnsOnly,
 };

@@ -28,10 +28,7 @@ import {
 import { logging } from '@apache-superset/core/utils';
 import { useEffect, useState } from 'react';
 import { Dataset } from 'src/components/Chart/types';
-import {
-  cachedSupersetGet,
-  supersetGetCache,
-} from 'src/utils/cachedSupersetGet';
+import { cachedSupersetGet } from 'src/utils/cachedSupersetGet';
 import {
   fetchSemanticViewStructure,
   semanticViewDimensionsToColumns,
@@ -140,7 +137,6 @@ export const useDatasetDrillInfo = (
         if (!bestEffort) {
           logging.error('Failed to load dataset: ', error);
         }
-        supersetGetCache.delete(endpoint);
         throw error;
       }
     };

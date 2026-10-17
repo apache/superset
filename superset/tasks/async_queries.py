@@ -25,13 +25,14 @@ from flask import current_app
 from flask_appbuilder.security.sqla.models import User
 from superset_core.tasks.types import TaskOptions, TaskScope
 
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_serialization import (
     load_serialized_query,
     serialize_query,
     SerializedQuery,
 )
 from superset.constants import CacheRegion
-from superset.exceptions import SupersetException
+from superset.exceptions import SemanticResultCompletenessError, SupersetException
 from superset.extensions import (
     security_manager,
 )
@@ -52,6 +53,7 @@ from superset.utils.core import override_user
 if TYPE_CHECKING:
     from superset_core.tasks.models import Task as CoreTask
 
+    from superset.common.chart_data_timing import QueryAcquisitionResult
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
     from superset.models.tasks import Task
@@ -272,6 +274,7 @@ def execute_chart_query(
     user_id: int | None = None,
     guest_token: "GuestToken | None" = None,
     requires_totals: bool = False,
+    is_totals_prerequisite: bool = False,
 ) -> None:
     """Execute a single chart-data query and cache it under its query_cache_key.
 
@@ -280,6 +283,8 @@ def execute_chart_query(
     the existing per-query execution/caching path so a re-request reads the same
     DATA-cache entry. The query runs under ``_capture_query_cancellation`` so an
     abort/timeout can cancel it on engines that support query cancellation.
+    Failed totals prerequisites must fail before advertising a cache key; ordinary
+    tasks retain synchronous readback for structured errors.
     """
     from superset.charts.data.form_data import set_query_context_form_data
 
@@ -315,8 +320,23 @@ def execute_chart_query(
         if requires_totals:
             _inject_contribution_totals(query_obj, _get_dependency_cache_key())
         # Executes on cache miss and writes CacheRegion.DATA under query_cache_key.
-        with _capture_query_cancellation(query_context):
-            result = query_context.get_df_payload_result(query_obj)
+        try:
+            with _capture_query_cancellation(query_context):
+                result: QueryAcquisitionResult = query_context.get_df_payload_result(
+                    query_obj
+                )
+        except SemanticResultCompletenessError as error:
+            # Task details remain subscriber-authorized. Publish only a closed
+            # reason code so clients never need to display raw worker errors.
+            get_context().update_task(
+                payload={"semantic_result_error": error.reason}, immediate=True
+            )
+            raise
+        if (
+            is_totals_prerequisite
+            and result.payload.get("status") == QueryStatus.FAILED
+        ):
+            raise SupersetException(result.payload["error"])
         if cache_key := result.payload.get(CACHE_KEY_PAYLOAD_KEY):
             # Write synchronously: a dependent contribution query reads this
             # cache key via get_dependency_payloads once the DAG gate releases,
@@ -421,13 +441,21 @@ def submit_chart_data_query_tasks(
         index: int,
         depends_on: "list[CoreTask | UUID | str] | None" = None,
     ) -> "Task":
+        is_totals_prerequisite: bool = index == totals_idx and bool(needs_totals)
+        # Task dedup ignores arguments; keep the two failure policies distinct.
+        task_key: str | None = (
+            f"totals:{query_cache_keys[index]}"
+            if is_totals_prerequisite and query_cache_keys[index] is not None
+            else query_cache_keys[index]
+        )
         return execute_chart_query.schedule(
             serialized_queries[index],
             user_id,
             guest_token,
             _needs_prerequisite_totals(index),
+            **({"is_totals_prerequisite": True} if is_totals_prerequisite else {}),
             options=TaskOptions(
-                task_key=query_cache_keys[index],
+                task_key=task_key,
                 task_name=_task_name(index),
                 depends_on=depends_on,
                 # Abort the query after this many seconds; for cancellable

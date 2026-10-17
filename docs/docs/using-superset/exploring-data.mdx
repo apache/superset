@@ -24,6 +24,59 @@ The following information about each flight is given:
 - Information about the origin and destination.
 - The distance between the origin and destination, in kilometers (km).
 
+### Stopping a SQL Lab query
+
+SQL Lab records Stop before attempting engine cancellation. Once recorded, the
+Stop API returns HTTP 200, the UI shows the query as stopped, and an async query
+handle's `cancel()` returns `True`. Cancellation-related failures, later worker
+timeouts, and failures to save cancellation metadata do not replace that outcome.
+Repeated Stop requests preserve the original stop time and do not retry engine
+cancellation.
+
+Engine cancellation is best-effort: if the engine is unreachable, provides no
+cancellation handle, or rejects cancellation, its statement may run to completion,
+but SQL Lab discards its results. The UI still shows “Query was stopped.”, not a
+stop-failure toast. Stopping cannot undo changes the engine commits during
+execution, including autocommit mutations, implicit-commit DDL, or explicit SQL
+commits.
+
+With PostgreSQL or MySQL metadata databases, Stop and the worker's final target
+transaction commit are serialized using a query-row lock. If Stop wins, the
+worker does not commit its transactional changes. If the worker wins, Stop is
+rejected with HTTP 422 (`cancel()` returns `False`), even while SQL Lab is still
+preparing the results. The response contains the recorded query, which can still
+be running at that point. A query that already finished likewise keeps its
+success, failure, or timeout outcome. SQL Lab refreshes a finished query's outcome
+without a stop-failure toast. If the target commit wins while the query is still
+running, SQL Lab shows “Failed to stop query.” instead: the changes have committed,
+but result preparation has not finished.
+
+SQLite metadata databases do not support this row lock: a Stop accepted between
+the worker's final stop check and its target commit can still leave transactional
+changes committed. Target and metadata commits cannot be atomic across databases;
+if recording the target-committed marker fails after the target commit, changes
+can also persist without that marker. A stopped state is therefore not a general
+promise that database changes were rolled back.
+
+### Semantic Table time grains
+
+For a Table chart backed by a semantic view, Time Grain applies when grouping by
+a temporal dimension. Removing the last temporal dimension leaves the saved
+choice intact, but the frontend omits a recognized dormant grain from aggregate
+requests whose selected columns are known to be non-temporal (including no
+grouping columns). Adding the temporal dimension again reuses the saved choice.
+Unknown columns or grain values are not silently normalized. Ordinary dataset
+charts and raw-record queries are unchanged.
+
+This applies to requests rebuilt by the updated frontend in Explore and
+dashboards; it does not rewrite saved charts. Direct API requests and saved
+chart-data GET paths that bypass rebuilding remain subject to strict validation,
+so old stored query contexts can still fail. Updated frontend assets are required.
+Dashboards reuse each chart's saved `temporal_columns_lookup` rather than
+recomputing it. A grouped chart saved before this change may lack the
+non-temporal column metadata needed to omit a dormant grain, so its dashboard
+requests can keep sending that grain until the chart is re-saved in Explore.
+
 ### Enabling Data Upload Functionality
 
 You may need to enable the functionality to upload a CSV or Excel file to your database. The following section
@@ -94,6 +147,13 @@ chart requires access to its datasource; overwriting an existing chart also
 requires chart edit permission. SQL Lab queries must first be saved as datasets
 before they can be used as persistent chart datasources.
 
+For a semantic view, Pivot Table hides **Series limit** because it has no series
+columns to limit. Existing Pivot Table charts with a saved Series limit still
+run without applying that limit. Programmatic semantic-view queries with a
+positive `series_limit` and no series columns run without a series limit.
+Timeseries queries with metrics and at least one `columns` value infer series
+columns from `columns` and keep the limit.
+
 To save the visualization, click on **Save** in the top left of the screen. In the following modal,
 
 - Select the **Save as**
@@ -101,6 +161,10 @@ To save the visualization, click on **Save** in the top left of the screen. In t
   **Charts** screen, accessible in the top menu).
 - Select **Add To Dashboard** and enter
   Tutorial Dashboard. Finally, select **Save & Go To Dashboard**.
+
+For an existing chart, chart editors (including extra editors and administrators)
+with Chart write permission can edit its title in Explore and save the change.
+Externally managed charts and version previews keep the title read-only.
 
 <img src={useBaseUrl('/img/tutorial/save_tutorial_table.png')} />
 
@@ -220,6 +284,9 @@ the chart; drag it to any other point to re-index all series against that new ba
 re-running the query.
 
 Once you’re done, publish the chart in your Tutorial Dashboard.
+
+Graph charts display SQL `NULL` categories as `<NULL>` and the literal string `<NULL>` as
+`"<NULL>"`, with independently selectable legend entries.
 
 ### Markup
 
@@ -377,6 +444,8 @@ Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboar
 tutorial dashboard to see the four charts side by side and compare the different outputs.
 
 ### SQL Lab Tips
+
+**Stopping queries**: An accepted Stop shows “Query was stopped.” even if engine cancellation fails. A finished query refreshes its completed outcome without a stop-failure toast. A Stop rejected after the target commit, while result preparation is still running, shows the “Failed to stop query.” toast. See [Stopping a SQL Lab query](#stopping-a-sql-lab-query) for transaction guarantees and metadata-database limitations.
 
 **Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.
 

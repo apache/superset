@@ -39,6 +39,20 @@ export const StyledControlFormItem = styled(ControlFormItem)`
   `}
 `;
 
+/**
+ * Copy configs before assignment so ZoomConfigControl never mutates the
+ * incoming value, then recompute derived zoom-level sizes.
+ */
+const updateConfigs = <T extends ZoomConfigs>(
+  current: T,
+  configs: Partial<T['configs']>,
+): T => {
+  const newValue = { ...current };
+  newValue.configs = { ...newValue.configs, ...configs };
+  newValue.values = computeConfigValues(newValue);
+  return newValue;
+};
+
 export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
   value,
   onChange = () => {},
@@ -70,11 +84,7 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
     if (!value) {
       return;
     }
-
-    const newValue = { ...value };
-    newValue.configs.width = width;
-    newValue.values = computeConfigValues(newValue);
-    onChange(newValue);
+    onChange(updateConfigs(value, { width }));
   };
 
   const onBaseHeightChange = (height: number) => {
@@ -82,30 +92,20 @@ export const ZoomConfigControl: FC<ZoomConfigsControlProps> = ({
     if (!value) {
       return;
     }
-
-    const newValue = { ...value };
-    newValue.configs.height = height;
-    newValue.values = computeConfigValues(newValue);
-    onChange(newValue);
+    onChange(updateConfigs(value, { height }));
   };
 
   const onBaseSlopeChange = (slope: number) => {
     setBaseSlope(slope);
     if (value && isZoomConfigsLinear(value)) {
-      const newValue = { ...value };
-      newValue.configs.slope = slope;
-      newValue.values = computeConfigValues(newValue);
-      onChange(newValue);
+      onChange(updateConfigs(value, { slope }));
     }
   };
 
   const onBaseExponentChange = (exponent: number) => {
     setBaseExponent(exponent);
     if (value && isZoomConfigsExp(value)) {
-      const newValue = { ...value };
-      newValue.configs.exponent = exponent;
-      newValue.values = computeConfigValues(newValue);
-      onChange(newValue);
+      onChange(updateConfigs(value, { exponent }));
     }
   };
 

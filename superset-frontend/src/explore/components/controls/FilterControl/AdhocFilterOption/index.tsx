@@ -32,6 +32,7 @@ export interface AdhocFilterOptionProps {
   options: OptionSortType[];
   sections?: string[];
   operators?: Operators[];
+  semanticSelectionVersion?: string;
   datasource?: Record<string, unknown>;
   partitionColumn?: string | null;
   onMoveLabel: (dragIndex: number, hoverIndex: number) => void;
@@ -43,6 +44,7 @@ export default function AdhocFilterOption({
   adhocFilter,
   options,
   datasource,
+  semanticSelectionVersion,
   onFilterEdit,
   onRemoveFilter,
   partitionColumn,
@@ -61,6 +63,7 @@ export default function AdhocFilterOption({
       adhocFilter={adhocFilter}
       options={options}
       datasource={(datasource as Record<string, unknown>) || {}}
+      semanticSelectionVersion={semanticSelectionVersion}
       onFilterEdit={onFilterEdit}
       partitionColumn={partitionColumn ?? undefined}
     >

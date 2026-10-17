@@ -56,7 +56,11 @@
  * in tandem with `controlPanels/index.js` that defines how controls are composed into sections for
  * each and every visualization type.
  */
-import type { Column, SequentialScheme } from '@superset-ui/core';
+import type {
+  Column,
+  QueryFormData,
+  SequentialScheme,
+} from '@superset-ui/core';
 import {
   getCategoricalSchemeRegistry,
   getSequentialSchemeRegistry,
@@ -78,6 +82,7 @@ interface Datasource {
 }
 
 interface ControlState {
+  form_data?: QueryFormData;
   datasource?: Datasource;
   controls?: Record<string, { value?: unknown }>;
 }
@@ -485,6 +490,7 @@ export const controls = {
         : [],
       savedMetrics: state.datasource ? state.datasource.metrics : [],
       datasource: state.datasource,
+      semanticSelectionVersion: state.form_data?.semantic_selection_version,
     }),
   },
 

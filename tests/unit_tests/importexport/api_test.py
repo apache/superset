@@ -258,6 +258,48 @@ def test_import_assets_not_zip(
     }
 
 
+def test_import_assets_corrupt_zip(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a ZIP with a corrupt central directory returns a 422, not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+    corrupt = BytesIO(buf.getvalue().replace(b"PK\x01\x02", b"XXXX"))
+    assert is_zipfile(corrupt)
+    form_data = {
+        "bundle": (corrupt, "corrupt.zip"),
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "Invalid or corrupted ZIP file",
+                "error_type": "GENERIC_COMMAND_ERROR",
+                "level": "warning",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1010,
+                            "message": (
+                                "Issue 1010 - Superset encountered an error while "
+                                "running a command."
+                            ),
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+
 def test_import_assets_no_form_data(
     mocker: MockerFixture,
     client: Any,
