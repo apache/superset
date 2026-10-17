@@ -27,7 +27,7 @@ import {
 } from 'src/middleware/realtime';
 
 // Controllable useTabId mock (overrides the global shim for this file) so we can
-// drive both the current tab id baked into the connect URL and tab-id-change
+// drive both the current tab id sent in the `auth` frame and tab-id-change
 // notifications. `var` + lazy init sidesteps jest.mock hoisting/TDZ.
 /* eslint-disable no-var, vars-on-top */
 var mockTabIdValue: string;
@@ -54,7 +54,7 @@ const fireTabIdChange = (newId: string) => {
 
 // A minimal fake WebSocket so connectRealtime can "open" a socket without a
 // real network connection. Instances register themselves so a test can drive
-// onmessage/onclose.
+// onopen/onmessage/onclose and inspect what the client sent.
 class FakeWebSocket {
   static instances: FakeWebSocket[] = [];
 
@@ -64,9 +64,15 @@ class FakeWebSocket {
 
   onmessage: ((event: { data: string }) => void) | null = null;
 
-  onclose: (() => void) | null = null;
+  onclose: ((event: { code: number }) => void) | null = null;
 
   onerror: (() => void) | null = null;
+
+  sent: string[] = [];
+
+  send = jest.fn((data: string) => {
+    this.sent.push(data);
+  });
 
   close = jest.fn(() => {
     this.readyState = 3;
@@ -75,25 +81,83 @@ class FakeWebSocket {
   constructor(public url: string) {
     FakeWebSocket.instances.push(this);
   }
+
+  /** The `auth` frames the client has sent, parsed. */
+  get authFrames(): Array<{ type: string; token: string; tab_id: string }> {
+    return this.sent.map(frame => JSON.parse(frame));
+  }
 }
 
 const originalWebSocket = global.WebSocket;
 
+const ENABLED = {
+  WEBSOCKET_ENABLE: true,
+  WEBSOCKET_URL: 'ws://localhost:8080/',
+};
+
+let getSpy: jest.SpyInstance;
+let ticketCount: number;
+
+/** Resolve the ticket endpoint with a distinct token and the given lifetime. */
+const serveTickets = (expiresIn = 60) => {
+  ticketCount = 0;
+  getSpy.mockImplementation(async () => {
+    ticketCount += 1;
+    return { json: { token: `ticket-${ticketCount}`, expires_in: expiresIn } };
+  });
+};
+
+/** Reject the ticket endpoint like SupersetClient does: with the Response. */
+const rejectTickets = (status: number) => {
+  getSpy.mockRejectedValue({ status });
+};
+
+// Let pending promise continuations (the ticket fetch) run.
+const flush = async () => {
+  for (let i = 0; i < 10; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    await Promise.resolve();
+  }
+};
+
+const lastSocket = () =>
+  FakeWebSocket.instances[FakeWebSocket.instances.length - 1];
+
+/** The server's acknowledgement of an `auth` frame. */
+const ack = (ws: FakeWebSocket, expiresIn = 60) =>
+  ws.onmessage?.({
+    data: JSON.stringify({
+      topic: 'realtime.auth',
+      payload: { status: 'ok', expires_in: expiresIn },
+    }),
+  });
+
+/** Connect, open the socket, and have the server acknowledge the first frame. */
+const connectAuthenticated = async (expiresIn = 60) => {
+  connectRealtime(ENABLED);
+  await flush();
+  const ws = lastSocket();
+  ws.readyState = 1;
+  ws.onopen?.();
+  ack(ws, expiresIn);
+  return ws;
+};
+
 beforeEach(() => {
+  jest.useFakeTimers();
   FakeWebSocket.instances = [];
   global.WebSocket = FakeWebSocket as unknown as typeof WebSocket;
+  getSpy = jest.spyOn(SupersetClient, 'get');
+  serveTickets();
 });
 
 afterEach(() => {
   resetRealtimeForTests();
   global.WebSocket = originalWebSocket;
   mockTabIdValue = 'test-tab-id';
+  getSpy.mockRestore();
+  jest.useRealTimers();
 });
-
-const ENABLED = {
-  WEBSOCKET_ENABLE: true,
-  WEBSOCKET_URL: 'ws://localhost:8080/',
-};
 
 test('dispatches a parsed envelope to every handler of its topic', () => {
   const a = jest.fn();
@@ -161,230 +225,407 @@ test('a throwing handler does not break other handlers', () => {
   expect(good).toHaveBeenCalledTimes(1);
 });
 
-test('notifies open-listeners when the socket connects', () => {
-  const onOpen = jest.fn();
-  const unsubscribe = subscribeRealtimeOpen(onOpen);
-  connectRealtime(ENABLED);
-
-  expect(FakeWebSocket.instances).toHaveLength(1);
-  FakeWebSocket.instances[0].onopen?.();
-  expect(onOpen).toHaveBeenCalledTimes(1);
-
-  // A reopen (openSocket wires onopen on every socket) notifies again.
-  FakeWebSocket.instances[0].onopen?.();
-  expect(onOpen).toHaveBeenCalledTimes(2);
-
-  unsubscribe();
-  FakeWebSocket.instances[0].onopen?.();
-  expect(onOpen).toHaveBeenCalledTimes(2); // no longer notified
-});
-
-test('does not open a socket when disabled', () => {
+test('does not open a socket when disabled', async () => {
   connectRealtime({ WEBSOCKET_ENABLE: false, WEBSOCKET_URL: 'ws://x/' });
+  await flush();
+
   expect(FakeWebSocket.instances).toHaveLength(0);
+  expect(getSpy).not.toHaveBeenCalled();
 });
 
-test('opens a socket when enabled and routes its messages to handlers', () => {
+test('fetches a ticket, keeps it out of the URL, and authenticates in-band', async () => {
+  const states: string[] = [];
+  subscribeRealtimeState(state => states.push(state));
+  connectRealtime(ENABLED);
+  await flush();
+
+  expect(getSpy).toHaveBeenCalledWith({ endpoint: '/api/v1/realtime/token/' });
+  const ws = lastSocket();
+  expect(ws.url).toBe(ENABLED.WEBSOCKET_URL);
+
+  ws.readyState = 1;
+  ws.onopen?.();
+  // The first frame carries the ticket and this tab's id.
+  expect(ws.authFrames).toEqual([
+    { type: 'auth', token: 'ticket-1', tab_id: 'test-tab-id' },
+  ]);
+  // Not reported open until the server acknowledges the ticket.
+  expect(states).toEqual(['connecting']);
+
+  ack(ws);
+  expect(states).toEqual(['connecting', 'open']);
+});
+
+test('resolves a root-relative ws url against the page', async () => {
+  connectRealtime({ WEBSOCKET_ENABLE: true, WEBSOCKET_URL: '/superset-ws' });
+  await flush();
+
+  const u = new URL(lastSocket().url);
+  expect(u.protocol).toBe('ws:'); // jsdom page is http:// -> ws://
+  expect(u.pathname).toBe('/superset-ws');
+  expect(u.search).toBe('');
+});
+
+test('routes socket messages to handlers only after the server acknowledges auth', async () => {
   const handler = jest.fn();
   subscribeRealtime('task.status', handler);
   connectRealtime(ENABLED);
-
-  expect(FakeWebSocket.instances).toHaveLength(1);
-  const ws = FakeWebSocket.instances[0];
-  // The connect URL is the configured base plus this tab's id, so the server
-  // can bind a per-tab channel. getTabId is mocked to 'test-tab-id' (shim).
-  const wsUrl = new URL(ws.url);
-  expect(`${wsUrl.protocol}//${wsUrl.host}${wsUrl.pathname}`).toBe(
-    ENABLED.WEBSOCKET_URL,
-  );
-  expect(wsUrl.searchParams.get('tab_id')).toBe('test-tab-id');
-
-  ws.onmessage?.({
+  await flush();
+  const ws = lastSocket();
+  const message = {
     data: JSON.stringify({ topic: 'task.status', payload: { ok: true } }),
-  });
+  };
 
+  ws.onmessage?.(message);
+  expect(handler).not.toHaveBeenCalled();
+
+  ack(ws);
+  ws.onmessage?.(message);
   expect(handler).toHaveBeenCalledWith({ ok: true });
 });
 
-test('resolves a root-relative ws url against the page and adds tab_id', () => {
-  // A root-relative endpoint (e.g. behind a same-origin proxy) is valid for
-  // WebSocket; it must resolve against the page URL and normalize to ws(s),
-  // still carrying tab_id — not silently drop the tab id.
-  connectRealtime({ WEBSOCKET_ENABLE: true, WEBSOCKET_URL: '/superset-ws' });
+test('notifies open-listeners once per connection, when auth is acknowledged', async () => {
+  const reasons: string[] = [];
+  subscribeRealtimeOpen(reason => reasons.push(reason));
+  connectRealtime(ENABLED);
+  await flush();
+  const ws = lastSocket();
+  ws.readyState = 1;
+  ws.onopen?.();
+  expect(reasons).toEqual([]);
 
-  expect(FakeWebSocket.instances).toHaveLength(1);
-  const u = new URL(FakeWebSocket.instances[0].url);
-  expect(u.protocol).toBe('ws:'); // jsdom page is http:// → ws://
-  expect(u.pathname).toBe('/superset-ws');
-  expect(u.searchParams.get('tab_id')).toBe('test-tab-id');
+  ack(ws);
+  ack(ws); // a refresh acknowledgement is not a new connection
+
+  expect(reasons).toEqual(['initial']);
 });
 
-test('reconnects with the new tab id when the tab id changes', () => {
-  connectRealtime(ENABLED);
-  expect(FakeWebSocket.instances).toHaveLength(1);
-  expect(
-    new URL(FakeWebSocket.instances[0].url).searchParams.get('tab_id'),
-  ).toBe('test-tab-id');
+test('keeps the active socket when reconnecting with the same config', async () => {
+  const ws = await connectAuthenticated();
 
-  // A duplicated tab is reassigned a new id: the socket must reconnect so it
-  // re-registers under the new per-tab channel (else tab-targeted events miss
-  // it and only polling notices completion).
-  fireTabIdChange('tab-2');
+  connectRealtime(ENABLED);
+  await flush();
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(ws.close).not.toHaveBeenCalled();
+});
+
+test('refreshes the ticket on the open socket at 75% of its lifetime', async () => {
+  const ws = await connectAuthenticated(60);
+  expect(getSpy).toHaveBeenCalledTimes(1);
+
+  jest.advanceTimersByTime(44_000);
+  await flush();
+  expect(getSpy).toHaveBeenCalledTimes(1);
+
+  jest.advanceTimersByTime(1_000);
+  await flush();
+
+  // A fresh ticket goes out on the same socket: no teardown, no reconnect.
+  expect(getSpy).toHaveBeenCalledTimes(2);
+  expect(ws.authFrames.map(frame => frame.token)).toEqual([
+    'ticket-1',
+    'ticket-2',
+  ]);
+  expect(ws.close).not.toHaveBeenCalled();
+  expect(FakeWebSocket.instances).toHaveLength(1);
+
+  // The server's reply schedules the next refresh from its reported lifetime.
+  ack(ws, 60);
+  jest.advanceTimersByTime(45_000);
+  await flush();
+  expect(ws.authFrames.map(frame => frame.token)).toEqual([
+    'ticket-1',
+    'ticket-2',
+    'ticket-3',
+  ]);
+  expect(FakeWebSocket.instances).toHaveLength(1);
+});
+
+test('a socket survives several ticket lifetimes with zero reconnects', async () => {
+  const ws = await connectAuthenticated(60);
+
+  for (let i = 0; i < 4; i += 1) {
+    jest.advanceTimersByTime(45_000);
+    // eslint-disable-next-line no-await-in-loop
+    await flush();
+    ack(ws, 60);
+  }
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(ws.close).not.toHaveBeenCalled();
+  expect(ws.authFrames).toHaveLength(5);
+});
+
+test('retries a transient ticket failure during refresh until expiry', async () => {
+  const ws = await connectAuthenticated(60);
+  getSpy.mockRejectedValue({ status: 503 });
+
+  jest.advanceTimersByTime(45_000);
+  await flush();
+  expect(getSpy).toHaveBeenCalledTimes(2);
+
+  jest.advanceTimersByTime(1_000);
+  await flush();
+  expect(getSpy).toHaveBeenCalledTimes(3);
+
+  // Service recovers: the next retry sends the fresh ticket.
+  serveTickets(60);
+  jest.advanceTimersByTime(2_000);
+  await flush();
+  expect(ws.authFrames).toHaveLength(2);
+  expect(ws.close).not.toHaveBeenCalled();
+});
+
+test('stops retrying a failing refresh once the ticket has expired', async () => {
+  await connectAuthenticated(60);
+  getSpy.mockRejectedValue({ status: 503 });
+
+  jest.advanceTimersByTime(45_000 + 15_000);
+  await flush();
+  const callsAtExpiry = getSpy.mock.calls.length;
+
+  jest.advanceTimersByTime(60_000);
+  await flush();
+
+  expect(getSpy.mock.calls.length).toBe(callsAtExpiry);
+});
+
+test('an unauthorized ticket request is terminal: no socket, no retries', async () => {
+  rejectTickets(401);
+  const states: string[] = [];
+  subscribeRealtimeState(state => states.push(state));
+
+  connectRealtime(ENABLED);
+  await flush();
+  jest.advanceTimersByTime(5 * 60_000);
+  await flush();
+
+  expect(states).toEqual(['connecting', 'unauthorized']);
+  expect(FakeWebSocket.instances).toHaveLength(0);
+  expect(getSpy).toHaveBeenCalledTimes(1);
+});
+
+test('a forbidden ticket request is terminal too', async () => {
+  rejectTickets(403);
+  const states: string[] = [];
+  subscribeRealtimeState(state => states.push(state));
+
+  connectRealtime(ENABLED);
+  await flush();
+
+  expect(states[states.length - 1]).toBe('unauthorized');
+  expect(FakeWebSocket.instances).toHaveLength(0);
+});
+
+test('losing authorization at refresh closes the socket and stops connecting', async () => {
+  const ws = await connectAuthenticated(60);
+  const states: string[] = [];
+  subscribeRealtimeState(state => states.push(state));
+  rejectTickets(401);
+
+  jest.advanceTimersByTime(45_000);
+  await flush();
+  jest.advanceTimersByTime(5 * 60_000);
+  await flush();
+
+  expect(states).toEqual(['unauthorized']);
+  expect(ws.close).toHaveBeenCalled();
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(getSpy).toHaveBeenCalledTimes(2);
+});
+
+test('reconnects immediately with a fresh ticket when the server closes with 4401', async () => {
+  const ws = await connectAuthenticated();
+
+  ws.readyState = 3;
+  ws.onclose?.({ code: 4401 });
+  await flush();
+
+  // No backoff timer was needed.
+  expect(FakeWebSocket.instances).toHaveLength(2);
+  expect(getSpy).toHaveBeenCalledTimes(2);
+  const next = lastSocket();
+  next.readyState = 1;
+  next.onopen?.();
+  expect(next.authFrames[0].token).toBe('ticket-2');
+});
+
+test('reports a reconnect after 4401 as reason `reconnect`', async () => {
+  const reasons: string[] = [];
+  subscribeRealtimeOpen(reason => reasons.push(reason));
+  const ws = await connectAuthenticated();
+
+  ws.readyState = 3;
+  ws.onclose?.({ code: 4401 });
+  await flush();
+  const next = lastSocket();
+  next.readyState = 1;
+  next.onopen?.();
+  ack(next);
+
+  expect(reasons).toEqual(['initial', 'reconnect']);
+});
+
+test('backs off after other closes, fetching a fresh ticket on each attempt', async () => {
+  const ws = await connectAuthenticated();
+
+  ws.readyState = 3;
+  ws.onclose?.({ code: 1006 });
+  await flush();
+  expect(FakeWebSocket.instances).toHaveLength(1);
+
+  jest.advanceTimersByTime(5_000);
+  await flush();
 
   expect(FakeWebSocket.instances).toHaveLength(2);
-  expect(FakeWebSocket.instances[0].close).toHaveBeenCalled();
-  expect(
-    new URL(FakeWebSocket.instances[1].url).searchParams.get('tab_id'),
-  ).toBe('tab-2');
+  expect(getSpy).toHaveBeenCalledTimes(2);
 });
 
-test('keeps the active socket when reconnecting with the same config', () => {
+test('a 4401 on a connection that never authenticated backs off', async () => {
   connectRealtime(ENABLED);
-  connectRealtime(ENABLED);
+  await flush();
+  const ws = lastSocket();
+  ws.readyState = 1;
+  ws.onopen?.();
 
+  ws.readyState = 3;
+  ws.onclose?.({ code: 4401 });
+  await flush();
   expect(FakeWebSocket.instances).toHaveLength(1);
-  expect(FakeWebSocket.instances[0].close).not.toHaveBeenCalled();
-});
 
-test('reconnects after the socket closes', () => {
-  jest.useFakeTimers();
-  connectRealtime(ENABLED);
-  expect(FakeWebSocket.instances).toHaveLength(1);
-
-  FakeWebSocket.instances[0].onclose?.();
-  jest.advanceTimersByTime(5000);
-
+  jest.advanceTimersByTime(5_000);
+  await flush();
   expect(FakeWebSocket.instances).toHaveLength(2);
-  jest.useRealTimers();
 });
 
-test('reports reconnecting then unhealthy after repeated failures, and open resets it', () => {
-  jest.useFakeTimers();
+test('abandons and retries a connection the server never acknowledges', async () => {
+  connectRealtime(ENABLED);
+  await flush();
+  const ws = lastSocket();
+  ws.readyState = 1;
+  ws.onopen?.();
+
+  jest.advanceTimersByTime(10_000);
+  expect(ws.close).toHaveBeenCalled();
+
+  jest.advanceTimersByTime(5_000);
+  await flush();
+  expect(FakeWebSocket.instances).toHaveLength(2);
+});
+
+test('reports reconnecting then unhealthy after repeated failures, and open resets it', async () => {
   const states: string[] = [];
   subscribeRealtimeState(s => states.push(s));
   connectRealtime(ENABLED);
+  await flush();
 
   // Three consecutive closes with no successful OPEN in between.
   for (let i = 0; i < 3; i += 1) {
-    FakeWebSocket.instances[FakeWebSocket.instances.length - 1].onclose?.();
+    lastSocket().onclose?.({ code: 1006 });
     // Advance past the max backoff so the scheduled reconnect fires.
-    jest.advanceTimersByTime(30000);
+    jest.advanceTimersByTime(30_000);
+    // eslint-disable-next-line no-await-in-loop
+    await flush();
   }
   expect(states).toContain('reconnecting');
   expect(states).toContain('unhealthy');
 
-  // A successful OPEN clears the failure state back to healthy.
-  FakeWebSocket.instances[FakeWebSocket.instances.length - 1].onopen?.();
+  // A successful, acknowledged connection clears the failure state.
+  const ws = lastSocket();
+  ws.readyState = 1;
+  ws.onopen?.();
+  ack(ws);
   expect(states[states.length - 1]).toBe('open');
-  jest.useRealTimers();
 });
 
-test('a synchronous WebSocket constructor failure still schedules a reconnect', () => {
-  jest.useFakeTimers();
+test('a failed ticket fetch is retried with backoff and counts toward unhealthy', async () => {
+  getSpy.mockRejectedValue({ status: 500 });
+  const states: string[] = [];
+  subscribeRealtimeState(s => states.push(s));
+
+  connectRealtime(ENABLED);
+  await flush();
+  for (let i = 0; i < 3; i += 1) {
+    jest.advanceTimersByTime(30_000);
+    // eslint-disable-next-line no-await-in-loop
+    await flush();
+  }
+
+  expect(FakeWebSocket.instances).toHaveLength(0);
+  expect(getSpy.mock.calls.length).toBeGreaterThan(1);
+  expect(states).toContain('unhealthy');
+});
+
+test('a synchronous WebSocket constructor failure still schedules a reconnect', async () => {
   const Broken = jest.fn(() => {
     throw new Error('construct failed');
   });
   global.WebSocket = Broken as unknown as typeof WebSocket;
 
   connectRealtime(ENABLED);
+  await flush();
   // The throw is caught; a reconnect is scheduled rather than dead-ending, so the
   // constructor is retried (repeatedly, with backoff) instead of only once.
-  jest.advanceTimersByTime(30000);
+  for (let i = 0; i < 3; i += 1) {
+    jest.advanceTimersByTime(30_000);
+    // eslint-disable-next-line no-await-in-loop
+    await flush();
+  }
   expect(Broken.mock.calls.length).toBeGreaterThan(1);
-  jest.useRealTimers();
 });
 
-test('disconnect closes the socket and stops reconnecting', () => {
-  jest.useFakeTimers();
+test('re-authenticates in place with the new tab id when the tab id changes', async () => {
+  const ws = await connectAuthenticated();
+  expect(ws.authFrames[0].tab_id).toBe('test-tab-id');
+
+  // A duplicated tab is reassigned a new id: the server must rebind the per-tab
+  // channel (else tab-targeted events miss it and only polling notices
+  // completion), and it does so from an `auth` frame on the live socket.
+  fireTabIdChange('tab-2');
+  await flush();
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(ws.close).not.toHaveBeenCalled();
+  expect(ws.authFrames[1]).toEqual({
+    type: 'auth',
+    token: 'ticket-2',
+    tab_id: 'tab-2',
+  });
+});
+
+test('a tab id change before the socket is open is picked up by the first frame', async () => {
   connectRealtime(ENABLED);
-  const ws = FakeWebSocket.instances[0];
+  await flush();
+  const ws = lastSocket();
+
+  fireTabIdChange('tab-2');
+  await flush();
+  ws.readyState = 1;
+  ws.onopen?.();
+
+  expect(ws.authFrames).toEqual([
+    { type: 'auth', token: 'ticket-1', tab_id: 'tab-2' },
+  ]);
+});
+
+test('disconnect closes the socket and stops reconnecting', async () => {
+  const ws = await connectAuthenticated();
 
   // disconnect via a superseding reset; the prior socket must not reconnect.
   resetRealtimeForTests();
   expect(ws.close).toHaveBeenCalled();
 
-  ws.onclose?.(); // a late close from the torn-down socket
-  jest.advanceTimersByTime(5000);
+  ws.onclose?.({ code: 1006 }); // a late close from the torn-down socket
+  jest.advanceTimersByTime(5_000);
+  await flush();
   expect(FakeWebSocket.instances).toHaveLength(1); // no new socket
-  jest.useRealTimers();
 });
 
-test('refreshes the cookie and reconnects before the token expires', async () => {
-  jest.useFakeTimers();
-  const getSpy = jest
-    .spyOn(SupersetClient, 'get')
-    .mockResolvedValue({} as never);
-  try {
-    // A 900s token → the keepalive fires at 0.6 of its life (540s), issuing the
-    // authed cookie-refresh GET, then reconnecting so the new handshake rides a
-    // freshly minted token before the server terminates the socket at expiry.
-    connectRealtime({ ...ENABLED, WEBSOCKET_JWT_EXPIRATION_SECONDS: 900 });
-    expect(FakeWebSocket.instances).toHaveLength(1);
-    // Simulate the socket having connected — the keepalive only hands off a
-    // socket that is still OPEN (readyState 1).
-    FakeWebSocket.instances[0].readyState = 1;
+test('a ticket that arrives after disconnect does not open a socket', async () => {
+  connectRealtime(ENABLED);
+  resetRealtimeForTests();
+  await flush();
 
-    jest.advanceTimersByTime(540_000);
-    expect(getSpy).toHaveBeenCalledWith({ endpoint: '/api/v1/me/' });
-
-    // Flush the refresh promise chain so the .finally reconnect runs.
-    await Promise.resolve();
-    await Promise.resolve();
-    expect(FakeWebSocket.instances).toHaveLength(2);
-  } finally {
-    getSpy.mockRestore();
-    jest.useRealTimers();
-  }
-});
-
-test('a socket that drops just before keepalive reconnects (not a keepalive handoff)', async () => {
-  jest.useFakeTimers();
-  const getSpy = jest
-    .spyOn(SupersetClient, 'get')
-    .mockResolvedValue({} as never);
-  const reasons: string[] = [];
-  subscribeRealtimeOpen(reason => reasons.push(reason));
-  try {
-    connectRealtime({ ...ENABLED, WEBSOCKET_JWT_EXPIRATION_SECONDS: 900 });
-    const ws = FakeWebSocket.instances[0];
-    ws.readyState = 1; // OPEN
-    ws.onopen?.();
-    expect(reasons).toEqual(['initial']);
-
-    // The socket really drops just before the keepalive (540s) fires; onclose
-    // schedules a real reconnect at +5s.
-    jest.advanceTimersByTime(539_000);
-    ws.readyState = 3; // CLOSED
-    ws.onclose?.();
-
-    // The keepalive timer fires while the socket is closed → it must bail (no
-    // refresh GET, no keepalive handoff), leaving the real reconnect to run.
-    jest.advanceTimersByTime(2_000);
-    await Promise.resolve();
-    expect(getSpy).not.toHaveBeenCalled();
-
-    // The scheduled reconnect opens with reason 'reconnect' — so list views still
-    // reconcile the outage rather than treating it as a seamless keepalive.
-    jest.advanceTimersByTime(5_000);
-    FakeWebSocket.instances[1].readyState = 1;
-    FakeWebSocket.instances[1].onopen?.();
-    expect(reasons).toEqual(['initial', 'reconnect']);
-  } finally {
-    getSpy.mockRestore();
-    jest.useRealTimers();
-  }
-});
-
-test('does not schedule a keepalive without a configured token lifetime', () => {
-  jest.useFakeTimers();
-  const getSpy = jest.spyOn(SupersetClient, 'get');
-  try {
-    connectRealtime(ENABLED); // no WEBSOCKET_JWT_EXPIRATION_SECONDS
-    jest.advanceTimersByTime(60 * 60 * 1000);
-    expect(getSpy).not.toHaveBeenCalled();
-    expect(FakeWebSocket.instances).toHaveLength(1);
-  } finally {
-    getSpy.mockRestore();
-    jest.useRealTimers();
-  }
+  expect(FakeWebSocket.instances).toHaveLength(0);
 });

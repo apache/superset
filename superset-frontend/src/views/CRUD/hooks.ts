@@ -363,10 +363,8 @@ export function useListViewResource<D extends object = any>(
 
     // Nudges are lossy and not replayed, so after recovering from a dropped
     // socket refetch the currently-displayed rows once to reconcile anything
-    // missed while disconnected. Only on a real `reconnect` — not the initial
-    // connect (rows were just fetched) or a seamless `keepalive` token refresh —
-    // so a healthy socket doesn't trigger a full re-fetch every keepalive cycle.
-    // In-place merge, no full-list redraw.
+    // missed while disconnected. Only on a real `reconnect`, not the initial
+    // connect (rows were just fetched). In-place merge, no full-list redraw.
     const unsubscribeOpen = subscribeRealtimeOpen(reason => {
       if (reason !== 'reconnect') return;
       patchRows(collectionRef.current.map(rowId));

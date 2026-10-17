@@ -1041,13 +1041,20 @@ WEBSOCKET_JWT_SECRET = "<output of: openssl rand -base64 42>"
 The built-in Gamma role receives `can_read Realtime`; grant that permission to
 custom roles that should receive websocket notifications.
 
-Run the `superset-websocket` Node server on the **same browser-visible host**
-(so its JWT channel cookie is shared) and point its `redis` config at the same
-instance as `DISTRIBUTED_COORDINATION_CONFIG`, plus `jwtSecret` /
-`jwtCookieName` matching the Flask config (`WEBSOCKET_JWT_SECRET` /
-`WEBSOCKET_JWT_COOKIE_NAME`, default `superset-ws-token`). During websocket JWT
+Run the `superset-websocket` Node server where browsers can reach it and point
+its `redis` config at the same instance as `DISTRIBUTED_COORDINATION_CONFIG`,
+plus a `jwtSecret` matching the Flask config (`WEBSOCKET_JWT_SECRET`). The
+browser authenticates with a short-lived connection ticket fetched from
+`GET /api/v1/realtime/token/` and sent as the first frame of the socket, then
+refreshes it on the open socket before it expires, so the server no longer needs
+to share a host with the web application and no credential rides the handshake or
+the URL. The websocket server and the frontend ship in the same image, so there is
+no compatibility window; the `WEBSOCKET_JWT_COOKIE_NAME`,
+`WEBSOCKET_JWT_COOKIE_SECURE`, `WEBSOCKET_JWT_COOKIE_SAMESITE` and
+`WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings and the websocket server's
+`jwtCookieName` / `JWT_COOKIE_NAME` option are removed. During websocket JWT
 secret rotation, set the websocket server's `previousJwtSecret` /
-`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting cookies with
+`PREVIOUS_JWT_SECRET` to the old key while Flask continues minting tickets with
 `WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
 and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
