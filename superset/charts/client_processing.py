@@ -835,6 +835,19 @@ pivot_v2_aggfunc_map = {
 }
 
 
+def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> None:
+    """Format a temporal column in place with an explicit d3 time format.
+
+    Only the directives shared between d3-time-format and ``strftime``
+    (``%Y``, ``%m``, ``%d``, ``%H``, ``%M``, ``%S`` and similar) are supported,
+    which covers the formats users configure in practice. Null values are left
+    as-is rather than rendered as the string ``"NaT"``.
+    """
+    df[column] = df[column].apply(
+        lambda value: value.strftime(d3_time_format) if pd.notna(value) else value
+    )
+
+
 def format_column(
     df: pd.DataFrame,
     column: Any,
@@ -1237,6 +1250,20 @@ def table(
     # left untouched, matching the browser.
     for column in df.columns:
         config = config_by_label.get(column) or {}
+
+        # Mirror the Table plugin's first formatter branch
+        # (``if (isTime || config.d3TimeFormat)`` in ``transformProps.ts``):
+        # an explicit per-column ``d3TimeFormat`` formats a temporal column and
+        # takes precedence over number formatting. Scoped to datetime columns
+        # with an explicit format; the bare ``isTime`` fallback,
+        # ``tableTimestampFormat`` default, SMART_DATE granularity, and string
+        # temporal columns are intentionally left to a follow-up, since they
+        # need a full server-side d3-time-format port rather than ``strftime``.
+        time_format = config.get("d3TimeFormat")
+        if time_format and pd.api.types.is_datetime64_any_dtype(df[column]):
+            format_time_column(df, column, time_format)
+            continue
+
         configured_currency = config.get("currencyFormat") or {}
         number_format = config.get("d3NumberFormat") or number_format_by_label.get(
             column
