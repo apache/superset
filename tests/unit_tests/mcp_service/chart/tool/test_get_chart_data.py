@@ -1105,6 +1105,9 @@ async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
         coltypes=[GenericDataType.TEMPORAL],
     )
 
+    # Capture the producer offset before timezone hooks are disabled.
+    dublin_iso: str = values[0].isoformat()
+
     def hostile_timezone_hook(*_args: Any, **_kwargs: Any) -> None:
         raise AssertionError("dateutil timezone hook executed")
 
@@ -1127,7 +1130,7 @@ async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
 
     payload = result.structured_content.get("result", result.structured_content)
     assert payload["data"] == [
-        {"value": "2024-10-27T01:30:00.123456+01:00"},
+        {"value": dublin_iso},
         {"value": "2024-03-10T02:30:00-04:00"},
         {"value": "2040-07-01T12:00:00-05:00"},
         {"value": "2024-01-01T12:00:00-03:00"},
