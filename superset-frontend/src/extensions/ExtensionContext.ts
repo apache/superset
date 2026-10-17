@@ -21,6 +21,12 @@ import type {
   extensions as extensionsApi,
 } from '@apache-superset/core';
 import {
+  addDangerToast,
+  addInfoToast,
+  addWarningToast,
+} from 'src/components/MessageToasts/actions';
+import { store } from 'src/views/store';
+import {
   createBrowserStorage,
   createEphemeralState,
   createPersistentState,
@@ -30,6 +36,14 @@ type Extension = common.Extension;
 type ExtensionContextType = extensionsApi.ExtensionContext;
 
 /**
+ * Only `duration` is part of the SDK contract, so pick it out rather than
+ * forwarding the whole options object, and omit it when unset so the
+ * host's per-severity default applies.
+ */
+const toToastOptions = (options?: { duration?: number }) =>
+  options?.duration === undefined ? undefined : { duration: options.duration };
+
+/**
  * Extension context with lazy-initialized services bound to the extension ID.
  */
 class ExtensionContext implements ExtensionContextType {
@@ -37,8 +51,31 @@ class ExtensionContext implements ExtensionContextType {
 
   private _storage?: ExtensionContextType['storage'];
 
+  private _window?: ExtensionContextType['window'];
+
   constructor(extension: Extension) {
     this.extension = extension;
+  }
+
+  get window(): ExtensionContextType['window'] {
+    if (!this._window) {
+      // Dispatched against the app-level `store` singleton directly, not
+      // via a `useDispatch()` hook, since this surface must also work from
+      // non-component extension code (e.g. a registered command's
+      // callback), not just from within a React render.
+      this._window = {
+        showInformationMessage: (message: string, options) => {
+          store.dispatch(addInfoToast(message, toToastOptions(options)));
+        },
+        showWarningMessage: (message: string, options) => {
+          store.dispatch(addWarningToast(message, toToastOptions(options)));
+        },
+        showErrorMessage: (message: string, options) => {
+          store.dispatch(addDangerToast(message, toToastOptions(options)));
+        },
+      };
+    }
+    return this._window!;
   }
 
   get storage(): ExtensionContextType['storage'] {

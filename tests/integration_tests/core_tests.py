@@ -981,6 +981,49 @@ class TestCore(SupersetTestCase):
         assert resp.status_code == 404
         assert "Location" not in resp.headers
 
+    def test_extension_view_anonymous_redirects_to_login(self):
+        resp = self.client.get("/extensions/view/my-ext.settings")
+
+        expected_url = "/login/?next=%2Fextensions%2Fview%2Fmy-ext.settings"
+
+        assert resp.status_code == 302
+        assert resp.headers["Location"] == expected_url
+
+    def test_extension_view_authenticated_returns_spa_shell(self):
+        self.login(ADMIN_USERNAME)
+
+        resp = self.client.get("/extensions/view/my-ext.settings")
+
+        assert resp.status_code == 200
+        assert b'id="app"' in resp.data
+
+    def test_extension_view_custom_role_without_extension_permission_returns_spa_shell(
+        self,
+    ):
+        # A custom role is never backfilled with the FAB-generated
+        # `can_extension_view` permission by role sync; the route is a
+        # login-only shell page, so such users shouldn't get a 403.
+        role_name = "ExtensionViewCustomRole"
+        username = "extension_view_custom_user"
+        role = security_manager.add_role(role_name)
+        try:
+            assert not any(
+                pvm.permission.name == "can_extension_view" for pvm in role.permissions
+            )
+            self.create_user_with_roles(username, [role_name])
+            self.login(username)
+
+            resp = self.client.get("/extensions/view/my-ext.settings")
+
+            assert resp.status_code == 200
+            assert b'id="app"' in resp.data
+        finally:
+            user = security_manager.find_user(username)
+            if user:
+                db.session.delete(user)
+            db.session.delete(security_manager.find_role(role_name))
+            db.session.commit()
+
 
 class TestLocalePatch(SupersetTestCase):
     MOCK_LANGUAGES = (
