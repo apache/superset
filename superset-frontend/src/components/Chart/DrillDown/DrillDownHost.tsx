@@ -34,6 +34,7 @@ import {
 } from '@superset-ui/core';
 import { useSelector } from 'react-redux';
 import { css } from '@apache-superset/core/theme';
+import { Loading } from '@superset-ui/core/components';
 import { ChartSource } from 'src/types/ChartSource';
 import type { RootState } from 'src/dashboard/types';
 import { selectAsyncModeOverride } from 'src/utils/asyncMode';
@@ -358,6 +359,13 @@ export function DrillDownHost({
           height={adjustedHeight}
           onDrillDown={onDrillDown}
         />
+        {isLoading && (
+          // Drill-local loading affordance. The nested renderer paints nothing
+          // while the drill query is in flight (its chartStatus is 'loading'
+          // but the dashboard spinner tracks the unchanged Redux status), so
+          // overlay a spinner here to cover the whole request/retry window.
+          <Loading position="floating" />
+        )}
       </div>
     </div>
   );

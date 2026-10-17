@@ -22,6 +22,7 @@ import {
   DTTM_ALIAS,
   getNumberFormatter,
   getTimeFormatter,
+  QueryFormColumn,
   TimeGranularity,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
@@ -64,8 +65,16 @@ export interface TimeseriesDrillFilterParams {
   name: unknown;
   /** The x-axis type (drilling only advances a category axis by value). */
   xAxisType?: AxisType;
-  /** The x-axis column name the filter is built against. */
+  /** The x-axis display label, used for formatting and the __timestamp check. */
   xAxisLabel: string;
+  /**
+   * The original x-axis column the filter is keyed to — a physical column name
+   * or an ad-hoc (Custom SQL) column. `xAxisLabel` may be a verbose name or an
+   * ad-hoc label, which `simpleFilterToAdhoc` would mis-read as a physical
+   * column; the filter must carry the real column so it resolves correctly.
+   * Falls back to `xAxisLabel` when not supplied.
+   */
+  xAxisColumn?: QueryFormColumn;
   orientation?: OrientationType;
   dateFormat?: string;
   numberFormat?: string;
@@ -95,6 +104,7 @@ export function buildTimeseriesDrillFilters({
   name,
   xAxisType,
   xAxisLabel,
+  xAxisColumn,
   orientation,
   dateFormat,
   numberFormat,
@@ -105,6 +115,11 @@ export function buildTimeseriesDrillFilters({
   if (componentType !== 'series') {
     return [];
   }
+
+  // Key the filter to the real column, never the display label. The label may
+  // be a verbose name or an ad-hoc label that would be mis-resolved as a
+  // physical column downstream; fall back to it only when no column is given.
+  const filterCol = xAxisColumn ?? xAxisLabel;
 
   const format = (value: string | number) =>
     formatSeriesName(value, {
@@ -125,7 +140,7 @@ export function buildTimeseriesDrillFilters({
     // and build a grain-aware TEMPORAL_RANGE so a bucketed click scopes to the
     // whole bucket, not an exact-timestamp equality that matches no rows.
     const col =
-      xAxisLabel === DTTM_ALIAS ? (granularitySqla ?? xAxisLabel) : xAxisLabel;
+      xAxisLabel === DTTM_ALIAS ? (granularitySqla ?? filterCol) : filterCol;
     const filter = getTemporalXAxisDrillByFilter(
       col,
       axisValue,
@@ -137,7 +152,7 @@ export function buildTimeseriesDrillFilters({
 
   return [
     {
-      col: xAxisLabel,
+      col: filterCol,
       op: '==',
       val: axisValue,
       formattedVal: format(axisValue),

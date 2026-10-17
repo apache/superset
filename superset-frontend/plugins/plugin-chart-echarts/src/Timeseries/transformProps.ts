@@ -35,6 +35,7 @@ import {
   getCustomFormatter,
   getMetricLabel,
   getNumberFormatter,
+  getXAxisColumn,
   getXAxisLabel,
   isDefined,
   isEventAnnotationLayer,
@@ -1819,6 +1820,9 @@ export default function transformProps(
     xAxis: {
       label: xAxisLabel,
       type: xAxisType,
+      // The raw column (physical name or ad-hoc Custom SQL column) the drill
+      // filter keys on, since `label` may be a verbose/ad-hoc display label.
+      column: getXAxisColumn(chartProps.rawFormData),
     },
     resolvedTimeGrain,
     refs,

@@ -439,3 +439,50 @@ test('a failed drill surfaces an error and does not leave the chart stuck loadin
   // Restore the shared mock for subsequent tests.
   requestChartDataResolved.mockResolvedValue([{ data: [{ region: 'Texas' }] }]);
 });
+
+test('a slow drill shows a drill-local loading spinner while the query is in flight', async () => {
+  const { requestChartDataResolved } = jest.requireMock(
+    'src/components/Chart/chartAction',
+  );
+  // Hold the drill query pending so the loading affordance is observable.
+  let resolveQuery: (value: unknown) => void = () => {};
+  requestChartDataResolved.mockImplementationOnce(
+    () =>
+      new Promise(resolve => {
+        resolveQuery = resolve;
+      }),
+  );
+
+  const formDataWithHierarchy: QueryFormData = {
+    ...baseFormData,
+    drilldown_hierarchy: ['country', 'region', 'city'],
+  };
+
+  render(
+    <DrillDownHost
+      ChartRendererComponent={CaptureRenderer as any}
+      {...baseRendererProps}
+      formData={formDataWithHierarchy}
+      emitCrossFilters
+      actions={{ updateDataMask: jest.fn() } as any}
+    />,
+  );
+
+  act(() => {
+    capturedOnDrillDown?.([{ col: 'country', op: '==', val: 'USA' }], 'USA');
+  });
+
+  // While the drill query is pending the host paints its own spinner, so a
+  // slow drill is not a blank chart with no loading affordance.
+  expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
+
+  await act(async () => {
+    resolveQuery([{ data: [{ region: 'Texas' }] }]);
+  });
+
+  // Once the data arrives the spinner is gone.
+  expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+
+  // Restore the shared mock for subsequent tests.
+  requestChartDataResolved.mockResolvedValue([{ data: [{ region: 'Texas' }] }]);
+});

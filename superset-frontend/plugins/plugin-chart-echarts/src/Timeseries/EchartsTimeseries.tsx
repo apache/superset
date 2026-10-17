@@ -570,6 +570,7 @@ export default function EchartsTimeseries({
             name: props.name,
             xAxisType: xAxis.type,
             xAxisLabel: xAxis.label,
+            xAxisColumn: xAxis.column,
             orientation: formData.orientation,
             dateFormat: formData.xAxisTimeFormat,
             numberFormat: formData.xAxisNumberFormat,

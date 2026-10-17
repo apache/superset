@@ -29,6 +29,7 @@ import {
   BinaryQueryObjectFilterClause,
   ensureIsArray,
   getClientErrorObject,
+  getColumnLabel,
   getXAxisLabel,
   isQueryFormColumn,
   isXAxisSet,
@@ -328,9 +329,16 @@ export function useDrillDownState({
       if (xAxisStr) {
         return [xAxisStr, ...drillLevels.filter(col => col !== xAxisStr)];
       }
-      const firstGroupby = ensureIsArray(fd[DEFAULT_GROUPBY_FIELD]).find(
-        col => typeof col === 'string',
-      ) as string | undefined;
+      // The primary groupby may itself be an ad-hoc (Custom SQL) column, so
+      // resolve its label the same way the x-axis branch does rather than only
+      // accepting a plain string — otherwise a Custom SQL groupby is skipped and
+      // the first drill advances against the wrong level.
+      const firstGroupbyCol = ensureIsArray(fd[DEFAULT_GROUPBY_FIELD]).find(
+        col => isQueryFormColumn(col),
+      );
+      const firstGroupby = firstGroupbyCol
+        ? getColumnLabel(firstGroupbyCol)
+        : undefined;
       if (firstGroupby) {
         return [
           firstGroupby,

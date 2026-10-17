@@ -781,6 +781,34 @@ test('hierarchy prepends the first groupby column for groupby-based charts', () 
   expect(result.current.hierarchy).toEqual(['parent', 'id', 'city']);
 });
 
+test('hierarchy prepends an ad-hoc (Custom SQL) first groupby by its label', () => {
+  const formData = {
+    ...baseFormData,
+    x_axis: undefined,
+    groupby: [
+      {
+        label: 'parent_expr',
+        sqlExpression: "parent || '_' || child",
+        expressionType: 'SQL',
+      },
+    ],
+    drilldown_hierarchy: ['id', 'city'],
+  } as unknown as QueryFormData;
+
+  const { result } = renderHook(() =>
+    useDrillDownState({
+      chartId: 42,
+      formData,
+      baseQueriesResponse: [{ data: [] }],
+    }),
+  );
+
+  // A Custom SQL primary groupby must still anchor the hierarchy: its label is
+  // resolved and prepended, so the first drill advances off it.
+  expect(result.current.hierarchy).toEqual(['parent_expr', 'id', 'city']);
+  expect(result.current.hasHierarchy).toBe(true);
+});
+
 test('effectiveFormData advances x_axis (not groupby) when the chart has both', () => {
   const formData = {
     ...baseFormData,

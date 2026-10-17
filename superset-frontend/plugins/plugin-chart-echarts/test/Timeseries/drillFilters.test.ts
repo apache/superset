@@ -41,6 +41,44 @@ test('a category-series click builds a filter keyed to the x-axis column', () =>
   });
 });
 
+test('the filter is keyed to the original column, not the verbose display label', () => {
+  const filters = buildTimeseriesDrillFilters({
+    componentType: 'series',
+    data: ['Texas', 42],
+    name: 'Texas',
+    xAxisType: AxisType.Category,
+    // The display label is the verbose name, but the filter must target the
+    // real physical column so it resolves as a column, not a literal name.
+    xAxisLabel: 'Region',
+    xAxisColumn: 'region',
+    orientation: OrientationType.Vertical,
+  });
+
+  expect(filters).toHaveLength(1);
+  expect(filters[0]).toMatchObject({ col: 'region', val: 'Texas' });
+});
+
+test('an ad-hoc (Custom SQL) x-axis keys the filter to the ad-hoc column', () => {
+  const adhocColumn = {
+    label: 'country_expr',
+    sqlExpression: "country || '_' || region",
+    expressionType: 'SQL' as const,
+  };
+  const filters = buildTimeseriesDrillFilters({
+    componentType: 'series',
+    data: ['USA_west', 42],
+    name: 'USA_west',
+    xAxisType: AxisType.Category,
+    xAxisLabel: 'country_expr',
+    xAxisColumn: adhocColumn,
+    orientation: OrientationType.Vertical,
+  });
+
+  expect(filters).toHaveLength(1);
+  expect(filters[0].col).toEqual(adhocColumn);
+  expect(filters[0].val).toBe('USA_west');
+});
+
 test('a click on a non-series component (e.g. axis label) does not drill', () => {
   const filters = buildTimeseriesDrillFilters({
     componentType: 'xAxis',

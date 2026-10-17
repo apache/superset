@@ -179,6 +179,12 @@ export const allEventHandlers = (
     hasDrillHierarchy && groupby.length > 0
       ? (e: { name: string }) => {
           const values = labelMap[e.name];
+          // A click without a labelMap entry is a synthetic aggregate slice,
+          // e.g. the "Other" bucket produced by threshold_for_other. It maps to
+          // no single dimension value (it is "everything not in the top N"), so
+          // it is intentionally non-drillable: bail out rather than drilling on
+          // the literal "Other" label, which would filter on a value that does
+          // not exist.
           if (!values) return;
           const drillFilters: BinaryQueryObjectFilterClause[] = [];
           groupby.forEach((dimension, i) => {
