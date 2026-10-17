@@ -29,13 +29,17 @@ from sqlalchemy.orm.session import Session
 from superset import db, security_manager
 from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.chart.importers.v1 import ImportChartsCommand
+from superset.commands.dashboard.export import ExportDashboardsCommand
+from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dataset import DatasetDAO
+from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
 from superset.subjects.types import SubjectType
+from superset.utils import json
 from superset.utils.core import override_user
 
 
@@ -178,6 +182,12 @@ def test_export_import_round_trip_restores_chart_and_dataset(
 
     contents = _export(chart)
 
+    # Change what the import has to write back, so the assertions below fail if
+    # the chart is skipped rather than imported.
+    chart.slice_name = "renamed after the export"
+    chart.datasource_id = None
+    db.session.flush()
+
     ImportChartsCommand(contents, overwrite=True).run()
     db.session.flush()
 
@@ -186,7 +196,68 @@ def test_export_import_round_trip_restores_chart_and_dataset(
     assert str(restored.uuid) == dataset_uuid
 
     reimported = db.session.query(Slice).filter_by(uuid=chart.uuid).one()
+    assert reimported.slice_name == "my_chart"
     assert reimported.datasource_id == restored.id
+
+
+@pytest.mark.usefixtures("permissive_security")
+def test_dashboard_filter_keeps_a_soft_deleted_dataset_through_import(
+    app_context: None,
+    chart_on_dataset: Slice,
+    mocker: MockerFixture,
+) -> None:
+    """A dashboard filter on a dataset in the trash keeps its target (#44309).
+
+    The filter's dataset lookup skipped the trash, so the export dropped the
+    target's ``datasetId`` without writing a ``datasetUuid``, and the imported
+    filter pointed at no dataset.
+    """
+    chart = chart_on_dataset
+    dataset = chart.table
+    target = {"datasetId": dataset.id, "column": {"name": "ds"}}
+    dashboard = Dashboard(
+        dashboard_title="my_dashboard",
+        slices=[chart],
+        json_metadata=json.dumps(
+            {"native_filter_configuration": [{"id": "F-1", "targets": [target]}]}
+        ),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+
+    DatasetDAO.delete([dataset])
+    db.session.flush()
+    _next_request()
+
+    contents = {
+        file_name: file_content()
+        for file_name, file_content in ExportDashboardsCommand([dashboard.id]).run()
+    }
+
+    dashboard_file = next(name for name in contents if name.startswith("dashboards/"))
+    exported = yaml.safe_load(contents[dashboard_file])["metadata"]
+    assert exported["native_filter_configuration"][0]["targets"] == [
+        {"datasetUuid": str(dataset.uuid), "column": {"name": "ds"}}
+    ]
+    assert len([name for name in contents if name.startswith("datasets/")]) == 1
+
+    # Drop the filter, so it only comes back if the import writes it.
+    dashboard.json_metadata = json.dumps({})
+    db.session.flush()
+    mocker.patch(
+        "superset.commands.dashboard.importers.v1.get_default_viewers_for_current_user",
+        return_value=[],
+    )
+
+    ImportDashboardsCommand(contents, overwrite=True).run()
+    db.session.flush()
+
+    restored = db.session.query(SqlaTable).filter_by(uuid=dataset.uuid).one()
+    reimported = db.session.query(Dashboard).filter_by(uuid=dashboard.uuid).one()
+    imported = json.loads(reimported.json_metadata)["native_filter_configuration"]
+    assert imported[0]["targets"] == [
+        {"datasetId": restored.id, "column": {"name": "ds"}}
+    ]
 
 
 @pytest.mark.usefixtures("permissive_security")
