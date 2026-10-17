@@ -737,6 +737,13 @@ async def _get_chart_data(  # noqa: C901
             # Use the chart's saved query_context - this is the key!
             # The query_context contains all the information needed to reproduce
             # the chart's data exactly as shown in the visualization
+            #
+            # Without one, the fallback below builds a generic query from
+            # form_data and skips the frontend's buildQuery logic, so the
+            # numbers can diverge from the chart. That is surfaced in the
+            # response's ``insights`` as well as via ctx.warning, which is an
+            # MCP log notification and does not reach the client's tool result.
+            query_context_accuracy_warning: str | None = None
             query_context_json = None
             if using_unsaved_state and cached_form_data_dict is not None:
                 form_data = cached_form_data_dict
@@ -804,6 +811,15 @@ async def _get_chart_data(  # noqa: C901
                 await ctx.debug(
                     "Built query_context from cached form_data (unsaved state)"
                 )
+                # Cached (unsaved) form_data has no query_context of its own,
+                # so this always goes through the same buildQuery-skipping
+                # fallback as the no-saved-query_context case below.
+                query_context_accuracy_warning = (
+                    "Querying unsaved form_data (form_data_key), which has no "
+                    "query_context. Data may not match the chart visualization "
+                    "exactly."
+                )
+                await ctx.warning(query_context_accuracy_warning)
             elif chart_query_context:
                 try:
                     query_context_json = utils_json.loads(chart_query_context)
@@ -829,11 +845,14 @@ async def _get_chart_data(  # noqa: C901
             if query_context_json is None and not using_unsaved_state:
                 # Fallback: Chart has no saved query_context
                 # This can happen with older charts that haven't been re-saved
-                await ctx.warning(
+                query_context_accuracy_warning = (
                     "Chart has no saved query_context. "
                     "Data may not match the chart visualization exactly. "
-                    "Consider re-saving the chart to enable full data retrieval."
+                    "Open and save the chart in Explore to enable full data "
+                    "retrieval; saving it via an MCP tool does not store a "
+                    "query_context."
                 )
+                await ctx.warning(query_context_accuracy_warning)
                 # Try to construct from form_data as a fallback
                 effective_form_data = canonicalize_operation_form_data(
                     effective_form_data,
@@ -1087,6 +1106,8 @@ async def _get_chart_data(  # noqa: C901
 
             # Generate insights and recommendations
             insights = []
+            if query_context_accuracy_warning:
+                insights.append(query_context_accuracy_warning)
             if len(data) > 100:
                 insights.append(
                     "Large dataset - consider filtering for better performance"
@@ -1174,6 +1195,7 @@ async def _get_chart_data(  # noqa: C901
                         raw_columns,
                         cache_status,
                         performance,
+                        query_context_accuracy_warning=query_context_accuracy_warning,
                     )
             elif request.format == "excel":
                 with event_logger.log_context(
@@ -1186,6 +1208,7 @@ async def _get_chart_data(  # noqa: C901
                         cache_status,
                         performance,
                         _temporal_result_columns(query_result),
+                        query_context_accuracy_warning=query_context_accuracy_warning,
                     )
 
             await ctx.report_progress(4, 4, "Building response")
@@ -1349,6 +1372,13 @@ async def _query_from_form_data(  # noqa: C901
     form_data = _non_paginated_request_form_data(form_data, request, row_limit)
     viz_type = form_data.get("viz_type", "unknown")
     effective_force = _compute_effective_force(request)
+    # Cached form_data has no query_context of its own, so this path always
+    # goes through the buildQuery-skipping fallback.
+    query_context_accuracy_warning = (
+        "Querying unsaved form_data (form_data_key), which has no "
+        "query_context. Data may not match the chart visualization "
+        "exactly."
+    )
 
     try:
         query_context = build_query_context_from_form_data(
@@ -1359,6 +1389,7 @@ async def _query_from_form_data(  # noqa: C901
             force=effective_force,
             custom_cache_timeout=request.cache_timeout,
         )
+        await ctx.warning(query_context_accuracy_warning)
 
         await ctx.report_progress(3, 4, "Executing data query")
         set_query_context_form_data(query_context, datasource_id, datasource_type)
@@ -1447,7 +1478,12 @@ async def _query_from_form_data(  # noqa: C901
         unsaved_chart = _ChartFacts(0, chart_name, viz_type)
         if request.format == "csv":
             return _export_data_as_csv(
-                unsaved_chart, limited_data, raw_columns, cache_status, performance
+                unsaved_chart,
+                limited_data,
+                raw_columns,
+                cache_status,
+                performance,
+                query_context_accuracy_warning=query_context_accuracy_warning,
             )
         if request.format == "excel":
             return _export_data_as_excel(
@@ -1457,6 +1493,7 @@ async def _query_from_form_data(  # noqa: C901
                 cache_status,
                 performance,
                 _temporal_result_columns(query_result),
+                query_context_accuracy_warning=query_context_accuracy_warning,
             )
 
         await ctx.report_progress(4, 4, "Building response")
@@ -1473,7 +1510,10 @@ async def _query_from_form_data(  # noqa: C901
             row_count=len(data),
             total_rows=query_result.get("rowcount"),
             summary=summary,
-            insights=["This is an unsaved chart queried from cached form_data."],
+            insights=[
+                query_context_accuracy_warning,
+                "This is an unsaved chart queried from cached form_data.",
+            ],
             data_quality=format_data_quality(columns, len(data)),
             recommended_visualizations=[],
             data_freshness=None,
@@ -1508,6 +1548,8 @@ def _export_data_as_csv(
     columns: List[str],
     cache_status: Any,
     performance: Any,
+    *,
+    query_context_accuracy_warning: str | None = None,
 ) -> "ChartData | ChartError":
     """Export chart data as CSV format."""
     import csv
@@ -1535,6 +1577,10 @@ def _export_data_as_csv(
     # Return as ChartData with CSV content in a special field
     from superset.mcp_service.chart.schemas import ChartData
 
+    insights = [f"Data exported as CSV format ({len(csv_content)} characters)"]
+    if query_context_accuracy_warning:
+        insights.insert(0, query_context_accuracy_warning)
+
     response = ChartData(
         chart_id=chart.id,
         chart_name=chart.slice_name or f"Chart {chart.id}",
@@ -1544,7 +1590,7 @@ def _export_data_as_csv(
         row_count=len(data),
         total_rows=len(data),
         summary=f"CSV export of chart '{chart.slice_name}' with {len(data)} rows",
-        insights=[f"Data exported as CSV format ({len(csv_content)} characters)"],
+        insights=insights,
         data_quality={},
         recommended_visualizations=[],
         data_freshness=None,
@@ -1564,6 +1610,8 @@ def _export_data_as_excel(
     cache_status: Any,
     performance: Any,
     temporal_columns: frozenset[str] = frozenset(),
+    *,
+    query_context_accuracy_warning: str | None = None,
 ) -> "ChartData | ChartError":
     """Export chart data as Excel format.
 
@@ -1573,11 +1621,22 @@ def _export_data_as_excel(
     try:
         excel_b64 = _create_excel_with_openpyxl(chart, data, columns, temporal_columns)
         return _create_excel_chart_data(
-            chart, data, excel_b64, performance, cache_status
+            chart,
+            data,
+            excel_b64,
+            performance,
+            cache_status,
+            query_context_accuracy_warning=query_context_accuracy_warning,
         )
     except ImportError:
         return _try_xlsxwriter_fallback(
-            chart, data, columns, cache_status, performance, temporal_columns
+            chart,
+            data,
+            columns,
+            cache_status,
+            performance,
+            temporal_columns,
+            query_context_accuracy_warning=query_context_accuracy_warning,
         )
 
 
@@ -1725,6 +1784,8 @@ def _try_xlsxwriter_fallback(
     cache_status: Any,
     performance: Any,
     temporal_columns: frozenset[str] = frozenset(),
+    *,
+    query_context_accuracy_warning: str | None = None,
 ) -> "ChartData | ChartError":
     """Try xlsxwriter as fallback for Excel export."""
     try:
@@ -1732,7 +1793,12 @@ def _try_xlsxwriter_fallback(
             chart, data, columns, temporal_columns
         )
         return _create_excel_chart_data_xlsxwriter(
-            chart, data, excel_b64, performance, cache_status
+            chart,
+            data,
+            excel_b64,
+            performance,
+            cache_status,
+            query_context_accuracy_warning=query_context_accuracy_warning,
         )
     except ImportError:
         from superset.mcp_service.chart.schemas import ChartError
@@ -1813,12 +1879,18 @@ def _create_excel_chart_data(
     excel_b64: str,
     performance: Any,
     cache_status: Any,
+    *,
+    query_context_accuracy_warning: str | None = None,
 ) -> "ChartData | ChartError":
     """Create ChartData response for Excel export (openpyxl)."""
     from superset.mcp_service.chart.schemas import ChartData
 
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
+
+    insights = ["Data exported as Excel format (base64 encoded)"]
+    if query_context_accuracy_warning:
+        insights.insert(0, query_context_accuracy_warning)
 
     response = ChartData(
         chart_id=chart.id,
@@ -1829,7 +1901,7 @@ def _create_excel_chart_data(
         row_count=len(data),
         total_rows=len(data),
         summary=summary,
-        insights=["Data exported as Excel format (base64 encoded)"],
+        insights=insights,
         data_quality={},
         recommended_visualizations=[],
         data_freshness=None,
@@ -1847,12 +1919,18 @@ def _create_excel_chart_data_xlsxwriter(
     excel_b64: str,
     performance: Any,
     cache_status: Any,
+    *,
+    query_context_accuracy_warning: str | None = None,
 ) -> "ChartData | ChartError":
     """Create ChartData response for Excel export (xlsxwriter)."""
     from superset.mcp_service.chart.schemas import ChartData
 
     chart_name = chart.slice_name or f"Chart {chart.id}"
     summary = f"Excel export of chart '{chart.slice_name}' with {len(data)} rows"
+
+    insights = ["Data exported as Excel format (base64 encoded, xlsxwriter)"]
+    if query_context_accuracy_warning:
+        insights.insert(0, query_context_accuracy_warning)
 
     response = ChartData(
         chart_id=chart.id,
@@ -1863,7 +1941,7 @@ def _create_excel_chart_data_xlsxwriter(
         row_count=len(data),
         total_rows=len(data),
         summary=summary,
-        insights=["Data exported as Excel format (base64 encoded, xlsxwriter)"],
+        insights=insights,
         data_quality={},
         recommended_visualizations=[],
         data_freshness=None,
