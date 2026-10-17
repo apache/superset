@@ -75,13 +75,10 @@ test('shows loading state during initial data fetch', () => {
     setTimeout(() => resolve({ result: [], count: 0 }), 10000),
   );
   fetchMock.removeRoutes({
-    names: [
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    ],
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASETS],
   });
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
 
   renderDatasetList(mockAdminUser);
 
@@ -98,13 +95,10 @@ test('maintains component structure during loading', () => {
     setTimeout(() => resolve({ result: [], count: 0 }), 10000),
   );
   fetchMock.removeRoutes({
-    names: [
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    ],
+    names: [API_ENDPOINTS.DATASETS, API_ENDPOINTS.DATASETS],
   });
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
-  fetchMock.get(API_ENDPOINTS.DATASOURCE_COMBINED, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
+  fetchMock.get(API_ENDPOINTS.DATASETS, delayedResponse);
 
   renderDatasetList(mockAdminUser);
 
@@ -262,9 +256,7 @@ test('makes correct initial API call on load', async () => {
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(0);
   });
 });
@@ -273,9 +265,7 @@ test('API call includes correct page size', async () => {
   renderDatasetList(mockAdminUser);
 
   await waitFor(() => {
-    const calls = fetchMock.callHistory.calls(
-      API_ENDPOINTS.DATASOURCE_COMBINED,
-    );
+    const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
     expect(calls.length).toBeGreaterThan(0);
     const { url } = calls[0];
     expect(url).toContain('page_size');
@@ -290,7 +280,7 @@ test('typing in name filter updates input value and triggers API with decoded se
 
   // Record initial API calls
   const initialCallCount = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
+    API_ENDPOINTS.DATASETS,
   ).length;
 
   // Type in search box and press Enter to trigger search
@@ -304,9 +294,7 @@ test('typing in name filter updates input value and triggers API with decoded se
   // Wait for API call after Enter key press
   await waitFor(
     () => {
-      const calls = fetchMock.callHistory.calls(
-        API_ENDPOINTS.DATASOURCE_COMBINED,
-      );
+      const calls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
       expect(calls.length).toBeGreaterThan(initialCallCount);
 
       // Get latest API call
@@ -426,9 +414,7 @@ test('component requires explicit mocks for all API endpoints', async () => {
   await waitForDatasetsPageReady();
 
   // Verify that critical endpoints were called and had mocks available
-  const newDatasetsCalls = fetchMock.callHistory.calls(
-    API_ENDPOINTS.DATASOURCE_COMBINED,
-  );
+  const newDatasetsCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS);
   const newInfoCalls = fetchMock.callHistory.calls(API_ENDPOINTS.DATASETS_INFO);
 
   // These should have been called during render
@@ -650,3 +636,154 @@ test.each([false, true])(
     }
   },
 );
+
+const listRequestUrls = (pattern: RegExp) =>
+  fetchMock.callHistory
+    .calls()
+    .map(call => call.url)
+    .filter(url => pattern.test(url));
+
+test('lists datasets through the dataset API when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser);
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  expect(listRequestUrls(/\/api\/v1\/datasource\/\?q=/)).toHaveLength(0);
+});
+
+test('lists datasets through the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    await waitFor(() => {
+      expect(
+        listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+const lastRequestQuery = (pattern: RegExp) => {
+  const urls = listRequestUrls(pattern);
+  const url = urls[urls.length - 1];
+  const query = new URL(url, 'http://localhost').searchParams.get('q');
+  return rison.decode(query!) as {
+    filters?: RisonFilter[];
+    order_column?: string;
+    order_direction?: string;
+  };
+};
+
+test('name filter reaches the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    const searchContainer = await screen.findByTestId(
+      'search-filter-container',
+    );
+    const searchInput = within(searchContainer).getByRole('textbox');
+    await userEvent.type(searchInput, 'sales{enter}');
+
+    await waitFor(
+      () => {
+        const { filters = [] } = lastRequestQuery(
+          /\/api\/v1\/datasource\/\?q=/,
+        );
+        expect(
+          filters.some(
+            filter =>
+              filter.col === 'table_name' &&
+              filter.opr === 'ct' &&
+              filter.value === 'sales',
+          ),
+        ).toBe(true);
+      },
+      { timeout: 5000 },
+    );
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+test('sorting reaches the combined datasource API when semantic layers are on', async () => {
+  window.featureFlags = { SEMANTIC_LAYERS: true } as never;
+  try {
+    renderDatasetList(mockAdminUser);
+
+    const table = await screen.findByTestId('listview-table');
+    const nameHeader = within(table).getByRole('columnheader', {
+      name: /Name/i,
+    });
+    await waitFor(() => {
+      expect(
+        listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+      ).toBeGreaterThan(0);
+    });
+    const callsBeforeSort = listRequestUrls(
+      /\/api\/v1\/datasource\/\?q=/,
+    ).length;
+
+    await userEvent.click(nameHeader);
+
+    await waitFor(
+      () => {
+        expect(
+          listRequestUrls(/\/api\/v1\/datasource\/\?q=/).length,
+        ).toBeGreaterThan(callsBeforeSort);
+        expect(
+          lastRequestQuery(/\/api\/v1\/datasource\/\?q=/).order_column,
+        ).toBe('table_name');
+      },
+      { timeout: 5000 },
+    );
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/)).toHaveLength(0);
+  } finally {
+    window.featureFlags = {} as never;
+  }
+});
+
+test('a saved Source = Semantic layer is not sent to the dataset API when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser, {}, {}, [
+    "/?filters=(source_type:(label:'Semantic layer',value:semantic_layer))",
+  ]);
+
+  await waitFor(() => {
+    expect(listRequestUrls(/\/api\/v1\/dataset\/\?q=/).length).toBeGreaterThan(
+      0,
+    );
+  });
+  const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+  // /api/v1/dataset/ rejects source_type, so a leftover value would leave the
+  // list in an error state with no Source control to clear it.
+  expect(filters.map(filter => filter.col)).not.toContain('source_type');
+  expect(listRequestUrls(/source_type/)).toHaveLength(0);
+});
+
+test('a saved semantic-layer connection is dropped when semantic layers are off', async () => {
+  renderDatasetList(mockAdminUser, {}, {}, [
+    "/?filters=(database:(label:'Warehouse layer',value:'sl:layer-uuid-1'))",
+  ]);
+
+  await waitFor(() => {
+    const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+    expect(filters.map(filter => filter.col)).not.toContain(
+      'semantic_layer_uuid',
+    );
+  });
+  // The stale connection is cleared from the filter state too, so it neither
+  // lingers in the filter bar nor is re-sent by the next refetch.
+  await waitFor(() => {
+    const { filters = [] } = lastRequestQuery(/\/api\/v1\/dataset\/\?q=/);
+    expect(filters.map(filter => filter.col)).not.toContain('database');
+  });
+  expect(listRequestUrls(/semantic_layer_uuid/)).toHaveLength(0);
+});
