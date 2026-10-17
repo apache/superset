@@ -197,6 +197,58 @@ describe('useTables hook', () => {
     expect(result.current.data).toEqual(expectedHasMoreData);
   });
 
+  test('fetches tables separately for catalogs with the same schema', async () => {
+    const dbId = 'db1';
+    const schema = 'main';
+    const tableApiRoute = `glob:*/api/v1/database/${dbId}/tables/?q=*`;
+    const firstResult = {
+      count: 1,
+      result: [
+        {
+          value: 'demo.metrics.main.download_session',
+          label: 'demo.metrics.main.download_session',
+          type: 'table',
+        },
+      ],
+    };
+    const secondResult = {
+      count: 1,
+      result: [
+        {
+          value: 'shared.main.thumb_report',
+          label: 'shared.main.thumb_report',
+          type: 'table',
+        },
+      ],
+    };
+    fetchMock.get(tableApiRoute, ({ url }) =>
+      url.includes('shared') ? secondResult : firstResult,
+    );
+    fetchMock.get(`glob:*/api/v1/database/${dbId}/schemas/*`, {
+      result: [schema],
+    });
+
+    const { result, rerender } = renderHook(
+      ({ catalog }) => useTables({ dbId, catalog, schema }),
+      {
+        initialProps: { catalog: 'demo%2Emetrics' },
+        wrapper: createWrapper({ useRedux: true, store }),
+      },
+    );
+    await waitFor(() =>
+      expect(result.current.data?.options).toEqual(firstResult.result),
+    );
+    expect(fetchMock.callHistory.calls(tableApiRoute)[0].url).toContain(
+      'demo%252Emetrics',
+    );
+
+    rerender({ catalog: 'shared' });
+    await waitFor(() =>
+      expect(result.current.data?.options).toEqual(secondResult.result),
+    );
+    expect(fetchMock.callHistory.calls(tableApiRoute).length).toBe(2);
+  });
+
   test('returns cached data without api request', async () => {
     const expectDbId = 'db1';
     const expectedSchema = 'schema1';

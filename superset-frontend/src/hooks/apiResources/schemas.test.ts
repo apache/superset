@@ -330,10 +330,10 @@ describe('useSchemas hook', () => {
 
   test('returns correct schema list by a catalog', async () => {
     const dbId = '1';
-    const expectCatalog = 'catalog3';
+    const expectCatalog = 'demo%2Emetrics';
     const schemaApiRoute = `glob:*/api/v1/database/*/schemas/*`;
     fetchMock.get(schemaApiRoute, ({ url }) =>
-      url.includes(`catalog:${expectCatalog}`)
+      url.includes(`catalog:demo%252Emetrics`)
         ? fakeApiResult3
         : fakeApiResult2,
     );
