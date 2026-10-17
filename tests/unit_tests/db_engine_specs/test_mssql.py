@@ -278,6 +278,7 @@ Unable to connect: Adaptive Server is unavailable or does not exist (localhost_)
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["host"],
                 "issue_codes": [
                     {
                         "code": 1007,
@@ -308,6 +309,7 @@ Net-Lib error during Connection refused (61)
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["host", "port"],
                 "issue_codes": [
                     {"code": 1008, "message": "Issue 1008 - The port is closed."}
                 ],
@@ -338,6 +340,7 @@ Net-Lib error during Operation timed out (60)
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["host", "port"],
                 "issue_codes": [
                     {
                         "code": 1009,
@@ -371,6 +374,7 @@ Net-Lib error during Operation timed out (60)
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["host", "port"],
                 "issue_codes": [
                     {
                         "code": 1009,
@@ -396,11 +400,12 @@ Adaptive Server connection failed (mssqldb.cxiotftzsypc.us-west-2.rds.amazonaws.
     )
     assert result == [
         SupersetError(
-            message='Either the username "testuser", password, or database name "testdb" is incorrect.',  # noqa: E501
+            message='Either the username "testuser" or the password is incorrect.',
             error_type=SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
             level=ErrorLevel.ERROR,
             extra={
                 "engine_name": "Microsoft SQL Server",
+                "invalid": ["username", "password"],
                 "issue_codes": [
                     {
                         "code": 1014,
@@ -879,3 +884,339 @@ def test_get_catalog_from_engine_params_empty_database_query_param_falls_back_to
     )
     assert "database" not in url.query
     assert MssqlEngineSpec.get_catalog_from_engine_params(url, {}) == "path_db"
+
+
+def _basic_parameters(**overrides: Any) -> dict[str, Any]:
+    parameters: dict[str, Any] = {
+        "username": "user",
+        "password": "password",
+        "host": "localhost",
+        "port": 1433,
+        "database": "db",
+        "query": {},
+    }
+    parameters.update(overrides)
+    return parameters
+
+
+def test_mssql_supports_dynamic_form() -> None:
+    """
+    DB Eng Specs (mssql): ``MssqlEngineSpec`` opts into the dynamic connection
+    form via ``BasicParametersMixin``, exposing a parameters schema and the
+    recommended pymssql driver.
+    """
+    from superset.db_engine_specs.base import BasicParametersMixin
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert issubclass(MssqlEngineSpec, BasicParametersMixin)
+    assert MssqlEngineSpec.default_driver == "pymssql"
+    assert MssqlEngineSpec.parameters_json_schema() is not None
+
+
+def test_build_sqlalchemy_uri_uses_pymssql_driver() -> None:
+    """
+    DB Eng Specs (mssql): ``build_sqlalchemy_uri`` produces a
+    ``mssql+pymssql://user:pass@host:port/db`` URI from the dynamic form
+    parameters.
+    """
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    uri = MssqlEngineSpec.build_sqlalchemy_uri(_basic_parameters())  # type: ignore[arg-type]
+
+    assert uri == "mssql+pymssql://user:password@localhost:1433/db"
+    url = make_url(uri)
+    assert url.drivername == "mssql+pymssql"
+    assert url.username == "user"
+    assert url.password == "password"  # noqa: S105
+    assert url.host == "localhost"
+    assert url.port == 1433
+    assert url.database == "db"
+
+
+def test_get_parameters_from_uri_roundtrip() -> None:
+    """
+    DB Eng Specs (mssql): ``get_parameters_from_uri`` is the inverse of
+    ``build_sqlalchemy_uri`` for the standard host/port/user/password/database
+    parameters.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    parameters = MssqlEngineSpec.get_parameters_from_uri(
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+    assert parameters == {
+        "username": "user",
+        "password": "password",
+        "host": "localhost",
+        "port": 1433,
+        "database": "db",
+        "query": {},
+    }
+
+
+def test_parameters_schema_has_no_encryption_toggle() -> None:
+    """
+    DB Eng Specs (mssql): pymssql has no URI-level encryption parameter, so the
+    parameters schema omits ``encryption`` and the dynamic form shows no SSL
+    toggle. Parameters read back from a URI load cleanly into the schema.
+    """
+    from marshmallow import ValidationError
+
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    schema = MssqlEngineSpec.parameters_json_schema()
+    assert "encryption" not in schema["properties"]
+    assert {"host", "port", "username", "password", "database"} <= set(
+        schema["properties"]
+    )
+
+    parameters = MssqlEngineSpec.get_parameters_from_uri(
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+    loaded = MssqlEngineSpec.parameters_schema.load(parameters)
+    assert MssqlEngineSpec.build_sqlalchemy_uri(loaded) == (
+        "mssql+pymssql://user:password@localhost:1433/db"
+    )
+
+    with pytest.raises(ValidationError):
+        MssqlEngineSpec.parameters_schema.load(_basic_parameters(encryption=True))
+
+
+def test_validate_parameters_reports_missing() -> None:
+    """
+    DB Eng Specs (mssql): ``validate_parameters`` flags missing mandatory
+    fields so the dynamic form can validate progressively.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    errors = MssqlEngineSpec.validate_parameters({"parameters": {}})
+    assert len(errors) == 1
+    error = errors[0]
+    assert error.error_type == SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR
+    assert error.extra is not None
+    assert set(error.extra["missing"]) == {"host", "port", "username", "database"}
+
+
+def test_azure_synapse_keeps_pyodbc_driver() -> None:
+    """
+    DB Eng Specs (mssql): ``AzureSynapseSpec`` keeps its own recommended pyodbc
+    driver and URI placeholder.
+    """
+    from superset.db_engine_specs.mssql import AzureSynapseSpec
+
+    assert AzureSynapseSpec.default_driver == "pyodbc"
+    assert AzureSynapseSpec.sqlalchemy_uri_placeholder.startswith("mssql+pyodbc://")
+
+
+@pytest.mark.parametrize(
+    "spec_path",
+    [
+        "superset.db_engine_specs.mssql.AzureSynapseSpec",
+        "superset.db_engine_specs.sybase.SybaseEngineSpec",
+    ],
+)
+def test_mssql_subclasses_stay_on_uri_form(spec_path: str) -> None:
+    """
+    DB Eng Specs (mssql): Azure Synapse and SAP ASE inherit from
+    ``MssqlEngineSpec`` but connect through ODBC, so they expose no parameters
+    schema and keep the SQLAlchemy URI form. A dynamic-form submission for the
+    ``mssql`` engine would otherwise build a pymssql URI for Synapse.
+    """
+    from importlib import import_module
+
+    module_name, class_name = spec_path.rsplit(".", 1)
+    spec = getattr(import_module(module_name), class_name)
+
+    assert spec.parameters_json_schema() is None
+
+
+def test_validate_parameters_rejects_named_instance_host() -> None:
+    """
+    DB Eng Specs (mssql): a ``host\\INSTANCE`` host gets an explanatory error on
+    the host field instead of an unresolvable-hostname error.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    errors = MssqlEngineSpec.validate_parameters(
+        {
+            "parameters": {
+                "host": "sqlserver.example.com\\SQLEXPRESS",
+                "port": 1433,
+                "username": "user",
+                "database": "db",
+            }
+        }
+    )
+
+    assert len(errors) == 1
+    error = errors[0]
+    assert error.error_type == SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR
+    assert error.extra is not None
+    assert error.extra["invalid"] == ["host"]
+    assert "Named instances" in error.message
+
+
+def test_connection_tuning_query_params_cannot_redirect() -> None:
+    """
+    DB Eng Specs (mssql): none of the query parameters that keep a stored
+    password reusable can change the destination or the login.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    assert "login_timeout" in MssqlEngineSpec.connection_tuning_query_params
+    assert not MssqlEngineSpec.connection_tuning_query_params & {
+        "host",
+        "server",
+        "port",
+        "user",
+        "password",
+        "database",
+        "odbc_connect",
+        "driver",
+        "encrypt",
+        "trustservercertificate",
+    }
+
+
+# Messages raised by pymssql 2.4.1 (bundled FreeTDS) against SQL Server 2022, as
+# rendered by ``str()`` on the SQLAlchemy exception (followed by its
+# ``SQLALCHEMY_BACKGROUND`` suffix in the test).
+SQLALCHEMY_BACKGROUND = "\n(Background on this error at: https://sqlalche.me/e/20/e3q8)"
+PYMSSQL_LOGIN_FAILED = (
+    '(pymssql.exceptions.OperationalError) (18456, b"Login failed for user '
+    "'sa'.DB-Lib error message 20018, severity 14:\\nGeneral SQL Server error: "
+    "Check messages from the SQL Server\\nDB-Lib error message 20002, severity "
+    "9:\\nTDS server connection failed (localhost)\\nDB-Lib error message 20002, "
+    'severity 9:\\nTDS server connection failed (localhost)\\n")'
+)
+PYMSSQL_UNKNOWN_USER = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20018, "
+    "severity 14:\\nGeneral SQL Server error: Check messages from the SQL Server"
+    "\\nDB-Lib error message 20002, severity 9:\\nTDS server connection failed "
+    "(localhost)\\nDB-Lib error message 20002, severity 9:\\nTDS server "
+    "connection failed (localhost)\\n')"
+)
+PYMSSQL_UNKNOWN_DATABASE = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20018, "
+    "severity 11:\\nGeneral SQL Server error: Check messages from the SQL Server"
+    "\\nDB-Lib error message 20018, severity 14:\\nGeneral SQL Server error: "
+    "Check messages from the SQL Server\\nDB-Lib error message 20002, severity "
+    "9:\\nTDS server connection failed (localhost)\\nDB-Lib error message 20002, "
+    "severity 9:\\nTDS server connection failed (localhost)\\n')"
+)
+PYMSSQL_PORT_CLOSED = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20009, "
+    "severity 9:\\nUnable to connect: TDS server is unavailable or does not "
+    "exist (localhost)\\nNet-Lib error during Connection refused (111)\\nDB-Lib "
+    "error message 20009, severity 9:\\nUnable to connect: TDS server is "
+    "unavailable or does not exist (localhost)\\nNet-Lib error during "
+    "Connection refused (111)\\n')"
+)
+PYMSSQL_INVALID_HOSTNAME = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20009, "
+    "severity 9:\\nUnable to connect: TDS server is unavailable or does not "
+    "exist (nonexistent.invalid)\\n')"
+)
+PYMSSQL_HOST_DOWN = (
+    "(pymssql.exceptions.OperationalError) (18456, b'DB-Lib error message 20009, "
+    "severity 9:\\nUnable to connect: TDS server is unavailable or does not "
+    "exist (10.255.255.1)\\nNet-Lib error during Connection timed out (110)\\n"
+    "DB-Lib error message 20009, severity 9:\\nUnable to connect: TDS server is "
+    "unavailable or does not exist (10.255.255.1)\\nNet-Lib error during "
+    "Connection timed out (110)\\n')"
+)
+PYODBC_UNKNOWN_DATABASE = (
+    "(pyodbc.InterfaceError) ('28000', '[28000] [Microsoft][ODBC Driver 18 for "
+    'SQL Server][SQL Server]Cannot open database "nodb" requested by the '
+    "login. The login failed. (4060) (SQLDriverConnect); [28000] [Microsoft]"
+    "[ODBC Driver 18 for SQL Server][SQL Server]Login failed for user 'sa'. "
+    "(18456)')"
+)
+PYODBC_LOGIN_FAILED = (
+    "(pyodbc.InterfaceError) ('28000', \"[28000] [Microsoft][ODBC Driver 18 for "
+    "SQL Server][SQL Server]Login failed for user 'sa'. (18456) "
+    '(SQLDriverConnect)")'
+)
+
+
+@pytest.mark.parametrize(
+    "raw_message, error_type, message, invalid",
+    [
+        (
+            PYMSSQL_LOGIN_FAILED,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            'Either the username "sa" or the password is incorrect.',
+            ["username", "password"],
+        ),
+        (
+            PYMSSQL_UNKNOWN_USER,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            'Either the username "sa" or the password is incorrect.',
+            ["username", "password"],
+        ),
+        (
+            PYMSSQL_UNKNOWN_DATABASE,
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            'Unable to connect to database "nodb".',
+            ["database"],
+        ),
+        (
+            PYMSSQL_PORT_CLOSED,
+            SupersetErrorType.CONNECTION_PORT_CLOSED_ERROR,
+            'Port 1433 on hostname "localhost" refused the connection.',
+            ["host", "port"],
+        ),
+        (
+            PYMSSQL_INVALID_HOSTNAME,
+            SupersetErrorType.CONNECTION_INVALID_HOSTNAME_ERROR,
+            'The hostname "nonexistent.invalid" cannot be resolved.',
+            ["host"],
+        ),
+        (
+            PYMSSQL_HOST_DOWN,
+            SupersetErrorType.CONNECTION_HOST_DOWN_ERROR,
+            'The host "localhost" might be down, and can\'t be reached on port 1433.',
+            ["host", "port"],
+        ),
+        (
+            PYODBC_UNKNOWN_DATABASE,
+            SupersetErrorType.CONNECTION_UNKNOWN_DATABASE_ERROR,
+            'Unable to connect to database "nodb".',
+            ["database"],
+        ),
+        (
+            PYODBC_LOGIN_FAILED,
+            SupersetErrorType.CONNECTION_ACCESS_DENIED_ERROR,
+            'Either the username "sa" or the password is incorrect.',
+            ["username", "password"],
+        ),
+    ],
+)
+def test_extract_errors_pymssql_2_4(
+    raw_message: str,
+    error_type: SupersetErrorType,
+    message: str,
+    invalid: list[str],
+) -> None:
+    """
+    Connection errors from current pymssql/FreeTDS (and pyodbc) builds are
+    mapped to field-level errors that the connection form can highlight.
+    """
+    from superset.db_engine_specs.mssql import MssqlEngineSpec
+
+    context = {
+        "username": "sa",
+        "database": "nodb",
+        "hostname": "localhost",
+        "port": 1433,
+    }
+    (error,) = MssqlEngineSpec.extract_errors(
+        Exception(raw_message + SQLALCHEMY_BACKGROUND), context
+    )
+
+    assert error.error_type == error_type
+    assert error.message == message
+    assert error.extra is not None
+    assert error.extra["invalid"] == invalid
