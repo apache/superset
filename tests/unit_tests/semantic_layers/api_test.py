@@ -3032,7 +3032,7 @@ def test_semantic_layer_runtime_schema_flag_off_unwrapped() -> None:
 @SEMANTIC_LAYERS_APP
 @pytest.mark.parametrize("operation", ["create", "update"])
 @pytest.mark.parametrize(
-    "failure", ["discriminator", "custom_validator", "provider_runtime"]
+    "failure", ["discriminator", "custom_validator", "validator_runtime"]
 )
 def test_layer_validation_does_not_expose_secrets(
     client: FlaskClient,
@@ -3086,13 +3086,15 @@ def test_layer_validation_does_not_expose_secrets(
     provider: MagicMock = MagicMock()
 
     def validate_provider(configuration: dict[str, Any]) -> Configuration:
-        """Model a provider exposing configuration in a non-Pydantic exception."""
-        if failure == "provider_runtime":
+        """Model a validator exposing configuration in a non-Pydantic exception."""
+        if failure == "validator_runtime":
             raise RuntimeError(f"bad {configuration}")
         return Configuration.model_validate(configuration)
 
     provider.__name__ = "ValidationTestProvider"
-    provider.from_configuration.configure_mock(side_effect=validate_provider)
+    provider.configuration_class.model_validate.configure_mock(
+        side_effect=validate_provider
+    )
     mocker.patch.dict(
         f"superset.commands.semantic_layer.{operation}.registry",
         {"validation_test": provider},
@@ -3114,11 +3116,17 @@ def test_layer_validation_does_not_expose_secrets(
         payload["type"] = "validation_test"
         response = client.post("/api/v1/semantic_layer/", json=payload)
 
-    assert provider.from_configuration.call_args.args[0]["auth"]["password"] == secret
+    provider.from_configuration.assert_not_called()
+    assert (
+        provider.configuration_class.model_validate.call_args.args[0]["auth"][
+            "password"
+        ]
+        == secret
+    )
     assert response.status_code == 422
     assert secret not in response.get_data(as_text=True)
     assert secret not in caplog.text
-    if failure == "provider_runtime":
+    if failure == "validator_runtime":
         assert "ValidationTestProvider" in caplog.text
         assert "RuntimeError" in caplog.text
         assert "bad " not in caplog.text
@@ -3135,11 +3143,11 @@ def test_layer_validation_does_not_expose_secrets(
     )
     expected_message: str = (
         "Provider rejected the configuration"
-        if failure == "provider_runtime"
+        if failure == "validator_runtime"
         else f"Invalid configuration: {expected_detail}"
     )
     assert response.json == {"message": expected_message}
-    if failure == "provider_runtime":
+    if failure == "validator_runtime":
         from superset.commands.semantic_layer.exceptions import (
             SemanticLayerInvalidError,
         )
@@ -3147,7 +3155,7 @@ def test_layer_validation_does_not_expose_secrets(
 
         with pytest.raises(SemanticLayerInvalidError) as exc_info:
             validate_configuration(
-                provider, provider.from_configuration.call_args.args[0]
+                provider, provider.configuration_class.model_validate.call_args.args[0]
             )
         assert exc_info.value.__cause__ is None
         assert exc_info.value.__suppress_context__ is True
@@ -3203,7 +3211,9 @@ def test_put_rejects_empty_or_reordered_masked_configuration(
             }
         }
     }
-    provider.from_configuration.side_effect = ValueError("credentials required")
+    provider.configuration_class.model_validate.side_effect = ValueError(
+        "credentials required"
+    )
     mocker.patch.dict(
         "superset.commands.semantic_layer.update.registry", {"test_provider": provider}
     )
@@ -3214,9 +3224,9 @@ def test_put_rejects_empty_or_reordered_masked_configuration(
     assert "SECRET-" not in response.get_data(as_text=True)
     if configuration:
         assert "Submit explicit credentials" in response.json["message"]
-        provider.from_configuration.assert_not_called()
+        provider.configuration_class.model_validate.assert_not_called()
     else:
-        provider.from_configuration.assert_called_once_with({})
+        provider.configuration_class.model_validate.assert_called_once_with({})
     dao.update.assert_not_called()
 
 
@@ -3272,7 +3282,7 @@ def test_put_masked_list_secret_replacements_are_not_an_equality_oracle(
     )
     assert response.status_code == 200
     assert response.json == {"result": {"uuid": str(layer.uuid)}}
-    provider.from_configuration.assert_called_once_with(
+    provider.configuration_class.model_validate.assert_called_once_with(
         {"accounts": [{"host": "a", "password": "stored-password", "token": guess}]}
     )
     dao.update.assert_called_once()
