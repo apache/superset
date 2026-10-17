@@ -37,6 +37,7 @@ import {
   getNumberFormatter,
   getXAxisLabel,
   isDefined,
+  isAdhocMetricSimple,
   isEventAnnotationLayer,
   isFormulaAnnotationLayer,
   isIntervalAnnotationLayer,
@@ -56,6 +57,7 @@ import {
   getOriginalSeries,
   getTimeOffset,
   isDerivedSeries,
+  SortSeriesType,
 } from '@superset-ui/chart-controls';
 import type { EChartsCoreOption } from 'echarts/core';
 import type {
@@ -99,6 +101,7 @@ import {
   getMinAndMaxFromBounds,
   getTemporalAxisTickConfig,
   resolveTemporalTickValues,
+  XAxisSortSeries,
 } from '../utils/series';
 import { resolveLegendLayout } from '../utils/legendLayout';
 import {
@@ -464,14 +467,67 @@ export default function transformProps(
       rebaseToPercentChange(forecastRebasedData, xAxisLabel || DTTM_ALIAS)
     : forecastRebasedData;
   const isHorizontal = orientation === OrientationType.Horizontal;
+  // With dimensions set, the pivot splits a metric into one
+  // `<metric>, <dimension values>` column per series. `label_map` lists each
+  // flattened column as `[metric, ...dimension values]`, so a metric's
+  // columns are resolved through it rather than by matching on the column
+  // name. A single-metric chart with `truncate_metric` drops the metric part
+  // from its value columns, which is fine: only sort-only metrics need
+  // resolving, and those always keep it.
+  // `label_map` is built from the cached DataFrame's final columns, after
+  // every post-processing operator (including Prophet) has run, so a
+  // forecast's `<metric>, <dims>__yhat`/`__yhat_lower`/`__yhat_upper`
+  // columns have the same `[metric, ...dims]` shape and would otherwise be
+  // mistaken for one of the metric's own pivoted columns. Those are excluded
+  // the same way they are hidden from the rendered series (see
+  // extractForecastSeriesContext usage above), so the sort key never
+  // depends on the forecast trend or confidence bounds.
+  const pivotedColumnsOf = (
+    metricLabel: string,
+    { includeForecast = false }: { includeForecast?: boolean } = {},
+  ): string[] =>
+    Object.entries(labelMap)
+      .filter(
+        ([column, parts]) =>
+          column !== metricLabel &&
+          // a metric-prefixed column carries the metric plus one part per
+          // dimension; a truncated dimension tuple has no metric part and
+          // must not be mistaken for one when a dimension value reads like
+          // the metric label
+          parts.length === groupBy.length + 1 &&
+          parts[0] === metricLabel &&
+          !derivedComparisonSeries.has(column) &&
+          (includeForecast ||
+            extractForecastSeriesContext(column).type ===
+              ForecastSeriesEnum.Observation),
+      )
+      .map(([column]) => column);
   // rebasedData's keys have already been through rebaseForecastDatum, which
   // renames a key to its verboseMap entry when one is configured for that
   // metric. extraMetricLabels must be mapped the same way, or a sort-only
   // metric with a verbose_name set would silently fail to match here (and in
-  // extractSeries below, which has the same requirement).
-  const extraMetricLabels = extractExtraMetrics(chartProps.rawFormData)
-    .map(getMetricLabel)
-    .map(label => verboseMap[label] ?? label);
+  // extractSeries below, which has the same requirement). The pivoted columns
+  // keep their raw names (verbose mapping only applies to an exact metric
+  // label), and must be excluded too so a sort-only metric is neither
+  // rendered as series nor counted in stacked totals.
+  // The scatter dot-size metric is also queried as an extra metric when it
+  // doubles as the sort target; it must stay in the extracted series so the
+  // size lookup can read it (it is hidden from rendering separately).
+  const sizeMetricLabel =
+    seriesType === EchartsTimeseriesSeriesType.Scatter && size
+      ? getMetricLabel(size)
+      : undefined;
+  const extraMetrics = extractExtraMetrics(chartProps.rawFormData);
+  const extraMetricLabels = extraMetrics.map(getMetricLabel).flatMap(label =>
+    label === sizeMetricLabel
+      ? []
+      : [
+          verboseMap[label] ?? label,
+          // forecast columns of a sort-only metric stay hidden too, even
+          // though the sort key itself ignores them
+          ...pivotedColumnsOf(label, { includeForecast: true }),
+        ],
+  );
   const { totalStackedValues, thresholdValues } = extractDataTotalValues(
     rebasedData,
     {
@@ -484,6 +540,95 @@ export default function transformProps(
   );
 
   const isMultiSeries = groupBy.length || metrics?.length > 1;
+  // `x_axis_sort` stores either a series aggregate (a `SortSeriesType`) or
+  // the label of the x-axis column or of a metric. A single-series chart is
+  // sorted by the backend sort operator; with several series the rows are
+  // ordered here instead: by axis value, by an aggregate over every series,
+  // or by the sum of the chosen metric's columns. The field is carried
+  // through as-is, so a column or metric that happens to be named like an
+  // aggregate is never guessed at.
+  const sortSeriesTypes = new Set<string>(Object.values(SortSeriesType));
+  const resolveXAxisSortSeries = (): XAxisSortSeries | undefined => {
+    if (!isMultiSeries || typeof xAxisSort !== 'string') {
+      return undefined;
+    }
+    if (sortSeriesTypes.has(xAxisSort)) {
+      return xAxisSort as SortSeriesType;
+    }
+    if (
+      xAxisSort === xAxisLabel ||
+      xAxisSort === getXAxisLabel(chartProps.rawFormData)
+    ) {
+      return SortSeriesType.Name;
+    }
+    const dataColumns = new Set(Object.keys(rebasedData[0] ?? {}));
+    // `truncate_metric` drops the metric label from its own pivoted columns
+    // when it is the sole displayed metric (see the comment on
+    // `pivotedColumnsOf`), so that lookup finds nothing when a chart's only
+    // metric is also the chosen sort target. With a single displayed metric,
+    // every remaining series column is that metric's own pivoted value, so
+    // fall back to summing them directly.
+    const soleValueMetricLabel = isMultiSeries
+      ? ensureIsArray(metrics).length === 1
+        ? getMetricLabel(ensureIsArray(metrics)[0])
+        : undefined
+      : undefined;
+    const isSoleValueMetricSort =
+      isDefined(soleValueMetricLabel) &&
+      (verboseMap[soleValueMetricLabel!] ?? soleValueMetricLabel) ===
+        (verboseMap[xAxisSort] ?? xAxisSort);
+    const truncatedMetricColumns =
+      isSoleValueMetricSort && !pivotedColumnsOf(xAxisSort).length
+        ? Object.keys(rebasedData[0] ?? {}).filter(
+            column =>
+              column !== xAxisLabel && !extraMetricLabels.includes(column),
+          )
+        : [];
+    const baseColumn = verboseMap[xAxisSort] ?? xAxisSort;
+    // A Difference/Percentage/Ratio comparison drops the metric's own base
+    // column (see the `compare` post-processing operator's
+    // `drop_original_columns`) and replaces it with one
+    // `<metric>, <offset>` column per configured offset (see
+    // renameOperator), so when that metric is also the sort target, its
+    // base column is gone from `dataColumns` and the renamed comparison
+    // column(s) have to be summed instead. Guarded on the base column being
+    // missing so an "actual values" comparison, which keeps it, is
+    // unaffected. Scoped to no dimensions: combining a dimension pivot with
+    // a comparison produces a column shape not accounted for here, a
+    // pre-existing limitation this does not attempt to fix.
+    const comparisonColumnsOf = (metricLabel: string): string[] =>
+      groupBy.length === 0 && !dataColumns.has(metricLabel)
+        ? ensureIsArray(timeCompare).map(offset => `${metricLabel}, ${offset}`)
+        : [];
+    const sumOfColumns = [
+      baseColumn,
+      ...pivotedColumnsOf(xAxisSort),
+      ...truncatedMetricColumns,
+      ...comparisonColumnsOf(baseColumn),
+    ].filter(column => dataColumns.has(column));
+    if (!sumOfColumns.length) {
+      return undefined;
+    }
+    // The ungrouped MIN/MAX of a metric equals the MIN/MAX of its
+    // per-dimension MIN/MAX values, the same way the ungrouped SUM equals
+    // the sum of its per-dimension sums, so a simple MIN/MAX metric rolls
+    // up the same way across the pivoted columns above. Other aggregates
+    // (AVG, COUNT DISTINCT, ...) are not decomposable this way from
+    // already-aggregated values and keep the Sum default (see
+    // XAxisSortBySumOfColumns), a known limitation for those.
+    const sortMetric = [...ensureIsArray(metrics), ...extraMetrics].find(
+      candidate => getMetricLabel(candidate) === xAxisSort,
+    );
+    const aggregation =
+      isAdhocMetricSimple(sortMetric) &&
+      (sortMetric.aggregate === 'MIN' || sortMetric.aggregate === 'MAX')
+        ? (SortSeriesType[
+            sortMetric.aggregate === 'MIN' ? 'Min' : 'Max'
+          ] as SortSeriesType)
+        : undefined;
+    return { sumOfColumns, ...(aggregation && { aggregation }) };
+  };
+  const xAxisSortSeries = resolveXAxisSortSeries();
   const rawXAxisDataType = dataTypes?.[xAxisLabel] ?? dataTypes?.[xAxisOrig];
 
   // A dashboard-level time grain override (e.g. via a filter or the temporal
@@ -558,19 +703,28 @@ export default function transformProps(
       isHorizontal,
       sortSeriesType,
       sortSeriesAscending,
-      xAxisSortSeries: isMultiSeries ? xAxisSort : undefined,
-      xAxisSortSeriesAscending: isMultiSeries ? xAxisSortAsc : undefined,
+      xAxisSortSeries,
+      xAxisSortSeriesAscending: isDefined(xAxisSortSeries)
+        ? xAxisSortAsc
+        : undefined,
       xAxisType,
     },
   );
+  // thresholdValues was computed from the pre-sort row order above; once
+  // xAxisSortSeries reorders the rows (sortedTotalValues carries that same
+  // permutation), a percentage-threshold label would otherwise be checked
+  // against another category's stacked total. Rederive it from the already
+  // correctly-permuted totals instead of re-sorting a second array in
+  // lockstep.
+  const sortedThresholdValues = isDefined(xAxisSortSeries)
+    ? sortedTotalValues.map(
+        total => ((percentageThreshold || 0) / 100) * (total ?? 0),
+      )
+    : thresholdValues;
 
   // Dot size by metric (scatter): the size metric's series are excluded from
   // rendering and instead provide per-point values that scale each marker's
   // area between minMarkerSize and maxMarkerSize.
-  const sizeMetricLabel =
-    seriesType === EchartsTimeseriesSeriesType.Scatter && size
-      ? getMetricLabel(size)
-      : undefined;
   const sizeSeriesLabel = isDefined(sizeMetricLabel)
     ? (verboseMap[sizeMetricLabel!] ?? sizeMetricLabel)
     : undefined;
@@ -1000,7 +1154,7 @@ export default function transformProps(
             : sortedTotalValues,
         showValueIndexes,
         stackGroup: seriesStackIds[seriesIdx],
-        thresholdValues,
+        thresholdValues: sortedThresholdValues,
         richTooltip,
         sliceId,
         isHorizontal,
