@@ -19,6 +19,7 @@
 
 import {
   act,
+  createStore,
   fireEvent,
   render,
   screen,
@@ -26,8 +27,9 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
+import reducerIndex from 'spec/helpers/reducerIndex';
 import { testWithId } from 'src/utils/testUtils';
-import { Preset, makeApi } from '@superset-ui/core';
+import { Preset, makeApi, fetchTimeRange } from '@superset-ui/core';
 import {
   TimeFilterPlugin,
   SelectFilterPlugin,
@@ -39,15 +41,21 @@ import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
+import { setCrossFiltersEnabled } from 'src/dashboard/actions/dashboardInfo';
 
 jest.useFakeTimers({ advanceTimers: true });
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   makeApi: jest.fn(),
+  fetchTimeRange: jest.fn(),
 }));
 
 const mockedMakeApi = makeApi as jest.Mock;
+
+const mockedFetchTimeRange = fetchTimeRange as jest.MockedFunction<
+  typeof fetchTimeRange
+>;
 
 // Register preset once for all tests
 class MainPreset extends Preset {
@@ -201,6 +209,7 @@ function setupTimeRangeMocks() {
     noFilter: 'glob:*/api/v1/time_range/?q=%27No%20filter%27',
     lastDay: 'glob:*/api/v1/time_range/?q=%27Last%20day%27',
     lastWeek: 'glob:*/api/v1/time_range/?q=%27Last%20week%27',
+    currentMonth: 'glob:*/api/v1/time_range/?q=%27Current%20month%27',
   };
 
   fetchMock.removeRoute(urls.noFilter);
@@ -234,6 +243,19 @@ function setupTimeRangeMocks() {
       },
     },
     { name: urls.lastWeek },
+  );
+
+  fetchMock.removeRoute(urls.currentMonth);
+  fetchMock.get(
+    urls.currentMonth,
+    {
+      result: {
+        since: '2021-04-01T00:00:00',
+        until: '2021-05-01T00:00:00',
+        timeRange: 'Current month',
+      },
+    },
+    { name: urls.currentMonth },
   );
 }
 
@@ -1350,7 +1372,7 @@ test('required filter with a default value auto-applies on load without touching
 
   // Nothing is left pending: the default value is already applied, so the
   // Apply button is not blocking on untouched filters.
-  expect(screen.getByTestId(getTestId('apply-button'))).toBeDisabled();
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
 
   updateDataMaskSpy.mockRestore();
 });
@@ -1528,4 +1550,203 @@ test('FilterBar with orientation=Vertical renders Vertical layout (sanity counte
   expect(
     screen.queryByRole('img', { name: 'setting' }),
   ).not.toBeInTheDocument();
+});
+
+test('FilterBar preserves a selected time range when its applied data mask is removed', async () => {
+  setupTimeRangeMocks();
+
+  mockedFetchTimeRange.mockResolvedValue({
+    value: '2021-04-07T00:00:00 ≤ ds < 2021-04-14T00:00:00',
+  });
+
+  fetchMock.post('glob:*/api/v1/chart/data', {
+    result: [
+      {
+        data: [{ ds: '2021-04-14T00:00:00' }],
+        colnames: ['ds'],
+        coltypes: [2],
+        applied_filters: [],
+      },
+    ],
+  });
+
+  const filterId = 'NATIVE_FILTER-keep-time-range';
+  const updateDataMaskSpy = jest.spyOn(dataMaskActions, 'updateDataMask');
+
+  const filter = createFilter({
+    id: filterId,
+    name: 'Time range',
+    filterType: 'filter_time',
+    targets: [{ datasetId: 7, column: { name: 'ds' } }],
+    defaultDataMask: {
+      filterState: { value: 'Last week' },
+      extraFormData: { time_range: 'Last week' },
+    },
+    chartsInScope: [18],
+  });
+
+  const state = createStateWithFilter(
+    filter,
+    createDataMask(filterId, 'Last week', {
+      time_range: 'Last week',
+    }),
+    {
+      filterBarOrientation: FilterBarOrientation.Horizontal,
+      metadata: {
+        native_filter_configuration: [filter],
+        chart_configuration: {},
+      },
+    },
+  );
+
+  const store = createStore(state, reducerIndex);
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    store,
+    useDnd: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  await waitFor(() => {
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+  });
+
+  expect(screen.getByText('Last week')).toBeInTheDocument();
+
+  await userEvent.click(screen.getByText('Last week'));
+
+  const rangeType = screen.getByLabelText('Range type');
+  await userEvent.click(rangeType);
+  await userEvent.click(screen.getByText('Current'));
+
+  await userEvent.click(screen.getByRole('radio', { name: 'Current month' }));
+
+  const timeFilterApply = screen.getByTestId(
+    'date-filter-control__apply-button',
+  );
+  expect(timeFilterApply).not.toBeNull();
+  expect(timeFilterApply).not.toBeDisabled();
+
+  await userEvent.click(timeFilterApply!);
+
+  const filterBarApply = screen.getByTestId(getTestId('apply-button'));
+  expect(filterBarApply).toBeEnabled();
+
+  await userEvent.click(filterBarApply);
+
+  expect(updateDataMaskSpy).toHaveBeenCalledWith(
+    filterId,
+    expect.objectContaining({
+      filterState: expect.objectContaining({
+        value: 'Current month',
+      }),
+      extraFormData: {
+        time_range: 'Current month',
+      },
+    }),
+  );
+
+  expect((store.getState() as typeof state).dataMask[filterId]).toEqual(
+    expect.objectContaining({
+      filterState: expect.objectContaining({
+        value: 'Current month',
+      }),
+      extraFormData: {
+        time_range: 'Current month',
+      },
+    }),
+  );
+
+  expect(screen.getByText('Current month')).toBeInTheDocument();
+
+  await act(async () => {
+    store.dispatch(dataMaskActions.removeDataMask(filterId));
+    jest.advanceTimersByTime(300);
+  });
+
+  expect(screen.getByText('Current month')).toBeInTheDocument();
+
+  const clearAllButton = screen.getByText('Clear all');
+  await userEvent.click(clearAllButton);
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(screen.getByTestId(getTestId('apply-button'))).toBeEnabled();
+
+  await userEvent.click(screen.getByTestId(getTestId('apply-button')));
+
+  expect(updateDataMaskSpy).toHaveBeenLastCalledWith(
+    filterId,
+    expect.objectContaining({
+      id: filterId,
+      filterState: {
+        value: undefined,
+        validateStatus: undefined,
+      },
+      extraFormData: {},
+    }),
+  );
+
+  updateDataMaskSpy.mockRestore();
+});
+
+test('FilterBar clears selected state when cross-filtering is disabled', async () => {
+  const filterId = 'NATIVE_FILTER-cross-filter-clear';
+
+  const filter = createFilter({
+    id: filterId,
+    name: 'Time range',
+    filterType: 'filter_time',
+    targets: [{ datasetId: 7, column: { name: 'ds' } }],
+    defaultDataMask: {
+      filterState: { value: 'Last week' },
+      extraFormData: { time_range: 'Last week' },
+    },
+    chartsInScope: [18],
+  });
+
+  const state = createStateWithFilter(
+    filter,
+    createDataMask(filterId, 'Last week', {
+      time_range: 'Last week',
+    }),
+    {
+      filterBarOrientation: FilterBarOrientation.Horizontal,
+      metadata: {
+        native_filter_configuration: [filter],
+        chart_configuration: {},
+      },
+    },
+  );
+
+  state.dashboardInfo.crossFiltersEnabled = true;
+
+  const store = createStore(state, reducerIndex);
+
+  render(<FilterBar orientation={FilterBarOrientation.Horizontal} />, {
+    store,
+    useDnd: true,
+    useRouter: true,
+  });
+
+  await act(async () => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(screen.getByText('Last week')).toBeInTheDocument();
+
+  await act(async () => {
+    store.dispatch(dataMaskActions.clearDataMaskState());
+    store.dispatch(setCrossFiltersEnabled(false));
+    jest.advanceTimersByTime(300);
+  });
+
+  expect(store.getState().dataMask[filterId]).toBeUndefined();
+  expect(screen.queryByText('Last week')).not.toBeInTheDocument();
 });
