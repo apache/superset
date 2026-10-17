@@ -90,6 +90,32 @@ _SET_DASH_METADATA_SPECIAL_KEYS = {
 }
 
 
+def _remap_native_filter_chart_ids(
+    metadata: dict[str, Any], id_map: dict[int, int]
+) -> None:
+    """Point native filter ``scope.excluded`` and ``chartsInScope`` at new charts.
+
+    Used when a dashboard is copied along with its charts. Left alone, these
+    ids keep referring to the original dashboard's charts, so the filters stop
+    applying to the duplicated ones once the copy is reloaded. Ids missing from
+    ``id_map`` belong to no chart on the copy and are dropped.
+    """
+    for native_filter in metadata.get("native_filter_configuration") or []:
+        if not isinstance(native_filter, dict):
+            continue
+        scope = native_filter.get("scope")
+        if isinstance(scope, dict) and scope.get("excluded"):
+            scope["excluded"] = [
+                id_map[chart_id] for chart_id in scope["excluded"] if chart_id in id_map
+            ]
+        if native_filter.get("chartsInScope"):
+            native_filter["chartsInScope"] = [
+                id_map[chart_id]
+                for chart_id in native_filter["chartsInScope"]
+                if chart_id in id_map
+            ]
+
+
 # User-facing text persisted into a dangling tile's ``position_json`` slot.
 # A plain literal, not ``gettext``: see ``_repair_dangling_chart_nodes``.
 MISSING_CHART_PLACEHOLDER: str = "This chart no longer exists."
@@ -857,6 +883,8 @@ class DashboardDAO(BaseDAO[Dashboard]):
                             ]
                         )
                     value["meta"]["chartId"] = new_id
+
+            _remap_native_filter_chart_ids(metadata, old_to_new_slice_ids)
         else:
             dash.slices = original_dash.slices
 
