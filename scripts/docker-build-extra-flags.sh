@@ -35,6 +35,10 @@
 # local and CI builds can pull cache layers for the same base image they build.
 #
 # Usage: docker-build-extra-flags.sh <build_preset> [image_tag] [release]
+#
+# Reads RELEASE_BRANCH_TAG from the environment (set by
+# scripts/docker-build-plan.sh) to add the commit-addressable tag a
+# release-branch push publishes.
 
 set -euo pipefail
 
@@ -57,6 +61,23 @@ fi
 if [ -n "$IMAGE_TAG" ]; then
   EXTRA_FLAGS="${EXTRA_FLAGS:+$EXTRA_FLAGS }--tag $IMAGE_TAG"
 fi
+
+# `superset` owns the unsuffixed tag and cache ref; every other preset is
+# suffixed, matching supersetbot's own scheme (master-dev, 6.1.0-py311).
+PRESET_SUFFIX=""
+if [ "$BUILD_PRESET" != "superset" ]; then
+  PRESET_SUFFIX="-$BUILD_PRESET"
+fi
+
+# Commit-addressable tag for a release-branch push, e.g. 7.0-a1b2c3d[-lean].
+# Emitted by scripts/docker-build-plan.sh and exported by docker.yml, the same
+# way PUBLISH_DOCKER_CACHE is. supersetbot derives a branch tag only for master,
+# so this is what makes a release-branch push addressable on Docker Hub. The
+# preset suffix is what stops the matrix legs racing on a single tag.
+if [ -n "${RELEASE_BRANCH_TAG:-}" ]; then
+  EXTRA_FLAGS="${EXTRA_FLAGS:+$EXTRA_FLAGS }--tag apache/superset:${RELEASE_BRANCH_TAG}${PRESET_SUFFIX}"
+fi
+
 case "$BUILD_PRESET" in
   py311)
     CACHE_REF="apache/superset-cache:3.11-slim-bookworm"
@@ -65,12 +86,9 @@ case "$BUILD_PRESET" in
     CACHE_REF="apache/superset-cache:3.12-slim-bookworm"
     ;;
   *)
-    CACHE_REF="apache/superset-cache:${DEFAULT_PY_VER}"
     # Keep the superset cache ref for Compose consumers; isolate other
     # matrix targets so concurrent exports cannot overwrite its layers.
-    if [ "$BUILD_PRESET" != "superset" ]; then
-      CACHE_REF="${CACHE_REF}-${BUILD_PRESET}"
-    fi
+    CACHE_REF="apache/superset-cache:${DEFAULT_PY_VER}${PRESET_SUFFIX}"
     EXTRA_FLAGS="--build-arg PY_VER=$DEFAULT_PY_VER${EXTRA_FLAGS:+ $EXTRA_FLAGS}"
     ;;
 esac
