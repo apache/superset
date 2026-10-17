@@ -20958,9 +20958,7 @@ msgstr ""
 "Dacă se sortează rezultatele după indicatorul selectat în ordine "
 "descrescătoare."
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
+msgid "Whether to sort tooltip by the selected metric in descending order."
 msgstr ""
 
 msgid "Whether to truncate metrics"

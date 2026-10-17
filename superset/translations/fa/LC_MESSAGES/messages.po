@@ -20850,10 +20850,8 @@ msgstr "آیا مرتب‌سازی به صورت نزولی باشد یا صعو
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "آیا باید نتایج را بر اساس معیار انتخاب شده به ترتیب نزولی مرتب کنید؟"
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
-msgstr ""
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr "آیا باید نوار ابزار را بر اساس متریک انتخاب شده به صورت نزولی مرتب کنید؟"
 
 msgid "Whether to truncate metrics"
 msgstr "آیا متریک‌ها را کوتاه کنیم؟"

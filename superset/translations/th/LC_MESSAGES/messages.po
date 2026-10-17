@@ -31746,9 +31746,7 @@ msgstr "เรียงลำดับจากมากไปน้อยหร
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "เรียงลำดับผลลัพธ์ตามตัวชี้วัดที่เลือกจากมากไปน้อยหรือไม่"
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
+msgid "Whether to sort tooltip by the selected metric in descending order."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,

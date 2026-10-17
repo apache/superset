@@ -2229,6 +2229,37 @@ test('extractTooltipKeys with non-rich tooltip', () => {
   expect(result).toEqual(['foo']);
 });
 
+test('extractTooltipKeys sorts object-shaped data items', () => {
+  // Bar series wrap their data items in `{ value, label }` for negative values
+  // and `{ value, itemStyle }` when coloured by the primary axis; echarts
+  // exposes the tuple on the param's `value` in both cases.
+  const result = extractTooltipKeys(
+    [
+      { value: [0, 1], data: { value: [0, 1], label: {} }, seriesId: 'foo' },
+      { value: [0, 2], data: { value: [0, 2], label: {} }, seriesId: 'bar' },
+    ],
+    1,
+    true,
+    true,
+  );
+  expect(result).toEqual(['bar', 'foo']);
+});
+
+test('extractTooltipKeys sorts missing values last', () => {
+  const result = extractTooltipKeys(
+    [
+      { data: [0, null], seriesId: 'nullish' },
+      { data: [0, 1], seriesId: 'foo' },
+      { data: [0, undefined], seriesId: 'missing' },
+      { data: [0, 2], seriesId: 'bar' },
+    ],
+    1,
+    true,
+    true,
+  );
+  expect(result).toEqual(['bar', 'foo', 'nullish', 'missing']);
+});
+
 test('getAreaScaledSymbolSize maps the value extent to the size range', () => {
   // smallest value renders at the minimum diameter
   expect(getAreaScaledSymbolSize(10, [10, 40], [5, 30])).toBe(5);

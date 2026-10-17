@@ -21358,10 +21358,8 @@ msgstr "ما إذا كنت تريد الفرز تنازليًا أو تصاعد�
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "ما إذا كان سيتم فرز النتائج حسب المقياس المحدد بترتيب تنازلي."
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
-msgstr ""
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr "ما إذا كان سيتم فرز تلميح الأدوات حسب المقياس المحدد بترتيب تنازلي."
 
 msgid "Whether to truncate metrics"
 msgstr "ما إذا كان سيتم اقتطاع المقاييس"

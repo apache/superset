@@ -19680,9 +19680,7 @@ msgstr "Vai kārtot dilstošā vai augošā secībā"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Vai kārtot rezultātus pēc atlasītās metrikas dilstošā secībā."
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
+msgid "Whether to sort tooltip by the selected metric in descending order."
 msgstr ""
 
 msgid "Whether to truncate metrics"

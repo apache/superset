@@ -21360,10 +21360,10 @@ msgstr ""
 "Of de resultaten in aflopende volgorde moeten worden gesorteerd op de "
 "geselecteerde metriek."
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
+msgid "Whether to sort tooltip by the selected metric in descending order."
 msgstr ""
+"Of de tooltip moet worden gesorteerd op de geselecteerde metriek in "
+"aflopende volgorde."
 
 msgid "Whether to truncate metrics"
 msgstr "Of de metrieken moeten worden afgekapt"

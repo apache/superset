@@ -19118,12 +19118,8 @@ msgstr ""
 "வேண்டுமா."
 
 #, fuzzy
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
+msgid "Whether to sort tooltip by the selected metric in descending order."
 msgstr ""
-"தேர்ந்தெடுக்கப்பட்ட மெட்ரிக் படி டூல்டிப்பை இறங்குவரிசையில் வரிசைப்படுத்த"
-" வேண்டுமா."
 
 msgid "Whether to truncate metrics"
 msgstr "மெட்ரிக்குகளைச் சுருக்க வேண்டுமா"

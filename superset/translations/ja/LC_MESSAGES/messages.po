@@ -18116,10 +18116,8 @@ msgstr "降順または昇順のどちらで並べ替えするか"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "選択したメトリックに基づいて結果を降順で並べ替えするかどうか。"
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
-msgstr "ツールチップを選択した指標に基づいて降順で並べ替えるかどうか。積み上げグラフでは、値は昇順で表示されます。"
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr "選択したメトリックによってツールチップを降順に並べ替えるかどうか。"
 
 msgid "Whether to truncate metrics"
 msgstr "メトリックを切り詰めるかどうか"

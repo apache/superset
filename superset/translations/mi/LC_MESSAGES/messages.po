@@ -20651,9 +20651,7 @@ msgstr "Mēnā ka kōmaka heke, piki rānei"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Mēnā ka kōmaka i ngā hua mā te ine kua tīpakohia i te raupapa heke."
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
+msgid "Whether to sort tooltip by the selected metric in descending order."
 msgstr ""
 
 msgid "Whether to truncate metrics"

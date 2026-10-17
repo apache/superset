@@ -20764,10 +20764,8 @@ msgstr "Si ordenar descendent o ascendent"
 msgid "Whether to sort results by the selected metric in descending order."
 msgstr "Si ordenar resultats per la mètrica seleccionada en ordre descendent."
 
-msgid ""
-"Whether to sort tooltip by the selected metric in descending order. On "
-"stacked charts, values are shown in ascending order."
-msgstr ""
+msgid "Whether to sort tooltip by the selected metric in descending order."
+msgstr "Si ordenar tooltip per la mètrica seleccionada en ordre descendent."
 
 msgid "Whether to truncate metrics"
 msgstr "Si truncar mètriques"
