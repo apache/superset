@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormColumn, QueryFormMetric } from '@superset-ui/core';
 import {
   Groupby,
@@ -36,13 +37,22 @@ const ADDITIVE_AGGREGATES = new Set(['SUM', 'COUNT', 'MIN', 'MAX']);
  * Whether a metric's total can be derived additively from per-group results.
  * Conservative: only SIMPLE metrics with a known additive aggregate qualify;
  * saved-metric references (strings) and SQL/adhoc metrics are treated as
- * non-additive because their aggregate cannot be determined from form data.
+ * non-additive because their aggregate cannot be determined from form data,
+ * and MIN/MAX only qualify on a column known to be numeric (see below).
  */
 export function isAdditiveMetric(metric: QueryFormMetric): boolean {
   if (typeof metric === 'string' || metric.expressionType !== 'SIMPLE') {
     return false;
   }
-  return !!metric.aggregate && ADDITIVE_AGGREGATES.has(metric.aggregate);
+  if (!metric.aggregate || !ADDITIVE_AGGREGATES.has(metric.aggregate)) {
+    return false;
+  }
+  // The fast-path reduces values with Number(), which would blank a MIN/MAX
+  // over a text or temporal column, so only numeric columns may take it.
+  if (metric.aggregate === 'MIN' || metric.aggregate === 'MAX') {
+    return metric.column?.type_generic === GenericDataType.Numeric;
+  }
+  return true;
 }
 
 /**

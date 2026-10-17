@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormMetric, TimeGranularity } from '@superset-ui/core';
 import buildGroupbyCombinations, {
   isAdditiveMetric,
@@ -260,6 +261,22 @@ test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', (
       label: 'count_num',
     } as QueryFormMetric),
   ).toBe(true);
+});
+
+test('isAdditiveMetric: MIN/MAX are additive only on numeric columns', () => {
+  const max = (type_generic?: GenericDataType) =>
+    ({
+      expressionType: 'SIMPLE',
+      aggregate: 'MAX',
+      column: { column_name: 'col', type_generic },
+      label: 'max_col',
+    }) as QueryFormMetric;
+  expect(isAdditiveMetric(max(GenericDataType.Numeric))).toBe(true);
+  // Text/temporal values do not survive the fast-path's Number() coercion;
+  // an unknown type fails safe to the DB rollup path.
+  expect(isAdditiveMetric(max(GenericDataType.String))).toBe(false);
+  expect(isAdditiveMetric(max(GenericDataType.Temporal))).toBe(false);
+  expect(isAdditiveMetric(max(undefined))).toBe(false);
 });
 
 test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not additive', () => {
