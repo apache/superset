@@ -133,6 +133,7 @@ export const TIMEGRAIN_TO_TIMESTAMP = {
 // grain (see calcNiceForTimeScale in echarts/lib/scale/Time.js). Bar-width
 // sizing for a sparse single-bucket chart mirrors this fixed padding rather
 // than guessing at a different visible span.
+// ONE_DAY_MS is also used in series.ts for BigInt/string integer normalization.
 export const ONE_DAY_MS = 3600 * 1000 * 24;
 
 export const DEFAULT_LEGEND_FORM_DATA: LegendFormData = {

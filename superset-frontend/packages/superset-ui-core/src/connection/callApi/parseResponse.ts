@@ -61,8 +61,13 @@ export default async function parseResponse<T extends ParseMethod = 'json'>(
         (value?.isGreaterThan?.(Number.MAX_SAFE_INTEGER) ||
           value?.isLessThan?.(Number.MIN_SAFE_INTEGER))
       ) {
-        // toFixed() avoids scientific notation, which BigInt() rejects.
-        return BigInt(value.toFixed());
+        // Return as a decimal string to preserve full precision without
+        // producing a native bigint, which JSON.stringify cannot serialize
+        // (crashes ag-Grid, Redux DevTools, clipboard copy, and any other
+        // downstream consumer that calls JSON.stringify on result rows).
+        // bignumber.js .toFixed() always returns a non-scientific decimal
+        // string for integers, regardless of magnitude, so this is safe.
+        return value.toFixed();
       }
       // // `json-bigint` could not handle floats well, see sidorares/json-bigint#62
       // // TODO: clean up after json-bigint>1.0.1 is released

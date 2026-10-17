@@ -509,7 +509,17 @@ export default function TableChart<D extends DataRecord = DataRecord>(
     function getValueRange(key: string, alignPositiveNegative: boolean) {
       const nums = data
         ?.map(row => row?.[key])
-        .filter(value => typeof value === 'number') as number[];
+        .filter(
+          value =>
+            typeof value === 'number' ||
+            typeof value === 'bigint' ||
+            (typeof value === 'string' && /^-?\d+$/.test(value)),
+        )
+        .map(value =>
+          typeof value === 'bigint' || typeof value === 'string'
+            ? Number(value)
+            : value,
+        ) as number[];
       if (nums.length > 0) {
         return (
           alignPositiveNegative
@@ -1306,23 +1316,25 @@ export default function TableChart<D extends DataRecord = DataRecord>(
             top: 0;
             ${
               valueRange &&
-              typeof value === 'number' &&
+              (typeof value === 'number' ||
+                typeof value === 'bigint' ||
+                (typeof value === 'string' && /^-?\d+$/.test(value))) &&
               valueRangeFlag &&
               `
                 width: ${`${cellWidth({
-                  value: value as number,
+                  value: Number(value),
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
                 left: ${`${cellOffset({
-                  value: value as number,
+                  value: Number(value),
                   valueRange,
                   alignPositiveNegative,
                 })}%`};
                 background-color: ${
                   backgroundColorCellBar ||
                   cellBackground({
-                    value: value as number,
+                    value: Number(value),
                     colorPositiveNegative,
                     theme,
                   })
@@ -1432,7 +1444,10 @@ export default function TableChart<D extends DataRecord = DataRecord>(
                   /* The following classes are added to support custom CSS styling */
                   className={cx(
                     'cell-bar',
-                    typeof value === 'number' && value < 0
+                    (typeof value === 'number' ||
+                      typeof value === 'bigint' ||
+                      (typeof value === 'string' && /^-?\d+$/.test(value))) &&
+                      Number(value) < 0
                       ? 'negative'
                       : 'positive',
                   )}
