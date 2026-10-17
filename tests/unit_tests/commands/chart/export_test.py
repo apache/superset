@@ -275,6 +275,71 @@ def test_dashboard_filter_keeps_a_soft_deleted_dataset_through_import(
 
 
 @pytest.mark.usefixtures("permissive_security")
+def test_dataset_export_leaves_out_a_soft_deleted_dataset_unless_asked(
+    app_context: None,
+    chart_on_dataset: Slice,
+) -> None:
+    """Only nested exports reach into the trash.
+
+    The dataset export endpoint and every other caller keep the default
+    ``include_deleted=False``, so a readable dataset in the trash is not found
+    there, while ``include_deleted=True`` exports it.
+    """
+    dataset = chart_on_dataset.table
+    dataset_id, dataset_uuid = dataset.id, str(dataset.uuid)
+
+    DatasetDAO.delete([dataset])
+    db.session.flush()
+    _next_request()
+
+    with pytest.raises(DatasetNotFoundError):
+        list(ExportDatasetsCommand([dataset_id]).run())
+
+    contents = {
+        file_name: file_content()
+        for file_name, file_content in ExportDatasetsCommand(
+            [dataset_id], include_deleted=True
+        ).run()
+    }
+    dataset_files = [name for name in contents if name.startswith("datasets/")]
+    assert len(dataset_files) == 1
+    assert yaml.safe_load(contents[dataset_files[0]])["uuid"] == dataset_uuid
+
+
+@pytest.mark.usefixtures("permissive_security")
+def test_semantic_view_chart_does_not_bundle_the_table_with_its_id(
+    app_context: None,
+    chart_on_dataset: Slice,
+) -> None:
+    """A semantic-view chart's ``datasource_id`` is not a dataset id.
+
+    ``find_chart_dataset`` only looks a dataset up by ``datasource_id`` for a
+    table chart. Here a readable table has the same numeric id as the view, and
+    exporting the chart with its related assets must not bundle that table.
+    """
+    table = chart_on_dataset.table
+    chart = Slice(
+        slice_name="semantic_chart",
+        viz_type="table",
+        datasource_type="semantic_view",
+        datasource_id=table.id,
+        params="{}",
+    )
+    db.session.add(chart)
+    db.session.flush()
+    _next_request()
+
+    contents = _export(chart, export_related=True)
+
+    assert [name for name in contents if name.startswith("charts/")]
+    assert not [
+        name for name in contents if name.startswith(("datasets/", "databases/"))
+    ]
+    chart_file = next(name for name in contents if name.startswith("charts/"))
+    assert "dataset_uuid" not in yaml.safe_load(contents[chart_file])
+
+
+@pytest.mark.usefixtures("permissive_security")
 def test_export_chart_omits_dataset_uuid_when_dataset_is_gone(
     app_context: None,
     chart_on_dataset: Slice,
