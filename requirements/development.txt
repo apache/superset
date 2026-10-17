@@ -929,8 +929,9 @@ python-dotenv==1.2.2
     #   testcontainers
 python-ldap==3.4.8
     # via apache-superset
-python-multipart==0.0.29
+python-multipart==0.0.31
     # via
+    #   -r requirements/development.in
     #   fastmcp-slim
     #   mcp
 pytz==2025.2
