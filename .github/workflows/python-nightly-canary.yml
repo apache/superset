@@ -4,7 +4,7 @@ name: Python-Nightly-Canary
 # Exercises the "next" Python minor (currently 3.13 -- see the `next`
 # resolution in setup-backend/action.yml) against `master` on a schedule
 # instead of on every push. The Docker image's base Python is pinned via
-# PY_VER to the 3.11 line (see the Dockerfile); this canary is how we find
+# PY_VER to the 3.12 line (see the Dockerfile); this canary is how we find
 # out the codebase and dependency tree are clean on the next minor before
 # that pin is ever moved, without paying for a second full Python version
 # on every push/PR.
@@ -18,7 +18,7 @@ permissions:
 on:
   schedule:
     # 05:00 UTC daily, so a 3.13 regression is known well before anyone
-    # considers bumping PY_VER off 3.11.
+    # considers bumping PY_VER off 3.12.
     - cron: "0 5 * * *"
 
   # Manual trigger for on-demand runs (e.g. right after a dependency bump).
@@ -88,7 +88,7 @@ jobs:
               --repo "$REPOSITORY" \
               --title "$TITLE" \
               --label "python" \
-              --body "The nightly Python-next (3.13) canary is failing against \`master\`. This tracks compatibility work ahead of bumping the base image's PY_VER off the 3.11 line. Further failures get commented here rather than filing new issues.
+              --body "The nightly Python-next (3.13) canary is failing against \`master\`. This tracks compatibility work ahead of bumping the base image's PY_VER off the 3.12 line. Further failures get commented here rather than filing new issues.
 
           Failed run: ${RUN_URL}"
           fi
