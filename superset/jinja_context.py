@@ -765,8 +765,11 @@ class ExtraCache:
                 (
                     flt
                     for flt in form_data.get("adhoc_filters", [])
-                    if flt["operator"] == FilterOperator.TEMPORAL_RANGE
-                    and flt["subject"] == column
+                    # ``.get`` rather than subscripting, as ``get_filters``
+                    # above does: a custom-SQL filter carries neither key, and
+                    # ``AdhocFilterClause`` marks both optional.
+                    if flt.get("operator") == FilterOperator.TEMPORAL_RANGE
+                    and flt.get("subject") == column
                 ),
                 None,
             )
