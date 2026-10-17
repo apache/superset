@@ -42,7 +42,9 @@ export type SqlLabLocation =
   | 'editor'
   | 'statusBar'
   | 'results'
-  | 'queryHistory';
+  | 'queryHistory'
+  | 'northPane'
+  | 'newTab';
 
 /**
  * Nested structure for view contributions by scope and location.

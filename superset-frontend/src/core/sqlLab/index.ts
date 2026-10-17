@@ -81,6 +81,36 @@ const findQueryEditor = (editorId: string) => {
 };
 
 /**
+ * Query payloads identify their editor by `tabViewId ?? id` (see
+ * `executeQuery` and `runQuery`), so once a tab has synced to the backend the
+ * `sqlEditorId` on a query is the backend id rather than the editor's own id.
+ * Match on either so query lifecycle events can be tied back to the editor.
+ */
+const findQueryEditorByAnyId = (
+  editorId: string | undefined,
+): QueryEditor | undefined => {
+  if (!editorId) return undefined;
+  const { queryEditors } = getSqlLabState();
+  const match = queryEditors.find(
+    qe => qe.id === editorId || qe.tabViewId === editorId,
+  );
+  return match ? findQueryEditor(match.id) : undefined;
+};
+
+/**
+ * Resolves the backend-assigned id for a query editor, if it has one. A tab
+ * created locally and later synced carries it in `tabViewId`; a tab hydrated
+ * from the backend on page load uses that id directly as its `queryEditor.id`
+ * (with `inLocalStorage` unset). Only a tab that still lives solely in local
+ * storage has no backend id yet.
+ */
+const resolveBackendId = (
+  queryEditor: Pick<QueryEditor, 'id' | 'tabViewId' | 'inLocalStorage'>,
+): string | undefined =>
+  queryEditor.tabViewId ??
+  (queryEditor.inLocalStorage ? undefined : queryEditor.id);
+
+/**
  * Registry for editor handles. Editor components register their handles here
  * when they mount, allowing the SQL Lab API to access them.
  */
@@ -160,20 +190,31 @@ const makeTab = (
   dbId: number,
   catalog: string | null = null,
   schema: string | null = null,
-  closed: boolean = false,
+  { closed = false, backendId }: { closed?: boolean; backendId?: string } = {},
 ): Tab => {
   const panels: Panel[] = []; // TODO: Populate panels
   const editorGetter = closed
     ? () => Promise.reject(new Error(`Tab ${id} has been closed`))
     : () => getEditorAsync(id);
-  return new Tab(id, name, dbId, catalog, schema, editorGetter, panels);
+  return new Tab(
+    id,
+    name,
+    dbId,
+    catalog,
+    schema,
+    editorGetter,
+    panels,
+    backendId,
+  );
 };
 
 const getTab = (id: string): Tab | undefined => {
   const queryEditor = findQueryEditor(id);
   if (queryEditor?.dbId !== undefined) {
     const { name, dbId, catalog, schema } = queryEditor;
-    return makeTab(id, name, dbId, catalog, schema);
+    return makeTab(id, name, dbId, catalog, schema, {
+      backendId: resolveBackendId(queryEditor),
+    });
   }
   return undefined;
 };
@@ -211,12 +252,18 @@ function extractBaseData(action: QueryAction): {
     queryLimit,
   } = query;
 
+  // Resolve backendId through the same path as every other Tab construction
+  // so query-event listeners can correlate the tab with its tabstateview row.
+  const queryEditor = findQueryEditorByAnyId(sqlEditorId ?? undefined);
   const tab = makeTab(
     sqlEditorId ?? '',
     tabName ?? '',
     dbId ?? 0,
     catalog,
     schema,
+    {
+      backendId: queryEditor ? resolveBackendId(queryEditor) : undefined,
+    },
   );
 
   return {
@@ -440,7 +487,7 @@ const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
         action.queryEditor.dbId ?? 0,
         action.queryEditor.catalog,
         action.queryEditor.schema,
-        true, // closed
+        { closed: true, backendId: resolveBackendId(action.queryEditor) },
       ),
     thisArgs,
   );
@@ -507,6 +554,7 @@ const onDidCreateTab: typeof sqlLabApi.onDidCreateTab = (
         action.queryEditor.dbId ?? 0,
         action.queryEditor.catalog,
         action.queryEditor.schema ?? undefined,
+        { backendId: resolveBackendId(action.queryEditor) },
       ),
     thisArgs,
   );
@@ -557,6 +605,9 @@ const createTab: typeof sqlLabApi.createTab = async (
       inheritedValues.queryLimit ?? common?.conf?.DEFAULT_SQLLAB_LIMIT,
     autorun: false,
     name,
+    ...(options?.northPaneViewId && {
+      northPaneViewId: options.northPaneViewId,
+    }),
   };
 
   store.dispatch(addQueryEditor(newQueryEditor) as any);
@@ -574,6 +625,9 @@ const createTab: typeof sqlLabApi.createTab = async (
     newTab.dbId ?? 0,
     newTab.catalog,
     newTab.schema ?? undefined,
+    {
+      backendId: resolveBackendId(newTab),
+    },
   );
 };
 
