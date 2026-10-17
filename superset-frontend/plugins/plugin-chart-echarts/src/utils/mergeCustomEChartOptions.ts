@@ -34,6 +34,7 @@ function isPlainObject(value: unknown): value is PlainObject {
 /**
  * Deep merges custom EChart options into base options.
  * Arrays are replaced entirely, objects are merged recursively.
+ * A `series` object is merged into every series, as theme overrides do.
  *
  * @param baseOptions - The base ECharts options object
  * @param customOptions - Custom options to merge (from safeParseEChartOptions)
@@ -66,6 +67,20 @@ export function mergeCustomEChartOptions<T extends EChartsCoreOption>(
       (result as PlainObject)[key] = mergeCustomEChartOptions(
         baseValue as EChartsCoreOption,
         customValue as CustomEChartOptions,
+      );
+    } else if (
+      key === 'series' &&
+      isPlainObject(customValue) &&
+      Array.isArray(baseValue)
+    ) {
+      // Apply a single series object to every series
+      (result as PlainObject)[key] = baseValue.map(series =>
+        isPlainObject(series)
+          ? mergeCustomEChartOptions(
+              series as EChartsCoreOption,
+              customValue as CustomEChartOptions,
+            )
+          : series,
       );
     } else {
       // Replace arrays and primitive values directly
