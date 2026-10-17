@@ -268,6 +268,33 @@ def has_aggregate(
     )
 
 
+def is_constant_expression(expression: str, engine: str = "base") -> bool:
+    """
+    Return True if the SQL expression is a bare constant: a string or numeric
+    literal, ``NULL``, or (outside SQLite) a boolean literal, optionally wrapped
+    in parentheses.
+
+    Anything that merely contains a constant (``CASE WHEN 1=1 THEN 'x' END``,
+    ``CAST('x' AS VARCHAR)``, ``'a' || col``) is not a bare constant. Fails closed
+    (returns False) on a parse error, so an expression that can't be proven
+    constant is never treated as one.
+
+    ``TRUE``/``FALSE`` are not bare constants on SQLite: they are ordinary
+    identifiers there, resolved to a column of that name when one exists.
+    """
+    dialect = SQLGLOT_DIALECTS.get(engine)
+    try:
+        parsed = sqlglot.parse_one(f"SELECT {expression}", dialect=dialect)
+    except Exception:
+        return False
+    if not isinstance(parsed, exp.Select) or len(parsed.expressions) != 1:
+        return False
+    node = parsed.expressions[0].unnest()
+    if isinstance(node, exp.Boolean):
+        return dialect != Dialects.SQLITE
+    return isinstance(node, (exp.Literal, exp.Null))
+
+
 class LimitMethod(enum.Enum):
     """
     Limit methods.
