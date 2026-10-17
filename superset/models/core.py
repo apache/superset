@@ -60,7 +60,7 @@ from sqlalchemy import (
     Table as SqlaTable,
     Text,
 )
-from sqlalchemy.engine import Connection, Dialect, Engine
+from sqlalchemy.engine import Connection, Dialect, Engine, ExceptionContext
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.exc import NoSuchModuleError
@@ -882,11 +882,36 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         except Exception as ex:
             raise self.db_engine_spec.get_dbapi_mapped_exception(ex) from ex
         sqla.event.listen(engine, "handle_error", mark_database_engine_error)
+        if embedded_fallback:
+            self._log_rejected_embedded_credential(engine)
         self.db_engine_spec.register_engine_events(engine)
         if cache_key is not None:
             with _ENGINE_CACHE_LOCK:
                 _ENGINE_CACHE[cache_key] = engine
         return engine
+
+    def _log_rejected_embedded_credential(self, engine: Engine) -> None:
+        """
+        Log when the database refuses an embedded guest's fallback credential.
+
+        Viewers only ever see a generic error, so this is how an administrator
+        finds a wrong password, an expired token or a mismatched key. Only the
+        exception class is logged: the driver's message can carry the username.
+        """
+        database_id, database_name = self.id, self.database_name
+
+        def log_rejection(context: ExceptionContext) -> None:
+            # No connection means the failure happened while connecting, not in
+            # a statement.
+            if context.connection is None:
+                logger.warning(
+                    "Embedded fallback credential rejected for database %s (id=%s): %s",
+                    database_name,
+                    database_id,
+                    type(context.original_exception).__name__,
+                )
+
+        sqla.event.listen(engine, "handle_error", log_rejection)
 
     def add_database_to_signature(
         self,
@@ -1505,6 +1530,11 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
     # pylint: disable=invalid-name
     def update_params_from_encrypted_extra(self, params: dict[str, Any]) -> None:
         self.db_engine_spec.update_params_from_encrypted_extra(self, params)
+        # Superset's own settings, never driver arguments, whatever the engine's
+        # handler copies across. A connection switched to an engine whose handler
+        # copies all of `encrypted_extra` would otherwise fail every connect.
+        params.pop(EMBEDDED_CREDENTIALS_KEY, None)
+        params.pop("oauth2_client_info", None)
 
     def get_table(self, table: Table) -> SqlaTable:
         extra = self.get_extra()

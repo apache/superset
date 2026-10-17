@@ -24,6 +24,7 @@ from typing import Any, Callable
 import numpy
 import pandas as pd
 import pytest
+import sqlalchemy.exc
 from flask import current_app
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
@@ -3858,3 +3859,75 @@ def test_the_promoted_connection_refusal_needs_every_condition(
     database.impersonate_user = condition != "impersonation_off"
 
     assert not database.embedded_guest_missing_oauth2_client()
+
+
+@pytest.mark.parametrize(
+    "sqlalchemy_uri",
+    ["postgresql://user:pass@host/db", "mysql://user:pass@host/db"],
+)
+def test_superset_owned_secure_extra_never_reaches_the_driver(
+    sqlalchemy_uri: str,
+) -> None:
+    """
+    Test that `oauth2_client_info` and `embedded_credentials` are never passed to
+    `create_engine`, whatever the engine's own handler copies across.
+
+    Engines like Postgres copy all of `encrypted_extra` into the engine kwargs, so
+    a connection switched to them from Snowflake used to fail every connect with
+    a `TypeError` -- a 500 on the very save that switched it.
+    """
+    database = Database(
+        database_name="switched",
+        sqlalchemy_uri=sqlalchemy_uri,
+        encrypted_extra=json.dumps(
+            {
+                "oauth2_client_info": {"id": "client", "secret": "s3cret"},
+                "embedded_credentials": {"username": "u", "password": "p"},
+                "sslmode": "require",
+            }
+        ),
+    )
+    params: dict[str, Any] = {}
+
+    database.update_params_from_encrypted_extra(params)
+
+    assert "oauth2_client_info" not in params
+    assert "embedded_credentials" not in params
+    assert params.get("sslmode") == "require"
+
+
+@pytest.mark.parametrize("guest", [True, False])
+@with_feature_flags(EMBEDDED_CREDENTIAL_FALLBACK=True, EMBEDDED_SUPERSET=True)
+def test_a_rejected_fallback_credential_is_logged_for_admins(
+    mocker: MockerFixture, guest: bool
+) -> None:
+    """
+    Test that only a guest's fallback engine logs a rejected sign-in.
+
+    Viewers only see a generic error, so the log is how an administrator finds a
+    wrong password or key. It names the connection and the exception class, never
+    the driver's message, which can carry the username.
+    """
+    mocker.patch("superset.models.core._ENGINE_CACHE", {})
+    mocker.patch(
+        "superset.models.core.create_engine",
+        return_value=create_engine("sqlite:////nonexistent/dir/embedded.db"),
+    )
+    if guest:
+        _become_guest(mocker)
+    _stub_driver_dependent_uri_validation(mocker)
+    warning = mocker.patch("superset.models.core.logger.warning")
+
+    engine = _embedded_snowflake_database()._get_sqla_engine(nullpool=True)
+    with pytest.raises(sqlalchemy.exc.OperationalError):
+        engine.connect()
+
+    rejections = [call for call in warning.call_args_list if "rejected" in call.args[0]]
+    if guest:
+        assert len(rejections) == 1
+        assert rejections[0].args[3] == "OperationalError"
+        rendered = rejections[0].args[0] % rejections[0].args[1:]
+        assert "embedded_pw" not in rendered
+        assert "embedded_svc" not in rendered
+    else:
+        assert rejections == []
