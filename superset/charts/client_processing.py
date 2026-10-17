@@ -169,8 +169,8 @@ def _collapsed_metric(present: list[Any] | set[Any]) -> Any:
     ``react-pivottable/utilities.ts``); mirror it here so exported/scheduled
     values agree with what the chart shows.
     """
-    distinct = set(present)
-    return distinct.pop() if len(distinct) == 1 else None
+    distinct = present if isinstance(present, set) else set(present)
+    return next(iter(distinct)) if len(distinct) == 1 else None
 
 
 def _broadcast(total: pd.Series, block: pd.DataFrame, axis: int) -> pd.DataFrame:
@@ -625,7 +625,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         Returns `(None, reducer)` when `block` spans more than one distinct
         metric: such a total has no single meaningful value, so the caller
         blanks it instead of summing across metrics that share no unit
-        (mirrors the renderer, see #44657).
+        (matches the browser change proposed in #44657).
         """
         present = [
             _metric_of_column(column, totals_metric_level) for column in block.columns

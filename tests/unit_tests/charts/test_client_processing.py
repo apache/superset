@@ -25,6 +25,7 @@ from flask_babel import lazy_gettext as _
 from sqlalchemy.orm.session import Session
 
 from superset.charts.client_processing import (
+    _collapsed_metric,
     _reduce,
     apply_client_processing,
     apply_pivot_number_formats,
@@ -4715,7 +4716,9 @@ def test_pivot_rollup_reducer_preserves_blank_and_zero(reducer: str):
 @pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
 @pytest.mark.parametrize("combine", [False, True])
 @pytest.mark.parametrize("transpose", [False, True])
-def test_pivot_mixed_totals_preserve_integer_csv(layout, combine, transpose):
+def test_pivot_mixed_totals_preserve_integer_csv(
+    layout: str, combine: bool, transpose: bool
+):
     """Blank totals must not round integer leaves or change their CSV spelling."""
     large = 2**53 + 1
     frame = pd.DataFrame(
@@ -4749,7 +4752,10 @@ def test_pivot_mixed_totals_preserve_integer_csv(layout, combine, transpose):
 @pytest.mark.parametrize("mode", [None, "percent_row", "percent_col", "percent_total"])
 @pytest.mark.parametrize("transpose", [False, True])
 @pytest.mark.parametrize("single_metric", [False, True])
-def test_combined_metric_subtotals(mode, transpose, single_metric):
+@pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
+def test_combined_metric_subtotals(
+    mode: str | None, transpose: bool, single_metric: bool, layout: str
+):
     frame = show_values_as_df()
     frame["MAX(num)"] = [1, 3, 6, 10]
     metrics = ["SUM(num)"] if single_metric else ["SUM(num)", "MAX(num)"]
@@ -4759,6 +4765,7 @@ def test_combined_metric_subtotals(mode, transpose, single_metric):
             "groupbyRows": ["nation"],
             "groupbyColumns": ["gender"],
             "metrics": metrics,
+            "metricsLayout": layout,
             "combineMetric": True,
             "transposePivot": transpose,
             "rowTotals": True,
@@ -4768,7 +4775,19 @@ def test_combined_metric_subtotals(mode, transpose, single_metric):
         apply_number_format=False,
     )
     # Transpose swaps the dimension axes before constructing the pivot.
-    groups = ["US", "UK"] if transpose else ["boy", "girl"]
+    metrics_on_rows = layout == "ROWS"
+    if metrics_on_rows:
+        result = result.T
+    groups = ["US", "UK"] if transpose != metrics_on_rows else ["boy", "girl"]
     for group in groups:
         subtotal = result.loc[:, (group, "Subtotal")]
         assert subtotal.notna().all() if single_metric else subtotal.isna().all()
+
+
+@pytest.mark.parametrize("metrics", [set(), {"SUM(num)"}, {"SUM(num)", "MAX(num)"}])
+def test_collapsed_metric_preserves_shared_metric_set(metrics: set[str]):
+    original = metrics.copy()
+    expected = "SUM(num)" if len(metrics) == 1 else None
+    assert _collapsed_metric(metrics) == expected
+    assert _collapsed_metric(metrics) == expected
+    assert metrics == original
