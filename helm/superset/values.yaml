@@ -78,6 +78,25 @@ serviceAccount:
 # @default -- see `values.yaml`
 bootstrapScript: |
   #!/bin/bash
+  {{- $dbUri := .Values.database.uri | default (printf "%s://" (include "superset.db.driver" .)) }}
+  {{- if contains "postgres" $dbUri }}
+  # The default metadata database driver is PostgreSQL, but Superset images
+  # released before the batteries-included image ship no database drivers.
+  # Install psycopg2 only when the image lacks it, so this stays a no-op
+  # (and needs no network) on images that already bundle it.
+  have_psycopg2() { python -c 'import psycopg2' 2>/dev/null || python3 -c 'import psycopg2' 2>/dev/null; }
+  if ! have_psycopg2; then
+    echo "psycopg2 not found in the image; installing psycopg2-binary for the PostgreSQL metadata DB"
+    uv pip install psycopg2-binary || pip install psycopg2-binary || true
+  fi
+  # Re-check: pip can "succeed" while installing somewhere off sys.path.
+  if ! have_psycopg2; then
+    echo "ERROR: psycopg2 is required for the PostgreSQL metadata DB but could not be installed." >&2
+    echo "Build a custom Superset image with the postgres driver baked in" >&2
+    echo "(see docs/admin_docs/installation/docker-builds) or run with a writable Python environment." >&2
+    exit 1
+  fi
+  {{- end }}
   if [ ! -f ~/bootstrap ]; then echo "Running Superset with uid {{ .Values.runAsUser }}" > ~/bootstrap; fi
 
 # -- The name of the secret which we will use to generate a superset_config.py file
