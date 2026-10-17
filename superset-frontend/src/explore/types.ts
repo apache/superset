@@ -70,6 +70,8 @@ export type OptionSortType = Partial<
 >;
 
 export type Datasource = Dataset & {
+  /** A dataset-scoped validation error from dashboard metadata loading. */
+  metadata_error?: string;
   database?: DatabaseObject;
   /** The parent resource that owns this datasource (database or semantic layer). */
   parent?: { name: string };

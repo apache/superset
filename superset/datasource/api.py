@@ -46,6 +46,7 @@ from superset.exceptions import (
 )
 from superset.extensions import cache_manager
 from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.exceptions import (
     SemanticLayerExecutionError,
     SemanticLayerQueryRejectedError,
@@ -675,14 +676,17 @@ class DatasourceRestApi(BaseSupersetApi):
         if (cached := cache_manager.data_cache.get(cache_key)) is not None:
             return self.response(200, result=cached)
 
-        result = {
-            "compatible_metrics": datasource.get_compatible_metrics(
-                selected_metrics, selected_dimensions
-            ),
-            "compatible_dimensions": datasource.get_compatible_dimensions(
-                selected_metrics, selected_dimensions
-            ),
-        }
+        try:
+            result: dict[str, list[str]] = {
+                "compatible_metrics": datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions
+                ),
+                "compatible_dimensions": datasource.get_compatible_dimensions(
+                    selected_metrics, selected_dimensions
+                ),
+            }
+        except AmbiguousDimensionError as ex:
+            return self.response(400, message=str(ex))
 
         timeout = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
