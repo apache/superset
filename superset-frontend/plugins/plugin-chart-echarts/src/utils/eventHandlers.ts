@@ -175,16 +175,64 @@ export const allEventHandlers = (
     selectedValues,
     coltypeMapping,
     formData,
+    onDrillDown,
   } = transformedProps;
+
+  // When a drill-down hierarchy is configured, left-click drills instead of
+  // emitting a cross-filter. The DrillDownHost provides onDrillDown only when
+  // a hierarchy exists.
+  const hasDrillHierarchy = !!onDrillDown;
+
+  const drillDownClickHandler =
+    hasDrillHierarchy && groupby.length > 0
+      ? (e: { name: string }) => {
+          const values = labelMap[e.name];
+          // A click without a labelMap entry is a synthetic aggregate slice,
+          // e.g. the "Other" bucket produced by threshold_for_other. It maps to
+          // no single dimension value (it is "everything not in the top N"), so
+          // it is intentionally non-drillable: bail out rather than drilling on
+          // the literal "Other" label, which would filter on a value that does
+          // not exist.
+          if (!values) return;
+          const drillFilters: BinaryQueryObjectFilterClause[] = [];
+          groupby.forEach((dimension, i) => {
+            // labelMap entries may be prefixed with non-groupby tokens
+            // (metric/series names) for multi-metric charts, so skip them the
+            // same way the cross-filter path (getCrossFilterDataMask) does
+            // before mapping each groupby column to its value.
+            const metricsCount = values.length - groupby.length;
+            const val = values[metricsCount + i];
+            drillFilters.push({
+              col: dimension,
+              op: '==',
+              val,
+              formattedVal: formatSeriesName(val, {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype: coltypeMapping?.[getColumnLabel(dimension)],
+              }),
+            });
+          });
+          // The cross-filter is emitted by the DrillDownHost with the full
+          // accumulated drill path, so the click handler only reports the
+          // clicked point upward via onDrillDown.
+          const label = drillFilters
+            .map(f => f.formattedVal ?? String(f.val))
+            .join(', ');
+          onDrillDown(drillFilters, label);
+        }
+      : undefined;
+
   const eventHandlers: EventHandlers = {
     click:
-      groupby.length > 0
+      drillDownClickHandler ??
+      (groupby.length > 0
         ? clickEventHandler(
             getCrossFilterDataMask(selectedValues, groupby, labelMap),
             setDataMask,
             emitCrossFilters,
           )
-        : () => {},
+        : () => {}),
     contextmenu: contextMenuEventHandler(
       groupby,
       onContextMenu,

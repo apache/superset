@@ -21,6 +21,7 @@ import {
   AnnotationLayer,
   AxisType,
   ContributionType,
+  QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
   TimeFormatter,
@@ -163,6 +164,7 @@ export type TimeseriesChartTransformedProps =
       xAxis: {
         label: string;
         type: AxisType;
+        column?: QueryFormColumn;
       };
       resolvedTimeGrain?: TimeGranularity;
       onFocusedSeries: (series: string | null) => void;

@@ -57,7 +57,7 @@ export default function transformProps(
     emitCrossFilters,
   } = chartProps;
   const { data = [] } = queriesData[0];
-  const { setDataMask = () => {}, onContextMenu } = hooks;
+  const { setDataMask = () => {}, onContextMenu, onDrillDown } = hooks;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     colorScheme,
@@ -335,6 +335,7 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onDrillDown,
     refs,
     coltypeMapping,
   };

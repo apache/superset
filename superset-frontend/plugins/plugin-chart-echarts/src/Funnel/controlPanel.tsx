@@ -25,6 +25,7 @@ import {
   D3_NUMBER_FORMAT_DESCRIPTION_VALUES_TEXT,
   getStandardizedControls,
   sharedControls,
+  sections,
 } from '@superset-ui/chart-controls';
 import {
   DEFAULT_FORM_DATA,
@@ -90,6 +91,7 @@ const config: ControlPanelConfig = {
         ],
       ],
     },
+    sections.drilldownHierarchySection,
     {
       label: t('Chart Options'),
       expanded: true,
