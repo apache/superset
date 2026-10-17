@@ -6552,6 +6552,10 @@ msgstr ""
 msgid "Failed to create API key"
 msgstr ""
 
+#, python-format
+msgid "Failed to create API key: %s"
+msgstr ""
+
 msgid "Failed to create a new chart from this version"
 msgstr ""
 
