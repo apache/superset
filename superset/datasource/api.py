@@ -576,7 +576,9 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
-    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
+    def compatible(  # noqa: C901
+        self, datasource_type: str, datasource_id: int
+    ) -> FlaskResponse:
         """Return compatible members, refusing unknown selected names with a 400.
 
         Non-string entries in selection lists do not select datasource members.
@@ -678,13 +680,16 @@ class DatasourceRestApi(BaseSupersetApi):
                 )
             )
         if selected_dimensions:
-            selection_errors.extend(
-                validate_names(
-                    selected_dimensions,
-                    {dimension.column_name for dimension in datasource.columns},
-                    "dimension",
+            try:
+                selection_errors.extend(
+                    validate_names(
+                        selected_dimensions,
+                        {dimension.column_name for dimension in datasource.columns},
+                        "dimension",
+                    )
                 )
-            )
+            except AmbiguousDimensionError as ex:
+                return self.response(400, message=str(ex))
         if selection_errors:
             return self.response(400, message="; ".join(selection_errors))
 
