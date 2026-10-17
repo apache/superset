@@ -33,6 +33,8 @@ from superset.commands.dashboard.export import ExportDashboardsCommand
 from superset.commands.dashboard.importers.v1 import ImportDashboardsCommand
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.dataset.export import ExportDatasetsCommand
+from superset.commands.export.assets import ExportAssetsCommand
+from superset.commands.importers.v1.assets import ImportAssetsCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.models.dashboard import Dashboard
@@ -337,6 +339,72 @@ def test_semantic_view_chart_does_not_bundle_the_table_with_its_id(
     ]
     chart_file = next(name for name in contents if name.startswith("charts/"))
     assert "dataset_uuid" not in yaml.safe_load(contents[chart_file])
+
+
+@pytest.mark.usefixtures("permissive_security")
+def test_assets_export_carries_the_soft_deleted_datasets_it_references(
+    app_context: None,
+    chart_on_dataset: Slice,
+    mocker: MockerFixture,
+) -> None:
+    """The full export also bundles a trashed dataset that its files name.
+
+    Datasets come from the visibility-filtered ``find_all()``, but the chart
+    still writes ``dataset_uuid`` for a dataset in the trash and a native
+    filter its ``datasetUuid``. Without the dataset file, ``ImportAssetsCommand``
+    raised a ``KeyError`` looking the chart's dataset up in the bundle.
+    """
+    chart = chart_on_dataset
+    dataset = chart.table
+    filter_dataset = SqlaTable(
+        table_name="filter_table",
+        metrics=[],
+        main_dttm_col=None,
+        database=dataset.database,
+    )
+    db.session.add(filter_dataset)
+    db.session.flush()
+    target = {"datasetId": filter_dataset.id, "column": {"name": "ds"}}
+    dashboard = Dashboard(
+        dashboard_title="my_dashboard",
+        slices=[chart],
+        json_metadata=json.dumps(
+            {"native_filter_configuration": [{"id": "F-1", "targets": [target]}]}
+        ),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+    trashed_uuids = {str(dataset.uuid), str(filter_dataset.uuid)}
+
+    DatasetDAO.delete([dataset, filter_dataset])
+    db.session.flush()
+    _next_request()
+
+    contents = {
+        file_name: file_content()
+        for file_name, file_content in ExportAssetsCommand().run()
+    }
+
+    exported_dataset_uuids = {
+        yaml.safe_load(contents[name])["uuid"]
+        for name in contents
+        if name.startswith("datasets/")
+    }
+    assert trashed_uuids <= exported_dataset_uuids
+
+    mocker.patch(
+        "superset.commands.importers.v1.assets.get_default_viewers_for_current_user",
+        return_value=[],
+    )
+    ImportAssetsCommand(contents).run()
+    db.session.flush()
+
+    restored = db.session.query(SqlaTable).filter(
+        SqlaTable.uuid.in_([dataset.uuid, filter_dataset.uuid])
+    )
+    assert {str(table.uuid) for table in restored if table.deleted_at is None} == (
+        trashed_uuids
+    )
 
 
 @pytest.mark.usefixtures("permissive_security")
