@@ -27,6 +27,10 @@ from uuid import uuid4
 import pytest
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.errors import (
+    SemanticQueryErrorCode,
+    SemanticQueryRejectedError,
+)
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -236,8 +240,9 @@ def test_unsupported_filter_is_rejected_even_when_other_filter_matches_no_rows(
         "row_count": lambda: stub_view.get_row_count(query),
         "table": lambda: stub_view.get_table(query),
     }[entrypoint]
-    with pytest.raises(ValueError, match="The E2E stub"):
+    with pytest.raises(SemanticQueryRejectedError) as excinfo:
         execute()
+    assert excinfo.value.code == SemanticQueryErrorCode.UNSUPPORTED_QUERY
 
 
 def test_supported_filter_can_return_an_empty_result(
