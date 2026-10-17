@@ -235,12 +235,9 @@ class ExtensionsLoader {
     // only applies to calls made through this scoped instance, not to a
     // host-code call like ExtensionsStartup's own "core." tools).
     //
-    // Every Disposable these three hand back is also collected into
-    // `registrations`, below — factory() (where these are actually called)
-    // can throw partway through an extension's own registrations, and
-    // without rolling those back, a "failed to initialize" extension would
-    // still leave its chat/tools registered and callable.
-    const registrations: Disposable[] = [];
+    // Track registrations only during initialization so a failed factory()
+    // can roll them back without retaining handlers for the scoped API's lifetime.
+    let registrations: Disposable[] | undefined = [];
     const qualifyToolName = (tool: chatApi.ClientTool) => ({
       ...tool,
       name: `${extension.id}.${tool.name}`,
@@ -264,21 +261,21 @@ class ExtensionsLoader {
             }),
           },
         );
-        registrations.push(disposable);
+        registrations?.push(disposable);
         return disposable;
       },
       registerClientTool: (tool: chatApi.ClientTool) => {
         const disposable = window.superset.chat.registerClientTool(
           qualifyToolName(tool),
         );
-        registrations.push(disposable);
+        registrations?.push(disposable);
         return disposable;
       },
       registerClientTools: (tools: chatApi.ClientTool[]) => {
         const disposable = window.superset.chat.registerClientTools(
           tools.map(qualifyToolName),
         );
-        registrations.push(disposable);
+        registrations?.push(disposable);
         return disposable;
       },
     };
@@ -326,6 +323,8 @@ class ExtensionsLoader {
       // regardless; this only prevents it from leaking state on top of that.
       Disposable.from(...registrations).dispose();
       throw error;
+    } finally {
+      registrations = undefined;
     }
   }
 
