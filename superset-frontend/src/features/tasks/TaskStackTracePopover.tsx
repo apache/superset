@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
 import { Popover, Tooltip } from '@superset-ui/core/components';
@@ -89,6 +89,14 @@ export default function TaskStackTracePopover({
   const [visible, setVisible] = useState(false);
   const [copied, setCopied] = useState(false);
   const { addDangerToast } = useToasts();
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setVisible(false);
+    };
+    if (visible) document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [visible]);
 
   const handleCopy = useCallback(() => {
     copyTextToClipboard(() => Promise.resolve(stackTrace))
