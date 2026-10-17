@@ -191,10 +191,10 @@ class SupersetApp(Flask):
 
             logger.info("Syncing configuration to database...")
 
-            # Register SQLA event listeners for the tagging system. The
-            # listeners that create tags check TAGGING_SYSTEM when they fire,
-            # and the cleanup listeners must run regardless of the flag so a
-            # deleted object never leaves orphaned `tagged_object` rows behind.
+            # Register the tagged_object cleanup listeners for the tagging system.
+            # This is deletion only (see superset.tags.core), and must run
+            # regardless of the flag so a deleted object never leaves orphaned
+            # `tagged_object` rows behind.
             from superset.tags.core import register_sqla_event_listeners
 
             register_sqla_event_listeners()
