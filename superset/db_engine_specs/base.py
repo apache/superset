@@ -724,7 +724,8 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # When this is changed to true in a DB engine spec it MUST support the
     # `get_default_catalog` and `get_catalog_names` methods. In addition, you MUST write
     # a database migration updating any existing schema permissions using the helper
-    # `upgrade_catalog_perms`.
+    # `upgrade_catalog_perms`, registering in it how to derive the default catalog
+    # from the stored connection settings.
     supports_catalog = False
 
     # Can the catalog be changed on a per-query basis?
