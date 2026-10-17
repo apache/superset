@@ -140,6 +140,9 @@ const createEditorProxy = (tabId: string): sqlLabApi.Editor =>
  * Returns a Proxy that always delegates to the current handle.
  */
 const getEditorAsync = (tabId: string): Promise<sqlLabApi.Editor> => {
+  if (!findQueryEditor(tabId)) {
+    return Promise.reject(new Error(`Tab ${tabId} has been closed`));
+  }
   const existingHandle = editorHandleRegistry.get(tabId);
   if (existingHandle) {
     // Editor already registered, return proxy immediately
@@ -147,9 +150,28 @@ const getEditorAsync = (tabId: string): Promise<sqlLabApi.Editor> => {
   }
 
   // Wait for the editor to be registered
-  return new Promise(resolve => {
+  return new Promise((resolve, reject) => {
+    let closed: Disposable | undefined;
+    const onReady = () => {
+      closed?.dispose();
+      resolve(createEditorProxy(tabId));
+    };
+    closed = createActionListener(
+      action =>
+        action.type === REMOVE_QUERY_EDITOR && action.queryEditor?.id === tabId,
+      () => {
+        closed?.dispose();
+        const remaining = (pendingEditorPromises.get(tabId) ?? []).filter(
+          waiter => waiter !== onReady,
+        );
+        if (remaining.length) pendingEditorPromises.set(tabId, remaining);
+        else pendingEditorPromises.delete(tabId);
+        reject(new Error(`Tab ${tabId} has been closed`));
+      },
+      () => true,
+    );
     const pending = pendingEditorPromises.get(tabId) ?? [];
-    pending.push(() => resolve(createEditorProxy(tabId)));
+    pending.push(onReady);
     pendingEditorPromises.set(tabId, pending);
   });
 };
@@ -157,7 +179,7 @@ const getEditorAsync = (tabId: string): Promise<sqlLabApi.Editor> => {
 const makeTab = (
   id: string,
   name: string,
-  dbId: number,
+  dbId: number | undefined,
   catalog: string | null = null,
   schema: string | null = null,
   closed: boolean = false,
@@ -171,7 +193,7 @@ const makeTab = (
 
 const getTab = (id: string): Tab | undefined => {
   const queryEditor = findQueryEditor(id);
-  if (queryEditor?.dbId !== undefined) {
+  if (queryEditor) {
     const { name, dbId, catalog, schema } = queryEditor;
     return makeTab(id, name, dbId, catalog, schema);
   }
@@ -211,13 +233,7 @@ function extractBaseData(action: QueryAction): {
     queryLimit,
   } = query;
 
-  const tab = makeTab(
-    sqlEditorId ?? '',
-    tabName ?? '',
-    dbId ?? 0,
-    catalog,
-    schema,
-  );
+  const tab = makeTab(sqlEditorId ?? '', tabName ?? '', dbId, catalog, schema);
 
   return {
     baseParams: [id, tab, runAsync ?? false, startDttm ?? 0],
@@ -437,7 +453,7 @@ const onDidCloseTab: typeof sqlLabApi.onDidCloseTab = (
       makeTab(
         action.queryEditor.id,
         action.queryEditor.name ?? '',
-        action.queryEditor.dbId ?? 0,
+        action.queryEditor.dbId,
         action.queryEditor.catalog,
         action.queryEditor.schema,
         true, // closed
@@ -504,7 +520,7 @@ const onDidCreateTab: typeof sqlLabApi.onDidCreateTab = (
       makeTab(
         action.queryEditor.id!,
         action.queryEditor.name ?? '',
-        action.queryEditor.dbId ?? 0,
+        action.queryEditor.dbId,
         action.queryEditor.catalog,
         action.queryEditor.schema ?? undefined,
       ),
@@ -547,11 +563,17 @@ const createTab: typeof sqlLabApi.createTab = async (
       })) || [],
     );
 
+  const dbId =
+    options?.databaseId ?? inheritedValues.dbId ?? defaultDbId ?? firstDbId;
+  const namespace: Partial<QueryEditor> =
+    dbId === inheritedValues.dbId ? inheritedValues : {};
   const newQueryEditor: Partial<QueryEditor> = {
-    dbId:
-      options?.databaseId ?? inheritedValues.dbId ?? defaultDbId ?? firstDbId,
-    catalog: options?.catalog ?? inheritedValues.catalog,
-    schema: options?.schema ?? inheritedValues.schema,
+    dbId,
+    catalog:
+      options?.catalog !== undefined ? options.catalog : namespace.catalog,
+    schema:
+      (options?.schema !== undefined ? options.schema : namespace.schema) ??
+      undefined,
     sql: options?.sql ?? 'SELECT ...',
     queryLimit:
       inheritedValues.queryLimit ?? common?.conf?.DEFAULT_SQLLAB_LIMIT,
@@ -571,7 +593,7 @@ const createTab: typeof sqlLabApi.createTab = async (
   return makeTab(
     newTab.id,
     newTab.name ?? '',
-    newTab.dbId ?? 0,
+    newTab.dbId,
     newTab.catalog,
     newTab.schema ?? undefined,
   );
