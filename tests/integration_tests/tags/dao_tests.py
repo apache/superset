@@ -282,12 +282,12 @@ class TestTagsDAO(SupersetTestCase):
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @pytest.mark.usefixtures("with_tagging_system_feature")
     @pytest.mark.usefixtures("create_tagged_objects")
-    def test_get_by_name(self):
+    def test_get_or_create_by_name(self):
         # test tag can be found
-        tag = TagDAO.get_by_name("example_tag_1")
+        tag = TagDAO.get_or_create_by_name("example_tag_1")
         assert tag is not None
         # tag that doesnt exist is added
-        tag = TagDAO.get_by_name("invalid_tag_1")
+        tag = TagDAO.get_or_create_by_name("invalid_tag_1")
         assert tag is not None
         # tag was created
         tag = db.session.query(Tag).filter(Tag.name == "invalid_tag_1").first()

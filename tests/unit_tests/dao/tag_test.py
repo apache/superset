@@ -155,7 +155,7 @@ def test_create_tag_relationship(mocker):
     ]
 
     # Call the function
-    tag = TagDAO.get_by_name("test_tag")
+    tag = TagDAO.get_or_create_by_name("test_tag")
     TagDAO.create_tag_relationship(objects_to_tag, tag)
 
     # Verify that the correct number of TaggedObjects are added to the session
