@@ -60,6 +60,12 @@ export type ControlFormProps = {
    */
   value?: JsonObject;
   onChange: (value: JsonObject) => void;
+  /**
+   * Removes a field's key from the values dict instead of writing an
+   * explicit value. Optional: consumers that don't pass it simply don't
+   * offer the reset action.
+   */
+  onReset?: (name: string) => void;
   children: ControlFormRowNode | ControlFormRowNode[];
 };
 
@@ -68,6 +74,7 @@ export type ControlFormProps = {
  */
 export default function ControlForm({
   onChange,
+  onReset,
   value,
   children,
 }: ControlFormProps) {
@@ -107,6 +114,7 @@ export default function ControlForm({
             width,
             debounceDelay = Constants.FAST_DEBOUNCE,
             onChange: onItemValueChange,
+            onReset: onItemReset,
           } = item.props;
           return cloneElement(item, {
             width: width || defaultWidth,
@@ -139,6 +147,16 @@ export default function ControlForm({
               }
               debouncedOnChange[debounceDelay]();
             },
+            ...(onReset
+              ? {
+                  onReset() {
+                    if (onItemReset) {
+                      onItemReset();
+                    }
+                    onReset(name);
+                  },
+                }
+              : {}),
           });
         }),
       });

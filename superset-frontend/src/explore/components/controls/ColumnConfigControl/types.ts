@@ -48,7 +48,15 @@ export interface ColumnConfigInfo {
 
 export type ControlFormItemDefaultSpec = ControlFormItemSpec<
   keyof typeof ControlFormItemComponents
->;
+> & {
+  /**
+   * Marks a checkbox whose value mirrors a chart-level option: when the
+   * per-column value is an explicit override, the popover offers a reset
+   * action that deletes the key from column_config so the column follows
+   * the chart-level setting again.
+   */
+  resettable?: boolean;
+};
 
 export type ColumnConfigFormItem =
   | SharedColumnConfigProp
