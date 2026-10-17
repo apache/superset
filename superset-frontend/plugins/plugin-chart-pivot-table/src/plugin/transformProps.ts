@@ -38,7 +38,7 @@ import {
 import { DateFormatter, PivotTableQueryFormData, QueryData } from '../types';
 import buildGroupbyCombinations, {
   additiveReducerFor,
-  allMetricsAdditive,
+  allMetricsClientAggregatable,
   RollupReducer,
   splitGroupingSetsResult,
   synthesizeAdditiveLevels,
@@ -112,7 +112,7 @@ export default function transformProps(chartProps: ChartProps<QueryFormData>) {
   // very cells being shaded, so letting them in makes the grand total the max
   // and leaves every detail cell nearly unshaded.
   let colorScaleRows: DataRecord[];
-  if (allMetricsAdditive(metricsArr)) {
+  if (allMetricsClientAggregatable(metricsArr)) {
     // Additive fast-path: a single full-detail query was issued; synthesize
     // each rollup level by reducing the leaf rows on the client (see SIP.md).
     const leafRows = queriesData[0].data;
