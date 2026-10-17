@@ -66,7 +66,8 @@ class SemanticView(ABC):
       Mixed positive membership uses grouped OR predicates, which every
       provider must render; see :class:`~superset_core.semantic_layers.types.Operator`.
     - **Ordering before limit.** ``order`` is applied to the full result set
-      before ``offset`` and ``limit``. See
+      before ``offset`` and ``limit``. The host gives an unordered query that
+      selects a temporal dimension a default chronological order. See
       :class:`~superset_core.semantic_layers.types.SemanticQuery`.
 
     Uniqueness works at two levels. In the **catalog**, dimensions are unique

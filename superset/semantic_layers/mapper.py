@@ -84,6 +84,7 @@ from superset.semantic_layers.dimension_resolution import (
 )
 from superset.semantic_layers.exceptions import execute_semantic_query
 from superset.semantic_layers.members import members_by_key
+from superset.semantic_layers.ordering import with_default_order
 from superset.superset_typing import (
     AdhocColumn,
     Column,
@@ -167,7 +168,9 @@ def _dispatch_semantic_query(
     # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
     # table would break every later transformation of that entry.
     def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
-        result: SemanticResult = execute_semantic_query(dispatcher, dispatched_query)
+        result: SemanticResult = execute_semantic_query(
+            dispatcher, with_default_order(dispatched_query)
+        )
         return _coerce_empty_result(result, dispatched_query)
 
     if not cacheable or not semantic_cache.semantic_cache_service.state.effective:
