@@ -84,7 +84,7 @@ spec:
       {{- if or .Values.supersetWorker.initContainers .Values.supersetWorker.extraInitContainers }}
       initContainers:
       {{- if .Values.supersetWorker.initContainers }}
-      {{- tpl (toYaml .Values.supersetWorker.initContainers) . | nindent 6 }}
+      {{- tpl (include "superset.initContainers" (dict "containers" .Values.supersetWorker.initContainers "context" $)) . | trim | nindent 6 }}
       {{- end }}
       {{- if .Values.supersetWorker.extraInitContainers }}
       {{- tpl (toYaml .Values.supersetWorker.extraInitContainers) . | nindent 6 }}
