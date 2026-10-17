@@ -3857,11 +3857,17 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
             "superset.common.query_context_processor.security_manager.get_rls_cache_key",
             return_value=[],
         ),
+        patch.object(QueryContext, "raise_for_access"),
+        patch.object(QueryContext, "query_cache_key", return_value="data-key"),
+        patch(
+            "superset.common.query_context_processor.security_manager"
+            ".can_access_datasource",
+            return_value=True,
+        ),
         patch(
             "superset.common.query_context_processor.ChartDAO.find_by_id",
             return_value=chart,
         ),
-        patch("superset.common.query_context_processor.get_user_id", return_value=42),
     ):
         context = processor._annotation_cache_context(query)
     legacy_context: dict[str, Any] = {"user_id": 42, "source_rls": {"7": []}}
