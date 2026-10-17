@@ -367,6 +367,28 @@ def test_in_list_null_handling(
     ) == [(expected_total,)]
 
 
+def test_not_in_null_check_uses_the_engine_spec_hook() -> None:
+    """
+    The NULL check that keeps NULL rows for ``NOT IN`` goes through the engine
+    spec, so KQL gets ``isnull(col)`` rather than a SQL-style ``IS NULL``.
+    """
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+    from superset.mcp_service.dashboard_scope_sql import _in_list_clause
+    from superset.utils.core import FilterOperator
+
+    def render(spec: Any) -> str:
+        clause = _in_list_clause(
+            sa.column("client"), FilterOperator.NOT_IN, ["A"], "client", spec
+        )
+        return str(clause.compile(compile_kwargs={"literal_binds": True}))
+
+    assert "client IS NULL" in render(BaseEngineSpec)
+    kql = render(KustoKqlEngineSpec)
+    assert "isnull(client)" in kql
+    assert "IS NULL" not in kql
+
+
 def test_time_range_is_applied_to_the_resolved_datetime_column(
     database: Any, warehouse: sa.engine.Engine
 ) -> None:

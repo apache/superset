@@ -6161,3 +6161,45 @@ def test_not_in_filter_on_numeric_column_keeps_null_rows(
     sql = database.compile_sqla_query(query.sqla_query)
     with database.get_sqla_engine() as engine, engine.connect() as connection:
         assert {row[0] for row in connection.execute(text(sql))} == expected
+
+
+def test_not_in_filter_null_check_uses_the_engine_spec_hook(
+    database: Database, mocker: MockerFixture
+) -> None:
+    """
+    The NULL check that keeps NULL rows for ``NOT IN`` is built by the engine
+    spec, so KQL gets ``isnull(col)`` rather than a SQL-style ``IS NULL``.
+    """
+    from unittest.mock import PropertyMock
+
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.db_engine_specs.kusto import KustoKqlEngineSpec
+
+    def compile_not_in() -> str:
+        table = SqlaTable(
+            database=database,
+            schema=None,
+            table_name="states",
+            columns=[TableColumn(column_name="state", type="TEXT")],
+        )
+        query = table.get_sqla_query(
+            columns=["state"],
+            metrics=[],
+            extras={},
+            filter=[{"col": "state", "op": FilterOperator.NOT_IN, "val": ["CA"]}],
+            granularity=None,
+            is_timeseries=False,
+        )
+        return str(query.sqla_query.compile(compile_kwargs={"literal_binds": True}))
+
+    assert "state IS NULL" in compile_not_in()
+
+    mocker.patch.object(
+        SqlaTable,
+        "db_engine_spec",
+        new_callable=PropertyMock,
+        return_value=KustoKqlEngineSpec,
+    )
+    kql = compile_not_in()
+    assert "isnull(state)" in kql
+    assert "IS NULL" not in kql

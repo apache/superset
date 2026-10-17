@@ -413,7 +413,7 @@ def _filter_clause(
     )
 
     if is_list:
-        return _in_list_clause(sqla_col, op, value, column.column_name)
+        return _in_list_clause(sqla_col, op, value, column.column_name, db_engine_spec)
     if op in (FilterOperator.IS_NULL, FilterOperator.IS_NOT_NULL):
         return db_engine_spec.handle_null_filter(sqla_col, op)
     if op in (FilterOperator.LIKE, FilterOperator.ILIKE):
@@ -431,7 +431,9 @@ def _filter_clause(
     return db_engine_spec.handle_comparison_filter(sqla_col, op, value)
 
 
-def _in_list_clause(sqla_col: Any, op: Any, value: Any, name: str) -> Any:
+def _in_list_clause(
+    sqla_col: Any, op: Any, value: Any, name: str, db_engine_spec: Any
+) -> Any:
     """IN / NOT IN with the dataset path's NULL handling (``IN (x, NULL)``
     matches NULL rows; ``NOT IN (x)`` without NULL keeps NULL rows)."""
     import sqlalchemy as sa
@@ -455,7 +457,10 @@ def _in_list_clause(sqla_col: Any, op: Any, value: Any, name: str) -> Any:
         if is_not_in:
             # ``NULL NOT IN (...)`` is not true, so keep NULL rows explicitly;
             # only the listed values are excluded.
-            return sa.or_(sqla_col.is_(None), ~condition)
+            return sa.or_(
+                db_engine_spec.handle_null_filter(sqla_col, FilterOperator.IS_NULL),
+                ~condition,
+            )
     return ~condition if is_not_in else condition
 
 

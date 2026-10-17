@@ -5499,7 +5499,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             # rows. Only the listed values are meant to be
                             # excluded, so keep NULL rows unless NULL itself is
                             # in the list (handled above).
-                            cond = or_(sqla_col.is_(None), ~cond)
+                            cond = or_(
+                                db_engine_spec.handle_null_filter(
+                                    sqla_col, utils.FilterOperator.IS_NULL
+                                ),
+                                ~cond,
+                            )
                     target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,
