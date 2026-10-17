@@ -164,8 +164,8 @@ def _collapsed_metric(present: list[Any] | set[Any]) -> Any:
 
     A total that collapses the metric axis has no single meaningful value once
     it mixes distinct metrics -- e.g. a "Total" cell combining `MAX(sales)`
-    with `MEDIAN(msrp)`. The renderer blanks that case instead of picking one
-    arbitrarily (see #44657 / ``metricAxis`` handling in
+    with `MEDIAN(msrp)`. The browser change in #44657 blanks that case instead
+    of picking one arbitrarily (see ``metricAxis`` handling in
     ``react-pivottable/utilities.ts``); mirror it here so exported/scheduled
     values agree with what the chart shows.
     """
@@ -399,8 +399,8 @@ def _apply_show_values_as(  # pylint: disable=too-many-arguments
     - A total is rolled up within a single metric, so a cell is never divided by
       a total that mixes in another metric, and each metric uses its own
       reducer -- a MIN/MAX metric divides by the row's minimum/maximum rather
-      than its sum. A total that collapses the metric axis resolves to a single
-      metric the way the renderer does; see ``_collapsed_metric``.
+      than its sum. A total that combines distinct metrics stays blank; see
+      ``_collapsed_metric``.
 
     A zero denominator yields NaN (blank) rather than infinity, matching
     ``pandas_postprocessing.pivot``'s ``show_values_as``.
@@ -420,6 +420,8 @@ def _apply_show_values_as(  # pylint: disable=too-many-arguments
     derived = pd.DataFrame(np.nan, index=numeric.index, columns=numeric.columns)
     for metric in dict.fromkeys(metric_of_column):
         selection = np.array([column == metric for column in metric_of_column])
+        # Mixed-metric numerators are blank, so the fallback cross-metric
+        # denominator cannot produce a displayed value.
         denominator_selection = (
             selection if metric is not None else np.ones(len(selection), dtype=bool)
         )
@@ -607,13 +609,15 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # still divides by itself: a MAX metric's row total is the row's maximum,
     # and dividing that maximum by itself reads 100%.
     totals_metric_level = df.columns.nlevels - 1 if combine_metrics else 0
-    # A column carrying a total label rather than a metric name rolls up
-    # everything; with no metric to resolve it to, it sums.
+    # Single-metric totals retain their reducer. Mixed-metric totals are
+    # blanked before reduction; the fallback cannot make them meaningful.
     cross_metric_reducer = (
         reducers.get(metrics[0], DEFAULT_ROLLUP_REDUCER)
         if len(set(metrics)) == 1
         else DEFAULT_ROLLUP_REDUCER
     )
+
+    metric_names = set(metrics)
 
     def collapse(block: pd.DataFrame) -> tuple[Optional[pd.DataFrame], str]:
         """Narrow a total's source columns to one metric, and pick its reducer.
@@ -623,7 +627,6 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         blanks it instead of summing across metrics that share no unit
         (mirrors the renderer, see #44657).
         """
-        metric_names = set(metrics)
         present = [
             _metric_of_column(column, totals_metric_level) for column in block.columns
         ]
@@ -670,7 +673,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 )
                 if mixed_metrics:
                     subtotal = pd.Series(np.nan, index=block.index)
-                elif percent_mode and source is not None:
+                elif percent_mode:
                     subtotal = _reduce(source, reducer, axis=1)
                 else:
                     subtotal = pivot_v2_aggfunc_map[aggfunc](block, axis=1)
@@ -703,7 +706,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     )
                     raise
 
-                subtotal_values = df.iloc[slice_, :]
+                subtotal_values = df.iloc[slice_, :].drop(columns=mixed_metric_totals)
                 if aggfunc != CURRENCY_CONTEXT_AGGREGATION:
                     subtotal_values = subtotal_values.apply(
                         pd.to_numeric, errors="coerce"
@@ -719,15 +722,14 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
                 # insert row after subgroup
                 df = pd.concat(
-                    [df[: slice_.stop], subtotal.to_frame().T, df[slice_.stop :]]
+                    [
+                        df[: slice_.stop],
+                        subtotal.to_frame().T.reindex(columns=df.columns),
+                        df[slice_.stop :],
+                    ]
                 )
                 inserted_rows.append(subtotal.name)
                 row_prefix_depth[subtotal.name] = level
-
-    # Reducing an all-blank mixed-metric column can produce 0 (sum/count).
-    # Keep these slots blank, including the grand-total corner, in every mode.
-    for column in mixed_metric_totals:
-        df[column] = np.nan
 
     # A non-additive metric's totals come from the database rollups the chart
     # computed, in Actual Values mode as in the percent modes: reducing the
@@ -774,13 +776,13 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             else None,
         )
 
-    # if we want to apply the metrics on the rows we need to pivot the
-    # dataframe back
-    if apply_metrics_on_rows:
-        df = df.T
-
-    # replace the remaining temporary placeholder string for np.nan after pivoting
+    # Replace placeholders before transposing, while column dtypes are intact.
     df.replace("SUPERSET_PANDAS_NAN", np.nan, inplace=True)
+    if apply_metrics_on_rows:
+        # Mixed blank columns must not coerce integer cells through float64
+        # during transposition (which would round integers above 2**53).
+        df = df.astype(object).T if mixed_metric_totals else df.T
+
     df.rename(
         index={"SUPERSET_PANDAS_NAN": np.nan},
         columns={"SUPERSET_PANDAS_NAN": np.nan},

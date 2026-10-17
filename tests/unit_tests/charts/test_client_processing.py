@@ -1937,8 +1937,9 @@ def test_pivot_df_show_values_as_blanks_mixed_metric_grand_total():
 @pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
 @pytest.mark.parametrize("with_rollups", [False, True])
 @pytest.mark.parametrize("mode", [None, "percent_row", "percent_col", "percent_total"])
+@pytest.mark.parametrize("aggregation", ["Sum", "Average"])
 def test_pivot_table_v2_blanks_mixed_metric_totals(
-    layout: str, with_rollups: bool, mode: str | None
+    layout: str, with_rollups: bool, mode: str | None, aggregation: str
 ):
     """Mixed totals stay blank in both layouts, with or without GROUPING SETS."""
     if with_rollups:
@@ -1957,23 +1958,27 @@ def test_pivot_table_v2_blanks_mixed_metric_totals(
         "rowTotals": True,
         "colTotals": True,
         "showValuesAs": mode,
+        "aggregateFunction": aggregation,
     }
     pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+    total = total_label() if mode else f"{_('Total')} ({aggregation})"
     if layout == "ROWS":
-        mixed = pivoted.loc[(total_label(), ""), :]
+        mixed = pivoted.loc[(total, ""), :]
         leaf = pivoted.loc[(metrics[0], "US"), ("boy",)]
-        metric_total = pivoted.loc[(metrics[0], "Subtotal"), (total_label(),)]
+        metric_total = pivoted.loc[(metrics[0], "Subtotal"), (total,)]
     else:
-        mixed = pivoted.loc[:, (total_label(), "")]
+        mixed = pivoted.loc[:, (total, "")]
         leaf = pivoted.loc[("US",), (metrics[0], "boy")]
-        metric_total = pivoted.loc[(total_label(),), (metrics[0], "Subtotal")]
+        metric_total = pivoted.loc[(total,), (metrics[0], "Subtotal")]
     # Includes the grand-total corner: all-blank sums must not revive it as 0.
     assert mixed.isna().all()
     assert pd.notna(leaf)
     assert pd.notna(metric_total)
     if mode is None:
         assert leaf == 10
-        assert metric_total == (19 if with_rollups else 80)
+        assert metric_total == (
+            19 if with_rollups else (80 if aggregation == "Sum" else 20)
+        )
 
 
 def test_pivot_df_show_values_as_with_combined_metrics():
@@ -4705,3 +4710,65 @@ def test_apply_client_processing_csv_format_pivot_table_multiple_rows():
 def test_pivot_rollup_reducer_preserves_blank_and_zero(reducer: str):
     assert pd.isna(_reduce(pd.Series([float("nan"), float("nan")]), reducer))
     assert _reduce(pd.Series([0, float("nan")]), reducer) == 0
+
+
+@pytest.mark.parametrize("layout", ["COLUMNS", "ROWS"])
+@pytest.mark.parametrize("combine", [False, True])
+@pytest.mark.parametrize("transpose", [False, True])
+def test_pivot_mixed_totals_preserve_integer_csv(layout, combine, transpose):
+    """Blank totals must not round integer leaves or change their CSV spelling."""
+    large = 2**53 + 1
+    frame = pd.DataFrame(
+        {
+            "nation": ["US", "UK"],
+            "gender": ["boy", "boy"],
+            "SUM(a)": [large, 2],
+            "SUM(b)": [3, 4],
+        }
+    )
+    result = pivot_table_v2(
+        frame,
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(a)", "SUM(b)"],
+            "metricsLayout": layout,
+            "combineMetric": combine,
+            "transposePivot": transpose,
+            "rowTotals": True,
+            "colTotals": True,
+        },
+        apply_number_format=False,
+    )
+    csv = result.to_csv()
+    assert str(large) in csv
+    assert str(large - 1) not in csv
+    assert ".0" not in csv
+
+
+@pytest.mark.parametrize("mode", [None, "percent_row", "percent_col", "percent_total"])
+@pytest.mark.parametrize("transpose", [False, True])
+@pytest.mark.parametrize("single_metric", [False, True])
+def test_combined_metric_subtotals(mode, transpose, single_metric):
+    frame = show_values_as_df()
+    frame["MAX(num)"] = [1, 3, 6, 10]
+    metrics = ["SUM(num)"] if single_metric else ["SUM(num)", "MAX(num)"]
+    result = pivot_table_v2(
+        frame,
+        {
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": metrics,
+            "combineMetric": True,
+            "transposePivot": transpose,
+            "rowTotals": True,
+            "colTotals": True,
+            "showValuesAs": mode,
+        },
+        apply_number_format=False,
+    )
+    # Transpose swaps the dimension axes before constructing the pivot.
+    groups = ["US", "UK"] if transpose else ["boy", "girl"]
+    for group in groups:
+        subtotal = result.loc[:, (group, "Subtotal")]
+        assert subtotal.notna().all() if single_metric else subtotal.isna().all()

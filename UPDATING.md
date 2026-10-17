@@ -24,6 +24,19 @@ assists people when migrating to a new version.
 
 ## Next
 
+### Pivot Table mixed-metric export totals
+
+CSV/Excel exports and scheduled CSV/text reports now leave Total and Subtotal
+cells blank when they combine different metrics, including two SUM metrics.
+Metric-specific values and totals remain available. This also applies with
+Combine metrics and Transpose pivot enabled. Previously these cells could show
+an arbitrary metric's value or a sum across unrelated metrics.
+
+If downstream processing consumes these totals, update it to handle empty
+cells or define a single metric that explicitly computes the desired combined
+value. This change does not restore result-aggregation parity between exports
+and the browser.
+
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
   which every semantic provider must render; previously NULL rows could be
