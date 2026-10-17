@@ -78,6 +78,11 @@ EXCEL_PERCENT_FORMAT = "0.0%"
 # column meta and formatter selection, so it shares this post-processor.
 AG_GRID_TABLE = "ag-grid-table"
 
+# "Adaptive formatting" in the time format controls, mirroring ``SMART_DATE_ID``
+# in ``superset-ui-core/time-format``. It is an alias the browser resolves to a
+# formatter that picks a representation per value, not a format string.
+SMART_DATE = "smart_date"
+
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -1474,12 +1479,19 @@ def table(
         # (``if (isTime || config.d3TimeFormat)`` in ``transformProps.ts``):
         # an explicit per-column ``d3TimeFormat`` formats a temporal column and
         # takes precedence over number formatting. Scoped to datetime columns
-        # with an explicit format; the bare ``isTime`` fallback,
-        # ``tableTimestampFormat`` default, SMART_DATE granularity, and string
-        # temporal columns are intentionally left to a follow-up, since they
-        # need a full server-side d3-time-format port rather than ``strftime``.
+        # with an explicit ``strftime``-style format; ``smart_date`` and any
+        # other alias is skipped so it is never rendered as literal text. The
+        # bare ``isTime`` fallback, ``tableTimestampFormat`` default,
+        # SMART_DATE granularity, and string temporal columns are left to a
+        # follow-up, since they need a full server-side d3-time-format port
+        # rather than ``strftime``.
         time_format = config.get("d3TimeFormat")
-        if time_format and pd.api.types.is_datetime64_any_dtype(df[column]):
+        if (
+            time_format
+            and time_format != SMART_DATE
+            and "%" in time_format
+            and pd.api.types.is_datetime64_any_dtype(df[column])
+        ):
             format_time_column(df, column, time_format)
             continue
 
