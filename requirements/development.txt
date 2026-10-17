@@ -520,8 +520,10 @@ jmespath==1.1.0
     #   boto3
     #   botocore
     #   pymongosql
-joserfc==1.7.2
-    # via fastmcp-slim
+joserfc==1.7.3
+    # via
+    #   -r requirements/development.in
+    #   fastmcp-slim
 jsonpath-ng==1.8.0
     # via
     #   -c requirements/base-constraint.txt
