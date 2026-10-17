@@ -32,7 +32,7 @@ from flask_appbuilder.const import API_URI_RIS_KEY
 from sqlalchemy import inspect as sa_inspect
 from sqlalchemy.exc import SQLAlchemyError
 
-from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
+from superset.constants import PASSWORD_MASK, SKIP_VISIBILITY_FILTER_CLASSES
 from superset.extensions import stats_logger_manager
 from superset.utils import json
 from superset.utils.core import get_user_id, LoggerLevel, to_int
@@ -125,6 +125,76 @@ def get_object_ids_from_view_args(
     return {}
 
 
+# Request fields whose value is a secret, wherever they appear in the body: a
+# database password, an SSH tunnel credential, an OAuth2 client secret or token,
+# an embedded fallback credential, a service-account key, or the import maps and
+# Secure Extra blobs that carry them. The event log stores the request payload,
+# so without this the Action Log keeps every secret typed into the database
+# dialog, a connection test or an import in clear.
+SENSITIVE_PAYLOAD_KEYS = frozenset(
+    {
+        "access_token",
+        "client_secret",
+        "credentials_info",
+        "encrypted_extra",
+        "encrypted_extra_secrets",
+        "masked_encrypted_extra",
+        "password",
+        "passwords",
+        "private_key",
+        "private_key_password",
+        "privatekey_body",
+        "privatekey_pass",
+        "refresh_token",
+        "secret",
+        "service_account_info",
+        "ssh_tunnel_passwords",
+        "ssh_tunnel_private_key_passwords",
+        "ssh_tunnel_private_keys",
+        "token",
+    }
+)
+
+
+def _redact_uri(uri: Any) -> Any:
+    """Mask the password of a SQLAlchemy URI, keeping the rest readable."""
+    # Prevent circular import.
+    from superset.databases.utils import make_url_safe
+
+    if not isinstance(uri, str) or not uri:
+        return uri
+    try:
+        url = make_url_safe(uri)
+    except Exception:  # pylint: disable=broad-except
+        return PASSWORD_MASK  # unparseable: it may still hold a credential
+    if url.password is None:
+        return uri
+    return url.set(password=PASSWORD_MASK).render_as_string(hide_password=False)
+
+
+def redact_request_payload(value: Any) -> Any:
+    """
+    Mask secrets in a request payload before it is logged.
+
+    Values under a ``SENSITIVE_PAYLOAD_KEYS`` key are replaced whole, at any
+    depth, and a ``sqlalchemy_uri`` keeps everything but its password. Empty
+    values are left as they are, since there is nothing to hide.
+    """
+    if isinstance(value, dict):
+        redacted: dict[Any, Any] = {}
+        for key, item in value.items():
+            if key in SENSITIVE_PAYLOAD_KEYS and item not in (None, "", {}, []):
+                redacted[key] = PASSWORD_MASK
+            elif key == "sqlalchemy_uri":
+                redacted[key] = _redact_uri(item)
+            else:
+                redacted[key] = redact_request_payload(item)
+        return redacted
+    if isinstance(value, list):
+        return [redact_request_payload(item) for item in value]
+    return value
+
+
 def collect_request_payload(include_request_data: bool = True) -> dict[str, Any]:
     """Collect log payload identifiable from request context"""
     if not request:
@@ -154,7 +224,7 @@ def collect_request_payload(include_request_data: bool = True) -> dict[str, Any]
     if "rison" in payload and not payload["rison"]:
         del payload["rison"]
 
-    return payload
+    return redact_request_payload(payload)
 
 
 def get_logger_from_status(

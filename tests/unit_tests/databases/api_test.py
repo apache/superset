@@ -2998,3 +2998,44 @@ def test_related_objects_limits_dataset_details(
     assert payload["count"] == MAX_RELATED_DATASETS + 2
     assert len(payload["result"]) == MAX_RELATED_DATASETS
     assert can_access.call_count == MAX_RELATED_DATASETS
+
+
+def test_event_log_never_records_a_secret_typed_into_a_database_update(
+    mocker: MockerFixture,
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """
+    The Action Log keeps the request payload, so it must not keep the secrets in it.
+
+    A password typed into the database dialog was stored in clear in every event
+    row for the save, alongside its masked echo in the response.
+    """
+    from superset.databases.api import DatabaseRestApi
+    from superset.models.core import Database
+
+    mocker.patch.object(DatabaseRestApi.datamodel, "_session", session)
+    Database.metadata.create_all(session.get_bind())  # pylint: disable=no-member
+    event_log = mocker.patch("superset.utils.log.DBEventLogger.log")
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand.run")
+    mocker.patch("superset.commands.database.update.get_username", return_value="admin")
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    database = Database(
+        database_name="test_database", sqlalchemy_uri="sqlite://", encrypted_extra="{}"
+    )
+    session.add(database)
+    session.commit()
+
+    response = client.put(
+        f"/api/v1/database/{database.id}",
+        json={
+            "masked_encrypted_extra": json.dumps(
+                {"oauth2_client_info": {"id": "client", "secret": "typed-secret"}}
+            )
+        },
+    )
+
+    assert response.status_code == 200, response.json
+    assert event_log.called
+    assert "typed-secret" not in str(event_log.call_args_list)
