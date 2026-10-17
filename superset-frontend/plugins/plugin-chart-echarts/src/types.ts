@@ -103,6 +103,7 @@ export type LegendFormData = {
   legendType: LegendType;
   showLegend: boolean;
   legendSort: 'asc' | 'desc' | null;
+  showSelectorLegend: boolean;
 };
 
 export type EventHandlers = Record<string, { (props: any): void }>;
