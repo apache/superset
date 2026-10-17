@@ -618,9 +618,16 @@ const AsyncSelect = forwardRef(
           if (allowNewOptions) {
             const unquotedSearch = stripSurroundingQuotes(searchValue);
             setSelectOptions(prevOptions => {
+              const cleanSelectOptions = fullSelectOptions.filter(
+                option =>
+                  !option.isNewOption || hasOption(option.value, selectValue),
+              );
               const optionsToCheck = caseSensitiveNewOptionMatching
                 ? fullSelectOptions
-                : [...fullSelectOptions, ...prevOptions];
+                : [
+                    ...cleanSelectOptions,
+                    ...prevOptions.filter(option => !option.isNewOption),
+                  ];
               const normalizedSearch = normalizeOptionLabel(unquotedSearch);
               const hasMatchingOption = caseSensitiveNewOptionMatching
                 ? hasOption(unquotedSearch, optionsToCheck, true)
@@ -635,10 +642,6 @@ const AsyncSelect = forwardRef(
                   value: unquotedSearch,
                   isNewOption: true,
                 };
-              const cleanSelectOptions = fullSelectOptions.filter(
-                option =>
-                  !option.isNewOption || hasOption(option.value, selectValue),
-              );
               return newOption
                 ? [newOption, ...cleanSelectOptions]
                 : cleanSelectOptions;

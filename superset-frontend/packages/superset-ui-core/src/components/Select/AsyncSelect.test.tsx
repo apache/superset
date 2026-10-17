@@ -1827,6 +1827,46 @@ test('preserves a new option when the server response has no matching label', as
   expect(options[1]).toHaveTextContent('Other Dashboard');
 });
 
+test('replaces an unselected new option when its casing changes', async () => {
+  const loadOptions = jest.fn(async () => ({
+    data: [],
+    totalCount: 100,
+  }));
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      caseSensitiveNewOptionMatching={false}
+      filterOption={false}
+      options={loadOptions}
+    />,
+  );
+
+  await open();
+  await type('my dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'my dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+  expect(await findSelectOption('my dashboard')).toBeInTheDocument();
+
+  await type('My Dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'My Dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('My Dashboard');
+});
+
 test('removes a new option when a pending base fetch returns a matching label in case-insensitive mode', async () => {
   let resolveBase: (value: {
     data: { label: string; value: number }[];
