@@ -209,24 +209,16 @@ class KustoSqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
 
 
 class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
-    """Azure Data Explorer engine spec using native KQL query language.
-
-    Note: Documentation is consolidated in KustoSqlEngineSpec (Azure Data Explorer).
-    This spec exists for runtime support of the kustokql driver.
-    """
+    """Azure Data Explorer engine spec using native KQL query language."""
 
     engine = "kustokql"
     engine_name = "Azure Data Explorer (KQL)"
     time_groupby_inline = True
-    allows_joins = True
-    allows_subqueries = True
-    allows_sql_comments = False
-    run_multiple_statements_as_one = True
 
     metadata = {
         "description": (
             "Azure Data Explorer (Kusto) using native Kusto Query Language (KQL) "
-            "for high-performance log and telemetry analytics."
+            "for fast, exploratory telemetry and log analytics."
         ),
         "logo": "kusto.png",
         "homepage_url": "https://azure.microsoft.com/en-us/products/data-explorer/",
@@ -249,7 +241,24 @@ class KustoKqlEngineSpec(BaseEngineSpec):  # pylint: disable=abstract-method
             "client_secret": "Azure AD application secret",
             "tenant_id": "Azure AD tenant ID",
         },
+        "docs_url": "https://learn.microsoft.com/en-us/azure/data-explorer/",
+        "sqlalchemy_docs_url": "https://github.com/dodopizza/sqlalchemy-kusto",
+        "known_incompatibilities": [
+            {
+                "dependency": "SQLAlchemy 2.0",
+                "reason": (
+                    "setup.py on the sqlalchemy-kusto main branch hard-pins "
+                    "sqlalchemy==1.4.*; no SQLAlchemy 2.0 work has started."
+                ),
+                "tracking_url": "https://github.com/dodopizza/sqlalchemy-kusto",
+                "since": "2026-07-28",
+            }
+        ],
     }
+    allows_joins = True
+    allows_subqueries = True
+    allows_sql_comments = False
+    run_multiple_statements_as_one = True
 
     _time_grain_expressions = {
         None: "{col}",

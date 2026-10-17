@@ -280,6 +280,8 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
         "pypi_packages": ["clickhouse-sqlalchemy"],
         "connection_string": "clickhouse://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
+        "docs_url": "https://clickhouse.com/docs/",
+        "sqlalchemy_docs_url": "https://github.com/xzkostyan/clickhouse-sqlalchemy",
     }
 
     @classmethod
@@ -424,6 +426,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         "logo": "clickhouse.svg",
         "logo_dark": "clickhouse-dark.svg",
         "homepage_url": "https://clickhouse.com/",
+        "sqlalchemy_docs_url": "https://clickhouse.com/docs/en/integrations/sql-clients/superset",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.OPEN_SOURCE,
