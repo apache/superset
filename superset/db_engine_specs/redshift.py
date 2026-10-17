@@ -25,6 +25,8 @@ from typing import Any, Callable
 import pandas as pd
 import sqlalchemy as sa
 from flask_babel import gettext as __
+from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.types import NVARCHAR
 
@@ -99,6 +101,13 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
     engine_name = "Amazon Redshift"
     max_column_name_length = 127
     default_driver = "psycopg2"
+
+    # In Redshift a catalog is a database. Cross-database queries
+    # (`database.schema.table`) are supported natively, including for
+    # databases created from datashares.
+    supports_catalog = True
+    supports_dynamic_catalog = True
+    supports_cross_catalog_queries = True
 
     sqlalchemy_uri_placeholder = (
         "redshift+psycopg2://user:password@host:port/dbname[?key=value&key=value...]"
@@ -252,6 +261,61 @@ class RedshiftEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             {"invalid": ["database"]},
         ),
     }
+
+    @classmethod
+    def adjust_engine_params(
+        cls,
+        uri: URL,
+        connect_args: dict[str, Any],
+        catalog: str | None = None,
+        schema: str | None = None,
+    ) -> tuple[URL, dict[str, Any]]:
+        """
+        Set the catalog (database).
+        """
+        if catalog:
+            uri = uri.set(database=catalog)
+            # IAM connections pass the database in connect_args instead
+            if "database" in connect_args:
+                connect_args["database"] = catalog
+
+        return uri, connect_args
+
+    @classmethod
+    def get_default_catalog(cls, database: Database) -> str | None:
+        """
+        Return the default catalog for a given database.
+
+        IAM connections may leave the URL database empty and pass it in
+        ``connect_args`` instead.
+        """
+        if database.url_object.database:
+            return database.url_object.database
+
+        connect_args = (
+            database.get_extra().get("engine_params", {}).get("connect_args", {})
+        )
+        return connect_args.get("database")
+
+    @classmethod
+    def get_catalog_names(
+        cls,
+        database: Database,
+        inspector: Inspector,
+    ) -> set[str]:
+        """
+        Return all catalogs.
+
+        In Redshift, a catalog is called a "database". SVV_REDSHIFT_DATABASES
+        also lists databases created from datashares, which pg_database does not.
+        """
+        with inspector.engine.connect() as conn:
+            return {
+                catalog
+                for (catalog,) in conn.execute(
+                    sa.text("SELECT database_name FROM svv_redshift_databases")
+                )
+            }
 
     @classmethod
     def normalize_table_name_for_upload(
