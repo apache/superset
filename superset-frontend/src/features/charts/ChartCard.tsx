@@ -46,6 +46,7 @@ import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components'
 import { TableTab } from 'src/views/CRUD/types';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
+import { LineageModal } from 'src/features/lineage';
 
 const menuItemButtonCss = css`
   appearance: none;
@@ -105,6 +106,7 @@ export default function ChartCard({
     chart.editors,
     chart.extra_editors,
   );
+  const canRead = hasPerm('can_read');
   const menuItems: MenuItem[] = [];
 
   if (canEdit) {
@@ -137,6 +139,29 @@ export default function ChartCard({
         </Tooltip>
       ),
       disabled: !allowEdit,
+    });
+  }
+
+  if (canRead) {
+    menuItems.push({
+      key: 'lineage',
+      label: (
+        <LineageModal
+          entityType="chart"
+          entityId={chart.id}
+          triggerNode={
+            <div>
+              <Icons.ShareAltOutlined
+                iconSize="l"
+                css={css`
+                  vertical-align: text-top;
+                `}
+              />{' '}
+              {t('View Lineage')}
+            </div>
+          }
+        />
+      ),
     });
   }
 

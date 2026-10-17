@@ -422,4 +422,5 @@ export enum MenuKeys {
   ExportPivotXlsx = 'export_pivot_xlsx',
   EmbedCode = 'embed_code',
   VersionHistory = 'version_history',
+  ViewLineage = 'view_lineage',
 }
