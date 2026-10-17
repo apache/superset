@@ -19,30 +19,23 @@ from __future__ import annotations
 
 from typing import Any, Callable, TYPE_CHECKING
 
-from flask_babel import gettext as __, lazy_gettext as _, ngettext
-from flask_babel.speaklater import LazyString
+from flask_babel import gettext as __
 from jinja2 import TemplateError
-from jinja2.meta import find_undeclared_variables
 
 from superset import is_feature_enabled
 from superset.commands.sql_lab.execute import SqlQueryRender
 from superset.errors import SupersetErrorType
+from superset.jinja_context import (
+    PARAMETER_MISSING_ERR,
+    undefined_parameters_message,
+)
 from superset.sqllab.exceptions import SqlLabException
-from superset.utils import core as utils
 
 MSG_OF_1006 = "Issue 1006 - One or more parameters specified in the query are missing."
 
 if TYPE_CHECKING:
     from superset.jinja_context import BaseTemplateProcessor
     from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
-
-# Lazy on purpose: evaluated at import time, an eager constant would be
-# frozen in the default locale (see the same convention in views/core.py).
-PARAMETER_MISSING_ERR: LazyString = _(
-    "Please check your template parameters for syntax errors and make sure "
-    "they match across your SQL query and Set Parameters. Then, try running "
-    "your query again."
-)
 
 
 class SqlQueryRenderImpl(SqlQueryRender):
@@ -76,17 +69,6 @@ class SqlQueryRenderImpl(SqlQueryRender):
                 return query_model.sql.strip().strip(";")
             raise
 
-    def _strip_sql_comments(
-        self,
-        execution_context: SqlJsonExecutionContext,
-        sql: str,
-    ) -> str:
-        from superset.sql.parse import SQLScript
-
-        engine = execution_context.query.database.db_engine_spec.engine
-        script = SQLScript(sql, engine)
-        return script.format(comments=False)
-
     def _validate(
         self,
         execution_context: SqlJsonExecutionContext,
@@ -94,12 +76,9 @@ class SqlQueryRenderImpl(SqlQueryRender):
         sql_template_processor: BaseTemplateProcessor,
     ) -> None:
         if is_feature_enabled("ENABLE_TEMPLATE_PROCESSING"):
-            sql_for_validation = self._strip_sql_comments(
-                execution_context,
-                rendered_query,
+            undefined_parameters = sql_template_processor.get_undefined_parameters(
+                rendered_query
             )
-            syntax_tree = sql_template_processor.env.parse(sql_for_validation)
-            undefined_parameters = find_undeclared_variables(syntax_tree)
             if undefined_parameters:
                 self._raise_undefined_parameter_exception(
                     execution_context, undefined_parameters
@@ -111,12 +90,7 @@ class SqlQueryRenderImpl(SqlQueryRender):
         raise SqlQueryRenderException(
             sql_json_execution_context=execution_context,
             error_type=SupersetErrorType.MISSING_TEMPLATE_PARAMS_ERROR,
-            reason_message=ngettext(
-                "The parameter %(parameters)s in your query is undefined.",
-                "The following parameters in your query are undefined: %(parameters)s.",
-                len(undefined_parameters),
-                parameters=utils.format_list(undefined_parameters),
-            ),
+            reason_message=undefined_parameters_message(undefined_parameters),
             suggestion_help_msg=str(PARAMETER_MISSING_ERR),
             extra={
                 "undefined_parameters": list(undefined_parameters),
