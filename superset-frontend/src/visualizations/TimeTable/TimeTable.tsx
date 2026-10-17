@@ -110,43 +110,39 @@ const TimeTable = ({
 
     return rows.map(row => {
       const valueField = row.label || row.metric_name || '';
-      const cellValues = columnConfigs.reduce<Record<string, ReactNode>>(
-        (acc, columnConfig) => {
-          if (columnConfig.colType === 'spark') {
-            return {
-              ...acc,
-              [columnConfig.key]: (
-                <Sparkline
-                  valueField={valueField}
-                  column={columnConfig}
-                  entries={entries}
-                />
-              ),
-            };
-          }
+      const cells: Record<string, ReactNode> = {};
+      // Precomputed per-column values, read by sortNumberWithMixedTypes via
+      // row.original.cellValues so sorting never has to recompute them.
+      const cellValues: Record<string, number | null> = {};
 
-          const { value, errorMsg } = calculateCellValue(
-            valueField,
-            columnConfig,
-            reversedEntries,
+      columnConfigs.forEach(columnConfig => {
+        const { value, errorMsg } = calculateCellValue(
+          valueField,
+          columnConfig,
+          reversedEntries,
+        );
+        cellValues[columnConfig.key] = value;
+
+        cells[columnConfig.key] =
+          columnConfig.colType === 'spark' ? (
+            <Sparkline
+              valueField={valueField}
+              column={columnConfig}
+              entries={entries}
+            />
+          ) : (
+            <ValueCell
+              value={value}
+              errorMsg={errorMsg}
+              column={columnConfig}
+            />
           );
+      });
 
-          return {
-            ...acc,
-            [columnConfig.key]: (
-              <ValueCell
-                value={value}
-                errorMsg={errorMsg}
-                column={columnConfig}
-              />
-            ),
-          };
-        },
-        {},
-      );
       return {
         ...row,
-        ...cellValues,
+        ...cells,
+        cellValues,
         metric: <LeftCell row={row} rowType={rowType} url={url} />,
       };
     });
