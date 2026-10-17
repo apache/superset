@@ -324,7 +324,7 @@
     "swc-loader": "^0.2.7",
     "tscw-config": "^1.1.2",
     "tsx": "^4.23.15",
-    "typescript": "5.4.5",
+    "typescript": "6.0.3",
     "unzipper": "^0.12.5",
     "webpack": "^5.111.1",
     "webpack-bundle-analyzer": "^5.4.0",
