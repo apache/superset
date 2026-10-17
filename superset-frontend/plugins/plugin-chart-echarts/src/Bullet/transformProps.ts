@@ -37,10 +37,12 @@ import { estimateWrappedLegendRowCount } from '../utils/legendLayout';
 
 // Foregrounds for band labels drawn over a custom fill, chosen from the fill's
 // own luminance so they stay readable in both light and dark themes.
-// eslint-disable-next-line theme-colors/no-literal-colors
-const LIGHT_LABEL_COLOR = '#ffffff';
-// eslint-disable-next-line theme-colors/no-literal-colors
-const DARK_LABEL_COLOR = '#1f1f1f';
+const BAND_LABEL_COLORS = {
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  light: '#ffffff',
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  dark: '#1f1f1f',
+};
 const MEASURE_BAR_FRACTION = 0.28;
 // Small pixel gap below the measure bar so the target/marker symbol doesn't
 // touch its edge.
@@ -132,7 +134,7 @@ export default function transformProps(
     if (luminance === null) return theme.colorTextSecondary;
     // Fixed light/dark foregrounds, not `theme.colorText`: that token flips
     // to a light color in dark themes and would vanish on a light custom fill.
-    return luminance < 0.4 ? LIGHT_LABEL_COLOR : DARK_LABEL_COLOR;
+    return luminance < 0.4 ? BAND_LABEL_COLORS.light : BAND_LABEL_COLORS.dark;
   };
   const bands = sortedRanges.map(({ value, label, color }, i) => ({
     name: label,
