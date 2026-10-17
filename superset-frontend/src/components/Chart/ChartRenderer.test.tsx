@@ -18,6 +18,7 @@
  */
 import { render, fireEvent, screen } from 'spec/helpers/testing-library';
 import {
+  AppSection,
   ChartMetadata,
   getChartMetadataRegistry,
   VizType,
@@ -49,6 +50,7 @@ jest.mock('@superset-ui/core', () => ({
       data-test="mock-super-chart"
       data-is-refreshing={isRefreshing ? 'true' : 'false'}
       data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
+      data-app-section={String(props.appSection)}
       data-async-mode={String(
         (props.hooks as { resolveAsyncMode?: () => boolean } | undefined)?.[
           'resolveAsyncMode'
@@ -138,6 +140,50 @@ test('should render SuperChart', () => {
     <ChartRenderer {...requiredProps} chartIsStale={false} />,
   );
   expect(getByTestId('mock-super-chart')).toBeInTheDocument();
+});
+
+test('tells the chart it renders on a dashboard', () => {
+  render(<ChartRenderer {...requiredProps} />);
+  expect(screen.getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-app-section',
+    AppSection.Dashboard,
+  );
+});
+
+test('tells the chart it renders in Explore', () => {
+  render(<ChartRenderer {...requiredProps} source={ChartSource.Explore} />);
+  expect(screen.getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-app-section',
+    AppSection.Explore,
+  );
+});
+
+test('tells the chart it renders embedded in standalone Explore', () => {
+  const { pathname } = window.location;
+  window.history.pushState({}, '', '/explore/?standalone=1');
+  try {
+    render(<ChartRenderer {...requiredProps} source={ChartSource.Explore} />);
+    expect(screen.getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-app-section',
+      AppSection.Embedded,
+    );
+  } finally {
+    window.history.pushState({}, '', pathname);
+  }
+});
+
+test('tells the chart it renders in Explore when standalone keeps the controls', () => {
+  const { pathname } = window.location;
+  window.history.pushState({}, '', '/explore/?standalone=2');
+  try {
+    render(<ChartRenderer {...requiredProps} source={ChartSource.Explore} />);
+    expect(screen.getByTestId('mock-super-chart')).toHaveAttribute(
+      'data-app-section',
+      AppSection.Explore,
+    );
+  } finally {
+    window.history.pushState({}, '', pathname);
+  }
 });
 
 test('should use latestQueryFormData instead of formData when chartIsStale is true', () => {
