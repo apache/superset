@@ -35,6 +35,7 @@ from collections.abc import Callable
 from contextvars import ContextVar
 from typing import Any, cast
 
+import fastmcp
 import httpx
 from authlib.jose import JsonWebToken
 from authlib.jose.errors import JoseError
@@ -298,9 +299,11 @@ def _prefers_browser_html(conn: HTTPConnection) -> bool:
 class BrowserHelloMiddleware(BaseHTTPMiddleware):
     """Starlette middleware that returns a browser-friendly hello page.
 
-    Intercepts GET/HEAD requests with a browser Accept header before they
-    reach FastMCP's router (which returns 405 for GET). Works regardless
-    of whether MCP_AUTH_ENABLED is True or False.
+    Intercepts GET/HEAD requests with a browser Accept header to the MCP
+    endpoint before they reach FastMCP's router (which returns 405 for GET).
+    Works regardless of whether MCP_AUTH_ENABLED is True or False.
+
+    Only the MCP endpoint path is intercepted. Other routes are passed through.
 
     When auth_enabled=True the page includes Bearer token setup instructions.
     When auth_enabled=False the page omits the Authorization header from the
@@ -312,18 +315,32 @@ class BrowserHelloMiddleware(BaseHTTPMiddleware):
         app: Any,
         auth_enabled: bool = False,
         page_config: dict[str, Any] | None = None,
+        mcp_path: str | None = None,
     ) -> None:
         super().__init__(app)
         self._html = _build_browser_hello_html(
             auth_enabled=auth_enabled, page_config=page_config
         )
+        # The streamable-HTTP endpoint FastMCP mounts (``/mcp`` by default).
+        self._mcp_path = _normalize_path(
+            mcp_path or fastmcp.settings.streamable_http_path
+        )
 
     async def dispatch(
         self, request: Request, call_next: Callable[..., Any]
     ) -> Response:
-        if request.method in ("GET", "HEAD") and _prefers_browser_html(request):
+        if (
+            request.method in ("GET", "HEAD")
+            and _normalize_path(request.url.path) == self._mcp_path
+            and _prefers_browser_html(request)
+        ):
             return HTMLResponse(content=self._html, status_code=200)
         return await call_next(request)
+
+
+def _normalize_path(path: str) -> str:
+    """Compare paths regardless of a trailing slash (``/mcp`` == ``/mcp/``)."""
+    return path.rstrip("/") or "/"
 
 
 def _auth_error_handler(conn: HTTPConnection, exc: AuthenticationError) -> Response:
