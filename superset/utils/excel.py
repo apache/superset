@@ -48,12 +48,18 @@ FORMULA_PREFIXES = {"=", "+", "-", "@"}
 
 
 def _quote_formula(value: Any) -> Any:
-    """Prefix a string with a quote when it would parse as a formula."""
-    return (
-        f"'{value}"
-        if isinstance(value, str) and len(value) and value[0] in FORMULA_PREFIXES
-        else value
-    )
+    """Prefix a string with a quote when it would parse as a formula.
+
+    Leading whitespace is ignored when detecting a formula, because spreadsheet
+    apps still evaluate a cell whose formula prefix is preceded by spaces or
+    tabs (e.g. ``" =cmd"`` or ``"\t=cmd"``). This matches the streaming writer
+    in ``superset.utils.excel_streaming``, which the comment on
+    ``FORMULA_PREFIXES`` says both export paths agree with.
+    """
+    if not isinstance(value, str):
+        return value
+    stripped = value.lstrip()
+    return f"'{value}" if stripped and stripped[0] in FORMULA_PREFIXES else value
 
 
 def _drop_timezone(value: Any) -> Any:
