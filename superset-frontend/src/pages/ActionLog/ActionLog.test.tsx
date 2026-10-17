@@ -112,6 +112,24 @@ test('JSON column opens a tree modal for object payloads', async () => {
   expect(dialog.getByText('1')).toBeInTheDocument();
 });
 
+test('JSON tree keeps quotes on numeric strings', async () => {
+  fetchMock.removeRoutes();
+  fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });
+  fetchMock.get(logEndpoint, {
+    result: [{ ...mockLogs[0], json: '{"dashboard_id":"123","count":123}' }],
+    count: 1,
+  });
+  renderActionLog();
+
+  await userEvent.click(
+    await screen.findByText('{"dashboard_id":"123","count":123}'),
+  );
+
+  const dialog = within(await screen.findByRole('dialog'));
+  expect(dialog.getByText('"123"')).toBeInTheDocument();
+  expect(dialog.getByText('123')).toBeInTheDocument();
+});
+
 test('JSON trigger styling does not depend on data-test attributes', async () => {
   fetchMock.removeRoutes();
   fetchMock.get('glob:*/api/v1/log/_info*', { permissions: ['can_read'] });

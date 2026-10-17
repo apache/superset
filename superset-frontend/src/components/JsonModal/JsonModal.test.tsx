@@ -73,3 +73,21 @@ test('renders bigInt value in a number format', () => {
     '12345678901234567890',
   );
 });
+
+test('keeps quotes on numeric strings json-bigint would not have produced', () => {
+  // json-bigint only stores number literals longer than 15 characters as
+  // strings, so anything shorter was a string in the source JSON
+  expect(convertBigIntStrToNumber('"123"')).toBe('"123"');
+  expect(convertBigIntStrToNumber('"123456789012345"')).toBe(
+    '"123456789012345"',
+  );
+  expect(convertBigIntStrToNumber('"-12345678901234"')).toBe(
+    '"-12345678901234"',
+  );
+  expect(convertBigIntStrToNumber('"1234567890123456"')).toBe(
+    '1234567890123456',
+  );
+  expect(convertBigIntStrToNumber('"-123456789012345"')).toBe(
+    '-123456789012345',
+  );
+});
