@@ -57,6 +57,7 @@ import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
   isEqual as utilsIsEqual,
+  isNewOption,
 } from './utils';
 import { RawValue, SelectOptionsType, SelectProps } from './types';
 import {
@@ -66,6 +67,7 @@ import {
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
+  StyledNewOptionBadge,
 } from './styles';
 import {
   DEFAULT_SORT_COMPARATOR,
@@ -280,9 +282,11 @@ const Select = forwardRef(
         .filter(
           opt => !hasOption(getValue(opt), groupedOptions || selectOptions),
         )
-        .map(opt =>
-          isLabeledValue(opt) ? opt : { value: opt, label: String(opt) },
-        );
+        .map(opt => {
+          const val = getValue(opt) as RawValue;
+          const label = isLabeledValue(opt) ? opt.label : String(val);
+          return { value: val, label };
+        });
       const result =
         missingValues.length > 0
           ? missingValues.concat(selectOptions)
@@ -501,6 +505,14 @@ const Select = forwardRef(
             ),
         );
       }
+      if (allowNewOptions) {
+        setSelectOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+        setVisibleOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+      }
       fireOnChange();
     };
 
@@ -512,9 +524,10 @@ const Select = forwardRef(
         setSelectValue(array);
 
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
+          const targetVal = getValue(value);
           const updatedOptions = fullSelectOptions.filter(
-            option => getValue(option.value) !== getValue(value),
+            opt => getValue(opt.value) !== targetVal && opt.label !== targetVal,
           );
           setSelectOptions(updatedOptions);
           setVisibleOptions(updatedOptions);
@@ -532,6 +545,7 @@ const Select = forwardRef(
       allowNewOptions,
       fullSelectOptions,
       selectValue,
+      initialOptions,
       handleFilterOption,
       onSearch,
     });
@@ -542,6 +556,7 @@ const Select = forwardRef(
         allowNewOptions,
         fullSelectOptions,
         selectValue,
+        initialOptions,
         handleFilterOption,
         onSearch,
       };
@@ -555,6 +570,7 @@ const Select = forwardRef(
             allowNewOptions,
             fullSelectOptions,
             selectValue,
+            initialOptions,
             handleFilterOption,
             onSearch,
           } = stateRef.current;
@@ -567,11 +583,12 @@ const Select = forwardRef(
           if (allowNewOptions) {
             const optionsWithoutTemporary = ensureIsArray(
               fullSelectOptions,
-            ).filter(opt => !opt.isNewOption);
+            ).filter(opt => !isNewOption(opt));
             const unquotedSearch = stripSurroundingQuotes(searchValue);
             const shouldCreateNewOption =
               unquotedSearch &&
-              !hasOption(unquotedSearch, optionsWithoutTemporary, true);
+              !hasOption(unquotedSearch, optionsWithoutTemporary, true) &&
+              !hasOption(unquotedSearch, initialOptions, true);
 
             const newOption = shouldCreateNewOption && {
               label: unquotedSearch,
@@ -579,7 +596,7 @@ const Select = forwardRef(
               isNewOption: true,
             };
             const cleanSelectOptions = ensureIsArray(fullSelectOptions).filter(
-              opt => !opt.isNewOption || hasOption(opt.value, selectValue),
+              opt => !isNewOption(opt) || hasOption(opt.value, selectValue),
             );
             updatedOptions = newOption
               ? [newOption, ...cleanSelectOptions]
@@ -1054,7 +1071,18 @@ const Select = forwardRef(
             )
           }
           options={visibleOptions}
-          optionRender={option => option.label || option.value}
+          optionRender={option =>
+            isNewOption(option.data) || isNewOption(option) ? (
+              <>
+                {option.label || option.value}
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('New')}
+                </StyledNewOptionBadge>
+              </>
+            ) : (
+              option.label || option.value
+            )
+          }
           oneLine={oneLine}
           popupMatchSelectWidth={oneLine ? dropdownWidth : true}
           builtinPlacements={DROPDOWN_BUILTIN_PLACEMENTS}

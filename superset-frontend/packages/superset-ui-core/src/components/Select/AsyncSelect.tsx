@@ -63,6 +63,7 @@ import {
   splitWithQuoteEscaping,
   stripSurroundingQuotes,
   isEqual as utilsIsEqual,
+  isNewOption,
 } from './utils';
 import {
   AsyncSelectProps,
@@ -81,6 +82,7 @@ import {
   StyledHeader,
   StyledSelect,
   StyledStopOutlined,
+  StyledNewOptionBadge,
 } from './styles';
 import {
   DEFAULT_PAGE_SIZE,
@@ -252,11 +254,11 @@ const AsyncSelect = forwardRef(
     const fullSelectOptions = useMemo(() => {
       const missingValues: SelectOptionsType = ensureIsArray(selectValue)
         .filter(opt => !hasOption(getValue(opt), selectOptions))
-        .map(opt =>
-          isLabeledValue(opt)
-            ? { value: opt.value, label: opt.label }
-            : { value: opt, label: String(opt) },
-        );
+        .map(opt => {
+          const val = getValue(opt) as RawValue;
+          const label = isLabeledValue(opt) ? opt.label : String(val);
+          return { value: val, label };
+        });
       return missingValues.length > 0
         ? missingValues.concat(selectOptions)
         : selectOptions;
@@ -343,10 +345,12 @@ const AsyncSelect = forwardRef(
           setSelectValue(array.filter(element => element !== value));
         }
         // removes new option
-        if (option.isNewOption) {
+        if (isNewOption(option)) {
+          const targetVal = getValue(value);
           setSelectOptions(
             fullSelectOptions.filter(
-              option => getValue(option.value) !== getValue(value),
+              opt =>
+                getValue(opt.value) !== targetVal && opt.label !== targetVal,
             ),
           );
         }
@@ -370,6 +374,16 @@ const AsyncSelect = forwardRef(
 
     fullSelectOptionsRef.current = fullSelectOptions;
 
+    const isRedundantNewOption = (
+      opt: DefaultOptionType | AntdLabeledValue,
+      incomingData: SelectOptionsType,
+    ) =>
+      isNewOption(opt) &&
+      ((typeof opt.label === 'string' || typeof opt.label === 'number'
+        ? hasOption(opt.label, incomingData, true)
+        : false) ||
+        hasOption(opt.value as RawValue | undefined, incomingData, true));
+
     const mergeData = useCallback(
       (data: SelectOptionsType) => {
         let mergedData: SelectOptionsType = [];
@@ -379,7 +393,15 @@ const AsyncSelect = forwardRef(
           // merges with existing and creates unique options
           setSelectOptions(prevOptions => {
             mergedData = prevOptions
-              .filter(previousOption => !dataValues.has(previousOption.value))
+              .filter(previousOption => {
+                if (dataValues.has(previousOption.value)) {
+                  return false;
+                }
+                if (isRedundantNewOption(previousOption, data)) {
+                  return false;
+                }
+                return true;
+              })
               .concat(data)
               // Forward-compat: TS 6.0 infers stricter antd option types; widen
               // the comparator to accept the broader DefaultOptionType shape.
@@ -476,7 +498,10 @@ const AsyncSelect = forwardRef(
               setSelectOptions(prevOptions => {
                 const dataValues = new Set(data.map(opt => opt.value));
                 const preservedNew = prevOptions.filter(
-                  opt => opt.isNewOption && !dataValues.has(opt.value),
+                  opt =>
+                    isNewOption(opt) &&
+                    !dataValues.has(opt.value) &&
+                    !isRedundantNewOption(opt, data),
                 );
                 return preservedNew
                   .concat(data)
@@ -678,6 +703,11 @@ const AsyncSelect = forwardRef(
 
     const handleClear = () => {
       setSelectValue(undefined);
+      if (allowNewOptions) {
+        setSelectOptions(prevOptions =>
+          prevOptions.filter(opt => !isNewOption(opt)),
+        );
+      }
       if (onClear) {
         onClear();
       }
@@ -903,7 +933,18 @@ const AsyncSelect = forwardRef(
           }
           onClear={handleClear}
           options={fullSelectOptions}
-          optionRender={option => option.label || option.value}
+          optionRender={option =>
+            isNewOption(option.data) || isNewOption(option) ? (
+              <>
+                {option.label || option.value}
+                <StyledNewOptionBadge data-test="new-option-badge">
+                  {t('New')}
+                </StyledNewOptionBadge>
+              </>
+            ) : (
+              option.label || option.value
+            )
+          }
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={quoteAwareTokenSeparators}
