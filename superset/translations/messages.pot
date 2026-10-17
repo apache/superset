@@ -2868,6 +2868,9 @@ msgstr ""
 msgid "Catalog"
 msgstr ""
 
+msgid "Catalog name"
+msgstr ""
+
 msgid "Categorical"
 msgstr ""
 
@@ -7285,6 +7288,9 @@ msgid "Guest user cannot modify chart payload"
 msgstr ""
 
 msgid "HTTP Path"
+msgstr ""
+
+msgid "HTTPS will be used to connect to the Trino coordinator."
 msgstr ""
 
 msgid "Handlebars"
@@ -13723,6 +13729,9 @@ msgid ""
 "          value distribution and transformation."
 msgstr ""
 
+msgid "The Trino catalog to connect to (e.g. hive, iceberg). It is used as the database in the SQLAlchemy URI."
+msgstr ""
+
 msgid "The URL is missing the dataset_id or slice_id parameters."
 msgstr ""
 
@@ -17532,6 +17541,9 @@ msgstr ""
 msgid "e.g. 5432"
 msgstr ""
 
+msgid "e.g. 8080 (443 for HTTPS)"
+msgstr ""
+
 msgid "e.g. AccountAdmin"
 msgstr ""
 
@@ -17542,6 +17554,9 @@ msgid "e.g. compute_wh"
 msgstr ""
 
 msgid "e.g. default"
+msgstr ""
+
+msgid "e.g. hive"
 msgstr ""
 
 msgid "e.g. hive_metastore"
