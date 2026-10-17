@@ -1299,3 +1299,34 @@ def test_embedded_guest_runs_with_the_fallback_users_default_role(
     assert "role" not in engine_kwargs["connect_args"]
     assert url.query["warehouse"] == "COMPUTE_WH"
     assert url.database == "ANALYTICS_DB"
+
+
+def test_embedded_guest_ignores_the_connections_key_pair_authenticator(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Test that the connection's authenticator is dropped on the embedded login.
+
+    A URI naming ``authenticator=SNOWFLAKE_JWT`` would otherwise make the driver
+    expect a key pair from a password guest and fail before reaching Snowflake.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    url = make_url(
+        "snowflake://svc_user@xy12345/ANALYTICS_DB"
+        "?warehouse=COMPUTE_WH&authenticator=SNOWFLAKE_JWT"
+    )
+    engine_kwargs: dict[str, Any] = {"connect_args": {"authenticator": "SNOWFLAKE_JWT"}}
+
+    url, engine_kwargs = SnowflakeEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(),
+        {"username": "embedded_svc", "password": "embedded_pw"},
+        url,
+        engine_kwargs,
+    )
+
+    assert url.username == "embedded_svc"
+    assert url.password == "embedded_pw"  # noqa: S105
+    assert "authenticator" not in url.query
+    assert "authenticator" not in engine_kwargs["connect_args"]
+    assert url.query["warehouse"] == "COMPUTE_WH"

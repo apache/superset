@@ -434,8 +434,14 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         url, engine_kwargs = super().apply_embedded_credentials(
             database, credentials, url, engine_kwargs
         )
-        url = url.difference_update_query(["role"])
-        engine_kwargs.get("connect_args", {}).pop("role", None)
+        # The connection's `authenticator` belongs to the connection's own sign-in:
+        # `SNOWFLAKE_JWT` there would make the driver expect a key pair from a
+        # password guest. The driver picks key-pair sign-in itself when the
+        # embedded credential supplies `private_key`.
+        url = url.difference_update_query(["role", "authenticator"])
+        connect_args = engine_kwargs.get("connect_args", {})
+        connect_args.pop("role", None)
+        connect_args.pop("authenticator", None)
 
         if credentials.get("auth_method") == "keypair":
             engine_kwargs.setdefault("connect_args", {})["private_key"] = (
