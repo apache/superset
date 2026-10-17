@@ -490,6 +490,11 @@ categories:
       url: https://www.douban.com/
       contributors: ["@luchuan"]
 
+    - name: Hyperreal Film Club
+      url: https://hyperrealfilm.club
+      logo: hyperreal_fc_logo_button.svg
+      contributors: ["@ONBoleman"]
+
     - name: Kuaishou
       url: https://www.kuaishou.com/
       contributors: ["@zhaoyu89730105"]
