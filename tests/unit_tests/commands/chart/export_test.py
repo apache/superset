@@ -210,11 +210,19 @@ def test_dashboard_filter_keeps_a_soft_deleted_dataset_through_import(
 
     The filter's dataset lookup skipped the trash, so the export dropped the
     target's ``datasetId`` without writing a ``datasetUuid``, and the imported
-    filter pointed at no dataset.
+    filter pointed at no dataset. The filter targets a dataset that no chart on
+    the dashboard uses, so only the dashboard's own lookup can bundle it.
     """
     chart = chart_on_dataset
-    dataset = chart.table
-    target = {"datasetId": dataset.id, "column": {"name": "ds"}}
+    filter_dataset = SqlaTable(
+        table_name="filter_table",
+        metrics=[],
+        main_dttm_col=None,
+        database=chart.table.database,
+    )
+    db.session.add(filter_dataset)
+    db.session.flush()
+    target = {"datasetId": filter_dataset.id, "column": {"name": "ds"}}
     dashboard = Dashboard(
         dashboard_title="my_dashboard",
         slices=[chart],
@@ -225,7 +233,7 @@ def test_dashboard_filter_keeps_a_soft_deleted_dataset_through_import(
     db.session.add(dashboard)
     db.session.flush()
 
-    DatasetDAO.delete([dataset])
+    DatasetDAO.delete([filter_dataset])
     db.session.flush()
     _next_request()
 
@@ -237,9 +245,14 @@ def test_dashboard_filter_keeps_a_soft_deleted_dataset_through_import(
     dashboard_file = next(name for name in contents if name.startswith("dashboards/"))
     exported = yaml.safe_load(contents[dashboard_file])["metadata"]
     assert exported["native_filter_configuration"][0]["targets"] == [
-        {"datasetUuid": str(dataset.uuid), "column": {"name": "ds"}}
+        {"datasetUuid": str(filter_dataset.uuid), "column": {"name": "ds"}}
     ]
-    assert len([name for name in contents if name.startswith("datasets/")]) == 1
+    exported_dataset_uuids = {
+        yaml.safe_load(contents[name])["uuid"]
+        for name in contents
+        if name.startswith("datasets/")
+    }
+    assert str(filter_dataset.uuid) in exported_dataset_uuids
 
     # Drop the filter, so it only comes back if the import writes it.
     dashboard.json_metadata = json.dumps({})
@@ -252,7 +265,8 @@ def test_dashboard_filter_keeps_a_soft_deleted_dataset_through_import(
     ImportDashboardsCommand(contents, overwrite=True).run()
     db.session.flush()
 
-    restored = db.session.query(SqlaTable).filter_by(uuid=dataset.uuid).one()
+    restored = db.session.query(SqlaTable).filter_by(uuid=filter_dataset.uuid).one()
+    assert restored.deleted_at is None, "the dataset must come back out of the trash"
     reimported = db.session.query(Dashboard).filter_by(uuid=dashboard.uuid).one()
     imported = json.loads(reimported.json_metadata)["native_filter_configuration"]
     assert imported[0]["targets"] == [

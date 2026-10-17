@@ -167,8 +167,10 @@ def test_file_content_batches_dataset_lookup_across_targets():
 
     mock_find_by_id.assert_not_called()
     mock_find_by_ids.assert_called_once()
-    (called_ids,), _ = mock_find_by_ids.call_args
+    (called_ids,), kwargs = mock_find_by_ids.call_args
     assert set(called_ids) == {1, 2}
+    # A target in the trash still resolves to its dataset.
+    assert kwargs == {"skip_visibility_filter": True}
 
     result = yaml.safe_load(content)
     native_filters = result["metadata"]["native_filter_configuration"]
@@ -241,6 +243,8 @@ def test_export_batches_dataset_export_across_targets():
 
     mock_find_by_id.assert_not_called()
     mock_find_by_ids.assert_called_once()
+    # A dataset in the trash is still bundled for the filters that use it.
+    assert mock_find_by_ids.call_args.kwargs == {"skip_visibility_filter": True}
     mock_datasets_cls.assert_called_once()
     mock_datasets_cmd.run.assert_called_once()
     (called_ids,), _ = mock_datasets_cls.call_args
