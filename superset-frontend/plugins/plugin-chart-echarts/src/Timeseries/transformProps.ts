@@ -135,6 +135,7 @@ import {
 import { getDefaultTooltip } from '../utils/tooltip';
 import {
   createDedupXAxisFormatter,
+  createPaddedExtentFloorFormatter,
   createSpacedXAxisFormatter,
   getPercentFormatter,
   getTooltipTimeFormatter,
@@ -1486,19 +1487,32 @@ export default function transformProps(
   // spacing check below (which blanks labels that would otherwise visually
   // collide) has to be bypassed too, not just ECharts' own hideOverlap.
   const showAllLabels = xAxisLabelInterval === '0';
+  // The domain is only read by the two Time-axis formatters below, and the
+  // scan coerces every record's x value, so keep it behind the Time check
+  // instead of walking the data on every render of a category axis.
+  const [xDomainMin, xDomainMax] =
+    xAxisType === AxisType.Time
+      ? getXAxisDomain([rebasedData as Record<string, unknown>[]], xAxisLabel)
+      : [undefined, undefined];
+  // ECharts pads a time axis beyond the data extent, and a tick on that
+  // padding can carry sub-second noise that drops smart_date to its
+  // millisecond tier ('.943ms', #44698). Floor only ticks outside the data
+  // domain — the padding — so genuine sub-second data keeps its precision.
+  const paddedExtentFormatter =
+    xAxisType === AxisType.Time
+      ? createPaddedExtentFloorFormatter(xAxisFormatter, xDomainMin, xDomainMax)
+      : xAxisFormatter;
   const deduplicatedFormatter = showMaxLabel
     ? isHorizontal
-      ? createDedupXAxisFormatter(xAxisFormatter)
+      ? createDedupXAxisFormatter(paddedExtentFormatter)
       : createSpacedXAxisFormatter(
-          xAxisFormatter,
-          ...getXAxisDomain(
-            [rebasedData as Record<string, unknown>[]],
-            xAxisLabel,
-          ),
+          paddedExtentFormatter,
+          xDomainMin,
+          xDomainMax,
           Math.max(width - 2 * TIMESERIES_CONSTANTS.gridOffsetLeft, 0),
           showAllLabels,
         )
-    : xAxisFormatter;
+    : paddedExtentFormatter;
 
   const temporalTickValues = resolveTemporalTickValues(
     rebasedData,
