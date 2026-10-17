@@ -73,12 +73,14 @@ export function mergeCustomEChartOptions<T extends EChartsCoreOption>(
       isPlainObject(customValue) &&
       Array.isArray(baseValue)
     ) {
-      // Apply a single series object to every series
+      // Apply a single series object to every series, except the fields
+      // that identify an individual series
+      const { name: _name, id: _id, ...shared } = customValue as PlainObject;
       (result as PlainObject)[key] = baseValue.map(series =>
         isPlainObject(series)
           ? mergeCustomEChartOptions(
               series as EChartsCoreOption,
-              customValue as CustomEChartOptions,
+              shared as CustomEChartOptions,
             )
           : series,
       );

@@ -119,6 +119,25 @@ test('mergeCustomEChartOptions merges a series object into every series', () => 
   ]);
 });
 
+test('mergeCustomEChartOptions keeps series names and ids when merging a series object', () => {
+  const base = {
+    series: [
+      { id: 'a', name: 'A', type: 'line' },
+      { id: 'b', name: 'B', type: 'line' },
+    ],
+  };
+  const custom: CustomEChartOptions = {
+    series: { id: 'x', name: 'X', lineStyle: { type: 'dashed' } },
+  };
+
+  const result = mergeCustomEChartOptions(base, custom);
+
+  expect(result.series).toEqual([
+    { id: 'a', name: 'A', type: 'line', lineStyle: { type: 'dashed' } },
+    { id: 'b', name: 'B', type: 'line', lineStyle: { type: 'dashed' } },
+  ]);
+});
+
 test('mergeCustomEChartOptions replaces other arrays with an object', () => {
   const base = {
     dataZoom: [{ type: 'inside' }, { type: 'slider' }],
