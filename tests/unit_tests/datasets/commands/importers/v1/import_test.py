@@ -51,6 +51,7 @@ from superset.datasets.schemas import ImportV1DatasetSchema
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
+from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import (
@@ -695,7 +696,9 @@ def test_import_dataset_virtual_sql_check_receives_template_params(
     config["sql"] = (
         "{% if flag %}SELECT * FROM secret_table{% else %}SELECT 1{% endif %}"  # noqa: E501
     )
-    config["template_params"] = {"flag": True}
+    # ``removed_filters`` is a template processor argument, not a variable,
+    # when chart execution renders the SQL, so the check must not see it.
+    config["template_params"] = {"flag": True, "removed_filters": []}
 
     import_dataset(config)
 
@@ -703,8 +706,166 @@ def test_import_dataset_virtual_sql_check_receives_template_params(
         call for call in raise_for_access.call_args_list if call.kwargs.get("sql")
     )
     assert sql_call.kwargs["template_params"] == {"flag": True}
+    # A dataset named after a referenced table must not stand in for data
+    # access to it.
+    assert sql_call.kwargs["allow_dataset_editorship"] is False
     # Empty strings in the export payload must not be forwarded verbatim.
     assert sql_call.kwargs["schema"] is None
+
+
+def _decoy_dataset(database: Database) -> SqlaTable:
+    """A ``SELECT 1`` virtual dataset named after a table it can't read."""
+    decoy = SqlaTable(
+        uuid=uuid.uuid4(),
+        table_name="customer_pii",
+        schema="public",
+        sql="SELECT 1",
+        database_id=database.id,
+    )
+    db.session.add(decoy)
+    db.session.flush()
+    return decoy
+
+
+def _physical_config(dataset: SqlaTable, database: Database) -> dict[str, Any]:
+    return {
+        "table_name": dataset.table_name,
+        "schema": dataset.schema,
+        "sql": None,
+        "uuid": dataset.uuid,
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+
+def test_import_dataset_overwrite_decoy_as_physical_requires_table_access(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Overwriting a virtual dataset with a physical config binds it to a table.
+    Editorship of the decoy being overwritten must not authorize that table,
+    or an editor could turn a ``SELECT 1`` decoy into a physical dataset over
+    the real one.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    decoy = _decoy_dataset(database)
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
+        # The datasource check passes, as it would through editorship.
+        if kwargs.get("table"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                    message="You need access to the following tables",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    check = mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=raise_for_access
+    )
+
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(_physical_config(decoy, database), overwrite=True)
+
+    table_call = next(c for c in check.call_args_list if c.kwargs.get("table"))
+    assert table_call.kwargs["table"] == Table("customer_pii", "public")
+    assert table_call.kwargs["allow_dataset_editorship"] is False
+
+
+@pytest.mark.parametrize(
+    "changes",
+    [
+        pytest.param({"table_name": "customer_pii"}, id="table_name"),
+        pytest.param({"schema": "restricted"}, id="schema"),
+    ],
+)
+def test_import_dataset_overwrite_physical_rebinding_requires_table_access(
+    mocker: MockerFixture, session: Session, changes: dict[str, str]
+) -> None:
+    """
+    Overwriting a physical dataset with a config that points it at another
+    table binds it to that table. Editorship of the dataset being overwritten
+    must not authorize the new table.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    existing = SqlaTable(
+        uuid=uuid.uuid4(),
+        table_name="safe_table",
+        schema="public",
+        database_id=database.id,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
+        # The datasource check passes, as it would through editorship.
+        if kwargs.get("table"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                    message="You need access to the following tables",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    check = mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=raise_for_access
+    )
+
+    config = {**_physical_config(existing, database), **changes}
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config, overwrite=True)
+
+    table_call = next(c for c in check.call_args_list if c.kwargs.get("table"))
+    assert table_call.kwargs["table"] == Table(config["table_name"], config["schema"])
+    assert table_call.kwargs["allow_dataset_editorship"] is False
+
+
+def test_import_dataset_unchanged_physical_reimport_skips_table_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Re-importing a physical dataset without changing its table keeps the
+    existing semantics: only the datasource check runs.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    existing = SqlaTable(
+        uuid=uuid.uuid4(),
+        table_name="my_table",
+        schema="public",
+        database_id=database.id,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    check = mocker.patch.object(security_manager, "raise_for_access")
+
+    import_dataset(_physical_config(existing, database), overwrite=True)
+
+    assert not any(c.kwargs.get("table") for c in check.call_args_list)
 
 
 @pytest.mark.parametrize(

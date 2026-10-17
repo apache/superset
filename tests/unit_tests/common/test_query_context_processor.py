@@ -2309,6 +2309,31 @@ def test_raise_for_access_wraps_template_error_for_query_datasource():
     query.validate.assert_not_called()
 
 
+def test_raise_for_access_query_datasource_ignores_dataset_editorship():
+    """
+    Chart-data on a SQL Lab query runs its stored SQL, so editorship of a
+    dataset named after a referenced table must not authorize it. Otherwise a
+    query denied in SQL Lab could be replayed here through a decoy dataset.
+    """
+    from superset.utils.core import DatasourceType
+
+    query_context = MagicMock()
+    query_context.queries = []
+    query_context.datasource.type = DatasourceType.QUERY
+
+    processor = QueryContextProcessor(query_context)
+
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+    ) as raise_for_access:
+        processor.raise_for_access()
+
+    raise_for_access.assert_called_once_with(
+        query=query_context.datasource,
+        allow_dataset_editorship=False,
+    )
+
+
 def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     """
     The fallback used on engines without native GROUPING SETS support must

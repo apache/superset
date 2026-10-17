@@ -4132,6 +4132,91 @@ def test_raise_for_access_catalog_self_reference_does_not_weaken_sqllab_strict_m
         sm.raise_for_access(query=query, force_dataset_match=True)
 
 
+def test_raise_for_access_editorship_denied_in_strict_mode(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    Editorship of a registered dataset for the referenced table
+    must not authorize a raw query on the strict ``force_dataset_match`` path
+    (SQL Lab, MetaDB, MCP execute_sql). Any dataset-creating principal can
+    make themselves an editor of a dataset named after an arbitrary table, so
+    accepting editorship here would let dataset creation stand in for data
+    access and would outlive revocation of every real grant. The same
+    editorship stays sufficient on the non-strict path (the dataset-owner
+    "explore your own dataset" grant, #20382).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=True)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    # A registered dataset exists for the referenced table and the user is its
+    # editor, but holds no datasource_access (nor any catalog/schema grant).
+    SqlaTable.query_datasources_by_name.return_value = [
+        mocker.MagicMock(perm=f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)")
+    ]
+
+    # Real Database so the SQL parse / engine-spec path is genuinely
+    # exercised, like the catalog-self-reference test above.
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM dbo.foo",
+    )
+
+    # Strict mode (SQL Lab / MetaDB / MCP): editorship alone is not enough.
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, force_dataset_match=True)
+
+    # Non-strict mode: editorship still authorizes access (#20382).
+    sm.raise_for_access(query=query)
+
+
+def test_raise_for_access_editorship_opt_out_keeps_schema_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    ``allow_dataset_editorship=False`` (virtual dataset create/update,
+    chart-data on a SQL Lab query) must not accept editorship of a
+    same-named dataset, which any dataset-creating principal can set up as a
+    decoy. Unlike ``force_dataset_match`` it must keep the ``schema_access``
+    fallthrough, so a schema grant still authorizes the SQL.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    can_access = mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=True)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    # The user edits a decoy dataset named after the table but holds no
+    # datasource_access on it.
+    SqlaTable.query_datasources_by_name.return_value = [
+        mocker.MagicMock(perm=f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)")
+    ]
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database,
+        schema=None,
+        catalog=None,
+        sql="SELECT * FROM dbo.foo",
+    )
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, allow_dataset_editorship=False)
+
+    # A schema grant still authorizes the table on this path.
+    can_access.side_effect = lambda permission_name, _view_name: (
+        permission_name == "schema_access"
+    )
+    sm.raise_for_access(query=query, allow_dataset_editorship=False)
+
+
 def test_get_datasources_accessible_by_user_schema_access(
     mocker: MockerFixture,
     app_context: None,

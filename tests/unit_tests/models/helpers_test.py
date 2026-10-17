@@ -3082,7 +3082,7 @@ def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
             {
                 "col": "global_sales",
                 "op": "IN",
-                "val": [33, 29.02, None],  # type: ignore[list-item]
+                "val": [33, 29.02, None],
             },
         ],
         extras={},
@@ -6032,3 +6032,75 @@ def test_get_query_result_wraps_post_processing_type_error(
         pytest.raises(QueryObjectValidationError),
     ):
         table.get_query_result(query_object)
+
+
+@pytest.mark.parametrize(
+    "template_params,expected",
+    [
+        pytest.param('{"t": "x"}', {"t": "x"}, id="dict"),
+        pytest.param('{"t": "x",\n}', {"t": "x"}, id="trailing_comma"),
+        pytest.param(None, {}, id="none"),
+        pytest.param("", {}, id="empty"),
+        pytest.param("{not json", {}, id="malformed"),
+        pytest.param("[1, 2]", {}, id="non_dict"),
+        pytest.param({"t": "x"}, {}, id="non_string"),
+        pytest.param(
+            '{"removed_filters": [], "applied_filters": [], '
+            '"extra_cache_keys": [], "table": 1, "database": 1, "query": 1, '
+            '"t": "x"}',
+            {"t": "x"},
+            id="reserved_names",
+        ),
+    ],
+)
+def test_template_params_for_access_check(
+    template_params: Any, expected: dict[str, Any]
+) -> None:
+    """
+    Params are read the way rendering reads them; anything rendering can't
+    use yields an empty dict so the access check still runs.
+    """
+    from superset.models.helpers import template_params_for_access_check
+
+    assert template_params_for_access_check(template_params) == expected
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_access_check_renders_reserved_params_like_execution(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Chart execution hands ``removed_filters`` to the template processor as a
+    keyword argument, so a ``template_params`` entry with that name is not a
+    template variable when the dataset runs. The access check must render the
+    same branch, or it would approve ``SELECT 1`` while execution reads the
+    restricted table.
+    """
+    from superset.jinja_context import get_template_processor
+    from superset.models.helpers import template_params_for_access_check
+    from superset.sql.parse import process_jinja_sql, Table
+    from superset.utils import json
+
+    database = mocker.MagicMock(backend="postgresql")
+    database.db_engine_spec.engine = "postgresql"
+    sql = (
+        "{% if removed_filters is defined %}SELECT 1 AS secret"
+        "{% else %}SELECT secret FROM public.customer_pii{% endif %}"
+    )
+    raw_params = '{"removed_filters": []}'
+
+    # Built the way ``get_sqla_query`` builds it for chart execution.
+    template_kwargs: dict[str, Any] = json.loads(raw_params)
+    template_kwargs["extra_cache_keys"] = []
+    template_kwargs["removed_filters"] = []
+    template_kwargs["applied_filters"] = []
+    executed_sql = get_template_processor(
+        database=database, **template_kwargs
+    ).process_template(sql)
+
+    result = process_jinja_sql(
+        sql, database, template_params_for_access_check(raw_params)
+    )
+
+    assert "customer_pii" in executed_sql
+    assert Table("customer_pii", "public") in result.tables

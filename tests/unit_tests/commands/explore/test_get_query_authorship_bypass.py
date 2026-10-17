@@ -43,8 +43,13 @@ def test_query_datasource_uses_authorship_bypass(mocker: MockerFixture) -> None:
 
     _authorize_datasource(query, None)
 
+    # Editorship of a dataset named after a table the query reads is a decoy
+    # any dataset creator can make, so it must not authorize the query.
     mock_sm.raise_for_access.assert_called_once_with(
-        query=query, datasource=query, allow_query_authorship_bypass=True
+        query=query,
+        datasource=query,
+        allow_query_authorship_bypass=True,
+        allow_dataset_editorship=False,
     )
 
 

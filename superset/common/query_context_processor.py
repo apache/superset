@@ -1033,7 +1033,10 @@ class QueryContextProcessor:
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
             try:
-                security_manager.raise_for_access(query=self._qc_datasource)
+                security_manager.raise_for_access(
+                    query=self._qc_datasource,
+                    allow_dataset_editorship=False,
+                )
             except TemplateError as ex:
                 raise SupersetTemplateException(str(ex)) from ex
         else:

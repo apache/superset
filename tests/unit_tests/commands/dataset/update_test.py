@@ -124,6 +124,226 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_dataset_dao.update.assert_called_once()
 
 
+def test_update_dataset_sql_access_ignores_dataset_editorship(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Updating a virtual dataset's SQL must be authorized by data access, not
+    by editorship of a dataset named after a referenced table (including the
+    dataset being edited). Otherwise a ``SELECT 1`` decoy named after a table
+    could be repointed at the real table by its editor.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "customer_pii"
+    mock_dataset.sql = "SELECT 1"
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    UpdateDatasetCommand(1, {"sql": "SELECT * FROM public.customer_pii"}).run()
+
+    raise_for_access.assert_called_once()
+    assert raise_for_access.call_args.kwargs["allow_dataset_editorship"] is False
+
+
+def test_update_dataset_virtual_to_physical_ignores_dataset_editorship(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Converting a virtual dataset to a physical one must be authorized by data
+    access on the table it binds to. The dataset being converted is itself a
+    dataset registered under that table's name, so accepting editorship would
+    let a ``SELECT 1`` decoy named after a table become a physical dataset
+    over the real one.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "customer_pii"
+    mock_dataset.sql = "SELECT 1"
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    UpdateDatasetCommand(1, {"sql": None}).run()
+
+    raise_for_access.assert_called_once_with(
+        database=mock_database,
+        table=Table("customer_pii", "public", "catalog"),
+        allow_dataset_editorship=False,
+    )
+
+
+@pytest.mark.parametrize(
+    "payload,expected_schema,expected_params",
+    [
+        pytest.param({"schema": "restricted"}, "restricted", {"tbl": "t"}, id="schema"),
+        pytest.param(
+            {"template_params": '{"tbl": "customer_pii"}'},
+            "public",
+            {"tbl": "customer_pii"},
+            id="template_params",
+        ),
+        # Rendering reads params with ``json_to_dict``, which accepts a
+        # trailing comma, so the check must read them the same way.
+        pytest.param(
+            {"template_params": '{"tbl": "customer_pii",\n}'},
+            "public",
+            {"tbl": "customer_pii"},
+            id="template_params_trailing_comma",
+        ),
+    ],
+)
+def test_update_dataset_unchanged_sql_new_context_checks_access(
+    mocker: MockerFixture,
+    payload: dict[str, Any],
+    expected_schema: str,
+    expected_params: dict[str, Any],
+) -> None:
+    """
+    Unchanged SQL reads something new when the schema it resolves unqualified
+    names against, or the params its Jinja renders with, change. That must be
+    authorized by data access like a SQL change, or the editor of a decoy
+    could aim its SQL at a table they cannot read.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "my_virtual_dataset"
+    mock_dataset.sql = "SELECT * FROM {{ tbl }}"
+    mock_dataset.template_params = '{"tbl": "t"}'
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                message="You don't have access to the table",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    with pytest.raises(DatasetInvalidError):
+        UpdateDatasetCommand(1, payload).run()
+
+    raise_for_access.assert_called_once_with(
+        database=mock_database,
+        sql="SELECT * FROM {{ tbl }}",
+        catalog="catalog",
+        schema=expected_schema,
+        template_params=expected_params,
+        allow_dataset_editorship=False,
+    )
+    mock_dataset_dao.update.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "payload",
+    [
+        pytest.param({"description": "new description"}, id="unrelated_field"),
+        # A client echoing the stored values, or ``""`` for an unset field,
+        # does not change what the SQL reads.
+        pytest.param(
+            {"schema": "public", "catalog": "catalog", "template_params": ""},
+            id="echoed_values",
+        ),
+    ],
+)
+def test_update_dataset_unchanged_sql_and_context_skips_access_check(
+    mocker: MockerFixture,
+    payload: dict[str, Any],
+) -> None:
+    """
+    An update that leaves the SQL and everything it resolves against as they
+    are does not re-check data access, so an editor relying on #20382
+    ownership can still edit their dataset's metadata.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "my_virtual_dataset"
+    mock_dataset.sql = "SELECT * FROM t"
+    mock_dataset.template_params = None
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+    mock_dataset_dao.update.return_value = mock_dataset
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    UpdateDatasetCommand(1, payload).run()
+
+    raise_for_access.assert_not_called()
+    mock_dataset_dao.update.assert_called_once()
+
+
 def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     """
     Test that updating a dataset with SQL to an unauthorized schema raises an error.
@@ -200,6 +420,7 @@ def test_update_dataset_database_id_change_checks_new_database_access(
     mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_current_database
     mock_dataset.catalog = "catalog"
+    mock_dataset.sql = None  # physical dataset
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
@@ -256,6 +477,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
     mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_current_database
     mock_dataset.catalog = "catalog"
+    mock_dataset.sql = None  # physical dataset
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
     mock_dataset.editors = []  # No editors to avoid computation issues
@@ -277,6 +499,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
 
     mock_raise_for_access.assert_called_once()
     assert mock_raise_for_access.call_args.kwargs["database"] is mock_new_database
+    assert mock_raise_for_access.call_args.kwargs["allow_dataset_editorship"] is False
     assert result == mock_dataset
     _, update_kwargs = mock_dataset_dao.update.call_args
     assert update_kwargs["attributes"]["database"] is mock_new_database
@@ -329,6 +552,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     raise_for_access.assert_called_once_with(
         database=mock_database,
         table=Table("restricted_table", "public", "catalog"),
+        allow_dataset_editorship=False,
     )
     assert any(
         "You don't have access to the table" in str(exc)
@@ -383,6 +607,11 @@ def test_update_dataset_validation_errors(
     mock_database.id = 1
     mock_database.get_default_catalog.return_value = "catalog"
     mock_database.allow_multi_catalog = False
+    # Data access is covered by its own tests; these cases change the schema
+    # or catalog, which runs an access check.
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
     mock_dataset = mocker.MagicMock(is_managed_externally=False)
     mock_dataset.database = mock_database
     mock_dataset.catalog = "catalog"

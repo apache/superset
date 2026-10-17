@@ -43,6 +43,7 @@ from superset.exceptions import (
     SupersetVirtualTableParseException,
 )
 from superset.models.core import Database
+from superset.models.helpers import strip_reserved_template_params
 from superset.result_set import SupersetResultSet
 from superset.sql.parse import SQLScript, Table
 from superset.superset_typing import ResultSetColumnType
@@ -115,8 +116,11 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     db_engine_spec = dataset.database.db_engine_spec
     original_sql = dataset.sql
     try:
+        # Render with the params chart execution exposes, so the columns
+        # come from the same SQL the access check and chart-data render.
         sql = dataset.get_template_processor().process_template(
-            original_sql, **dataset.template_params_dict
+            original_sql,
+            **strip_reserved_template_params(dataset.template_params_dict),
         )
     except UndefinedError as ex:
         # ``process_template``'s Jinja *render* step re-raises a raw

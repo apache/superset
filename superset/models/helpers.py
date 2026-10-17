@@ -653,6 +653,53 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
+# Keyword arguments the template processor consumes itself. Chart execution
+# passes a dataset's ``template_params`` through those same keywords (and
+# overwrites the filter and cache-key lists), so an entry with one of these
+# names never becomes a template variable when the dataset's SQL runs.
+TEMPLATE_PROCESSOR_RESERVED_PARAMS = frozenset(
+    {
+        "applied_filters",
+        "database",
+        "extra_cache_keys",
+        "query",
+        "removed_filters",
+        "table",
+    }
+)
+
+
+def strip_reserved_template_params(params: dict[Any, Any]) -> dict[Any, Any]:
+    """
+    Drop the ``template_params`` entries chart execution never exposes to the
+    template, so an access check renders the same SQL execution does.
+    """
+    return {
+        key: value
+        for key, value in params.items()
+        if key not in TEMPLATE_PROCESSOR_RESERVED_PARAMS
+    }
+
+
+def template_params_for_access_check(template_params: Any) -> dict[Any, Any]:
+    """
+    Parse a dataset's ``template_params`` for a SQL access check.
+
+    Uses ``json_to_dict`` so the check reads the params exactly as rendering
+    does. Input rendering would reject (malformed JSON, a non-string) or
+    could not use (non-dict JSON) yields an empty dict, so the check still
+    runs against the SQL rendered without params. Names the template
+    processor reserves are dropped, since execution never renders them.
+    """
+    if not isinstance(template_params, str):
+        return {}
+    try:
+        params = json_to_dict(template_params)
+    except json.JSONDecodeError:
+        return {}
+    return strip_reserved_template_params(params) if isinstance(params, dict) else {}
+
+
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
     r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
 )
