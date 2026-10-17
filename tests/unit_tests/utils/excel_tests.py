@@ -80,6 +80,28 @@ def test_quote_formulas() -> None:
     ]
 
 
+def test_quote_formulas_with_leading_whitespace() -> None:
+    """
+    Formulas are quoted even when a space, tab, or newline comes first.
+
+    Spreadsheet apps still evaluate a cell whose formula prefix is preceded by
+    whitespace, so the guard must strip before inspecting the first character.
+    The streaming writer (``excel_streaming``) and the CSV writer already do
+    this; this keeps the chart XLSX path in line.
+    """
+    df = pd.DataFrame(
+        {"formula": [" =1+1", "\t=1+1", "\n=1+1", "  @SUM(A1)", "normal"]}
+    )
+    contents = df_to_excel(df)
+    assert pd.read_excel(contents)["formula"].tolist() == [
+        "' =1+1",
+        "'\t=1+1",
+        "'\n=1+1",
+        "'  @SUM(A1)",
+        "normal",
+    ]
+
+
 def test_quote_formulas_in_headers_and_index() -> None:
     """
     Test that formulas in column headers and index labels are quoted too.
