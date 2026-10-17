@@ -20,8 +20,8 @@
 import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormMetric, TimeGranularity } from '@superset-ui/core';
 import buildGroupbyCombinations, {
-  isAdditiveMetric,
-  allMetricsAdditive,
+  isClientAggregatableMetric,
+  allMetricsClientAggregatable,
   additiveReducerFor,
   synthesizeAdditiveLevels,
   splitGroupingSetsResult,
@@ -244,9 +244,9 @@ test('should work with large number of dimensions', () => {
   });
 });
 
-test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', () => {
+test('isClientAggregatableMetric: SIMPLE metrics with additive aggregates are additive', () => {
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SIMPLE',
       aggregate: 'SUM',
       column: { column_name: 'num' },
@@ -254,7 +254,7 @@ test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', (
     } as QueryFormMetric),
   ).toBe(true);
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SIMPLE',
       aggregate: 'COUNT',
       column: { column_name: 'num' },
@@ -263,7 +263,7 @@ test('isAdditiveMetric: SIMPLE metrics with additive aggregates are additive', (
   ).toBe(true);
 });
 
-test('isAdditiveMetric: MIN/MAX are additive only on numeric columns', () => {
+test('isClientAggregatableMetric: MIN/MAX are additive only on numeric columns', () => {
   const max = (type_generic?: GenericDataType) =>
     ({
       expressionType: 'SIMPLE',
@@ -271,17 +271,17 @@ test('isAdditiveMetric: MIN/MAX are additive only on numeric columns', () => {
       column: { column_name: 'col', type_generic },
       label: 'max_col',
     }) as QueryFormMetric;
-  expect(isAdditiveMetric(max(GenericDataType.Numeric))).toBe(true);
+  expect(isClientAggregatableMetric(max(GenericDataType.Numeric))).toBe(true);
   // Text/temporal values do not survive the fast-path's Number() coercion;
   // an unknown type fails safe to the DB rollup path.
-  expect(isAdditiveMetric(max(GenericDataType.String))).toBe(false);
-  expect(isAdditiveMetric(max(GenericDataType.Temporal))).toBe(false);
-  expect(isAdditiveMetric(max(undefined))).toBe(false);
+  expect(isClientAggregatableMetric(max(GenericDataType.String))).toBe(false);
+  expect(isClientAggregatableMetric(max(GenericDataType.Temporal))).toBe(false);
+  expect(isClientAggregatableMetric(max(undefined))).toBe(false);
 });
 
-test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not additive', () => {
+test('isClientAggregatableMetric: non-additive aggregates, SQL, and saved metrics are not additive', () => {
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SIMPLE',
       aggregate: 'AVG',
       column: { column_name: 'num' },
@@ -289,7 +289,7 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
     } as QueryFormMetric),
   ).toBe(false);
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SIMPLE',
       aggregate: 'COUNT_DISTINCT',
       column: { column_name: 'name' },
@@ -297,17 +297,17 @@ test('isAdditiveMetric: non-additive aggregates, SQL, and saved metrics are not 
     } as QueryFormMetric),
   ).toBe(false);
   expect(
-    isAdditiveMetric({
+    isClientAggregatableMetric({
       expressionType: 'SQL',
       sqlExpression: 'SUM(a) / SUM(b)',
       label: 'ratio',
     } as QueryFormMetric),
   ).toBe(false);
   // saved-metric reference: aggregate unknown from form data -> non-additive
-  expect(isAdditiveMetric('count')).toBe(false);
+  expect(isClientAggregatableMetric('count')).toBe(false);
 });
 
-test('isAdditiveMetric: MEDIAN/STDDEV_SAMP/VAR_SAMP are non-additive, with no dedicated code needed', () => {
+test('isClientAggregatableMetric: MEDIAN/STDDEV_SAMP/VAR_SAMP are non-additive, with no dedicated code needed', () => {
   // Regression guard: MEDIAN/STDDEV_SAMP/VAR_SAMP are new system-wide metric
   // aggregates (not pivot-table-specific). They must fall outside
   // ADDITIVE_AGGREGATES so totals/subtotals route through the correct
@@ -316,7 +316,7 @@ test('isAdditiveMetric: MEDIAN/STDDEV_SAMP/VAR_SAMP are non-additive, with no de
   // SIP-216 fixed for AVG, and would be equally wrong here.
   (['MEDIAN', 'STDDEV_SAMP', 'VAR_SAMP'] as const).forEach(aggregate => {
     expect(
-      isAdditiveMetric({
+      isClientAggregatableMetric({
         expressionType: 'SIMPLE',
         aggregate,
         column: { column_name: 'num' },
@@ -326,7 +326,7 @@ test('isAdditiveMetric: MEDIAN/STDDEV_SAMP/VAR_SAMP are non-additive, with no de
   });
 });
 
-test('allMetricsAdditive: all additive vs any non-additive vs empty', () => {
+test('allMetricsClientAggregatable: all additive vs any non-additive vs empty', () => {
   const sum = {
     expressionType: 'SIMPLE',
     aggregate: 'SUM',
@@ -338,9 +338,9 @@ test('allMetricsAdditive: all additive vs any non-additive vs empty', () => {
     sqlExpression: 'SUM(a)/SUM(b)',
     label: 'r',
   } as QueryFormMetric;
-  expect(allMetricsAdditive([sum, sum])).toBe(true);
-  expect(allMetricsAdditive([sum, ratio])).toBe(false);
-  expect(allMetricsAdditive([])).toBe(false);
+  expect(allMetricsClientAggregatable([sum, sum])).toBe(true);
+  expect(allMetricsClientAggregatable([sum, ratio])).toBe(false);
+  expect(allMetricsClientAggregatable([])).toBe(false);
 });
 
 test('pruning: with all totals/subtotals off, only the leaf level is queried', () => {
