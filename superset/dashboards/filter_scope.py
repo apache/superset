@@ -36,6 +36,7 @@ and ``getCrossFiltersConfiguration``.
 
 from __future__ import annotations
 
+import logging
 import re
 from typing import Any, TYPE_CHECKING
 
@@ -43,6 +44,8 @@ from superset.utils import json
 
 if TYPE_CHECKING:
     from superset.models.dashboard import Dashboard
+
+logger = logging.getLogger(__name__)
 
 CHART_TYPE = "CHART"
 TAB_TYPE = "TAB"
@@ -57,8 +60,15 @@ ChartLayoutItems = dict[int, list[dict[str, Any]]]
 
 
 def build_chart_layout_items(position_data: dict[str, Any]) -> ChartLayoutItems:
-    """Map each chart id in the layout to the layout items that render it."""
+    """Map each chart id in the layout to the layout items that render it.
+
+    A layout that is not a mapping (``position_json`` holding a JSON string or
+    array) places no charts, so every derived scope comes out empty.
+    """
     chart_layout_items: ChartLayoutItems = {}
+    if not isinstance(position_data, dict):
+        logger.warning("Dashboard layout is not a mapping; no charts are in scope")
+        return chart_layout_items
     for item in position_data.values():
         if not isinstance(item, dict) or item.get("type") != CHART_TYPE:
             continue
