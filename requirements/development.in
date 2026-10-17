@@ -61,3 +61,8 @@ testcontainers[cockroachdb,cratedb,mongodb,mssql,mysql,oracle,postgres,trino]>=4
 # raises `zope.interface.exceptions.InvalidInterface` outright on 3.13.
 # 7.2 is the first release with explicit handling for it.
 zope.interface>=7.2
+
+# Security: fonttools (via matplotlib) < 4.62.0 evaluates TTX XML values with
+# eval() in cffLib parseBlendList(), allowing arbitrary code execution from a
+# crafted TTX file (fonttools/fonttools#4039, fixed in 4.62.0 by #4040).
+fonttools>=4.62.0,<5.0.0
