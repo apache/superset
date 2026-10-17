@@ -26,7 +26,7 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 
 import logging
 from collections.abc import Callable
-from functools import partial
+from functools import lru_cache, partial
 from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
 
@@ -490,19 +490,23 @@ def _reduce_result_values(values: pd.Series, aggregate: str) -> Any:
         return values.nunique(dropna=False)
     if name == "List Unique Values":
         return ", ".join(sorted({str(value) for value in values}))
-    if name in {"First", "Last"}:
+    if name == "Last":
+        return values.iloc[-1]
+    if name == "First":
         present = values.dropna()
-        return present.iloc[0 if name == "First" else -1] if len(present) else None
+        return present.iloc[0] if len(present) else None
     numeric = pd.to_numeric(values, errors="coerce").dropna()
     if name == "Sum":
         text = values.dropna()
         return text.iloc[-1] if numeric.empty and len(text) else numeric.sum()
     if numeric.empty:
         return None
-    if name == "Sample Variance":
-        return numeric.var(ddof=1) if len(numeric) > 1 else 0
-    if name == "Sample Standard Deviation":
-        return numeric.std(ddof=1) if len(numeric) > 1 else 0
+    if name in {"Sample Variance", "Sample Standard Deviation"}:
+        statistic = {
+            "Sample Variance": numeric.var,
+            "Sample Standard Deviation": numeric.std,
+        }
+        return statistic[name](ddof=1) if len(numeric) > 1 else 0
     return {
         "Average": numeric.mean,
         "Median": numeric.median,
@@ -513,18 +517,34 @@ def _reduce_result_values(values: pd.Series, aggregate: str) -> Any:
 
 def _group_result_records(
     source: pd.DataFrame, dimensions: list[str]
-) -> dict[tuple[str, ...], pd.DataFrame]:
+) -> dict[tuple[Any, ...], pd.DataFrame]:
     """Index contributing records by the dimension prefix of a summary scope."""
     if not dimensions:
         return {(): source}
-    keys = [source[dim].fillna("SUPERSET_PANDAS_NAN").astype(str) for dim in dimensions]
+    keys = [
+        source[dim].astype(object).fillna("SUPERSET_PANDAS_NAN") for dim in dimensions
+    ]
     return {
         key if isinstance(key, tuple) else (key,): group
         for key, group in source.groupby(keys, sort=False, dropna=False)
     }
 
 
-def _apply_result_aggregation(
+def _result_scope_key(
+    row: Any, column: Any, row_depth: int, column_depth: int, metric_level: int
+) -> tuple[Any, ...]:
+    """Keep typed dimensions consistent between source groups and pivot labels."""
+    # Series.astype(str) formats dates differently from scalar str(), and merges
+    # numeric and text labels. Result scopes must preserve the original scalars.
+    row_parts = row if isinstance(row, tuple) else (row,)
+    column_parts = column if isinstance(column, tuple) else (column,)
+    dimensions = tuple(
+        part for index, part in enumerate(column_parts) if index != metric_level
+    )
+    return row_parts[:row_depth] + dimensions[:column_depth]
+
+
+def _apply_result_aggregation(  # noqa: C901
     frame: pd.DataFrame,
     source: pd.DataFrame,
     rows: list[str],
@@ -534,7 +554,6 @@ def _apply_result_aggregation(
     row_depths: dict[Any, int],
     column_depths: dict[Any, int],
     aggregate: str,
-    show_values_as: Optional[str],
     metrics_on_rows: bool,
 ) -> pd.DataFrame:
     """Calculate every scope from its original contributing query results."""
@@ -542,36 +561,39 @@ def _apply_result_aggregation(
     if not set(metrics).issubset(source.columns):
         return frame
 
-    grouped_sources: dict[tuple[int, int], dict[tuple[str, ...], pd.DataFrame]] = {}
+    @lru_cache(maxsize=None)
+    def grouped_source(
+        row_depth: int, column_depth: int
+    ) -> dict[tuple[Any, ...], pd.DataFrame]:
+        return _group_result_records(source, rows[:row_depth] + columns[:column_depth])
 
-    def contributing(
+    reduced: dict[tuple[Any, ...], Any] = {}
+
+    def reduce_scope(
         row: Any,
         column: Any,
         row_depth: int,
         column_depth: int,
         selected_metrics: list[str],
-    ) -> pd.Series:
+    ) -> Any:
         level = (row_depth, column_depth)
-        if level not in grouped_sources:
-            grouped_sources[level] = _group_result_records(
-                source, rows[:row_depth] + columns[:column_depth]
+        key = _result_scope_key(row, column, row_depth, column_depth, metric_level)
+        cache_key = (level, key, tuple(selected_metrics))
+        if cache_key not in reduced:
+            selected = grouped_source(*level).get(key, source.iloc[:0])
+            # Row-major order matches the browser's metric unpivoting.
+            values = pd.Series(
+                selected[selected_metrics].to_numpy().ravel(), dtype=object
             )
-        key = _rollup_key(row, row_depth, metric_level, is_column=False) + _rollup_key(
-            column,
-            column_depth,
-            metric_level,
-            is_column=True,
-        )
-        selected = grouped_sources[level].get(key, source.iloc[:0])
-        # Row-major order matches the browser's metric unpivoting.
-        return pd.Series(selected[selected_metrics].to_numpy().ravel(), dtype=object)
+            reduced[cache_key] = _reduce_result_values(values, aggregate)
+        return reduced[cache_key]
 
     old_fraction = aggregate.partition(" as Fraction of ")[2]
     fraction = {
         "Total": "percent_total",
         "Rows": "percent_row",
         "Columns": "percent_col",
-    }.get(old_fraction) or show_values_as
+    }.get(old_fraction)
     for ri, row in enumerate(frame.index):
         for ci, column in enumerate(frame.columns):
             rd = row_depths.get(row, len(rows))
@@ -585,9 +607,7 @@ def _apply_result_aggregation(
             if len(selected_metrics) != 1:
                 frame.iloc[ri, ci] = None
                 continue
-            value = _reduce_result_values(
-                contributing(row, column, rd, cd, selected_metrics), aggregate
-            )
+            value = reduce_scope(row, column, rd, cd, selected_metrics)
             if fraction in SHOW_VALUES_AS_PERCENT_MODES:
                 dr, dc = rd, cd
                 if fraction == "percent_total":
@@ -596,9 +616,7 @@ def _apply_result_aggregation(
                     dc = 0
                 else:
                     dr = 0
-                denominator = _reduce_result_values(
-                    contributing(row, column, dr, dc, selected_metrics), aggregate
-                )
+                denominator = reduce_scope(row, column, dr, dc, selected_metrics)
                 value = (
                     value / denominator if value is not None and denominator else None
                 )
@@ -675,7 +693,10 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
         )
     # Generate the requested summary levels independently of grand-summary visibility.
     render_row_total, render_column_total = show_rows_total, show_columns_total
-    if result_aggregation:
+    independent_summaries = (
+        result_aggregation or aggfunc == CURRENCY_CONTEXT_AGGREGATION
+    )
+    if independent_summaries:
         show_rows_total = show_rows_total or bool(show_column_subtotals)
         show_columns_total = show_columns_total or bool(show_row_subtotals)
 
@@ -743,7 +764,9 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
 
     # convert to a MultiIndex to simplify logic
     if not isinstance(df.index, pd.MultiIndex):
-        df.index = pd.MultiIndex.from_tuples([(str(i),) for i in df.index])
+        df.index = pd.MultiIndex.from_tuples(
+            [(i if independent_summaries else str(i),) for i in df.index]
+        )
     if not isinstance(df.columns, pd.MultiIndex):
         df.columns = pd.MultiIndex.from_tuples([(str(i),) for i in df.columns])
 
@@ -882,7 +905,6 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             row_prefix_depth,
             column_prefix_depth,
             result_function,
-            percent_mode,
             apply_metrics_on_rows,
         )
 
@@ -912,7 +934,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             else None,
         )
 
-    if result_aggregation:
+    if independent_summaries:
         df = df.loc[
             [
                 key
@@ -931,6 +953,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                 or (
                     render_row_total
                     if column_prefix_depth[key] == 0
+                    and _metric_of_column(key, totals_metric_level) not in metrics
                     else show_column_subtotals is not False
                 )
             ],
@@ -1234,6 +1257,14 @@ def merge_currency_formats(
     return currency_formats
 
 
+def _pivot_percent_output(form_data: dict[str, Any]) -> bool:
+    """Result reducers take precedence over the separate metric display transform."""
+    aggregate = form_data.get("aggregateFunction")
+    if aggregate in pivot_v2_aggfunc_map and aggregate != CURRENCY_CONTEXT_AGGREGATION:
+        return " as Fraction of " in aggregate
+    return form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
+
+
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: dict[str, Any],
@@ -1281,11 +1312,7 @@ def pivot_table_v2(
 
     pivoted = pivot_df(df, **pivot_options)
     if apply_number_format:
-        if percent_mode or (
-            result_aggregation
-            and isinstance(aggregate_function, str)
-            and " as Fraction of " in aggregate_function
-        ):
+        if _pivot_percent_output(form_data):
             # A ratio has no currency and ignores per-metric value formats, the
             # same way the client skips `formattedAggregators` while a fraction
             # is active.
@@ -1652,12 +1679,7 @@ def apply_client_processing(  # noqa: C901
                 # workbook reads like the chart and still calculates.
                 number_format=(
                     EXCEL_PERCENT_FORMAT
-                    if viz_type == "pivot_table_v2"
-                    and (
-                        form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
-                        or " as Fraction of "
-                        in str(form_data.get("aggregateFunction", ""))
-                    )
+                    if viz_type == "pivot_table_v2" and _pivot_percent_output(form_data)
                     else None
                 ),
                 **{

@@ -19,38 +19,40 @@ under the License.
 
 # Pivot result aggregation exports
 
-This backend follow-up to #44660 extracts the result reducers and export tests
-from #44647. It does not restore frontend controls or add another migration.
-The frontend restoration must ship with this work before result selections can
-be expected to agree across browser and tabular export paths.
+Pivot Table result aggregation summarizes the grouped metric values returned by
+the chart query. For example, with grouped values 1, 9, 20 and 100, choosing
+**Median** produces a grand summary of 14.5. It does not calculate the median
+of intermediate subtotals. Query filters and row limits apply before this step.
 
-Each cell, subtotal and grand summary is reduced from its original contributing
-grouped metric values. Query filters and limits have already been applied.
-Shared totals combining different metrics are blank; a fraction's denominator
-uses only its own metric. Transposition and metric placement do not change that
-rule. Stored GROUPING SETS data is split into leaves before result aggregation,
-so stored database rollups are not counted as additional observations.
+## Configure the export
 
-Explicit `Metric`, missing and unrecognised selections retain metric-definition
-behavior. Applying database rollups in Actual Values mode overlaps with #44631;
-once that merges, retain its behavior behind the non-result-mode guard. Its
-regression fixtures using `aggregateFunction: "Average"` need to use `Metric`
-when they intend database totals: Average becomes an explicit result reducer.
+Select a result aggregation in the Pivot Table chart, then save the chart for
+scheduled reports or download its pivoted CSV or Excel output. **Metric** keeps
+the metric-definition behavior; choices such as **Sum**, **Average** and
+**Median** apply a second aggregation to the returned grouped results.
 
-## Integration decisions still open
+Row and column subtotals can be enabled independently of grand totals. A shared
+total combining different metrics is blank because those metrics do not have a
+single meaningful aggregate. This also applies when metrics are placed on rows
+or the table is transposed.
 
-At frontend revision `66ccb82b4bc4c39cb4efb49f143ed7e44c921d75`, #44660
-reuses the existing JavaScript reducers without the numeric-input normalization
-in #44647. For example, JavaScript Median coerces null to zero, while this
-backend ignores null numeric observations. First/Last and text inputs also need
-an agreed contract before claiming complete parity.
+## Fractions and formatting
 
-This extraction retains #44647's separate `showValuesAs` transformation for
-result aggregations, with historical fraction choices taking precedence.
-#44660 currently selects its result factory ahead of that transformation.
-Choose one contract and verify matching browser/export examples before release.
+**Sum as Fraction of Total**, **Rows** or **Columns**, and the corresponding
+**Count** choices, use only their own metric in the denominator. Result
+aggregation takes precedence over the separate **Show values as** setting.
+Use **Metric** to apply that setting to database-computed metric values.
 
-Unit tests cover all result choices, mixed metric corners and per-metric
-fractions in both metric layouts. Live CSV/Excel downloads, scheduled report
-query rebuilding after the migration, and large-result performance remain
-integration checks, not claims of completed validation.
+Formatted results display fractions as percentages, including when a metric has
+a currency override. CSV exports retain raw numeric ratios. Excel fractions
+remain numeric cells with a percentage number format, so they can be used in
+formulas. Other formatted results retain their configured formats; AUTO currency formatting uses the currencies of the
+records contributing to each cell or subtotal.
+
+## Missing values
+
+Numeric result reducers ignore NULL observations. **First** takes the first
+non-NULL value, while **Last** retains the final value even when it is NULL.
+Sample variance and sample standard deviation are zero for a single numeric
+observation. Stored database totals are not additional observations: result
+aggregation uses the leaf query results.
