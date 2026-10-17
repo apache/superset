@@ -1195,6 +1195,33 @@ test('preserves new option entry across search fetch when allowNewOptions is on'
   expect(screen.queryByText('Option 0')).not.toBeInTheDocument();
 });
 
+test('does not preserve a new option when a case-insensitive match is returned', async () => {
+  const loadOptions = jest.fn(async (search: string) => {
+    if (search === '') {
+      return { data: [], totalCount: 1 };
+    }
+    return {
+      data: [{ label: 'Test Dashboard', value: 1 }],
+      totalCount: 1,
+    };
+  });
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      options={loadOptions}
+      allowNewOptions
+      caseSensitiveNewOptionMatching={false}
+    />,
+  );
+  await open();
+  await type('test dashboard');
+  await waitFor(() => expect(loadOptions).toHaveBeenCalledTimes(2));
+
+  expect(await findSelectOption('Test Dashboard')).toBeInTheDocument();
+  expect(await findAllSelectOptions()).toHaveLength(1);
+});
+
 test('restores base options when search is cleared', async () => {
   const page0Data = Array.from({ length: 10 }, (_, i) => ({
     label: `Option ${i}`,
@@ -1719,6 +1746,274 @@ test('cancels pending debounce on unmount', async () => {
   unmount();
   await new Promise(resolve => setTimeout(resolve, 300));
   expect(mockOnSearch).not.toHaveBeenCalled();
+});
+
+test.each([
+  ['My dashboard', 'My dashboard', 123],
+  ['test dashboard', 'Test Dashboard', 456],
+  ['  Spaced Name  ', 'Spaced Name', 999],
+])(
+  'uses the server option when its label matches a new option (%s)',
+  async (search, label, value) => {
+    const loadOptions = jest.fn(async (query: string) =>
+      query === search
+        ? { data: [{ label, value }], totalCount: 1 }
+        : { data: [], totalCount: 100 },
+    );
+    const onChange = jest.fn();
+
+    render(
+      <AsyncSelect
+        {...defaultProps}
+        allowNewOptions
+        caseSensitiveNewOptionMatching={false}
+        filterOption={false}
+        onChange={onChange}
+        options={loadOptions}
+      />,
+    );
+
+    await open();
+    await type(search);
+    await waitFor(() =>
+      expect(loadOptions).toHaveBeenCalledWith(
+        search,
+        0,
+        defaultProps.pageSize,
+      ),
+    );
+    const options = await findAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent(label);
+
+    await userEvent.click(await findSelectOption(label));
+    await waitFor(() =>
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({ label, value }),
+        expect.objectContaining({ label, value }),
+      ),
+    );
+  },
+);
+
+test('preserves a new option when the server response has no matching label', async () => {
+  const loadOptions = jest.fn(async (search: string) =>
+    search === 'New Dashboard'
+      ? { data: [{ label: 'Other Dashboard', value: 789 }], totalCount: 1 }
+      : { data: [], totalCount: 100 },
+  );
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      filterOption={false}
+      options={loadOptions}
+    />,
+  );
+
+  await open();
+  await type('New Dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'New Dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(2);
+  expect(options[0]).toHaveTextContent('New Dashboard');
+  expect(options[1]).toHaveTextContent('Other Dashboard');
+});
+
+test('replaces an unselected new option when its casing changes', async () => {
+  const loadOptions = jest.fn(async () => ({
+    data: [],
+    totalCount: 100,
+  }));
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      caseSensitiveNewOptionMatching={false}
+      filterOption={false}
+      options={loadOptions}
+    />,
+  );
+
+  await open();
+  await type('my dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'my dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+  expect(await findSelectOption('my dashboard')).toBeInTheDocument();
+
+  await type('My Dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'My Dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+  const options = await findAllSelectOptions();
+  expect(options).toHaveLength(1);
+  expect(options[0]).toHaveTextContent('My Dashboard');
+});
+
+test('removes a new option when a pending base fetch returns a matching label in case-insensitive mode', async () => {
+  let resolveBase: (value: {
+    data: { label: string; value: number }[];
+    totalCount: number;
+  }) => void = () => {};
+  const loadOptions = jest.fn((search: string) => {
+    if (!search) {
+      return new Promise<{
+        data: { label: string; value: number }[];
+        totalCount: number;
+      }>(resolve => {
+        resolveBase = resolve;
+      });
+    }
+    return Promise.resolve({ data: [], totalCount: 100 });
+  });
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      caseSensitiveNewOptionMatching={false}
+      filterOption={false}
+      options={loadOptions}
+    />,
+  );
+
+  await open();
+  await type('My dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'My dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+
+  resolveBase({
+    data: [{ label: 'my dashboard', value: 123 }],
+    totalCount: 1,
+  });
+  await waitFor(() => {
+    const options = getAllSelectOptions();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent('my dashboard');
+  });
+});
+
+test('preserves a differently cased new option when a pending base fetch returns in default mode', async () => {
+  let resolveBase: (value: {
+    data: { label: string; value: number }[];
+    totalCount: number;
+  }) => void = () => {};
+  const loadOptions = jest.fn((search: string) => {
+    if (!search) {
+      return new Promise<{
+        data: { label: string; value: number }[];
+        totalCount: number;
+      }>(resolve => {
+        resolveBase = resolve;
+      });
+    }
+    return Promise.resolve({ data: [], totalCount: 100 });
+  });
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      filterOption={false}
+      options={loadOptions}
+    />,
+  );
+
+  await open();
+  await type('My dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'My dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+
+  resolveBase({
+    data: [{ label: 'my dashboard', value: 123 }],
+    totalCount: 1,
+  });
+  await waitFor(() => {
+    const options = getAllSelectOptions();
+    expect(options).toHaveLength(2);
+    expect(options[0]).toHaveTextContent('My dashboard');
+    expect(document.querySelector('[aria-label="my dashboard"]')).toBeTruthy();
+  });
+});
+
+test('preserves a selected new option when a matching search response arrives', async () => {
+  let resolveSearch: (value: {
+    data: { label: string; value: number }[];
+    totalCount: number;
+  }) => void = () => {};
+  const loadOptions = jest.fn((search: string) => {
+    if (search === 'My dashboard') {
+      return new Promise<{
+        data: { label: string; value: number }[];
+        totalCount: number;
+      }>(resolve => {
+        resolveSearch = resolve;
+      });
+    }
+    return Promise.resolve({ data: [], totalCount: 100 });
+  });
+  const onChange = jest.fn();
+
+  render(
+    <AsyncSelect
+      {...defaultProps}
+      allowNewOptions
+      autoClearSearchValue={false}
+      caseSensitiveNewOptionMatching={false}
+      filterOption={false}
+      mode="multiple"
+      onChange={onChange}
+      options={loadOptions}
+    />,
+  );
+
+  await open();
+  await type('My dashboard');
+  await waitFor(() =>
+    expect(loadOptions).toHaveBeenCalledWith(
+      'My dashboard',
+      0,
+      defaultProps.pageSize,
+    ),
+  );
+  await userEvent.click(await findSelectOption('My dashboard'), {
+    pointerEventsCheck: 0,
+  });
+  expect(await findSelectValue()).toHaveTextContent('My dashboard');
+
+  resolveSearch({
+    data: [{ label: 'my dashboard', value: 123 }],
+    totalCount: 1,
+  });
+  await waitFor(() => expect(getAllSelectOptions()).toHaveLength(2));
+  expect(await findSelectValue()).toHaveTextContent('My dashboard');
 });
 
 test('renders the option label directly in the option content without a Space wrapper', async () => {
