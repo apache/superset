@@ -94,6 +94,7 @@ def test_update_dataset_sql_authorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
+    mock_dataset.template_params = None
     mock_dataset.editors = []  # No editors to avoid computation issues
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
@@ -139,6 +140,7 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
+    mock_dataset.template_params = None
     mock_dataset.editors = []  # No editors to avoid computation issues
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
@@ -178,6 +180,58 @@ def test_update_dataset_sql_unauthorized_schema(mocker: MockerFixture) -> None:
     )
 
 
+def test_update_dataset_template_params_only_change_is_authorized(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A change to ``template_params`` alone (SQL text unchanged) can repoint a
+    templated ``FROM`` to a different table, so it must be re-authorized --
+    with the effective (new) params passed to ``raise_for_access``. Without
+    this the update ran no table/SQL access check at all.
+    """
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.update.DatasetDAO")
+    mock_database = mocker.MagicMock()
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = "catalog"
+    mock_database.allow_multi_catalog = False
+
+    mock_dataset = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset.database = mock_database
+    mock_dataset.catalog = "catalog"
+    mock_dataset.schema = "public"
+    mock_dataset.table_name = "test_table"
+    mock_dataset.sql = "SELECT * FROM {{ t }}"
+    mock_dataset.template_params = '{"t": "public.ok"}'
+    mock_dataset.editors = []
+
+    mock_dataset_dao.find_by_id.return_value = mock_dataset
+    mock_dataset_dao.get_database_by_id.return_value = mock_database
+    mock_dataset_dao.validate_update_uniqueness.return_value = True
+
+    mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_editorship",
+    )
+    mocker.patch("superset.commands.utils.security_manager.is_admin", return_value=True)
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        side_effect=SupersetSecurityException(
+            SupersetError(
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                message="You do not have access to: private.secret",
+                level=ErrorLevel.ERROR,
+            )
+        ),
+    )
+
+    with pytest.raises(DatasetInvalidError):
+        UpdateDatasetCommand(1, {"template_params": '{"t": "private.secret"}'}).run()
+
+    # The access check ran (params-only change) and rendered with the new params.
+    sql_call = next(c for c in raise_for_access.call_args_list if c.kwargs.get("sql"))
+    assert sql_call.kwargs["template_params"] == {"t": "private.secret"}
+    assert sql_call.kwargs["allow_editorship"] is False
+
+
 def test_update_dataset_database_id_change_checks_new_database_access(
     mocker: MockerFixture,
 ) -> None:
@@ -202,6 +256,7 @@ def test_update_dataset_database_id_change_checks_new_database_access(
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
+    mock_dataset.template_params = None
     mock_dataset.editors = []  # No editors to avoid computation issues
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
@@ -258,6 +313,7 @@ def test_update_dataset_database_id_change_allowed_with_access(
     mock_dataset.catalog = "catalog"
     mock_dataset.schema = "public"
     mock_dataset.table_name = "test_table"
+    mock_dataset.template_params = None
     mock_dataset.editors = []  # No editors to avoid computation issues
 
     mock_dataset_dao.find_by_id.return_value = mock_dataset
@@ -329,6 +385,7 @@ def test_update_dataset_physical_repoint_requires_table_access(
     raise_for_access.assert_called_once_with(
         database=mock_database,
         table=Table("restricted_table", "public", "catalog"),
+        allow_editorship=False,
     )
     assert any(
         "You don't have access to the table" in str(exc)

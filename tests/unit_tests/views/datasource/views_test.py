@@ -81,6 +81,7 @@ def _save_orm_dataset(**overrides: Any) -> MagicMock:
             "schema": "public",
             "catalog": None,
             "sql": None,
+            "template_params": None,
             "is_virtual": False,
             "data": {"id": 1},
             **overrides,
@@ -662,6 +663,8 @@ def test_save_rejects_sql_repoint_without_access(
         sql=payload["sql"],
         catalog=None,
         schema=payload["schema"],
+        template_params={},
+        allow_editorship=False,
     )
     mock_get_database_by_id.assert_not_called()
 
@@ -692,12 +695,14 @@ def test_save_checks_both_table_and_sql_on_cross_database_repoint(
     )
 
     assert mock_security_manager.raise_for_access.call_args_list == [
-        call(database=new_database, table=ANY),
+        call(database=new_database, table=ANY, allow_editorship=False),
         call(
             database=new_database,
             sql="SELECT * FROM secret_table",
             catalog=None,
             schema="public",
+            template_params={},
+            allow_editorship=False,
         ),
     ]
 

@@ -55,6 +55,7 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.core import Database
+from superset.models.helpers import json_to_dict
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
@@ -250,7 +251,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         exceptions: list[ValidationError],
     ) -> None:
         try:
-            security_manager.raise_for_access(database=new_db_connection, table=table)
+            security_manager.raise_for_access(
+                database=new_db_connection, table=table, allow_editorship=False
+            )
         except SupersetSecurityException as ex:
             exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
         else:
@@ -260,7 +263,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self, db: Database, table: Table, exceptions: list[ValidationError]
     ) -> None:
         try:
-            security_manager.raise_for_access(database=db, table=table)
+            security_manager.raise_for_access(
+                database=db, table=table, allow_editorship=False
+            )
         except SupersetSecurityException as ex:
             exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
 
@@ -271,28 +276,50 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         schema: str | None,
         exceptions: list[ValidationError],
     ) -> None:
-        """Validate SQL query access if SQL is being updated."""
+        """Validate access to the tables a SQL or template-params change reads.
+
+        Runs whenever the SQL text OR the template params change: a virtual
+        dataset's executed tables depend on both, so a params-only edit that
+        repoints a templated ``FROM`` must be re-authorized too. Renders with
+        the effective (post-update) params so the check matches execution.
+        """
         # we know we have a valid model
         self._model = cast(SqlaTable, self._model)
 
-        sql = self._properties.get("sql")
-        if sql and sql != self._model.sql:
-            try:
-                security_manager.raise_for_access(
-                    database=db,
-                    sql=sql,
-                    catalog=catalog,
-                    schema=schema,
+        effective_sql = self._properties.get("sql", self._model.sql)
+        if not effective_sql:
+            return  # physical dataset; the table binding is gated elsewhere
+
+        sql_changed = "sql" in self._properties and (
+            self._properties["sql"] != self._model.sql
+        )
+        params_changed = "template_params" in self._properties and (
+            self._properties["template_params"] != self._model.template_params
+        )
+        if not (sql_changed or params_changed):
+            return
+
+        template_params = json_to_dict(
+            self._properties.get("template_params", self._model.template_params) or ""
+        )
+        try:
+            security_manager.raise_for_access(
+                database=db,
+                sql=effective_sql,
+                catalog=catalog,
+                schema=schema,
+                template_params=template_params,
+                allow_editorship=False,
+            )
+        except SupersetSecurityException as ex:
+            exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+        except SupersetParseError as ex:
+            exceptions.append(
+                ValidationError(
+                    f"Invalid SQL: {ex.error.message}",
+                    field_name="sql",
                 )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            except SupersetParseError as ex:
-                exceptions.append(
-                    ValidationError(
-                        f"Invalid SQL: {ex.error.message}",
-                        field_name="sql",
-                    )
-                )
+            )
 
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model

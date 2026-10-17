@@ -748,6 +748,236 @@ def test_import_dataset_virtual_invalid_sql_is_rejected_as_bad_payload(
         import_dataset(config)
 
 
+def test_import_dataset_repoint_authorizes_requested_binding_pre_mutation(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (schema-swap): an overwrite that repoints a dataset to a
+    new schema must authorize the REQUESTED binding with allow_editorship=False
+    and do so BEFORE the row is mutated -- otherwise the per-table lookup
+    resolves the dataset itself (whose perm omits the schema) and a
+    datasource_access holder could repoint it to a schema they can't read.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    seen: dict[str, Any] = {}
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            seen["kwargs"] = kwargs
+            seen["stored_schema"] = db.session.get(SqlaTable, existing.id).schema
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "private",
+            "catalog": None,
+            "sql": "",
+            "database_id": database.id,
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert seen["kwargs"].get("allow_editorship") is False
+    assert seen["kwargs"]["table"].schema == "private"  # requested, not stored
+    assert seen["stored_schema"] == "public"  # check ran before import_from_dict
+
+
+def test_import_dataset_metadata_only_skips_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (over-restriction): a metadata-only re-import (unchanged
+    table binding) must NOT run the table/SQL access check, so an editor
+    without separate data access can still re-import non-binding changes --
+    matching UpdateDatasetCommand, which only revalidates on a source change.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        uuid=ds_uuid,
+        description="old",
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "",
+            "database_id": database.id,
+            "description": "new description",
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert binding_checks == []  # unchanged binding -> no table/SQL access check
+
+
+def test_import_dataset_database_repoint_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard: an overwrite that keeps table/schema/catalog/sql but
+    points at a DIFFERENT database still repoints the dataset, so the binding
+    check must run against the new database with allow_editorship=False -- the
+    database is part of the binding (matching UpdateDatasetCommand's repoint).
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    db_a = Database(database_name="db_a", sqlalchemy_uri="sqlite://")
+    db_b = Database(database_name="db_b", sqlalchemy_uri="sqlite://")
+    db.session.add_all([db_a, db_b])
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=db_a,
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    # The access check runs before import_from_dict; stub the mutation so the
+    # test isolates whether the binding check ran (a real DB-identity change
+    # drives import_from_dict down an insert path that is orthogonal here).
+    mocker.patch.object(SqlaTable, "import_from_dict", return_value=existing)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "",
+            "database_id": db_b.id,  # repoint to a different database
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["table"].table == "orders"
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_template_params_only_change_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (templated repoint): an overwrite that keeps the SQL text
+    but changes only ``template_params`` still repoints where a Jinja ``FROM``
+    resolves, so the binding check must run against the NEW params with
+    allow_editorship=False -- the stored params are not what the overwrite
+    executes.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps({"t": "public.ok"}),
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "SELECT * FROM {{ t }}",  # unchanged SQL text
+            "database_id": database.id,
+            "template_params": {"t": "private.secret"},  # repoints the FROM
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": "private.secret"}
+    assert binding_checks[0].get("allow_editorship") is False
+
+
 def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
     """
     Two metrics sharing a UUID must be rejected by the import schema.

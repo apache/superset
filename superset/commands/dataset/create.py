@@ -103,6 +103,11 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         schema = self._properties.get("schema")
         table_name = self._properties["table_name"]
         sql = self._properties.get("sql")
+        # The access check below must render the SQL with the same template
+        # params that will be stored and executed, so a templated table
+        # reference is authorized as the table it actually resolves to rather
+        # than its ``default()``.
+        template_params = json_to_dict(self._properties.get("template_params") or "")
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -117,10 +122,6 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
 
             if sql:
                 try:
-                    template_params_raw: str | None = self._properties.get(
-                        "template_params"
-                    )
-                    template_params = json_to_dict(template_params_raw or "")
                     parse_result = process_jinja_sql(
                         sql,
                         database,
@@ -225,6 +226,8 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                     sql=sql,
                     catalog=catalog,
                     schema=schema,
+                    template_params=template_params,
+                    allow_editorship=False,
                 )
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
@@ -240,6 +243,7 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                 security_manager.raise_for_access(
                     database=database,
                     table=table,
+                    allow_editorship=False,
                 )
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
