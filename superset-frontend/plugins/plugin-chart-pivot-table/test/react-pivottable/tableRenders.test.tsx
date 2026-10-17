@@ -390,7 +390,7 @@ test('TableRenderer calls onContextMenu callback', () => {
   fireEvent.contextMenu(columnHeaderCell!);
 
   expect(onContextMenu).toHaveBeenCalledTimes(1);
-  const [, colKey, rowKey, filters] = onContextMenu.mock.calls[0];
+  const [[, colKey, rowKey, filters]] = onContextMenu.mock.calls;
   expect(colKey).toEqual(['circle']);
   expect(rowKey).toBeUndefined();
   expect(filters).toEqual({ shape: 'circle' });

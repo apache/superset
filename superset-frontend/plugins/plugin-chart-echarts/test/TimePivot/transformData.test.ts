@@ -72,8 +72,7 @@ describe('TimePivot transformData', () => {
       'W-MON',
     );
     expect(data.map(series => series.key)).toEqual(['-1', 'current']);
-    const previous = data[0];
-    const current = data[1];
+    const [previous, current] = data;
     expect(previous.rank).toEqual(1);
     expect(previous.perc).toEqual(0.5);
     expect(current.rank).toEqual(0);

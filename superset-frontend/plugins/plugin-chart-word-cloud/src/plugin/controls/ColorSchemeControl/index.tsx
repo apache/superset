@@ -189,7 +189,7 @@ const ColorSchemeControl = ({
     const controlChoices = typeof choices === 'function' ? choices() : choices;
     const allColorOptions: string[] = [];
     const filteredColorOptions = controlChoices.filter(o => {
-      const option = o[0];
+      const [option] = o;
       const isValidColorOption =
         option !== 'SUPERSET_DEFAULT' && !allColorOptions.includes(option);
       allColorOptions.push(option);

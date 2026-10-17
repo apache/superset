@@ -147,7 +147,7 @@ export function getBreakPointColorScaler(
         : [colorScheme.colors[colorScheme.colors.length - 1]];
 
     // repeat ends
-    const first = bucketedColors[0];
+    const [first] = bucketedColors;
     const last = bucketedColors[bucketedColors.length - 1];
     bucketedColors.unshift(first);
     bucketedColors.push(last);

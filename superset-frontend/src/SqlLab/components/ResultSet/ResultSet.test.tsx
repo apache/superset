@@ -215,7 +215,7 @@ describe('ResultSet', () => {
   });
 
   test('should render success query', async () => {
-    const query = queries[0];
+    const [query] = queries;
     const { queryAllByText, getByTestId } = setup(
       mockedProps,
       mockStore({
@@ -233,12 +233,12 @@ describe('ResultSet', () => {
     const table = getByTestId('table-container');
     expect(table).toBeInTheDocument();
 
-    const firstColumn = queryAllByText(
+    const [firstColumn] = queryAllByText(
       query.results?.columns[0].column_name ?? '',
-    )[0];
-    const secondColumn = queryAllByText(
+    );
+    const [secondColumn] = queryAllByText(
       query.results?.columns[1].column_name ?? '',
-    )[0];
+    );
     expect(firstColumn).toBeInTheDocument();
     expect(secondColumn).toBeInTheDocument();
 
@@ -301,7 +301,7 @@ describe('ResultSet', () => {
   });
 
   test('should not call reRunQuery if no error', async () => {
-    const query = queries[0];
+    const [query] = queries;
     const store = mockStore({
       ...initialState,
       user,

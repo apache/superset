@@ -170,7 +170,7 @@ export default function transformProps(
     emitCrossFilters,
     datasource,
   } = chartProps;
-  const { data = [], detected_currency: detectedCurrency } = queriesData[0];
+  const [{ data = [], detected_currency: detectedCurrency }] = queriesData;
   const coltypeMapping = getColtypesMapping(queriesData[0]);
   const {
     groupby = [],

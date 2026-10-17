@@ -57,7 +57,7 @@ describe('BigNumber Total Control Panel Config', () => {
     expect(sections[0]!.controlSetRows[1]).toEqual(['adhoc_filters']);
 
     // Second section should contain a control named subtitle
-    const secondSectionRow = sections[1]!.controlSetRows[1];
+    const [, secondSectionRow] = sections[1]!.controlSetRows;
     expect(secondSectionRow[0]).toHaveProperty('name', 'subtitle');
 
     // Second section should include controls for time_format and conditional_formatting

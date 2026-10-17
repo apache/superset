@@ -101,7 +101,7 @@ export const buildQuery: BuildQuery<TableChartFormData> = (
   const isSemanticView = formData.datasource?.endsWith(
     `__${DatasourceType.SemanticView}`,
   );
-  const sortByMetric = ensureIsArray(formData.timeseries_limit_metric)[0];
+  const [sortByMetric] = ensureIsArray(formData.timeseries_limit_metric);
   const time_grain_sqla =
     extra_form_data?.time_grain_sqla || formData.time_grain_sqla;
   let formDataCopy = formData;

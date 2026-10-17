@@ -704,7 +704,7 @@ test('does not overwrite filterState when modern native_filters URL format is us
   );
 
   // currentState must not have been injected
-  const callArg = (hydrateDashboard as jest.Mock).mock.calls[0][0];
+  const [[callArg]] = (hydrateDashboard as jest.Mock).mock.calls;
   expect(
     callArg.dataMask['NATIVE_FILTER-OvPTDNKc9'].currentState,
   ).toBeUndefined();
@@ -775,9 +775,9 @@ test('clears undo history after hydrating the dashboard', async () => {
 
   expect(hydrateDashboard).toHaveBeenCalled();
   expect(clearDashboardHistory).toHaveBeenCalled();
-  const hydrateOrder = (hydrateDashboard as jest.Mock).mock
-    .invocationCallOrder[0];
-  const clearOrder = (clearDashboardHistory as jest.Mock).mock
-    .invocationCallOrder[0];
+  const [hydrateOrder] = (hydrateDashboard as jest.Mock).mock
+    .invocationCallOrder;
+  const [clearOrder] = (clearDashboardHistory as jest.Mock).mock
+    .invocationCallOrder;
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });

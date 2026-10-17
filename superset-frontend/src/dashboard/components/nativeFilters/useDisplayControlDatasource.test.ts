@@ -37,7 +37,7 @@ test('dataset branch issues the legacy bare-resource request and maps the payloa
   const { result } = renderHook(() => useDisplayControlDatasource(401));
 
   await waitFor(() => expect(result.current.loading).toBe(false));
-  const { url } = fetchMock.callHistory.calls('glob:*/api/v1/dataset/401')[0];
+  const [{ url }] = fetchMock.callHistory.calls('glob:*/api/v1/dataset/401');
   expect(url.endsWith('/api/v1/dataset/401')).toBe(true);
   expect(result.current.name).toBe('Vehicle Sales');
   expect(result.current.columns).toEqual([{ column_name: 'city' }]);

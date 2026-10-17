@@ -216,7 +216,7 @@ test('renders all required column headers', async () => {
 });
 
 test('displays dataset name in Name column', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -228,8 +228,8 @@ test('displays dataset name in Name column', async () => {
 });
 
 test('displays dataset type as Physical or Virtual', async () => {
-  const physicalDataset = mockDatasets[0]; // kind: 'physical'
-  const virtualDataset = mockDatasets[1]; // kind: 'virtual'
+  const [physicalDataset] = mockDatasets; // kind: 'physical'
+  const [, virtualDataset] = mockDatasets; // kind: 'virtual'
 
   mockDatasetListEndpoints({
     result: [physicalDataset, virtualDataset],
@@ -246,7 +246,7 @@ test('displays dataset type as Physical or Virtual', async () => {
 });
 
 test('displays database name in Database column', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -260,7 +260,7 @@ test('displays database name in Database column', async () => {
 });
 
 test('displays schema name in Schema column', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -272,7 +272,7 @@ test('displays schema name in Schema column', async () => {
 });
 
 test('displays last modified date in humanized format', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -383,7 +383,7 @@ test('sorting by Last modified column updates sort parameter', async () => {
 });
 
 test('export button triggers handleResourceExport with dataset ID', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -409,7 +409,7 @@ test('export button triggers handleResourceExport with dataset ID', async () => 
 });
 
 test('delete button opens modal with dataset details', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   setupDeleteMocks(dataset.id);
 
@@ -432,7 +432,7 @@ test('delete button opens modal with dataset details', async () => {
 });
 
 test('delete action successfully deletes dataset and refreshes list', async () => {
-  const datasetToDelete = mockDatasets[0];
+  const [datasetToDelete] = mockDatasets;
   setupDeleteMocks(datasetToDelete.id);
 
   mockDatasetListEndpoints({
@@ -493,7 +493,7 @@ test('delete action successfully deletes dataset and refreshes list', async () =
 });
 
 test('delete action cancel closes modal without deleting', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
   setupDeleteMocks(dataset.id);
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
@@ -533,7 +533,7 @@ test('delete action cancel closes modal without deleting', async () => {
 });
 
 test('duplicate action successfully duplicates virtual dataset', async () => {
-  const virtualDataset = mockDatasets[1]; // Virtual dataset (kind: 'virtual')
+  const [, virtualDataset] = mockDatasets; // Virtual dataset (kind: 'virtual')
   setupDuplicateMocks();
 
   mockDatasetListEndpoints({ result: [virtualDataset], count: 1 });
@@ -587,8 +587,8 @@ test('duplicate action successfully duplicates virtual dataset', async () => {
 });
 
 test('duplicate button visible only for virtual datasets', async () => {
-  const physicalDataset = mockDatasets[0]; // kind: 'physical'
-  const virtualDataset = mockDatasets[1]; // kind: 'virtual'
+  const [physicalDataset] = mockDatasets; // kind: 'physical'
+  const [, virtualDataset] = mockDatasets; // kind: 'virtual'
 
   mockDatasetListEndpoints({
     result: [physicalDataset, virtualDataset],
@@ -930,7 +930,7 @@ test('info tooltip appears for datasets with descriptions', async () => {
 });
 
 test('dataset name links to Explore page', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -950,7 +950,7 @@ test('dataset name links to Explore page', async () => {
 });
 
 test('physical dataset shows delete, export, and edit actions (no duplicate)', async () => {
-  const physicalDataset = mockDatasets[0]; // kind: 'physical'
+  const [physicalDataset] = mockDatasets; // kind: 'physical'
 
   mockDatasetListEndpoints({
     result: [physicalDataset],
@@ -981,7 +981,7 @@ test('physical dataset shows delete, export, and edit actions (no duplicate)', a
 });
 
 test('virtual dataset shows delete, export, edit, and duplicate actions', async () => {
-  const virtualDataset = mockDatasets[1]; // kind: 'virtual'
+  const [, virtualDataset] = mockDatasets; // kind: 'virtual'
 
   mockDatasetListEndpoints({ result: [virtualDataset], count: 1 });
 
@@ -1192,7 +1192,7 @@ test('legacy dashboard default URLs use the registered client route', async () =
 // The tests correctly verify current behavior: API call made, modal prevented.
 
 test('delete action gracefully handles 403 forbidden error', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   setupErrorTestScenario({
     dataset,
@@ -1228,7 +1228,7 @@ test('delete action gracefully handles 403 forbidden error', async () => {
 });
 
 test('delete action gracefully handles 500 internal server error', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   setupErrorTestScenario({
     dataset,
@@ -1371,7 +1371,7 @@ test('duplicate action shows error toast on 500 internal server error', async ()
 // This test is inherently slow due to userEvent.type() typing DELETE character-by-character
 // 30s timeout to handle CI variability
 test('sort order persists after deleting a dataset', async () => {
-  const datasetToDelete = mockDatasets[0];
+  const [datasetToDelete] = mockDatasets;
   setupDeleteMocks(datasetToDelete.id);
 
   renderDatasetList(mockAdminUser, {
@@ -1412,7 +1412,7 @@ test('sort order persists after deleting a dataset', async () => {
   expect(sortedUrl).toMatch(/order_column|sort/);
 
   // Delete a dataset - get delete button from first row only
-  const firstRow = screen.getAllByRole('row')[1];
+  const [, firstRow] = screen.getAllByRole('row');
   const deleteButton = within(firstRow).getByTestId('delete');
   await userEvent.click(deleteButton);
 
@@ -1718,7 +1718,7 @@ test('type filter persists after duplicating a dataset', async () => {
 // Error Path Tests - Missing coverage for error handling flows
 
 test('edit action shows error toast when dataset fetch fails', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
   // Make the dataset editable by admin so the edit button is enabled.
   const editableDataset = {
     ...dataset,
@@ -2070,7 +2070,7 @@ test('bulk select shows mixed count for virtual and physical selection', async (
 // Delete Modal Related Objects Tests
 
 test('delete modal shows affected dashboards with overflow for >10 items', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   // Create mock with more than 10 dashboards
   const manyDashboards = Array.from({ length: 15 }, (_, i) => ({
@@ -2113,7 +2113,7 @@ test('delete modal shows affected dashboards with overflow for >10 items', async
 });
 
 test('delete modal hides affected dashboards section when count is zero', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   mockDatasetListEndpoints({ result: [dataset], count: 1 });
 
@@ -2145,7 +2145,7 @@ test('delete modal hides affected dashboards section when count is zero', async 
 });
 
 test('delete modal shows affected charts with overflow for >10 items', async () => {
-  const dataset = mockDatasets[0];
+  const [dataset] = mockDatasets;
 
   // Create mock with more than 10 charts
   const manyCharts = Array.from({ length: 12 }, (_, i) => ({

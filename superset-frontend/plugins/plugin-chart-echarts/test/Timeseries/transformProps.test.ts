@@ -352,7 +352,7 @@ describe('EchartsTimeseries transformProps', () => {
     const data = series.data as [number, number][];
     expect(Array.isArray(data)).toBe(true);
     expect(data.length).toBeGreaterThan(0);
-    const firstDataPoint = data[0];
+    const [firstDataPoint] = data;
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[1]).toBe(firstDataPoint[0] * 2);
   });
@@ -433,7 +433,7 @@ describe('EchartsTimeseries transformProps', () => {
     expect(formulaSeries).toBeDefined();
     const series = formulaSeries as SeriesOption;
     const data = series.data as [number, number][];
-    const firstDataPoint = data[0];
+    const [firstDataPoint] = data;
     expect(firstDataPoint).toBeDefined();
     expect(firstDataPoint[0]).toBe(firstDataPoint[1] * 2);
   });

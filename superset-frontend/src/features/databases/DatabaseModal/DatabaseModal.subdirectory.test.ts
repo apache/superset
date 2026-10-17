@@ -79,7 +79,7 @@ test('DatabaseModal CTA buttons do NOT prefix the app root themselves', () => {
     /const renderCTABtns = \(\) =>[\s\S]*?<\/StyledBtns>\s*\);/,
   );
   expect(ctaMatch).not.toBeNull();
-  const ctaSrc = ctaMatch![0];
+  const [ctaSrc] = ctaMatch!;
   expect(ctaSrc).not.toMatch(/applicationRoot\s*\(/);
   expect(ctaSrc).not.toMatch(/ensureAppRoot\s*\(/);
   expect(ctaSrc).not.toMatch(/makeUrl\s*\(/);

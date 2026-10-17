@@ -69,12 +69,16 @@ const formData: PivotTableQueryFormData = {
 };
 
 test('semantic pivot drops a saved series limit without changing SQL pivots', () => {
-  const semanticQuery = buildQuery({
+  const {
+    queries: [semanticQuery],
+  } = buildQuery({
     ...formData,
     datasource: '5__semantic_view',
     series_limit: 2,
-  }).queries[0];
-  const sqlQuery = buildQuery({ ...formData, series_limit: 2 }).queries[0];
+  });
+  const {
+    queries: [sqlQuery],
+  } = buildQuery({ ...formData, series_limit: 2 });
 
   expect(semanticQuery.series_limit).toBe(0);
   expect(sqlQuery.series_limit).toBe(2);

@@ -41,7 +41,7 @@ test('renders select with value', () => {
   // Get a color scheme from the registry to use as a test value
   const { getCategoricalSchemeRegistry } = require('@superset-ui/core');
   const registry = getCategoricalSchemeRegistry();
-  const firstScheme = registry.keys()[0];
+  const [firstScheme] = registry.keys();
 
   setup({ value: firstScheme });
   // Use role to find the input specifically
@@ -60,8 +60,7 @@ test('calls onChange when value changes', async () => {
     return;
   }
 
-  const initialScheme = schemes[0];
-  const newScheme = schemes[1];
+  const [initialScheme, newScheme] = schemes;
 
   setup({ onChange, value: initialScheme });
 
