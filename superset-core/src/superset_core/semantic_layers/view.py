@@ -88,7 +88,12 @@ class SemanticView(ABC):
     preferred_temporal_dimension: str | None = None
 
     def validate_selection_version(self, version: object) -> None:
-        """Reject selections made under a different member identity contract."""
+        """Reject selections made under a different member identity contract.
+
+        Raises ``ValueError`` for a version mismatch. This selection guard is
+        separate from provider execution: callers must handle it at the selection
+        boundary, not classify arbitrary execution ``ValueError`` as a refusal.
+        """
         if (
             self.selection_identity_version is not None
             and version != self.selection_identity_version
@@ -141,6 +146,10 @@ class SemanticView(ABC):
     ) -> SemanticResult:
         """
         Return distinct values for a dimension.
+
+        Name the value column exactly ``dimension.name``, not ``dimension.id``
+        or its display label. The host looks up that name for nonempty results;
+        its legacy single-column fallback and empty-result handling are unchanged.
 
         Raise ``superset_core.semantic_layers.errors.SemanticResultCompletenessError``
         when the result is incomplete or its completeness cannot be verified;
