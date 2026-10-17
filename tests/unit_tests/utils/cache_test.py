@@ -397,6 +397,40 @@ def test_set_and_log_cache_under_threshold_metadata_db(mocker: MockerFixture) ->
     mock_session.add.assert_called_once_with(mock_cache_key.return_value)
 
 
+def test_data_cache_max_value_size_default_is_protective() -> None:
+    """The shipped default caps oversized data-cache entries out of the box.
+
+    The oversized-value skip is only effective when ``DATA_CACHE_MAX_VALUE_SIZE``
+    has a value; a ``None`` default disables it and lets very large results pile
+    up in the cache backend. This asserts the default is a positive cap that still
+    exceeds ordinary chart/query payloads. Operators can raise it or set it to
+    ``None`` explicitly.
+    """
+    import superset.config as config
+
+    assert config.DATA_CACHE_MAX_VALUE_SIZE is not None
+    assert isinstance(config.DATA_CACHE_MAX_VALUE_SIZE, int)
+    # Comfortably above typical payloads, well below the multi-tens-of-MB outliers.
+    assert 1024 * 1024 <= config.DATA_CACHE_MAX_VALUE_SIZE <= 20 * 1024 * 1024
+
+
+def test_set_and_log_cache_applies_default_timeout(mocker: MockerFixture) -> None:
+    """Every persisted value carries a TTL: an unset timeout falls back to
+    ``CACHE_DEFAULT_TIMEOUT`` and is passed atomically to ``cache.set`` (SETEX),
+    never written TTL-less. Guards against a code path that could leave a data-cache
+    key with no expiry, which would let it linger in Redis indefinitely."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker)  # CACHE_DEFAULT_TIMEOUT == 100, no explicit timeout
+    cache_instance = _make_cache_instance(mocker)
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"})
+
+    cache_instance.set.assert_called_once()
+    _, kwargs = cache_instance.set.call_args
+    assert kwargs["timeout"] == 100
+
+
 def test_set_and_log_cache_set_failure_logs(mocker: MockerFixture) -> None:
     """A failure inside the try block is caught and logged as 'Could not cache key'."""
     from superset.utils.cache import set_and_log_cache
@@ -412,3 +446,225 @@ def test_set_and_log_cache_set_failure_logs(mocker: MockerFixture) -> None:
 
     mock_logger.warning.assert_called_once_with("Could not cache key %s", "my_key")
     mock_logger.exception.assert_called_once_with(boom)
+
+
+def test_set_and_log_cache_shipped_default_caches_normal_payload(
+    mocker: MockerFixture,
+) -> None:
+    """With the *shipped* default cap active, an ordinary payload still caches.
+
+    Uses the real ``config.DATA_CACHE_MAX_VALUE_SIZE`` rather than a patched value,
+    so it proves the value we actually ship does not wrongly skip typical
+    chart/query results (which sit far below the cap).
+    """
+    import superset.config as config
+    from superset.utils.cache import set_and_log_cache
+
+    cfg = _patch_config(
+        mocker, DATA_CACHE_MAX_VALUE_SIZE=config.DATA_CACHE_MAX_VALUE_SIZE
+    )
+    cache_instance = _make_cache_instance(mocker)
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "a normal-sized result"})
+
+    cache_instance.set.assert_called_once()
+    cfg["STATS_LOGGER"].incr.assert_any_call("set_cache_key")
+    assert (
+        mocker.call("skip_cache_value_too_large")
+        not in cfg["STATS_LOGGER"].incr.mock_calls
+    )
+
+
+def test_set_and_log_cache_shipped_default_skips_oversized_payload(
+    mocker: MockerFixture,
+) -> None:
+    """With the *shipped* default cap active, an over-cap payload is skipped.
+
+    Builds a payload larger than the real ``config.DATA_CACHE_MAX_VALUE_SIZE`` and
+    asserts the end-to-end skip behavior the default exists to provide: no cache
+    write, a WARNING, and the ``skip_cache_value_too_large`` counter.
+    """
+    import superset.config as config
+    from superset.utils.cache import set_and_log_cache
+
+    max_size = config.DATA_CACHE_MAX_VALUE_SIZE
+    assert max_size is not None
+    cfg = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=max_size)
+    cache_instance = _make_cache_instance(mocker)
+    mock_logger = mocker.patch("superset.utils.cache.logger")
+
+    # A string this long pickles to more than ``max_size`` bytes.
+    set_and_log_cache(cache_instance, "my_key", {"df": "x" * (max_size + 1024)})
+
+    cache_instance.set.assert_not_called()
+    cfg["STATS_LOGGER"].incr.assert_called_once_with("skip_cache_value_too_large")
+    mock_logger.warning.assert_called_once()
+
+
+def test_set_and_log_cache_one_byte_over_threshold(mocker: MockerFixture) -> None:
+    """A value one byte OVER the threshold is skipped (guard is strict ``>``).
+
+    Complements ``test_set_and_log_cache_equal_threshold`` (== is cached) by pinning
+    the threshold to one below the exact serialized size.
+    """
+    import pickle
+
+    from superset.utils.cache import set_and_log_cache
+
+    cache_value = {"df": "boundary"}
+    dttm = "2021-01-01T00:00:00"
+    value = {**cache_value, "dttm": dttm}
+    exact_size = len(pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL))
+
+    cfg = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=exact_size - 1)
+    cache_instance = _make_cache_instance(mocker)
+    mock_datetime = mocker.patch("superset.utils.cache.datetime")
+    mock_datetime.now.return_value.replace.return_value.isoformat.return_value = dttm
+
+    set_and_log_cache(cache_instance, "my_key", cache_value)
+
+    cache_instance.set.assert_not_called()
+    cfg["STATS_LOGGER"].incr.assert_called_once_with("skip_cache_value_too_large")
+
+
+def test_set_and_log_cache_explicit_timeout_passthrough(mocker: MockerFixture) -> None:
+    """An explicit ``cache_timeout`` is forwarded verbatim to ``cache.set``,
+    taking precedence over ``CACHE_DEFAULT_TIMEOUT``."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    cache_instance = _make_cache_instance(mocker)
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"}, cache_timeout=4242)
+
+    cache_instance.set.assert_called_once()
+    _, kwargs = cache_instance.set.call_args
+    assert kwargs["timeout"] == 4242
+
+
+def test_set_and_log_cache_zero_timeout_never_expires(mocker: MockerFixture) -> None:
+    """A ``cache_timeout`` of 0 ("never expires") is preserved, not treated as
+    disabled. Only ``CACHE_DISABLED_TIMEOUT`` (-1) skips the write; 0 must pass
+    through to ``cache.set`` so the backend stores the key without expiry."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    cache_instance = _make_cache_instance(mocker)
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"}, cache_timeout=0)
+
+    cache_instance.set.assert_called_once()
+    _, kwargs = cache_instance.set.call_args
+    assert kwargs["timeout"] == 0
+
+
+def test_exceeds_max_cache_value_size_disabled_skips_serialization(
+    mocker: MockerFixture,
+) -> None:
+    """With the cap set to ``None`` nothing is too large and nothing is pickled."""
+    from superset.utils.cache import exceeds_max_cache_value_size
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=None)
+    mock_dumps = mocker.patch("superset.utils.cache.pickle.dumps")
+
+    assert exceeds_max_cache_value_size("my_key", ["x" * 1024]) is False
+    mock_dumps.assert_not_called()
+
+
+def test_exceeds_max_cache_value_size_boundary(mocker: MockerFixture) -> None:
+    """A value exactly at the cap fits; one byte over does not and is reported."""
+    import pickle
+
+    from superset.utils.cache import exceeds_max_cache_value_size
+
+    value = ["a", "b", "c"]
+    exact_size = len(pickle.dumps(value, protocol=pickle.HIGHEST_PROTOCOL))
+    mock_logger = mocker.patch("superset.utils.cache.logger")
+
+    config = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=exact_size)
+    assert exceeds_max_cache_value_size("my_key", value) is False
+    config["STATS_LOGGER"].incr.assert_not_called()
+    mock_logger.warning.assert_not_called()
+
+    config = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=exact_size - 1)
+    assert exceeds_max_cache_value_size("my_key", value) is True
+    config["STATS_LOGGER"].incr.assert_called_once_with("skip_cache_value_too_large")
+    mock_logger.warning.assert_called_once()
+    assert mock_logger.warning.call_args.args[1:] == (
+        "my_key",
+        exact_size,
+        exact_size - 1,
+    )
+
+
+def test_set_and_log_cache_oversized_deletes_existing_key(
+    mocker: MockerFixture,
+) -> None:
+    """Skipping an oversized value removes any older value under the same key, so
+    a later read recomputes instead of serving stale data. The skip is still
+    logged and counted."""
+    from superset.utils.cache import set_and_log_cache
+
+    config = _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    cache_instance = _make_cache_instance(mocker)
+    mock_logger = mocker.patch("superset.utils.cache.logger")
+
+    assert set_and_log_cache(cache_instance, "my_key", {"df": "x" * 100}) is False
+
+    cache_instance.set.assert_not_called()
+    cache_instance.delete.assert_called_once_with("my_key")
+    config["STATS_LOGGER"].incr.assert_called_once_with("skip_cache_value_too_large")
+    mock_logger.warning.assert_called_once()
+
+
+def test_set_and_log_cache_oversized_delete_failure_is_logged(
+    mocker: MockerFixture,
+) -> None:
+    """A failure while deleting the older value is logged, not raised."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    cache_instance = _make_cache_instance(mocker)
+    cache_instance.delete.side_effect = RuntimeError("backend down")
+    mock_logger = mocker.patch("superset.utils.cache.logger")
+
+    assert set_and_log_cache(cache_instance, "my_key", {"df": "x" * 100}) is False
+
+    cache_instance.delete.assert_called_once_with("my_key")
+    cache_instance.set.assert_not_called()
+    assert any(
+        "Could not delete" in str(c.args[0]) for c in mock_logger.warning.mock_calls
+    )
+    mock_logger.exception.assert_not_called()
+
+
+def test_set_and_log_cache_under_threshold_does_not_delete(
+    mocker: MockerFixture,
+) -> None:
+    """A value that fits is written normally; nothing is deleted."""
+    from superset.utils.cache import set_and_log_cache
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10 * 1024 * 1024)
+    cache_instance = _make_cache_instance(mocker)
+
+    set_and_log_cache(cache_instance, "my_key", {"df": "small"})
+
+    cache_instance.set.assert_called_once()
+    cache_instance.delete.assert_not_called()
+
+
+def test_skip_oversized_cache_value_null_cache_does_not_delete(
+    mocker: MockerFixture,
+) -> None:
+    """With a ``NullCache`` backend there is nothing to remove: the oversized value
+    is still reported as skipped, and ``delete`` is not called."""
+    from flask_caching.backends import NullCache
+
+    from superset.utils.cache import skip_oversized_cache_value
+
+    _patch_config(mocker, DATA_CACHE_MAX_VALUE_SIZE=10)
+    cache_instance = mocker.MagicMock()
+    cache_instance.cache = NullCache()
+
+    assert skip_oversized_cache_value(cache_instance, "my_key", "x" * 100) is True
+    cache_instance.delete.assert_not_called()
