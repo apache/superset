@@ -349,6 +349,22 @@ def test_generate_native_filter_time_normal():
     assert warning is None
 
 
+def test_generate_native_filter_date_range_normal():
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "F2", "filter_date_range", "ignored", ["2024-01-01 : 2024-01-31"]
+    )
+    assert result == {
+        "F2": {
+            "id": "F2",
+            "extraFormData": {"time_range": "2024-01-01 : 2024-01-31"},
+            "filterState": {"value": "2024-01-01 : 2024-01-31"},
+            "ownState": {},
+        }
+    }
+    assert warning is None
+
+
 def test_generate_native_filter_timegrain_normal():
     report_schedule = ReportSchedule()
     result, warning = report_schedule._generate_native_filter(
@@ -526,6 +542,21 @@ def test_report_generate_native_filter_time_empty_values():
     assert result == {}
     assert warning is not None
     assert "filter_time" in warning
+    assert "empty filterValues" in warning
+    assert "filter_id" in warning
+
+
+def test_report_generate_native_filter_date_range_empty_values():
+    """
+    Test filter_date_range with empty values returns empty dict and warning.
+    """
+    report_schedule = ReportSchedule()
+    result, warning = report_schedule._generate_native_filter(
+        "filter_id", "filter_date_range", "column_name", []
+    )
+    assert result == {}
+    assert warning is not None
+    assert "filter_date_range" in warning
     assert "empty filterValues" in warning
     assert "filter_id" in warning
 
