@@ -396,3 +396,25 @@ test('emits drill filters from formatted column headers', () => {
     ],
   });
 });
+
+test('forwards the result aggregation so a Median grand total is computed from the store values', () => {
+  const props = createProps({
+    data: toQueryData(
+      [
+        { store: 'A', value: 10 },
+        { store: 'B', value: 30 },
+      ],
+      { rows: ['store'], columns: [] },
+    ),
+    groupbyRows: ['store'],
+    aggregateFunction: 'Median',
+    rowTotals: true,
+    colTotals: true,
+  });
+
+  const { container } = renderWithTheme(<PivotTableChart {...props} />);
+
+  const grandTotal = container.querySelector('.pvtGrandTotal');
+  expect(grandTotal).not.toBeNull();
+  expect(grandTotal?.textContent).toMatch(/^20(\.0+)?$/);
+});
