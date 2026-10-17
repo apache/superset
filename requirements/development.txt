@@ -1082,7 +1082,7 @@ sqlalchemy-monetdb==2.1.0
     # via apache-superset
 sqlalchemy-risingwave==2.1.0
     # via apache-superset
-sqlalchemy-utils==0.42.1
+sqlalchemy-utils==0.43.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
