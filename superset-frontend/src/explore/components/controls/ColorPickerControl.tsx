@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { getCategoricalSchemeRegistry, rgbaToHex } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -27,12 +27,12 @@ import {
 import ControlHeader from '../ControlHeader';
 import { useTheme, type SupersetTheme } from '@apache-superset/core/theme';
 
-const SPECIAL_COLORS = {
+export const SPECIAL_COLORS = {
   Red: { r: 150, g: 0, b: 0, a: 0.2 },
   Green: { r: 0, g: 150, b: 0, a: 0.2 },
 } as const;
 
-type SpecialColorKey = keyof typeof SPECIAL_COLORS;
+export type SpecialColorKey = keyof typeof SPECIAL_COLORS;
 export type ColorPickerValue = RGBColor | SpecialColorKey | string;
 export type ColorOutputFormat = 'hex' | 'rgb';
 
@@ -49,6 +49,7 @@ export interface ColorPickerControlProps {
   ariaLabel?: string;
   resolveThemeTokens?: boolean;
   outputFormat?: ColorOutputFormat;
+  disabled?: boolean;
 }
 
 const normalizeColorToHex = (color: string): string => {
@@ -142,6 +143,7 @@ export default function ColorPickerControl({
   ariaLabel,
   resolveThemeTokens = false,
   outputFormat = 'rgb',
+  disabled = false,
   ...headerProps
 }: ColorPickerControlProps) {
   const categoricalScheme = getCategoricalSchemeRegistry().get();
@@ -217,14 +219,42 @@ export default function ColorPickerControl({
 
   const hexValue = toDisplayHex(value, themeColors);
 
+  // AntD renders the swatch trigger as a plain div with no tab stop, so
+  // keyboard-only users could not reach or open it. Make the trigger
+  // focusable and let Enter/Space open the popup like a click would.
+  const containerRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const trigger = containerRef.current?.querySelector<HTMLElement>(
+      '.ant-color-picker-trigger',
+    );
+    if (!trigger) return;
+    trigger.setAttribute('role', 'button');
+    trigger.setAttribute('tabindex', disabled ? '-1' : '0');
+    if (ariaLabel && !trigger.hasAttribute('aria-label'))
+      trigger.setAttribute('aria-label', ariaLabel);
+  });
+  const handleTriggerKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (
+      !disabled &&
+      target.classList?.contains('ant-color-picker-trigger') &&
+      (event.key === 'Enter' || event.key === ' ')
+    ) {
+      event.preventDefault();
+      target.click();
+    }
+  };
+
   return (
-    <div>
+    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
+    <div ref={containerRef} onKeyDown={handleTriggerKeyDown}>
       <ControlHeader {...headerProps} />
       <ColorPicker
         aria-label={ariaLabel}
         value={hexValue}
         onChangeComplete={handleChange}
         presets={presets}
+        disabled={disabled}
         showText
       />
     </div>

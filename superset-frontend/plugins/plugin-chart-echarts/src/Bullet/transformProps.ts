@@ -28,9 +28,21 @@ import { t } from '@apache-superset/core/translation';
 import type { EChartsCoreOption } from 'echarts/core';
 import { Refs } from '../types';
 import { EchartsBulletChartProps, BulletChartTransformedProps } from './types';
-import { tokenizeToNumericArray, tokenizeToStringArray } from './utils';
+import {
+  getColorLuminance,
+  tokenizeToNumericArray,
+  tokenizeToStringArray,
+} from './utils';
 import { estimateWrappedLegendRowCount } from '../utils/legendLayout';
 
+// Foregrounds for band labels drawn over a custom fill, chosen from the fill's
+// own luminance so they stay readable in both light and dark themes.
+const BAND_LABEL_COLORS = {
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  light: '#ffffff',
+  // eslint-disable-next-line theme-colors/no-literal-colors
+  dark: '#1f1f1f',
+};
 const MEASURE_BAR_FRACTION = 0.28;
 // Small pixel gap below the measure bar so the target/marker symbol doesn't
 // touch its edge.
@@ -45,6 +57,7 @@ export default function transformProps(
     groupby,
     ranges: rawRanges,
     rangeLabels: rawRangeLabels,
+    rangeColors,
     markers: rawMarkers,
     markerLabels: rawMarkerLabels,
     markerLines: rawMarkerLines,
@@ -102,23 +115,42 @@ export default function transformProps(
     theme.colorFillSecondary,
     theme.colorFill,
   ];
+  // Custom colors (if any) are authored positionally against the original,
+  // pre-sort `ranges` order via the `range_colors` control -- capture each
+  // range's color here, before the descending sort below reorders them.
   const sortedRanges = [...ranges]
-    .map((value, i) => ({ value, label: rangeLabels[i] }))
+    .map((value, i) => ({
+      value,
+      label: rangeLabels[i],
+      color: rangeColors?.[i] || undefined,
+    }))
     .filter(({ value }) => value > axisMin)
     .sort((a, b) => b.value - a.value);
   // Each band's label sits inside its own top-right corner: the visible strip
   // of a nested band ends at its threshold, so the label lands inside the
   // range it names and the rightmost label cannot clip at the chart edge.
-  const bands = sortedRanges.map(({ value, label }, i) => ({
+  const getBandLabelColor = (fill?: string): string => {
+    const luminance = fill ? getColorLuminance(fill) : null;
+    if (luminance === null) return theme.colorTextSecondary;
+    // Fixed light/dark foregrounds, not `theme.colorText`: that token flips
+    // to a light color in dark themes and would vanish on a light custom fill.
+    return luminance < 0.4 ? BAND_LABEL_COLORS.light : BAND_LABEL_COLORS.dark;
+  };
+  const bands = sortedRanges.map(({ value, label, color }, i) => ({
     name: label,
     itemStyle: {
-      color: bandFills[Math.min(i, bandFills.length - 1)],
+      // A custom `range_colors` entry wins; otherwise fall back to the
+      // default theme-token ramp exactly as before this control existed, so
+      // Bullet charts saved without `range_colors` are unaffected.
+      color: color || bandFills[Math.min(i, bandFills.length - 1)],
     },
     label: {
       show: Boolean(showLabels) && Boolean(label),
       position: 'insideTopRight',
       distance: theme.sizeUnit,
-      color: theme.colorTextSecondary,
+      // Labels sit inside the band, so a custom fill needs a foreground that
+      // contrasts with it; theme-ramp fills keep the default label color.
+      color: getBandLabelColor(color),
       formatter: () => label ?? '',
     },
     // markArea item: [{start}, {end}]

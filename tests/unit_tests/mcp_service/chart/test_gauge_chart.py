@@ -34,8 +34,11 @@ from superset.mcp_service.chart.chart_utils import (
     map_gauge_config,
     MCP_DASHBOARD_TIME_FILTER_SUBJECT,
     merge_chart_form_data,
+    merge_form_data_for_update,
 )
 from superset.mcp_service.chart.preview_utils import (
+    _GAUGE_COLORS,
+    _prepare_gauge_preview,
     generate_gauge_ascii_preview,
     generate_gauge_vega_lite_preview,
 )
@@ -1276,3 +1279,119 @@ def test_gauge_cached_preview_honors_null_binding(field: str) -> None:
         result = asyncio.run(module.update_chart_preview(request, ctx=MagicMock()))
     assert result["success"] is True
     assert field not in link.call_args.args[1]
+
+
+def test_gauge_rebind_preserves_explicit_interval_colors() -> None:
+    existing = {
+        "viz_type": "gauge_chart",
+        "datasource": "1__table",
+        "intervals": "50,100",
+        "interval_colors": ["#ff0000", "#00ff00"],
+    }
+    config = GaugeChartConfig(
+        chart_type="gauge", metric={"name": "progress", "aggregate": "AVG"}
+    )
+    merged = merge_chart_form_data(
+        existing, map_gauge_config(config), config, dataset_rebind=True
+    )
+    assert merged["interval_colors"] == ["#ff0000", "#00ff00"]
+
+
+def test_gauge_explicit_interval_color_indices_supersede_saved_colors() -> None:
+    existing = {
+        "viz_type": "gauge_chart",
+        "datasource": "1__table",
+        "intervals": "50,100",
+        "interval_colors": ["#ff0000", "#00ff00"],
+    }
+    config = GaugeChartConfig(
+        chart_type="gauge",
+        metric={"name": "progress", "aggregate": "AVG"},
+        intervals="50,100",
+        interval_color_indices="1,2",
+    )
+    merged = merge_chart_form_data(existing, map_gauge_config(config), config)
+    assert "interval_colors" not in merged
+    assert merged["interval_color_indices"] == "1,2"
+
+
+def test_gauge_same_dataset_update_indices_supersede_saved_colors() -> None:
+    existing = {
+        "viz_type": "gauge_chart",
+        "datasource": "1__table",
+        "intervals": "50,100",
+        "interval_colors": ["#ff0000", "#00ff00"],
+    }
+    config = GaugeChartConfig(
+        chart_type="gauge",
+        metric={"name": "progress", "aggregate": "AVG"},
+        intervals="50,100",
+        interval_color_indices="2,3",
+    )
+    merged = merge_form_data_for_update(existing, map_gauge_config(config), config)
+    assert "interval_colors" not in merged
+    assert merged["interval_color_indices"] == "2,3"
+
+
+def test_gauge_preview_blank_explicit_color_uses_positional_palette_color() -> None:
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": "50,100",
+        "interval_color_indices": "1,4",
+        "interval_colors": ["#ff0000", ""],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    colors = prepared[1]["interval_colors"]
+    # Legacy index 4 is ignored once explicit colors exist; position 1 wins.
+    assert colors[1] == _GAUGE_COLORS[1]
+
+
+def test_gauge_preview_honors_explicit_interval_colors() -> None:
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": "50,100",
+        "interval_color_indices": "1,4",
+        "interval_colors": ["#ff0000", ""],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    colors = prepared[1]["interval_colors"]
+    assert colors[0] == "#ff0000"
+    assert colors[1] != ""
+
+
+def test_gauge_preview_sizes_colors_by_interval_bounds() -> None:
+    bounds = ",".join(str(10 * i) for i in range(1, 10))
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": bounds,
+        "interval_colors": [f"#00000{i}" for i in range(1, 10)],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    assert prepared[1]["interval_colors"] == [f"#00000{i}" for i in range(1, 10)]
+
+
+def test_gauge_preview_keeps_explicit_colors_over_legacy_indices() -> None:
+    form_data = {
+        "viz_type": "gauge_chart",
+        "metric": "progress",
+        "min_val": 0,
+        "max_val": 100,
+        "intervals": "30,60,100",
+        "interval_color_indices": "1,2,3",
+        "interval_colors": ["#111111", "#222222", "#333333"],
+    }
+    prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
+    assert not isinstance(prepared, ChartError)
+    assert prepared[1]["interval_colors"] == ["#111111", "#222222", "#333333"]
