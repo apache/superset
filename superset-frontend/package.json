@@ -210,7 +210,7 @@
     "react-search-input": "^0.11.3",
     "react-split": "^2.0.9",
     "react-table": "^7.8.0",
-    "react-virtualized-auto-sizer": "^1.0.26",
+    "react-virtualized-auto-sizer": "^2.0.3",
     "react-window": "^2.3.3",
     "redux": "^4.2.1",
     "redux-localstorage": "^0.4.1",
