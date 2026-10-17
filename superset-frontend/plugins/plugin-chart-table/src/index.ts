@@ -34,6 +34,7 @@ import { TableChartFormData, TableChartProps } from './types';
 export * from './types';
 
 const metadata = new ChartMetadata({
+  supportsArrowFormat: true,
   behaviors: [
     Behavior.InteractiveChart,
     Behavior.DrillToDetail,
