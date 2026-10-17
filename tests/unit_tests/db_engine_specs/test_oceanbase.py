@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any, Optional
+from typing import Any
 
 import pytest
 from sqlalchemy import JSON, types
@@ -50,7 +50,7 @@ from tests.unit_tests.db_engine_specs.utils import assert_column_spec
 def test_get_column_spec(
     native_type: str,
     sqla_type: type[types.TypeEngine],
-    attrs: Optional[dict[str, Any]],
+    attrs: dict[str, Any] | None,
     generic_type: GenericDataType,
     is_dttm: bool,
 ) -> None:
@@ -59,3 +59,12 @@ def test_get_column_spec(
     )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+def test_oceanbase_properties() -> None:
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.oceanbase import OceanBaseEngineSpec
+
+    assert OceanBaseEngineSpec.max_column_name_length == 128
+    assert issubclass(OceanBaseEngineSpec, MySQLEngineSpec)
+    assert OceanBaseEngineSpec._extended_aggregations == {}
