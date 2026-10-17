@@ -18,6 +18,7 @@
  */
 import { createMemoryHistory, type Update } from 'history';
 import { Router } from 'react-router-dom';
+import userEvent from '@testing-library/user-event';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   render,
@@ -50,6 +51,17 @@ const adminUser = {
   roles: { Admin: [] },
   permissions: {},
 } as unknown as UserWithPermissionsAndRoles;
+const nonEditorUser: UserWithPermissionsAndRoles = {
+  userId: 9,
+  firstName: 'Other',
+  lastName: 'User',
+  username: 'other',
+  isActive: true,
+  isAnonymous: false,
+  permissions: {},
+  roles: { Alpha: [] },
+  groups: [],
+};
 
 const renderCard = (
   history: ReturnType<typeof createMemoryHistory>,
@@ -96,6 +108,26 @@ test('renders the chart title', () => {
   renderCard(createMemoryHistory());
   expect(screen.getByText('Sample Chart')).toBeInTheDocument();
 });
+
+test.each([
+  [true, 'archive'],
+  [false, 'delete'],
+])(
+  'soft delete %s uses the chart card permission hint for %s',
+  async (enabled, verb) => {
+    (isFeatureEnabled as jest.Mock).mockImplementation(
+      flag => enabled && flag === FeatureFlag.SoftDelete,
+    );
+    renderCard(createMemoryHistory(), {
+      user: nonEditorUser,
+    });
+    fireEvent.click(screen.getByTestId('chart-card-menu'));
+    await userEvent.hover(screen.getByTestId('chart-list-delete-option'));
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      `You must be a chart editor in order to ${verb}.`,
+    );
+  },
+);
 
 test('clicking the thumbnail navigates to the chart exactly once', () => {
   // The cover is a router link and the whole card is clickable, so a click on

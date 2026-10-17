@@ -94,56 +94,37 @@ export const shouldShowTimeRangePicker = (
   currentDataset: (Dataset & { column_types: GenericDataType[] }) | undefined,
 ): boolean => (currentDataset ? hasTemporalColumns(currentDataset) : true);
 
-export const doesColumnMatchFilterType = (filterType: string, column: Column) =>
-  !column.type_generic ||
-  !(filterType in FILTER_SUPPORTED_TYPES) ||
-  FILTER_SUPPORTED_TYPES[
-    filterType as keyof typeof FILTER_SUPPORTED_TYPES
-  ]?.includes(column.type_generic);
-
-export const mapSemanticTypeToGenericDataType = (
-  semanticType?: string | null,
-): GenericDataType | undefined => {
-  if (!semanticType) {
-    return undefined;
-  }
-
-  const normalized = semanticType.toLowerCase();
-
+export const doesColumnMatchFilterType = (
+  filterType: string,
+  column: Column,
+  datasourceType?: DatasourceType,
+): boolean => {
+  // Semantic range filters skip the runtime non-numeric bounds check, so an
+  // unrecognised dimension type must not be offered for >= / <= comparisons.
   if (
-    /^(struct|list|map|array|fixed_size_list|large_list|union|dictionary)\b/.test(
-      normalized,
-    )
+    filterType === 'filter_range' &&
+    datasourceType === DatasourceType.SemanticView
   ) {
-    return undefined;
+    return column.type_generic === GenericDataType.Numeric;
   }
-
-  if (normalized.includes('bool')) {
-    return GenericDataType.Boolean;
-  }
-
-  if (/(date|time|timestamp|datetime)/.test(normalized)) {
-    return GenericDataType.Temporal;
-  }
-
-  if (
-    /(\b(u?int\d*)\b|\bfloat\d*\b|\bdouble\b|\bdecimal\d*\b|\bnumber\b)/.test(
-      normalized,
-    )
-  ) {
-    return GenericDataType.Numeric;
-  }
-
-  if (
-    /(\bstr(ing)?\b|\butf8\b|\blarge_string\b|\bbinary\b|\bjson\b|\buuid\b)/.test(
-      normalized,
-    )
-  ) {
-    return GenericDataType.String;
-  }
-
-  return undefined;
+  return (
+    !column.type_generic ||
+    !(filterType in FILTER_SUPPORTED_TYPES) ||
+    !!FILTER_SUPPORTED_TYPES[
+      filterType as keyof typeof FILTER_SUPPORTED_TYPES
+    ]?.includes(column.type_generic)
+  );
 };
+
+// Shared semantic-view structure helpers live in a layer-neutral module so
+// non-dashboard consumers (e.g. the dataset drill-info hook) need not import
+// from this filter-form utility. Re-exported here for existing call sites.
+export {
+  mapSemanticTypeToGenericDataType,
+  fetchSemanticViewStructure,
+  semanticViewDimensionsToColumns,
+} from 'src/utils/semanticViewStructure';
+export type { SemanticViewStructure } from 'src/utils/semanticViewStructure';
 
 // Validates that a filter default value is present when the default value option is enabled.
 // For range filters, at least one of the two values must be non-null.
@@ -164,10 +145,20 @@ export const isValidFilterValue = (
   return !!value;
 };
 
+/**
+ * A datasource identified by both id and type. Datasets and semantic views have
+ * independent id sequences, so an id alone cannot name a datasource.
+ */
+export type DatasourceBinding = { id: number; type: DatasourceType };
+
+/**
+ * The datasource used by the most charts on the dashboard, typed from its
+ * dashboard datasource entry; undefined when that entry is not loaded.
+ */
 export const mostUsedDataset = (
   datasets: DatasourcesState,
   charts: ChartsState,
-) => {
+): DatasourceBinding | undefined => {
   const map = new Map<string, number>();
   let mostUsedDataset = '';
   let maxCount = 0;
@@ -186,7 +177,14 @@ export const mostUsedDataset = (
     }
   });
 
-  return datasets[mostUsedDataset]?.id;
+  const datasource = datasets[mostUsedDataset];
+  if (!datasource) {
+    return undefined;
+  }
+  return {
+    id: datasource.id,
+    type: datasource.datasource_type || datasource.type || DatasourceType.Table,
+  };
 };
 
 const normalizeDatasourceType = (datasourceType?: string): string =>

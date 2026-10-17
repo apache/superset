@@ -62,6 +62,13 @@ class MigrateViz:
     source_viz_type: str
     target_viz_type: str
     has_x_axis_control: bool = False
+    # When set, the *import* path (superset/commands/chart/importers/v1/
+    # utils.py::migrate_chart) only applies this migration while the named
+    # feature flag is on, since importing a chart isn't itself an opt-in to
+    # a still-`IN DEVELOPMENT` target viz type the way running the
+    # `migrate_viz` CLI is. The CLI (superset/cli/viz_migrations.py) ignores
+    # this: invoking it is already the deliberate opt-in.
+    requires_feature_flag: str | None = None
 
     def __init__(self, form_data: str) -> None:
         self.data = try_load_json(form_data)

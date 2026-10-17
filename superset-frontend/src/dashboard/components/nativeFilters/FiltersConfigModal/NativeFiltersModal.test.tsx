@@ -41,9 +41,18 @@ jest.mock('@superset-ui/core', () => ({
         value: {
           datasourceCount: 1,
           behaviors: ['NATIVE_FILTER'],
+          supportsCascadeDependencies: true,
         },
       },
     },
+    get: (key: string) =>
+      key === 'filter_select'
+        ? {
+            datasourceCount: 1,
+            behaviors: ['NATIVE_FILTER'],
+            supportsCascadeDependencies: true,
+          }
+        : undefined,
   }),
 }));
 

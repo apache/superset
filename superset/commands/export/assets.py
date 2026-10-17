@@ -21,6 +21,8 @@ from typing import Callable
 
 import yaml
 
+from superset import security_manager
+from superset.commands.annotation_layer.export import ExportAnnotationLayersCommand
 from superset.commands.base import BaseCommand
 from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.dashboard.export import ExportDashboardsCommand
@@ -36,7 +38,8 @@ METADATA_FILE_NAME = "metadata.yaml"
 
 class ExportAssetsCommand(BaseCommand):
     """
-    Command that exports all databases, datasets, charts, dashboards and saved queries.
+    Command that exports all databases, datasets, charts, dashboards, saved queries
+    and annotation layers.
     """
 
     def run(self) -> Iterator[tuple[str, Callable[[], str]]]:
@@ -55,6 +58,11 @@ class ExportAssetsCommand(BaseCommand):
             ExportDashboardsCommand,
             ExportSavedQueriesCommand,
         ]
+        # Charts reference native annotation layers by UUID, so the layers must
+        # be in the bundle too. They are only readable with can_read on
+        # Annotation, and chart files leave those references out otherwise.
+        if security_manager.can_access("can_read", "Annotation"):
+            commands.append(ExportAnnotationLayersCommand)
 
         dashboard_ids: list[int | str] = []
         chart_ids: list[int | str] = []

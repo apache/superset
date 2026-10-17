@@ -186,14 +186,14 @@ describe('SavedQuery', () => {
     expect(screen.getByRole('button', { name: /save dataset/i })).toBeEnabled();
   });
 
-  test('renders a save query modal when user clicks save button', () => {
+  test('renders a save query modal when user clicks save button', async () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
       store: mockStore(mockState),
     });
 
     const saveBtn = screen.getByRole('button', { name: /save/i });
-    userEvent.click(saveBtn);
+    await userEvent.click(saveBtn);
 
     const saveQueryModalHeader = screen.getByRole('heading', {
       name: /save query/i,
@@ -202,14 +202,14 @@ describe('SavedQuery', () => {
     expect(saveQueryModalHeader).toBeInTheDocument();
   });
 
-  test('renders the save query modal UI', () => {
+  test('renders the save query modal UI', async () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
       store: mockStore(mockState),
     });
 
     const saveBtn = screen.getByRole('button', { name: /save/i });
-    userEvent.click(saveBtn);
+    await userEvent.click(saveBtn);
 
     const closeBtn = screen.getByRole('button', { name: /close/i });
     const saveQueryModalHeader = screen.getByRole('heading', {
@@ -237,7 +237,7 @@ describe('SavedQuery', () => {
     expect(cancelBtn).toBeInTheDocument();
   });
 
-  test('renders a "save as new" and "update" button if query already exists', () => {
+  test('renders a "save as new" and "update" button if query already exists', async () => {
     render(<SaveQuery {...mockedProps} />, {
       useRedux: true,
       store: mockStore({
@@ -253,7 +253,7 @@ describe('SavedQuery', () => {
     });
 
     const saveBtn = screen.getByRole('button', { name: /save/i });
-    userEvent.click(saveBtn);
+    await userEvent.click(saveBtn);
 
     const saveAsNewBtn = screen.getByRole('button', { name: /save as new/i });
     const updateBtn = screen.getByRole('button', { name: /update/i });
@@ -288,14 +288,14 @@ describe('SavedQuery', () => {
       }),
     });
 
-    userEvent.click(screen.getByRole('button', { name: /save/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
     const descriptionTextbox = screen.getByRole('textbox', {
       name: 'Description',
     });
     expect(descriptionTextbox).toHaveValue(storedDescription);
 
-    userEvent.click(screen.getByRole('button', { name: /update/i }));
+    await userEvent.click(screen.getByRole('button', { name: /update/i }));
 
     await waitFor(() => expect(mockOnUpdate).toHaveBeenCalled());
     expect(mockOnUpdate.mock.calls[0][0]).toEqual(
@@ -327,9 +327,13 @@ describe('SavedQuery', () => {
     });
 
     const saveDatasetMenuItem = await screen.findByLabelText(/save dataset/i);
-    userEvent.click(saveDatasetMenuItem);
+    await userEvent.click(saveDatasetMenuItem);
 
-    const saveDatasetHeader = screen.getByText(/save or overwrite dataset/i);
+    // antd may render a truncation tooltip with the same text alongside
+    // the heading, so target the heading's own test id rather than text.
+    const saveDatasetHeader = screen.getByTestId(
+      'save-or-overwrite-dataset-title',
+    );
 
     expect(saveDatasetHeader).toBeInTheDocument();
   });
@@ -340,10 +344,14 @@ describe('SavedQuery', () => {
       store: mockStore(stateWithLatestQuery({ id: 'qid-1', state: 'success' })),
     });
     const saveDatasetMenuItem = await screen.findByLabelText(/save dataset/i);
-    userEvent.click(saveDatasetMenuItem);
+    await userEvent.click(saveDatasetMenuItem);
 
     const closeBtn = screen.getByRole('button', { name: /close/i });
-    const saveDatasetHeader = screen.getByText(/save or overwrite dataset/i);
+    // antd may render a truncation tooltip with the same text alongside
+    // the heading, so target the heading's own test id rather than text.
+    const saveDatasetHeader = screen.getByTestId(
+      'save-or-overwrite-dataset-title',
+    );
     const saveRadio = screen.getByRole('radio', {
       name: /save as new/i,
     });
@@ -384,7 +392,7 @@ describe('SavedQuery', () => {
 
     // Open the modal
     const saveBtn = screen.getByRole('button', { name: /save/i });
-    userEvent.click(saveBtn);
+    await userEvent.click(saveBtn);
 
     // Verify modal is open
     expect(
@@ -393,7 +401,7 @@ describe('SavedQuery', () => {
 
     // Click save button in the modal
     const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
-    userEvent.click(modalSaveBtn);
+    await userEvent.click(modalSaveBtn);
 
     // Modal should still be open while save is in progress
     expect(
@@ -442,7 +450,7 @@ describe('SavedQuery', () => {
 
     // Open the modal
     const saveBtn = screen.getByRole('button', { name: /save/i });
-    userEvent.click(saveBtn);
+    await userEvent.click(saveBtn);
 
     // Modal should open
     expect(
@@ -455,7 +463,7 @@ describe('SavedQuery', () => {
 
     // Click save button
     const modalSaveBtn = screen.getAllByRole('button', { name: /save/i })[1];
-    userEvent.click(modalSaveBtn);
+    await userEvent.click(modalSaveBtn);
 
     // Wait for save to complete and modal to close
     await waitFor(() => {
@@ -475,7 +483,7 @@ describe('SavedQuery', () => {
       store: mockStore(mockState),
     });
 
-    userEvent.click(screen.getByRole('button', { name: /save/i }));
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
 
     const nameInput = screen.getAllByRole('textbox')[0] as HTMLInputElement;
     const modalSaveBtn = () =>
@@ -485,15 +493,15 @@ describe('SavedQuery', () => {
     expect(modalSaveBtn()).toBeEnabled();
 
     // Clearing the name disables the save button
-    userEvent.clear(nameInput);
+    await userEvent.clear(nameInput);
     await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
 
     // A whitespace-only name keeps the save button disabled
-    userEvent.type(nameInput, '   ');
+    await userEvent.type(nameInput, '   ');
     await waitFor(() => expect(modalSaveBtn()).toBeDisabled());
 
     // A non-empty name re-enables the save button
-    userEvent.type(nameInput, 'My query');
+    await userEvent.type(nameInput, 'My query');
     await waitFor(() => expect(modalSaveBtn()).toBeEnabled());
   });
 });

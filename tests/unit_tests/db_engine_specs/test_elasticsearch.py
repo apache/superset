@@ -450,7 +450,7 @@ def test_opendistro_fetch_data_with_cursor_uses_opendistro_endpoints() -> None:
 
     database = _build_fake_database(
         [
-            {"columns": [{"name": "a"}], "rows": [[42]], "cursor": "OD-1"},
+            {"schema": [{"name": "a"}], "datarows": [[42]], "cursor": "OD-1"},
             {},  # close
         ]
     )
@@ -468,3 +468,186 @@ def test_opendistro_fetch_data_with_cursor_uses_opendistro_endpoints() -> None:
     calls = database._transport.perform_request.call_args_list
     assert calls[0][0][1] == "/_opendistro/_sql"
     assert calls[1][0][1] == "/_opendistro/_sql/close"
+
+
+@pytest.mark.parametrize(
+    "native_type,sqla_type,generic_type",
+    [
+        ("BYTE", "SmallInteger", "NUMERIC"),
+        ("SHORT", "SmallInteger", "NUMERIC"),
+        ("HALF_FLOAT", "Float", "NUMERIC"),
+        ("SCALED_FLOAT", "Float", "NUMERIC"),
+        ("SCALED_FLOAT(100)", "Float", "NUMERIC"),
+        ("UNSIGNED_LONG", "BigInteger", "NUMERIC"),
+        ("DOUBLE", None, "NUMERIC"),
+        ("FLOAT", None, "NUMERIC"),
+        ("INTEGER", None, "NUMERIC"),
+        ("LONG", None, "NUMERIC"),
+        ("BOOLEAN", None, "BOOLEAN"),
+        ("DATETIME", None, "TEMPORAL"),
+        ("STRING", None, "STRING"),
+    ],
+)
+@pytest.mark.parametrize(
+    "spec_name", ["ElasticSearchEngineSpec", "OpenDistroEngineSpec"]
+)
+def test_field_types_are_classified(
+    spec_name: str, native_type: str, sqla_type: Optional[str], generic_type: str
+) -> None:
+    """
+    Every numeric field type a reflected Elasticsearch/OpenSearch column can
+    report gets a generic type, so it can be used as a numeric column.
+    """
+    from sqlalchemy import types
+
+    from superset.db_engine_specs import elasticsearch
+    from superset.utils.core import GenericDataType
+
+    spec = getattr(elasticsearch, spec_name)
+    column_spec = spec.get_column_spec(native_type)
+    assert column_spec is not None, native_type
+    assert column_spec.generic_type == GenericDataType[generic_type]
+    if sqla_type:  # None: already covered by the default mappings
+        assert isinstance(column_spec.sqla_type, getattr(types, sqla_type))
+
+
+def test_opendistro_fetch_data_with_cursor_reads_jdbc_format_pages() -> None:
+    """
+    The OpenSearch SQL plugin answers in its JDBC format: ``schema`` and
+    ``datarows`` on the first page, ``datarows`` on follow-up pages. Reading
+    Elasticsearch's ``columns``/``rows`` keys returned an empty page.
+    """
+    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
+
+    database = _build_fake_database(
+        [
+            {
+                "schema": [{"name": "a"}, {"name": "COUNT(*)", "alias": "c"}],
+                "datarows": [[0, 1]],
+                "cursor": "OD-1",
+            },
+            {"datarows": [[1, 2]], "cursor": "OD-2"},
+            {},  # close
+        ]
+    )
+
+    rows, cols = OpenDistroEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql="SELECT a, COUNT(*) AS c FROM idx GROUP BY a",
+        page_index=1,
+        page_size=1,
+    )
+
+    assert cols == ["a", "c"]
+    assert rows == [[1, 2]]
+
+
+def test_opendistro_fetch_data_with_cursor_sends_no_extra_content_type() -> None:
+    """
+    opensearch-py sets Content-Type itself; a second one makes OpenSearch
+    reject the request with "only one Content-Type header should be provided".
+    """
+    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
+
+    database = _build_fake_database(
+        [
+            {"schema": [{"name": "a"}], "datarows": [[0]], "cursor": "OD-1"},
+            {"datarows": [[1]], "cursor": "OD-2"},
+            {},  # close
+        ]
+    )
+
+    OpenDistroEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql="SELECT a FROM idx",
+        page_index=1,
+        page_size=1,
+    )
+
+    calls = database._transport.perform_request.call_args_list
+    assert len(calls) == 3
+    for call in calls:
+        assert "headers" not in call.kwargs
+
+
+def test_fetch_data_with_cursor_tolerates_column_without_name() -> None:
+    """
+    Column metadata comes from the remote service: an entry without ``name``
+    must not raise KeyError. Alias wins, then name, then a positional label.
+    """
+    from superset.db_engine_specs.elasticsearch import ElasticSearchEngineSpec
+
+    database = _build_fake_database(
+        [
+            {
+                "columns": [{"name": "a"}, {"alias": "b"}, {"type": "long"}],
+                "rows": [[1, 2, 3]],
+            }
+        ]
+    )
+
+    rows, cols = ElasticSearchEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql="SELECT a, b, c FROM idx",
+        page_index=0,
+        page_size=10,
+    )
+
+    assert cols == ["a", "b", "column_2"]
+    assert rows == [[1, 2, 3]]
+
+
+def test_fetch_page_via_cursor_forwards_explicit_empty_headers() -> None:
+    """
+    An explicit empty ``headers`` dict is forwarded as given; only ``None``
+    omits the kwarg.
+    """
+    from superset.db_engine_specs.elasticsearch import _fetch_page_via_cursor
+
+    database = _build_fake_database([{"columns": [{"name": "a"}], "rows": [[0]]}])
+
+    _fetch_page_via_cursor(
+        database=database,
+        sql="SELECT a FROM idx",
+        page_index=0,
+        page_size=10,
+        sql_path="/_sql",
+        close_path="/_sql/close",
+        headers={},
+    )
+
+    calls = database._transport.perform_request.call_args_list
+    assert calls[0].kwargs["headers"] == {}
+
+
+@pytest.mark.parametrize("page_index, expected_rows", [(2, [[2]]), (3, [])])
+def test_opendistro_cursor_later_pages_and_exhaustion(
+    page_index: int, expected_rows: list[list[int]]
+) -> None:
+    """Preserve JDBC column aliases across later pages and cursor exhaustion."""
+    from superset.db_engine_specs.elasticsearch import OpenDistroEngineSpec
+
+    database = _build_fake_database(
+        [
+            {
+                "schema": [{"name": "COUNT(*)", "alias": "c"}],
+                "datarows": [[0]],
+                "cursor": "OD-1",
+            },
+            {"datarows": [[1]], "cursor": "OD-2"},
+            {"datarows": [[2]]},
+        ]
+    )
+    rows, columns = OpenDistroEngineSpec.fetch_data_with_cursor(
+        database=database,
+        sql="SELECT COUNT(*) AS c FROM idx",
+        page_index=page_index,
+        page_size=1,
+    )
+    assert rows == expected_rows
+    assert columns == ["c"]
+    calls = database._transport.perform_request.call_args_list
+    assert len(calls) == 3
+    assert calls[1].kwargs["body"] == {"cursor": "OD-1"}
+    assert calls[2].kwargs["body"] == {"cursor": "OD-2"}
+    assert all("headers" not in call.kwargs for call in calls)

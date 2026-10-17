@@ -34,10 +34,30 @@ from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.core import Database
 from superset.models.dashboard import Dashboard
+from superset.models.purge_audit_log import (
+    PURGE_AUDIT_COORDINATION_ID,
+    PurgeAuditCoordination,
+)
 from superset.models.slice import Slice
 from tests.integration_tests.base_tests import SupersetTestCase
 
 _PREFIX = "retention_it_"
+
+
+def ensure_purge_audit_coordination() -> None:
+    """Backfill branch-local schema absent from the shared test database."""
+    PurgeAuditCoordination.__table__.create(db.engine, checkfirst=True)
+    coordination: PurgeAuditCoordination | None = db.session.get(
+        PurgeAuditCoordination, PURGE_AUDIT_COORDINATION_ID
+    )
+    if coordination is None:
+        db.session.add(
+            PurgeAuditCoordination(
+                id=PURGE_AUDIT_COORDINATION_ID,
+                lock_version=0,
+            )
+        )
+        db.session.commit()
 
 
 def _bypass(model: type[Any]) -> dict[str, Any]:
@@ -49,6 +69,7 @@ class DeletionRetentionTestBase(SupersetTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+        ensure_purge_audit_coordination()
         self._cleanup()
         self.database: Database = Database(
             database_name=f"{_PREFIX}db", sqlalchemy_uri="sqlite://"

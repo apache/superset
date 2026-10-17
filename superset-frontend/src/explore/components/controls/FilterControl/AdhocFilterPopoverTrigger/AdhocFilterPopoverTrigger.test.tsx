@@ -45,14 +45,14 @@ test('should render', () => {
   expect(container).toBeInTheDocument();
 });
 
-test('should render the Popover on click when uncontrolled', () => {
+test('should render the Popover on click when uncontrolled', async () => {
   render(
     <AdhocFilterPopoverTrigger {...mockedProps}>
       Click
     </AdhocFilterPopoverTrigger>,
   );
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
-  userEvent.click(screen.getByText('Click'));
+  await userEvent.click(screen.getByText('Click'));
   expect(screen.getByRole('tooltip')).toBeInTheDocument();
 });
 

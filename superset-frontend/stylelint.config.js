@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-module.exports = {
+
+export default {
   customSyntax: 'postcss-styled-syntax',
   rules: {
     'property-no-unknown': true,

@@ -63,7 +63,7 @@ test('should render the items', async () => {
   render(<TestLanguagePicker {...mockedProps} />, {
     useRouter: true,
   });
-  userEvent.hover(screen.getByRole('menuitem'));
+  await userEvent.hover(screen.getByRole('menuitem'));
   expect(await screen.findByText('English')).toBeInTheDocument();
   expect(await screen.findByText('Italian')).toBeInTheDocument();
 });

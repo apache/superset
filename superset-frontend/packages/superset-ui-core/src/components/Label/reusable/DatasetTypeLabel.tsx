@@ -24,12 +24,14 @@ import { Label } from '..';
 // Define the prop types for DatasetTypeLabel
 interface DatasetTypeLabelProps {
   datasetType: 'physical' | 'virtual' | 'semantic_view';
+  label?: string;
 }
 
 const SIZE = 's'; // Define the size as a constant
 
 export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
   datasetType,
+  label: customLabel,
 }) => {
   const theme = useTheme();
   if (datasetType === 'semantic_view') {
@@ -38,18 +40,19 @@ export const DatasetTypeLabel: React.FC<DatasetTypeLabelProps> = ({
         icon={
           <Icons.ApartmentOutlined
             iconSize={SIZE}
-            iconColor={theme.colorInfo}
+            iconColor={theme.colorText}
           />
         }
         type="info"
-        style={{ color: theme.colorInfo }}
+        data-test="dataset-type-label"
+        style={{ color: theme.colorText }}
       >
-        {t('Semantic')}
+        {customLabel ?? t('Semantic')}
       </Label>
     );
   }
   const isPhysical = datasetType === 'physical';
-  const label: string = isPhysical ? t('Physical') : t('Virtual');
+  const label = customLabel ?? (isPhysical ? t('Physical') : t('Virtual'));
   const labelType = isPhysical ? 'primary' : 'default';
 
   const color = isPhysical

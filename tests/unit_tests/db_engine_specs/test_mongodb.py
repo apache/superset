@@ -15,11 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 from datetime import datetime
-from typing import Optional
+from typing import Any, Optional
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.constants import TimeGrain
+from superset.utils import json
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
@@ -123,3 +125,240 @@ def test_engine_metadata() -> None:
     assert spec.engine == "mongodb"
     assert spec.engine_name == "MongoDB"
     assert spec.force_column_alias_quotes is False
+    assert spec.supports_dynamic_schema is True
+
+
+@pytest.mark.parametrize(
+    "connect_args,schema,expected",
+    [
+        ({"foo": "bar"}, "dbtwo", {"foo": "bar", "database": "dbtwo"}),
+        ({"foo": "bar"}, None, {"foo": "bar"}),
+        (
+            {"database": "dbone", "authSource": "dbone"},
+            "dbtwo",
+            {"database": "dbtwo", "authSource": "dbone"},
+        ),
+    ],
+)
+def test_adjust_engine_params(
+    connect_args: dict[str, Any],
+    schema: Optional[str],
+    expected: dict[str, Any],
+) -> None:
+    """
+    The selected schema is applied through the ``database`` connect argument and
+    the URI is left untouched, since its database is the default ``authSource``.
+    """
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+
+    uri = "mongodb://user:pass@host:27017/dbone?mode=superset"
+    original = dict(connect_args)
+
+    adjusted, new_connect_args = MongoDBEngineSpec.adjust_engine_params(
+        make_url(uri), connect_args, schema=schema
+    )
+
+    assert adjusted.render_as_string(hide_password=False) == uri
+    assert new_connect_args == expected
+    assert connect_args == original
+
+
+@pytest.mark.parametrize(
+    "uri,connect_args,expected_auth_source",
+    [
+        ("mongodb://user:pass@host:27017/dbone?mode=superset", {}, "dbone"),
+        (
+            "mongodb://user:pass@host:27017/dbone?mode=superset&authSource=admin",
+            {},
+            "admin",
+        ),
+        (
+            "mongodb://user:pass@host:27017/dbone?mode=superset",
+            {"database": "dbone", "authSource": "dbone"},
+            "dbone",
+        ),
+    ],
+)
+def test_adjust_engine_params_driver(
+    uri: str,
+    connect_args: dict[str, Any],
+    expected_auth_source: str,
+) -> None:
+    """
+    With the real driver, selecting ``dbtwo`` queries ``dbtwo`` while keeping the
+    original authentication database.
+    """
+    pytest.importorskip("pymongosql")
+
+    from sqlalchemy import create_engine
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+
+    adjusted, new_connect_args = MongoDBEngineSpec.adjust_engine_params(
+        make_url(uri), connect_args, schema="dbtwo"
+    )
+    engine = create_engine(
+        adjusted, connect_args={**new_connect_args, "connect": False}
+    )
+    connection = engine.raw_connection().driver_connection
+    try:
+        credentials = connection.client.options.pool_options._credentials
+        assert connection.database_name == "dbtwo"
+        assert credentials.source == expected_auth_source
+    finally:
+        connection.close()
+
+
+def test_get_schema_from_engine_params() -> None:
+    from sqlalchemy.engine.url import make_url
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+
+    assert (
+        MongoDBEngineSpec.get_schema_from_engine_params(
+            make_url("mongodb://user:pass@host:27017/dbone?mode=superset"), {}
+        )
+        == "dbone"
+    )
+    assert (
+        MongoDBEngineSpec.get_schema_from_engine_params(
+            make_url("mongodb://user:pass@host:27017"), {}
+        )
+        is None
+    )
+    assert (
+        MongoDBEngineSpec.get_schema_from_engine_params(
+            make_url("mongodb://user:pass@host:27017/dbone?mode=superset"),
+            {"database": "dbtwo"},
+        )
+        == "dbtwo"
+    )
+
+
+def test_get_default_schema() -> None:
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="mongo",
+        sqlalchemy_uri="mongodb://user:pass@host:27017/dbone?mode=superset",
+    )
+
+    assert MongoDBEngineSpec.get_default_schema(database, None) == "dbone"
+
+    database.extra = json.dumps(
+        {"engine_params": {"connect_args": {"database": "dbtwo"}}}
+    )
+    assert MongoDBEngineSpec.get_default_schema(database, None) == "dbtwo"
+
+
+def test_get_default_schema_for_query(mocker: MockerFixture) -> None:
+    """
+    Access checks must resolve unqualified collections against the query schema,
+    which is the database the connection is bound to.
+    """
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="mongo",
+        sqlalchemy_uri="mongodb://user:pass@host:27017/dbone?mode=superset",
+    )
+    query = mocker.MagicMock(schema="dbtwo", catalog=None)
+
+    assert MongoDBEngineSpec.get_default_schema_for_query(database, query) == "dbtwo"
+
+
+def test_select_star_does_not_qualify_collection(mocker: MockerFixture) -> None:
+    """
+    PyMongoSQL treats ``schema.collection`` as a literal collection name, so the
+    preview query must reference the bare collection and rely on the schema
+    being applied to the connection instead.
+    """
+    from sqlalchemy.engine.default import DefaultDialect
+
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.sql.parse import Table
+
+    database = mocker.MagicMock()
+    database.compile_sqla_query.side_effect = lambda qry, catalog, schema: str(
+        qry.compile(dialect=DefaultDialect(), compile_kwargs={"literal_binds": True})
+    )
+
+    sql = MongoDBEngineSpec.select_star(
+        database,
+        Table("orders", "testdb"),
+        DefaultDialect(),
+        limit=10,
+        show_cols=False,
+        latest_partition=False,
+    )
+
+    assert sql == "SELECT\n  *\nFROM orders\nLIMIT 10"
+    database.compile_sqla_query.assert_called_once()
+    assert database.compile_sqla_query.call_args.args[1:] == (None, "testdb")
+
+
+def test_get_sqla_engine_applies_selected_schema() -> None:
+    """
+    The ``database`` connect argument returned by ``adjust_engine_params`` must
+    reach the driver when the engine is built through ``Database``.
+    """
+    pytest.importorskip("pymongosql")
+
+    from superset.models.core import Database
+
+    database = Database(
+        database_name="mongo",
+        sqlalchemy_uri="mongodb://user:pass@host:27017/dbone?mode=superset",
+        extra=json.dumps({"engine_params": {"connect_args": {"connect": False}}}),
+    )
+
+    with database.get_sqla_engine(schema="dbtwo") as engine:
+        raw_connection = engine.raw_connection()
+        try:
+            connection = raw_connection.driver_connection
+            credentials = connection.client.options.pool_options._credentials
+            assert connection.database_name == "dbtwo"
+            assert credentials.source == "dbone"
+        finally:
+            raw_connection.close()
+
+
+def test_get_sqla_table_does_not_qualify_collection() -> None:
+    """
+    Charts built on a MongoDB dataset with a schema hit the same PyMongoSQL
+    ``schema.collection`` resolution bug SQL Lab's Data Preview had before #44141:
+    ``SqlaTable.get_sqla_table`` must build an unqualified FROM clause too, not
+    just ``select_star``. Regression test for #44576.
+    """
+    from sqlalchemy import create_engine, select
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.mongodb import MongoDBEngineSpec
+    from superset.models.core import Database
+
+    pytest.importorskip("pymongosql")
+
+    assert MongoDBEngineSpec.quote_table_includes_schema is False
+
+    database = Database(
+        database_name="mongo",
+        sqlalchemy_uri="mongodb://user:pass@host:27017/dbone?mode=superset",
+    )
+    dataset = SqlaTable(table_name="orders", database=database, schema="testdb")
+
+    sqla_table = dataset.get_sqla_table()
+
+    # Compile with the engine's own dialect -- the one `get_sqla_table` already
+    # quoted the identifier with -- so the assertion covers the real path.
+    engine = create_engine(database.sqlalchemy_uri)
+    compiled = str(
+        select(sqla_table).compile(engine, compile_kwargs={"literal_binds": True})
+    )
+
+    assert "FROM orders" in compiled
+    assert "testdb" not in compiled

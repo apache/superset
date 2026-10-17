@@ -130,7 +130,7 @@ const RefreshIntervalModal = ({
                 ? t('Set the automatic refresh frequency for this dashboard.')
                 : t('Set refresh frequency for current session only.'))
             }
-            extra={refreshErrors[0] ? null : refreshWarningMessage}
+            extra={refreshWarningMessage}
             validateStatus={refreshErrors.length ? 'error' : undefined}
           >
             <RefreshFrequencySelect

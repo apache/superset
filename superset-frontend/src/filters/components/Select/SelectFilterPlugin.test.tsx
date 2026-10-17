@@ -34,6 +34,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import { NULL_STRING } from 'src/utils/common';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import SelectFilterPlugin from './SelectFilterPlugin';
 import transformProps from './transformProps';
 import {
@@ -94,6 +95,7 @@ type SelectTestOverrides = {
   formData?: Partial<PluginFilterSelectQueryFormData>;
   filterState?: Partial<FilterState>;
   setDataMask?: jest.Mock;
+  filterBarOrientation?: FilterBarOrientation;
 };
 
 const buildSelectFilterProps = (overrides: SelectTestOverrides = {}) => {
@@ -112,6 +114,7 @@ const buildSelectFilterProps = (overrides: SelectTestOverrides = {}) => {
     isRefreshing: false,
     setDataMask: overrides.setDataMask ?? jest.fn(),
     showOverflow: false,
+    filterBarOrientation: overrides.filterBarOrientation,
   } as PluginFilterSelectProps;
 };
 
@@ -186,8 +189,8 @@ describe('SelectFilterPlugin', () => {
     });
 
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
-    userEvent.click(screen.getByTitle('girl'));
+    await userEvent.click(filterSelect);
+    await userEvent.click(screen.getByTitle('girl'));
     expect(
       await screen.findByRole('option', { name: /girl/i }),
     ).toBeInTheDocument();
@@ -209,9 +212,9 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  test('Remove multiple values when required', () => {
+  test('Remove multiple values when required', async () => {
     getWrapper();
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('img', {
         name: /close-circle/i,
         hidden: true,
@@ -235,9 +238,9 @@ describe('SelectFilterPlugin', () => {
     });
   });
 
-  test('Remove multiple values when not required', () => {
+  test('Remove multiple values when not required', async () => {
     getWrapper({ enableEmptyFilter: false });
-    userEvent.click(
+    await userEvent.click(
       screen.getByRole('img', {
         name: /close-circle/i,
         hidden: true,
@@ -258,10 +261,10 @@ describe('SelectFilterPlugin', () => {
 
     // Get the main filter select (second combobox)
     const filterSelect = screen.getAllByRole('combobox')[1];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
 
     expect(await screen.findByTitle('girl')).toBeInTheDocument();
-    userEvent.click(screen.getByTitle('girl'));
+    await userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenCalledWith({
       extraFormData: {
         filters: [
@@ -283,9 +286,9 @@ describe('SelectFilterPlugin', () => {
   test('Select single null (empty) value', async () => {
     getWrapper();
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
-    userEvent.click(screen.getByTitle(NULL_STRING));
+    await userEvent.click(screen.getByTitle(NULL_STRING));
     expect(setDataMask).toHaveBeenLastCalledWith({
       extraFormData: {
         filters: [
@@ -307,9 +310,9 @@ describe('SelectFilterPlugin', () => {
   test('receives the correct filter when search all options', async () => {
     getWrapper({ searchAllOptions: true, multiSelect: false });
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
-    userEvent.click(screen.getByTitle('girl'));
+    await userEvent.click(screen.getByTitle('girl'));
     expect(setDataMask).toHaveBeenLastCalledWith(
       expect.objectContaining({
         extraFormData: {
@@ -328,10 +331,10 @@ describe('SelectFilterPlugin', () => {
   test('number of fired queries when searching', async () => {
     getWrapper({ searchAllOptions: true });
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), 'a');
-    userEvent.tab();
+    await userEvent.tab();
     expect(setDataMask).toHaveBeenCalledTimes(2);
   });
 
@@ -374,7 +377,7 @@ describe('SelectFilterPlugin', () => {
       },
     );
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     await userEvent.type(screen.getByRole('combobox'), '1');
     expect(
@@ -399,10 +402,10 @@ describe('SelectFilterPlugin', () => {
     expect(isNotSelect).toBeInTheDocument();
 
     // Click to open dropdown
-    userEvent.click(isNotSelect);
+    await userEvent.click(isNotSelect);
 
     // Click "is" option
-    userEvent.click(screen.getByText('is'));
+    await userEvent.click(screen.getByText('is'));
 
     // Should update excludeFilterValues to false
     expect(setDataMask).toHaveBeenCalledWith(
@@ -414,19 +417,19 @@ describe('SelectFilterPlugin', () => {
     );
   });
 
-  test('Should not allow for new values when creatable is false', () => {
+  test('Should not allow for new values when creatable is false', async () => {
     getWrapper({ creatable: false });
-    userEvent.type(screen.getByRole('combobox'), 'new value');
+    await userEvent.type(screen.getByRole('combobox'), 'new value');
     expect(screen.queryByTitle('new value')).not.toBeInTheDocument();
   });
 
   test('Should allow for new values when creatable is true', async () => {
     getWrapper({ creatable: true });
-    userEvent.type(screen.getByRole('combobox'), 'new value');
+    await userEvent.type(screen.getByRole('combobox'), 'new value');
     expect(await screen.findByTitle('new value')).toBeInTheDocument();
   });
 
-  test('preserves backend order when sortMetric is specified', () => {
+  test('preserves backend order when sortMetric is specified', async () => {
     const testData = [
       { gender: 'zebra' },
       { gender: 'alpha' },
@@ -490,7 +493,7 @@ describe('SelectFilterPlugin', () => {
     );
 
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
 
     // When sortMetric is specified, options should appear in the original data order
     // (zebra, alpha, beta) not alphabetically sorted
@@ -500,7 +503,7 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('beta');
   });
 
-  test('applies alphabetical sorting when sortMetric is not specified', () => {
+  test('applies alphabetical sorting when sortMetric is not specified', async () => {
     const testData = [
       { gender: 'zebra' },
       { gender: 'alpha' },
@@ -564,7 +567,7 @@ describe('SelectFilterPlugin', () => {
     );
 
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
 
     // When sortMetric is not specified, options should be sorted alphabetically
     // (alpha, beta, zebra)
@@ -574,7 +577,7 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('zebra');
   });
 
-  test('applies descending alphabetical sorting when sortAscending is false and no sortMetric', () => {
+  test('applies descending alphabetical sorting when sortAscending is false and no sortMetric', async () => {
     const testData = [
       { gender: 'zebra' },
       { gender: 'alpha' },
@@ -638,7 +641,7 @@ describe('SelectFilterPlugin', () => {
     );
 
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
 
     // When sortAscending is false and no sortMetric, options should be sorted
     // in descending alphabetical order (zebra, beta, alpha)
@@ -648,7 +651,7 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('alpha');
   });
 
-  test('preserves backend order even when sortAscending is false and sortMetric is specified', () => {
+  test('preserves backend order even when sortAscending is false and sortMetric is specified', async () => {
     const testData = [
       { gender: 'zebra' },
       { gender: 'alpha' },
@@ -712,7 +715,7 @@ describe('SelectFilterPlugin', () => {
     );
 
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
 
     // When sortMetric is specified, original order should be preserved regardless
     // of sortAscending value (zebra, alpha, beta)
@@ -722,7 +725,7 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('beta');
   });
 
-  test('sorts numeric filter values numerically, not lexicographically, when no sortMetric is specified', () => {
+  test('sorts numeric filter values numerically, not lexicographically, when no sortMetric is specified', async () => {
     // Regression for #36775: numeric filter values were sorted as strings
     // (localeCompare on the formatted label), producing "1, 10, 100, 2"
     // instead of the expected "1, 2, 10, 100".
@@ -786,7 +789,7 @@ describe('SelectFilterPlugin', () => {
     );
 
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
 
     // Options should appear in ascending numeric order (2, 10, 100), not
     // ascending lexicographic order of their formatted labels (10, 100, 2).
@@ -796,7 +799,7 @@ describe('SelectFilterPlugin', () => {
     expect(options[2]).toHaveTextContent('100');
   });
 
-  test('sorts BIGINT filter values numerically when values decode to native bigint', () => {
+  test('sorts BIGINT filter values numerically when values decode to native bigint', async () => {
     // BIGINT columns with 16+ digit values decode to native `bigint` (see
     // json-bigint parsing of the chart data response), not `number`. Those
     // values must still sort numerically rather than falling back to
@@ -865,7 +868,7 @@ describe('SelectFilterPlugin', () => {
     );
 
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
 
     const options = screen.getAllByRole('option');
     expect(options[0]).toHaveTextContent('2000000000000000');
@@ -875,7 +878,7 @@ describe('SelectFilterPlugin', () => {
 
   test('shows create option for multi-select creatable filter when typing', async () => {
     getWrapper({ creatable: true, multiSelect: true });
-    userEvent.type(screen.getByRole('combobox'), 'brand-new');
+    await userEvent.type(screen.getByRole('combobox'), 'brand-new');
     expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
   });
 
@@ -883,7 +886,7 @@ describe('SelectFilterPlugin', () => {
     // 3 rows of data against a limit of 3: the user is looking at a page, not
     // at every value the column has.
     getWrapper({ rowLimit: 3 });
-    userEvent.click(screen.getAllByRole('combobox')[0]);
+    await userEvent.click(screen.getAllByRole('combobox')[0]);
     expect(
       await screen.findByText(/Only the first 3 values are listed/),
     ).toBeInTheDocument();
@@ -891,7 +894,7 @@ describe('SelectFilterPlugin', () => {
 
   test('offers the ways out that the filter actually supports', async () => {
     getWrapper({ rowLimit: 3, creatable: true, searchAllOptions: true });
-    userEvent.click(screen.getAllByRole('combobox')[0]);
+    await userEvent.click(screen.getAllByRole('combobox')[0]);
     expect(
       await screen.findByText(/Type to search all of them/),
     ).toBeInTheDocument();
@@ -902,7 +905,7 @@ describe('SelectFilterPlugin', () => {
 
   test('says nothing when the whole column fits under the limit', async () => {
     getWrapper();
-    userEvent.click(screen.getAllByRole('combobox')[0]);
+    await userEvent.click(screen.getAllByRole('combobox')[0]);
     expect(await screen.findByRole('combobox')).toBeInTheDocument();
     expect(screen.queryByText(/Only the first/)).not.toBeInTheDocument();
   });
@@ -912,7 +915,7 @@ describe('SelectFilterPlugin', () => {
     // data can still be missing from the dropdown. Suppressing the create
     // option there leaves the user with no way to apply it at all.
     getWrapper({ creatable: true, searchAllOptions: true });
-    userEvent.type(screen.getByRole('combobox'), 'brand-new');
+    await userEvent.type(screen.getByRole('combobox'), 'brand-new');
     expect(await screen.findByTitle('brand-new')).toBeInTheDocument();
   });
 
@@ -988,7 +991,7 @@ describe('SelectFilterPlugin', () => {
   test('keeps "Select all" pinned to the full column while searching (creatable false)', async () => {
     const setDataMaskMock = renderValueFilter({ creatable: false });
     const filterSelect = screen.getAllByRole('combobox')[0];
-    userEvent.click(filterSelect);
+    await userEvent.click(filterSelect);
     // Baseline: full-column count before searching.
     expect(await screen.findByText('Select all (5)')).toBeInTheDocument();
 
@@ -1009,7 +1012,7 @@ describe('SelectFilterPlugin', () => {
     expect(screen.queryByText('Select all (2)')).not.toBeInTheDocument();
 
     // Clicking "Select all" selects the entire column, not the search subset.
-    userEvent.click(screen.getByText('Select all (5)'));
+    await userEvent.click(screen.getByText('Select all (5)'));
     await waitFor(() => {
       const lastValue =
         setDataMaskMock.mock.calls.at(-1)?.[0]?.filterState?.value;
@@ -1070,10 +1073,10 @@ test('Select boolean FALSE value in single-select mode', async () => {
   );
 
   const filterSelect = screen.getByRole('combobox');
-  userEvent.click(filterSelect);
+  await userEvent.click(filterSelect);
 
   const falseOption = await screen.findByRole('option', { name: /false/i });
-  userEvent.click(falseOption);
+  await userEvent.click(falseOption);
 
   await waitFor(() => {
     expect(setDataMaskMock).toHaveBeenCalledWith(
@@ -1147,10 +1150,10 @@ test('Select boolean TRUE value in single-select mode', async () => {
   );
 
   const filterSelect = screen.getByRole('combobox');
-  userEvent.click(filterSelect);
+  await userEvent.click(filterSelect);
 
   const trueOption = await screen.findByRole('option', { name: /true/i });
-  userEvent.click(trueOption);
+  await userEvent.click(trueOption);
 
   await waitFor(() => {
     expect(setDataMaskMock).toHaveBeenCalledWith(
@@ -1224,10 +1227,10 @@ test('Select both boolean values in multi-select mode', async () => {
   );
 
   const filterSelect = screen.getByRole('combobox');
-  userEvent.click(filterSelect);
+  await userEvent.click(filterSelect);
 
   const falseOption = await screen.findByRole('option', { name: /false/i });
-  userEvent.click(falseOption);
+  await userEvent.click(falseOption);
 
   await waitFor(() => {
     expect(setDataMaskMock).toHaveBeenCalledWith(
@@ -1301,10 +1304,10 @@ test('Select boolean filter with null values', async () => {
   );
 
   const filterSelect = screen.getByRole('combobox');
-  userEvent.click(filterSelect);
+  await userEvent.click(filterSelect);
 
   const nullOption = await screen.findByRole('option', { name: NULL_STRING });
-  userEvent.click(nullOption);
+  await userEvent.click(nullOption);
 
   await waitFor(() => {
     expect(setDataMaskMock).toHaveBeenCalledWith(
@@ -1378,7 +1381,7 @@ test('Clear boolean FALSE value', async () => {
     },
   );
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('img', {
       name: /close-circle/i,
       hidden: true,
@@ -1449,7 +1452,7 @@ test('Clear boolean TRUE value', async () => {
     },
   );
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('img', {
       name: /close-circle/i,
       hidden: true,
@@ -1587,7 +1590,7 @@ test('keeps a dependent filter empty after the user clears it', async () => {
     },
   });
 
-  userEvent.click(
+  await userEvent.click(
     screen.getByRole('img', {
       name: /close-circle/i,
       hidden: true,
@@ -1982,42 +1985,41 @@ test('pending LIKE debounce still applies after rerender recreates updateDataMas
     reduxState,
   );
 
-  fireEvent.change(
-    screen.getByPlaceholderText('Type to search (contains)...'),
-    {
-      target: { value: 'Jen' },
-    },
-  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
 
-  setDataMaskMock.mockClear();
-
-  rerender(
-    <SelectFilterPlugin
-      {...buildSelectFilterProps({
-        formData: { operatorType: SelectFilterOperatorType.Contains },
-        filterState: { value: undefined, label: 'external change' },
-        setDataMask: setDataMaskMock,
-      })}
-    />,
-  );
-
+  // Batch the keystroke and the rerender into one update so the deferred
+  // value hasn't settled yet when updateDataMask's identity changes --
+  // useDeferredValue has no fixed delay, so letting the keystroke flush on
+  // its own (as a real fixed-delay debounce would still be pending) would
+  // settle it before the rerender and not exercise the stale-ref path.
   act(() => {
-    jest.advanceTimersByTime(500);
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin
+        {...buildSelectFilterProps({
+          formData: { operatorType: SelectFilterOperatorType.Contains },
+          filterState: { value: undefined, label: 'external change' },
+          setDataMask: setDataMaskMock,
+        })}
+      />,
+    );
   });
 
-  expect(setDataMaskMock).toHaveBeenCalledWith(
-    expect.objectContaining({
-      extraFormData: {
-        filters: [
-          {
-            col: 'gender',
-            op: 'ILIKE',
-            val: '%Jen%',
-          },
-        ],
-      },
-    }),
-  );
+  await waitFor(() => {
+    expect(setDataMaskMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extraFormData: {
+          filters: [
+            {
+              col: 'gender',
+              op: 'ILIKE',
+              val: '%Jen%',
+            },
+          ],
+        },
+      }),
+    );
+  });
 });
 
 test('pending LIKE debounce is canceled when operatorType switches back to Exact', async () => {
@@ -2049,30 +2051,297 @@ test('pending LIKE debounce is canceled when operatorType switches back to Exact
     reduxState,
   );
 
-  fireEvent.change(
-    screen.getByPlaceholderText('Type to search (contains)...'),
-    {
-      target: { value: 'Jen' },
-    },
-  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+  const callsBeforeSwitch = setDataMaskMock.mock.calls.length;
 
-  setDataMaskMock.mockClear();
-
-  rerender(
-    <SelectFilterPlugin
-      {...buildSelectFilterProps({
-        formData: { operatorType: SelectFilterOperatorType.Exact },
-        filterState: { value: undefined },
-        setDataMask: setDataMaskMock,
-      })}
-    />,
-  );
-
+  // Same batching as the sibling test above: the keystroke and the switch
+  // away from the LIKE operator land in the same update, before the
+  // deferred value has a chance to settle on its own.
   act(() => {
-    jest.advanceTimersByTime(500);
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin
+        {...buildSelectFilterProps({
+          formData: { operatorType: SelectFilterOperatorType.Exact },
+          filterState: { value: undefined },
+          setDataMask: setDataMaskMock,
+        })}
+      />,
+    );
   });
 
-  expect(setDataMaskMock).not.toHaveBeenCalled();
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  // Rerendering with fresh (non-memoized) props can independently re-run
+  // this plugin's own default-value initialisation, unrelated to the LIKE
+  // debounce this test is pinning -- so assert no *new* call carries the
+  // 'Jen' ILIKE payload, rather than that setDataMask was never called again.
+  const callsSinceSwitch = setDataMaskMock.mock.calls
+    .slice(callsBeforeSwitch)
+    .map(call => call[0]);
+  expect(callsSinceSwitch).not.toContainEqual(
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        filters: [expect.objectContaining({ op: 'ILIKE', val: '%Jen%' })],
+      }),
+    }),
+  );
+});
+
+test('switching Exact then back to LIKE does not replay the discarded pending edit', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const buildProps = (operatorType: SelectFilterOperatorType) =>
+    buildSelectFilterProps({
+      formData: { operatorType },
+      filterState: { value: undefined },
+      setDataMask: setDataMaskMock,
+    });
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Contains)} />,
+    reduxState,
+  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  act(() => {
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Exact)} />,
+    );
+  });
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  const callsBeforeReturn = setDataMaskMock.mock.calls.length;
+  rerender(
+    <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Contains)} />,
+  );
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(
+    setDataMaskMock.mock.calls.slice(callsBeforeReturn).map(call => call[0]),
+  ).not.toContainEqual(
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        filters: [expect.objectContaining({ op: 'ILIKE', val: '%Jen%' })],
+      }),
+    }),
+  );
+});
+
+test('clear-all does not restore a LIKE edit still pending in the deferred value', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const likeProps = buildSelectFilterProps({
+    formData: { operatorType: SelectFilterOperatorType.Contains },
+    filterState: { value: undefined },
+    setDataMask: setDataMaskMock,
+  });
+  const reduxState = {
+    useRedux: true,
+    initialState: {
+      nativeFilters: {
+        filters: { 'test-filter': { name: 'Test Filter' } },
+      },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: undefined },
+        },
+      },
+    },
+  };
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...likeProps} />,
+    reduxState,
+  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  // Type and fire clear-all in one update, then release the trigger, so the
+  // deferred value still holds the typed text when the trigger goes away.
+  act(() => {
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin
+        {...likeProps}
+        clearAllTrigger={{ 'test-filter': true }}
+      />,
+    );
+  });
+  const callsBeforeRelease = setDataMaskMock.mock.calls.length;
+  rerender(<SelectFilterPlugin {...likeProps} clearAllTrigger={undefined} />);
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(input).toHaveValue('');
+  expect(
+    setDataMaskMock.mock.calls.slice(callsBeforeRelease).map(call => call[0]),
+  ).not.toContainEqual(
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        filters: [expect.objectContaining({ op: 'ILIKE', val: '%Jen%' })],
+      }),
+    }),
+  );
+});
+
+const likeReduxState = {
+  useRedux: true,
+  initialState: {
+    nativeFilters: {
+      filters: { 'test-filter': { name: 'Test Filter' } },
+    },
+    dataMask: {
+      'test-filter': {
+        extraFormData: {},
+        filterState: { value: undefined },
+      },
+    },
+  },
+};
+
+test('switching match type discards the pending LIKE edit and clears the displayed text', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const buildProps = (operatorType: SelectFilterOperatorType) =>
+    buildSelectFilterProps({
+      formData: { operatorType },
+      filterState: { value: undefined },
+      setDataMask: setDataMaskMock,
+    });
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...buildProps(SelectFilterOperatorType.Contains)} />,
+    likeReduxState,
+  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  act(() => {
+    fireEvent.change(input, { target: { value: 'Jen' } });
+    rerender(
+      <SelectFilterPlugin
+        {...buildProps(SelectFilterOperatorType.StartsWith)}
+      />,
+    );
+  });
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  expect(
+    screen.getByPlaceholderText('Type to search (starts with)...'),
+  ).toHaveValue('');
+});
+
+test('re-entering the same LIKE text after a parent reset commits a new mask', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const buildProps = (value: string[] | undefined, defaultValue?: string[]) =>
+    buildSelectFilterProps({
+      formData: {
+        operatorType: SelectFilterOperatorType.Contains,
+        defaultValue,
+      },
+      filterState: { value },
+      setDataMask: setDataMaskMock,
+    });
+  const containsJen = expect.objectContaining({
+    extraFormData: expect.objectContaining({
+      filters: [expect.objectContaining({ op: 'ILIKE', val: '%Jen%' })],
+    }),
+  });
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...buildProps(undefined, undefined)} />,
+    likeReduxState,
+  );
+  const input = screen.getByPlaceholderText('Type to search (contains)...');
+
+  fireEvent.change(input, { target: { value: 'Jen' } });
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(setDataMaskMock).toHaveBeenCalledWith(containsJen);
+
+  // The parent echoes the committed value, then resets it to a different
+  // default, which moves the committed mask away from 'Jen'.
+  rerender(<SelectFilterPlugin {...buildProps(['Jen'])} />);
+  rerender(<SelectFilterPlugin {...buildProps(undefined, ['Bob'])} />);
+  await act(async () => {});
+  expect(input).toHaveValue('');
+
+  setDataMaskMock.mockClear();
+  fireEvent.change(input, { target: { value: 'Jen' } });
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  await act(async () => {});
+
+  expect(setDataMaskMock).toHaveBeenCalledWith(containsJen);
+});
+
+test('Clear All publishes an empty server search after a settled search', async () => {
+  jest.useFakeTimers({ advanceTimers: true });
+  const setDataMaskMock = jest.fn();
+  const props = buildSelectFilterProps({
+    formData: { searchAllOptions: true, multiSelect: true },
+    filterState: { value: ['boy'] },
+    setDataMask: setDataMaskMock,
+  });
+
+  const { rerender } = render(
+    <SelectFilterPlugin {...props} />,
+    likeReduxState,
+  );
+  const combobox = screen.getAllByRole('combobox')[0];
+  await userEvent.click(combobox);
+  await userEvent.type(combobox, 'ab');
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  await waitFor(() => {
+    const lastCall = setDataMaskMock.mock.calls.at(-1)?.[0];
+    expect(lastCall?.ownState?.search).toBe('ab');
+  });
+
+  rerender(
+    <SelectFilterPlugin {...props} clearAllTrigger={{ 'test-filter': true }} />,
+  );
+  await act(async () => {});
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+
+  const lastCall = setDataMaskMock.mock.calls.at(-1)?.[0];
+  expect(lastCall?.ownState?.search).toBe('');
 });
 
 test('renders standard Select dropdown when operatorType is Exact', () => {
@@ -2174,7 +2443,7 @@ test('renders dashboard select dropdown popup under document body', async () => 
   });
 
   const [filterSelect] = screen.getAllByRole('combobox');
-  userEvent.click(filterSelect);
+  await userEvent.click(filterSelect);
 
   let dropdown: Element | undefined;
   await waitFor(() => {
@@ -2187,4 +2456,42 @@ test('renders dashboard select dropdown popup under document body', async () => 
   });
 
   expect(dropdown?.parentElement).toBe(document.body);
+});
+
+const renderMultiValueSelect = (
+  filterBarOrientation?: FilterBarOrientation,
+) => {
+  const props = buildSelectFilterProps({
+    filterState: { value: ['boy', 'girl'] },
+    filterBarOrientation,
+  });
+
+  return render(<SelectFilterPlugin {...props} />, {
+    useRedux: true,
+    initialState: {
+      nativeFilters: { filters: { 'test-filter': { name: 'Test Filter' } } },
+      dataMask: {
+        'test-filter': {
+          extraFormData: {},
+          filterState: { value: ['boy', 'girl'] },
+        },
+      },
+    },
+  });
+};
+
+test('horizontal filter bar collapses multiple selected values to an overflow indicator', () => {
+  renderMultiValueSelect(FilterBarOrientation.Horizontal);
+
+  expect(screen.getByText('boy')).toBeVisible();
+  expect(screen.queryByText('girl')).not.toBeInTheDocument();
+  expect(screen.getByText('+ 1 ...')).toBeVisible();
+});
+
+test('vertical filter bar shows every selected value without an overflow indicator', () => {
+  renderMultiValueSelect(FilterBarOrientation.Vertical);
+
+  expect(screen.getByText('boy')).toBeVisible();
+  expect(screen.getByText('girl')).toBeVisible();
+  expect(screen.queryByText(/^\+ \d+ \.\.\.$/)).not.toBeInTheDocument();
 });

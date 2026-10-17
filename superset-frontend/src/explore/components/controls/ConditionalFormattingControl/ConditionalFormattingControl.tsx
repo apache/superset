@@ -75,6 +75,7 @@ const ConditionalFormattingControl = ({
   removeIrrelevantConditions,
   extraColorChoices,
   allColumns,
+  metricOnly,
   serverPagination,
   ...props
 }: ConditionalFormattingControlProps) => {
@@ -166,6 +167,7 @@ const ConditionalFormattingControl = ({
               destroyOnHidden
               extraColorChoices={extraColorChoices}
               allColumns={allColumns}
+              metricOnly={metricOnly}
               serverPagination={serverPagination}
             >
               <OptionControlContainer withCaret>
@@ -184,6 +186,7 @@ const ConditionalFormattingControl = ({
           destroyOnHidden
           extraColorChoices={extraColorChoices}
           allColumns={allColumns}
+          metricOnly={metricOnly}
           serverPagination={serverPagination}
         >
           <AddControlLabel>

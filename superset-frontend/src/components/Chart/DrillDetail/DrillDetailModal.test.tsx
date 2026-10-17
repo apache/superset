@@ -77,7 +77,7 @@ const renderModal = async (overrideState: Record<string, any> = {}) => {
     },
   });
 
-  userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Show modal' }));
   await screen.findByRole('dialog', { name: `Drill to detail: ${chartName}` });
 };
 
@@ -97,13 +97,13 @@ test('should render the button', async () => {
 test('should close the modal', async () => {
   await renderModal();
   expect(screen.getByRole('dialog')).toBeInTheDocument();
-  userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
+  await userEvent.click(screen.getAllByRole('button', { name: 'Close' })[1]);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });
 
 test('should forward to Explore', async () => {
   await renderModal();
-  userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Edit chart' }));
   expect(mockHistoryPush).toHaveBeenCalledWith(
     `/explore/?dashboard_page_id=&slice_id=${sliceId}`,
   );

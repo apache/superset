@@ -102,13 +102,12 @@
     "@babel/preset-react": "^7.29.7",
     "@babel/preset-typescript": "^7.29.7",
     "@emotion/styled": "^11.14.1",
-    "@testing-library/dom": "^10.4.1",
+    "@testing-library/dom": "^10.4.2",
     "@testing-library/jest-dom": "*",
     "@testing-library/react": "*",
     "@testing-library/user-event": "*",
     "@types/lodash": "^4.17.25",
     "@types/react": "*",
-    "@types/react-loadable": "*",
     "@types/tinycolor2": "*",
     "typescript": "^5.0.0"
   },
@@ -124,7 +123,6 @@
     "nanoid": "*",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
-    "react-loadable": "^5.5.0",
     "tinycolor2": "*"
   }
 }

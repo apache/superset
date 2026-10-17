@@ -74,11 +74,11 @@ test('Column and value should be visible', () => {
   expect(screen.getByText('Italy')).toBeInTheDocument();
 });
 
-test('Tag should be closable', () => {
+test('Tag should be closable', async () => {
   setup(mockedProps);
   const close = screen.getByLabelText('Close');
   expect(close).toBeInTheDocument();
-  userEvent.click(close);
+  await userEvent.click(close);
   expect(mockedProps.removeCrossFilter).toHaveBeenCalledWith(1);
 });
 

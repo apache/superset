@@ -51,6 +51,11 @@ CONTINUUM_BOOKKEEPING_COLUMNS: frozenset[str] = frozenset(
 #: tx") and by the restore engine's refuse-DELETE-target guard.
 OPERATION_DELETE: int = 2
 
+#: Continuum ``operation_type`` code for an INSERT version row. Used by
+#: the restore engine's child-history completeness check: an INSERT is
+#: the only row that needs no predecessor in the validity chain.
+OPERATION_INSERT: int = 0
+
 
 def insert_baseline_shadow_row(
     conn: Any,

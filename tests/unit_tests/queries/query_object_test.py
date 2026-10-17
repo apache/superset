@@ -16,7 +16,7 @@
 # under the License.
 from contextlib import contextmanager
 from datetime import datetime
-from unittest.mock import call, patch
+from unittest.mock import call, patch, PropertyMock
 
 import pandas as pd
 import pytest
@@ -25,8 +25,9 @@ from pandas import DataFrame
 
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable
-from superset.exceptions import InvalidPostProcessingError
+from superset.exceptions import InvalidPostProcessingError, QueryObjectValidationError
 from superset.models.core import Database
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import Metric
 from superset.utils import pandas_postprocessing
 from superset.utils.core import override_user
@@ -64,9 +65,11 @@ def test_default_query_object_to_dict():
     query_object = QueryObject(row_limit=1)
     assert query_object.to_dict() == {
         "apply_fetch_values_predicate": False,
+        "cache_timeout": None,
         "columns": [],
         "extras": {},
         "filter": [],
+        "force_query": False,
         "from_dttm": None,
         "granularity": None,
         "group_others_when_limit_reached": False,
@@ -88,6 +91,23 @@ def test_default_query_object_to_dict():
         "time_compare_full_range": False,
         "to_dttm": None,
     }
+
+
+@pytest.mark.parametrize("clause", ["where", "having"])
+def test_semantic_view_rejects_custom_sql_extras(clause: str) -> None:
+    """Unsupported SQL clauses fail before semantic provider access."""
+    view: SemanticView = SemanticView(name="Orders")
+    provider_access: PropertyMock = PropertyMock(
+        side_effect=AssertionError("provider accessed before SQL extras validation")
+    )
+    query: QueryObject = QueryObject(datasource=view, extras={clause: "amount > 10"})
+
+    with patch.object(SemanticView, "implementation", provider_access):
+        with pytest.raises(
+            QueryObjectValidationError, match="SQL WHERE/HAVING.*semantic views"
+        ):
+            query.validate()
+    provider_access.assert_not_called()
 
 
 def test_exec_post_processing_rejects_unsupported_operation():
@@ -301,6 +321,33 @@ def test_cache_key_changes_for_new_query_object_same_params():
     cache_key1 = query_object1.cache_key()
     query_object2 = QueryObject(row_limit=1)
     assert query_object2.cache_key() == cache_key1
+
+
+def test_force_query_does_not_change_result_cache_identity() -> None:
+    regular: QueryObject = QueryObject(row_limit=1, force_query=False)
+    forced: QueryObject = QueryObject(row_limit=1, force_query=True)
+
+    assert regular.force_query is False
+    assert forced.force_query is True
+    assert forced.cache_key() == regular.cache_key()
+
+
+def test_force_identity_regression_kills_faulty_identity_policy() -> None:
+    class FaultyForceIdentityQueryObject(QueryObject):
+        def cache_key(self, **extra: object) -> str:
+            return f"{super().cache_key(**extra)}:{self.force_query}"
+
+    regular: FaultyForceIdentityQueryObject = FaultyForceIdentityQueryObject(
+        row_limit=1,
+        force_query=False,
+    )
+    forced: FaultyForceIdentityQueryObject = FaultyForceIdentityQueryObject(
+        row_limit=1,
+        force_query=True,
+    )
+
+    with pytest.raises(AssertionError):
+        assert forced.cache_key() == regular.cache_key()
 
 
 @patch("superset.utils.cache_keys.feature_flag_manager")
@@ -851,3 +898,34 @@ def test_exec_post_processing_rejects_string_helpers(
 
     with pytest.raises(InvalidPostProcessingError):
         query_object.exec_post_processing(df)
+
+
+def test_cache_key_distinguishes_bounds_without_time_range():
+    """
+    Regression for the datasource query endpoint: a caller that passes a range
+    only as a ``TEMPORAL_RANGE`` filter has no ``time_range``, and
+    ``QueryContextFactory._apply_granularity`` removes that filter once
+    ``granularity`` names its column. The resolved bounds are then the only
+    thing telling one range from another, so they have to reach the key --
+    otherwise every range collides and the second request is served the first
+    range's rows.
+    """
+    query_object1 = QueryObject(
+        from_dttm=datetime(1965, 1, 1), to_dttm=datetime(1968, 1, 1)
+    )
+    query_object2 = QueryObject(
+        from_dttm=datetime(1966, 1, 1), to_dttm=datetime(1967, 1, 1)
+    )
+
+    assert query_object1.cache_key() != query_object2.cache_key()
+
+
+def test_cache_key_ignores_bounds_when_time_range_is_set():
+    """
+    ``time_range`` stands in for the bounds, so they stay out of the key: a
+    relative range such as "Last week" keeps one key as its bounds advance.
+    """
+    query_object1 = QueryObject(time_range="Last week", from_dttm=datetime(1965, 1, 1))
+    query_object2 = QueryObject(time_range="Last week", from_dttm=datetime(1970, 1, 1))
+
+    assert query_object1.cache_key() == query_object2.cache_key()

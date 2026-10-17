@@ -27,6 +27,55 @@ from superset.reports.schemas import (
 )
 
 
+@pytest.mark.parametrize(
+    "schema_class", [ReportSchedulePostSchema, ReportSchedulePutSchema]
+)
+@pytest.mark.parametrize("field", ["run_as_type", "run_alert_query_as_type"])
+def test_per_schedule_executor_accepts_only_specific_user(
+    schema_class: type, field: str
+) -> None:
+    schema = schema_class()
+    assert schema.fields[field].deserialize("fixed_user") == "fixed_user"
+    assert schema.fields[field].deserialize(None) is None
+    for executor_type in (
+        "creator",
+        "creator_editor",
+        "modifier",
+        "modifier_editor",
+        "editor",
+    ):
+        with pytest.raises(ValidationError):
+            schema.fields[field].deserialize(executor_type)
+
+
+@pytest.mark.parametrize(
+    "schema_cls", [ReportSchedulePostSchema, ReportSchedulePutSchema]
+)
+@pytest.mark.parametrize("enabled", [True, False])
+def test_alert_retry_schema(
+    mocker: MockerFixture, schema_cls: type, enabled: bool
+) -> None:
+    """Both APIs accept alert retry settings only when the feature is enabled."""
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=enabled)
+    result = schema_cls().load(
+        {
+            "type": "Alert",
+            "name": "Retry alert",
+            "crontab": "* * * * *",
+            "database": 1,
+            "sql": "SELECT 1",
+            "validator_type": "not null",
+            "retry_on_failure": True,
+            "retry_max_attempts": 3,
+        }
+    )
+    if enabled:
+        assert result["retry_on_failure"] is True
+        assert result["retry_max_attempts"] == 3
+    else:
+        assert not result.get("retry_on_failure", False)
+
+
 def test_report_post_schema_custom_width_validation(mocker: MockerFixture) -> None:
     """
     Test the custom width validation.
@@ -239,6 +288,71 @@ MINIMAL_POST_PAYLOAD = {
     "crontab": "* * * * *",
     "timezone": "America/Los_Angeles",
 }
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_run_as_fields_stripped_when_feature_disabled(
+    mocker: MockerFixture, schema_class: type, payload_base: dict[str, object]
+) -> None:
+    """Legacy clients can send executor keys without persisting or validating them."""
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=False)
+    result = schema_class().load(
+        {
+            **payload_base,
+            "run_as": "invalid-user-id",
+            "run_alert_query_as": "invalid-user-id",
+            "run_as_type": "creator",
+            "run_alert_query_as_type": "creator",
+        }
+    )
+    assert (
+        not {
+            "run_as",
+            "run_alert_query_as",
+            "run_as_type",
+            "run_alert_query_as_type",
+        }
+        & result.keys()
+    )
+
+
+@pytest.mark.parametrize(
+    "schema_class,payload_base",
+    [
+        (ReportSchedulePostSchema, MINIMAL_POST_PAYLOAD),
+        (ReportSchedulePutSchema, {}),
+    ],
+    ids=["post", "put"],
+)
+def test_run_as_fields_validated_when_feature_enabled(
+    mocker: MockerFixture, schema_class: type, payload_base: dict[str, object]
+) -> None:
+    """Enabled schemas reject unsupported executor types and malformed IDs."""
+    mocker.patch("superset.reports.schemas.is_feature_enabled", return_value=True)
+    with pytest.raises(ValidationError) as exc:
+        schema_class().load(
+            {
+                **payload_base,
+                "run_as": "invalid-user-id",
+                "run_alert_query_as": "invalid-user-id",
+                "run_as_type": "creator",
+                "run_alert_query_as_type": "creator",
+            }
+        )
+    assert set(exc.value.messages) == {
+        "run_as",
+        "run_alert_query_as",
+        "run_as_type",
+        "run_alert_query_as_type",
+    }
+
 
 CUSTOM_WIDTH_CONFIG = {
     "ALERT_REPORTS_MIN_CUSTOM_SCREENSHOT_WIDTH": 600,
@@ -581,3 +695,86 @@ def test_include_cta_rejects_non_boolean(
     with pytest.raises(ValidationError) as exc:
         schema.load({**payload_base, "include_cta": "not-a-boolean"})
     assert "include_cta" in exc.value.messages
+
+
+def test_report_recipient_schema_slack_channel_id_valid() -> None:
+    """A Slack channel id is accepted."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "SlackV2",
+            "recipient_config_json": {"target": "C08CSCSDCSY"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "C08CSCSDCSY"
+
+
+def test_report_recipient_schema_slack_multiple_channel_ids_valid() -> None:
+    """Several channel ids in one target are accepted."""
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "SlackV2",
+            "recipient_config_json": {"target": "C04BY4U57M3,C06GXKAQNMS"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "C04BY4U57M3,C06GXKAQNMS"
+
+
+def test_report_recipient_schema_slack_channel_name_invalid() -> None:
+    """A channel name is rejected, since it would save and never deliver."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "data-alerts"},
+            }
+        )
+    assert "target" in excinfo.value.messages
+    assert "data-alerts" in str(excinfo.value.messages["target"])
+
+
+def test_report_recipient_schema_slack_mixed_target_invalid() -> None:
+    """A target mixing an id with a name is rejected, and names the bad part."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "C08CSCSDCSY,data-alerts"},
+            }
+        )
+    assert "data-alerts" in str(excinfo.value.messages["target"])
+    assert "C08CSCSDCSY" not in str(excinfo.value.messages["target"])
+
+
+def test_report_recipient_schema_slack_empty_target_invalid() -> None:
+    """An empty Slack target is rejected."""
+    schema = ReportRecipientSchema()
+    with pytest.raises(ValidationError) as excinfo:
+        schema.load(
+            {
+                "type": "SlackV2",
+                "recipient_config_json": {"target": "   "},
+            }
+        )
+    assert "target" in excinfo.value.messages
+
+
+def test_report_recipient_schema_legacy_slack_channel_name_allowed() -> None:
+    """The deprecated Slack v1 type still accepts a channel name.
+
+    v1 sends with files_upload/chat_postMessage, both of which resolve a name,
+    and existing v1 recipients are auto-upgraded to SlackV2 on first send by
+    update_report_schedule_slack_v2. Validating names away here would break that
+    upgrade path.
+    """
+    schema = ReportRecipientSchema()
+    result = schema.load(
+        {
+            "type": "Slack",
+            "recipient_config_json": {"target": "data-alerts"},
+        }
+    )
+    assert result["recipient_config_json"]["target"] == "data-alerts"

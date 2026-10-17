@@ -26,12 +26,16 @@ from typing import Any, Dict
 from unittest.mock import patch
 
 import pytest
+from pydantic import TypeAdapter
 
+from superset.extensions import feature_flag_manager
 from superset.mcp_service.chart.schemas import (
+    ChartConfig,
     ColumnRef,
     FilterConfig,
     GenerateChartRequest,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     TableColumnConfig,
     XYChartConfig,
@@ -59,6 +63,63 @@ def mock_dataset_context() -> DatasetContext:
             {"name": "TotalRevenue", "expression": "SUM(Sales)", "description": None},
         ],
     )
+
+
+@pytest.mark.parametrize(
+    "chart_type,roles",
+    [
+        ("pie", {"dimension": "column", "metric": "metric"}),
+        ("xy", {"x": "column", "y": "metrics"}),
+        ("table", {"columns": "columns"}),
+        ("big_number", {"metric": "metric"}),
+        ("gauge", {"metric": "metric"}),
+        ("histogram", {"column": "column"}),
+        ("box_plot", {"metrics": "metrics", "distribute_across": "columns"}),
+        ("treemap_v2", {"groupby": "columns", "metric": "metric"}),
+        ("pivot_table", {"rows": "columns", "metrics": "metrics"}),
+        ("interactive_pivot", {"rows": "columns", "metrics": "metrics"}),
+        ("mixed_timeseries", {"x": "column", "y": "metrics", "y_secondary": "metrics"}),
+        ("waterfall", {"x_axis": "column", "metric": "metric"}),
+        ("handlebars", {"metrics": "metrics"}),
+    ],
+)
+@pytest.mark.parametrize("updates", [{}, {"filters": []}, {"filters": None}])
+def test_normalization_preserves_explicit_fields(
+    chart_type: str,
+    roles: dict[str, str],
+    updates: dict[str, Any],
+    mock_dataset_context: DatasetContext,
+) -> None:
+    """Column normalization must not turn omitted controls into explicit updates."""
+    column = {"name": "orderdate"}
+    metric = {"name": "sales", "aggregate": "SUM"}
+    values = {
+        "column": column,
+        "columns": [column],
+        "metric": metric,
+        "metrics": [metric],
+    }
+    data = {
+        "chart_type": chart_type,
+        **{key: values[role] for key, role in roles.items()},
+    }
+    if chart_type == "handlebars":
+        data["handlebars_template"] = "{{#each data}}{{Sales}}{{/each}}"
+    config = TypeAdapter(ChartConfig).validate_python({**data, **updates})
+    original = config.model_dump()
+    with patch.object(feature_flag_manager, "is_feature_enabled", return_value=True):
+        normalized = DatasetValidator.normalize_column_names(
+            config, dataset_id=18, dataset_context=mock_dataset_context
+        )
+    assert normalized.model_fields_set == config.model_fields_set
+    assert normalized.filters == config.filters
+    assert config.model_dump() == original
+    for key, role in roles.items():
+        refs = getattr(normalized, key)
+        if not isinstance(refs, list):
+            refs = [refs]
+        expected_name = "Sales" if role.startswith("metric") else "OrderDate"
+        assert all(ref.name == expected_name for ref in refs)
 
 
 class TestGetCanonicalColumnName:
@@ -168,6 +229,26 @@ class TestNormalizeColumnNames:
         assert normalized.y[0].name == "Sales"
         assert normalized.filters is not None
         assert normalized.filters[0].column == "ProductLine"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_xy_chart_config_with_sort_by(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test normalization of XY chart config with sort_by."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by="productline",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert isinstance(normalized.sort_by, SortByConfig)
+        assert normalized.sort_by.column == "ProductLine"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
     def test_normalize_table_chart_config(
@@ -786,6 +867,11 @@ class TestValidateSavedMetrics:
         assert not is_valid
         assert error is not None
         assert error.error_code == "INVALID_SAVED_METRIC"
+        # Uses the saved-metric template, so the message names a metric (not a
+        # column) and the metric list has no "Did you mean" wrapper around it.
+        assert error.message == "Saved metric 'nonexistent_metric' not found in dataset"
+        assert "Available saved metrics: TotalRevenue" in error.suggestions
+        assert all(not s.startswith("Did you mean:") for s in error.suggestions)
 
 
 class TestGetCanonicalMetricName:

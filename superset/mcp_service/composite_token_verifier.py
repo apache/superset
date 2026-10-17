@@ -27,7 +27,6 @@ Routes Bearer tokens to the appropriate verifier based on prefix:
   rejected at the transport layer.
 """
 
-import asyncio
 import logging
 from typing import Any
 
@@ -153,6 +152,9 @@ class CompositeTokenVerifier(TokenVerifier):
                     else []
                 )
                 token = ""  # noqa: S105 -- unbind raw token, defense-in-depth
+                logger.debug(
+                    "API key validated at transport layer for user_id=%s", user.id
+                )
                 return username, scopes
         except Exception:  # noqa: BLE001 — catch-all: DB errors, FAB internals, etc.
             logger.warning(
@@ -180,19 +182,29 @@ class CompositeTokenVerifier(TokenVerifier):
         """
         if any(token.startswith(prefix) for prefix in self._api_key_prefixes):
             if self._app is not None:
-                loop = asyncio.get_running_loop()
-                result = await loop.run_in_executor(
-                    None, self._validate_api_key_sync, token
+                from superset.mcp_service.worker import (
+                    ApiKeyLookupBusyError,
+                    run_api_key_lookup,
                 )
+
+                # Lookups get their own bounded, pool-budgeted thread so that
+                # unauthenticated requests cannot delay audit writes or RBAC
+                # filtering on the shared transport thread.
+                try:
+                    result = await run_api_key_lookup(
+                        self._app, self._validate_api_key_sync, token
+                    )
+                except ApiKeyLookupBusyError:
+                    logger.warning(
+                        "Too many API key lookups in flight; rejecting token"
+                    )
+                    return None
                 if result is None:
                     logger.debug(
                         "API key rejected at transport layer (invalid or expired)"
                     )
                     return None
                 username, key_scopes = result
-                logger.debug(
-                    "API key validated at transport layer for user=%s", username
-                )
                 return AccessToken(
                     token=token,
                     client_id="api_key",

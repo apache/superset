@@ -34,7 +34,8 @@ the broader ``SupersetGenericDBErrorException`` (from
 
 This module covers:
 
-1. Template/parse failures become a warning (no re-raise).
+1. Template/parse failures become a warning (no re-raise), and the
+   command reports the refresh as skipped.
 2. Generic DB errors (connection, permission, driver) still propagate.
 3. Security failures still propagate.
 4. Pre-existing validation paths (not-found, forbidden) still work.
@@ -69,7 +70,7 @@ def test_refresh_swallows_virtual_table_parse_exception(
     SQL that cannot be validated at save time. See #38012.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
-    mock_model = mocker.MagicMock()
+    mock_model = mocker.MagicMock(is_managed_externally=False)
     mock_model.table_name = "jinja_dataset"
     mock_model.fetch_metadata.side_effect = SupersetVirtualTableParseException(
         message="Invalid SQL: unexpected token"
@@ -84,14 +85,36 @@ def test_refresh_swallows_virtual_table_parse_exception(
         return_value=False,
     )
 
+    command = RefreshDatasetCommand(model_id=1)
     with caplog.at_level(logging.WARNING, logger="superset.commands.dataset.refresh"):
-        result = RefreshDatasetCommand(model_id=1).run()
+        result = command.run()
 
     assert result is mock_model, "command should return the model, not re-raise"
+    assert command.metadata_refreshed is False
     assert any(
         "Dataset column refresh skipped for jinja_dataset" in rec.message
         for rec in caplog.records
     ), "expected a warning naming the dataset"
+
+
+def test_refresh_reports_completed_refresh(mocker: MockerFixture) -> None:
+    """metadata_refreshed tells a completed refresh apart from a skipped one."""
+    mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
+    mock_model = mocker.MagicMock(is_managed_externally=False)
+    mock_dataset_dao.find_by_id.return_value = mock_model
+    mocker.patch(
+        "superset.commands.dataset.refresh.security_manager.raise_for_editorship"
+    )
+    mocker.patch(
+        "superset.commands.dataset.refresh.current_app.config.get",
+        return_value=False,
+    )
+
+    command = RefreshDatasetCommand(model_id=1)
+    assert command.run() is mock_model
+
+    mock_model.fetch_metadata.assert_called_once_with()
+    assert command.metadata_refreshed is True
 
 
 def test_refresh_still_raises_generic_db_error(mocker: MockerFixture) -> None:
@@ -101,7 +124,7 @@ def test_refresh_still_raises_generic_db_error(mocker: MockerFixture) -> None:
     the refresh command must NOT silence these — even when the same
     dataset also contains Jinja markers. See #38012."""
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
-    mock_model = mocker.MagicMock()
+    mock_model = mocker.MagicMock(is_managed_externally=False)
     mock_model.table_name = "jinja_dataset_with_bad_connection"
     mock_model.sql = (
         "SELECT * FROM foo {% if from_dttm %}WHERE ds > '{{ from_dttm }}'{% endif %}"
@@ -129,7 +152,7 @@ def test_refresh_still_raises_on_security_exception(
     refresh path must not become a bypass for security checks. See #38012.
     """
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
-    mock_model = mocker.MagicMock()
+    mock_model = mocker.MagicMock(is_managed_externally=False)
     mock_model.table_name = "restricted_dataset"
     mock_model.fetch_metadata.side_effect = SupersetSecurityException(
         SupersetError(
@@ -170,7 +193,9 @@ def test_refresh_dataset_not_found(mocker: MockerFixture) -> None:
 def test_refresh_forbidden(mocker: MockerFixture) -> None:
     """Sanity check that the pre-existing forbidden path still works."""
     mock_dataset_dao = mocker.patch("superset.commands.dataset.refresh.DatasetDAO")
-    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock()
+    mock_dataset_dao.find_by_id.return_value = mocker.MagicMock(
+        is_managed_externally=False
+    )
     mocker.patch(
         "superset.commands.dataset.refresh.security_manager.raise_for_editorship",
         side_effect=SupersetSecurityException(

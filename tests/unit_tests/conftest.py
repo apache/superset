@@ -25,8 +25,10 @@ from unittest.mock import patch
 
 import pytest
 from _pytest.fixtures import SubRequest
+from flask_appbuilder.menu import Menu
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.orm.session import Session
 
@@ -39,11 +41,36 @@ from superset.initialization import SupersetAppInitializer
 
 
 @pytest.fixture
-def get_session(mocker: MockerFixture) -> Callable[[], Session]:
+def semantic_layers_enabled(app_context: None) -> Iterator[None]:
+    """Enable semantic behavior explicitly and restore the host hook after each test."""
+    previous: Callable[[str, bool], bool] | None = (
+        feature_flag_manager._is_feature_enabled_func
+    )
+
+    def resolve(name: str, default: bool) -> bool:
+        """Override only the semantic flag and preserve other host decisions."""
+        if name == "SEMANTIC_LAYERS":
+            return True
+        return previous(name, default) if previous else default
+
+    with patch.object(feature_flag_manager, "_is_feature_enabled_func", resolve):
+        yield
+
+
+@pytest.fixture
+def session_engine() -> Engine:
+    """
+    The engine behind ``session``; a module may override it for one test file.
+    """
+    return create_engine("sqlite://")
+
+
+@pytest.fixture
+def get_session(mocker: MockerFixture, session_engine: Engine) -> Callable[[], Session]:
     """
     Create an in-memory SQLite db.session.to test models.
     """
-    engine = create_engine("sqlite://")
+    engine = session_engine
 
     def get_session():
         Session_ = sessionmaker(bind=engine)  # pylint: disable=invalid-name  # noqa: N806
@@ -73,10 +100,48 @@ def session(get_session) -> Iterator[Session]:
     return get_session()
 
 
-@pytest.fixture(scope="module")
-def app(request: SubRequest) -> Iterator[SupersetApp]:
+@pytest.fixture(scope="session", autouse=True)
+def _preload_clock_reading_drivers() -> None:
+    """Import third-party drivers that read the clock at import, before any test.
+
+    ``clickhouse_connect`` normalises the local timezone through ``dateutil``
+    at module import time, which raises ``AttributeError`` under a frozen
+    ``freeze_time`` clock. Superset's ClickHouse engine spec imports it
+    lazily, on the first ``load_engine_specs()`` call, so whichever test
+    first resolves an engine spec pays that import -- and if that test runs
+    under ``freeze_time`` (seven unit-test files combine ``freeze_time`` with
+    engine-spec resolution) the import fails. Serially some earlier test
+    always paid it outside a frozen clock; under pytest-xdist each worker
+    starts cold, so the failure moves with worker assignment.
+
+    Only the third-party module is imported here, deliberately: importing
+    Superset's own engine-spec modules this early would also cache
+    app-context-dependent values (the ClickHouse spec resolves its
+    ``product_name`` from ``current_app`` on import), and running full
+    ``load_engine_specs()`` discovery would execute every registered
+    third-party entry point in every worker. Engine-spec discovery itself
+    stays lazy, so tests that exercise it still observe a cold state.
     """
-    A fixture that generates a Superset app.
+    # Even a guarded module-top import would tie the driver to collection on
+    # every invocation, including --collect-only and partial runs. Session setup
+    # imports it once per worker, after conftest/plugin loading and before any
+    # test can enter freeze_time. Guard ImportError because the driver is optional.
+    try:
+        import clickhouse_connect  # noqa: F401
+    except ImportError:
+        pass
+
+
+def build_app(config_overrides: dict[str, Any] | None = None) -> SupersetApp:
+    """
+    Build and initialize a Superset app for the unit tests.
+
+    Every test module gets its own app, so this runs hundreds of times in one
+    xdist worker. Each initialization must replace the previous app in the
+    process-wide singletons rather than add to them: an app that stays
+    reachable keeps its views, routing rules, mappers and worker pools alive
+    for the rest of the worker's life, and the suite's resident memory then
+    grows with the number of modules until the CI runner is exhausted.
     """
     app = SupersetApp(__name__)
 
@@ -94,24 +159,17 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
     app.config["APPLICATION_ROOT"] = "/"
     app.config["PREFERRED_URL_SCHEME="] = "http"
 
-    # loop over extra configs passed in by tests
-    # and update the app config
-    # to override the default configs use:
-    #
-    # @pytest.mark.parametrize(
-    #     "app",
-    #     [{"SOME_CONFIG": "SOME_VALUE"}],
-    #     indirect=True,
-    # )
-    # def test_some_test(app_context: None) -> None:
-    if request and hasattr(request, "param"):
-        for key, val in request.param.items():
-            app.config[key] = val
+    for key, val in (config_overrides or {}).items():
+        app.config[key] = val
 
     # ``superset.extensions.appbuilder`` is a singleton, and won't rebuild the
-    # routes when this fixture is called multiple times; we need to clear the
-    # registered views to ensure the initialization can happen more than once.
+    # routes when this runs multiple times; we need to clear the registered
+    # views to ensure the initialization can happen more than once. The menu
+    # is reset for the same reason: ``init_views`` adds one set of menu items
+    # per initialization, and each item's link closure holds the app that
+    # registered it.
     appbuilder.baseviews = []
+    appbuilder.menu = Menu()
 
     app_initializer = SupersetAppInitializer(app)
     app_initializer.init_app()
@@ -123,6 +181,23 @@ def app(request: SubRequest) -> Iterator[SupersetApp]:
         importlib.reload(superset.views.base)
 
     return app
+
+
+@pytest.fixture(scope="module")
+def app(request: SubRequest) -> SupersetApp:
+    """
+    A fixture that generates a Superset app.
+
+    To override the default configs use:
+
+        @pytest.mark.parametrize(
+            "app",
+            [{"SOME_CONFIG": "SOME_VALUE"}],
+            indirect=True,
+        )
+        def test_some_test(app_context: None) -> None:
+    """
+    return build_app(getattr(request, "param", None))
 
 
 @pytest.fixture

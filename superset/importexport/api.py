@@ -27,10 +27,17 @@ from superset.commands.importers.exceptions import (
     NoValidFilesFoundError,
 )
 from superset.commands.importers.v1.assets import ImportAssetsCommand
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.extensions import event_logger
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
 from superset.views.base_api import BaseSupersetApi, requires_form_data, statsd_metrics
 
 
@@ -80,8 +87,7 @@ class ImportExportRestApi(BaseSupersetApi):
         buf = BytesIO()
         with ZipFile(buf, "w") as bundle:
             for file_name, file_content in ExportAssetsCommand().run():
-                with bundle.open(f"{root}/{file_name}", "w") as fp:
-                    fp.write(file_content().encode())
+                write_zip_entry(bundle, f"{root}/{file_name}", file_content().encode())
         buf.seek(0)
 
         return send_export_zip(buf, filename)
@@ -183,7 +189,7 @@ class ImportExportRestApi(BaseSupersetApi):
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
 
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:

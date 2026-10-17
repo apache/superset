@@ -20,7 +20,7 @@ import { cloneDeep } from 'lodash-es';
 import {
   Behavior,
   getChartMetadataRegistry,
-  NativeFilterScope,
+  type NativeFilterScope,
 } from '@superset-ui/core';
 import {
   createChartLayoutItemMap,
@@ -94,17 +94,18 @@ export const getCrossFiltersConfiguration = (
           },
         };
       }
+      const { scope } = chartConfiguration[chartId].crossFilters;
+
+      const effectiveScope: NativeFilterScope = isCrossFilterScopeGlobal(scope)
+        ? globalChartConfiguration.scope
+        : (scope as NativeFilterScope);
+
       chartConfiguration[chartId].crossFilters.chartsInScope =
-        isCrossFilterScopeGlobal(chartConfiguration[chartId].crossFilters.scope)
-          ? globalChartConfiguration.chartsInScope.filter(
-              id => id !== Number(chartId),
-            )
-          : getChartIdsInFilterScope(
-              chartConfiguration[chartId].crossFilters
-                .scope as NativeFilterScope,
-              chartIds,
-              chartLayoutItemMap,
-            );
+        getChartIdsInFilterScope(
+          effectiveScope,
+          chartIds,
+          chartLayoutItemMap,
+        ).filter(id => id !== Number(chartId));
     }
   });
 

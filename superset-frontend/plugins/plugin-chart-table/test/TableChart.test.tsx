@@ -181,6 +181,175 @@ test('transformProps retains percentage rules with automatic bounds under server
   expect(formatter?.getColorFromValue(2467063)).toBe('#FF0000FF');
 });
 
+test('defaults header groups to an empty list', () => {
+  const props = { ...transformProps(testData.basic) };
+  delete (props as { headerGroups?: unknown }).headerGroups;
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  expect(container.querySelector('table')).toBeInTheDocument();
+  expect(
+    Array.from(container.querySelectorAll('thead th')).some(
+      th => th.textContent === 'Metrics',
+    ),
+  ).toBe(false);
+});
+
+test('renders time comparison grouping headers without configured header groups', () => {
+  const props = {
+    ...transformProps(testData.comparison),
+    headerGroups: [],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const groupRow = container.querySelector('thead tr');
+  expect(groupRow).toBeInTheDocument();
+  expect(groupRow?.textContent).toMatch(/metric_1|Metric/);
+  expect(container.querySelector('.anticon-minus-circle')).toBeInTheDocument();
+});
+
+test('does not show a comparison hide toggle when a group spans mixed comparison keys', () => {
+  const base = transformProps(testData.comparison);
+  const mainColumn = base.columns.find(column => column.label === 'Main');
+  const hashColumns = base.columns.filter(column => column.label === '#');
+  if (!mainColumn || hashColumns.length < 2) {
+    throw new Error('expected Main and hash columns for two metrics');
+  }
+
+  const props = {
+    ...base,
+    headerGroups: [
+      {
+        id: 'mixed',
+        label: 'Mixed',
+        columns: [mainColumn.key, hashColumns[1].key],
+      },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const mixedHeader = Array.from(container.querySelectorAll('thead th')).find(
+    header => header.textContent === 'Mixed',
+  );
+
+  expect(mixedHeader).toBeDefined();
+  expect(mixedHeader?.querySelector('.anticon-minus-circle')).toBeNull();
+});
+
+test('does not hide a dimension whose name starts with a comparison prefix', () => {
+  const base = transformProps(testData.comparison);
+  const hashColumn = base.columns.find(column => column.label === '#');
+  if (!hashColumn) {
+    throw new Error('expected a comparison hash column');
+  }
+
+  const props = {
+    ...base,
+    headerGroups: [],
+    columns: [
+      {
+        ...hashColumn,
+        key: 'Main Street',
+        label: 'Main Street',
+        isMetric: false,
+        isPercentMetric: false,
+        isNumeric: false,
+      },
+      { ...hashColumn, key: '# Street', label: '#', originalLabel: 'Street' },
+      { ...hashColumn, key: '△ Street', label: '△', originalLabel: 'Street' },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const hideToggle = container.querySelector('.anticon-minus-circle');
+  expect(hideToggle).toBeInTheDocument();
+
+  fireEvent.click(hideToggle as Element);
+
+  expect(
+    Array.from(container.querySelectorAll('thead th')).some(
+      header => header.textContent === 'Main Street',
+    ),
+  ).toBe(true);
+});
+
+test('keeps comparison column hide toggles when time comparison header groups are present', () => {
+  const props = transformProps(testData.comparison);
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const hideToggle = container.querySelector('.anticon-minus-circle');
+  expect(hideToggle).toBeInTheDocument();
+
+  fireEvent.click(hideToggle as Element);
+  const showToggle = container.querySelector('.anticon-plus-circle');
+  expect(showToggle).toBeInTheDocument();
+
+  fireEvent.click(showToggle as Element);
+  expect(container.querySelector('.anticon-minus-circle')).toBeInTheDocument();
+});
+
+test('marks dimension header groups and applies label alignment', () => {
+  const props = {
+    ...transformProps(testData.basic),
+    headerGroups: [
+      {
+        id: 'dims',
+        label: 'Dims',
+        columns: ['name'],
+        labelAlign: 'left' as const,
+      },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const dimHeader = Array.from(container.querySelectorAll('thead th')).find(
+    th => th.textContent === 'Dims',
+  );
+
+  expect(dimHeader).toBeDefined();
+  expect(dimHeader?.getAttribute('data-dimension-separator')).toBe('true');
+  expect(dimHeader?.getAttribute('style')).toContain('left');
+});
+
+test('renders multi-level header groups above column names', () => {
+  const props = {
+    ...transformProps(testData.basic),
+    headerGroups: [
+      {
+        id: 'metrics',
+        label: 'Metrics',
+        columns: [],
+        children: [
+          {
+            id: 'totals',
+            label: 'Totals',
+            columns: ['sum__num'],
+          },
+        ],
+      },
+    ],
+  };
+
+  const { container } = render(<TableChart {...props} sticky={false} />);
+  const headerRows = container.querySelectorAll('thead tr');
+
+  expect(headerRows.length).toBeGreaterThanOrEqual(3);
+  expect(headerRows[0].textContent).toContain('Metrics');
+  expect(headerRows[1].textContent).toContain('Totals');
+  expect(
+    Array.from(headerRows[0].querySelectorAll('th')).some(
+      th => th.textContent === 'Metrics',
+    ),
+  ).toBe(true);
+
+  const extraHeaderCells = headerRows[0].querySelectorAll('th');
+  extraHeaderCells.forEach(th => {
+    if (th.textContent !== 'Metrics') {
+      expect(th.getAttribute('data-dimension-separator')).toBe('true');
+      expect(Number(th.getAttribute('rowspan') ?? '1')).toBe(1);
+    }
+  });
+});
+
 describe('plugin-chart-table', () => {
   describe('transformProps', () => {
     test('should parse pageLength to pageSize', () => {
@@ -241,6 +410,163 @@ describe('plugin-chart-table', () => {
       expect(comparisonColumns.some(col => col.label === '#')).toBe(true);
       expect(comparisonColumns.some(col => col.label === '△')).toBe(true);
       expect(comparisonColumns.some(col => col.label === '%')).toBe(true);
+    });
+
+    test('should label percent-metric time comparison groups from verboseMap', () => {
+      const transformedProps = transformProps({
+        ...testData.comparison,
+        datasource: {
+          ...testData.comparison.datasource,
+          verboseMap: {
+            metric_1: 'Metric 1',
+            percent_metric_1: 'Percent Metric 1',
+          },
+        },
+        queriesData: [
+          {
+            ...testData.comparison.queriesData[0],
+            data: [
+              {
+                metric_1: 100,
+                metric_2: 200,
+                '%percent_metric_1': 0.5,
+                date: '2023-01-01',
+              },
+            ],
+            colnames: ['metric_1', 'metric_2', '%percent_metric_1', 'date'],
+            coltypes: [
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Numeric,
+              GenericDataType.Temporal,
+            ],
+          },
+          testData.comparison.queriesData[1],
+        ],
+      });
+
+      expect(
+        transformedProps.headerGroups?.find(
+          group => group.id === 'time-compare-metric_1',
+        )?.label,
+      ).toBe('Metric 1');
+      expect(
+        transformedProps.headerGroups?.find(
+          group => group.id === 'time-compare-%percent_metric_1',
+        )?.label,
+      ).toBe('%Percent Metric 1');
+    });
+
+    test('should not create time comparison header groups for non-numeric metrics', () => {
+      const transformedProps = transformProps({
+        ...testData.comparison,
+        rawFormData: {
+          ...testData.comparison.rawFormData,
+          metrics: ['metric_1', 'name_metric'],
+          percent_metrics: [],
+          header_groups: [
+            {
+              id: 'time-compare-name_metric',
+              label: 'name_metric',
+              columns: [
+                'Main name_metric',
+                '# name_metric',
+                '△ name_metric',
+                '% name_metric',
+              ],
+              source: 'time_compare',
+            },
+          ],
+        },
+        queriesData: [
+          {
+            ...testData.comparison.queriesData[0],
+            data: [{ metric_1: 100, name_metric: 'alpha', date: '2023-01-01' }],
+            colnames: ['metric_1', 'name_metric', 'date'],
+            coltypes: [
+              GenericDataType.Numeric,
+              GenericDataType.String,
+              GenericDataType.Temporal,
+            ],
+          },
+          testData.comparison.queriesData[1],
+        ],
+      });
+
+      expect(transformedProps.headerGroups?.map(group => group.id)).toEqual([
+        'time-compare-metric_1',
+      ]);
+    });
+
+    test('should derive header groups from time comparison when header_groups is empty', () => {
+      const transformedProps = transformProps(testData.comparison);
+
+      expect(transformedProps.headerGroups).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            id: 'time-compare-metric_1',
+            source: 'time_compare',
+          }),
+          expect.objectContaining({
+            id: 'time-compare-metric_2',
+            source: 'time_compare',
+          }),
+        ]),
+      );
+    });
+
+    test('should refresh time comparison header group labels from verboseMap', () => {
+      const transformedProps = transformProps({
+        ...testData.comparison,
+        datasource: {
+          ...testData.comparison.datasource,
+          verboseMap: {
+            metric_1: 'Metric 1',
+          },
+        },
+        rawFormData: {
+          ...testData.comparison.rawFormData,
+          header_groups: [
+            {
+              id: 'time-compare-metric_1',
+              label: 'Renamed metric',
+              columns: [
+                'Main metric_1',
+                '# metric_1',
+                '△ metric_1',
+                '% metric_1',
+              ],
+              source: 'time_compare',
+            },
+          ],
+        },
+      });
+
+      expect(
+        transformedProps.headerGroups?.find(
+          group => group.id === 'time-compare-metric_1',
+        )?.label,
+      ).toBe('Metric 1');
+    });
+
+    test('should drop time comparison header groups when time_compare is empty', () => {
+      const transformedProps = transformProps({
+        ...testData.comparison,
+        rawFormData: {
+          ...testData.comparison.rawFormData,
+          time_compare: [],
+          header_groups: [
+            {
+              id: 'time-compare-metric_1',
+              label: 'Metric 1',
+              columns: ['Main metric_1'],
+              source: 'time_compare',
+            },
+          ],
+        },
+      });
+
+      expect(transformedProps.headerGroups).toEqual([]);
     });
 
     test('should not process comparison columns when time_compare is empty', () => {
@@ -333,6 +659,38 @@ describe('plugin-chart-table', () => {
         .find(col => col.key === '% metric_1')
         ?.formatter?.(0.123456);
       expect(formattedPercentMetric).toBe('0.123');
+    });
+
+    test('resolves AUTO currency on comparison columns from detected_currency', () => {
+      const autoCurrency = { symbol: 'AUTO', symbolPosition: 'prefix' };
+      const comparisonKeys = ['Main metric_1', '# metric_1', '△ metric_1'];
+      const transformedProps = transformProps({
+        ...testData.comparisonWithConfig,
+        rawFormData: {
+          ...testData.comparisonWithConfig.rawFormData,
+          column_config: Object.fromEntries(
+            comparisonKeys.map(key => [key, { currencyFormat: autoCurrency }]),
+          ),
+        },
+        datasource: {
+          ...testData.comparisonWithConfig.datasource,
+          currencyCodeColumn: 'currency_code',
+        },
+        queriesData: [
+          {
+            ...testData.comparisonWithConfig.queriesData[0],
+            detected_currency: 'GBP',
+          },
+          testData.comparisonWithConfig.queriesData[1],
+        ],
+      });
+
+      comparisonKeys.forEach(key => {
+        const formatted = transformedProps.columns
+          .find(col => col.key === key)
+          ?.formatter?.(100);
+        expect(formatted).toContain('£');
+      });
     });
 
     test('should set originalLabel for comparison columns when time_compare and comparison_type are set', () => {
@@ -2989,6 +3347,50 @@ describe('plugin-chart-table', () => {
       expect(transformedProps.totals).toEqual({ sum__num: 0.27 });
     },
   );
+
+  test('dropdown preserves serverPageLength if larger than rowCount and avoids invalid 0 (#42243)', async () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        server_pagination: true,
+        server_page_length: 20,
+      },
+    });
+    props.serverPagination = true;
+    props.serverPageLength = 20;
+    props.rowCount = 12;
+    props.data = Array.from({ length: 12 }, (_, i) => ({
+      name: `Row ${i}`,
+    })) as any;
+
+    const { container } = render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    // Initial page size selector text
+    const pageSizeSelector = container.querySelector('.dt-select-page-size');
+    expect(pageSizeSelector).not.toBeNull();
+    expect(pageSizeSelector).toHaveTextContent('20');
+
+    // Page size combobox control exists and is accessible
+    const selectTrigger = screen.getByRole('combobox', {
+      name: 'Show entries per page',
+    });
+    expect(selectTrigger).toBeInTheDocument();
+    fireEvent.mouseDown(selectTrigger);
+
+    await waitFor(() => {
+      const options = screen.getAllByRole('option');
+      const optionTexts = options.map(opt => opt.textContent);
+      expect(optionTexts).toContain('10');
+      expect(optionTexts).toContain('20');
+      expect(optionTexts).not.toContain('0');
+      expect(optionTexts).not.toContain('All');
+    });
+  });
 });
 
 /**
@@ -3169,4 +3571,92 @@ test('TableChart should NOT emit cross-filter when clicking a cell in a not-filt
     (call: any[]) => call[0]?.filterState?.filters,
   );
   expect(crossFilterCall).toBeUndefined();
+});
+
+test.each([
+  { orderDesc: true, firstClickDesc: true },
+  { orderDesc: false, firstClickDesc: false },
+])(
+  'pushes the clicked column sort to the server own state when server pagination is enabled (order_desc $orderDesc)',
+  ({ orderDesc, firstClickDesc }) => {
+    const setDataMask = jest.fn();
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        order_desc: orderDesc,
+      },
+      hooks: { setDataMask },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['name'],
+          coltypes: [GenericDataType.String],
+          data: [{ name: 'Michael' }, { name: 'John' }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: (
+          <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+        ),
+      }),
+    );
+
+    const lastPushedSortBy = () =>
+      setDataMask.mock.calls
+        .map(([mask]) => mask?.ownState?.sortBy)
+        .filter(Array.isArray)
+        .at(-1);
+
+    expect(lastPushedSortBy()).toBeUndefined();
+
+    // The first click sorts in the configured default direction and the
+    // second click flips it; each change is pushed with the column key.
+    fireEvent.click(screen.getByText('name'));
+    expect(lastPushedSortBy()).toEqual([
+      expect.objectContaining({ key: 'name', desc: firstClickDesc }),
+    ]);
+
+    fireEvent.click(screen.getByText('name'));
+    expect(lastPushedSortBy()).toEqual([
+      expect.objectContaining({ key: 'name', desc: !firstClickDesc }),
+    ]);
+  },
+);
+
+test('does not push a column sort to the server own state when server pagination is disabled', () => {
+  const setDataMask = jest.fn();
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      server_pagination: false,
+    },
+    hooks: { setDataMask },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['name'],
+        coltypes: [GenericDataType.String],
+        data: [{ name: 'Michael' }, { name: 'John' }],
+      },
+    ],
+  });
+  render(
+    ProviderWrapper({
+      children: (
+        <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+      ),
+    }),
+  );
+
+  fireEvent.click(screen.getByText('name'));
+
+  const pushedSort = setDataMask.mock.calls.some(([mask]) =>
+    Object.prototype.hasOwnProperty.call(mask?.ownState ?? {}, 'sortBy'),
+  );
+  expect(pushedSort).toBe(false);
 });

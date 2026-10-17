@@ -274,7 +274,7 @@ MCP_ERROR_HOOK = _mcp_error_hook
 
 `MCP_ERROR_HOOK` is invoked from `GlobalErrorHandlerMiddleware` (the primary
 capture point, for every system-class error) and from
-`StructuredContentStripperMiddleware`'s last-resort exception handler (for
+`ToolResultCompatibilityMiddleware`'s last-resort exception handler (for
 errors that slip past the primary handler entirely). Hook failures are
 caught and logged; they never affect the MCP response.
 

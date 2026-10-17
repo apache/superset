@@ -168,7 +168,7 @@ test('triggers onChange when the anchor changes', async () => {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
-  userEvent.click(screen.getByRole('radio', { name: 'Date/Time' }));
+  await userEvent.click(screen.getByRole('radio', { name: 'Date/Time' }));
   expect(onChange).toHaveBeenCalled();
 });
 
@@ -178,7 +178,7 @@ test('triggers onChange when the value changes', async () => {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
-  userEvent.click(screen.getByRole('img', { name: 'up' }));
+  await userEvent.click(screen.getByRole('img', { name: 'up' }));
   expect(onChange).toHaveBeenCalled();
 });
 
@@ -188,14 +188,14 @@ test('triggers onChange when the mode changes', async () => {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
-  userEvent.click(screen.getByTitle('Midnight'));
+  await userEvent.click(screen.getByTitle('Midnight'));
   expect(await screen.findByTitle('Relative Date/Time')).toBeInTheDocument();
-  userEvent.click(screen.getByTitle('Relative Date/Time'));
-  userEvent.click(screen.getAllByTitle('Now')[1]);
+  await userEvent.click(screen.getByTitle('Relative Date/Time'));
+  await userEvent.click(screen.getAllByTitle('Now')[1]);
   expect(
     await screen.findByText('Configure custom time range'),
   ).toBeInTheDocument();
-  userEvent.click(screen.getAllByTitle('Specific Date/Time')[1]);
+  await userEvent.click(screen.getAllByTitle('Specific Date/Time')[1]);
   await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
 });
 
@@ -205,12 +205,12 @@ test('triggers onChange when the grain changes', async () => {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
-  userEvent.click(screen.getByText('Days Before'));
+  await userEvent.click(screen.getByText('Days Before'));
   expect(await screen.findByText('Weeks Before')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Weeks Before'));
-  userEvent.click(screen.getByText('Days After'));
+  await userEvent.click(screen.getByText('Weeks Before'));
+  await userEvent.click(screen.getByText('Days After'));
   expect(await screen.findByText('Weeks After')).toBeInTheDocument();
-  userEvent.click(screen.getByText('Weeks After'));
+  await userEvent.click(screen.getByText('Weeks After'));
   await waitFor(() => expect(onChange).toHaveBeenCalledTimes(2));
 });
 
@@ -221,10 +221,10 @@ test('triggers onChange when the date changes', async () => {
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
   const inputs = screen.getAllByPlaceholderText('Select date');
-  userEvent.click(inputs[0]);
-  userEvent.click(screen.getAllByText('Now')[0]);
-  userEvent.click(inputs[1]);
-  userEvent.click(screen.getAllByText('Now')[1]);
+  await userEvent.click(inputs[0]);
+  await userEvent.click(screen.getAllByText('Now')[0]);
+  await userEvent.click(inputs[1]);
+  await userEvent.click(screen.getAllByText('Now')[1]);
   expect(onChange).toHaveBeenCalledTimes(2);
 });
 
@@ -237,7 +237,12 @@ test('should translate Date Picker', async () => {
     store,
   });
   await waitForElementToBeRemoved(() => screen.queryByLabelText('Loading'));
-  userEvent.click(screen.getAllByLabelText('calendar')[0]);
+  // The calendar icon is decorative (`pointer-events: none`); the antd
+  // picker opens from a click anywhere on the input, so opt out of the
+  // pointer events check rather than target a different element.
+  await userEvent.click(screen.getAllByLabelText('calendar')[0], {
+    pointerEventsCheck: 0,
+  });
   expect(screen.getByText('2021')).toBeInTheDocument();
 
   expect(screen.getByText('lu')).toBeInTheDocument();
@@ -266,13 +271,16 @@ test('calls onChange when START Specific Date/Time is selected', async () => {
   expect(specificDateTimeOptions.length).toBe(2);
 
   const calendarIcons = screen.getAllByLabelText('calendar');
-  userEvent.click(calendarIcons[0]);
+  // The calendar icon is decorative (`pointer-events: none`); the antd
+  // picker opens from a click anywhere on the input, so opt out of the
+  // pointer events check rather than target a different element.
+  await userEvent.click(calendarIcons[0], { pointerEventsCheck: 0 });
 
   const randomDate = screen.getByTitle('2021-03-11');
-  userEvent.click(randomDate);
+  await userEvent.click(randomDate);
 
   const okButton = screen.getByText('OK');
-  userEvent.click(okButton);
+  await userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();
 });
@@ -294,13 +302,16 @@ test('calls onChange when END Specific Date/Time is selected', async () => {
   expect(specificDateTimeOptions.length).toBe(2);
 
   const calendarIcons = screen.getAllByLabelText('calendar');
-  userEvent.click(calendarIcons[1]);
+  // The calendar icon is decorative (`pointer-events: none`); the antd
+  // picker opens from a click anywhere on the input, so opt out of the
+  // pointer events check rather than target a different element.
+  await userEvent.click(calendarIcons[1], { pointerEventsCheck: 0 });
 
   const randomDate = screen.getByTitle('2021-03-28');
-  userEvent.click(randomDate);
+  await userEvent.click(randomDate);
 
   const okButton = screen.getByText('OK');
-  userEvent.click(okButton);
+  await userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();
 });
@@ -330,13 +341,16 @@ test('calls onChange when a date is picked from anchor mode date picker', async 
   expect(dateTimeRadio).toBeChecked();
 
   const calendarIcon = screen.getByLabelText('calendar');
-  userEvent.click(calendarIcon);
+  // The calendar icon is decorative (`pointer-events: none`); the antd
+  // picker opens from a click anywhere on the input, so opt out of the
+  // pointer events check rather than target a different element.
+  await userEvent.click(calendarIcon, { pointerEventsCheck: 0 });
 
   const randomDate = screen.getByTitle('2024-06-05');
-  userEvent.click(randomDate);
+  await userEvent.click(randomDate);
 
   const okButton = screen.getByText('OK');
-  userEvent.click(okButton);
+  await userEvent.click(okButton);
 
   expect(onChange).toHaveBeenCalled();
 });

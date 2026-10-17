@@ -151,9 +151,9 @@ const metricProps = {
   onChange: jest.fn(),
 };
 
-const search = (value: string, input: HTMLElement) => {
-  userEvent.clear(input);
-  userEvent.type(input, value);
+const search = async (value: string, input: HTMLElement) => {
+  await userEvent.clear(input);
+  await userEvent.type(input, value);
 };
 
 test('should render', async () => {
@@ -224,7 +224,7 @@ describe('DatasourcePanel', () => {
       expect(searchInput).toBeInTheDocument();
     });
 
-    search(columns[0].column_name, searchInput);
+    await search(columns[0].column_name, searchInput);
 
     await waitFor(
       () => {
@@ -250,7 +250,7 @@ test('should search and render matching metrics', async () => {
   );
   const searchInput = screen.getByPlaceholderText('Search Metrics & Columns');
 
-  search(metrics[0].metric_name, searchInput);
+  await search(metrics[0].metric_name, searchInput);
 
   await waitFor(() => {
     expect(screen.getByText(metrics[0].metric_name)).toBeInTheDocument();
@@ -389,7 +389,7 @@ test('Renders with custom folders', () => {
   expect(screen.getAllByTestId('datasource-panel-divider').length).toEqual(3);
 });
 
-test('Collapse folders', () => {
+test('Collapse folders', async () => {
   render(
     <ExploreContainer>
       <DatasourcePanel {...propsWithFolders} />
@@ -401,7 +401,7 @@ test('Collapse folders', () => {
     },
   );
 
-  userEvent.click(screen.getByText('Test folder'));
+  await userEvent.click(screen.getByText('Test folder'));
 
   expect(screen.getByText('Test folder')).toBeInTheDocument();
   expect(screen.queryByText('Test nested folder')).not.toBeInTheDocument();
@@ -411,7 +411,7 @@ test('Collapse folders', () => {
 
   expect(screen.queryByText(metrics[0].metric_name)).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Test folder'));
+  await userEvent.click(screen.getByText('Test folder'));
 
   expect(screen.getByText('Test folder')).toBeInTheDocument();
   expect(screen.getByText('Test nested folder')).toBeInTheDocument();

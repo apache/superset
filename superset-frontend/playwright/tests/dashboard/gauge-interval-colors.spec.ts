@@ -53,7 +53,7 @@ const COLOR_INTERVAL_2: [number, number, number] = [69, 78, 124];
 const COLOR_UNUSED_3: [number, number, number] = [90, 193, 137];
 
 testWithAssets(
-  'Gauge renders configured interval colors on a dashboard (#28766)',
+  'Gauge renders configured interval colors on a dashboard',
   async ({ page, testAssets }) => {
     testWithAssets.setTimeout(TIMEOUT.SLOW_TEST);
 

@@ -20,6 +20,7 @@
 import {
   DataMaskStateWithId,
   DataRecordValue,
+  DatasourceType,
   Filter,
   FilterState,
 } from '@superset-ui/core';
@@ -27,6 +28,7 @@ import {
   checkIsApplyDisabled,
   checkIsValidateError,
   checkIsMissingRequiredValue,
+  clearedCustomizationTarget,
   getOnlyExtraFormData,
   getFiltersToApply,
 } from './utils';
@@ -839,4 +841,40 @@ test('getFiltersToApply handles null dataMask entries', () => {
 
   expect(result).not.toContain('filter-1');
   expect(result).toContain('filter-2');
+});
+
+test('clearedCustomizationTarget preserves the datasourceType of a semantic view through a clear', () => {
+  const cleared = clearedCustomizationTarget({
+    datasetId: 306,
+    datasourceType: DatasourceType.SemanticView,
+    column: { name: 'Orders Status' },
+  });
+
+  // The selected column is dropped, but the binding (id + type) survives —
+  // dropping datasourceType would rebind the view to the colliding regular
+  // dataset on the next resolution (sc-111089).
+  expect(cleared).toEqual({
+    datasetId: 306,
+    datasourceType: DatasourceType.SemanticView,
+  });
+});
+
+test('clearedCustomizationTarget omits datasourceType for a regular dataset target', () => {
+  const cleared = clearedCustomizationTarget({
+    datasetId: 306,
+    column: { name: 'city' },
+  });
+
+  // No type key is emitted (not `datasourceType: undefined`), matching a
+  // regular dataset and the legacy shape.
+  expect(cleared).toEqual({ datasetId: 306 });
+  expect('datasourceType' in cleared).toBe(false);
+});
+
+test('clearedCustomizationTarget tolerates an absent target', () => {
+  // toStrictEqual (not toEqual) so the `datasetId` key must actually be present,
+  // rather than the assertion passing against a bare {}.
+  expect(clearedCustomizationTarget(undefined)).toStrictEqual({
+    datasetId: undefined,
+  });
 });

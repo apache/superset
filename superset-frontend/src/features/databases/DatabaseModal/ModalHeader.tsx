@@ -61,7 +61,7 @@ const irregularDocumentationLinks = {
 };
 
 const documentationLink = (engine: string | undefined) => {
-  if (!engine) return null;
+  if (!engine) return undefined;
 
   if (supersetTextDocs) {
     // override doc link for superset_txt yml

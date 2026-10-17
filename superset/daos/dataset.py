@@ -32,6 +32,7 @@ from superset.connectors.sqla.models import (
     SqlMetric,
     TableColumn,
 )
+from superset.constants import EPOCH_FORMATS
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
 from superset.extensions import db
 from superset.models.core import Database
@@ -142,11 +143,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             return None
 
     @staticmethod
-    def get_related_objects(database_id: int) -> dict[str, Any]:
+    def get_related_objects(dataset_id: int) -> dict[str, Any]:
+        return DatasetDAO.get_related_objects_for_datasets([dataset_id])
+
+    @staticmethod
+    def get_related_objects_for_datasets(dataset_ids: list[int]) -> dict[str, Any]:
+        """
+        Return the charts built on any of the datasets and the dashboards those
+        charts appear on. Each chart and dashboard is listed once even if it
+        depends on several of the datasets.
+        """
+        if not dataset_ids:
+            return {"charts": [], "dashboards": []}
         charts = (
             db.session.query(Slice)
             .filter(
-                Slice.datasource_id == database_id,
+                Slice.datasource_id.in_(dataset_ids),
                 Slice.datasource_type == DatasourceType.TABLE,
             )
             .all()
@@ -398,7 +410,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
 
     @staticmethod
     def validate_python_date_format(dt_format: str) -> bool:
-        if dt_format in ("epoch_s", "epoch_ms"):
+        if dt_format in EPOCH_FORMATS:
             return True
         try:
             dt_str = datetime.now().strftime(dt_format)
@@ -412,10 +424,22 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         cls,
         item: SqlaTable | None = None,
         attributes: dict[str, Any] | None = None,
+        *,
+        preserve_existing_metrics: bool = False,
+        delete_metric_ids: set[int] | None = None,
     ) -> SqlaTable:
         """
-        Updates a Dataset model on the metadata DB
+        Updates a Dataset model on the metadata DB.
+
+        delete_metric_ids removes only explicitly selected metrics, without
+        replacing or replaying the remaining metrics.
         """
+
+        if item and delete_metric_ids:
+            for metric in item.metrics:
+                if metric.id in delete_metric_ids:
+                    db.session.delete(metric)
+            attributes = {**(attributes or {}), "changed_on": datetime.now()}
 
         if item and attributes:
             force_update: bool = False
@@ -428,7 +452,11 @@ class DatasetDAO(BaseDAO[SqlaTable]):
                 force_update = True
 
             if "metrics" in attributes:
-                cls.update_metrics(item, attributes.pop("metrics"))
+                metrics = attributes.pop("metrics")
+                if preserve_existing_metrics:
+                    cls.update_metrics(item, metrics, preserve_existing=True)
+                else:
+                    cls.update_metrics(item, metrics)
                 force_update = True
 
             if force_update:
@@ -573,6 +601,8 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         cls,
         model: SqlaTable,
         property_metrics: list[dict[str, Any]],
+        *,
+        preserve_existing: bool = False,
     ) -> None:
         """
         Creates/updates and/or deletes a list of metrics, based on a
@@ -581,7 +611,7 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         - If a metric Dict has an `id` property then we update.
         - If a metric Dict does not have an `id` then we create a new metric.
         - If there are extra metrics on the metadata db that are not defined on the List
-        then we delete.
+        then we delete, unless preserve_existing is set.
 
         Uses individual ORM operations (not bulk) so that SQLAlchemy-Continuum
         can capture each row change in the version history.
@@ -605,6 +635,10 @@ class DatasetDAO(BaseDAO[SqlaTable]):
             metric = metrics_by_id[properties["id"]]
             for key, value in properties.items():
                 setattr(metric, key, value)
+
+        # Additive mutations must not delete metrics absent from their payload.
+        if preserve_existing:
+            return
 
         # Delete removed metrics
         ids_to_keep = property_metrics_by_id.keys()

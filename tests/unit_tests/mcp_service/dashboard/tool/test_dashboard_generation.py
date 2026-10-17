@@ -30,12 +30,14 @@ from fastmcp import Client
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.chart_utils import DatasetValidationResult
 from superset.mcp_service.dashboard.constants import generate_id
+from superset.mcp_service.dashboard.layout_placement import (
+    collect_available_tab_names,
+    ensure_layout_structure,
+    find_next_row_position,
+    find_tab_insert_target,
+)
 from superset.mcp_service.dashboard.tool.add_chart_to_existing_dashboard import (
     _add_chart_to_layout,
-    _collect_available_tab_names,
-    _ensure_layout_structure,
-    _find_next_row_position,
-    _find_tab_insert_target,
 )
 from superset.mcp_service.dashboard.tool.generate_dashboard import (
     _generate_title_from_charts,
@@ -116,6 +118,7 @@ def _mock_dashboard(id: int = 1, title: str = "Test Dashboard") -> Mock:
     """Create a mock dashboard object."""
     dashboard = Mock()
     dashboard.id = id
+    dashboard.is_managed_externally = False
     dashboard.dashboard_title = title
     dashboard.slug = f"test-dashboard-{id}"
     dashboard.description = "Test dashboard description"
@@ -729,9 +732,11 @@ class TestGenerateDashboard:
         mcp_server,
     ) -> None:
         """An explicit ``position_json`` replaces the auto-generated layout
-        in full — the tool serializes the caller's dict verbatim into the
-        dashboard's ``position_json`` column rather than calling the
-        layout-builder helper."""
+        in full — the tool uses the caller's structure (children, meta) as
+        given rather than calling the layout-builder helper, but rebuilds
+        every component's ``parents`` as the full ancestor chain from
+        ``ROOT_ID`` rather than persisting the caller's ``parents`` (here,
+        omitted entirely) verbatim."""
         from superset.utils import json
 
         charts = [_mock_chart(id=1, slice_name="Sales")]
@@ -773,11 +778,242 @@ class TestGenerateDashboard:
             # and verify the caller's layout — not the auto-generated 2-col
             # grid — was written.
             stored = json.loads(created.position_json)
-            assert stored == custom_layout
             # The auto-generated layout's HEADER/ROW ids wouldn't match
             # `ROW-custom`; this sanity-check guards against regressions
             # where the override silently merges with the default.
             assert "ROW-custom" in stored
+            # children/meta pass through unchanged; only `parents` is
+            # (re)computed from the children edges.
+            assert stored["ROW-custom"]["children"] == ["CHART-1"]
+            assert stored["ROW-custom"]["meta"] == {
+                "background": "BACKGROUND_TRANSPARENT"
+            }
+            assert stored["CHART-1"]["meta"] == {
+                "chartId": 1,
+                "width": 12,
+                "height": 100,
+            }
+            assert "parents" not in stored["ROOT_ID"]
+            assert stored["GRID_ID"]["parents"] == ["ROOT_ID"]
+            assert stored["ROW-custom"]["parents"] == ["ROOT_ID", "GRID_ID"]
+            assert stored["CHART-1"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "ROW-custom",
+            ]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_override_repairs_truncated_tabs(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """A caller-supplied TABS layout whose ``parents`` hold only the
+        immediate parent (the shape a dashboard export can carry) is persisted
+        with full ancestor chains from ``ROOT_ID``, so
+        ``superset.dashboards.filter_scope`` derives non-empty
+        ``chartsInScope`` for a dashboard-wide native filter on read."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1436, slice_name="Out of production")]
+        mock_dashboard = _mock_dashboard(id=71, title="Tabbed Dashboard")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        # Each node's `parents` is truncated to only its immediate parent
+        # instead of the full ROOT_ID-rooted chain.
+        truncated_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {
+                "type": "GRID",
+                "children": ["TABS-lthree"],
+                "parents": ["ROOT_ID"],
+            },
+            "TABS-lthree": {
+                "type": "TABS",
+                "children": ["TAB-out-quarter"],
+                "meta": {},
+                "parents": ["GRID_ID"],
+            },
+            "TAB-out-quarter": {
+                "type": "TAB",
+                "children": ["ROW-out-prod"],
+                "meta": {"text": "Q4"},
+                "parents": ["TABS-lthree"],
+            },
+            "ROW-out-prod": {
+                "type": "ROW",
+                "children": ["CHART-1436"],
+                "meta": {},
+                "parents": ["TAB-out-quarter"],
+            },
+            "CHART-1436": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1436},
+                "parents": ["ROW-out-prod"],
+            },
+        }
+        request = {
+            "chart_ids": [1436],
+            "dashboard_title": "Tabbed Dashboard",
+            "position_json": truncated_layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            stored = json.loads(created.position_json)
+            assert stored["CHART-1436"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "TABS-lthree",
+                "TAB-out-quarter",
+                "ROW-out-prod",
+            ]
+            assert stored["ROW-out-prod"]["parents"] == [
+                "ROOT_ID",
+                "GRID_ID",
+                "TABS-lthree",
+                "TAB-out-quarter",
+            ]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_repairs_detached_cycle(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """A caller-supplied layout with a detached COLUMN/ROW cycle is
+        repaired like the other write paths: the cycle is dropped and the
+        chart trapped in it is reattached under the grid."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1, slice_name="Sales")]
+        mock_dashboard = _mock_dashboard(id=73, title="Detached Cycle")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+            "GRID_ID": {"id": "GRID_ID", "type": "GRID", "children": []},
+            "COLUMN-orphan": {
+                "id": "COLUMN-orphan",
+                "type": "COLUMN",
+                "children": ["CHART-1", "ROW-orphan"],
+            },
+            "ROW-orphan": {
+                "id": "ROW-orphan",
+                "type": "ROW",
+                "children": ["COLUMN-orphan"],
+            },
+            "CHART-1": {
+                "id": "CHART-1",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1},
+            },
+        }
+        request = {
+            "chart_ids": [1],
+            "dashboard_title": "Detached Cycle",
+            "position_json": layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            stored = json.loads(mock_dashboard_cls.return_value.position_json)
+            assert "COLUMN-orphan" not in stored
+            assert "ROW-orphan" not in stored
+            [new_row_id] = stored["GRID_ID"]["children"]
+            assert stored["CHART-1"]["parents"] == ["ROOT_ID", "GRID_ID", new_row_id]
+
+    @patch("superset.models.dashboard.Dashboard")
+    @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
+    @patch("superset.db.session")
+    @pytest.mark.asyncio
+    async def test_generate_dashboard_position_json_root_children_not_a_list(
+        self,
+        mock_db_session,
+        mock_find_by_id,
+        mock_dashboard_cls,
+        mcp_server,
+    ) -> None:
+        """``generate_dashboard`` has no layout pre-flight, so a caller can
+        hand it a ``ROOT_ID`` whose ``children`` is not a list. The rebuild
+        skips the malformed entry instead of raising, leaving the rest of the
+        layout untouched."""
+        from superset.utils import json
+
+        charts = [_mock_chart(id=1436, slice_name="Out of production")]
+        mock_dashboard = _mock_dashboard(id=72, title="Malformed Root")
+        _setup_generate_dashboard_mocks(
+            mock_db_session,
+            mock_find_by_id,
+            mock_dashboard_cls,
+            charts,
+            mock_dashboard,
+        )
+
+        malformed_layout = {
+            "DASHBOARD_VERSION_KEY": "v2",
+            # `children` is an int rather than a list of component ids.
+            "ROOT_ID": {"type": "ROOT", "children": 1},
+            "GRID_ID": {
+                "type": "GRID",
+                "children": ["CHART-1436"],
+                "parents": ["ROOT_ID"],
+            },
+            "CHART-1436": {
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": 1436},
+                "parents": ["GRID_ID"],
+            },
+        }
+        request = {
+            "chart_ids": [1436],
+            "dashboard_title": "Malformed Root",
+            "position_json": malformed_layout,
+        }
+
+        async with Client(mcp_server) as client:
+            result = await client.call_tool("generate_dashboard", {"request": request})
+
+            assert result.structured_content["error"] is None
+            created = mock_dashboard_cls.return_value
+            stored = json.loads(created.position_json)
+            # Nothing is reachable from a malformed root, so every component
+            # keeps the `parents` it came in with.
+            assert stored["ROOT_ID"]["children"] == 1
+            assert stored["GRID_ID"]["parents"] == ["ROOT_ID"]
+            assert stored["CHART-1436"]["parents"] == ["GRID_ID"]
 
     @patch("superset.models.dashboard.Dashboard")
     @patch("superset.daos.dashboard.DashboardDAO.find_by_id")
@@ -1660,28 +1896,28 @@ class TestLayoutHelpers:
         assert len(ids) == 100
 
     def test_find_next_row_position_empty_layout(self):
-        """Test _find_next_row_position with empty layout."""
-        result = _find_next_row_position({})
+        """Test find_next_row_position with empty layout."""
+        result = find_next_row_position({})
         assert isinstance(result, str)
         assert result.startswith("ROW-")
 
     def test_find_tab_insert_target_no_tabs(self):
-        """Test _find_tab_insert_target with no tabs."""
+        """Test find_tab_insert_target with no tabs."""
         layout = {"GRID_ID": {"children": ["ROW-1"], "type": "GRID"}}
-        assert _find_tab_insert_target(layout) is None
+        assert find_tab_insert_target(layout) is None
 
     def test_find_tab_insert_target_with_tabs(self):
-        """Test _find_tab_insert_target with tabbed dashboard."""
+        """Test find_tab_insert_target with tabbed dashboard."""
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
             "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
             "TAB-first": {"children": [], "type": "TAB"},
             "TAB-second": {"children": [], "type": "TAB"},
         }
-        assert _find_tab_insert_target(layout) == "TAB-first"
+        assert find_tab_insert_target(layout) == "TAB-first"
 
     def test_find_tab_insert_target_by_tab_name(self):
-        """Test _find_tab_insert_target resolves target_tab by display name."""
+        """Test find_tab_insert_target resolves target_tab by display name."""
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
             "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
@@ -1696,10 +1932,10 @@ class TestLayoutHelpers:
                 "meta": {"text": "Customers"},
             },
         }
-        assert _find_tab_insert_target(layout, target_tab="Customers") == "TAB-second"
+        assert find_tab_insert_target(layout, target_tab="Customers") == "TAB-second"
 
     def test_find_tab_insert_target_by_tab_id(self):
-        """Test _find_tab_insert_target resolves target_tab by component ID."""
+        """Test find_tab_insert_target resolves target_tab by component ID."""
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
             "TABS-main": {"children": ["TAB-first", "TAB-second"], "type": "TABS"},
@@ -1714,10 +1950,10 @@ class TestLayoutHelpers:
                 "meta": {"text": "Tab 2"},
             },
         }
-        assert _find_tab_insert_target(layout, target_tab="TAB-second") == "TAB-second"
+        assert find_tab_insert_target(layout, target_tab="TAB-second") == "TAB-second"
 
     def test_find_tab_insert_target_unmatched_returns_none(self):
-        """Test _find_tab_insert_target returns None when target_tab doesn't
+        """Test find_tab_insert_target returns None when target_tab doesn't
         match any tab name or ID, so the caller can return a descriptive error."""
         layout = {
             "GRID_ID": {"children": ["TABS-main"], "type": "GRID"},
@@ -1733,7 +1969,7 @@ class TestLayoutHelpers:
                 "meta": {"text": "Tab 2"},
             },
         }
-        assert _find_tab_insert_target(layout, target_tab="Nonexistent Tab") is None
+        assert find_tab_insert_target(layout, target_tab="Nonexistent Tab") is None
 
     def test_find_tab_insert_target_empty_string_returns_none(self) -> None:
         """An empty-string target_tab is treated as specified-but-not-found,
@@ -1743,10 +1979,10 @@ class TestLayoutHelpers:
             "TABS-main": {"children": ["TAB-first"], "type": "TABS"},
             "TAB-first": {"children": [], "type": "TAB", "meta": {"text": "Tab 1"}},
         }
-        assert _find_tab_insert_target(layout, target_tab="") is None
+        assert find_tab_insert_target(layout, target_tab="") is None
 
     def test_find_tab_insert_target_tabs_under_root(self) -> None:
-        """Test _find_tab_insert_target when TABS are under ROOT_ID (real layout)."""
+        """Test find_tab_insert_target when TABS are under ROOT_ID (real layout)."""
         layout = {
             "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
             "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
@@ -1754,10 +1990,10 @@ class TestLayoutHelpers:
             "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Overview"}},
             "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
         }
-        assert _find_tab_insert_target(layout) == "TAB-a"
+        assert find_tab_insert_target(layout) == "TAB-a"
 
     def test_find_tab_insert_target_tabs_under_root_by_name(self) -> None:
-        """Test _find_tab_insert_target matches tab name when TABS under ROOT_ID."""
+        """Test find_tab_insert_target matches tab name when TABS under ROOT_ID."""
         layout = {
             "ROOT_ID": {"children": ["TABS-xxx"], "type": "ROOT"},
             "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
@@ -1765,31 +2001,31 @@ class TestLayoutHelpers:
             "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Overview"}},
             "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
         }
-        assert _find_tab_insert_target(layout, target_tab="Details") == "TAB-b"
+        assert find_tab_insert_target(layout, target_tab="Details") == "TAB-b"
 
     def test_find_tab_insert_target_no_grid(self) -> None:
-        """Test _find_tab_insert_target with missing GRID_ID."""
-        assert _find_tab_insert_target({"ROOT_ID": {"type": "ROOT"}}) is None
+        """Test find_tab_insert_target with missing GRID_ID."""
+        assert find_tab_insert_target({"ROOT_ID": {"type": "ROOT"}}) is None
 
     def test_collect_available_tab_names_returns_display_names(self) -> None:
-        """_collect_available_tab_names returns label + component ID for each tab."""
+        """collect_available_tab_names returns label + component ID for each tab."""
         layout = {
             "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
             "TABS-x": {"children": ["TAB-a", "TAB-b"], "type": "TABS"},
             "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Overview"}},
             "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Details"}},
         }
-        names = _collect_available_tab_names(layout)
+        names = collect_available_tab_names(layout)
         assert names == ["Overview (TAB-a)", "Details (TAB-b)"]
 
     def test_collect_available_tab_names_falls_back_to_id(self) -> None:
-        """_collect_available_tab_names uses component ID only when text is empty."""
+        """collect_available_tab_names uses component ID only when text is empty."""
         layout = {
             "GRID_ID": {"children": ["TABS-x"], "type": "GRID"},
             "TABS-x": {"children": ["TAB-a"], "type": "TABS"},
             "TAB-a": {"children": [], "type": "TAB", "meta": {}},
         }
-        names = _collect_available_tab_names(layout)
+        names = collect_available_tab_names(layout)
         assert names == ["TAB-a"]
 
     def test_collect_available_tab_names_duplicate_names(self) -> None:
@@ -1800,17 +2036,17 @@ class TestLayoutHelpers:
             "TAB-a": {"children": [], "type": "TAB", "meta": {"text": "Sales"}},
             "TAB-b": {"children": [], "type": "TAB", "meta": {"text": "Sales"}},
         }
-        names = _collect_available_tab_names(layout)
+        names = collect_available_tab_names(layout)
         assert names == ["Sales (TAB-a)", "Sales (TAB-b)"]
         assert names[0] != names[1]
 
     def test_collect_available_tab_names_no_tabs(self) -> None:
-        """_collect_available_tab_names returns empty list for non-tabbed dashboards."""
+        """collect_available_tab_names returns empty list for non-tabbed dashboards."""
         layout = {
             "GRID_ID": {"children": ["ROW-1"], "type": "GRID"},
             "ROW-1": {"children": [], "type": "ROW"},
         }
-        assert _collect_available_tab_names(layout) == []
+        assert collect_available_tab_names(layout) == []
 
     def test_add_chart_to_layout_creates_column(self):
         """Test that _add_chart_to_layout creates ROW > COLUMN > CHART."""
@@ -1839,9 +2075,9 @@ class TestLayoutHelpers:
         assert layout[chart_key]["meta"]["chartId"] == 42
 
     def test_ensure_layout_structure_creates_missing(self):
-        """Test _ensure_layout_structure creates GRID and ROOT if missing."""
+        """Test ensure_layout_structure creates GRID and ROOT if missing."""
         layout: dict = {}
-        _ensure_layout_structure(layout, "ROW-test", "GRID_ID")
+        ensure_layout_structure(layout, "ROW-test", "GRID_ID")
 
         assert "ROOT_ID" in layout
         assert "GRID_ID" in layout
@@ -1850,7 +2086,7 @@ class TestLayoutHelpers:
         assert layout["DASHBOARD_VERSION_KEY"] == "v2"
 
     def test_ensure_layout_structure_adds_to_tab(self):
-        """Test _ensure_layout_structure adds row to tab parent."""
+        """Test ensure_layout_structure adds row to tab parent."""
         layout = {
             "ROOT_ID": {"children": ["GRID_ID"], "type": "ROOT"},
             "GRID_ID": {
@@ -1860,13 +2096,13 @@ class TestLayoutHelpers:
             },
             "TAB-first": {"children": ["ROW-existing"], "type": "TAB"},
         }
-        _ensure_layout_structure(layout, "ROW-new", "TAB-first")
+        ensure_layout_structure(layout, "ROW-new", "TAB-first")
 
         assert "ROW-new" in layout["TAB-first"]["children"]
         assert "ROW-new" not in layout["GRID_ID"]["children"]
 
     def test_ensure_layout_structure_tabs_under_root_no_grid_added(self):
-        """Test _ensure_layout_structure does NOT add GRID_ID to ROOT_ID
+        """Test ensure_layout_structure does NOT add GRID_ID to ROOT_ID
         when TABS already exists as a ROOT_ID child.
 
         Real Superset tabbed dashboards place TABS under ROOT_ID, not
@@ -1894,7 +2130,7 @@ class TestLayoutHelpers:
                 "parents": ["ROOT_ID", "TABS-xxx"],
             },
         }
-        _ensure_layout_structure(layout, "ROW-new", "TAB-a")
+        ensure_layout_structure(layout, "ROW-new", "TAB-a")
 
         # Row added to the correct tab
         assert "ROW-new" in layout["TAB-a"]["children"]
@@ -1903,14 +2139,14 @@ class TestLayoutHelpers:
         assert layout["ROOT_ID"]["children"] == ["TABS-xxx"]
 
     def test_ensure_layout_structure_no_tabs_adds_grid_to_root(self):
-        """Test _ensure_layout_structure still adds GRID_ID to ROOT_ID
+        """Test ensure_layout_structure still adds GRID_ID to ROOT_ID
         when the dashboard has no tabs (non-tabbed dashboard regression check).
         """
         layout = {
             "ROOT_ID": {"children": [], "type": "ROOT"},
             "GRID_ID": {"children": [], "type": "GRID", "parents": ["ROOT_ID"]},
         }
-        _ensure_layout_structure(layout, "ROW-new", "GRID_ID")
+        ensure_layout_structure(layout, "ROW-new", "GRID_ID")
 
         assert "GRID_ID" in layout["ROOT_ID"]["children"]
         assert "ROW-new" in layout["GRID_ID"]["children"]

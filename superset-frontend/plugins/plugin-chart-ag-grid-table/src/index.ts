@@ -36,7 +36,6 @@ export {
   convertAgGridStateToOwnState,
   convertSortModel,
   convertColumnState,
-  convertFilterModel,
 } from './stateConversion';
 
 const metadata = new ChartMetadata({

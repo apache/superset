@@ -1836,6 +1836,10 @@ test('bulk delete error shows toast without refreshing list', async () => {
     status: 500,
     body: { message: 'Bulk delete failed' },
   });
+  fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+    charts: { count: 0, result: [] },
+    dashboards: { count: 0, result: [] },
+  });
 
   mockDatasetListEndpoints({
     result: [mockDatasets[0]],
@@ -1891,6 +1895,8 @@ test('bulk delete error shows toast without refreshing list', async () => {
   const confirmButton = within(modal)
     .getAllByRole('button', { name: /^delete$/i })
     .pop();
+  // The button stays disabled until the dependents lookup resolves.
+  await waitFor(() => expect(confirmButton).toBeEnabled());
   await userEvent.click(confirmButton!);
 
   // Wait for error toast

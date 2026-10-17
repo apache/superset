@@ -53,6 +53,9 @@ runs:
       if: ${{ inputs.install-docker-compose == 'true' }}
       shell: bash
       run: |
+        # Use the runner's preinstalled Chrome; these dependencies do not need
+        # its apt repository. Mirror index failures must not block their setup.
+        sudo rm -f /etc/apt/sources.list.d/google-chrome*.list /etc/apt/sources.list.d/google-chrome*.sources
         sudo apt-get update
         sudo apt-get install -y ca-certificates curl
         sudo install -m 0755 -d /etc/apt/keyrings

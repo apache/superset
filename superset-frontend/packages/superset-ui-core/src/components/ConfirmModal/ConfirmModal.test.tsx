@@ -56,20 +56,20 @@ test('renders custom button text', () => {
   expect(screen.getByRole('button', { name: 'Keep' })).toBeInTheDocument();
 });
 
-test('calls onConfirm when confirm button is clicked', () => {
+test('calls onConfirm when confirm button is clicked', async () => {
   const onConfirm = jest.fn();
   renderWithTheme(<ConfirmModal {...defaultProps} onConfirm={onConfirm} />);
 
-  userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
 
   expect(onConfirm).toHaveBeenCalledTimes(1);
 });
 
-test('calls onHide when cancel button is clicked', () => {
+test('calls onHide when cancel button is clicked', async () => {
   const onHide = jest.fn();
   renderWithTheme(<ConfirmModal {...defaultProps} onHide={onHide} />);
 
-  userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Cancel' }));
 
   expect(onHide).toHaveBeenCalledTimes(1);
 });

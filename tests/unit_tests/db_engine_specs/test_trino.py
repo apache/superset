@@ -39,6 +39,7 @@ from trino.sqlalchemy import datatype
 from trino.sqlalchemy.dialect import TrinoDialect
 
 import superset.config
+from superset.common.db_query_status import QueryStatus
 from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
 from superset.db_engine_specs.exceptions import (
     SupersetDBAPIConnectionError,
@@ -665,6 +666,57 @@ def test_handle_cursor_early_cancel(
         assert cancel_query_mock.call_args is None
 
 
+@pytest.mark.parametrize(
+    "status, cancelled, expected",
+    [
+        # The kill carries out an early stop, so the stop is recorded.
+        (QueryStatus.RUNNING, True, QueryStatus.STOPPED),
+        # The kill failed, so no stop happened and none is recorded.
+        (QueryStatus.RUNNING, False, QueryStatus.RUNNING),
+        # A timeout is not turned into a stop.
+        (QueryStatus.TIMED_OUT, True, QueryStatus.TIMED_OUT),
+    ],
+)
+@patch("superset.db_engine_specs.presto.PrestoBaseEngineSpec.handle_cursor")
+@patch("superset.db_engine_specs.trino.TrinoEngineSpec.cancel_query")
+@patch("superset.db_engine_specs.trino.db")
+@patch("superset.db_engine_specs.trino.app")
+def test_handle_cursor_early_cancel_records_stop_only_when_killed(
+    mock_app: Mock,
+    mock_db: Mock,
+    cancel_query_mock: Mock,
+    mock_presto_handle_cursor: Mock,
+    status: QueryStatus,
+    cancelled: bool,
+    expected: QueryStatus,
+    mocker: MockerFixture,
+) -> None:
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+    from superset.models.sql_lab import Query
+
+    mock_app.config = {"DB_POLL_INTERVAL_SECONDS": {"trino": 0}}
+    cancel_query_mock.return_value = cancelled
+
+    cursor_mock = mocker.MagicMock(spec=["query_id", "stats", "info_uri"])
+    cursor_mock.query_id = "myQueryId"
+    cursor_mock.stats = {"state": "RUNNING", "completedSplits": 0, "totalSplits": 1}
+
+    query = Query(status=status)
+    TrinoEngineSpec.prepare_cancel_query(query=query)
+    mock_db.session.commit.reset_mock()
+
+    TrinoEngineSpec.handle_cursor(cursor=cursor_mock, query=query)
+
+    cancel_query_mock.assert_called_once()
+    assert query.status == expected
+    if expected == QueryStatus.STOPPED:
+        assert query.end_time is not None
+        # Committed before the killed statement reaches the error handler.
+        assert mock_db.session.commit.call_count == 2
+    else:
+        assert mock_db.session.commit.call_count == 1
+
+
 def test_execute_with_cursor_in_parallel(app, mocker: MockerFixture):
     """Test that `execute_with_cursor` fetches query ID from the cursor"""
     from superset.db_engine_specs.trino import TrinoEngineSpec
@@ -1109,7 +1161,11 @@ def test_get_oauth2_token(
     """
     from superset.db_engine_specs.trino import TrinoEngineSpec
 
-    requests = mocker.patch("superset.db_engine_specs.base.requests")
+    mocker.patch("superset.db_engine_specs.base.is_safe_host", return_value=True)
+    mock_get_requester = mocker.patch(
+        "superset.db_engine_specs.base.get_ssrf_safe_requester"
+    )
+    requests = mock_get_requester.return_value
     requests.post().json.return_value = {
         "access_token": "access-token",
         "expires_in": 3600,
@@ -1135,6 +1191,7 @@ def test_get_oauth2_token(
             "grant_type": "authorization_code",
         },
         timeout=30.0,
+        allow_redirects=False,
     )
 
 
@@ -1946,3 +2003,20 @@ def test_impersonate_user_with_token_no_verify_configured() -> None:
     connect_args = new_kwargs["connect_args"]
     assert "verify" not in connect_args
     assert connect_args["http_session"].verify is True
+
+
+def test_get_cancel_query_id_reads_the_running_query() -> None:
+    """The queryId is only known once execution has started."""
+    import trino.dbapi
+
+    from superset.db_engine_specs.trino import TrinoEngineSpec
+
+    cursor = trino.dbapi.connect(host="localhost", user="superset").cursor()
+    # SQL Lab and chart-data tasks ask before executing: nothing to record.
+    assert TrinoEngineSpec.get_cancel_query_id(cursor, Mock()) is None
+    running = Mock(query_id="20261001_000000_00001_abcde")
+    assert (
+        TrinoEngineSpec.get_cancel_query_id(running, Mock())
+        == "20261001_000000_00001_abcde"
+    )
+    assert TrinoEngineSpec.has_query_id_during_execute is True

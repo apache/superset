@@ -66,7 +66,7 @@ jobs:
             core.setOutput('changed', String(changed));
       - name: Setup Python
         if: steps.check.outputs.changed == 'true'
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           requirements-type: base
       - name: Assert a single Alembic head

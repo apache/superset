@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ChartProps } from '@superset-ui/core';
+import { Comparator } from '@superset-ui/chart-controls';
 import transformProps from '../src/transformProps';
 
 const onContextMenu = jest.fn();
@@ -127,3 +128,154 @@ test('renames v1 API records using adhoc metric labels', () => {
   );
   expect(transformed.data).toEqual([{ country_id: 'FRA', metric: 3.14 }]);
 });
+
+test('normalizes typed region display while preserving source values for cross-filters', () => {
+  const data = [{ state: 'CA', count: 10 }];
+  const transformed = transformProps(
+    createProps(
+      { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+      { queriesData: [{ data }] },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'US-CA', source_value: 'CA', metric: 10 },
+  ]);
+  expect(data).toEqual([{ state: 'CA', count: 10 }]);
+});
+
+test('typed country maps reject unrecognized values', () => {
+  expect(() =>
+    transformProps(
+      createProps(
+        { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+        { queriesData: [{ data: [{ state: 'BC', count: 10 }] }] },
+      ),
+    ),
+  ).toThrow('Unrecognized');
+});
+
+test('builds color formatters from conditional formatting config', () => {
+  const transformed = transformProps(
+    createProps({
+      conditionalFormatting: [
+        {
+          column: 'metric',
+          colorScheme: '#FF0000',
+          operator: Comparator.GreaterThan,
+          targetValue: 50,
+          useGradient: false,
+        },
+      ],
+    }),
+  );
+
+  expect(transformed.formatters).toHaveLength(1);
+  expect(transformed.formatters?.[0].column).toBe('metric');
+  expect(transformed.formatters?.[0].getColorFromValue(100)).toBe('#FF0000');
+  expect(transformed.formatters?.[0].getColorFromValue(10)).toBeUndefined();
+});
+
+test('returns an empty formatters array when conditional formatting is unset', () => {
+  const transformed = transformProps(createProps());
+  expect(transformed.formatters).toEqual([]);
+});
+
+test('conditional formatting uses the normalized region metric and preserves the source identifier', () => {
+  const transformed = transformProps(
+    createProps(
+      {
+        entity: 'state',
+        selectCountry: 'usa',
+        regionFormat: 'abbreviation',
+        conditionalFormatting: [
+          {
+            column: 'metric',
+            colorScheme: '#FF0000',
+            operator: Comparator.GreaterThan,
+            targetValue: 5,
+            useGradient: false,
+          },
+        ],
+      },
+      { queriesData: [{ data: [{ state: 'CA', count: 10 }] }] },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'US-CA', source_value: 'CA', metric: 10 },
+  ]);
+  expect(transformed.formatters[0].getColorFromValue(10)).toBe('#FF0000');
+});
+
+test.each([undefined, null, 'missing', '10', Number.NaN, Infinity])(
+  'typed country maps leave sparse/non-numeric metric %s blank',
+  count => {
+    const sparse =
+      count === undefined ? { state: 'CA' } : { state: 'CA', count };
+    const data = [
+      sparse,
+      { state: 'NY', count: 0 },
+      { state: 'TX', count: 10 },
+    ];
+    const original = data.map(row => ({ ...row }));
+    const transformed = transformProps(
+      createProps(
+        { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+        { queriesData: [{ data }] },
+      ),
+    );
+    expect(transformed.data).toEqual([
+      { country_id: 'US-NY', source_value: 'NY', metric: 0 },
+      { country_id: 'US-TX', source_value: 'TX', metric: 10 },
+    ]);
+    expect(data).toEqual(original);
+  },
+);
+
+test('typed country maps still reject unresolved regions with NULL metrics', () => {
+  expect(() =>
+    transformProps(
+      createProps(
+        { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+        { queriesData: [{ data: [{ state: 'BC', count: null }] }] },
+      ),
+    ),
+  ).toThrow('Unrecognized');
+});
+
+test('source values cover regions whose metric is blank', () => {
+  const transformed = transformProps(
+    createProps(
+      { entity: 'state', selectCountry: 'usa', regionFormat: 'abbreviation' },
+      {
+        queriesData: [
+          {
+            data: [
+              { state: 'CA', count: null },
+              { state: 'TX', count: 10 },
+            ],
+          },
+        ],
+      },
+    ),
+  );
+  expect(transformed.data).toEqual([
+    { country_id: 'US-TX', source_value: 'TX', metric: 10 },
+  ]);
+  expect(transformed.sourceValues).toEqual({ 'US-CA': 'CA', 'US-TX': 'TX' });
+});
+
+test.each(['USA', 'Usa', 'usa'])(
+  'typed country maps accept select_country %s in any case',
+  selectCountry => {
+    const transformed = transformProps(
+      createProps(
+        { entity: 'state', selectCountry, regionFormat: 'abbreviation' },
+        { queriesData: [{ data: [{ state: 'CA', count: 10 }] }] },
+      ),
+    );
+    expect(transformed.country).toBe('usa');
+    expect(transformed.data).toEqual([
+      { country_id: 'US-CA', source_value: 'CA', metric: 10 },
+    ]);
+  },
+);

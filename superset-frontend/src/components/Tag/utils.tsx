@@ -19,8 +19,8 @@
 
 import { t } from '@apache-superset/core/translation';
 import {
-  ClientErrorObject,
   getClientErrorObject,
+  selectClientErrorMessage,
   SupersetClient,
 } from '@superset-ui/core';
 import type { TagType } from 'src/types/TagType';
@@ -58,14 +58,6 @@ export const loadTags = async (
     order_direction: 'asc',
   });
 
-  const getErrorMessage = ({ error, message }: ClientErrorObject) => {
-    let errorText = message || error || t('An error has occurred');
-    if (message === 'Forbidden') {
-      errorText = t('You do not have permission to read tags');
-    }
-    return errorText;
-  };
-
   return SupersetClient.get({
     endpoint: `/api/v1/tag/?q=${query}`,
   })
@@ -80,7 +72,11 @@ export const loadTags = async (
       };
     })
     .catch(async error => {
-      const errorMessage = getErrorMessage(await getClientErrorObject(error));
+      const errorMessage = selectClientErrorMessage(
+        await getClientErrorObject(error),
+        t('An error has occurred'),
+        { 403: t('You do not have permission to read tags') },
+      );
       throw new Error(errorMessage);
     });
 };

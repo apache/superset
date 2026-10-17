@@ -46,6 +46,10 @@ The host supports two display modes, switchable by the user or the extension at 
 
 The user's last selected mode and open/closed state are persisted across page reloads.
 
+Switching display modes keeps the same panel mounted, preserving its conversation,
+draft, expanded tool results, and in-flight UI state. Closing the chat still
+unmounts the panel; extensions remain responsible for their cleanup on unmount.
+
 ## Registering a Chat
 
 Call `chat.registerChat` from your extension's entry point with a descriptor, a trigger factory, and a panel factory:

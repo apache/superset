@@ -15,13 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from unittest.mock import MagicMock, patch
 
+import pytest
+from flask.testing import FlaskClient
+from sqlalchemy.exc import DataError, OperationalError
 from sqlalchemy.orm.session import Session
+from werkzeug.test import TestResponse
 
 from superset import db
+from superset.commands.dataset.exceptions import DatasetUpdateFailedError
 from superset.utils import json
+from superset.versioning.api_helpers import EntityVersionInfo
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 
 def test_put_invalid_dataset(
@@ -468,7 +477,7 @@ def test_put_dataset_rejects_stale_if_match(
             version_uuid="new",
             entity_uuid=dataset.uuid,
         ),
-    ):
+    ) as version_info:
         response = client.put(
             f"/api/v1/dataset/{dataset.id}",
             json={"description": "from a stale tab"},
@@ -476,9 +485,212 @@ def test_put_dataset_rejects_stale_if_match(
         )
 
     assert response.status_code == 412
+    # Pins the endpoint wiring: a conditional write must ask for the
+    # locking validator read (sc-120050) -- without this, dropping the
+    # lock_for_stale_check kwarg at the call site survives every test.
+    assert version_info.call_args.kwargs["lock_for_stale_check"] is True
     assert response.headers["ETag"] == '"new"'
     db.session.expire(dataset)
     assert dataset.description is None
+
+
+def test_put_dataset_maps_lock_contention_to_retryable_409(
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """sc-120050: a deadlock at the locked validator read is a 409, not 412.
+
+    A lock race lost at the locking read proves concurrent contention, not
+    that this request's If-Match token is stale -- 412's refetch-the-token
+    guidance would be wrong, so the mapping must not drift back to it. The
+    message tells the client to retry the same request.
+    """
+    dataset: SqlaTable = _create_dataset("test_put_lock_contention")
+    deadlock: OperationalError = OperationalError("stmt", None, Exception())
+    deadlock.orig = Exception(1213, "Deadlock found")
+
+    with patch(
+        "superset.datasets.api.current_entity_version_info",
+        side_effect=deadlock,
+    ):
+        response: TestResponse = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from a racing tab"},
+            headers={"If-Match": '"anything"'},
+        )
+
+    assert response.status_code == 409
+    body: str = response.get_data(as_text=True)
+    assert "Retry the same request" in body
+    # No write-check re-read here: the handler's rollback detaches the
+    # fixture object, and nothing could have written anyway — the patched
+    # read raised before the update command ever ran.
+
+
+@pytest.mark.parametrize(
+    "lock_point", ["lock_entity_for_update", "current_entity_version_info"]
+)
+def test_put_dataset_maps_entity_lock_contention_to_retryable_409(
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    lock_point: str,
+) -> None:
+    """A lock race lost at the ENTITY-LOCK acquisition is also a 409.
+
+    The most common contention outcome of all: writer B blocks on
+    writer A's entity row lock and times out (1205) at
+    ``lock_entity_for_update`` -- before the validator read's own
+    try/except. Left unmapped this surfaced as an uncaught 500, defeating
+    the retryable-conflict contract the other two lock points advertise.
+    """
+    dataset: SqlaTable = _create_dataset("test_put_entity_lock_contention")
+    timeout: OperationalError = OperationalError("stmt", None, Exception())
+    timeout.orig = Exception(1205, "Lock wait timeout exceeded")
+
+    with (
+        patch(f"superset.datasets.api.{lock_point}", side_effect=timeout),
+        patch.object(db.session, "rollback", wraps=db.session.rollback) as rollback,
+    ):
+        response: TestResponse = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "from a racing tab"},
+            headers={"If-Match": '"anything"'},
+        )
+        rollback.assert_called_once()
+
+    assert response.status_code == 409
+    assert "Retry the same request" in response.get_data(as_text=True)
+
+
+@pytest.mark.parametrize("conditional", [True, False])
+def test_put_dataset_maps_chained_deadlock_to_retryable_409(
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    conditional: bool,
+) -> None:
+    """Translate a chained deadlock only for a conditional request."""
+    failure: DatasetUpdateFailedError = DatasetUpdateFailedError()
+    failure.__cause__ = OperationalError(
+        "INSERT", None, Exception(1213, "Deadlock found")
+    )
+    dataset_id: int = _create_dataset("test_put_chained_deadlock").id
+    with (
+        patch("superset.datasets.api.raise_for_stale_write"),
+        patch("superset.datasets.api.UpdateDatasetCommand.run", side_effect=failure),
+    ):
+        response: TestResponse = client.put(
+            f"/api/v1/dataset/{dataset_id}",
+            json={"description": "from a racing tab"},
+            headers={"If-Match": '"anything"'} if conditional else {},
+        )
+    assert response.status_code == (409 if conditional else 422)
+    assert ("Retry the same request" in response.get_data(as_text=True)) is conditional
+
+
+@pytest.mark.parametrize(
+    "lock_point", ["lock_entity_for_update", "current_entity_version_info"]
+)
+def test_put_dataset_does_not_reclassify_unrelated_lock_read_errors(
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+    lock_point: str,
+) -> None:
+    """Preserve unrelated driver errors at either direct locking read."""
+    failure: OperationalError = OperationalError(
+        "SELECT", None, Exception(2006, "MySQL server has gone away")
+    )
+    dataset_id: int = _create_dataset("test_put_unrelated_lock_error").id
+    with patch(f"superset.datasets.api.{lock_point}", side_effect=failure):
+        response: TestResponse = client.put(
+            f"/api/v1/dataset/{dataset_id}",
+            json={"description": "not a contention error"},
+            headers={"If-Match": '"anything"'},
+        )
+    assert response.status_code == 500
+    assert "Retry the same request" not in response.get_data(as_text=True)
+
+
+def test_put_dataset_without_if_match_never_locks(
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """An unconditional PUT takes no locks and no locking validator read.
+
+    Pins the perf contract both ways: hard-coding lock_for_stale_check=True
+    at the call site (or unconditionally locking the entity) fails here.
+    """
+    dataset: SqlaTable = _create_dataset("test_put_unconditional_no_locks")
+
+    with (
+        patch("superset.datasets.api.lock_entity_for_update") as lock,
+        patch(
+            "superset.datasets.api.current_entity_version_info",
+            return_value=EntityVersionInfo(entity_uuid=dataset.uuid),
+        ) as version_info,
+        patch("superset.datasets.api.UpdateDatasetCommand") as cmd,
+    ):
+        cmd.return_value.run.return_value = dataset
+        response: TestResponse = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "plain save"},
+        )
+
+    assert response.status_code == 200
+    lock.assert_not_called()
+    # First call is the pre-command old_info read (the one carrying the
+    # flag); the endpoint calls the helper again after the command for
+    # new_info, without the kwarg.
+    assert version_info.call_args_list[0].kwargs["lock_for_stale_check"] is False
+
+
+def test_put_dataset_keeps_422_when_sql_text_merely_mentions_a_lock(
+    session: Session,
+    client: FlaskClient,
+    full_api_access: None,
+) -> None:
+    """Response boundary: a contaminated non-lock failure stays a 422.
+
+    sc-120050 review (Richard Fogaça): an unrelated ``DataError`` whose
+    SQL or bound parameters happen to contain "deadlock" used to be
+    classified as contention and answered 409 "Retry the same request"
+    — advice that can never succeed, because nothing is contending. The
+    command wraps SQLAlchemy errors as ``DatasetUpdateFailedError`` and
+    the endpoint classifies its ``__cause__``, so the regression belongs
+    at this boundary as well as in the classifier's own unit tests.
+    """
+    dataset: SqlaTable = _create_dataset("test_put_contaminated_data_error")
+    driver_error: Exception = type(
+        "Orig", (Exception,), {"args": (1064, "You have an error in your SQL syntax")}
+    )()
+    contaminated: DataError = DataError(
+        "UPDATE slices SET description = %(description)s",
+        {"description": "deadlock analysis"},
+        driver_error,
+    )
+    assert "deadlock" in str(contaminated).lower()
+    failure: DatasetUpdateFailedError = DatasetUpdateFailedError()
+    failure.__cause__ = contaminated
+
+    with (
+        # Keep the request on the CONDITIONAL path (that is where the
+        # classifier runs) without needing a live token: the stale check
+        # itself is not what this test pins.
+        patch("superset.datasets.api.raise_for_stale_write"),
+        patch("superset.datasets.api.UpdateDatasetCommand.run", side_effect=failure),
+    ):
+        response: TestResponse = client.put(
+            f"/api/v1/dataset/{dataset.id}",
+            json={"description": "deadlock analysis"},
+            headers={"If-Match": '"anything"'},
+        )
+
+    assert response.status_code == 422, response.get_data(as_text=True)
+    assert "Retry the same request" not in response.get_data(as_text=True)
 
 
 def test_put_dataset_guards_a_dataset_with_no_version_rows(

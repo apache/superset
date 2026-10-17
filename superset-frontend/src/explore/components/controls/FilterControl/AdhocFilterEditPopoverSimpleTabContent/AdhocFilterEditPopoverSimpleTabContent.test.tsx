@@ -39,6 +39,7 @@ import {
   FeatureFlag,
   isFeatureEnabled,
   SupersetClient,
+  DatasourceType,
 } from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import fetchMock from 'fetch-mock';
@@ -454,6 +455,47 @@ test('passes the new adhocFilter to onChange after onComparatorChange', () => {
   ).toEqual(simpleAdhocFilter.duplicateWith({ comparator: '20' }));
 });
 
+test('editing a dashboard-inherited time range filter clears isExtra so the new value is kept on save', () => {
+  const inheritedTimeFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'ds',
+    operator: Operators.TemporalRange,
+    comparator: '2024-01-01 : 2024-02-01',
+    clause: Clauses.Where,
+    isExtra: true,
+  });
+  const props = setup({ adhocFilter: inheritedTimeFilter });
+  const { onDatePickerChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onDatePickerChange('ds', '2025-01-01 : 2025-02-01');
+  const editedFilter =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(editedFilter.comparator).toEqual('2025-01-01 : 2025-02-01');
+  expect(editedFilter.isExtra).toBe(false);
+});
+
+test('editing a dashboard-inherited filter comparator clears isExtra so the new value is kept on save', () => {
+  const inheritedFilter = new AdhocFilter({
+    expressionType: ExpressionTypes.Simple,
+    subject: 'value',
+    operatorId: Operators.GreaterThan,
+    operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.GreaterThan].operation,
+    comparator: '10',
+    clause: Clauses.Where,
+    isExtra: true,
+  });
+  const props = setup({ adhocFilter: inheritedFilter });
+  const { onComparatorChange } = useSimpleTabFilterProps(
+    props as unknown as Props,
+  );
+  onComparatorChange('20');
+  const editedFilter =
+    props.onChange.mock.calls[props.onChange.mock.calls.length - 1][0];
+  expect(editedFilter.comparator).toEqual('20');
+  expect(editedFilter.isExtra).toBe(false);
+});
+
 test('will filter operators for table datasources', () => {
   const props = setup({ datasource: { type: 'table' as const } });
   const { isOperatorRelevant } = useSimpleTabFilterProps(
@@ -723,11 +765,11 @@ test('should not call API when column has no advanced data type', async () => {
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -764,11 +806,11 @@ test('should call API when column has advanced data type', async () => {
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -808,11 +850,11 @@ test('save button should be disabled if error message from API is returned', asy
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'e');
+    await userEvent.type(filterValueField, 'e');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -852,11 +894,11 @@ test('advanced data type operator list should update after API response', async 
     'Filter value (case sensitive)',
   );
   await act(async () => {
-    userEvent.type(filterValueField, 'v');
+    await userEvent.type(filterValueField, 'v');
   });
 
   await act(async () => {
-    userEvent.type(filterValueField, '{enter}');
+    await userEvent.type(filterValueField, '{enter}');
   });
 
   await waitFor(() =>
@@ -872,11 +914,15 @@ test('advanced data type operator list should update after API response', async 
     name: 'Select operator',
   });
 
-  userEvent.click(operatorValueField);
+  await userEvent.click(operatorValueField);
 
-  await act(async () => {
-    userEvent.type(operatorValueField, '{enter}');
-  });
+  const operatorOption = await waitFor(() =>
+    within(
+      // eslint-disable-next-line testing-library/no-node-access
+      document.querySelector('.ant-select-dropdown-list')!,
+    ).getByText('Equal to (=)'),
+  );
+  await userEvent.click(operatorOption);
 
   expect(
     await screen.findByText('Equal to (=)', {
@@ -922,7 +968,7 @@ test('dropdown should remain open when clicked after filter is configured', asyn
   });
 
   await act(async () => {
-    userEvent.click(operatorDropdown);
+    await userEvent.click(operatorDropdown);
   });
 
   await waitFor(() => {
@@ -951,7 +997,7 @@ test('filters the subject select by column verbose_name as well as column_name',
   });
 
   const combobox = screen.getByRole('combobox', { name: 'Select subject' });
-  userEvent.click(combobox);
+  await userEvent.click(combobox);
 
   await userEvent.type(combobox, 'total');
 
@@ -979,7 +1025,10 @@ fetchMock.get(COLUMN_VALUES_ENDPOINT, (...args: unknown[]) =>
     : columnValuesResponse,
 );
 
-const setupWithFilterValuesResponse = (response: unknown) => {
+const setupWithFilterValuesResponse = (
+  response: unknown,
+  datasourceType = TestDataset.type,
+) => {
   columnValuesResponse = response;
   const onChange = jest.fn();
   const validHandler = jest.fn();
@@ -998,6 +1047,7 @@ const setupWithFilterValuesResponse = (response: unknown) => {
     options,
     datasource: {
       ...TestDataset,
+      type: datasourceType,
       columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
       filter_select: true,
     },
@@ -1019,7 +1069,7 @@ const openComparator = async () => {
   const comparator = screen.getByRole('combobox', {
     name: 'Comparator option',
   });
-  userEvent.click(comparator);
+  await userEvent.click(comparator);
   return comparator;
 };
 
@@ -1034,7 +1084,7 @@ test('sends the typed text to the server rather than filtering the loaded page',
   // beyond the row limit. The search has to reach the database.
   setupWithFilterValues(['alpha']);
   const comparator = await openComparator();
-  userEvent.type(comparator, 'gamma');
+  await userEvent.type(comparator, 'gamma');
 
   await waitFor(
     () => {
@@ -1052,7 +1102,7 @@ test('lets a value the server did not return still be selected', async () => {
   // exact value has to remain a way through.
   setupWithFilterValues([]);
   const comparator = await openComparator();
-  userEvent.type(comparator, 'not-in-the-page');
+  await userEvent.type(comparator, 'not-in-the-page');
   expect(await screen.findByTitle('not-in-the-page')).toBeInTheDocument();
 });
 
@@ -1078,7 +1128,7 @@ test('stores the picked value, not the option object', async () => {
   // as a literal.
   const props = setupWithFilterValues(['Michael']);
   await openComparator();
-  userEvent.click(await screen.findByTitle('Michael'));
+  await userEvent.click(await screen.findByTitle('Michael'));
 
   await waitFor(() => expect(props.onChange).toHaveBeenCalled());
   const [filter] = props.onChange.mock.calls.at(-1);
@@ -1117,7 +1167,7 @@ test('can remove a value that was saved earlier', async () => {
   );
 
   // Remove it the way a user does: the tag's own close control.
-  userEvent.click(await screen.findByLabelText('close'));
+  await userEvent.click(await screen.findByLabelText('close'));
 
   await waitFor(() => expect(onChange).toHaveBeenCalled());
   const [filter] = onChange.mock.calls.at(-1);
@@ -1153,8 +1203,8 @@ test('says suggestions could not be loaded when the server fails', async () => {
   const comparator = screen.getByRole('combobox', {
     name: 'Comparator option',
   });
-  userEvent.type(comparator, 'typed-by-hand');
-  userEvent.click(await screen.findByTitle('typed-by-hand'));
+  await userEvent.type(comparator, 'typed-by-hand');
+  await userEvent.click(await screen.findByTitle('typed-by-hand'));
   await waitFor(() => expect(props.onChange).toHaveBeenCalled());
   const [filter] = props.onChange.mock.calls.at(-1);
   expect(filter.comparator).toEqual(['typed-by-hand']);
@@ -1222,7 +1272,7 @@ test('ignores a stale failing response that loses the race to a newer success', 
   await waitFor(() => expect(landedCalls).toBe(1));
 
   // A newer request succeeds while the first is still pending.
-  userEvent.type(comparator, 'al');
+  await userEvent.type(comparator, 'al');
   expect(
     await screen.findByTitle('alpha', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
@@ -1287,9 +1337,246 @@ test('drops the note once suggestions load again', async () => {
   // plain reassignment: the first response has fully settled (the note is
   // already on screen), so the lazy read cannot hand it this value.
   columnValuesResponse = { result: ['alpha'], limit: 10000 };
-  userEvent.type(comparator, 'al');
+  await userEvent.type(comparator, 'al');
   expect(
     await screen.findByTitle('alpha', {}, { timeout: 3000 }),
   ).toBeInTheDocument();
   expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+});
+
+test('Filter subject lists and commits an expression-less Cube dimension', async () => {
+  const semanticDimensions = [
+    {
+      column_name: 'order_date',
+      verbose_name: 'Order Date',
+      type: 'TIMESTAMP',
+      expression: null,
+      id: 10,
+    },
+    {
+      column_name: 'category',
+      verbose_name: 'Product Category',
+      type: 'VARCHAR(255)',
+      expression: null,
+      id: 11,
+    },
+  ];
+  const props = setup({
+    options: semanticDimensions,
+    datasource: {
+      ...TestDataset,
+      type: 'semantic_view',
+      semantic_view_features: [],
+      columns: semanticDimensions,
+      filter_select: false,
+    },
+  });
+
+  const subjectSelect = screen.getByRole('combobox', {
+    name: 'Select subject',
+  });
+  await userEvent.click(subjectSelect);
+
+  const dropdown = await waitFor(() => {
+    const list = document.querySelector(
+      '.ant-select-dropdown-list',
+    ) as HTMLElement;
+    if (!list) throw new Error('dropdown not open');
+    return list;
+  });
+  expect(within(dropdown).getByText('Order Date')).toBeInTheDocument();
+  expect(within(dropdown).getByText('Product Category')).toBeInTheDocument();
+
+  await userEvent.click(within(dropdown).getByText('Product Category'));
+
+  await waitFor(() => {
+    expect(props.onChange).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: 'category' }),
+    );
+  });
+});
+
+test('versioned suggestions are unavailable without a failure and allow manual input', async () => {
+  const { onChange } = setupWithFilterValuesResponse({
+    result: [],
+    suggestions_status: 'unavailable_versioned_view',
+  });
+  const comparator = await openComparator();
+  expect(
+    await screen.findByText(
+      'Suggestions are unavailable for this view. Enter a value manually.',
+    ),
+  ).toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+  await userEvent.type(comparator, 'manual');
+  await userEvent.click(await screen.findByTitle('manual'));
+  expect(onChange).toHaveBeenCalled();
+});
+
+test('shows semantic provider rejection guidance and keeps manual entry', async () => {
+  const guidance =
+    'A semantic query filter is invalid. Check its operator and values, then try again.';
+  const props = setupWithFilterValuesResponse(
+    { status: 400, body: { message: guidance } },
+    DatasourceType.SemanticView,
+  );
+  const comparator = await openComparator();
+  expect(await screen.findByText(guidance)).toBeInTheDocument();
+  await userEvent.type(comparator, 'manual-value');
+  await userEvent.click(await screen.findByTitle('manual-value'));
+  await waitFor(() => expect(props.onChange).toHaveBeenCalled());
+  expect(props.onChange.mock.calls.at(-1)[0].comparator).toEqual([
+    'manual-value',
+  ]);
+});
+
+test('semantic bounded suggestions do not promise search beyond the page', async () => {
+  setupWithFilterValuesResponse(
+    { result: ['alpha', 'beta'], limit: 2 },
+    DatasourceType.SemanticView,
+  );
+  await openComparator();
+  expect(
+    await screen.findByText(/Only the first 2 values are listed/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/Type to search all of them/),
+  ).not.toBeInTheDocument();
+});
+
+test('ignores semantic rejection guidance parsed after a newer successful search', async () => {
+  let releaseBody: (value: { message: string }) => void = () => {};
+  const pendingBody = new Promise<{ message: string }>(resolve => {
+    releaseBody = resolve;
+  });
+  const response = new Response(JSON.stringify({ message: 'stale guidance' }), {
+    status: 400,
+  });
+  const cloned = response.clone();
+  const parseBody = jest.spyOn(cloned, 'json').mockReturnValueOnce(pendingBody);
+  jest.spyOn(response, 'clone').mockReturnValueOnce(cloned);
+  jest.spyOn(SupersetClient, 'get').mockRejectedValueOnce(response);
+  setupWithFilterValuesResponse(
+    { result: ['alpha'], limit: 10000 },
+    DatasourceType.SemanticView,
+  );
+  const comparator = await openComparator();
+  await waitFor(() => expect(parseBody).toHaveBeenCalledTimes(1));
+  await userEvent.type(comparator, 'al');
+  expect(
+    await screen.findByTitle('alpha', {}, { timeout: 3000 }),
+  ).toBeInTheDocument();
+  await act(async () => {
+    releaseBody({ message: 'stale guidance' });
+    await pendingBody;
+    await new Promise(resolve => setTimeout(resolve, 0));
+  });
+  expect(screen.queryByText('stale guidance')).not.toBeInTheDocument();
+  expect(screen.queryByText(SUGGESTIONS_UNAVAILABLE)).not.toBeInTheDocument();
+});
+
+test.each([
+  [undefined, false],
+  ['old-title-version', false],
+  ['cube-member-id-v1', false],
+  ['cube-member-id-v1', true],
+] as const)(
+  'suggestions carry only the selection provenance %s (external: %s)',
+  async (version, isExtra) => {
+    columnValuesResponse = { result: ['US'] };
+    setup({
+      semanticSelectionVersion: version,
+      adhocFilter: new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'value',
+        operatorId: Operators.In,
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+        comparator: [],
+        clause: Clauses.Where,
+        isExtra,
+      }),
+      datasource: {
+        ...TestDataset,
+        type: 'semantic_view',
+        semantic_selection_version: 'cube-member-id-v1',
+        columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+        filter_select: true,
+      },
+    });
+    await openComparator();
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT).length,
+      ).toBeGreaterThan(0),
+    );
+    const calls = fetchMock.callHistory.calls(COLUMN_VALUES_ENDPOINT);
+    expect(
+      new URL(String(calls.at(-1)?.url)).searchParams.get(
+        'semantic_selection_version',
+      ),
+    ).toBe(isExtra ? null : (version ?? null));
+  },
+);
+
+test('late suggestions cannot repopulate a different selection version', async () => {
+  jest.spyOn(redux, 'useSelector').mockReturnValue({});
+  let finishOld: (value: {
+    json: { result: string[] };
+    response: Response;
+  }) => void = () => {};
+  const oldResponse = new Promise<{
+    json: { result: string[] };
+    response: Response;
+  }>(resolve => {
+    finishOld = resolve;
+  });
+  const get = jest
+    .spyOn(SupersetClient, 'get')
+    .mockReset()
+    .mockImplementationOnce(() => oldResponse)
+    .mockResolvedValue({
+      json: { result: [], suggestions_status: 'unavailable_versioned_view' },
+      response: new Response(),
+    });
+  try {
+    const props = {
+      adhocFilter: new AdhocFilter({
+        expressionType: ExpressionTypes.Simple,
+        subject: 'value',
+        operatorId: Operators.In,
+        operator: OPERATOR_ENUM_TO_OPERATOR_TYPE[Operators.In].operation,
+        comparator: [],
+        clause: Clauses.Where,
+      }),
+      onChange: jest.fn(),
+      options,
+      validHandler: jest.fn(),
+      datasource: {
+        ...TestDataset,
+        type: 'semantic_view',
+        columns: [{ column_name: 'value', type: 'VARCHAR', id: 3 }],
+        filter_select: true,
+      },
+    } as unknown as Props;
+    const { rerender } = render(
+      <AdhocFilterEditPopoverSimpleTabContent
+        {...props}
+        semanticSelectionVersion="cube-member-id-v1"
+      />,
+    );
+    await openComparator();
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+    rerender(<AdhocFilterEditPopoverSimpleTabContent {...props} />);
+    await openComparator();
+    await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+    await act(async () =>
+      finishOld({
+        json: { result: ['wrong-generation-value'] },
+        response: new Response(),
+      }),
+    );
+    expect(screen.queryAllByText('wrong-generation-value')).toHaveLength(0);
+  } finally {
+    get.mockRestore();
+  }
 });

@@ -18,13 +18,14 @@
 import logging
 from typing import Optional
 
-from flask import g, redirect
+from flask import abort, g, get_flashed_messages, redirect
 from flask_appbuilder import expose
 from flask_appbuilder.const import LOGMSG_ERR_SEC_NO_REGISTER_HASH
 from flask_appbuilder.security.decorators import no_cache
 from flask_appbuilder.security.views import AuthView, WerkzeugResponse
 from flask_babel import lazy_gettext
 
+from superset.security import password_recovery
 from superset.views.base import BaseSupersetView
 
 logger = logging.getLogger(__name__)
@@ -39,6 +40,32 @@ class SupersetAuthView(BaseSupersetView, AuthView):
         if g.user is not None and g.user.is_authenticated:
             return redirect(self.appbuilder.get_url_for_index)
 
+        # Drain pending flash messages (failed logins, session
+        # invalidation, forced password change) so they render here
+        # instead of accumulating in the session. This must go through
+        # per-request extra_bootstrap_data, never the cached common
+        # bootstrap payload, so messages can't bleed between users.
+        return super().render_app_template(
+            {"auth_messages": get_flashed_messages(with_categories=True)}
+        )
+
+    @expose("/forgot_password/")
+    @no_cache
+    def forgot_password(self) -> WerkzeugResponse:
+        """SPA page where an ``AUTH_DB`` user requests a password reset link."""
+        return self._render_password_recovery_page()
+
+    @expose("/reset_password/")
+    @no_cache
+    def reset_password(self) -> WerkzeugResponse:
+        """SPA page the emailed reset link opens; the token is in the fragment."""
+        return self._render_password_recovery_page()
+
+    def _render_password_recovery_page(self) -> WerkzeugResponse:
+        # The reset link carries its token in the URL fragment, which browsers
+        # never send to the server or put in a ``Referer`` header.
+        if not password_recovery.is_enabled():
+            abort(404)
         return super().render_app_template()
 
 

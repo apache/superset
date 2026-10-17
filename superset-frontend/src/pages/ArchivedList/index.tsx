@@ -179,6 +179,7 @@ function ArchivedListBody({
     state: { loading, resourceCount, resourceCollection },
     fetchData,
     refreshData,
+    hasPerm,
   } = useListViewResource<ArchivedItem>(
     config.resource,
     TYPE_LABELS[type](),
@@ -187,11 +188,13 @@ function ArchivedListBody({
     [],
     baseFilters,
   );
+  // Restore and purge both require the selected resource's write permission.
+  const canWrite = hasPerm('can_write');
 
   // Restore is immediate (no confirm dialog). On success, refetch the full page
   // so the server-side count/pagination stays consistent and the row drops out;
-  // on any error surface a danger toast and leave the row in place. The list
-  // read is already owner-scoped, so every visible row is restorable.
+  // on any error surface a danger toast and leave the row in place. List
+  // visibility does not imply write permission; the API also checks ownership.
   // A second activation while a request is in flight races the first: by the
   // time the retry lands the row is already restored (or purged), so the
   // server answers 404 and the user is shown a failure after a success. The
@@ -431,9 +434,18 @@ function ArchivedListBody({
           // error — the reader is shown what looks like an empty new chart
           // rather than told anything. Neither is a preview, and the silent
           // one is the worse of the two, so no row links out until the object
-          // is recovered.
+          // is recovered. Both audiences get told why: editors are prompted
+          // to recover; readers, who cannot recover, learn the precondition.
           return (
-            <Tooltip title={t('Recover this item to open it')}>
+            <Tooltip
+              title={
+                canWrite
+                  ? t('Recover this item to open it')
+                  : t(
+                      'Archived items must be recovered before they can be opened.',
+                    )
+              }
+            >
               <span>{name}</span>
             </Tooltip>
           );
@@ -490,12 +502,14 @@ function ArchivedListBody({
         ),
         Header: t('Actions'),
         id: 'actions',
+        hidden: !canWrite,
         disableSortBy: true,
         size: 'sm',
       },
     ],
     [
       config.nameField,
+      canWrite,
       type,
       handleRestore,
       handlePurge,

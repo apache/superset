@@ -18,10 +18,15 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
-import { SupersetClient } from '@superset-ui/core';
+import {
+  FeatureFlag,
+  isFeatureEnabled,
+  SupersetClient,
+} from '@superset-ui/core';
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
+import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
 import { useHistory } from 'react-router-dom';
 import {
   getItem,
@@ -100,6 +105,9 @@ function DashboardTable({
   const [dashboardToDelete, setDashboardToDelete] = useState<Dashboard | null>(
     null,
   );
+  // When soft-delete is on, deleting archives the dashboard (recoverable), so
+  // the confirmation drops the type-DELETE friction and explains the archive.
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
 
   const getData = (tab: TableTab) =>
     fetchData({
@@ -238,11 +246,16 @@ function DashboardTable({
       )}
       {dashboardToDelete && (
         <DeleteModal
+          recoverable={softDelete}
           description={
-            <>
-              {t('Are you sure you want to delete')}{' '}
-              <b>{dashboardToDelete.dashboard_title}</b>?
-            </>
+            softDelete ? (
+              archiveConfirmDescription(t('dashboard'))
+            ) : (
+              <>
+                {t('Are you sure you want to delete')}{' '}
+                <b>{dashboardToDelete.dashboard_title}</b>?
+              </>
+            )
           }
           onConfirm={() => {
             handleDashboardDelete(
@@ -258,7 +271,13 @@ function DashboardTable({
           }}
           onHide={() => setDashboardToDelete(null)}
           open={!!dashboardToDelete}
-          title={t('Please confirm')}
+          title={
+            softDelete
+              ? t('Archive %(name)s?', {
+                  name: dashboardToDelete.dashboard_title,
+                })
+              : t('Please confirm')
+          }
         />
       )}
       {dashboards.length > 0 && (

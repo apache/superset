@@ -122,7 +122,7 @@ test('renders with EmptyState if no data present', async () => {
 
 test('fetches chart favorites and renders chart cards', async () => {
   await renderChartTable(mockedProps);
-  userEvent.click(screen.getByText(/favorite/i));
+  await userEvent.click(screen.getByText(/favorite/i));
   await waitFor(() => {
     expect(
       fetchMock.callHistory.calls(chartFavoriteStatusEndpoint),
@@ -138,7 +138,7 @@ test('renders other tab by default', async () => {
 
 test('renders mine tab on click', async () => {
   await renderChartTable(mineTabProps);
-  userEvent.click(screen.getByText(/mine/i));
+  await userEvent.click(screen.getByText(/mine/i));
   await waitFor(() => {
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);
   });
@@ -159,7 +159,7 @@ test('handles chart export with correct ID and shows spinner', async () => {
   await renderChartTable(mineTabProps);
 
   // Click Mine tab to see charts
-  userEvent.click(screen.getByText(/mine/i));
+  await userEvent.click(screen.getByText(/mine/i));
 
   await waitFor(() => {
     expect(screen.getAllByText(/cool chart/i)).toHaveLength(3);

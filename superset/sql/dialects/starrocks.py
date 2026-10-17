@@ -39,7 +39,7 @@ from sqlglot import exp
 from sqlglot.dialects.starrocks import StarRocks as _StarRocks
 from sqlglot.errors import ParseError
 from sqlglot.generators.starrocks import StarRocksGenerator as _StarRocksGenerator
-from sqlglot.helper import seq_get
+from sqlglot.helper import ensure_list, seq_get
 from sqlglot.parsers.starrocks import StarRocksParser as _StarRocksParser
 from sqlglot.tokens import TokenType
 
@@ -152,7 +152,12 @@ class StarRocksParser(_StarRocksParser):
         if is_index_def:
             return self._parse_index_constraint()
 
-        return exp.var("KEY")
+        # A bare, unnamed `KEY` column attribute (no name, no column list) no
+        # longer reaches this override at all: sqlglot's own column-
+        # constraint parsing now maps it straight to `PRIMARY KEY` before
+        # ever consulting CONSTRAINT_PARSERS. Kept as a defensive fallback in
+        # case that upstream routing changes again.
+        return exp.var("KEY")  # pragma: no cover
 
     def _parse_kill(self) -> exp.Kill:
         # StarRocks additionally supports `KILL ANALYZE <task_id>` to cancel a
@@ -447,7 +452,7 @@ class StarRocksParser(_StarRocksParser):
         return self.expression(
             exp.Drop(
                 exists=if_exists,
-                this=this,
+                tables=ensure_list(this),
                 expressions=expressions,
                 kind=self.dialect.CREATABLE_KIND_MAPPING.get(kind) or kind,
                 temporary=temporary,

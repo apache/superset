@@ -26,6 +26,8 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app
 from flask_babel import gettext as _
+from jinja2.exceptions import TemplateError
+from pandas.api.types import infer_dtype
 
 from superset.common.chart_data import ChartDataResultFormat
 from superset.common.chart_data_timing import (
@@ -41,17 +43,33 @@ from superset.common.utils.time_range_utils import get_since_until_from_time_ran
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
 from superset.daos.annotation_layer import AnnotationLayerDAO
 from superset.daos.chart import ChartDAO
+from superset.daos.datasource import DatasourceDAO
+from superset.daos.exceptions import (
+    DatasourceNotFound,
+    DatasourceTypeNotSupportedError,
+    DatasourceValueIsIncorrect,
+)
+from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
+    QueryObjectValidationMessage,
+    SemanticResultCompletenessError,
     SupersetException,
+    SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
 from superset.extensions import cache_manager, security_manager
 from superset.models.helpers import QueryResult
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
+)
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import AdhocColumn, AdhocMetric, Column
-from superset.utils import csv, excel
+from superset.utils import csv, excel, json
 from superset.utils.cache import generate_cache_key, set_and_log_cache
 from superset.utils.core import (
+    ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE,
     DatasourceType,
     DTTM_ALIAS,
     error_msg_from_exception,
@@ -68,6 +86,7 @@ from superset.utils.pandas_postprocessing.utils import unescape_separator
 if TYPE_CHECKING:
     from superset.common.query_context import QueryContext
     from superset.common.query_object import QueryObject
+    from superset.daos.datasource import Datasource
     from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
@@ -111,6 +130,23 @@ def normalize_contribution_totals(
             raw_queries[totals_idx]["row_limit"] = None
 
     return queries_needing_totals, totals_idx
+
+
+def is_summable(series: pd.Series) -> bool:
+    """
+    Whether a column holds values the contribution totals can be summed over.
+
+    A dtype-kind test alone is not enough. `decimal.Decimal` metrics -- how
+    drivers such as psycopg2 hand back NUMERIC/DECIMAL columns -- are stored
+    with an object dtype, so they fall outside the numeric kinds even though
+    they sum and divide perfectly well. Omitting them leaves the totals
+    dictionary without an entry for the metric, and `contribution()` then
+    reads back `None` and writes a zero contribution instead of the real
+    percentage.
+    """
+    if series.dtype.kind in "biufc":
+        return True
+    return infer_dtype(series, skipna=True) == "decimal"
 
 
 class QueryContextProcessor:
@@ -241,6 +277,12 @@ class QueryContextProcessor:
             self._resolve_forced_query(query_obj, cache_key)
             or timeout == CACHE_DISABLED_TIMEOUT
         )
+        if query_obj:
+            # Datasources that run their own caching (semantic containment)
+            # must honor the same resolved chart/custom timeout and force
+            # decision as the result cache, not the datasource-level default.
+            query_obj.force_query = force_query
+            query_obj.cache_timeout = timeout
         query_planning_ns = max(0, time.perf_counter_ns() - query_planning_start_ns)
 
         cache_resolution_start_ns = time.perf_counter_ns()
@@ -251,13 +293,14 @@ class QueryContextProcessor:
             force_cached=force_cached,
         )
 
-        # If cache is loaded but missing applied_filter_columns and query has filters,
-        # treat as cache miss to ensure fresh query with proper applied_filter_columns
+        # Entries without any filter reporting predate applied/rejected metadata.
+        # Rejected-only results are complete too (e.g. incompatible dashboard filters).
         if (
             query_obj
             and cache_key
             and cache.is_loaded
             and not cache.applied_filter_columns
+            and not cache.rejected_filter_columns
             and query_obj.filter
             and len(query_obj.filter) > 0
         ):
@@ -287,8 +330,11 @@ class QueryContextProcessor:
 
                 query_result = self.get_query_result(query_obj)
                 annotation_data = self.get_annotation_data(query_obj)
+            except SemanticResultCompletenessError:
+                raise
             except QueryObjectValidationError as ex:
-                cache.error_message = str(ex)
+                # Keep the type: ChartDataCommand reads it to answer 400.
+                cache.error_message = QueryObjectValidationMessage(ex)
                 cache.status = QueryStatus.FAILED
             finally:
                 data_acquisition_ns = max(
@@ -382,6 +428,7 @@ class QueryContextProcessor:
             "annotation_data": cache.annotation_data,
             "error": cache.error_message,
             "is_cached": cache.is_cached,
+            "semantic_cache_status": getattr(cache, "semantic_cache_status", None),
             "query": cache.query,
             "status": cache.status,
             "stacktrace": cache.stacktrace,
@@ -406,7 +453,9 @@ class QueryContextProcessor:
         """
         Returns a QueryObject cache key for objects in self.queries
         """
-        datasource = self._qc_datasource
+        datasource: Explorable = self._qc_datasource
+        # Reject unenforceable restrictions before provider identity or cache reads.
+        rls: list[str] = security_manager.get_rls_cache_key(datasource)
         extra_cache_keys = datasource.get_extra_cache_keys(query_obj.to_dict())
 
         # Annotation data is cached on the same entry as the dataframe, so the
@@ -418,7 +467,7 @@ class QueryContextProcessor:
             query_obj.cache_key(
                 datasource=datasource.uid,
                 extra_cache_keys=extra_cache_keys,
-                rls=security_manager.get_rls_cache_key(datasource),
+                rls=rls,
                 changed_on=datasource.changed_on,
                 **kwargs,
             )
@@ -438,20 +487,62 @@ class QueryContextProcessor:
         chart's datasource.
         """
         source_rls: dict[str, list[str] | None] = {}
+        source_versions: dict[str, tuple[str, str]] = {}
+        metadata_versions: dict[str, str] = {}
         for layer in query_obj.annotation_layers:
-            if layer.get("sourceType") not in ("line", "table"):
+            if (
+                layer.get("sourceType")
+                not in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+            ):
                 continue
             layer_value = layer.get("value")
             chart = (
                 ChartDAO.find_by_id(layer_value) if layer_value is not None else None
             )
-            annotation_datasource = chart.datasource if chart else None
+            annotation_datasource: Datasource | None = (
+                chart.resolved_datasource if chart else None
+            )
+            if chart and isinstance(chart.query_context, str):
+                try:
+                    source: dict[str, Any] = json.loads(chart.query_context)[
+                        "datasource"
+                    ]
+                    annotation_datasource = DatasourceDAO.get_datasource(
+                        source["type"], source["id"]
+                    )
+                except (
+                    ValueError,
+                    TypeError,
+                    KeyError,
+                    DatasourceNotFound,
+                    DatasourceTypeNotSupportedError,
+                    DatasourceValueIsIncorrect,
+                ):
+                    annotation_datasource = None
+            if isinstance(annotation_datasource, SemanticView):
+                metadata_versions[str(layer_value)] = (
+                    annotation_datasource.metadata_generation
+                )
             source_rls[str(layer.get("value"))] = (
                 security_manager.get_rls_cache_key(annotation_datasource)
                 if annotation_datasource
                 else None
             )
-        return {"user_id": get_user_id(), "source_rls": source_rls}
+            if isinstance(annotation_datasource, SemanticView):
+                discriminator: tuple[str, str] | None = (
+                    annotation_datasource.result_cache_discriminator
+                )
+                if discriminator is not None:
+                    source_versions[str(layer_value)] = discriminator
+        context: dict[str, Any] = {
+            "user_id": get_user_id(),
+            "source_rls": source_rls,
+            "semantic_filter_protocol": "semantic-null-filters-v1",
+            "source_versions": metadata_versions,
+        }
+        if source_versions:
+            context["semantic_result_versions"] = source_versions
+        return context
 
     def get_query_result(self, query_object: QueryObject) -> QueryResult:
         """
@@ -568,7 +659,11 @@ class QueryContextProcessor:
                 )
             return result or ""
 
-        return df.to_dict(orient="records")
+        # QueryObject post-processing has completed before this materialization
+        # boundary. Canonicalize its trusted missing/non-finite scalar outputs,
+        # while downstream envelope validation still rejects injected infinity.
+        # Chart consumers do arithmetic on decimals, so keep them JSON numbers.
+        return df_to_records(df)
 
     @staticmethod
     def _to_arrow_ipc(df: pd.DataFrame) -> bytes:
@@ -598,13 +693,17 @@ class QueryContextProcessor:
             return
 
         totals_query = self._query_context.queries[totals_idx]
+        totals_timeout: int = self.get_cache_timeout()
+        totals_query.cache_timeout = totals_timeout
+        totals_query.force_query = (
+            self._resolve_forced_query(totals_query, self.query_cache_key(totals_query))
+            or totals_timeout == CACHE_DISABLED_TIMEOUT
+        )
 
         result = self._query_context.get_query_result(totals_query)
         df = result.df
 
-        totals = {
-            col: df[col].sum() for col in df.columns if df[col].dtype.kind in "biufc"
-        }
+        totals = {col: df[col].sum() for col in df.columns if is_summable(df[col])}
 
         for idx in queries_needing_totals:
             query = self._query_context.queries[idx]
@@ -804,7 +903,7 @@ class QueryContextProcessor:
         for annotation_layer in [
             layer
             for layer in query_obj.annotation_layers
-            if layer["sourceType"] in ("line", "table")
+            if layer["sourceType"] in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
         ]:
             name = annotation_layer["name"]
             annotation_data[name] = self.get_viz_annotation_data(
@@ -869,9 +968,11 @@ class QueryContextProcessor:
         if not (chart := ChartDAO.find_by_id(annotation_layer["value"])):
             raise QueryObjectValidationError(
                 _(
-                    f"""Chart with ID {annotation_layer["value"]} (referenced by
-                    annotation layer '{annotation_layer["name"]}') was not found.
-                    Please verify that the chart exists and is accessible."""
+                    "Chart with ID %(chart_id)s (referenced by annotation layer "
+                    "'%(layer_name)s') was not found. Please verify that the "
+                    "chart exists and is accessible.",
+                    chart_id=annotation_layer["value"],
+                    layer_name=annotation_layer["name"],
                 )
             )
 
@@ -879,12 +980,20 @@ class QueryContextProcessor:
             if not (query_context := chart.get_query_context()):
                 raise QueryObjectValidationError(
                     _(
-                        f"""The query context for chart ID {chart.id} (referenced
-                        by annotation layer '{annotation_layer["name"]}') was not found.
-                        Please ensure the chart is properly configured and has a valid
-                        query context."""
+                        "The query context for chart ID %(chart_id)s (referenced "
+                        "by annotation layer '%(layer_name)s') was not found. "
+                        "Please ensure the chart is properly configured and has a "
+                        "valid query context.",
+                        chart_id=chart.id,
+                        layer_name=annotation_layer["name"],
                     )
                 )
+
+            # Only the source chart's rows are used. Dropping its own annotation
+            # layers also stops charts that annotate each other (A -> B -> A)
+            # from recursing.
+            for query_object in query_context.queries:
+                query_object.annotation_layers = []
 
             if overrides := annotation_layer.get("overrides"):
                 if time_grain_sqla := overrides.get("time_grain_sqla"):
@@ -903,6 +1012,12 @@ class QueryContextProcessor:
             command.validate()
             payload = command.run()
             return {"records": payload["queries"][0]["data"]}
+        except (
+            SemanticLayerQueryRejectedError,
+            SemanticLayerExecutionError,
+            SemanticResultCompletenessError,
+        ):
+            raise
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
@@ -917,7 +1032,10 @@ class QueryContextProcessor:
         # come first to avoid rendering caller-supplied input for a resource the
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
-            security_manager.raise_for_access(query=self._qc_datasource)
+            try:
+                security_manager.raise_for_access(query=self._qc_datasource)
+            except TemplateError as ex:
+                raise SupersetTemplateException(str(ex)) from ex
         else:
             security_manager.raise_for_access(query_context=self._query_context)
 

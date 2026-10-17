@@ -26,9 +26,13 @@ import {
   Metric,
   QueryFormMetric,
 } from '@superset-ui/core';
-import { ColumnMeta, isColumnMeta } from '@superset-ui/chart-controls';
+import { ColumnMeta, Dataset, isColumnMeta } from '@superset-ui/chart-controls';
 import { ExplorePopoverContent } from 'src/explore/components/ExploreContentPopover';
-import { SaveDatasetModal } from 'src/SqlLab/components/SaveDatasetModal';
+import {
+  ISaveableDatasource,
+  SaveDatasetModal,
+} from 'src/SqlLab/components/SaveDatasetModal';
+import { ExplorePageState } from 'src/explore/types';
 import ColumnSelectPopover from './ColumnSelectPopover';
 import { DndColumnSelectPopoverTitle } from './DndColumnSelectPopoverTitle';
 import ControlPopover from '../ControlPopover/ControlPopover';
@@ -52,7 +56,7 @@ interface ColumnSelectPopoverTriggerProps {
 }
 
 interface ColumnSelectPopoverTriggerInnerProps extends ColumnSelectPopoverTriggerProps {
-  datasource?: any;
+  datasource?: Dataset | null;
 }
 
 const ColumnSelectPopoverTriggerInner = ({
@@ -189,7 +193,9 @@ const ColumnSelectPopoverTriggerInner = ({
           modalDescription={t(
             'Save this query as a virtual dataset to continue exploring',
           )}
-          datasource={datasource}
+          // The explore datasource has always been forwarded here; the modal
+          // only reads the saveable subset of its fields.
+          datasource={datasource as unknown as ISaveableDatasource}
         />
       )}
       <ControlPopover
@@ -201,9 +207,13 @@ const ColumnSelectPopoverTriggerInner = ({
         title={popoverTitle}
         destroyOnHidden
       >
-        {/* Wrap in span so the Popover can attach a ref without relying
-            on findDOMNode (deprecated in React 18+). */}
-        <span>{children}</span>
+        {/* Wrap in a span so the Popover can attach a ref without relying
+            on findDOMNode (deprecated in React 18+). It must be block-level:
+            a zero-height placeholder can collapse an inline wrapper to a point.
+            Block layout preserves the control width used by right placement,
+            without adding height. Nonempty block children need not collapse
+            (sc-120502). */}
+        <span style={{ display: 'block' }}>{children}</span>
       </ControlPopover>
     </>
   );
@@ -212,8 +222,8 @@ const ColumnSelectPopoverTriggerInner = ({
 const ColumnSelectPopoverTriggerWrapper = (
   props: ColumnSelectPopoverTriggerProps,
 ) => {
-  const datasource = useSelector(
-    (state: any) => state?.explore?.datasource || null,
+  const datasource = useSelector<ExplorePageState, Dataset | null>(
+    state => state?.explore?.datasource || null,
   );
 
   return <ColumnSelectPopoverTriggerInner {...props} datasource={datasource} />;

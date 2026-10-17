@@ -36,13 +36,6 @@ Init Step ${1}/${STEP_CNT} [${2}] -- ${3}
 EOF
 }
 ADMIN_PASSWORD="${ADMIN_PASSWORD:-admin}"
-# If Cypress run – overwrite the password for admin and export env variables
-if [ "$CYPRESS_CONFIG" == "true" ]; then
-    ADMIN_PASSWORD="general"
-    export SUPERSET_TESTENV=true
-    export POSTGRES_DB=superset_cypress
-    export SUPERSET__SQLALCHEMY_DATABASE_URI=postgresql+psycopg2://superset:superset@db:5432/superset_cypress
-fi
 # Initialize the database
 echo_step "1" "Starting" "Applying DB migrations"
 superset db upgrade
@@ -50,16 +43,12 @@ echo_step "1" "Complete" "Applying DB migrations"
 
 # Create an admin user
 echo_step "2" "Starting" "Setting up admin user ( admin / $ADMIN_PASSWORD )"
-if [ "$CYPRESS_CONFIG" == "true" ]; then
-    superset load_test_users
-else
-    superset fab create-admin \
-        --username admin \
-        --email admin@superset.com \
-        --password "$ADMIN_PASSWORD" \
-        --firstname Superset \
-        --lastname Admin
-fi
+superset fab create-admin \
+    --username admin \
+    --email admin@superset.com \
+    --password "$ADMIN_PASSWORD" \
+    --firstname Superset \
+    --lastname Admin
 echo_step "2" "Complete" "Setting up admin user"
 # Create default roles and permissions
 echo_step "3" "Starting" "Setting up roles and perms"
@@ -97,12 +86,8 @@ PY
 if [ "$SUPERSET_LOAD_EXAMPLES" = "yes" ]; then
     echo_step "4" "Starting" "Loading examples"
 
-    # Cypress runs always load, since they need a distinct set of test data
-    # (`--load-test-data`) in a separate database. Set
-    # SUPERSET_FORCE_LOAD_EXAMPLES=yes to reload the examples regardless.
-    if [ "$CYPRESS_CONFIG" == "true" ]; then
-        superset load_examples --load-test-data
-    elif [ "$SUPERSET_FORCE_LOAD_EXAMPLES" != "yes" ] && examples_already_loaded; then
+    # Set SUPERSET_FORCE_LOAD_EXAMPLES=yes to reload the examples regardless.
+    if [ "$SUPERSET_FORCE_LOAD_EXAMPLES" != "yes" ] && examples_already_loaded; then
         echo "Examples already loaded, skipping (set SUPERSET_FORCE_LOAD_EXAMPLES=yes to reload them)"
     else
         superset load_examples

@@ -49,10 +49,4 @@ module.exports = {
   // one is built with `npm run build`,
   // another is built with `npm run build-instrumented`
   'instrumented-assets': assetsConfig,
-  cypress: {
-    path: [`${homeDirectory}/.cache/Cypress`],
-    hashFiles: [
-      `${workspaceDirectory}/superset-frontend/cypress-base/package-lock.json`,
-    ],
-  },
 };

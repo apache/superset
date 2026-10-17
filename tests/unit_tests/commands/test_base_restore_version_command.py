@@ -97,3 +97,87 @@ def test_validate_returns_entity_when_not_managed_externally(
 
     with _validate_context(entity):
         assert cmd.validate() is entity
+
+
+@contextmanager
+def _restore_context(entity: MagicMock) -> Iterator[None]:
+    """Supply the validated entity through the locking read as well.
+
+    Keep the transaction/error wrapper real so these tests exercise exception
+    translation from the restore engine, not a database binding failure.
+    Lock ordering and predicates are covered in test_restore_version_concurrency.
+    """
+    query: MagicMock = MagicMock()
+    query.populate_existing.return_value = query
+    query.enable_eagerloads.return_value = query
+    query.filter_by.return_value = query
+    query.with_for_update.return_value = query
+    query.one_or_none.return_value = entity
+    with (
+        _validate_context(entity),
+        patch("superset.commands.version_restore.db.session.query", return_value=query),
+    ):
+        yield
+
+
+@pytest.mark.parametrize("command_cls", _COMMAND_CLASSES)
+def test_registry_lookup_error_maps_to_failed_exc(
+    command_cls: type[BaseRestoreVersionCommand],
+) -> None:
+    """The engine's fail-closed registry LookupError maps to failed_exc.
+
+    ``restore_version`` raises LookupError for a model missing from
+    ``_RESTORE_RELATIONS``; without ``catches`` widened past the
+    SQLAlchemyError default that surfaced as a raw 500 instead of the
+    intended fail-closed 422 (sc-115326).
+    """
+    entity: MagicMock = MagicMock(id=123, is_managed_externally=False)
+    lookup: LookupError = LookupError("No restore relations registered for 'Widget'")
+    cmd: BaseRestoreVersionCommand = command_cls(uuid4(), uuid4())
+    restore: MagicMock
+    excinfo: pytest.ExceptionInfo[Exception]
+    with (
+        _restore_context(entity),
+        patch(
+            "superset.commands.version_restore.resolve_version",
+            return_value=(0, 123),
+        ),
+        patch(
+            "superset.commands.version_restore.restore_version",
+            side_effect=lookup,
+        ) as restore,
+    ):
+        with pytest.raises(command_cls.failed_exc) as excinfo:
+            cmd.run()
+
+    assert excinfo.value.__cause__ is lookup
+    restore.assert_called_once_with(cmd.model_cls, cmd._uuid, 123, entity=entity)
+
+
+@pytest.mark.parametrize("command_cls", _COMMAND_CLASSES)
+def test_other_exceptions_still_pass_through_untranslated(
+    command_cls: type[BaseRestoreVersionCommand],
+) -> None:
+    """The catches tuple stays narrow: an arbitrary non-SQLAlchemy error
+    propagates as itself — the endpoint maps such types explicitly."""
+    entity: MagicMock = MagicMock(id=123, is_managed_externally=False)
+    error: RuntimeError = RuntimeError("boom")
+    cmd: BaseRestoreVersionCommand = command_cls(uuid4(), uuid4())
+    restore: MagicMock
+    excinfo: pytest.ExceptionInfo[RuntimeError]
+    with (
+        _restore_context(entity),
+        patch(
+            "superset.commands.version_restore.resolve_version",
+            return_value=(0, 123),
+        ),
+        patch(
+            "superset.commands.version_restore.restore_version",
+            side_effect=error,
+        ) as restore,
+    ):
+        with pytest.raises(RuntimeError) as excinfo:
+            cmd.run()
+
+    assert excinfo.value is error
+    restore.assert_called_once_with(cmd.model_cls, cmd._uuid, 123, entity=entity)

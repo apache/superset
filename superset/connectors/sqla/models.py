@@ -23,7 +23,7 @@ import re
 from collections import defaultdict
 from collections.abc import Hashable
 from dataclasses import dataclass, field
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any, Callable, cast, Optional, Union
 from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
@@ -32,7 +32,7 @@ import sqlalchemy as sa
 from flask import current_app
 from flask_appbuilder import Model
 from flask_babel import gettext as __, lazy_gettext as _
-from jinja2.exceptions import TemplateError
+from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
 from sqlalchemy import (
     and_,
@@ -76,6 +76,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
+from superset.constants import EPOCH_FORMATS
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -86,6 +87,7 @@ from superset.exceptions import (
     SupersetParseError,
     SupersetSecurityException,
     SupersetSyntaxErrorException,
+    SupersetTemplateException,
 )
 from superset.explorables.base import TimeGrainDict
 from superset.jinja_context import (
@@ -150,6 +152,48 @@ class MetadataResult:
     added: list[str] = field(default_factory=list)
     removed: list[str] = field(default_factory=list)
     modified: list[str] = field(default_factory=list)
+
+
+def _is_calculated_column(column: TableColumn) -> bool:
+    """Return whether *column* is a user-defined virtual column.
+
+    ``fetch_metadata`` keeps calculated columns that the source table does
+    not list. Engine specs such as Trino also store an ``expression`` on
+    expanded nested ``ROW`` fields, whose name is the dotted path (e.g.
+    ``metadata.uuid``) and whose expression is always that same path
+    quoted per-part (e.g. ``"metadata"."uuid"``). Those are still physical
+    columns: if the source no longer lists them they must be dropped so
+    chart cache keys invalidate. A user-authored calculated column can
+    also have a dotted name, so the dot alone cannot be the signal; only
+    drop columns whose expression matches Trino's quoted-path pattern for
+    its own name. See #43918.
+    """
+    if not column.expression:
+        return False
+    name = column.column_name or ""
+    quoted_path = ".".join(f'"{part}"' for part in name.split("."))
+    return column.expression != quoted_path
+
+
+def _without_shadowed_nested_fields(
+    new_columns: list[ResultSetColumnType],
+    old_columns_by_name: dict[str, TableColumn],
+) -> list[ResultSetColumnType]:
+    """Drop expanded nested fields named like an existing calculated column.
+
+    Such calculated columns (e.g. ``calendar.day`` on a BigQuery STRUCT) are
+    user-defined and must keep their expression; ``fetch_metadata`` adds them
+    back with the other calculated columns.
+    """
+    return [
+        col
+        for col in new_columns
+        if not (
+            col.get("nested_field")
+            and (old_column := old_columns_by_name.get(col["column_name"]))
+            and _is_calculated_column(old_column)
+        )
+    ]
 
 
 METRIC_FORM_DATA_PARAMS = [
@@ -784,7 +828,9 @@ class BaseDatasource(
         match it. Since the fields are different for the different
         connectors, the implementation uses ``update_from_object_fields``
         which can be defined for each connector and
-        defines which fields should be synced"""
+        defines which fields should be synced. Note that this replaces rather
+        than merges: a key omitted from ``obj`` clears the field rather than
+        leaving it untouched."""
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
@@ -1218,12 +1264,28 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             if template_processor:
                 try:
                     expression = template_processor.process_template(expression)
-                except SupersetSyntaxErrorException as ex:
-                    msg = str(ex)
+                except UndefinedError as ex:
                     raise QueryObjectValidationError(
                         _(
                             "Error in jinja expression in column expression: %(msg)s",
-                            msg=msg,
+                            msg=str(ex),
+                        )
+                    ) from ex
+                except (
+                    TemplateError,
+                    SupersetSyntaxErrorException,
+                    SupersetTemplateException,
+                ) as ex:
+                    if isinstance(ex, TemplateError):
+                        error_msg = ex.message
+                    elif isinstance(ex, SupersetSyntaxErrorException):
+                        error_msg = str(ex.errors[0].message if ex.errors else ex)
+                    else:  # SupersetTemplateException
+                        error_msg = str(ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in column expression: %(msg)s",
+                            msg=error_msg,
                         )
                     ) from ex
                 if expression != self.expression:
@@ -1257,7 +1319,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
     def datasource(self) -> RelationshipProperty:
         return self.table
 
-    def get_timestamp_expression(
+    def get_timestamp_expression(  # noqa: C901
         self,
         time_grain: str | None,
         label: str | None = None,
@@ -1278,7 +1340,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         label = label or utils.DTTM_ALIAS
 
         pdf = self.python_date_format
-        is_epoch = pdf in ("epoch_s", "epoch_ms")
+        is_epoch = pdf in EPOCH_FORMATS
         db_engine_spec = self.db_engine_spec
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else DateTime
@@ -1293,12 +1355,28 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
             if template_processor:
                 try:
                     expression = template_processor.process_template(expression)
-                except SupersetSyntaxErrorException as ex:
-                    msg = str(ex)
+                except UndefinedError as ex:
                     raise QueryObjectValidationError(
                         _(
                             "Error in jinja expression in datetime column: %(msg)s",
-                            msg=msg,
+                            msg=str(ex),
+                        )
+                    ) from ex
+                except (
+                    TemplateError,
+                    SupersetSyntaxErrorException,
+                    SupersetTemplateException,
+                ) as ex:
+                    if isinstance(ex, TemplateError):
+                        error_msg = ex.message
+                    elif isinstance(ex, SupersetSyntaxErrorException):
+                        error_msg = str(ex.errors[0].message if ex.errors else ex)
+                    else:  # SupersetTemplateException
+                        error_msg = str(ex)
+                    raise QueryObjectValidationError(
+                        _(
+                            "Error in jinja expression in datetime column: %(msg)s",
+                            msg=error_msg,
                         )
                     ) from ex
                 if expression != self.expression:
@@ -1431,12 +1509,28 @@ class SqlMetric(AuditMixinNullable, ImportExportMixin, CertificationMixin, Model
         if template_processor:
             try:
                 expression = template_processor.process_template(expression)
-            except SupersetSyntaxErrorException as ex:
-                msg = str(ex)
+            except UndefinedError as ex:
                 raise QueryObjectValidationError(
                     _(
                         "Error in jinja expression in metric expression: %(msg)s",
-                        msg=msg,
+                        msg=str(ex),
+                    )
+                ) from ex
+            except (
+                TemplateError,
+                SupersetSyntaxErrorException,
+                SupersetTemplateException,
+            ) as ex:
+                if isinstance(ex, TemplateError):
+                    error_msg = ex.message
+                elif isinstance(ex, SupersetSyntaxErrorException):
+                    error_msg = str(ex.errors[0].message if ex.errors else ex)
+                else:  # SupersetTemplateException
+                    error_msg = str(ex)
+                raise QueryObjectValidationError(
+                    _(
+                        "Error in jinja expression in metric expression: %(msg)s",
+                        msg=error_msg,
                     )
                 ) from ex
             if expression != self.expression:
@@ -1833,6 +1927,14 @@ class SqlaTable(
     @property
     def data(self) -> ExplorableData:
         data_ = super().data
+        # Editors gate the "Edit dataset" action in Explore. They are serialized
+        # with the same compact subject shape the dataset REST API exposes
+        # (``editors.id`` / ``editors.label`` / ``editors.type``) so both
+        # payloads can be consumed by the same frontend code.
+        data_["editors"] = [
+            {"id": editor.id, "label": editor.label, "type": editor.type}
+            for editor in self.editors
+        ]
         if self.type == "table":
             data_["granularity_sqla"] = self.granularity_sqla
             data_["time_grain_sqla"] = self.time_grain_sqla
@@ -1859,11 +1961,11 @@ class SqlaTable(
         template_processor: BaseTemplateProcessor | None = None,
     ) -> TextClause:
         fetch_values_predicate = self.fetch_values_predicate
-        if template_processor:
-            fetch_values_predicate = template_processor.process_template(
-                fetch_values_predicate
-            )
         try:
+            if template_processor:
+                fetch_values_predicate = template_processor.process_template(
+                    fetch_values_predicate
+                )
             # Re-validate the rendered predicate with the same parser policy
             # as stored column and metric expressions before embedding it.
             validate_stored_expression(
@@ -1915,7 +2017,19 @@ class SqlaTable(
             return table(quoted_name(full_name, quote=False))
 
         if self.schema:
-            return table(self.table_name, schema=self.schema)
+            if self.database.db_engine_spec.quote_table_includes_schema:
+                return table(self.table_name, schema=self.schema)
+
+            # This engine's `quote_table` doesn't qualify the identifier with the
+            # schema (e.g. MongoDB/PyMongoSQL, which takes the whole FROM reference
+            # as a literal collection name). Build the FROM-clause identifier the
+            # same way `select_star` does for SQL Lab, and rely on
+            # `adjust_engine_params` to select the schema at the connection level.
+            full_table_name = self.database.db_engine_spec.quote_table(
+                Table(self.table_name, self.schema),
+                self.database.get_dialect(),
+            )
+            return table(quoted_name(full_table_name, quote=False))
 
         return table(self.table_name)
 
@@ -2302,6 +2416,7 @@ class SqlaTable(
         old_columns_by_name: dict[str, TableColumn] = {
             col.column_name: col for col in old_columns
         }
+        new_columns = _without_shadowed_nested_fields(new_columns, old_columns_by_name)
         results = MetadataResult(
             removed=[
                 col
@@ -2336,7 +2451,12 @@ class SqlaTable(
                     new_column.expression = expression
             else:
                 new_column = old_column
-                if new_column.type != col["type"]:
+                # Type and physical expression both feed generated SQL, so
+                # either change is schema drift that must invalidate chart
+                # cache keys (see changed_on bump below).
+                if new_column.type != col["type"] or (
+                    (new_column.expression or "") != expression
+                ):
                     results.modified.append(col["column_name"])
                 new_column.type = col["type"]
                 new_column.expression = expression
@@ -2351,11 +2471,15 @@ class SqlaTable(
 
         # Add back calculated (virtual) columns, i.e. those that weren't matched
         # against `new_columns` above and are thus still present in
-        # `old_columns_by_name`. Columns that were matched are already appended to
-        # `columns` in the loop above, and re-adding them here (e.g. via `old_columns`)
-        # would duplicate any synced physical column that also carries a truthy
-        # `expression`, such as Trino's expanded nested `ROW` fields.
-        columns.extend([col for col in old_columns_by_name.values() if col.expression])
+        # `old_columns_by_name`. Nested physical ROW fields also carry an
+        # expression; they are not calculated columns and must not be kept
+        # when the source no longer lists them (delete-orphan then removes
+        # the TableColumn row).
+        leftover_columns = list(old_columns_by_name.values())
+        dropped_physical_columns = any(
+            not _is_calculated_column(col) for col in leftover_columns
+        )
+        columns.extend(col for col in leftover_columns if _is_calculated_column(col))
         self.columns = columns
 
         if not self.main_dttm_col:
@@ -2364,6 +2488,15 @@ class SqlaTable(
 
         # Apply config supplied mutations.
         current_app.config["SQLA_TABLE_MUTATOR"](self)
+
+        # Child TableColumn rows own the FK, so mutating them (and reassigning
+        # ``self.columns``) does not emit an UPDATE on this tables row.
+        # AuditMixinNullable.changed_on onupdate therefore never fires, and
+        # query_cache_key() keeps serving results computed against the previous
+        # column definitions. Force the same bump DatasetDAO.update() applies
+        # when columns are saved. See #43918.
+        if results.added or results.modified or dropped_physical_columns:
+            self.changed_on = datetime.now()
 
         db.session.merge(self)
         return results

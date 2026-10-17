@@ -26,6 +26,7 @@ import redis
 from flask import has_app_context
 from superset_core.tasks.types import TaskProperties, TaskScope, TaskStatus
 
+from superset.realtime.publish import get_realtime_channel, publish_realtime
 from superset.tasks.constants import ABORT_STATES, TERMINAL_STATES
 from superset.tasks.utils import generate_random_task_key
 
@@ -98,9 +99,8 @@ class TaskManager:
         # callable; resolve it once here so the channel is fixed for the process
         # lifetime (the consumer subscribes to a single channel and cannot follow
         # a value that changes between publishes).
-        realtime_prefix = app.config.get("REALTIME_CHANNEL_PREFIX", "")
-        cls._realtime_channel_prefix = (
-            realtime_prefix() if callable(realtime_prefix) else realtime_prefix
+        cls._realtime_channel_prefix = get_realtime_channel(app).removesuffix(
+            cls._REALTIME_CHANNEL_BASE
         )
 
         cls._initialized = True
@@ -166,16 +166,9 @@ class TaskManager:
         ``routes`` carries the targeted routing keys and is omitted for a
         broadcast (``authenticated_global``) scope.
         """
-        from superset.coordination.base import CoordinationService
-        from superset.utils import json
-
-        if not CoordinationService.is_backend_defined():
-            return False
-        envelope: dict[str, Any] = {"topic": topic, "scope": scope, "payload": payload}
-        if routes is not None:
-            envelope["routes"] = routes
-        CoordinationService.publish(cls.get_realtime_channel(), json.dumps(envelope))
-        return True
+        return publish_realtime(
+            topic, scope, payload, routes, channel=cls.get_realtime_channel()
+        )
 
     @staticmethod
     def _authorized_routes(routes: list[str], principals: list[str]) -> list[str]:

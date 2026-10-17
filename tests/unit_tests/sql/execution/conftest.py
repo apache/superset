@@ -69,6 +69,7 @@ def mock_query() -> MagicMock:
     query.results_key = None
     query.select_as_cta = False
     query.rows = 0
+    query.limit = None
     query.to_dict = MagicMock(return_value={"id": 123})
     query.database = MagicMock()
     query.database.db_engine_spec.extract_errors.return_value = []
@@ -99,6 +100,7 @@ def mock_database() -> MagicMock:
     database.db_engine_spec.get_cancel_query_id = MagicMock(return_value=None)
     database.db_engine_spec.patch = MagicMock()
     database.db_engine_spec.fetch_data = MagicMock(return_value=[])
+    database.db_engine_spec.is_autocommit = MagicMock(return_value=False)
     # Mirrors the real `Database.mutate_sql_based_on_config` default (no-op
     # when no `SQL_QUERY_MUTATOR` is configured), so SQL parsed from its
     # return value stays valid instead of an un-parseable `MagicMock`.
@@ -113,6 +115,7 @@ def mock_result_set() -> MagicMock:
     """Create a mock SupersetResultSet."""
     result_set = MagicMock()
     result_set.size = 2
+    result_set.truncated = False
     result_set.columns = [{"name": "id"}, {"name": "name"}]
     result_set.pa_table = MagicMock()
     result_set.to_pandas_df = MagicMock(
@@ -275,6 +278,7 @@ def mock_query_execution(
 
     # Create a real SupersetResultSet that converts to DataFrame properly
     mock_result_set = MagicMock(spec=SupersetResultSet)
+    mock_result_set.truncated = False
     mock_result_set.to_pandas_df.return_value = pd.DataFrame(
         return_data, columns=column_names
     )

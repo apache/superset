@@ -17,7 +17,8 @@
  * under the License.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector, useStore } from 'react-redux';
+import { useAppDispatch, useAppSelector, RootState } from 'src/views/store';
 import { useDebounceValue } from 'src/hooks/useDebounceValue';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -72,7 +73,7 @@ const PanelHost = styled.div`
 `;
 
 export default function ExploreVersionHistory() {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const { addDangerToast } = useToasts();
   const slice = useSelector<ExplorePageState, Slice | undefined>(
     state => state.explore?.slice ?? undefined,
@@ -179,16 +180,13 @@ export default function ExploreVersionHistory() {
   // shows up.
   const restoreCount = useSelector(selectVersionRestoreCount);
   const lastRestoredUuid = useSelector(selectVersionLastRestoredUuid);
-  // An overwrite save re-hydrates explore in place (no remount), which
-  // replaces the slice with a fresh server copy; watch its changed_on
-  // so the save surfaces as a new timeline entry while the panel is
-  // open. A "save as" navigates with PUSH and reloads the page, so it
-  // needs no signal.
-  const saveSignal = useSelector<ExplorePageState, string | undefined>(
-    state => state.explore?.slice?.changed_on,
-  );
+  // The success marker survives batched Explore hydration and same-second
+  // saves. Its id prevents save-as/late results refreshing another chart.
+  const reduxStore = useStore<RootState>();
+  const savedChart = useAppSelector(state => state.saveModal?.lastSavedChart);
+  const lastSavedChartRef = useRef(savedChart);
+  const lastSaveSliceIdRef = useRef(sliceId);
   const lastRestoreCountRef = useRef(restoreCount);
-  const lastSaveSignalRef = useRef(saveSignal);
   const refreshActivity = activity.refresh;
   // Invalidation token for the in-flight post-restore rehydration.
   // hydrateExplore rewrites the whole explore store, so a fetch resolving
@@ -208,15 +206,24 @@ export default function ExploreVersionHistory() {
     [sliceId, uuid],
   );
   useEffect(() => {
+    const savedThisChart =
+      sliceId === lastSaveSliceIdRef.current &&
+      savedChart !== lastSavedChartRef.current &&
+      savedChart !== undefined &&
+      savedChart.id === sliceId;
+    lastSavedChartRef.current = savedChart;
+    lastSaveSliceIdRef.current = sliceId;
+    if (savedThisChart) {
+      // A newer committed save supersedes an in-flight restore hydration,
+      // including saves whose changed_on value has not moved.
+      restoreHydrationIdRef.current += 1;
+    }
     if (restoreCount !== lastRestoreCountRef.current) {
       lastRestoreCountRef.current = restoreCount;
       // Guard: a restore of some other entity, resolving after navigation.
       // This chart did not change on the server; rehydrating would discard
       // its state for someone else's restore.
       if (lastRestoredUuid === uuid) {
-        // The restore refresh covers any save-signal movement caused by
-        // the same change; sync it so it does not refetch again.
-        lastSaveSignalRef.current = saveSignal;
         refreshActivity();
         if (sliceId) {
           restoreHydrationIdRef.current += 1;
@@ -225,10 +232,9 @@ export default function ExploreVersionHistory() {
           // in hand older than the store: hydrating it would roll the chart
           // back over the newer save. The save's own in-place hydration is
           // already correct, so the stale restore payload is simply dropped.
-          const saveSignalAtStart = lastSaveSignalRef.current;
           const isCurrent = () =>
             restoreHydrationIdRef.current === hydrationId &&
-            lastSaveSignalRef.current === saveSignalAtStart;
+            reduxStore.getState().saveModal?.lastSavedChart === savedChart;
           fetchExploreRehydrationData(sliceId)
             .then(result => {
               if (isCurrent()) {
@@ -243,23 +249,21 @@ export default function ExploreVersionHistory() {
               }
             });
         }
+        return;
       }
-    } else if (saveSignal !== lastSaveSignalRef.current) {
-      // A signal appearing where none existed is the page's initial
-      // hydration, not a save.
-      const isInitialHydration = lastSaveSignalRef.current === undefined;
-      lastSaveSignalRef.current = saveSignal;
-      if (!isInitialHydration) {
-        refreshActivity();
-      }
+    }
+    if (savedThisChart && isPanelOpen) {
+      refreshActivity();
     }
   }, [
     addDangerToast,
     dispatch,
+    isPanelOpen,
     lastRestoredUuid,
     refreshActivity,
+    reduxStore,
     restoreCount,
-    saveSignal,
+    savedChart,
     sliceId,
     uuid,
   ]);

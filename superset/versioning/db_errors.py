@@ -34,6 +34,81 @@ from __future__ import annotations
 
 from sqlalchemy.exc import DBAPIError
 
+#: MySQL/MariaDB deadlock and lock-wait-timeout error codes.
+_MYSQL_LOCK_CONTENTION: tuple[int, ...] = (1213, 1205)
+
+#: PostgreSQL SQLSTATEs: serialization_failure, deadlock_detected,
+#: lock_not_available.
+_PG_LOCK_CONTENTION: tuple[str, ...] = ("40001", "40P01", "55P03")
+
+#: Contention phrases for drivers that carry no structured code at all
+#: (SQLite). Matched against the DRIVER's own message only -- never a
+#: SQLAlchemy wrapper's rendering, which appends the statement and its
+#: bound parameters.
+_LOCK_CONTENTION_PHRASES: tuple[str, ...] = (
+    "deadlock",
+    "lock wait timeout",
+    "database is locked",
+    "database table is locked",
+)
+
+
+def is_lock_contention_error(exc: BaseException | None) -> bool:
+    """Whether *exc* is a database deadlock / lock-wait failure.
+
+    A write that loses a lock race has, by definition, interleaved with a
+    concurrent writer. It does NOT prove the caller's ``If-Match`` token
+    stale, so response-mapping callers classify it as a retryable
+    conflict (409, retry the same request) rather than a 500 -- or a 412,
+    whose refetch-the-token guidance would be wrong here.
+
+    Classification reads the DRIVER DIAGNOSTIC, never the SQLAlchemy
+    wrapper's rendered text: ``str(DBAPIError)`` appends the failing
+    statement and its bound parameters, so an unrelated failure whose
+    SQL or values merely contain a lock word (a chart named "deadlock
+    analysis", a filter on a column called ``lock_wait_timeout``) would
+    be answered "retry the same request" forever.
+
+    A structured code is AUTHORITATIVE where the driver supplies one: a
+    MySQL errno or a PostgreSQL SQLSTATE that is not in the contention
+    sets ends classification at ``False`` rather than falling through to
+    a keyword match. Only code-less drivers reach the phrase check, and
+    then only against their own message. Accepts ``None`` (an exception
+    with no ``__cause__``) and errors with empty driver args without
+    raising.
+    """
+    if exc is None:
+        return False
+
+    orig: object = getattr(exc, "orig", None)
+    if orig is None:
+        if isinstance(exc, DBAPIError):
+            # A wrapper whose driver error was not preserved carries no
+            # diagnostic to classify -- and its own text is the
+            # statement-and-parameters rendering this function must not
+            # read. Unclassifiable is not retryable.
+            return False
+        # Not a wrapper: a raw driver exception is its own diagnostic.
+        diagnostic: object = exc
+    else:
+        diagnostic = orig
+
+    args: tuple[object, ...] | None = getattr(diagnostic, "args", None)
+    if args and isinstance(args[0], int):
+        # MySQL-family errno: structured and therefore decisive.
+        return args[0] in _MYSQL_LOCK_CONTENTION
+
+    sqlstate: str | None = getattr(diagnostic, "pgcode", None) or getattr(
+        diagnostic, "sqlstate", None
+    )
+    if sqlstate is not None:
+        # PostgreSQL SQLSTATE: structured and therefore decisive.
+        return sqlstate in _PG_LOCK_CONTENTION
+
+    text: str = str(diagnostic).lower()
+    return any(phrase in text for phrase in _LOCK_CONTENTION_PHRASES)
+
+
 #: PostgreSQL SQLSTATE for "relation does not exist" (undefined_table).
 _PG_UNDEFINED_TABLE = "42P01"
 

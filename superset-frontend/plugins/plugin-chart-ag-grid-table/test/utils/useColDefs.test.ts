@@ -169,6 +169,46 @@ test('boolean columns use agCheckboxCellRenderer', () => {
   expect(colDef.cellDataType).toBe('boolean');
 });
 
+test('uses columnWidth as minWidth and falls back to 100 when auto', () => {
+  const wideCol = makeColumn({
+    key: 'name',
+    label: 'Name',
+    config: { columnWidth: 400 },
+  });
+  const autoCol = makeColumn({
+    key: 'city',
+    label: 'City',
+    config: {},
+  });
+
+  const { result, rerender } = renderHook(
+    ({ columns }) =>
+      useColDefs({
+        ...defaultProps,
+        columns,
+        data: [{ name: 'Alice', city: 'Paris' }],
+      }),
+    {
+      wrapper: defaultThemeWrapper,
+      initialProps: { columns: [wideCol, autoCol] },
+    },
+  );
+
+  expect(result.current.map(col => [col.field, col.minWidth])).toEqual([
+    ['name', 400],
+    ['city', 100],
+  ]);
+
+  rerender({
+    columns: [makeColumn({ key: 'name', label: 'Name', config: {} }), autoCol],
+  });
+
+  expect(result.current.map(col => [col.field, col.minWidth])).toEqual([
+    ['name', 100],
+    ['city', 100],
+  ]);
+});
+
 test('string columns use custom TextCellRenderer', () => {
   const stringCol = makeColumn({
     key: 'name',
@@ -470,6 +510,7 @@ test('cellStyle uses striped odd-row surface for adaptive contrast', () => {
         ...defaultProps,
         columns: [numericCol],
         data: [{ count: 42 }, { count: 43 }],
+        zebraStriping: true,
         columnColorFormatters: [
           {
             column: 'count',
@@ -513,6 +554,67 @@ test('cellStyle uses striped odd-row surface for adaptive contrast', () => {
       { backgroundColor },
       '#000000',
     ),
+  });
+});
+
+test('cellStyle uses a flat surface for contrast when zebra striping is disabled', () => {
+  // zebraStriping defaults to false/undefined -- AgGridTable's
+  // oddRowBackgroundColor override matches this by rendering a flat
+  // background in that case, so the contrast color computed here must not
+  // alternate either, or it'd pick a color meant for a stripe that isn't
+  // actually there.
+  const numericCol = makeColumn({
+    key: 'count',
+    label: 'Count',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isMetric: true,
+  });
+  const backgroundColor = 'rgba(0, 0, 0, 0.4)';
+
+  const { result } = renderHook(
+    () =>
+      useColDefs({
+        ...defaultProps,
+        columns: [numericCol],
+        data: [{ count: 42 }, { count: 43 }],
+        columnColorFormatters: [
+          {
+            column: 'count',
+            objectFormatting: ObjectFormattingEnum.BACKGROUND_COLOR,
+            getColorFromValue: (value: unknown) =>
+              typeof value === 'number' ? backgroundColor : undefined,
+          },
+        ],
+      }),
+    {
+      wrapper: makeThemeWrapper({
+        ...supersetTheme,
+        colorBgBase: '#ffffff',
+        colorFillQuaternary: '#000000',
+      }),
+    },
+  );
+
+  const cellStyle = getCellStyleFunction(result.current[0].cellStyle);
+  const expectedTextColor = getExpectedTextColor(
+    { backgroundColor },
+    '#ffffff',
+  );
+
+  expect(
+    getCellStyleResult(cellStyle, {
+      rowIndex: 0,
+    }),
+  ).toMatchObject({
+    '--ag-cell-value-color': expectedTextColor,
+  });
+  expect(
+    getCellStyleResult(cellStyle, {
+      rowIndex: 1,
+    }),
+  ).toMatchObject({
+    '--ag-cell-value-color': expectedTextColor,
   });
 });
 

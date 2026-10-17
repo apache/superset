@@ -54,9 +54,10 @@ const ColorBreakpointsPopoverTrigger = ({
       onOpenChange={setVisibility}
       destroyOnHidden
     >
-      {/* Wrap in span so the Popover can attach a ref without relying
-          on findDOMNode (deprecated in React 18+). */}
-      <span>{props.children}</span>
+      {/* Keep a ref-compatible, block-width anchor even when the add-new
+          placeholder has zero height. Right placement depends on its width,
+          not on adding artificial height (sc-120502). */}
+      <span style={{ display: 'block' }}>{props.children}</span>
     </ControlPopover>
   );
 };

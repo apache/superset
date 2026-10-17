@@ -81,7 +81,7 @@ describe('ColorBreakpointOption', () => {
     renderComponent({ onClose });
 
     const removeBtn = await screen.findByTestId('remove-control-button');
-    userEvent.click(removeBtn);
+    await userEvent.click(removeBtn);
 
     expect(onClose).toHaveBeenCalledWith(0);
   });
@@ -92,7 +92,7 @@ describe('ColorBreakpointOption', () => {
     const breakpointOption = await screen.findByTestId(
       'color-breakpoint-trigger',
     );
-    userEvent.click(breakpointOption);
+    await userEvent.click(breakpointOption);
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });

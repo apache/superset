@@ -33,12 +33,18 @@ from superset_core.mcp.decorators import tool, ToolAnnotations
 from superset.commands.dashboard.exceptions import DashboardNotFoundError
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, event_logger
-from superset.mcp_service.dashboard.layout_validation import validate_dashboard_layout
+from superset.mcp_service.dashboard.layout_validation import (
+    rebuild_parent_chains,
+    validate_dashboard_layout,
+)
 from superset.mcp_service.dashboard.schemas import (
     dashboard_serializer,
     DashboardError,
     UpdateDashboardRequest,
     UpdateDashboardResponse,
+)
+from superset.mcp_service.dashboard.tool.governance_utils import (
+    managed_dashboard_refusal,
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils import json
@@ -194,7 +200,14 @@ def _apply_field_updates(dashboard: Any, request: UpdateDashboardRequest) -> lis
         changed.append("published")
 
     if request.position_json is not None:
-        dashboard.position_json = json.dumps(request.position_json)
+        # A caller-supplied replacement layout may carry only an immediate
+        # parent (or omit `parents` altogether); rebuild the full ancestor
+        # chains so filter-scope derivation sees the same tree the frontend
+        # would after hydration. See
+        # superset.dashboards.filter_scope.get_chart_ids_in_scope.
+        dashboard.position_json = json.dumps(
+            rebuild_parent_chains(request.position_json)
+        )
         changed.append("position_json")
 
     metadata_overrides: dict[str, Any] = _collect_metadata_overrides(request)
@@ -300,6 +313,9 @@ async def update_dashboard(
 ) -> UpdateDashboardResponse | DashboardError:
     """Patch an existing dashboard's layout, theme, styling, or metadata.
 
+    Externally managed dashboards refuse mutations with
+    ``managed_externally=True``; do not retry or request more permissions.
+
     Companion to ``generate_dashboard`` for incremental metadata and styling
     edits. An LLM can:
 
@@ -333,6 +349,10 @@ async def update_dashboard(
     dashboard, auth_error = _find_and_authorize_dashboard(request.identifier)
     if auth_error is not None:
         return auth_error
+
+    refusal: str | None = managed_dashboard_refusal(dashboard)
+    if refusal is not None:
+        return UpdateDashboardResponse(managed_externally=True, error=refusal)
 
     validation_error: DashboardError | None = _validate_update_request(
         dashboard, request

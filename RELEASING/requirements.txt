@@ -17,3 +17,5 @@
 
 cherrytree
 jinja2
+# changelog.py needs github.Auth and the default rate-limit retry, both in 2.1.1+
+PyGithub>=2.10.0

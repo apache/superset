@@ -24,6 +24,7 @@ from typing import Any
 import yaml
 
 from superset.mcp_service.dashboard.layout_validation import (
+    rebuild_parent_chains,
     validate_dashboard_layout,
 )
 
@@ -399,3 +400,176 @@ def test_accepts_tabs_without_consuming_depth() -> None:
     }
 
     assert validate_dashboard_layout(layout, {1}) is None
+
+
+def _tabs_layout_with_truncated_parents() -> dict[str, Any]:
+    """A TABS-nested layout as an MCP write path might persist it.
+
+    Each component's ``parents`` holds only its immediate parent instead of
+    the full ancestor chain from ``ROOT_ID``.
+    """
+    return {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {
+            "children": ["GRID_ID"],
+            "id": "ROOT_ID",
+            "type": "ROOT",
+        },
+        "GRID_ID": {
+            "children": ["TABS-lthree"],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+        "TABS-lthree": {
+            "children": ["TAB-out-quarter"],
+            "id": "TABS-lthree",
+            "meta": {},
+            "parents": ["GRID_ID"],
+            "type": "TABS",
+        },
+        "TAB-out-quarter": {
+            "children": ["ROW-out-prod"],
+            "id": "TAB-out-quarter",
+            "meta": {"text": "Q4"},
+            "parents": ["TABS-lthree"],
+            "type": "TAB",
+        },
+        "ROW-out-prod": {
+            "children": ["CHART-1436"],
+            "id": "ROW-out-prod",
+            "meta": {},
+            "parents": ["TAB-out-quarter"],
+            "type": "ROW",
+        },
+        "CHART-1436": {
+            "children": [],
+            "id": "CHART-1436",
+            "meta": {"chartId": 1436},
+            "parents": ["ROW-out-prod"],
+            "type": "CHART",
+        },
+    }
+
+
+def test_rebuild_parent_chains_repairs_truncated_tabs_layout() -> None:
+    layout = _tabs_layout_with_truncated_parents()
+
+    rebuilt = rebuild_parent_chains(layout)
+
+    assert rebuilt["CHART-1436"]["parents"] == [
+        "ROOT_ID",
+        "GRID_ID",
+        "TABS-lthree",
+        "TAB-out-quarter",
+        "ROW-out-prod",
+    ]
+    assert rebuilt["ROW-out-prod"]["parents"] == [
+        "ROOT_ID",
+        "GRID_ID",
+        "TABS-lthree",
+        "TAB-out-quarter",
+    ]
+    assert rebuilt["TAB-out-quarter"]["parents"] == [
+        "ROOT_ID",
+        "GRID_ID",
+        "TABS-lthree",
+    ]
+    assert rebuilt["TABS-lthree"]["parents"] == ["ROOT_ID", "GRID_ID"]
+    assert rebuilt["GRID_ID"]["parents"] == ["ROOT_ID"]
+    assert "parents" not in rebuilt["ROOT_ID"]
+    # validate_dashboard_layout ignores `parents` entirely, so the repaired
+    # layout must still be a valid tree.
+    assert validate_dashboard_layout(rebuilt, {1436}) is None
+
+
+def test_rebuild_parent_chains_is_noop_on_already_correct_layout() -> None:
+    layout = _grid_layout()
+
+    rebuilt = rebuild_parent_chains(layout)
+
+    assert rebuilt == layout
+
+
+def test_rebuild_parent_chains_fills_in_missing_parents() -> None:
+    layout = _grid_layout()
+    del layout["GRID_ID"]["parents"]
+    del layout["ROW-1"]["parents"]
+    del layout["CHART-1"]["parents"]
+
+    rebuilt = rebuild_parent_chains(layout)
+
+    assert rebuilt["GRID_ID"]["parents"] == ["ROOT_ID"]
+    assert rebuilt["ROW-1"]["parents"] == ["ROOT_ID", "GRID_ID"]
+    assert rebuilt["CHART-1"]["parents"] == ["ROOT_ID", "GRID_ID", "ROW-1"]
+
+
+def test_rebuild_parent_chains_does_not_mutate_input() -> None:
+    layout = _tabs_layout_with_truncated_parents()
+    original = deepcopy(layout)
+
+    rebuild_parent_chains(layout)
+
+    assert layout == original
+
+
+def test_rebuild_parent_chains_leaves_detached_grid_untouched() -> None:
+    # Superset retains an empty, detached GRID_ID alongside top-level TABS;
+    # it is unreachable from ROOT_ID and must be left as-is.
+    layout = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"children": ["TABS-1"], "id": "ROOT_ID", "type": "ROOT"},
+        "TABS-1": {
+            "children": ["TAB-1"],
+            "id": "TABS-1",
+            "meta": {},
+            "parents": ["ROOT_ID"],
+            "type": "TABS",
+        },
+        "TAB-1": {
+            "children": [],
+            "id": "TAB-1",
+            "meta": {},
+            "parents": ["TABS-1"],
+            "type": "TAB",
+        },
+        "GRID_ID": {
+            "children": [],
+            "id": "GRID_ID",
+            "parents": ["ROOT_ID"],
+            "type": "GRID",
+        },
+    }
+
+    rebuilt = rebuild_parent_chains(layout)
+
+    assert rebuilt["GRID_ID"] == layout["GRID_ID"]
+    assert rebuilt["TAB-1"]["parents"] == ["ROOT_ID", "TABS-1"]
+
+
+def test_rebuild_parent_chains_handles_cycle_without_raising() -> None:
+    layout = {
+        "ROOT_ID": {"children": ["A"], "id": "ROOT_ID", "type": "ROOT"},
+        "A": {"children": ["B"], "id": "A", "type": "ROW"},
+        "B": {"children": ["A"], "id": "B", "type": "ROW"},
+    }
+
+    rebuilt = rebuild_parent_chains(layout)
+
+    assert rebuilt["A"]["parents"] == ["ROOT_ID"]
+    assert rebuilt["B"]["parents"] == ["ROOT_ID", "A"]
+
+
+def test_rebuild_parent_chains_skips_malformed_entries() -> None:
+    layout = {
+        "ROOT_ID": {"children": ["A", 123, None], "id": "ROOT_ID", "type": "ROOT"},
+        "A": "not-a-component",
+    }
+
+    assert rebuild_parent_chains(layout) == layout
+
+
+def test_rebuild_parent_chains_returns_input_when_root_missing() -> None:
+    layout: dict[str, Any] = {"X": {"children": []}}
+
+    assert rebuild_parent_chains(layout) is layout

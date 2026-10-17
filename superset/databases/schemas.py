@@ -245,11 +245,21 @@ def encrypted_extra_validator(value: str | None) -> None:
     """
     if value:
         try:
-            json.loads(value)
+            encrypted_extra = json.loads(value)
         except json.JSONDecodeError as ex:
             raise ValidationError(
                 [_("Field cannot be decoded by JSON. %(msg)s", msg=str(ex))]
             ) from ex
+
+        if not isinstance(encrypted_extra, dict):
+            raise ValidationError(
+                [
+                    _(
+                        "Encrypted extra field must be a mapping"
+                        " from string keys to values."
+                    )
+                ]
+            )
 
 
 def masked_encrypted_extra_validator(value: str) -> None:
@@ -934,9 +944,24 @@ class DatabaseRelatedDashboards(Schema):
     )
 
 
+class DatabaseRelatedDataset(Schema):
+    id = fields.Integer()
+    table_name = fields.String()
+    schema = fields.String()
+
+
+class DatabaseRelatedDatasets(Schema):
+    count = fields.Integer(metadata={"description": "Dataset count"})
+    result = fields.List(
+        fields.Nested(DatabaseRelatedDataset),
+        metadata={"description": "A list of datasets"},
+    )
+
+
 class DatabaseRelatedObjectsResponse(Schema):
     charts = fields.Nested(DatabaseRelatedCharts)
     dashboards = fields.Nested(DatabaseRelatedDashboards)
+    datasets = fields.Nested(DatabaseRelatedDatasets)
 
 
 class DatabaseFunctionNamesResponse(Schema):

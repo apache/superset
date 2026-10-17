@@ -58,11 +58,13 @@ from superset.versioning.baseline.shadow import (
     CONTINUUM_BOOKKEEPING_COLUMNS,
     insert_baseline_shadow_row,
     OPERATION_DELETE,
+    OPERATION_INSERT,
 )
 
 __all__ = [
     "CONTINUUM_BOOKKEEPING_COLUMNS",
     "OPERATION_DELETE",
+    "OPERATION_INSERT",
     "VERSIONED_MODELS",
     "child_to_parent_registry",
     "insert_baseline_shadow_row",

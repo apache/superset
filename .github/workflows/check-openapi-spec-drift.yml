@@ -42,7 +42,7 @@ jobs:
         with:
           persist-credentials: false
       - name: Setup Python
-        uses: ./.github/actions/setup-backend/
+        uses: $/.github/actions/setup-backend/
         with:
           # The generated output depends on the pinned apispec version.
           requirements-type: base

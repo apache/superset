@@ -169,7 +169,7 @@ test('switch currently edited chart scoping', async () => {
   expect(withinScopingList.getByText('All charts/global scoping')).toHaveClass(
     'active',
   );
-  userEvent.click(withinScopingList.getByText('Chart 3'));
+  await userEvent.click(withinScopingList.getByText('Chart 3'));
   await waitFor(() => {
     expect(withinScopingList.getByText('Chart 3')).toHaveClass('active');
     expect(
@@ -178,7 +178,7 @@ test('switch currently edited chart scoping', async () => {
   });
 });
 
-test('scoping tree global and custom checks', () => {
+test('scoping tree global and custom checks', async () => {
   setup();
 
   expect(
@@ -187,7 +187,7 @@ test('scoping tree global and custom checks', () => {
     ),
   ).toHaveLength(5);
 
-  userEvent.click(
+  await userEvent.click(
     within(screen.getByTestId('scoping-list-panel')).getByText('Chart 3'),
   );
 
@@ -201,7 +201,7 @@ test('scoping tree global and custom checks', () => {
 test('add new custom scoping', async () => {
   setup();
 
-  userEvent.click(screen.getByText('Add custom scoping'));
+  await userEvent.click(screen.getByText('Add custom scoping'));
 
   expect(screen.getByText('[new custom scoping]')).toBeInTheDocument();
   expect(screen.getByText('[new custom scoping]')).toHaveClass('active');
@@ -213,7 +213,7 @@ test('add new custom scoping', async () => {
     ),
   ).toHaveLength(4);
 
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 2'),
   );
 
@@ -228,29 +228,29 @@ test('edit scope and save', async () => {
   setup();
 
   // unselect chart 2 in global scoping
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 2'),
   );
 
-  userEvent.click(
+  await userEvent.click(
     within(screen.getByTestId('scoping-list-panel')).getByText('Chart 3'),
   );
 
   // select chart 1 in chart 3's custom scoping
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 1'),
   );
 
   // create custom scoping for chart 1 with unselected chart 2 (from global) and chart 4
-  userEvent.click(screen.getByText('Add custom scoping'));
+  await userEvent.click(screen.getByText('Add custom scoping'));
   await selectOption('chart 1', 'Select chart');
 
-  userEvent.click(
+  await userEvent.click(
     within(document.querySelector('.ant-tree')!).getByText('chart 4'),
   );
 
   // remove custom scoping for chart 4
-  userEvent.click(
+  await userEvent.click(
     within(
       within(screen.getByTestId('scoping-list-panel'))
         .getByText('chart 4')
@@ -261,7 +261,7 @@ test('edit scope and save', async () => {
     within(screen.getByTestId('scoping-list-panel')).queryByText('chart 4'),
   ).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Save'));
+  await userEvent.click(screen.getByText('Save'));
 
   await waitFor(() => fetchMock.callHistory.called(DASHBOARD_UPDATE_URL));
 

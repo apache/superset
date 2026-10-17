@@ -419,3 +419,30 @@ test('an unlabelled related record does not assemble its sentence from fragments
     ),
   ).toBe('Item updated: Revenue');
 });
+
+test('groupHeadline renders the starting-version label per creation kind', () => {
+  expect(groupHeadline(group({ creationKind: 'unknown' }))).toBe(
+    'Starting version',
+  );
+  expect(groupHeadline(group({ creationKind: 'pre_tracking' }))).toBe(
+    'Original version',
+  );
+  expect(groupHeadline(group({ creationKind: 'created' }))).toBe('Created');
+  expect(groupHeadline(group({ creationKind: 'imported' }))).toBe('Imported');
+});
+
+test('the creation label wins over every other headline rule', () => {
+  // A synthetic starting-version group has zero records and could
+  // otherwise fall into the empty-group fallbacks; creationKind decides
+  // first, ahead of firstTrackedSave and actionKind.
+  expect(
+    groupHeadline(
+      group({
+        creationKind: 'imported',
+        firstTrackedSave: true,
+        actionKind: 'import',
+        records: [],
+      }),
+    ),
+  ).toBe('Imported');
+});

@@ -226,6 +226,13 @@ export function buildTimeline(records: ActivityRecord[]): TimelineEntry[] {
       if (record.first_tracked_save) {
         group.firstTrackedSave = true;
       }
+      if (record.creation_kind) {
+        // The synthetic starting-version record (sc-120488): its whole
+        // payload is the headline, so like __meta__ it stays out of the
+        // change list; the kind drives the Original version / Created /
+        // Imported label.
+        group.creationKind = record.creation_kind;
+      }
       if (record.issued_at > group.issuedAt) {
         group.issuedAt = record.issued_at;
       }

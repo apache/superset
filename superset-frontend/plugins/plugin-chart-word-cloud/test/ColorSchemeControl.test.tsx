@@ -70,12 +70,12 @@ test('calls onChange when value changes', async () => {
     name: 'Select color scheme',
   });
 
-  userEvent.click(selectInput);
+  await userEvent.click(selectInput);
 
   // Wait for and select a different color scheme
   // The scheme name should be visible in the dropdown
   const newSchemeOption = await screen.findByText(newScheme, { exact: false });
-  userEvent.click(newSchemeOption);
+  await userEvent.click(newSchemeOption);
 
   // Verify onChange was called with the new scheme value
   expect(onChange).toHaveBeenCalledWith(newScheme);
