@@ -16,7 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, FunctionComponentElement, ChangeEvent } from 'react';
+import {
+  useState,
+  FunctionComponentElement,
+  ChangeEvent,
+  ComponentType,
+} from 'react';
 import { JsonValue } from '@superset-ui/core';
 import { useTheme } from '@apache-superset/core/theme';
 import { ControlFormItemComponents } from './controls';
@@ -80,7 +85,7 @@ export function ControlFormItem({
     }
   };
 
-  const Control = ControlFormItemComponents[controlType];
+  const Control = ControlFormItemComponents[controlType] as ComponentType<any>;
 
   return (
     <div
@@ -114,7 +119,6 @@ export function ControlFormItem({
               hovered={hovered}
             />
           )}
-          {/* @ts-expect-error - dynamic Control component has varying prop types */}
           <Control {...props} value={value} onChange={handleChange} />
         </>
       )}
