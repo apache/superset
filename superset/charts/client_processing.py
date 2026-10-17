@@ -775,6 +775,22 @@ def list_unique_values(series: pd.Series) -> str:
     return ", ".join({str(v) for v in pd.Series.unique(series)})
 
 
+def sample_stat(stat: str) -> Callable[..., Any]:
+    """
+    Sample variance/std of a cell, or of each row/column for totals. Like the
+    chart, fewer than two values have no spread and read 0.
+    """
+
+    def aggregate(values: Union[pd.Series, pd.DataFrame], axis: int = 0) -> Any:
+        if isinstance(values, pd.Series):
+            # nulls arrive as the "SUPERSET_PANDAS_NAN" placeholder; skip them
+            values = pd.to_numeric(values, errors="coerce")
+            return getattr(values, stat)() if values.count() > 1 else 0
+        return getattr(values, stat)(axis=axis).where(values.count(axis=axis) > 1, 0)
+
+    return aggregate
+
+
 def union_currency_context(
     values: Union[pd.Series, pd.DataFrame], axis: int = 0
 ) -> Union[tuple[str, ...], pd.Series]:
@@ -817,10 +833,8 @@ pivot_v2_aggfunc_map = {
     "Sum": pd.Series.sum,
     "Average": pd.Series.mean,
     "Median": pd.Series.median,
-    "Sample Variance": lambda series: pd.series.var(series) if len(series) > 1 else 0,
-    "Sample Standard Deviation": (
-        lambda series: pd.series.std(series) if len(series) > 1 else 0,
-    ),
+    "Sample Variance": sample_stat("var"),
+    "Sample Standard Deviation": sample_stat("std"),
     "Minimum": pd.Series.min,
     "Maximum": pd.Series.max,
     "First": lambda series: series[:1],

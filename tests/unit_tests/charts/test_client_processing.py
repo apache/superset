@@ -1842,6 +1842,30 @@ def show_values_as_df() -> pd.DataFrame:
     )
 
 
+@pytest.mark.parametrize(
+    "aggfunc, expected",
+    [("Sample Variance", 2.0), ("Sample Standard Deviation", 2**0.5)],
+)
+def test_pivot_df_sample_variance_and_std(aggfunc: str, expected: float) -> None:
+    df = pd.DataFrame(
+        {"gender": ["boy", "boy", "girl", "girl"], "SUM(num)": [1, 3, 5, None]}
+    )
+    pivoted = pivot_df(
+        df,
+        rows=["gender"],
+        columns=[],
+        metrics=["SUM(num)"],
+        aggfunc=aggfunc,
+        show_columns_total=True,
+    )
+
+    assert pivoted.loc[("boy",), ("SUM(num)",)] == pytest.approx(expected)
+    # nulls are skipped, and a single remaining value has no sample spread
+    assert pivoted.loc[("girl",), ("SUM(num)",)] == 0
+    # totals call the aggregation with `axis`, which used to raise
+    assert (f"{_('Total')} ({aggfunc})",) in pivoted.index
+
+
 def total_label() -> str:
     return f"{_('Total')} (Sum)"
 
