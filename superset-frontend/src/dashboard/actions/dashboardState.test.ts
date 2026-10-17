@@ -57,6 +57,8 @@ import { emptyFilters } from 'spec/fixtures/mockDashboardFilters';
 import mockDashboardData from 'spec/fixtures/mockDashboardData';
 import type { RootState } from 'src/dashboard/types';
 import { navigateTo, navigateWithState } from 'src/utils/navigationUtils';
+import { getCrossFiltersConfiguration } from 'src/dashboard/util/crossFilters';
+import { SAVE_CHART_CONFIG_BEGIN } from 'src/dashboard/actions/dashboardInfo';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -178,6 +180,52 @@ describe('dashboardState actions', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('saveDashboardRequest', () => {
+    test.each([false, true])(
+      'Save As sends cross-filter configuration without updating the source (duplicate_slices=%s)',
+      async duplicateSlices => {
+        const sourceId = 192;
+        const copyId = 193;
+        const { getState, state } = setup({
+          dashboardInfo: { ...mockState.dashboardInfo, id: sourceId },
+        });
+        const dispatch: jest.Mock = jest.fn(action =>
+          typeof action === 'function' ? action(dispatch, getState) : action,
+        );
+        postStub.mockResolvedValue({
+          json: { result: { id: copyId, last_modified_time: 123 } },
+        } as unknown as JsonResponse);
+        const { chartConfiguration, globalChartConfiguration } =
+          getCrossFiltersConfiguration(
+            state.dashboardLayout
+              .present as unknown as RootState['dashboardLayout']['present'],
+            state.dashboardInfo
+              .metadata as RootState['dashboardInfo']['metadata'],
+            state.charts,
+          );
+
+        await saveDashboardRequest(
+          { ...newDashboardData, duplicate_slices: duplicateSlices },
+          sourceId,
+          SAVE_TYPE_NEWDASHBOARD,
+        )(dispatch, getState);
+
+        expect(dispatch).not.toHaveBeenCalledWith(
+          expect.objectContaining({ type: SAVE_CHART_CONFIG_BEGIN }),
+        );
+        expect(putStub).not.toHaveBeenCalled();
+        expect(postStub).toHaveBeenCalledTimes(1);
+        const { endpoint, jsonPayload } = postStub.mock.calls[0][0];
+        expect(endpoint).toBe(`/api/v1/dashboard/${sourceId}/copy/`);
+        expect(jsonPayload.duplicate_slices).toBe(duplicateSlices);
+        const metadata = JSON.parse(jsonPayload.json_metadata);
+        expect(metadata.chart_configuration).toEqual(chartConfiguration);
+        expect(metadata.global_chart_configuration).toEqual(
+          globalChartConfiguration,
+        );
+        expect(mockNavigateTo).toHaveBeenCalledWith(`/dashboard/${copyId}/`);
+      },
+    );
+
     test('refreshes the proven semantic snapshot after a saved schema change', async () => {
       const dashboardId = 1;
       const { getState, dispatch } = setup();
