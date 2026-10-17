@@ -574,7 +574,6 @@ class QueryContextProcessor:
             source_scope.append({"value": str(layer.get("value")), **scope})
         if source_scope:
             context["source_scope"] = source_scope
-            context["semantic_filter_protocol"] = "semantic-null-filters-v1"
 
         return context
 
@@ -660,6 +659,9 @@ class QueryContextProcessor:
             # key material above does not carry.
             if isinstance(annotation_datasource, SemanticView):
                 scope["metadata_version"] = annotation_datasource.metadata_generation
+                # Separates entries written before NULL filter selections were
+                # preserved from those written after.
+                scope["semantic_filter_protocol"] = "semantic-null-filters-v1"
                 if (
                     discriminator := annotation_datasource.result_cache_discriminator
                 ) is not None:
