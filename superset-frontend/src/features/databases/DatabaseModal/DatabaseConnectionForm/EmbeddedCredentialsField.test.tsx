@@ -303,18 +303,153 @@ test.each([
   expect(() => render(<EmbeddedCredentialsField {...props} />)).not.toThrow();
 });
 
-test('renders nothing when the connection does not use OAuth2', () => {
+test('is disabled with a reason when the connection has no OAuth2 client', () => {
   const props = {
     ...defaultProps,
     db: { ...defaultProps.db, masked_encrypted_extra: '{}' },
   };
 
-  const { queryByText } = render(<EmbeddedCredentialsField {...props} />);
+  const { getByText, getByTestId } = render(
+    <EmbeddedCredentialsField {...props} />,
+  );
 
-  expect(queryByText('Embedded guest credentials')).not.toBeInTheDocument();
+  expect(getByTestId('embedded-credentials-inactive-reason')).toHaveTextContent(
+    'Requires OAuth2 client information and “Impersonate logged in user”',
+  );
+  fireEvent.click(getByText('Embedded guest credentials'));
+  expect(getByTestId('embedded-credentials-username')).toBeDisabled();
+  expect(getByTestId('embedded-credentials-password')).toBeDisabled();
 });
 
-test('renders when OAuth2 client info is being typed into the form', () => {
+test('is disabled with a reason when impersonation is off', () => {
+  const props = {
+    ...defaultProps,
+    db: { ...defaultProps.db, impersonate_user: false } as DatabaseObject,
+  };
+
+  const { getByText, getByTestId, getByRole } = render(
+    <EmbeddedCredentialsField {...props} />,
+  );
+
+  expect(
+    getByTestId('embedded-credentials-inactive-reason'),
+  ).toBeInTheDocument();
+  fireEvent.click(getByText('Embedded guest credentials'));
+  expect(getByTestId('embedded-credentials-username')).toBeDisabled();
+  expect(getByRole('radio', { name: 'Key pair' })).toBeDisabled();
+  // A stored credential can still be removed while the section is inactive.
+  expect(getByTestId('embedded-credentials-remove')).toBeEnabled();
+});
+
+test('is enabled without a reason when OAuth2 and impersonation are on', () => {
+  const { getByText, getByTestId, queryByTestId } = render(
+    <EmbeddedCredentialsField {...defaultProps} />,
+  );
+
+  expect(
+    queryByTestId('embedded-credentials-inactive-reason'),
+  ).not.toBeInTheDocument();
+  fireEvent.click(getByText('Embedded guest credentials'));
+  expect(getByTestId('embedded-credentials-username')).toBeEnabled();
+  expect(getByTestId('embedded-credentials-password')).toBeEnabled();
+});
+
+test('uses a password input with a visibility toggle and no autofill', () => {
+  const { getByText, getByTestId, getAllByTestId } = render(
+    <EmbeddedCredentialsField {...defaultProps} />,
+  );
+
+  fireEvent.click(getByText('Embedded guest credentials'));
+
+  const password = getByTestId('embedded-credentials-password');
+  expect(password).toHaveAttribute('type', 'password');
+  expect(password).toHaveAttribute('autocomplete', 'new-password');
+  expect(password).toHaveAttribute('placeholder');
+  expect(getByTestId('embedded-credentials-username')).toHaveAttribute(
+    'autocomplete',
+    'off',
+  );
+  expect(getAllByTestId('icon-eye').length).toBeGreaterThan(0);
+
+  fireEvent.click(getAllByTestId('icon-eye')[0]);
+  expect(password).toHaveAttribute('type', 'text');
+});
+
+test('shows a Configured tag when a credential is stored', () => {
+  const { getByTestId } = render(
+    <EmbeddedCredentialsField {...defaultProps} />,
+  );
+
+  expect(getByTestId('embedded-credentials-configured')).toHaveTextContent(
+    'Configured',
+  );
+});
+
+test('does not show a Configured tag or Remove when nothing is stored', () => {
+  const props = {
+    ...defaultProps,
+    db: {
+      ...defaultProps.db,
+      masked_encrypted_extra: JSON.stringify({
+        oauth2_client_info: OAUTH2_CLIENT_INFO,
+      }),
+    } as DatabaseObject,
+  };
+  const { getByText, queryByTestId } = render(
+    <EmbeddedCredentialsField {...props} />,
+  );
+
+  fireEvent.click(getByText('Embedded guest credentials'));
+  expect(
+    queryByTestId('embedded-credentials-configured'),
+  ).not.toBeInTheDocument();
+  expect(queryByTestId('embedded-credentials-remove')).not.toBeInTheDocument();
+});
+
+test('mirrors username edits into the Secure Extra JSON', () => {
+  const { getByText, getByTestId } = render(
+    <EmbeddedCredentialsField {...defaultProps} />,
+  );
+
+  fireEvent.click(getByText('Embedded guest credentials'));
+  fireEvent.change(getByTestId('embedded-credentials-username'), {
+    target: { value: 'other_svc' },
+  });
+
+  expect(
+    mockChangeMethods.onEncryptedExtraInputChange,
+  ).toHaveBeenLastCalledWith({
+    target: {
+      name: 'embedded_credentials',
+      value: {
+        username: 'other_svc',
+        auth_method: 'password',
+        password: 'XXXXXXXXXX',
+      },
+    },
+  });
+});
+
+test('Remove deletes the credential from Secure Extra', () => {
+  const { getByText, getByTestId } = render(
+    <EmbeddedCredentialsField {...defaultProps} />,
+  );
+
+  fireEvent.click(getByText('Embedded guest credentials'));
+  fireEvent.click(getByTestId('embedded-credentials-remove'));
+
+  expect(mockChangeMethods.onClearEncryptedExtraKey).toHaveBeenCalledWith(
+    'embedded_credentials',
+  );
+  expect(mockChangeMethods.onParametersChange).toHaveBeenLastCalledWith({
+    target: { name: 'embedded_credentials', value: '' },
+  });
+  expect(mockChangeMethods.onEncryptedExtraInputChange).not.toHaveBeenCalled();
+  expect(getByTestId('embedded-credentials-username')).toHaveValue('');
+  expect(getByTestId('embedded-credentials-password')).toHaveValue('');
+});
+
+test('is enabled when OAuth2 client info is being typed into the form', () => {
   const props = {
     ...defaultProps,
     db: {
@@ -324,21 +459,25 @@ test('renders when OAuth2 client info is being typed into the form', () => {
     } as unknown as DatabaseObject,
   };
 
-  const { getByText } = render(<EmbeddedCredentialsField {...props} />);
+  const { queryByTestId } = render(<EmbeddedCredentialsField {...props} />);
 
-  expect(getByText('Embedded guest credentials')).toBeInTheDocument();
+  expect(
+    queryByTestId('embedded-credentials-inactive-reason'),
+  ).not.toBeInTheDocument();
 });
 
-test('renders when the engine has a deployment-wide OAuth2 client', () => {
+test('is enabled when the engine has a deployment-wide OAuth2 client', () => {
   const props = {
     ...defaultProps,
     db: { ...defaultProps.db, masked_encrypted_extra: '{}' },
     default_value: { engine_oauth2_client_configured: true },
   };
 
-  const { getByText } = render(<EmbeddedCredentialsField {...props} />);
+  const { queryByTestId } = render(<EmbeddedCredentialsField {...props} />);
 
-  expect(getByText('Embedded guest credentials')).toBeInTheDocument();
+  expect(
+    queryByTestId('embedded-credentials-inactive-reason'),
+  ).not.toBeInTheDocument();
 });
 
 test('prefers an in-flight credential over the stored blob', () => {
@@ -425,84 +564,4 @@ test('opens the panel and shows the error when validation rejects the pair', () 
   expect(getByTestId('embedded-credentials-error')).toHaveTextContent(
     'Embedded guest credentials are incomplete.',
   );
-});
-
-test('warns when impersonation is off and a credential is set', () => {
-  const props = {
-    ...defaultProps,
-    db: { ...defaultProps.db, impersonate_user: false } as DatabaseObject,
-  };
-
-  const { getByText, getByTestId } = render(
-    <EmbeddedCredentialsField {...props} />,
-  );
-
-  fireEvent.click(getByText('Embedded guest credentials'));
-
-  expect(
-    getByTestId('embedded-credentials-impersonation-warning'),
-  ).toHaveTextContent('inactive until "Impersonate logged in user" is enabled');
-});
-
-test('warns about impersonation for a key-pair credential too', () => {
-  const props = {
-    ...defaultProps,
-    db: {
-      ...defaultProps.db,
-      impersonate_user: false,
-      masked_encrypted_extra: JSON.stringify({
-        oauth2_client_info: OAUTH2_CLIENT_INFO,
-        embedded_credentials: {
-          username: 'embedded_svc',
-          auth_method: 'keypair',
-          privatekey_body: 'XXXXXXXXXX',
-        },
-      }),
-    } as DatabaseObject,
-  };
-
-  const { getByText, getByTestId } = render(
-    <EmbeddedCredentialsField {...props} />,
-  );
-
-  fireEvent.click(getByText('Embedded guest credentials'));
-
-  expect(
-    getByTestId('embedded-credentials-impersonation-warning'),
-  ).toBeInTheDocument();
-});
-
-test('does not warn about impersonation when it is on', () => {
-  const { getByText, queryByTestId } = render(
-    <EmbeddedCredentialsField {...defaultProps} />,
-  );
-
-  fireEvent.click(getByText('Embedded guest credentials'));
-
-  expect(
-    queryByTestId('embedded-credentials-impersonation-warning'),
-  ).not.toBeInTheDocument();
-});
-
-test('does not warn about impersonation when no credential is set', () => {
-  const props = {
-    ...defaultProps,
-    db: {
-      ...defaultProps.db,
-      impersonate_user: false,
-      masked_encrypted_extra: JSON.stringify({
-        oauth2_client_info: OAUTH2_CLIENT_INFO,
-      }),
-    } as DatabaseObject,
-  };
-
-  const { getByText, queryByTestId } = render(
-    <EmbeddedCredentialsField {...props} />,
-  );
-
-  fireEvent.click(getByText('Embedded guest credentials'));
-
-  expect(
-    queryByTestId('embedded-credentials-impersonation-warning'),
-  ).not.toBeInTheDocument();
 });

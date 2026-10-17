@@ -1947,11 +1947,17 @@ describe('DatabaseModal', () => {
     await userEvent.click(screen.getByText('OAuth2 client information'));
     await userEvent.type(await screen.findByTestId('client-id'), 'client-123');
 
+    // Impersonation cannot be turned on before the connection exists, so the
+    // embedded sub-form stays disabled during creation (the backend would
+    // refuse the credential anyway). Its round-trip is covered by
+    // EmbeddedCredentialsField's in-flight credential test.
     await userEvent.click(screen.getByText('Embedded guest credentials'));
-    await userEvent.type(
+    expect(
       await screen.findByTestId('embedded-credentials-username'),
-      'embedded_svc',
-    );
+    ).toBeDisabled();
+    expect(
+      screen.getByTestId('embedded-credentials-inactive-reason'),
+    ).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('sqla-connect-btn'));
     expect(
@@ -1965,15 +1971,10 @@ describe('DatabaseModal', () => {
 
     expect(fieldByName('account')).toHaveValue('dummy-account');
 
-    // Both sub-forms re-mount collapsed, and re-read their value from the
+    // The sub-form re-mounts collapsed, and re-reads its value from the
     // parameters the switch no longer drops.
     await userEvent.click(screen.getByText('OAuth2 client information'));
     expect(await screen.findByTestId('client-id')).toHaveValue('client-123');
-
-    await userEvent.click(screen.getByText('Embedded guest credentials'));
-    expect(
-      await screen.findByTestId('embedded-credentials-username'),
-    ).toHaveValue('embedded_svc');
   });
 
   test.each([
@@ -2300,6 +2301,33 @@ describe('dbReducer', () => {
     expect(currentState).toEqual({
       ...databaseFixture,
       masked_encrypted_extra: '{"foo":"bar"}',
+    });
+  });
+
+  test('EncryptedExtraInputChange replaces a nested embedded credential', () => {
+    // The embedded credentials sub-form mirrors each edit into Secure Extra so
+    // the JSON shown under Advanced → Security matches what will be saved.
+    const action: DBReducerActionType = {
+      type: ActionType.EncryptedExtraInputChange,
+      payload: {
+        name: 'embedded_credentials',
+        value: { username: 'new_svc', password: 'XXXXXXXXXX' },
+      },
+    };
+    const currentState = dbReducer(
+      {
+        ...databaseFixture,
+        masked_encrypted_extra: JSON.stringify({
+          oauth2_client_info: { id: 'client-id' },
+          embedded_credentials: { username: 'old_svc', password: 'XXXXXXXXXX' },
+        }),
+      },
+      action,
+    );
+
+    expect(JSON.parse(currentState?.masked_encrypted_extra || '{}')).toEqual({
+      oauth2_client_info: { id: 'client-id' },
+      embedded_credentials: { username: 'new_svc', password: 'XXXXXXXXXX' },
     });
   });
 

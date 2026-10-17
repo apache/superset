@@ -20,7 +20,17 @@
 import { ChangeEvent, useEffect, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
-import { Input, Collapse, Form, FormItem } from '@superset-ui/core/components';
+import {
+  Button,
+  Collapse,
+  Flex,
+  Form,
+  FormItem,
+  Input,
+  LabeledErrorBoundInput as ValidatedInput,
+  Tag,
+  Typography,
+} from '@superset-ui/core/components';
 import { Radio } from '@superset-ui/core/components/Radio';
 import {
   CustomParametersChangeType,
@@ -29,6 +39,7 @@ import {
 } from '../../types';
 
 const PANEL_KEY = 'embedded-credentials';
+const FIELD_NAME = 'embedded_credentials';
 
 const LABELS = {
   USERNAME: t('Username'),
@@ -47,9 +58,9 @@ const HELP_TEXT = t(
     'individually via OAuth2.',
 );
 
-const IMPERSONATION_WARNING = t(
-  'Embedded guest credentials are inactive until "Impersonate logged in user" ' +
-    'is enabled under Advanced → Security.',
+const INACTIVE_REASON = t(
+  'Requires OAuth2 client information and “Impersonate logged in user” ' +
+    '(Advanced → Security).',
 );
 
 interface EmbeddedCredentials {
@@ -95,12 +106,11 @@ const asString = (value: unknown): string =>
 /**
  * Does this connection have an OAuth2 client configured?
  *
- * The field remains available before impersonation is enabled so credentials
- * can be configured during creation. The per-connection half is live form state (the
- * admin may be filling the OAuth2 section during setup, so `parameters` is checked
- * ahead of the stored blob); the deployment-wide half -- a client in
- * `DATABASE_OAUTH2_CLIENTS` -- is knowable only server-side and arrives through
- * the schema property's `default`.
+ * The per-connection half is live form state (the admin may be filling the
+ * OAuth2 section during setup, so `parameters` is checked ahead of the stored
+ * blob); the deployment-wide half -- a client in `DATABASE_OAUTH2_CLIENTS` --
+ * is knowable only server-side and arrives through the schema property's
+ * `default`.
  */
 export const connectionUsesOAuth2 = (
   db?: DatabaseObject,
@@ -192,12 +202,26 @@ export const EmbeddedCredentialsField = ({
     }
   }, [errorMessage]);
 
-  // Offering the field on a connection that does not use OAuth2 would be
-  // offering a setting the backend gate can never read. Placed after the hooks
-  // so hook order stays unconditional, as in OAuth2ClientField.
-  if (!connectionUsesOAuth2(db, defaultValue)) {
-    return null;
-  }
+  // The backend refuses to save a credential unless the connection has an
+  // OAuth2 client and impersonation is on, so the fields are only editable
+  // then. The section stays visible either way so the requirement is
+  // discoverable, and a stored credential can still be removed.
+  const isActive =
+    connectionUsesOAuth2(db, defaultValue) && !!db?.impersonate_user;
+  const isStored =
+    FIELD_NAME in asObject(db?.masked_encrypted_extra) ||
+    Object.keys(asObject(db?.parameters?.embedded_credentials)).length > 0;
+
+  const clearCredentials = () => {
+    // Report "no credential" rather than a shape full of empty strings: the
+    // save-time merge treats any object as truthy and would persist it. Clear
+    // the in-flight parameter *and* the Secure Extra key, as the gsheets
+    // public/private toggle does.
+    changeMethods.onParametersChange({
+      target: { name: FIELD_NAME, value: '' },
+    });
+    changeMethods.onClearEncryptedExtraKey(FIELD_NAME);
+  };
 
   const updateCredentials = (updated: EmbeddedCredentials) => {
     setEmbeddedCredentials(updated);
@@ -209,16 +233,9 @@ export const EmbeddedCredentialsField = ({
       updated.privatekey_pass
     );
 
+    // `auth_method` alone is not a credential.
     if (isBlank) {
-      // Everything cleared means "no embedded credential". The save-time merge
-      // treats any object as truthy, so reporting a shape full of empty
-      // strings would persist them instead of removing the key. `auth_method`
-      // alone is not a credential. Clear the in-flight parameter *and* the
-      // stored blob, as the gsheets public/private toggle does.
-      changeMethods.onParametersChange({
-        target: { name: 'embedded_credentials', value: '' },
-      });
-      changeMethods.onClearEncryptedExtraKey('embedded_credentials');
+      clearCredentials();
       return;
     }
 
@@ -240,11 +257,27 @@ export const EmbeddedCredentialsField = ({
     const event: CustomParametersChangeType = {
       target: {
         type: 'object',
-        name: 'embedded_credentials',
+        name: FIELD_NAME,
         value: selectedCredentials,
       },
     };
     changeMethods.onParametersChange(event);
+    // Mirror the edit into Secure Extra so the JSON shown under Advanced →
+    // Security matches what will be saved.
+    changeMethods.onEncryptedExtraInputChange({
+      target: { name: FIELD_NAME, value: selectedCredentials },
+    });
+  };
+
+  const removeCredentials = () => {
+    setEmbeddedCredentials(previous => ({
+      ...previous,
+      username: '',
+      password: '',
+      privatekey_body: '',
+      privatekey_pass: '',
+    }));
+    clearCredentials();
   };
 
   const handleChange =
@@ -258,12 +291,15 @@ export const EmbeddedCredentialsField = ({
     };
 
   const isKeypair = embeddedCredentials.auth_method === 'keypair';
-  const secret = isKeypair
-    ? embeddedCredentials.privatekey_body
-    : embeddedCredentials.password;
-  const hasCredential = !!(embeddedCredentials.username || secret);
+  const hasCredential = !!(
+    embeddedCredentials.username ||
+    embeddedCredentials.password ||
+    embeddedCredentials.privatekey_body ||
+    embeddedCredentials.privatekey_pass
+  );
   const errorStatus = (field: string) =>
     errorMessage && !field ? ('error' as const) : undefined;
+  const validationMethods = { onBlur: getValidation };
 
   return (
     <Collapse
@@ -272,9 +308,29 @@ export const EmbeddedCredentialsField = ({
       items={[
         {
           key: PANEL_KEY,
-          label: t('Embedded guest credentials'),
+          label: (
+            <Flex vertical>
+              <span>{t('Embedded guest credentials')}</span>
+              {!isActive && (
+                <Typography.Text
+                  type="secondary"
+                  data-test="embedded-credentials-inactive-reason"
+                >
+                  {INACTIVE_REASON}
+                </Typography.Text>
+              )}
+            </Flex>
+          ),
+          extra: isStored ? (
+            <Tag data-test="embedded-credentials-configured">
+              {t('Configured')}
+            </Tag>
+          ) : undefined,
           children: (
             <Form layout="vertical">
+              <Typography.Paragraph type="secondary">
+                {HELP_TEXT}
+              </Typography.Paragraph>
               {errorMessage && (
                 <Alert
                   type="error"
@@ -284,33 +340,21 @@ export const EmbeddedCredentialsField = ({
                   {errorMessage}
                 </Alert>
               )}
-              {/*
-                During creation the Advanced tab appears after connecting.
-                Allow configuration here and explain the activation prerequisite.
-              */}
-              {hasCredential && !db?.impersonate_user && (
-                <Alert
-                  type="warning"
-                  closable={false}
-                  data-test="embedded-credentials-impersonation-warning"
-                >
-                  {IMPERSONATION_WARNING}
-                </Alert>
-              )}
-              <FormItem
+              <ValidatedInput
+                id="embedded_credentials_username"
+                name="embedded_credentials_username"
+                data-test="embedded-credentials-username"
                 label={LABELS.USERNAME}
-                help={HELP_TEXT}
-                validateStatus={errorStatus(embeddedCredentials.username)}
-              >
-                <Input
-                  data-test="embedded-credentials-username"
-                  value={embeddedCredentials.username}
-                  onChange={handleChange('username')}
-                  onBlur={getValidation}
-                />
-              </FormItem>
+                placeholder={t('e.g. embedded_viewer')}
+                autoComplete="off"
+                disabled={!isActive}
+                value={embeddedCredentials.username}
+                validationMethods={validationMethods}
+                onChange={handleChange('username')}
+              />
               <FormItem label={t('Authentication method')}>
                 <Radio.Group
+                  disabled={!isActive}
                   value={embeddedCredentials.auth_method}
                   onChange={({ target: { value } }) =>
                     updateCredentials({
@@ -333,34 +377,49 @@ export const EmbeddedCredentialsField = ({
                   >
                     <Input.TextArea
                       data-test="embedded-credentials-private-key"
+                      placeholder={t('-----BEGIN PRIVATE KEY-----')}
+                      disabled={!isActive}
                       value={embeddedCredentials.privatekey_body}
                       onChange={handleChange('privatekey_body')}
                       onBlur={getValidation}
                     />
                   </FormItem>
-                  <FormItem label={LABELS.PRIVATE_KEY_PASSPHRASE}>
-                    <Input
-                      data-test="embedded-credentials-key-passphrase"
-                      type="password"
-                      value={embeddedCredentials.privatekey_pass}
-                      onChange={handleChange('privatekey_pass')}
-                      onBlur={getValidation}
-                    />
-                  </FormItem>
+                  <ValidatedInput
+                    id="embedded_credentials_key_passphrase"
+                    name="embedded_credentials_key_passphrase"
+                    data-test="embedded-credentials-key-passphrase"
+                    label={LABELS.PRIVATE_KEY_PASSPHRASE}
+                    visibilityToggle
+                    autoComplete="new-password"
+                    disabled={!isActive}
+                    value={embeddedCredentials.privatekey_pass}
+                    validationMethods={validationMethods}
+                    onChange={handleChange('privatekey_pass')}
+                  />
                 </>
               ) : (
-                <FormItem
+                <ValidatedInput
+                  id="embedded_credentials_password"
+                  name="embedded_credentials_password"
+                  data-test="embedded-credentials-password"
                   label={LABELS.PASSWORD}
-                  validateStatus={errorStatus(embeddedCredentials.password)}
+                  placeholder={t('e.g. ********')}
+                  visibilityToggle
+                  autoComplete="new-password"
+                  disabled={!isActive}
+                  value={embeddedCredentials.password}
+                  validationMethods={validationMethods}
+                  onChange={handleChange('password')}
+                />
+              )}
+              {(hasCredential || isStored) && (
+                <Button
+                  buttonStyle="link"
+                  data-test="embedded-credentials-remove"
+                  onClick={removeCredentials}
                 >
-                  <Input
-                    data-test="embedded-credentials-password"
-                    type="password"
-                    value={embeddedCredentials.password}
-                    onChange={handleChange('password')}
-                    onBlur={getValidation}
-                  />
-                </FormItem>
+                  {t('Remove embedded guest credentials')}
+                </Button>
               )}
             </Form>
           ),

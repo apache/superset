@@ -146,39 +146,65 @@ FEATURE_FLAGS = {
 ```
 
 With both flags on, engines that support it (currently Snowflake) show an **Embedded
-guest credentials** section in the connection dialog — but only on a connection that
-actually uses OAuth2, either through per-connection client information or a
-deployment-wide client in `DATABASE_OAUTH2_CLIENTS`. On any other connection the
-section is hidden, because the credential would never be read. Fallback requires
-**Impersonate logged in user** under *Advanced → Security*; the section remains
-available before enabling it so you can configure credentials during setup.
+guest credentials** section on the **Basic** tab of the connection dialog. The section
+is editable only when the connection has an OAuth2 client and **Impersonate logged in
+user** is on; otherwise it is disabled and states what is missing.
+
+#### Setting up the credential
+
+1. Enable `EMBEDDED_SUPERSET` and `EMBEDDED_CREDENTIAL_FALLBACK` (above).
+2. Open the Snowflake connection for editing. On the **Basic** tab, expand **OAuth2
+   client information** and enter the client ID, client secret, authorization and token
+   request URIs, and scope. Alternatively, configure a deployment-wide client for
+   Snowflake in `DATABASE_OAUTH2_CLIENTS`.
+3. On the **Advanced** tab, under **Security**, turn on **Impersonate logged in user**.
+   On a new connection this option appears only after you connect, so connect first and
+   then edit the connection.
+4. Back on the **Basic** tab, expand **Embedded guest credentials**, enter the Snowflake
+   username, choose **Password** or **Key pair**, and fill in the secret.
+5. Save. The section header shows **Configured** once a credential is stored.
 
 Configure the Snowflake OAuth2 scopes explicitly to match your integration. For
 example, `session:role:ANALYST refresh_token` selects the `ANALYST` role and requests a
 refresh token. Omitting a role scope uses the user's default role; the dialog does not
 prefill a scope or require a specific role scope.
 
-Choose **Password** or **Key pair**. For key-pair authentication, enter the Snowflake
-username, its PEM private key, and an optional passphrase; register the corresponding
-public key with that Snowflake user. The credential is stored encrypted. Passwords,
-private keys, and passphrases are masked on read, while the username stays visible so an
-administrator can see which database user embedded queries run as. A key pair supplied
-here applies only to embedded guests; the connection's ordinary credential is still used
-for connection tests, alerts, and reports. Guest queries restored by
-`GLOBAL_ASYNC_QUERIES` use the same fallback as synchronous guest queries.
+For key-pair authentication, enter the Snowflake username, its PEM private key, and an
+optional passphrase; register the corresponding public key with that Snowflake user. The
+credential is stored encrypted in the connection's *Secure Extra* under
+`embedded_credentials`. Passwords, private keys, and passphrases are masked on read,
+while the username stays visible so an administrator can see which database user
+embedded queries run as.
 
 The credential must be complete: a username with no password or private key, or the
 reverse, is rejected when both embedding flags are enabled. A whitespace-only username
 is invalid. Validation uses the engine's credential rules and rejects malformed JSON
 or non-object credential values. It checks the edited credential, so an incomplete
 imported credential can be completed or cleared.
-While either flag is disabled, the stored credential is preserved and does not block
-unrelated edits. Clearing every field removes the credential.
 
-After connecting, turn on **Impersonate logged in user** under *Advanced → Security*
-and save. Until it is enabled, the embedded credential is inactive and the connection
-keeps its ordinary service-account behavior. The dialog warns when a credential is
-set and impersonation is off.
+To remove the credential, expand **Embedded guest credentials**, click **Remove embedded
+guest credentials** (or clear every field), and save. This deletes the
+`embedded_credentials` key from *Secure Extra*. Removal stays available while the section
+is otherwise disabled.
+
+#### Requirements and limitations
+
+- Both `EMBEDDED_SUPERSET` and `EMBEDDED_CREDENTIAL_FALLBACK` must be enabled. While
+  either is off, a stored credential is preserved, unused, and does not block unrelated
+  edits.
+- The connection needs an OAuth2 client — per-connection **OAuth2 client information**
+  or a deployment-wide `DATABASE_OAUTH2_CLIENTS` entry — and **Impersonate logged in
+  user** must be on. Superset refuses to save a credential otherwise, and it never
+  applies to a connection without OAuth2.
+- Embedded viewers run with the embedded account's **default Snowflake role**. The
+  connection's configured role and authenticator are not used for guest connections.
+- The embedded account needs `USAGE` on the connection's warehouse.
+- Supported secrets are a password, a Snowflake programmatic access token entered as the
+  password, or a key pair (PEM private key with an optional passphrase).
+- Alerts, reports, connection tests, and logged-in users never use the credential; they
+  keep using the connection's own credential or their per-user OAuth2 token.
+- With `GLOBAL_ASYNC_QUERIES` enabled, guest queries use the same fallback as
+  synchronous guest queries, but logged-in users' async queries are not covered by it.
 
 Understand what this grants before enabling it:
 

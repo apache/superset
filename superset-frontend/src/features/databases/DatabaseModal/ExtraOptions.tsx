@@ -534,8 +534,9 @@ const ExtraOptions = ({
                         'hive.server2.proxy.user property. If Databricks, uses OAuth2 to ' +
                         'authenticate as the currently logged on user. If Snowflake or Google ' +
                         'Sheets, and OAuth authentication is configured for the database, will ' +
-                        'run the queries as the currently logged on user via their own OAuth ' +
-                        'credentials.',
+                        'run the queries as the currently logged on user via their own OAuth2 ' +
+                        'credentials. Snowflake OAuth2 connections also require it for ' +
+                        'embedded guest credentials.',
                     )}
                   />
                 </div>
