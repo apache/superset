@@ -29,6 +29,8 @@ from superset import db, event_logger, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
+    get_template_render_error_msg,
+    TEMPLATE_RENDER_ERRORS,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
@@ -38,7 +40,7 @@ from superset.daos.datasource import Datasource as DatasourceModel, DatasourceDA
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import json_to_dict
+from superset.models.helpers import parse_template_params
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -121,12 +123,24 @@ def _repoints_table(
     )
 
 
+def _stored_template_params(datasource: SqlaTable) -> dict[str, Any] | None:
+    """``datasource``'s stored template params, or ``None`` if unreadable.
+
+    ``None`` never equals a readable request, so a dataset holding params
+    that execution would read differently is always re-authorized.
+    """
+    try:
+        return parse_template_params(datasource.template_params)
+    except ValueError:
+        return None
+
+
 def _repoints_sql(
     datasource: DatasourceModel,
     database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
-    requested_template_params: str | None,
+    requested_template_params: dict[str, Any],
 ) -> bool:
     """
     Would the request change what the SQL on ``datasource`` reads?
@@ -135,8 +149,8 @@ def _repoints_sql(
     a physical dataset on the way. Unchanged SQL still lands somewhere new
     when the connection, catalog or schema it resolves unqualified names
     against moves, or when the ``template_params`` that render a templated
-    ``FROM`` change, which ``UpdateDatasetCommand._validate_sql_access`` gates
-    on changed SQL text alone and so does not yet cover.
+    ``FROM`` change -- the same triggers as
+    ``UpdateDatasetCommand._validate_sql_access``.
     """
     if not isinstance(datasource, SqlaTable) or not requested_sql:
         return False
@@ -145,8 +159,7 @@ def _repoints_sql(
         or requested_sql != datasource.sql
         or (requested_table.schema, requested_table.catalog)
         != (datasource.schema or None, datasource.catalog or None)
-        or json_to_dict(requested_template_params or "")
-        != json_to_dict(datasource.template_params or "")
+        or requested_template_params != _stored_template_params(datasource)
     )
 
 
@@ -188,7 +201,7 @@ def _authorize_repoint(
     database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
-    requested_template_params: str | None,
+    requested_template_params: dict[str, Any],
 ) -> FlaskResponse | None:
     """Authorise the target a save aims ``datasource`` at.
 
@@ -236,11 +249,15 @@ def _authorize_repoint(
                 schema=requested_table.schema,
                 # Render with the submitted params so a templated FROM is
                 # authorized as the table it actually resolves to.
-                template_params=json_to_dict(requested_template_params or ""),
+                template_params=requested_template_params,
                 allow_editorship=False,
             )
     except SupersetSecurityException as ex:
         raise DatasetForbiddenError() from ex
+    except TEMPLATE_RENDER_ERRORS as ex:
+        # SQL that can't be rendered with the submitted params can't be
+        # authorized: refuse it as invalid input rather than a 500.
+        return json_error_response(get_template_render_error_msg(ex), status=422)
     return None
 
 
@@ -280,14 +297,25 @@ class Datasource(BaseSupersetView):
 
         database_changed = database_id != orm_datasource.database_id
         try:
-            requested_sql, requested_table, requested_template_params = (
-                _requested_target(datasource_dict)
+            requested_sql, requested_table, raw_template_params = _requested_target(
+                datasource_dict
             )
         except ValueError as ex:
             return json_error_response(
                 _("The `%(field)s` field must be a string.", field=str(ex)),
                 status=422,
             )
+        # Only SQL renders the params. Read them as execution will, and refuse
+        # params it would read differently rather than authorize a guess.
+        requested_template_params: dict[str, Any] = {}
+        if requested_sql:
+            try:
+                requested_template_params = parse_template_params(raw_template_params)
+            except ValueError:
+                return json_error_response(
+                    _("Template parameters must be a valid JSON object."),
+                    status=422,
+                )
 
         if error := _authorize_repoint(
             orm_datasource,

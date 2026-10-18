@@ -915,6 +915,8 @@ def test_import_dataset_database_repoint_runs_binding_check(
     import_dataset(config, overwrite=True)
 
     assert len(binding_checks) == 1
+    # Authorized against the REQUESTED connection, not the stored one.
+    assert binding_checks[0]["database"] is db_b
     assert binding_checks[0]["table"].table == "orders"
     assert binding_checks[0].get("allow_editorship") is False
 
@@ -976,6 +978,284 @@ def test_import_dataset_template_params_only_change_runs_binding_check(
     assert len(binding_checks) == 1
     assert binding_checks[0]["template_params"] == {"t": "private.secret"}
     assert binding_checks[0].get("allow_editorship") is False
+
+
+def _existing_dataset(**overrides: Any) -> tuple[SqlaTable, Database]:
+    """
+    Persist a dataset to overwrite-import -- by default a virtual one reading
+    ``SELECT * FROM orders`` in ``private``.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    existing = SqlaTable(
+        **{
+            "table_name": "orders_report",
+            "schema": "private",
+            "catalog": None,
+            "database": database,
+            "sql": "SELECT * FROM orders",
+            "uuid": str(uuid.uuid4()),
+            **overrides,
+        }
+    )
+    db.session.add(existing)
+    db.session.flush()
+    return existing, database
+
+
+def _overwrite_config(existing: SqlaTable, **overrides: Any) -> dict[str, Any]:
+    """An overwrite config for ``existing`` repeating its stored binding."""
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": str(existing.uuid),
+            "table_name": existing.table_name,
+            "schema": existing.schema,
+            "catalog": existing.catalog,
+            "sql": existing.sql,
+            "database_id": existing.database_id,
+            "template_params": None,
+            "metrics": [],
+            "columns": [],
+            **overrides,
+        }
+    )
+    return config
+
+
+def _record_binding_checks(mocker: MockerFixture) -> list[dict[str, Any]]:
+    """Allow every access check, recording the table/SQL binding ones."""
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+    return binding_checks
+
+
+def test_import_dataset_virtual_rename_skips_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A virtual dataset's ``table_name`` is only a label, so an overwrite that
+    renames it (same SQL, connection, catalog, schema and params) is not a
+    repoint -- as with PUT and ``/datasource/save/`` -- and stays open to an
+    editor without a grant on the underlying tables.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(existing, table_name="orders_report_renamed"),
+        overwrite=True,
+    )
+
+    assert binding_checks == []
+
+
+def test_import_dataset_omitted_sql_authorizes_stored_sql_at_requested_schema(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite only applies the keys it carries, so omitting ``sql`` keeps
+    the stored SQL. Moving the schema must then authorize that stored SQL as
+    it will resolve under the requested schema -- not take the physical
+    branch and check ``<schema>.<table_name>``.
+    """
+    existing, database = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, schema="public")
+    del config["sql"]
+
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["database"] is database
+    assert binding_checks[0]["sql"] == "SELECT * FROM orders"
+    assert binding_checks[0]["schema"] == "public"
+    assert "table" not in binding_checks[0]
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_unreadable_stored_params_fail_closed(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Params stored on a physical dataset are never parsed, and execution would
+    still apply a list of pairs (via ``dict.update``). Converting it to a
+    templated virtual dataset while omitting ``template_params`` keeps those
+    params, so the import refuses to authorize the SQL against a guess.
+    """
+    existing, _ = _existing_dataset(
+        sql=None,
+        table_name="orders",
+        template_params='[["t", "private.secret"]]',
+    )
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, sql="SELECT * FROM {{ t }}")
+    del config["template_params"]
+
+    with pytest.raises(IncorrectFormatError, match="template_params"):
+        import_dataset(config, overwrite=True)
+
+    assert binding_checks == []
+
+
+@pytest.mark.parametrize(
+    "template_params", ["{bad", '"t"', '["t"]', '[["t", "private.secret"]]']
+)
+def test_import_dataset_unreadable_config_params_fail_closed(
+    mocker: MockerFixture, session: Session, template_params: str
+) -> None:
+    """
+    Params that aren't a JSON object can't be read the way execution reads
+    them, so a virtual import carrying them is refused as a bad payload rather
+    than authorized against ``{}``.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    with pytest.raises(IncorrectFormatError, match="template_params"):
+        import_dataset(
+            _overwrite_config(existing, template_params=template_params),
+            overwrite=True,
+        )
+
+    assert binding_checks == []
+
+
+def test_import_dataset_params_checked_as_execution_reads_them(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The import stores a config's params as ``json.dumps(params)`` and
+    execution reads them back with ``json_to_dict``, which rewrites ``", }"``
+    even inside a string value. The check must see what execution will see,
+    or it authorizes a branch of the template that never runs.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(
+            existing,
+            sql="SELECT * FROM {{ 'secret_t' if p == 'x}' else 'ok_t' }}",
+            template_params={"p": "x, }"},
+        ),
+        overwrite=True,
+    )
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"p": "x}"}
+
+
+@pytest.mark.parametrize(
+    "overrides, expected",
+    [
+        # SQL replaced: the new SQL is authorized at the stored location.
+        ({"sql": "SELECT * FROM salaries"}, {"sql": "SELECT * FROM salaries"}),
+        # Catalog moved: unqualified names resolve elsewhere.
+        ({"catalog": "other"}, {"sql": "SELECT * FROM orders", "catalog": "other"}),
+    ],
+)
+def test_import_dataset_virtual_binding_change_runs_check(
+    mocker: MockerFixture,
+    session: Session,
+    overrides: dict[str, Any],
+    expected: dict[str, Any],
+) -> None:
+    """
+    Each part of a virtual dataset's binding other than its label is
+    re-authorized when an overwrite changes it, at the requested values.
+    """
+    existing, database = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, **overrides), overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["database"] is database
+    assert binding_checks[0].get("allow_editorship") is False
+    for key, value in expected.items():
+        assert binding_checks[0][key] == value
+
+
+def test_import_dataset_physical_rename_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A physical dataset's ``table_name`` *is* its binding, so an overwrite that
+    only renames it points the dataset at another table and is authorized
+    against that table.
+    """
+    existing, _ = _existing_dataset(sql=None, table_name="orders", schema="public")
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, table_name="salaries"), overwrite=True)
+
+    assert len(binding_checks) == 1
+    table = binding_checks[0]["table"]
+    assert (table.table, table.schema, table.catalog) == ("salaries", "public", None)
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_omitted_fields_keep_stored_values(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite only applies the keys it carries: replacing the SQL while
+    omitting ``schema`` and ``template_params`` keeps the stored ones, so the
+    new SQL is authorized as it will run -- at the stored schema, rendered
+    with the stored params.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps({"t": "public.ok"}),
+    )
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, sql="SELECT * FROM {{ t }} LIMIT 1")
+    del config["schema"]
+    del config["template_params"]
+
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["schema"] == "private"
+    assert binding_checks[0]["template_params"] == {"t": "public.ok"}
+
+
+def test_import_dataset_render_error_is_bad_payload(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    SQL that can't be rendered with its params (e.g. ``{{ p + 1 }}`` with
+    ``p = "a"``) can't be authorized: the import fails as a bad payload
+    rather than surfacing a 500.
+    """
+    existing, _ = _existing_dataset()
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    def render_fails(**kwargs: Any) -> None:
+        if kwargs.get("sql"):
+            raise TypeError('can only concatenate str (not "int") to str')
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=render_fails)
+
+    with pytest.raises(IncorrectFormatError, match="Invalid SQL"):
+        import_dataset(
+            _overwrite_config(
+                existing, sql="SELECT {{ p + 1 }}", template_params={"p": "a"}
+            ),
+            overwrite=True,
+        )
 
 
 def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
@@ -1989,21 +2269,27 @@ def test_import_dataset_access_check(
     """
     Test that import_dataset raises DatasetAccessDeniedError when the user does not
     have datasource-level access to the target dataset.
+
+    Only the dataset-level (``datasource=``) gate denies: the table binding
+    check that runs first is allowed, so this fails if that gate is removed
+    instead of passing on the earlier check.
     """
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import SupersetSecurityException
 
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(
-        security_manager,
-        "raise_for_access",
-        side_effect=SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message="User does not have access to this datasource",
-                level=ErrorLevel.ERROR,
+    def deny_dataset_access(**kwargs: Any) -> None:
+        if kwargs.get("datasource") is not None:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    message="User does not have access to this datasource",
+                    level=ErrorLevel.ERROR,
+                )
             )
-        ),
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    raise_for_access = mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=deny_dataset_access
     )
 
     engine = db.session.get_bind()
@@ -2018,6 +2304,14 @@ def test_import_dataset_access_check(
 
     with pytest.raises(DatasetAccessDeniedError):
         import_dataset(config)
+
+    gates = [
+        call.kwargs["datasource"]
+        for call in raise_for_access.call_args_list
+        if call.kwargs.get("datasource") is not None
+    ]
+    assert len(gates) == 1
+    assert gates[0].uuid == uuid.UUID(config["uuid"])
 
 
 def test_import_soft_deleted_dataset_overwrite_restores_in_place(

@@ -29,7 +29,10 @@ from superset.commands.dataset.exceptions import (
     DatasetExistsValidationError,
     DatasetInvalidError,
     DatasetSoftDeletedTwinExistsError,
+    DatasetSqlRenderValidationError,
     TableNotFoundValidationError,
+    TEMPLATE_RENDER_ERRORS,
+    TemplateParamsInvalidValidationError,
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
@@ -46,7 +49,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.extensions import security_manager
-from superset.models.helpers import json_to_dict
+from superset.models.helpers import parse_template_params
 from superset.sql.parse import process_jinja_sql, Table
 from superset.utils.decorators import on_error, transaction
 
@@ -106,8 +109,20 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         # The access check below must render the SQL with the same template
         # params that will be stored and executed, so a templated table
         # reference is authorized as the table it actually resolves to rather
-        # than its ``default()``.
-        template_params = json_to_dict(self._properties.get("template_params") or "")
+        # than its ``default()``. Only a virtual dataset's SQL renders them, so
+        # a physical dataset's params are left unparsed as before; params that
+        # cannot be read as execution reads them are rejected (fail closed)
+        # rather than authorized against a guess.
+        template_params: dict[str, Any] = {}
+        template_params_valid = True
+        if sql:
+            try:
+                template_params = parse_template_params(
+                    self._properties.get("template_params")
+                )
+            except ValueError:
+                template_params_valid = False
+                exceptions.append(TemplateParamsInvalidValidationError())
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -220,24 +235,29 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(TableNotFoundValidationError(table))
 
         if sql:
-            try:
-                security_manager.raise_for_access(
-                    database=database,
-                    sql=sql,
-                    catalog=catalog,
-                    schema=schema,
-                    template_params=template_params,
-                    allow_editorship=False,
-                )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            except SupersetParseError as ex:
-                exceptions.append(
-                    ValidationError(
-                        f"Invalid SQL: {ex.error.message}",
-                        field_name="sql",
+            # Unreadable params already failed validation above; skip the check
+            # rather than report an access decision made against other params.
+            if template_params_valid:
+                try:
+                    security_manager.raise_for_access(
+                        database=database,
+                        sql=sql,
+                        catalog=catalog,
+                        schema=schema,
+                        template_params=template_params,
+                        allow_editorship=False,
                     )
-                )
+                except SupersetSecurityException as ex:
+                    exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+                except SupersetParseError as ex:
+                    exceptions.append(
+                        ValidationError(
+                            f"Invalid SQL: {ex.error.message}",
+                            field_name="sql",
+                        )
+                    )
+                except TEMPLATE_RENDER_ERRORS as ex:
+                    exceptions.append(DatasetSqlRenderValidationError(ex))
         elif database:
             try:
                 security_manager.raise_for_access(

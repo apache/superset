@@ -653,6 +653,31 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
+def parse_template_params(value: str | dict[str, Any] | None) -> dict[str, Any]:
+    """
+    Read a dataset's ``template_params`` the way query execution does.
+
+    Execution merges ``json_to_dict(template_params)`` into the Jinja context,
+    so authorizing what a templated SQL reads must parse with that same
+    function to see the same values. Anything other than a JSON object is
+    rejected rather than coerced: execution would read such a value
+    differently (``dict.update`` also accepts a list of key/value pairs), so
+    no access decision based on it could be trusted.
+
+    :raises ValueError: if ``value`` is neither empty nor a JSON object
+    """
+    if isinstance(value, dict):
+        return value
+    if not value:
+        return {}
+    if not isinstance(value, str):
+        raise ValueError("Template parameters must be a JSON object")
+    params = json_to_dict(value)
+    if not isinstance(params, dict):
+        raise ValueError("Template parameters must be a JSON object")
+    return params
+
+
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
     r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
 )

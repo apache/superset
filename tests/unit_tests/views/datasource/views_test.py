@@ -585,6 +585,22 @@ def test_save_repoint_to_unknown_database_is_rejected(
             {"table_name": "my_table", "schema": "public"},
             id="unchanged_datasource",
         ),
+        # Params are compared as execution reads them, so re-serialized JSON
+        # with the same values is not a repoint.
+        pytest.param(
+            {
+                "sql": "SELECT * FROM {{ t }}",
+                "is_virtual": True,
+                "template_params": '{"t": "public.orders"}',
+            },
+            {
+                "table_name": "my_table",
+                "schema": "public",
+                "sql": "SELECT * FROM {{ t }}",
+                "template_params": '{"t":"public.orders"}',
+            },
+            id="virtual_template_params_reserialized",
+        ),
     ],
 )
 def test_save_skips_table_check_when_not_repointed(
@@ -705,6 +721,175 @@ def test_save_checks_both_table_and_sql_on_cross_database_repoint(
             allow_editorship=False,
         ),
     ]
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_rejects_template_params_repoint_without_access(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    With the SQL, database, schema and catalog unchanged, new
+    ``template_params`` still repoint a templated ``FROM``. The save is
+    authorised against the SQL as rendered with the submitted params, without
+    the editorship accept, and refused before anything is written.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}",
+        is_virtual=True,
+        template_params='{"t": "public.orders"}',
+    )
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(
+            database={"id": 1},
+            table_name="my_table",
+            schema="public",
+            sql="SELECT * FROM {{ t }}",
+            template_params='{"t": "private.secrets"}',
+        )
+
+    mock_security_manager.raise_for_access.assert_called_once_with(
+        database=mock_orm.database,
+        sql="SELECT * FROM {{ t }}",
+        catalog=None,
+        schema="public",
+        template_params={"t": "private.secrets"},
+        allow_editorship=False,
+    )
+    mock_orm.update_from_object.assert_not_called()
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "template_params",
+    ["{bad", '"t"', '["t"]', '[["t", "private.secrets"]]'],
+)
+def test_save_rejects_unreadable_template_params(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    template_params: str,
+) -> None:
+    """
+    Params that aren't a JSON object can't be read the way execution reads
+    them, so a save carrying SQL refuses them with a 422 -- not a 500, and not
+    an access decision made against a guess.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}",
+        is_virtual=True,
+        template_params='{"t": "public.orders"}',
+    )
+    mock_get_datasource.return_value = mock_orm
+
+    response = _run_save(
+        database={"id": 1},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT * FROM {{ t }}",
+        template_params=template_params,
+    )
+
+    assert response.status_code == 422
+    mock_security_manager.raise_for_access.assert_not_called()
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.commands.dataset.exceptions._", _identity_gettext)
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_render_error_is_rejected_as_invalid(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    SQL that can't be rendered with the submitted params can't be authorized:
+    the save is refused with a 422 instead of surfacing a 500.
+    """
+    mock_orm = _save_orm_dataset(sql="SELECT {{ p + 1 }}", is_virtual=True)
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = TypeError(
+        'can only concatenate str (not "int") to str'
+    )
+
+    response = _run_save(
+        database={"id": 1},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT {{ p + 1 }}",
+        template_params='{"p": "a"}',
+    )
+
+    assert response.status_code == 422
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "submitted, rendered_with",
+    [
+        ('{"t": "public.orders"}', {"t": "public.orders"}),
+        # Omitted params land as ``None`` and replace the stored ones, which
+        # changes what the SQL reads even though nothing was submitted.
+        (None, {}),
+    ],
+)
+def test_save_rechecks_when_stored_template_params_unreadable(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    submitted: str | None,
+    rendered_with: dict[str, Any],
+) -> None:
+    """
+    Stored params execution reads differently (a list of pairs reaches Jinja
+    through ``dict.update``) never count as unchanged, so the save is
+    authorised against the params it applies.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}",
+        is_virtual=True,
+        template_params='[["t", "public.orders"]]',
+    )
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(
+            database={"id": 1},
+            table_name="my_table",
+            schema="public",
+            sql="SELECT * FROM {{ t }}",
+            template_params=submitted,
+        )
+
+    assert (
+        mock_security_manager.raise_for_access.call_args.kwargs["template_params"]
+        == rendered_with
+    )
+    mock_orm.update_from_object.assert_not_called()
 
 
 @patch("superset.views.datasource.views.db")

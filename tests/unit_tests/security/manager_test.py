@@ -4214,6 +4214,30 @@ def test_raise_for_access_allow_editorship_false_keeps_schema_access(
         sm.raise_for_access(query=query, force_dataset_match=True)
 
 
+def test_raise_for_access_datasource_branch_honors_allow_editorship(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The ``datasource=`` branch honors ``allow_editorship`` like the per-table
+    branch: an editor holding no schema, datasource or semantic-layer grant is
+    refused when the caller opts out of the editorship accept, and keeps the
+    #20382 accept by default.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=True)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    datasource = mocker.MagicMock(perm="[db].[orders](id:1)")
+
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(datasource=datasource, allow_editorship=False)
+
+    sm.raise_for_access(datasource=datasource)
+
+
 def test_get_datasources_accessible_by_user_schema_access(
     mocker: MockerFixture,
     app_context: None,

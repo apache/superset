@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
@@ -21,7 +22,11 @@ from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 
 from superset.commands.dataset.create import CreateDatasetCommand
-from superset.commands.dataset.exceptions import DatasetInvalidError
+from superset.commands.dataset.exceptions import (
+    DatasetInvalidError,
+    DatasetSqlRenderValidationError,
+    TemplateParamsInvalidValidationError,
+)
 from superset.db_engine_specs.exceptions import SupersetDBAPIConnectionError
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -31,6 +36,7 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.models.core import Database
+from superset.sql.parse import Table
 
 
 def _validate_virtual_dataset(
@@ -344,6 +350,146 @@ def test_create_dataset_passes_template_params() -> None:
         "p": "private.secret"
     }
     assert raise_for_access.call_args.kwargs.get("allow_editorship") is False
+
+
+def _patched_create_validation(mock_database: Mock) -> tuple[Any, Any, Any, Any]:
+    """Patch the DAO/subject lookups around ``CreateDatasetCommand.validate``."""
+    return (
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.get_database_by_id",
+            return_value=mock_database,
+        ),
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch(
+            "superset.commands.dataset.create.DatasetDAO.validate_table_exists",
+            return_value=True,
+        ),
+        patch(
+            "superset.commands.dataset.create.populate_subjects",
+            return_value=[],
+        ),
+    )
+
+
+@pytest.mark.parametrize(
+    "template_params",
+    ["{bad", '"t"', '["t"]', '[["t", "private.secret"]]'],
+)
+def test_create_dataset_unreadable_template_params_rejected(
+    template_params: str,
+) -> None:
+    """
+    A virtual dataset whose params aren't a JSON object fails validation on
+    ``template_params`` (a 422) instead of escaping ``validate()`` as a 500,
+    and no access decision is made against params execution would read
+    differently (a list of pairs still reaches Jinja through ``dict.update``).
+    """
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = None
+    dao, uniqueness, table_exists, subjects = _patched_create_validation(mock_database)
+
+    with (
+        dao,
+        uniqueness,
+        table_exists,
+        subjects,
+        patch(
+            "superset.commands.dataset.create.security_manager.raise_for_access",
+        ) as raise_for_access,
+        pytest.raises(DatasetInvalidError) as excinfo,
+    ):
+        CreateDatasetCommand(
+            {
+                "database": 1,
+                "table_name": "t",
+                "schema": "public",
+                "sql": "SELECT * FROM {{ t | default('public.ok') }}",
+                "template_params": template_params,
+            }
+        ).validate()
+
+    assert any(
+        isinstance(exc, TemplateParamsInvalidValidationError)
+        for exc in excinfo.value._exceptions
+    )
+    raise_for_access.assert_not_called()
+
+
+def test_create_dataset_render_error_is_a_validation_error() -> None:
+    """
+    SQL that can't be rendered with its params (e.g. ``{{ p + 1 }}`` with
+    ``p = "a"``) can't be authorized: the create fails validation on ``sql``
+    instead of surfacing a 500.
+    """
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = None
+    dao, uniqueness, table_exists, subjects = _patched_create_validation(mock_database)
+
+    with (
+        dao,
+        uniqueness,
+        table_exists,
+        subjects,
+        patch(
+            "superset.commands.dataset.create.security_manager.raise_for_access",
+            side_effect=TypeError('can only concatenate str (not "int") to str'),
+        ),
+        pytest.raises(DatasetInvalidError) as excinfo,
+    ):
+        CreateDatasetCommand(
+            {
+                "database": 1,
+                "table_name": "t",
+                "schema": "public",
+                "sql": "SELECT {{ p + 1 }}",
+                "template_params": '{"p": "a"}',
+            }
+        ).validate()
+
+    assert any(
+        isinstance(exc, DatasetSqlRenderValidationError)
+        for exc in excinfo.value._exceptions
+    )
+
+
+def test_create_physical_dataset_template_params_not_parsed() -> None:
+    """
+    A physical dataset's params don't decide which table it reads, so they
+    are left unparsed as before and only the table binding is checked.
+    """
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = None
+    dao, uniqueness, table_exists, subjects = _patched_create_validation(mock_database)
+
+    with (
+        dao,
+        uniqueness,
+        table_exists,
+        subjects,
+        patch(
+            "superset.commands.dataset.create.security_manager.raise_for_access",
+        ) as raise_for_access,
+    ):
+        CreateDatasetCommand(
+            {
+                "database": 1,
+                "table_name": "t",
+                "schema": "public",
+                "template_params": "{bad",
+            }
+        ).validate()
+
+    raise_for_access.assert_called_once_with(
+        database=mock_database,
+        table=Table("t", "public", None),
+        allow_editorship=False,
+    )
 
 
 def test_create_dataset_valid_sql_with_access_error() -> None:

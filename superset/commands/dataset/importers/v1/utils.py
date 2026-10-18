@@ -39,7 +39,9 @@ from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
+    get_template_render_error_msg,
     MultiCatalogDisabledValidationError,
+    TEMPLATE_RENDER_ERRORS,
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.exceptions import IncorrectFormatError
@@ -52,7 +54,7 @@ from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import ChildMultipleResultsFound
+from superset.models.helpers import ChildMultipleResultsFound, parse_template_params
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
@@ -248,27 +250,25 @@ def validate_catalog(config: dict[str, Any]) -> None:
         raise MultiCatalogDisabledValidationError()
 
 
-def _config_template_params(config: dict[str, Any]) -> dict[str, Any]:
-    """Read an import config's template params as a dict for the access check."""
-    raw = config.get("template_params")
-    if isinstance(raw, dict):
-        return raw
-    if isinstance(raw, str) and raw:
-        try:
-            parsed = json.loads(raw)
-        except json.JSONDecodeError:
-            return {}
-        return parsed if isinstance(parsed, dict) else {}
-    return {}
+def _readable_template_params(value: Any) -> dict[str, Any] | None:
+    """Template params as execution will read them, or ``None`` if it can't.
 
+    A config's params arrive as a dict, which the import stores as
+    ``json.dumps(value)`` (see ``JSON_KEYS``) and execution reads back with
+    ``json_to_dict``. That round trip can change values (``json_to_dict``
+    rewrites ``", }"`` even inside a string; ``NaN`` and dates serialize
+    differently), so a dict is put through the same round trip before it is
+    compared or rendered.
 
-def _existing_template_params(dataset: SqlaTable) -> dict[str, Any]:
-    """A stored dataset's template params as a dict, tolerating bad JSON."""
+    ``None`` never equals readable params, so unreadable params always count
+    as a change, and the binding check below refuses to render with them.
+    """
     try:
-        params = dataset.template_params_dict
-    except json.JSONDecodeError:
-        return {}
-    return params if isinstance(params, dict) else {}
+        if isinstance(value, dict):
+            value = json.dumps(value)
+        return parse_template_params(value)
+    except (TypeError, ValueError):
+        return None
 
 
 def _raise_for_import_binding_access(
@@ -306,20 +306,28 @@ def _raise_for_import_binding_access(
     )
     requested_schema = config.get("schema", existing.schema if existing else None)
     requested_catalog = config.get("catalog", existing.catalog if existing else None)
+    stored_params = (
+        _readable_template_params(existing.template_params) if existing else {}
+    )
     if "template_params" in config:
-        requested_params = _config_template_params(config)
-    elif existing is not None:
-        requested_params = _existing_template_params(existing)
+        requested_params = _readable_template_params(config["template_params"])
+        params_unchanged = (
+            requested_params is not None and requested_params == stored_params
+        )
     else:
-        requested_params = {}
+        requested_params = stored_params
+        params_unchanged = True
 
     if existing is not None and (
         config["database_id"] == existing.database_id
         and requested_sql == (existing.sql or None)
-        and requested_table_name == existing.table_name
+        # A virtual dataset's table_name is only a label -- its SQL is the
+        # binding -- so renaming one is not a repoint, as with PUT and
+        # ``/datasource/save/``.
+        and (bool(requested_sql) or requested_table_name == existing.table_name)
         and requested_schema == existing.schema
         and requested_catalog == existing.catalog
-        and requested_params == _existing_template_params(existing)
+        and params_unchanged
     ):
         # Binding unchanged -- a metadata-only re-import, not a repoint.
         # The database and template_params are part of the binding: an
@@ -330,16 +338,27 @@ def _raise_for_import_binding_access(
         return
 
     if requested_sql:
-        security_manager.raise_for_access(
-            database=database,
-            sql=requested_sql,
-            # Empty strings would qualify table names against a nonexistent
-            # catalog/schema, so they are normalized to None.
-            catalog=requested_catalog or None,
-            schema=requested_schema or None,
-            template_params=requested_params,
-            allow_editorship=False,
-        )
+        if requested_params is None:
+            # Execution would read these params differently than any access
+            # decision made here could, so fail closed as a bad payload.
+            raise IncorrectFormatError("Invalid template_params: must be a JSON object")
+        try:
+            security_manager.raise_for_access(
+                database=database,
+                sql=requested_sql,
+                # Empty strings would qualify table names against a nonexistent
+                # catalog/schema, so they are normalized to None.
+                catalog=requested_catalog or None,
+                schema=requested_schema or None,
+                template_params=requested_params,
+                allow_editorship=False,
+            )
+        except TEMPLATE_RENDER_ERRORS as ex:
+            # SQL that can't be rendered with its params can't be
+            # access-checked: fail closed as a bad payload, not a 500.
+            raise IncorrectFormatError(
+                f"Invalid SQL: {get_template_render_error_msg(ex)}"
+            ) from ex
     elif isinstance(requested_table_name, str):
         # A physical dataset always carries a table_name (the import schema
         # requires it); the guard also narrows the type for the check below.
