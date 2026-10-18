@@ -20,9 +20,6 @@
 import { css, styled, SupersetTheme } from '@apache-superset/core/theme';
 import { Button, JsonEditor } from '@superset-ui/core/components';
 
-const CTAS_CVAS_SCHEMA_FORM_HEIGHT = 108;
-const EXPOSE_IN_SQLLAB_FORM_HEIGHT = CTAS_CVAS_SCHEMA_FORM_HEIGHT + 153;
-const EXPOSE_ALL_FORM_HEIGHT = EXPOSE_IN_SQLLAB_FORM_HEIGHT + 102;
 const MODAL_BODY_HEIGHT = 180.5;
 
 export const no_margin_bottom = css`
@@ -286,7 +283,7 @@ export const StyledInputContainer = styled.div`
       margin-bottom: 0;
       padding: 0;
       &.open {
-        height: ${CTAS_CVAS_SCHEMA_FORM_HEIGHT}px;
+        height: auto;
         padding-right: ${theme.sizeUnit * 5}px;
       }
     }
@@ -317,10 +314,7 @@ export const StyledExpandableForm = styled.div`
     transition: height 0.25s;
     margin-left: ${({ theme }) => theme.sizeUnit * 7}px;
     &.open {
-      height: ${EXPOSE_IN_SQLLAB_FORM_HEIGHT}px;
-      &.ctas-open {
-        height: ${EXPOSE_ALL_FORM_HEIGHT}px;
-      }
+      height: auto;
     }
   }
 `;

@@ -424,6 +424,13 @@ positive number that can include decimals. PostgreSQL planner units are not
 runtime, money, or memory. BigQuery estimates describe usage, not a guaranteed
 bill. These metrics are not converted into a common unit.
 
+BigQuery thresholds can be entered in Bytes, MB, or GB (decimal units: 1 MB =
+1,000,000 bytes and 1 GB = 1,000,000,000 bytes). Changing the unit changes the
+display while retaining the saved byte amount. Fractional MB or GB are accepted
+only when they represent a positive whole number of bytes in the allowed range;
+invalid amounts show validation instead of being rounded. PostgreSQL thresholds
+stay in relative planner cost units and have no default amount.
+
 Disabling warnings retains valid saved values. Turning connection estimation off
 also retains the rule and makes checking inactive. A broken rule can be replaced
 with `{ "enabled": false }` to disable it without retaining invalid fields.

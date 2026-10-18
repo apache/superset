@@ -31,7 +31,6 @@ import {
   Collapse,
   InfoTooltip,
   CollapseLabelInModal,
-  Flex,
   type CheckboxChangeEvent,
 } from '@superset-ui/core/components';
 import { useJsonValidation } from '@superset-ui/core/components/AsyncAceEditor';
@@ -42,7 +41,7 @@ import {
   no_margin_bottom,
 } from './styles';
 import { DatabaseObject, ExtraJson } from '../types';
-import { getQueryCostWarning } from './queryCostWarning';
+import QueryCostWarningSettings from './QueryCostWarningSettings';
 
 const ExtraOptions = ({
   db,
@@ -52,6 +51,7 @@ const ExtraOptions = ({
   onExtraInputChange,
   onExtraEditorChange,
   extraExtension,
+  onQueryCostWarningValidationChange,
 }: {
   db: DatabaseObject | null;
   onInputChange: (
@@ -64,6 +64,7 @@ const ExtraOptions = ({
   ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
+  onQueryCostWarningValidationChange?: (hasError: boolean) => void;
 }) => {
   const onExtraInputChangeNonNegative = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -102,19 +103,6 @@ const ExtraOptions = ({
     }
     return value;
   });
-
-  const warningMetric = db?.engine_information?.query_cost_warning_metric;
-  const warningRule = getQueryCostWarning(extraJson, db?.backend || db?.engine);
-  const warningsEnabled = warningRule.enabled === true;
-  const warningAmount =
-    warningRule.metric === warningMetric &&
-    typeof warningRule.threshold === 'number' &&
-    Number.isFinite(warningRule.threshold)
-      ? warningRule.threshold
-      : '';
-  const estimationEnabled =
-    isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
-    extraJson.cost_estimate_enabled === true;
 
   // JSON validation hooks for the three editors
   const secureExtraAnnotations = useJsonValidation(db?.masked_encrypted_extra, {
@@ -207,7 +195,6 @@ const ExtraOptions = ({
                 <StyledExpandableForm
                   className={cx('expandable', {
                     open: expandableModalIsOpen,
-                    'ctas-open': createAsOpen,
                   })}
                 >
                   <StyledInputContainer css={no_margin_bottom}>
@@ -303,63 +290,14 @@ const ExtraOptions = ({
                       />
                     </div>
                   </StyledInputContainer>
-                  {isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings) &&
-                    (warningMetric || 'query_cost_warning' in extraJson) && (
-                      <StyledInputContainer css={no_margin_bottom}>
-                        <div className="input-container">
-                          <Checkbox
-                            id="query_cost_warning_enabled"
-                            name="query_cost_warning_enabled"
-                            checked={warningsEnabled}
-                            disabled={
-                              (!warningMetric || !estimationEnabled) &&
-                              !warningsEnabled
-                            }
-                            onChange={onExtraInputChange}
-                          >
-                            {t('Enable pre-run cost warnings')}
-                          </Checkbox>
-                        </div>
-                        {warningMetric &&
-                          (warningsEnabled || warningAmount !== '') && (
-                            <Flex vertical gap="small">
-                              <label htmlFor="query_cost_warning_threshold">
-                                {warningMetric === 'bytes_processed'
-                                  ? t('Warning threshold (bytes processed)')
-                                  : t('Warning threshold (planner cost)')}
-                              </label>
-                              <Input
-                                id="query_cost_warning_threshold"
-                                name="query_cost_warning_threshold"
-                                type="number"
-                                min={0}
-                                max={
-                                  warningMetric === 'bytes_processed'
-                                    ? Number.MAX_SAFE_INTEGER
-                                    : undefined
-                                }
-                                step={
-                                  warningMetric === 'bytes_processed'
-                                    ? 1
-                                    : 'any'
-                                }
-                                value={warningAmount}
-                                disabled={!estimationEnabled}
-                                onChange={onExtraInputChange}
-                              />
-                              <small>
-                                {warningMetric === 'bytes_processed'
-                                  ? t(
-                                      'Estimated bytes processed are usage estimates, not a guaranteed bill. You can still choose to run the query.',
-                                    )
-                                  : t(
-                                      'PostgreSQL planner cost uses planner units, not runtime or money. You can still choose to run the query.',
-                                    )}
-                              </small>
-                            </Flex>
-                          )}
-                      </StyledInputContainer>
-                    )}
+                  <QueryCostWarningSettings
+                    key={`${db?.id}-${db?.backend || db?.engine}`}
+                    extra={extraJson}
+                    engine={db?.backend || db?.engine}
+                    metric={db?.engine_information?.query_cost_warning_metric}
+                    onChange={onExtraInputChange}
+                    onValidationChange={onQueryCostWarningValidationChange}
+                  />
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
                       <Checkbox

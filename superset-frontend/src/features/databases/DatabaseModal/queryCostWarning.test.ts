@@ -19,8 +19,87 @@
 import {
   disableQueryCostWarning,
   getQueryCostWarning,
+  getQueryCostWarningError,
+  getCostWarningUnit,
+  formatWarningBytes,
+  parseWarningBytes,
+  CostWarningUnit,
 } from './queryCostWarning';
 import { ExtraJson } from '../types';
+
+test.each([
+  ['1.000001', 'MB', 1000001],
+  ['0.000001', 'MB', 1],
+  ['0.000000001', 'GB', 1],
+  ['1.25', 'GB', 1250000000],
+  ['1e3', 'MB', 1000000000],
+  ['1.00', 'Bytes', 1],
+  ['9007199254740991', 'Bytes', Number.MAX_SAFE_INTEGER],
+] as const)('converts %s %s to exact bytes', (amount, unit, expected) => {
+  expect(parseWarningBytes(amount, unit)).toBe(expected);
+});
+
+test.each([
+  ['', 'Bytes'],
+  ['0', 'Bytes'],
+  ['-1', 'MB'],
+  ['1.5', 'Bytes'],
+  ['0.0000001', 'MB'],
+  ['0.0000000001', 'GB'],
+  ['9007199254740992', 'Bytes'],
+  ['9007199.254740992', 'GB'],
+  ['1e1000000000', 'GB'],
+  ['1e-1000000000', 'GB'],
+  ['NaN', 'Bytes'],
+  ['Infinity', 'Bytes'],
+  ['garbage', 'MB'],
+] as const)('rejects %s %s without rounding', (amount, unit) => {
+  expect(parseWarningBytes(amount, unit)).toBeUndefined();
+});
+
+test.each<CostWarningUnit>(['Bytes', 'MB', 'GB'])(
+  'displaying large byte amounts in %s preserves every byte',
+  unit => {
+    const formatted = formatWarningBytes(Number.MAX_SAFE_INTEGER, unit);
+    expect(parseWarningBytes(formatted, unit)).toBe(Number.MAX_SAFE_INTEGER);
+  },
+);
+
+test('unit selection and display never change the stored amount', () => {
+  expect(getCostWarningUnit(2000000000)).toBe('GB');
+  expect(formatWarningBytes(2000000000, 'MB')).toBe('2000');
+  expect(formatWarningBytes(1500001, 'MB')).toBe('1.500001');
+  expect(formatWarningBytes(Number.MAX_SAFE_INTEGER, 'GB')).toBe(
+    '9007199.254740991',
+  );
+});
+
+test('disabled rules keep valid values from a different engine', () => {
+  expect(
+    getQueryCostWarningError(
+      { enabled: false, metric: 'bytes_processed', threshold: 100 },
+      'total_cost',
+    ),
+  ).toBeUndefined();
+  expect(
+    getQueryCostWarningError(
+      { enabled: true, metric: 'bytes_processed', threshold: 100 },
+      'total_cost',
+    ),
+  ).toBeDefined();
+  expect(
+    getQueryCostWarningError(
+      { enabled: true, metric: 'total_cost', threshold: 12.5 },
+      'total_cost',
+    ),
+  ).toBeUndefined();
+  expect(
+    getQueryCostWarningError(
+      { enabled: false, metric: 'bytes_processed', threshold: 0.5 },
+      'bytes_processed',
+    ),
+  ).toBeDefined();
+});
 
 test.each([undefined, false, true, 'true', 1])(
   'legacy opt-in must be exactly true (%s)',

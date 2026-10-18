@@ -170,16 +170,20 @@ describe('ExtraOptions Component', () => {
       metric: 'bytes_processed' as const,
       label: 'Warning threshold (bytes processed)',
       threshold: 100000000,
+      display: 100,
+      updated: '123500000',
     },
     {
       backend: 'postgresql',
       metric: 'total_cost' as const,
       label: 'Warning threshold (planner cost)',
       threshold: 12.5,
+      display: 12.5,
+      updated: '123.5',
     },
   ])(
     'warning thresholds retain native units for $backend',
-    ({ backend, metric, label, threshold }) => {
+    ({ backend, metric, label, threshold, display, updated }) => {
       renderComponent({
         ...defaultDb,
         backend,
@@ -194,13 +198,13 @@ describe('ExtraOptions Component', () => {
       });
       fireEvent.click(screen.getByText('SQL Lab'));
       const amount = screen.getByLabelText(label);
-      expect(amount).toHaveValue(threshold);
+      expect(amount).toHaveValue(display);
       fireEvent.change(amount, { target: { value: '123.5' } });
       expect(onExtraInputChange).toHaveBeenCalledWith(
         expect.objectContaining({
           target: expect.objectContaining({
             name: 'query_cost_warning_threshold',
-            value: '123.5',
+            value: updated,
           }),
         }),
       );
@@ -256,7 +260,7 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
-  test('warning settings are hidden when the warning flag is off', () => {
+  test('warning settings explain when the warning flag is off', () => {
     window.featureFlags = { [FeatureFlag.EstimateQueryCost]: true };
     renderComponent({
       ...defaultDb,
@@ -267,8 +271,11 @@ describe('ExtraOptions Component', () => {
     });
     fireEvent.click(screen.getByText('SQL Lab'));
     expect(
-      screen.queryByLabelText('Enable pre-run cost warnings'),
-    ).not.toBeInTheDocument();
+      screen.getByLabelText('Enable pre-run cost warnings'),
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/SQLLAB_QUERY_COST_WARNINGS is off/),
+    ).toBeInTheDocument();
   });
 
   test('warnings cannot be enabled when the global estimate flag is off', () => {

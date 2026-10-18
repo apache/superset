@@ -80,6 +80,7 @@ import ExtraOptions from './ExtraOptions';
 import {
   disableQueryCostWarning,
   getQueryCostWarning,
+  getQueryCostWarningError,
 } from './queryCostWarning';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
@@ -713,6 +714,8 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   );
 
   const [tabKey, setTabKey] = useState<string>(DEFAULT_TAB_KEY);
+  const [queryCostWarningHasError, setQueryCostWarningHasError] =
+    useState(false);
   const [availableDbs, getAvailableDbs] = useAvailableDatabases();
   const [
     validationErrors,
@@ -944,6 +947,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   }, [db, getValidation]);
 
   const onClose = () => {
+    setQueryCostWarningHasError(false);
     setDB({ type: ActionType.Reset });
     setHasConnectedDb(false);
     handleClearValidationErrors(); // reset validation errors on close
@@ -989,6 +993,19 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
   });
 
   const onSave = async () => {
+    const extra: ExtraJson = JSON.parse(db?.extra || '{}');
+    const warningRule = getQueryCostWarning(extra, db?.backend || db?.engine);
+    if (
+      queryCostWarningHasError ||
+      getQueryCostWarningError(
+        warningRule,
+        db?.engine_information?.query_cost_warning_metric,
+      )
+    ) {
+      setTabKey(TABS_KEYS.ADVANCED);
+      addDangerToast(t('Fix the query cost warning settings before saving.'));
+      return;
+    }
     let dbConfigExtraExtensionOnSaveError;
     setLoading(true);
     setHasValidated(false);
@@ -1007,6 +1024,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     }
     // Clone DB object
     const dbToUpdate = { ...db };
+    if (
+      db?.engine_information?.query_cost_warning_metric ||
+      'query_cost_warning' in extra ||
+      warningRule.metric
+    ) {
+      dbToUpdate.extra = JSON.stringify({
+        ...extra,
+        query_cost_warning: warningRule,
+      });
+    }
 
     if (dbToUpdate.configuration_method === ConfigurationMethod.DynamicForm) {
       // Validate DB before saving
@@ -1438,6 +1465,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
                 !!(
                   !hasValidated ||
                   isValidating ||
+                  queryCostWarningHasError ||
                   (validationErrors && Object.keys(validationErrors).length > 0)
                 )
               }
@@ -1458,6 +1486,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             buttonStyle="primary"
             onClick={onSave}
             data-test="modal-confirm-button"
+            disabled={queryCostWarningHasError}
             loading={isLoading}
           >
             {t('Finish')}
@@ -1498,14 +1527,16 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
         key="submit"
         buttonStyle="primary"
         onClick={onSave}
-        disabled={db?.is_managed_externally}
+        disabled={db?.is_managed_externally || queryCostWarningHasError}
         loading={isLoading}
         tooltip={
           db?.is_managed_externally
             ? t(
                 "This database is managed externally, and can't be edited in Superset",
               )
-            : ''
+            : queryCostWarningHasError
+              ? t('Fix the query cost warning settings in Advanced.')
+              : ''
         }
       >
         {t('Finish')}
@@ -2040,6 +2071,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
     if (!editNewDb) {
       return (
         <ExtraOptions
+          onQueryCostWarningValidationChange={setQueryCostWarningHasError}
           extraExtension={dbConfigExtraExtension}
           db={db as DatabaseObject}
           onInputChange={(
@@ -2291,6 +2323,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
             label: <span>{t('Advanced')}</span>,
             children: (
               <ExtraOptions
+                onQueryCostWarningValidationChange={setQueryCostWarningHasError}
                 extraExtension={dbConfigExtraExtension}
                 db={db as DatabaseObject}
                 onInputChange={(e: CheckboxChangeEvent) => {
