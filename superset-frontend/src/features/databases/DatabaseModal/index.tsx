@@ -77,6 +77,10 @@ import {
   DatabaseParameters,
 } from '../types';
 import ExtraOptions from './ExtraOptions';
+import {
+  disableQueryCostWarning,
+  getQueryCostWarning,
+} from './queryCostWarning';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {
@@ -339,31 +343,39 @@ export function dbReducer(
       };
     }
     case ActionType.ExtraInputChange:
-      if (action.payload.name === 'cost_estimate_warning_enabled') {
+      if (
+        action.payload.name === 'query_cost_warning_enabled' ||
+        action.payload.name === 'query_cost_warning_threshold'
+      ) {
+        const rule = getQueryCostWarning(
+          extraJson,
+          trimmedState.backend || trimmedState.engine,
+        );
+        const metric =
+          trimmedState.engine_information?.query_cost_warning_metric;
+        const queryCostWarning =
+          action.payload.name === 'query_cost_warning_enabled'
+            ? action.payload.checked
+              ? {
+                  ...rule,
+                  enabled: true,
+                  metric,
+                  ...(rule.metric !== metric && { threshold: undefined }),
+                }
+              : disableQueryCostWarning(rule)
+            : {
+                ...rule,
+                metric,
+                threshold:
+                  action.payload.value === ''
+                    ? undefined
+                    : Number(action.payload.value),
+              };
         return {
           ...trimmedState,
           extra: JSON.stringify({
             ...extraJson,
-            cost_estimate_warning_enabled: action.payload.checked,
-            cost_estimate_warning_threshold_bytes:
-              extraJson.cost_estimate_warning_threshold_bytes ??
-              (action.payload.checked ? 100000000 : undefined),
-          }),
-        };
-      }
-      if (action.payload.name === 'cost_estimate_warning_threshold_bytes') {
-        return {
-          ...trimmedState,
-          extra: JSON.stringify({
-            ...extraJson,
-            cost_estimate_warning_enabled:
-              action.payload.value === ''
-                ? false
-                : (extraJson.cost_estimate_warning_enabled ?? true),
-            cost_estimate_warning_threshold_bytes:
-              action.payload.value === ''
-                ? undefined
-                : Number(action.payload.value),
+            query_cost_warning: queryCostWarning,
           }),
         };
       }

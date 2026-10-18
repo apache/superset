@@ -21,16 +21,17 @@ import {
   fireEvent,
   render,
   screen,
-  selectOption,
   waitFor,
 } from 'spec/helpers/testing-library';
 import { t } from '@apache-superset/core/translation';
+import { FeatureFlag } from '@superset-ui/core';
 import * as ace from 'ace-builds';
 
 import ExtraOptions from './ExtraOptions';
-import { DatabaseObject } from '../types';
+import { DatabaseObject, QueryCostWarningMetric } from '../types';
 
 const defaultDb = {
+  backend: 'sqlite',
   expose_in_sqllab: true,
   allow_ctas: false,
   allow_cvas: false,
@@ -57,6 +58,7 @@ const defaultDb = {
     cancel_query_on_windows_unload: false,
   }),
   engine_information: {
+    query_cost_warning_metric: undefined as QueryCostWarningMetric | undefined,
     supports_file_upload: true,
     supports_dynamic_catalog: true,
   },
@@ -91,6 +93,10 @@ describe('ExtraOptions Component', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    window.featureFlags = {
+      [FeatureFlag.EstimateQueryCost]: true,
+      [FeatureFlag.SqlLabQueryCostWarnings]: true,
+    };
   });
 
   test('renders all main panels', () => {
@@ -122,11 +128,15 @@ describe('ExtraOptions Component', () => {
   });
 
   test.each([false, true])(
-    'pre-run warnings require estimation (%s)',
+    'pre-run warnings require connection estimation (%s)',
     estimationEnabled => {
       renderComponent({
         ...defaultDb,
         backend: 'bigquery',
+        engine_information: {
+          ...defaultDb.engine_information,
+          query_cost_warning_metric: 'bytes_processed',
+        },
         extra: JSON.stringify({ cost_estimate_enabled: estimationEnabled }),
       });
       fireEvent.click(screen.getByText('SQL Lab'));
@@ -140,7 +150,7 @@ describe('ExtraOptions Component', () => {
         expect(onExtraInputChange).toHaveBeenCalledWith(
           expect.objectContaining({
             target: expect.objectContaining({
-              name: 'cost_estimate_warning_enabled',
+              name: 'query_cost_warning_enabled',
               checked: true,
             }),
           }),
@@ -149,57 +159,151 @@ describe('ExtraOptions Component', () => {
         expect(checkbox).toBeDisabled();
       }
       expect(
-        screen.queryByLabelText('Warn when estimated data processed exceeds'),
+        screen.queryByLabelText('Warning threshold (bytes processed)'),
       ).not.toBeInTheDocument();
     },
   );
 
-  test('warning amount and size selector convert MB and GB to bytes', async () => {
+  test.each([
+    {
+      backend: 'bigquery',
+      metric: 'bytes_processed' as const,
+      label: 'Warning threshold (bytes processed)',
+      threshold: 100000000,
+    },
+    {
+      backend: 'postgresql',
+      metric: 'total_cost' as const,
+      label: 'Warning threshold (planner cost)',
+      threshold: 12.5,
+    },
+  ])(
+    'warning thresholds retain native units for $backend',
+    ({ backend, metric, label, threshold }) => {
+      renderComponent({
+        ...defaultDb,
+        backend,
+        engine_information: {
+          ...defaultDb.engine_information,
+          query_cost_warning_metric: metric,
+        },
+        extra: JSON.stringify({
+          cost_estimate_enabled: true,
+          query_cost_warning: { enabled: true, metric, threshold },
+        }),
+      });
+      fireEvent.click(screen.getByText('SQL Lab'));
+      const amount = screen.getByLabelText(label);
+      expect(amount).toHaveValue(threshold);
+      fireEvent.change(amount, { target: { value: '123.5' } });
+      expect(onExtraInputChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          target: expect.objectContaining({
+            name: 'query_cost_warning_threshold',
+            value: '123.5',
+          }),
+        }),
+      );
+    },
+  );
+
+  test('legacy amount alone prefills without opting in', () => {
     renderComponent({
       ...defaultDb,
       backend: 'bigquery',
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'bytes_processed',
+      },
       extra: JSON.stringify({
         cost_estimate_enabled: true,
-        cost_estimate_warning_enabled: true,
-        cost_estimate_warning_threshold_bytes: 100000000,
+        cost_estimate_warning_threshold_bytes: 100,
       }),
     });
     fireEvent.click(screen.getByText('SQL Lab'));
     expect(
-      screen.getByRole('checkbox', { name: 'Enable pre-run cost warnings' }),
-    ).toBeChecked();
-    const amount = screen.getByLabelText(
-      'Warn when estimated data processed exceeds',
-    );
-    expect(amount).toHaveValue(100);
-    fireEvent.change(amount, { target: { value: '250' } });
-    expect(onExtraInputChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        target: expect.objectContaining({
-          name: 'cost_estimate_warning_threshold_bytes',
-          value: '250000000',
-        }),
+      screen.getByLabelText('Enable pre-run cost warnings'),
+    ).not.toBeChecked();
+    expect(
+      screen.getByLabelText('Warning threshold (bytes processed)'),
+    ).toHaveValue(100);
+  });
+
+  test('enabled warnings remain disableable after estimation is turned off', () => {
+    renderComponent({
+      ...defaultDb,
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'total_cost',
+      },
+      extra: JSON.stringify({
+        cost_estimate_enabled: false,
+        query_cost_warning: {
+          enabled: true,
+          metric: 'total_cost',
+          threshold: 12.5,
+        },
       }),
-    );
-    await selectOption('GB', 'Threshold size unit');
-    expect(onExtraInputChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        target: expect.objectContaining({ value: '100000000000' }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    const checkbox = screen.getByLabelText('Enable pre-run cost warnings');
+    expect(checkbox).toBeEnabled();
+    expect(checkbox).toBeChecked();
+    expect(
+      screen.getByLabelText('Warning threshold (planner cost)'),
+    ).toBeDisabled();
+    fireEvent.click(checkbox);
+    expect(onExtraInputChange).toHaveBeenCalled();
+  });
+
+  test('warning settings are hidden when the warning flag is off', () => {
+    window.featureFlags = { [FeatureFlag.EstimateQueryCost]: true };
+    renderComponent({
+      ...defaultDb,
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'total_cost',
+      },
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    expect(
+      screen.queryByLabelText('Enable pre-run cost warnings'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('warnings cannot be enabled when the global estimate flag is off', () => {
+    window.featureFlags = { [FeatureFlag.SqlLabQueryCostWarnings]: true };
+    renderComponent({
+      ...defaultDb,
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'total_cost',
+      },
+      extra: JSON.stringify({ cost_estimate_enabled: true }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    expect(
+      screen.getByLabelText('Enable pre-run cost warnings'),
+    ).toBeDisabled();
+  });
+
+  test('a saved rule can be disabled after changing to an unsupported engine', () => {
+    renderComponent({
+      ...defaultDb,
+      extra: JSON.stringify({
+        query_cost_warning: {
+          enabled: true,
+          metric: 'bytes_processed',
+          threshold: 100,
+        },
       }),
-    );
-    fireEvent.change(amount, { target: { value: '0.5' } });
-    expect(onExtraInputChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        target: expect.objectContaining({ value: '500000000' }),
-      }),
-    );
-    await selectOption('Bytes', 'Threshold size unit');
-    fireEvent.change(amount, { target: { value: '123' } });
-    expect(onExtraInputChange).toHaveBeenLastCalledWith(
-      expect.objectContaining({
-        target: expect.objectContaining({ value: '123' }),
-      }),
-    );
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    const checkbox = screen.getByLabelText('Enable pre-run cost warnings');
+    expect(checkbox).toBeChecked();
+    expect(checkbox).toBeEnabled();
+    fireEvent.click(checkbox);
+    expect(onExtraInputChange).toHaveBeenCalled();
   });
 
   test('calls onExtraEditorChange when metadata_params json editor changes', async () => {

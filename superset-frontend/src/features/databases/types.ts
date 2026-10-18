@@ -64,6 +64,14 @@ export type DatabaseParameters = {
   project_id?: string;
 };
 
+export type QueryCostWarningMetric = 'bytes_processed' | 'total_cost';
+
+export type QueryCostWarning = {
+  enabled: boolean;
+  metric?: QueryCostWarningMetric;
+  threshold?: number;
+};
+
 export type DatabaseObject = {
   // Connection + general
   backend?: string;
@@ -90,6 +98,7 @@ export type DatabaseObject = {
   // SQL Lab
   allows_cost_estimate?: boolean;
   cost_estimate_warning_threshold_bytes?: number | null;
+  query_cost_warning?: QueryCostWarning;
   allow_ctas?: boolean;
   allow_cvas?: boolean;
   allow_dml?: boolean;
@@ -114,6 +123,7 @@ export type DatabaseObject = {
 
   // DB Engine Spec information
   engine_information?: {
+    query_cost_warning_metric?: QueryCostWarningMetric | null;
     supports_file_upload?: boolean;
     disable_ssh_tunneling?: boolean;
     supports_dynamic_catalog?: boolean;
@@ -221,6 +231,7 @@ export type DatabaseForm = {
   preferred: boolean;
   sqlalchemy_uri_placeholder: string;
   engine_information: {
+    query_cost_warning_metric?: QueryCostWarningMetric | null;
     supports_file_upload: boolean;
     disable_ssh_tunneling: boolean;
     supports_dynamic_catalog: boolean;
@@ -246,6 +257,7 @@ export interface ExtraJson {
   cost_estimate_enabled?: boolean; // in SQL Lab
   cost_estimate_warning_enabled?: boolean;
   cost_estimate_warning_threshold_bytes?: number;
+  query_cost_warning?: QueryCostWarning;
   disable_data_preview?: boolean; // in SQL Lab
   disable_drill_to_detail?: boolean;
   allow_multi_catalog?: boolean;
