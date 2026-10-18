@@ -481,6 +481,12 @@ settings cancels a pending attempt. Switching editor tabs does too. Confirming
 runs the captured request once. Remote policy changes become visible when
 connection metadata is refreshed; the dialog does not detect them in advance.
 
+**Run query in a new tab** from query history uses the same warning flow. The
+rerun retains its existing settings: SQL, connection, catalog, and schema come
+from the historical query; the limit and template parameters come from the
+active editor, and asynchronous execution follows the connection's current
+setting. Cancelling leaves the new tab open without executing its query.
+
 
 ### SQL Lab Tips
 

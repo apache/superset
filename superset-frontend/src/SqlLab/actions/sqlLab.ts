@@ -842,9 +842,11 @@ export function addNewQueryEditor(): SqlLabThunkAction<SqlLabAction> {
   };
 }
 
+/** Clone with existing effective settings and optional deliberate-run intent. */
 export function cloneQueryToNewTab(
   query: Query,
   autorun: boolean,
+  autorunSource?: QueryEditor['autorunSource'],
 ): SqlLabThunkAction<SqlLabAction> {
   return function (dispatch: AppDispatch, getState: GetState) {
     const state = getState();
@@ -862,6 +864,7 @@ export function cloneQueryToNewTab(
       catalog: query.catalog,
       schema: query.schema ?? undefined,
       autorun,
+      ...(autorunSource && { autorunSource }),
       sql: query.sql,
       queryLimit: sourceQueryEditor.queryLimit,
       templateParams: sourceQueryEditor.templateParams,

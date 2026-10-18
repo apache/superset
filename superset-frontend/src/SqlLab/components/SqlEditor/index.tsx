@@ -306,15 +306,20 @@ const SqlEditor: FC<Props> = ({
       ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
       automatic = false,
       sql?: string,
-    ) =>
-      costWarning.start(
+    ) => {
+      if (autorun && queryEditor.autorunSource === 'history') {
+        setAutorun(false);
+        dispatch(queryEditorSetAutorun(queryEditor, false));
+      }
+      return costWarning.start(
         ctasArg ? ctas : '',
         ctasArg,
         ctas_method,
         automatic,
         sql,
-      ),
-    [costWarning.start, ctas],
+      );
+    },
+    [autorun, costWarning.start, ctas, dispatch, queryEditor],
   );
 
   const formatCurrentQuery = useCallback(
@@ -343,11 +348,22 @@ const SqlEditor: FC<Props> = ({
 
   useEffect(() => {
     if (autorun) {
+      if (
+        queryEditor.autorunSource === 'history' &&
+        isActive &&
+        isFeatureEnabled(FeatureFlag.SqllabBackendPersistence) &&
+        queryEditor.inLocalStorage
+      )
+        return;
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
-      startQuery(false, CtasEnum.Table, true);
+      startQuery(
+        false,
+        CtasEnum.Table,
+        queryEditor.autorunSource !== 'history',
+      );
     }
-  }, [autorun, dispatch, queryEditor, startQuery]);
+  }, [autorun, dispatch, isActive, queryEditor, startQuery]);
 
   const getHotkeyConfig = useCallback(() => {
     // Get the user's OS

@@ -28,11 +28,20 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import reducers from 'spec/helpers/reducerIndex';
-import { setupStore } from 'src/views/store';
-import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
-import { queryEditorSetSelectedText } from 'src/SqlLab/actions/sqlLab';
-import type { SqlLabRootState } from 'src/SqlLab/types';
+import { setupStore, type AppDispatch } from 'src/views/store';
+import {
+  initialState,
+  defaultQueryEditor,
+  successfulQuery,
+} from 'src/SqlLab/fixtures';
+import {
+  queryEditorSetSelectedText,
+  syncQueryEditor,
+} from 'src/SqlLab/actions/sqlLab';
+import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
+import { clearQueryEditors } from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
 import SqlEditor from '.';
+import TabbedSqlEditors from '../TabbedSqlEditors';
 
 jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
@@ -118,8 +127,24 @@ function ActiveEditor() {
   ) : null;
 }
 
+const historyQuery = {
+  ...successfulQuery,
+  id: 'historical',
+  sqlEditorId: defaultQueryEditor.id,
+  dbId: 2,
+  catalog: 'historical_catalog',
+  schema: 'historical_schema',
+  sql: 'SELECT 99',
+  queryLimit: 9999,
+  templateParams: '{"origin":"history"}',
+  runAsync: true,
+};
+
 /** Use the application reducer and HTTP clients; mock only editor rendering. */
-function setup(sql: string) {
+function setup(
+  sql: string,
+  mode: 'editor' | 'history' | 'persisted-history' | 'automatic' = 'editor',
+) {
   const store = setupStore({
     disableDebugger: true,
     rootReducers: reducers,
@@ -127,8 +152,43 @@ function setup(sql: string) {
       ...initialState,
       sqlLab: {
         ...initialState.sqlLab,
-        queryEditors: [{ ...defaultQueryEditor, sql, queryLimit: 42 }],
+        queryEditors: [
+          {
+            ...defaultQueryEditor,
+            sql,
+            queryLimit: 42,
+            autorun: mode === 'automatic',
+            templateParams: mode.includes('history')
+              ? '{"origin":"active"}'
+              : '{}',
+            ...(mode === 'persisted-history' && {
+              inLocalStorage: false,
+              loaded: true,
+              tabViewId: '11',
+            }),
+          },
+        ],
+        queries: mode.includes('history')
+          ? {
+              [historyQuery.id]: {
+                ...historyQuery,
+                ...(mode === 'persisted-history' && { sqlEditorId: '11' }),
+              },
+            }
+          : {},
         databases: {
+          2: {
+            id: 2,
+            backend: 'postgresql',
+            allow_run_async: false,
+            allows_cost_estimate: true,
+            engine_information: { query_cost_warning_metric: 'total_cost' },
+            query_cost_warning: {
+              enabled: true,
+              metric: 'total_cost',
+              threshold: 10,
+            },
+          },
           [defaultQueryEditor.dbId!]: {
             id: defaultQueryEditor.dbId,
             backend: 'postgresql',
@@ -145,7 +205,10 @@ function setup(sql: string) {
       },
     },
   });
-  render(<ActiveEditor />, { store, useRedux: true });
+  render(mode.includes('history') ? <TabbedSqlEditors /> : <ActiveEditor />, {
+    store,
+    useRedux: true,
+  });
   return store;
 }
 const warning = {
@@ -287,4 +350,149 @@ test('current-statement Run still executes directly when warnings are off withou
   );
   expect(estimates()).toHaveLength(0);
   expect(mockSetSelection).not.toHaveBeenCalled();
+});
+
+/** Start from the real QueryHistory row, action, reducer, and tab renderer. */
+async function rerunFromHistory() {
+  const store = setup('SELECT 1', 'history');
+  fireEvent.click(await screen.findByRole('tab', { name: 'Query history' }));
+  fireEvent.click(await screen.findByTestId('plus-circle'));
+  await screen.findByRole('tab', {
+    name: /Copy of Untitled Query 1/,
+    selected: true,
+  });
+  return store;
+}
+
+test('history action opens a tab, checks its effective inputs, and executes that request once', async () => {
+  fetchMock.modifyRoute('check', {
+    response: {
+      result: {
+        ...warning,
+        status: 'unavailable',
+        value: null,
+        message: 'Templates cannot be estimated',
+      },
+    },
+  });
+  const store = await rerunFromHistory();
+  await screen.findByRole('dialog');
+  const checked = JSON.parse(String(estimates()[0].options.body));
+  expect(checked).toEqual({
+    check_warning: true,
+    database_id: 2,
+    catalog: 'historical_catalog',
+    schema: 'historical_schema',
+    sql: 'SELECT 99',
+    query_limit: 42,
+    template_params: { origin: 'active' },
+  });
+  expect(executions()).toHaveLength(0);
+  const cloned = store
+    .getState()
+    .sqlLab.queryEditors.find(
+      (qe: QueryEditor) =>
+        qe.id === store.getState().sqlLab.tabHistory.slice(-1)[0],
+    );
+  expect(cloned?.id).not.toBe(defaultQueryEditor.id);
+  fireEvent.click(screen.getByRole('button', { name: 'Run without estimate' }));
+  await waitFor(() => expect(executions()).toHaveLength(1));
+  expect(JSON.parse(String(executions()[0].options.body))).toMatchObject({
+    sql: checked.sql,
+    database_id: checked.database_id,
+    catalog: checked.catalog,
+    schema: checked.schema,
+    queryLimit: checked.query_limit,
+    templateParams: '{"origin":"active"}',
+    runAsync: false,
+    sql_editor_id: cloned?.id,
+  });
+  expect(estimates()).toHaveLength(1);
+});
+
+test('cancelling history rerun confirmation keeps the new tab and never executes', async () => {
+  const store = await rerunFromHistory();
+  await screen.findByRole('dialog');
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  expect(executions()).toHaveLength(0);
+  expect(store.getState().sqlLab.tabHistory.slice(-1)[0]).not.toBe(
+    defaultQueryEditor.id,
+  );
+});
+
+test('history rerun exposes loading and cancellation, and ignores a late check', async () => {
+  let finish: (body: object) => void = () => {};
+  const pending = new Promise<object>(resolve => {
+    finish = resolve;
+  });
+  fetchMock.modifyRoute('check', { response: () => pending });
+  await rerunFromHistory();
+  expect(
+    await screen.findByRole('button', { name: /Checking cost/ }),
+  ).toBeDisabled();
+  expect(executions()).toHaveLength(0);
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
+  await act(async () => {
+    finish({ result: { ...warning, status: 'within_threshold' } });
+    await fetchMock.callHistory.flush(true);
+  });
+  expect(executions()).toHaveLength(0);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('ordinary autorun retains its existing direct execution path', async () => {
+  setup('SELECT 1', 'automatic');
+  await waitFor(() => expect(executions()).toHaveLength(1));
+  expect(estimates()).toHaveLength(0);
+});
+
+test('explicit history intent survives the existing editor persistence filter', () => {
+  expect(
+    clearQueryEditors([
+      { ...defaultQueryEditor, autorun: true, autorunSource: 'history' },
+    ])[0],
+  ).toMatchObject({ autorun: true, autorunSource: 'history' });
+});
+
+test('persisted history rerun waits for its server tab ID before capturing the checked request', async () => {
+  jest
+    .mocked(isFeatureEnabled)
+    .mockImplementation(flag =>
+      [
+        FeatureFlag.EstimateQueryCost,
+        FeatureFlag.SqlLabQueryCostWarnings,
+        FeatureFlag.SqllabBackendPersistence,
+      ].includes(flag),
+    );
+  fetchMock.get('glob:*/api/v1/query/*', { count: 0, result: [] });
+  fetchMock.post('glob:*/tabstateview/', { id: 123 });
+  const store = setup('SELECT 1', 'persisted-history');
+  fireEvent.click(await screen.findByRole('tab', { name: 'Query history' }));
+  fireEvent.click(await screen.findByTestId('plus-circle'));
+  await screen.findByRole('tab', {
+    name: /Copy of Untitled Query 1/,
+    selected: true,
+  });
+  expect(estimates()).toHaveLength(0);
+  expect(executions()).toHaveLength(0);
+  const editor = store
+    .getState()
+    .sqlLab.queryEditors.find(
+      (qe: QueryEditor) =>
+        qe.id === store.getState().sqlLab.tabHistory.slice(-1)[0],
+    );
+  if (!editor) throw new Error('Expected the history tab');
+  await act(async () => {
+    await (store.dispatch as AppDispatch)(syncQueryEditor(editor));
+  });
+  await screen.findByRole('dialog');
+  fireEvent.click(screen.getByRole('button', { name: 'Run anyway' }));
+  await waitFor(() => expect(executions()).toHaveLength(1));
+  expect(estimates()).toHaveLength(1);
+  expect(JSON.parse(String(executions()[0].options.body))).toMatchObject({
+    sql_editor_id: '123',
+    sql: 'SELECT 99',
+    queryLimit: 42,
+    templateParams: '{"origin":"active"}',
+  });
 });
