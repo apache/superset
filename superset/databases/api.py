@@ -213,7 +213,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         "allow_dml",
         "allow_run_async",
         "allows_cost_estimate",
-        "cost_estimate_warning_threshold_bytes",
+        "query_cost_warning",
         "allows_subquery",
         "allows_virtual_table_explore",
         "backend",

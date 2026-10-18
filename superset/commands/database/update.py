@@ -22,6 +22,7 @@ from functools import partial
 from typing import Any
 
 from flask_appbuilder.models.sqla import Model
+from marshmallow import ValidationError
 
 from superset import db
 from superset.commands.base import BaseCommand
@@ -43,6 +44,7 @@ from superset.commands.database.utils import (
 )
 from superset.constants import PASSWORD_MASK
 from superset.daos.database import DatabaseDAO
+from superset.databases.schemas import normalize_query_cost_warning
 from superset.databases.utils import make_url_safe
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.models.core import Database
@@ -281,7 +283,38 @@ class UpdateDatabaseCommand(BaseCommand):
                 raise DatabaseInvalidError(exceptions=[DatabaseExistsValidationError()])
 
         if self._model:
+            self._validate_query_cost_warning()
             self._check_no_unsafe_secret_rebind()
+
+    def _validate_query_cost_warning(self) -> None:
+        """Validate retained rules and rule-only patches against the resulting URI."""
+        assert self._model
+        stored = self._model.extra or "{}"
+        submitted_extra = self._properties.get("extra") or "{}"
+        keys = ("query_cost_warning", "cost_estimate_warning_threshold_bytes")
+        if not any(key in stored or key in submitted_extra for key in keys):
+            return
+        try:
+            previous = json.loads(stored)
+            extra = previous.copy()
+            if "extra" in self._properties:
+                submitted = json.loads(submitted_extra)
+                # Replacing the rule permits disabling broken saved fields while
+                # preserving unrelated settings in a rule-only update.
+                extra = (
+                    {**extra, **submitted}
+                    if set(submitted) == {"query_cost_warning"}
+                    else submitted
+                )
+        except json.JSONDecodeError as ex:
+            raise DatabaseInvalidError(exceptions=[ValidationError(str(ex))]) from ex
+        uri = self._properties.get("sqlalchemy_uri") or self._model.sqlalchemy_uri
+        try:
+            self._properties["extra"] = json.dumps(
+                normalize_query_cost_warning(extra, uri, previous)
+            )
+        except ValidationError as ex:
+            raise DatabaseInvalidError(exceptions=[ex]) from ex
 
     def _check_no_unsafe_secret_rebind(self) -> None:
         """

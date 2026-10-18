@@ -32,7 +32,7 @@ DATABASE_KEYS = [
     "allow_dml",
     "allow_run_async",
     "allows_cost_estimate",
-    "cost_estimate_warning_threshold_bytes",
+    "query_cost_warning",
     "allows_subquery",
     "backend",
     "database_name",

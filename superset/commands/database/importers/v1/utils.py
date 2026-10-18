@@ -30,6 +30,7 @@ from superset.commands.database.utils import (
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.constants import PASSWORD_MASK
+from superset.databases.schemas import normalize_query_cost_warning
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.exceptions import SupersetDBAPIError
@@ -143,6 +144,13 @@ def import_database(  # noqa: C901
         raise ImportFailedError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
+    incoming_extra = config.get("extra", {})
+    stored_extra = json.loads(existing.extra or "{}") if existing else None
+    if existing and set(incoming_extra) == {"query_cost_warning"}:
+        incoming_extra = {**(stored_extra or {}), **incoming_extra}
+    config["extra"] = normalize_query_cost_warning(
+        incoming_extra, config["sqlalchemy_uri"], stored_extra
+    )
     # Check if this URI is allowed (skip for system imports like examples)
     if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] and not ignore_permissions:
         try:

@@ -17,7 +17,7 @@
 
 # pylint: disable=import-outside-toplevel, invalid-name, unused-argument, redefined-outer-name
 
-from typing import Any, TYPE_CHECKING
+from typing import Any, Callable, TYPE_CHECKING
 
 import pytest
 from marshmallow import fields, Schema, ValidationError
@@ -26,46 +26,232 @@ from pytest_mock import MockerFixture
 from superset.utils import json
 
 
-@pytest.mark.parametrize(
-    "threshold", [-1, 1.5, "100", True, None, 2**53, float("inf"), float("nan")]
+@pytest.fixture(
+    params=["DatabasePostSchema", "DatabasePutSchema", "ImportV1DatabaseExtraSchema"]
 )
-def test_cost_warning_threshold_rejects_invalid_values(threshold: object) -> None:
-    """Database create/update and import both reject invalid byte thresholds."""
-    from superset.databases.schemas import extra_validator, ImportV1DatabaseExtraSchema
+def warning_extra_loader(
+    request: pytest.FixtureRequest,
+) -> Callable[[dict[str, object]], dict[str, object]]:
+    """Exercise the same rule through create, update, and import schemas."""
+    from superset.databases import schemas
 
-    extra = {"cost_estimate_warning_threshold_bytes": threshold}
+    schema = getattr(schemas, request.param)()
+
+    def load(extra: dict[str, object]) -> dict[str, object]:
+        """Load extras in the representation accepted by each connection schema."""
+        if request.param == "ImportV1DatabaseExtraSchema":
+            return schema.load(extra)
+        result = schema.load({"database_name": "test", "extra": json.dumps(extra)})
+        return json.loads(result["extra"])
+
+    return load
+
+
+@pytest.mark.parametrize("enabled", ["true", "false", 1, 0, None, [], {}])
+def test_query_cost_warning_requires_boolean_opt_in(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+    enabled: object,
+) -> None:
+    """Warning activation never coerces a truthy value to an opt-in."""
     with pytest.raises(ValidationError):
-        extra_validator(json.dumps(extra))
+        warning_extra_loader({"query_cost_warning": {"enabled": enabled}})
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize(
+    "threshold",
+    [-1, 0, "100", True, False, None, float("inf"), float("-inf"), float("nan")],
+)
+def test_query_cost_warning_rejects_invalid_thresholds(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+    enabled: bool,
+    threshold: object,
+) -> None:
+    """A supplied threshold must be valid even when warnings are disabled."""
     with pytest.raises(ValidationError):
-        ImportV1DatabaseExtraSchema().load(extra)
+        warning_extra_loader(
+            {
+                "query_cost_warning": {
+                    "enabled": enabled,
+                    "metric": "total_cost",
+                    "threshold": threshold,
+                }
+            }
+        )
 
 
-@pytest.mark.parametrize("enabled", ["true", 1, None, 0])
-def test_cost_warning_enabled_rejects_non_boolean_values(enabled: object) -> None:
-    """Warning activation uses a JSON boolean, not truthy strings or numbers."""
-    from superset.databases.schemas import extra_validator
+@pytest.mark.parametrize("threshold", [0.5, 1.5, 2**53, 2**53 + 1])
+def test_query_cost_warning_requires_safe_whole_bytes(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+    threshold: int | float,
+) -> None:
+    """Byte thresholds cannot be fractional or lose precision in SQL Lab."""
+    with pytest.raises(ValidationError):
+        warning_extra_loader(
+            {
+                "query_cost_warning": {
+                    "enabled": False,
+                    "metric": "bytes_processed",
+                    "threshold": threshold,
+                }
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        {"enabled": False},
+        {"enabled": False, "metric": "total_cost", "threshold": 12.5},
+        {"enabled": True, "metric": "total_cost", "threshold": 0.125},
+        {"enabled": True, "metric": "bytes_processed", "threshold": 1},
+        {"enabled": True, "metric": "bytes_processed", "threshold": 2**53 - 1},
+    ],
+)
+def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+    rule: dict[str, object],
+) -> None:
+    """Saving warnings does not discard connection settings or disabled values."""
+    extra = {
+        "query_cost_warning": rule,
+        "cost_estimate_enabled": False,
+        "engine_params": {"connect_args": {"application_name": "test"}},
+        "cost_estimate_warning_enabled": "invalid legacy toggle",
+        "cost_estimate_warning_threshold_bytes": -1,
+    }
+    assert warning_extra_loader(extra) == extra
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        None,
+        [],
+        "invalid",
+        {},
+        {"enabled": True},
+        {"enabled": True, "metric": "total_cost"},
+        {"enabled": True, "threshold": 100},
+    ],
+)
+def test_invalid_query_cost_warning_does_not_fall_back_to_legacy(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+    rule: object,
+) -> None:
+    """A present new rule is authoritative even when legacy settings are valid."""
+    with pytest.raises(ValidationError):
+        warning_extra_loader(
+            {
+                "query_cost_warning": rule,
+                "cost_estimate_warning_enabled": True,
+                "cost_estimate_warning_threshold_bytes": 100,
+            }
+        )
+
+
+@pytest.mark.parametrize("threshold", [-1, 0, 1.5, "100", True, None, 2**53])
+def test_legacy_query_cost_warning_values_are_preserved_without_validation(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+    threshold: object,
+) -> None:
+    """Invalid draft settings remain inert data and do not block connection saves."""
+    extra = {
+        "cost_estimate_warning_enabled": "invalid legacy toggle",
+        "cost_estimate_warning_threshold_bytes": threshold,
+    }
+    assert warning_extra_loader(extra) == extra
+
+
+@pytest.mark.parametrize("enabled", [None, False, True, "true", 1])
+def test_legacy_query_cost_warning_prefill_requires_explicit_boolean_opt_in(
+    enabled: object,
+) -> None:
+    """A valid legacy amount prefills BigQuery but does not opt the user in."""
+    from superset.databases.schemas import get_query_cost_warning
+
+    extra = {
+        "cost_estimate_warning_threshold_bytes": 100,
+        **({"cost_estimate_warning_enabled": enabled} if enabled is not None else {}),
+    }
+    original = extra.copy()
+    assert get_query_cost_warning(extra, "bigquery") == {
+        "enabled": enabled is True,
+        "metric": "bytes_processed",
+        "threshold": 100,
+    }
+    assert extra == original
+
+
+@pytest.mark.parametrize("threshold", [-1, 0, 1.5, "100", True, None, 2**53])
+@pytest.mark.parametrize("engine", ["bigquery", "postgresql"])
+def test_invalid_legacy_query_cost_warning_has_no_guessed_threshold(
+    threshold: object, engine: str
+) -> None:
+    """Unsupported or invalid legacy settings leave warnings off without an amount."""
+    from superset.databases.schemas import get_query_cost_warning
+
+    assert get_query_cost_warning(
+        {
+            "cost_estimate_warning_enabled": True,
+            "cost_estimate_warning_threshold_bytes": threshold,
+        },
+        engine,
+    ) == {"enabled": False}
+
+
+def test_valid_legacy_byte_threshold_is_not_a_postgres_cost_threshold() -> None:
+    """Legacy bytes apply only to BigQuery, even with an explicit old opt-in."""
+    from superset.databases.schemas import get_query_cost_warning
+
+    assert get_query_cost_warning(
+        {
+            "cost_estimate_warning_enabled": True,
+            "cost_estimate_warning_threshold_bytes": 100,
+        },
+        "postgresql",
+    ) == {"enabled": False}
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        {"enabled": False},
+        {"enabled": True, "metric": "bytes_processed", "threshold": 50},
+    ],
+)
+def test_new_query_cost_warning_takes_precedence_over_legacy(
+    rule: dict[str, object],
+) -> None:
+    """Explicit rules, including disabled rules, always take precedence."""
+    from superset.databases.schemas import get_query_cost_warning
+
+    assert (
+        get_query_cost_warning(
+            {
+                "query_cost_warning": rule,
+                "cost_estimate_warning_enabled": True,
+                "cost_estimate_warning_threshold_bytes": 100,
+            },
+            "bigquery",
+        )
+        == rule
+    )
+
+
+def test_invalid_new_query_cost_warning_cannot_use_valid_legacy_settings() -> None:
+    """An invalid explicit rule is a validation error, never a fallback request."""
+    from superset.databases.schemas import get_query_cost_warning
 
     with pytest.raises(ValidationError):
-        extra_validator(json.dumps({"cost_estimate_warning_enabled": enabled}))
-
-
-@pytest.mark.parametrize("threshold", [0, 100, 2**53 - 1])
-def test_cost_warning_threshold_accepts_integer_bytes(threshold: int) -> None:
-    """Zero and exact non-negative integer byte thresholds are valid."""
-    from superset.databases.schemas import extra_validator, ImportV1DatabaseExtraSchema
-
-    extra = {"cost_estimate_warning_threshold_bytes": threshold}
-    extra_validator(json.dumps(extra))
-    assert ImportV1DatabaseExtraSchema().load(extra) == extra
-
-
-def test_cost_warning_enable_flag_imports_as_boolean() -> None:
-    """Database imports accept the optional boolean warning toggle."""
-    from superset.databases.schemas import ImportV1DatabaseExtraSchema
-
-    assert ImportV1DatabaseExtraSchema().load(
-        {"cost_estimate_warning_enabled": False}
-    ) == {"cost_estimate_warning_enabled": False}
+        get_query_cost_warning(
+            {
+                "query_cost_warning": {"enabled": True, "threshold": "100"},
+                "cost_estimate_warning_enabled": True,
+                "cost_estimate_warning_threshold_bytes": 100,
+            },
+            "bigquery",
+        )
 
 
 if TYPE_CHECKING:
@@ -843,3 +1029,85 @@ def test_validate_parameters_schema_accepts_server_host_key() -> None:
         loaded["ssh_tunnel"]["server_host_key"]
         == "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA"
     )
+
+
+@pytest.mark.parametrize(
+    "schema_name", ["DatabasePostSchema", "DatabasePutSchema", "ImportV1DatabaseSchema"]
+)
+@pytest.mark.parametrize(
+    "engine,metric,threshold,valid",
+    [
+        ("bigquery", "bytes_processed", 1, True),
+        ("postgresql", "total_cost", 0.125, True),
+        ("postgresql", "bytes_processed", 100, False),
+        ("bigquery", "total_cost", 100, False),
+        ("sqlite", "total_cost", 100, False),
+    ],
+)
+def test_warning_schema_validates_resulting_engine(
+    mocker: MockerFixture,
+    schema_name: str,
+    engine: str,
+    metric: str,
+    threshold: int | float,
+    valid: bool,
+) -> None:
+    """Create, update and import enforce the metric of the resulting engine."""
+    from superset.databases import schemas
+
+    session = mocker.patch("superset.databases.schemas.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = None
+    extra = {
+        "query_cost_warning": {
+            "enabled": True,
+            "metric": metric,
+            "threshold": threshold,
+        }
+    }
+    payload = {
+        "database_name": "test",
+        "sqlalchemy_uri": f"{engine}://",
+        "extra": extra
+        if schema_name == "ImportV1DatabaseSchema"
+        else json.dumps(extra),
+    }
+    if schema_name == "ImportV1DatabaseSchema":
+        payload.update(uuid="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", version="1.0.0")
+    schema = getattr(schemas, schema_name)()
+    if valid:
+        result = schema.load(payload)
+        assert (
+            result["extra"]
+            if schema_name == "ImportV1DatabaseSchema"
+            else json.loads(result["extra"])
+        ) == extra
+    else:
+        with pytest.raises(ValidationError):
+            schema.load(payload)
+
+
+@pytest.mark.parametrize(
+    "stored_rule,expected",
+    [
+        (
+            {"enabled": True, "metric": "total_cost", "threshold": 12.5},
+            {"enabled": False, "metric": "total_cost", "threshold": 12.5},
+        ),
+        (
+            {"enabled": True, "metric": "total_cost", "threshold": "invalid"},
+            {"enabled": False},
+        ),
+    ],
+)
+def test_minimal_disable_preserves_only_valid_saved_values(
+    stored_rule: dict[str, object], expected: dict[str, object]
+) -> None:
+    """Minimal disables preserve valid values without resurrecting bad fields."""
+    from superset.databases.schemas import normalize_query_cost_warning
+
+    saved = normalize_query_cost_warning(
+        {"query_cost_warning": {"enabled": False}},
+        "postgresql://",
+        {"query_cost_warning": stored_rule},
+    )
+    assert saved["query_cost_warning"] == expected

@@ -215,11 +215,13 @@ class TestDatabaseApi(SupersetTestCase):
             "extra",
             "force_ctas_schema",
             "id",
+            "query_cost_warning",
             "uuid",
         ]
 
         assert response["count"] > 0
         assert list(response["result"][0].keys()) == expected_columns
+        assert isinstance(response["result"][0]["query_cost_warning"], dict)
 
     def test_get_items_with_jwt_auth(self):
         """

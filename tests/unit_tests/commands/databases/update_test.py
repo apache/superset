@@ -1285,3 +1285,84 @@ def test_update_oauth2_unresolvable_endpoints_purges_tokens(
     command._handle_oauth2()
 
     purge_oauth2_tokens.assert_called_once()
+
+
+@pytest.mark.parametrize("new_uri", [None, "postgresql://"])
+def test_warning_update_can_disable_broken_rule_without_losing_extras(
+    mocker: MockerFixture, new_uri: str | None
+) -> None:
+    """Rule-only replacement permits repairs and retains unrelated settings."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps(
+            {
+                "query_cost_warning": {
+                    "enabled": True,
+                    "metric": "bytes_processed",
+                    "threshold": "invalid",
+                },
+                "metadata_params": {},
+                "cost_estimate_warning_threshold_bytes": 100,
+            }
+        ),
+    )
+    properties = {"extra": json.dumps({"query_cost_warning": {"enabled": False}})}
+    if new_uri:
+        properties["sqlalchemy_uri"] = new_uri
+    command = UpdateDatabaseCommand(1, properties)
+    command._model = database
+    mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    command.validate()
+    saved = json.loads(command._properties["extra"])
+    assert saved == {
+        "query_cost_warning": {"enabled": False},
+        "metadata_params": {},
+        "cost_estimate_warning_threshold_bytes": 100,
+    }
+
+
+def test_warning_update_validates_retained_rule_against_new_engine(
+    mocker: MockerFixture,
+) -> None:
+    """Changing an engine without resending extra cannot retain an incompatible rule."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps(
+            {
+                "query_cost_warning": {
+                    "enabled": True,
+                    "metric": "bytes_processed",
+                    "threshold": 100,
+                }
+            }
+        ),
+    )
+    command = UpdateDatabaseCommand(1, {"sqlalchemy_uri": "postgresql://"})
+    command._model = database
+    mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    with pytest.raises(DatabaseInvalidError):
+        command.validate()
+
+
+def test_warning_update_normalizes_legacy_rule_on_next_save(
+    mocker: MockerFixture,
+) -> None:
+    """A legacy amount is retained but does not become an implicit opt-in."""
+    extra = {"cost_estimate_warning_threshold_bytes": 100, "metadata_params": {}}
+    database = Database(
+        database_name="test", sqlalchemy_uri="bigquery://", extra=json.dumps(extra)
+    )
+    command = UpdateDatabaseCommand(1, {})
+    command._model = database
+    mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
+    command.validate()
+    assert json.loads(command._properties["extra"]) == {
+        **extra,
+        "query_cost_warning": {
+            "enabled": False,
+            "metric": "bytes_processed",
+            "threshold": 100,
+        },
+    }

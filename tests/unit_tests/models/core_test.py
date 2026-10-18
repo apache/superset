@@ -56,56 +56,72 @@ from tests.unit_tests.conftest import with_feature_flags
 
 
 @pytest.mark.parametrize(
-    "flag,enabled,engine,threshold,expected",
-    [
-        (True, True, "bigquery", 1024, 1024),
-        (True, True, "bigquery", 0, 0),
-        (False, True, "bigquery", 1024, None),
-        (True, False, "bigquery", 1024, None),
-        (True, True, "postgresql", 1024, None),
-        (True, True, "bigquery", -1, None),
-        (True, True, "bigquery", True, None),
-        (True, True, "bigquery", None, None),
-    ],
+    "warnings_flag,estimate_flag,connection_estimation",
+    [(True, True, True), (False, True, True), (True, False, True), (True, True, False)],
 )
-@pytest.mark.parametrize("warnings_enabled", [None, False, True])
+@pytest.mark.parametrize(
+    "engine,metric", [("bigquery", "bytes_processed"), ("postgresql", "total_cost")]
+)
+@pytest.mark.parametrize("enabled", [False, True])
 def test_cost_warning_policy(
     mocker: MockerFixture,
     request: pytest.FixtureRequest,
-    flag: bool,
-    enabled: bool,
+    warnings_flag: bool,
+    estimate_flag: bool,
+    connection_estimation: bool,
     engine: str,
-    threshold: int | None,
-    expected: int | None,
-    warnings_enabled: bool | None,
+    metric: str,
+    enabled: bool,
 ) -> None:
-    """Only an opted-in BigQuery connection exposes an actionable threshold."""
+    """Saved rules survive inactive estimation and require every activation gate."""
     request.addfinalizer(Database.get_db_engine_spec.cache_clear)
-    mocker.patch("superset.models.core.is_feature_enabled", return_value=flag)
+    mocker.patch(
+        "superset.models.core.is_feature_enabled",
+        side_effect=lambda name: warnings_flag
+        if name == "SQLLAB_QUERY_COST_WARNINGS"
+        else estimate_flag,
+    )
     mocker.patch.object(
         Database,
         "allows_cost_estimate",
         new_callable=mocker.PropertyMock,
-        return_value=enabled,
+        return_value=connection_estimation,
     )
+    rule = {"enabled": enabled, "metric": metric, "threshold": 100}
     database = Database(
         database_name="test",
         sqlalchemy_uri=f"{engine}://",
+        extra=json.dumps({"query_cost_warning": rule}),
+    )
+    assert database.query_cost_warning == rule
+    assert database.is_query_cost_warning_enabled is (
+        warnings_flag and estimate_flag and connection_estimation and enabled
+    )
+
+
+@pytest.mark.parametrize(
+    "rule",
+    [
+        {"enabled": True, "metric": "bytes_processed", "threshold": -1},
+        {"enabled": True, "metric": "total_cost", "threshold": 100},
+    ],
+)
+def test_invalid_saved_cost_warning_is_inactive_without_legacy_fallback(
+    rule: dict[str, object],
+) -> None:
+    """Broken explicit rules never silently activate a valid legacy amount."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
         extra=json.dumps(
             {
-                "cost_estimate_enabled": enabled,
-                "cost_estimate_warning_threshold_bytes": threshold,
-                **(
-                    {"cost_estimate_warning_enabled": warnings_enabled}
-                    if warnings_enabled is not None
-                    else {}
-                ),
+                "query_cost_warning": rule,
+                "cost_estimate_warning_threshold_bytes": 100,
+                "cost_estimate_warning_enabled": True,
             }
         ),
     )
-    assert database.cost_estimate_warning_threshold_bytes == (
-        expected if warnings_enabled is not False else None
-    )
+    assert database.query_cost_warning == {"enabled": False}
 
 
 # sample config for OAuth2 tests

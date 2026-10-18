@@ -20,6 +20,7 @@
 from __future__ import annotations
 
 import inspect
+import math
 from pathlib import Path
 from typing import Any, TypedDict
 
@@ -271,6 +272,113 @@ def masked_encrypted_extra_validator(value: str) -> None:
     encrypted_extra_validator(value)
 
 
+def query_cost_warning_enabled_validator(value: object) -> None:
+    """Require explicit boolean opt-in without coercing strings or numbers."""
+    if not isinstance(value, bool):
+        raise ValidationError(
+            _("The query cost warning enabled setting must be a boolean.")
+        )
+
+
+def query_cost_warning_threshold_validator(value: object) -> None:
+    """Accept only positive, finite numeric thresholds, including decimals."""
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or value <= 0
+        or (isinstance(value, float) and not math.isfinite(value))
+    ):
+        raise ValidationError(
+            _("The query cost warning threshold must be a positive finite number.")
+        )
+
+
+class QueryCostWarningSchema(Schema):
+    """Validate a connection warning rule before checking engine support."""
+
+    enabled = fields.Raw(required=True, validate=query_cost_warning_enabled_validator)
+    metric = fields.String()
+    threshold = fields.Raw(validate=query_cost_warning_threshold_validator)
+
+    @validates_schema
+    def validate_rule(self, data: dict[str, Any], **kwargs: Any) -> None:
+        """Require enabled rules to be complete and byte thresholds to be exact."""
+        if data["enabled"]:
+            missing = {
+                key: [_("An enabled query cost warning requires this field.")]
+                for key in ("metric", "threshold")
+                if key not in data
+            }
+            if missing:
+                raise ValidationError(missing)
+        threshold = data.get("threshold")
+        if data.get("metric") == "bytes_processed" and threshold is not None:
+            if threshold > 2**53 - 1 or threshold != int(threshold):
+                raise ValidationError(
+                    {
+                        "threshold": [
+                            _(
+                                "The query cost warning threshold must be whole bytes "
+                                "no greater than 9007199254740991."
+                            )
+                        ]
+                    }
+                )
+
+
+def get_query_cost_warning(extra: dict[str, Any], engine: str) -> dict[str, Any]:
+    """Read the explicit rule or a valid BigQuery draft without mutating extras."""
+    if "query_cost_warning" in extra:
+        return QueryCostWarningSchema().load(extra["query_cost_warning"])
+
+    threshold = extra.get("cost_estimate_warning_threshold_bytes")
+    if (
+        engine == "bigquery"
+        and isinstance(threshold, int)
+        and not isinstance(threshold, bool)
+        and 0 < threshold <= 2**53 - 1
+    ):
+        return {
+            "enabled": extra.get("cost_estimate_warning_enabled") is True,
+            "metric": "bytes_processed",
+            "threshold": threshold,
+        }
+    return {"enabled": False}
+
+
+def normalize_query_cost_warning(
+    extra: dict[str, Any],
+    sqlalchemy_uri: str,
+    stored_extra: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Validate warning settings against the resulting connection's engine."""
+    url = make_url_safe(sqlalchemy_uri)
+    spec = get_engine_spec(
+        url.get_backend_name(), url.drivername.partition("+")[2] or None
+    )
+    rule = get_query_cost_warning(extra, spec.engine)
+    if stored_extra and "query_cost_warning" in extra and rule["enabled"] is False:
+        try:
+            previous = get_query_cost_warning(stored_extra, spec.engine)
+        except ValidationError:
+            previous = {"enabled": False}
+        if rule.get("metric", previous.get("metric")) != previous.get("metric"):
+            previous.pop("threshold", None)
+        rule = QueryCostWarningSchema().load({**previous, **rule})
+    metric = spec.get_query_cost_warning_metric()
+    if rule["enabled"] and (metric is None or rule.get("metric") != metric):
+        raise ValidationError(
+            {
+                "extra": [
+                    _("The query cost warning metric is not supported by this engine.")
+                ]
+            }
+        )
+    if metric is None and "query_cost_warning" not in extra:
+        return extra.copy()
+    return {**extra, "query_cost_warning": rule}
+
+
 def extra_validator(value: str) -> str:  # noqa: C901
     """
     Validate that extra is a valid JSON string, and that metadata_params
@@ -289,26 +397,8 @@ def extra_validator(value: str) -> str:  # noqa: C901
                 [_("Extra field must be a mapping from string keys to values.")]
             )
 
-        if "cost_estimate_warning_threshold_bytes" in extra_:
-            threshold = extra_["cost_estimate_warning_threshold_bytes"]
-            if (
-                isinstance(threshold, bool)
-                or not isinstance(threshold, int)
-                or not 0 <= threshold <= 2**53 - 1
-            ):
-                raise ValidationError(
-                    _(
-                        "The cost warning threshold must be a non-negative integer "
-                        "number of bytes no greater than 9007199254740991."
-                    )
-                )
-
-        if "cost_estimate_warning_enabled" in extra_ and not isinstance(
-            extra_["cost_estimate_warning_enabled"], bool
-        ):
-            raise ValidationError(
-                _("The cost warning enabled setting must be a boolean value.")
-            )
+        if "query_cost_warning" in extra_:
+            QueryCostWarningSchema().load(extra_["query_cost_warning"])
 
         metadata_signature = inspect.signature(MetaData)
         for key in extra_.get("metadata_params", {}):
@@ -403,6 +493,19 @@ class DatabaseParametersSchemaMixin:  # pylint: disable=too-few-public-methods
         metadata={"description": configuration_method_description},
         load_default=ConfigurationMethod.SQLALCHEMY_FORM,
     )
+
+    @post_load
+    def validate_query_cost_warning(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Validate complete payloads after dynamic connection parameters resolve."""
+        if data.get("sqlalchemy_uri") and "extra" in data:
+            data["extra"] = json.dumps(
+                normalize_query_cost_warning(
+                    json.loads(data["extra"] or "{}"), data["sqlalchemy_uri"]
+                )
+            )
+        return data
 
     @pre_load
     def build_sqlalchemy_uri(
@@ -1024,10 +1127,9 @@ class ImportV1DatabaseExtraSchema(Schema):
     )
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
-    cost_estimate_warning_enabled = fields.Boolean()
-    cost_estimate_warning_threshold_bytes = fields.Integer(
-        strict=True, validate=Range(min=0, max=2**53 - 1), required=False
-    )
+    cost_estimate_warning_enabled = fields.Raw(allow_none=True)
+    cost_estimate_warning_threshold_bytes = fields.Raw(allow_none=True)
+    query_cost_warning = fields.Nested(QueryCostWarningSchema)
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)
     disable_data_preview = fields.Boolean(required=False)
@@ -1040,6 +1142,16 @@ class ImportV1DatabaseExtraSchema(Schema):
 
 
 class ImportV1DatabaseSchema(Schema):
+    @post_load
+    def validate_query_cost_warning(
+        self, data: dict[str, Any], **kwargs: Any
+    ) -> dict[str, Any]:
+        """Apply the same warning rules to imported connections and API saves."""
+        data["extra"] = normalize_query_cost_warning(
+            data.get("extra", {}), data["sqlalchemy_uri"]
+        )
+        return data
+
     @pre_load
     def fix_allow_csv_upload(
         self, data: dict[str, Any], **kwargs: Any
@@ -1246,6 +1358,7 @@ class IdentifierQuoteSchema(Schema):
 
 
 class EngineInformationSchema(Schema):
+    query_cost_warning_metric = fields.String(allow_none=True)
     supports_file_upload = fields.Boolean(
         metadata={"description": "Users can upload files to the database"}
     )

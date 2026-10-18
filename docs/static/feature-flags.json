@@ -241,6 +241,12 @@
         "description": "Temporary rollout / kill-switch gate for soft delete (off = legacy hard delete). An emergency stop, not a clean rollback: flipping ON->OFF resurrects already-soft-deleted rows. Retained through this release as the move-back lever; removed (along with its two gate points \u2014 BaseDAO.delete routing and the do_orm_execute visibility listener) once post-flip confidence is established."
       },
       {
+        "name": "SQLLAB_QUERY_COST_WARNINGS",
+        "default": false,
+        "lifecycle": "testing",
+        "description": "Optional advisory warnings before deliberately running SQL in SQL Lab. Requires ESTIMATE_QUERY_COST and explicit connection-level opt-in."
+      },
+      {
         "name": "SSH_TUNNELING",
         "default": false,
         "lifecycle": "testing",

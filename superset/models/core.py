@@ -291,22 +291,28 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         )
 
     @property
-    def cost_estimate_warning_threshold_bytes(self) -> int | None:
-        """Return the enabled BigQuery SQL Lab warning threshold in bytes."""
-        extra = self.get_extra()
-        threshold = extra.get("cost_estimate_warning_threshold_bytes")
-        if (
-            is_feature_enabled("ESTIMATE_QUERY_COST")
-            and extra.get("cost_estimate_warning_enabled", threshold is not None)
-            is True
-            and self.backend == "bigquery"
-            and self.allows_cost_estimate
-            and isinstance(threshold, int)
-            and not isinstance(threshold, bool)
-            and 0 <= threshold <= 2**53 - 1
-        ):
-            return threshold
-        return None
+    def query_cost_warning(self) -> dict[str, Any]:
+        """Return a validated rule without exposing the connection's other extras."""
+        from superset.databases.schemas import get_query_cost_warning
+
+        try:
+            rule = get_query_cost_warning(self.get_extra(), self.db_engine_spec.engine)
+        except ValidationError:
+            return {"enabled": False}
+        metric = self.db_engine_spec.get_query_cost_warning_metric()
+        if rule["enabled"] and (metric is None or rule.get("metric") != metric):
+            return {"enabled": False}
+        return rule
+
+    @property
+    def is_query_cost_warning_enabled(self) -> bool:
+        """Activate explicit opt-in only when both flags and estimation allow it."""
+        return bool(
+            is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS")
+            and is_feature_enabled("ESTIMATE_QUERY_COST")
+            and self.allows_cost_estimate is True
+            and self.query_cost_warning["enabled"]
+        )
 
     @property
     def allows_virtual_table_explore(self) -> bool:
