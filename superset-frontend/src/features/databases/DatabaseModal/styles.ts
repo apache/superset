@@ -278,7 +278,6 @@ export const StyledInputContainer = styled.div`
     &.expandable {
       height: 0;
       overflow: hidden;
-      transition: height 0.25s;
       margin-left: ${theme.sizeUnit * 8}px;
       margin-bottom: 0;
       padding: 0;
@@ -311,7 +310,6 @@ export const StyledExpandableForm = styled.div`
   &.expandable {
     height: 0;
     overflow: hidden;
-    transition: height 0.25s;
     margin-left: ${({ theme }) => theme.sizeUnit * 7}px;
     &.open {
       height: auto;
