@@ -504,7 +504,7 @@ class ExtraCache:
             val = flt.get("val")
             if isinstance(val, list):
                 return_val.extend(val)
-            elif val is not None:
+            elif val not in (None, ""):
                 return_val.append(val)
 
         if (not return_val) and default:
