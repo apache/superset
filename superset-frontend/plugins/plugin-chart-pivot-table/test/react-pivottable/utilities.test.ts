@@ -915,6 +915,29 @@ test('value sorting under a result aggregation keeps a sort key for rows whose m
   expect(pivotData.getRowKeys()).toEqual([['red'], ['blue']]);
 });
 
+test('value sorting in a percent mode keeps a sort key for rows whose mixed-metric total renders blank', () => {
+  const leaves = [
+    { color: 'blue', Metric: 'm1', value: 100, __metricKey: 'Metric' },
+    { color: 'blue', Metric: 'm2', value: 250, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm1', value: 10, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm2', value: 50, __metricKey: 'Metric' },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: ['color'],
+      cols: ['Metric'],
+      vals: ['value'],
+      aggregateFunction: 'Sum as Fraction of Total',
+      rowOrder: 'value_a_to_z',
+    },
+    {},
+  );
+
+  expect(pivotData.getAggregator(['blue'], []).value()).toBeNull();
+  expect(pivotData.getRowKeys()).toEqual([['red'], ['blue']]);
+});
+
 test('single-metric "% of Columns" and "% of Rows" still fill the Total column and Total row', () => {
   const leaves = [
     { color: 'blue', Metric: 'm1', value: 10, __metricKey: 'Metric' },

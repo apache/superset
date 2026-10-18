@@ -549,8 +549,8 @@ test('updateSlice falls back to the chart tag list when the legacy-aggregation t
   ).toBe(false);
 });
 
-test('updateSlice still resolves and dispatches success when the legacy-aggregation tag DELETE returns 404', async () => {
-  // Most pivot tables were never tagged, so a 404 from the tag DELETE is the
+test('updateSlice still resolves and dispatches success when the legacy-aggregation tag DELETE returns 422', async () => {
+  // Most pivot tables were never tagged, so a 422 from the tag DELETE is the
   // common case and must not hang or fail an otherwise successful save.
   fetchMock.put(updateSliceEndpoint, sliceResponsePayload, {
     name: updateSliceEndpoint,
@@ -559,7 +559,7 @@ test('updateSlice still resolves and dispatches success when the legacy-aggregat
     'glob:*/api/v1/tag/2/*/legacy-pivot-aggregation-restored';
   fetchMock.delete(
     deleteTagEndpoint,
-    { status: 404, body: { message: 'Not found' } },
+    { status: 422, body: { message: 'Tag could not be removed' } },
     { name: deleteTagEndpoint },
   );
 

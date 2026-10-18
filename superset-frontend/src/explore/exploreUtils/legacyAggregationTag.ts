@@ -42,7 +42,8 @@ const CHART = { objectType: 'chart' } as const;
  *
  * Never rejects: both callers (the Explore notice's "Accept" button and a
  * pivot table save) treat removal as best-effort, and a chart that was
- * never tagged (404) counts as removed since there's nothing left to do.
+ * never tagged (404, or 422 from `DeleteTaggedObjectCommand`'s
+ * not-found validation) counts as removed since there's nothing left to do.
  */
 export async function removeLegacyAggregationTag(
   sliceId: number,
@@ -56,7 +57,7 @@ export async function removeLegacyAggregationTag(
     .then((): DeleteOutcome => 'removed')
     .catch((error: unknown): DeleteOutcome => {
       const status = (error as { status?: number } | undefined)?.status;
-      if (status === 404) {
+      if (status === 404 || status === 422) {
         return 'removed';
       }
       if (status === 403) {

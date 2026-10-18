@@ -324,7 +324,7 @@ export const updateSlice =
         // Saving is one of the two ways (alongside the LegacyAggregationAlert's
         // own "Accept" button) a user acknowledges a restored legacy result
         // aggregation. Best-effort and silent (it never rejects): the vast
-        // majority of pivot table saves were never tagged, so a 404 there
+        // majority of pivot table saves were never tagged, so a 422 there
         // is the expected, common case, not a failure worth surfacing.
         // Awaited (both on success and failure) before saveSliceSuccess
         // dispatches below -- that dispatch is what LegacyAggregationAlert

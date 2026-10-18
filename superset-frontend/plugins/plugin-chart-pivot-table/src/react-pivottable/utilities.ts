@@ -943,6 +943,17 @@ const baseAggregatorTemplates = {
           },
           format: fmtNonString(formatter),
           value() {
+            return this.fraction(false);
+          },
+          // Mirrors `value()` but reads the wrapped aggregators' `sortValue()`
+          // when they expose one, so a mixed-metric slot (blank when
+          // displayed) still orders by the value it would otherwise carry.
+          sortValue() {
+            return this.fraction(true);
+          },
+          fraction(forSort: boolean) {
+            const read = (agg: any) =>
+              forSort && agg.sortValue ? agg.sortValue() : agg.value();
             // `buildGroupbyCombinations` requests the denominator's rollup
             // level whenever a percent `showValuesAs` is selected, but fall
             // back to `null` (rendered blank) instead of throwing if it is
@@ -1022,12 +1033,12 @@ const baseAggregatorTemplates = {
             // blank. `null / acc` also coerces to `0` in JS, which would
             // render a measured "0.0%" for a value that should stay blank,
             // same as it does in "Actual values" mode.
-            const numerator = this.inner.value();
+            const numerator = read(this.inner);
             if (numerator === null || isAllNullScope(this.inner)) {
               return null;
             }
 
-            const acc = denominatorAggregator.inner.value();
+            const acc = read(denominatorAggregator.inner);
 
             if (typeof acc === 'string') {
               return acc;

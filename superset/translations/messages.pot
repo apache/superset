@@ -9847,9 +9847,6 @@ msgstr ""
 msgid "Only the first %s values are listed."
 msgstr ""
 
-msgid "Only the first %s values are listed. Enter a value manually if it is not listed."
-msgstr ""
-
 #, python-format
 msgid "Only the first %s values are listed. Enter a value manually if it is not listed."
 msgstr ""

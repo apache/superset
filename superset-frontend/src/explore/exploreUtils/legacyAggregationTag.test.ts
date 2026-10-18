@@ -41,7 +41,20 @@ test('resolves true after a successful tag DELETE without touching the chart', a
   expect(fetchMock.callHistory.calls(chartEndpoint)).toHaveLength(0);
 });
 
-test('treats a 404 (chart was never tagged) as nothing left to remove', async () => {
+test('treats a 422 (chart was never tagged) as nothing left to remove', async () => {
+  // The tag DELETE route maps `TaggedObjectNotFoundError` to a 422.
+  fetchMock.delete(deleteEndpoint, {
+    status: 422,
+    body: { message: 'Tag could not be removed' },
+  });
+  fetchMock.get(chartEndpoint, 500);
+
+  await expect(removeLegacyAggregationTag(42)).resolves.toBe(true);
+
+  expect(fetchMock.callHistory.calls(chartEndpoint)).toHaveLength(0);
+});
+
+test('treats a 404 as nothing left to remove', async () => {
   fetchMock.delete(deleteEndpoint, {
     status: 404,
     body: { message: 'Not found' },
