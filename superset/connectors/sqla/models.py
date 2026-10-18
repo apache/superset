@@ -2596,6 +2596,11 @@ class SqlaTable(
         calculated_columns: dict[str, Any] = {
             c.column_name: c.expression for c in self.columns if c.expression
         }
+        calculated_columns_by_verbose_name: dict[str, Any] = {
+            c.verbose_name: c.expression
+            for c in self.columns
+            if c.expression and c.verbose_name
+        }
         metrics_by_name: dict[str, Any] = {
             m.metric_name: m.expression for m in self.metrics
         }
@@ -2611,9 +2616,32 @@ class SqlaTable(
         def metric_expression(metric: Any) -> Any:
             """The templatable expression behind an adhoc or saved metric."""
             if utils.is_adhoc_metric(metric):
-                return metric.get("sqlExpression")
+                if sql_expression := metric.get("sqlExpression"):
+                    return sql_expression
+                # A SIMPLE adhoc metric has no expression of its own, but
+                # ``adhoc_metric_to_sqla`` wraps its aggregate around the
+                # column's rendered expression, so a macro in a calculated
+                # column reaches the SQL through it.
+                metric_column = metric.get("column") or {}
+                column_name = metric_column.get("column_name")
+                return calculated_columns.get(column_name) if column_name else None
             if isinstance(metric, str):
                 return metrics_by_name.get(metric)
+            return None
+
+        def filter_expression(flt: Any) -> Any:
+            """The templatable expression a filter's ``col`` resolves to."""
+            col = flt.get("col")
+            if expression := column_expression(col):
+                return expression
+            if isinstance(col, str):
+                # A filter column that is not a column name is resolved against
+                # the columns' verbose names (right-click "Drill to detail by"
+                # passes those) and then against the saved metrics, for a
+                # filter that becomes a HAVING clause.
+                return calculated_columns_by_verbose_name.get(
+                    col
+                ) or metrics_by_name.get(col)
             return None
 
         for column_ in query_obj.get("columns") or []:
@@ -2630,13 +2658,11 @@ class SqlaTable(
         #     saved metric or calculated column not selected by the query
         #   - ``series_limit_metric`` (and its legacy ``timeseries_limit_metric``
         #     alias), via ``_get_series_orderby``
-        #   - a filter whose ``col`` is an adhoc or calculated column
+        #   - a filter whose ``col`` resolves to a calculated column or a saved
+        #     metric
         for order_by in query_obj.get("orderby") or []:
             entry = order_by[0] if isinstance(order_by, (list, tuple)) else order_by
-            if isinstance(entry, dict):
-                if sql := entry.get("sqlExpression"):
-                    templatable_statements.append(sql)
-            elif expression := metric_expression(entry) or column_expression(entry):
+            if expression := metric_expression(entry) or column_expression(entry):
                 templatable_statements.append(expression)
         for limit_metric in (
             query_obj.get("series_limit_metric"),
@@ -2645,9 +2671,7 @@ class SqlaTable(
             if expression := metric_expression(limit_metric):
                 templatable_statements.append(expression)
         for flt in query_obj.get("filter") or []:
-            if isinstance(flt, dict) and (
-                expression := column_expression(flt.get("col"))
-            ):
+            if isinstance(flt, dict) and (expression := filter_expression(flt)):
                 templatable_statements.append(expression)
         if self.is_rls_supported:
             templatable_statements += [

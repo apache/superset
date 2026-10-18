@@ -90,6 +90,18 @@ ADHOC_PLAIN_COLUMN: dict[str, Any] = {
     "label": "is_abc",
     "sqlExpression": "user = 'abc'",
 }
+SIMPLE_JINJA_METRIC: dict[str, Any] = {
+    "label": "mine",
+    "expressionType": "SIMPLE",
+    "aggregate": "COUNT",
+    "column": {"column_name": "username"},
+}
+SIMPLE_PLAIN_METRIC: dict[str, Any] = {
+    "label": "all",
+    "expressionType": "SIMPLE",
+    "aggregate": "COUNT",
+    "column": {"column_name": "user"},
+}
 
 
 @pytest.mark.parametrize(
@@ -1098,11 +1110,22 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
     [
         ({"orderby": [[ADHOC_JINJA_METRIC, False]]}, True),
         ({"orderby": [[ADHOC_PLAIN_METRIC, False]]}, False),
+        ({"orderby": [[SIMPLE_JINJA_METRIC, False]]}, True),
+        ({"orderby": [[SIMPLE_PLAIN_METRIC, False]]}, False),
+        ({"orderby": [["variable_profit", False]]}, True),
+        ({"orderby": [["plain_total", False]]}, False),
         ({"series_limit_metric": ADHOC_JINJA_METRIC}, True),
         ({"series_limit_metric": ADHOC_PLAIN_METRIC}, False),
+        ({"series_limit_metric": SIMPLE_JINJA_METRIC}, True),
         ({"timeseries_limit_metric": ADHOC_JINJA_METRIC}, True),
+        ({"metrics": [SIMPLE_JINJA_METRIC]}, True),
+        ({"metrics": [SIMPLE_PLAIN_METRIC]}, False),
         ({"filter": [{"col": ADHOC_JINJA_COLUMN, "op": "==", "val": 1}]}, True),
         ({"filter": [{"col": ADHOC_PLAIN_COLUMN, "op": "==", "val": 1}]}, False),
+        ({"filter": [{"col": "username", "op": "==", "val": 1}]}, True),
+        ({"filter": [{"col": "Who am I", "op": "==", "val": 1}]}, True),
+        ({"filter": [{"col": "variable_profit", "op": "==", "val": 1}]}, True),
+        ({"filter": [{"col": "plain_total", "op": "==", "val": 1}]}, False),
         ({"filter": [{"col": "user", "op": "==", "val": 1}]}, False),
     ],
 )
@@ -1111,15 +1134,36 @@ def test_extra_cache_keys_in_orderby_series_limit_and_filter(
     has_extra_cache_keys: bool,
 ):
     """
-    `get_sqla_query` renders `orderby` adhoc metrics, `series_limit_metric` and
-    adhoc filter columns through the template processor, so a macro in any of
-    them has to trigger the extra cache key extraction. Without that, two users
-    whose rendered SQL differs share one cache entry.
+    `get_sqla_query` renders `orderby` metrics, `series_limit_metric` and filter
+    columns through the template processor, so a macro in any of them has to
+    trigger the extra cache key extraction. Without that, two users whose
+    rendered SQL differs share one cache entry.
+
+    Each field is resolved the way `get_sqla_query` resolves it: an adhoc
+    expression, a SIMPLE adhoc metric's column, or a name looked up against the
+    dataset's metrics and calculated columns. A filter column also resolves
+    against the columns' verbose names and the saved metrics.
     """
     table = SqlaTable(
         table_name="test_has_no_extra_cache_keys_table",
         sql="SELECT 'abc' as user",
         database=get_example_database(),
+        columns=[
+            TableColumn(column_name="user", type="VARCHAR(255)"),
+            TableColumn(
+                column_name="username",
+                type="VARCHAR(255)",
+                verbose_name="Who am I",
+                expression="{{ current_username() }}",
+            ),
+        ],
+        metrics=[
+            SqlMetric(
+                metric_name="variable_profit",
+                expression="SUM(price) * {{ url_param('multiplier') }}",
+            ),
+            SqlMetric(metric_name="plain_total", expression="SUM(price)"),
+        ],
     )
     query_obj: dict[str, Any] = {
         "granularity": None,
