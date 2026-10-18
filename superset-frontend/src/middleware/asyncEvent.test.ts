@@ -857,6 +857,26 @@ test('WS mode: an unhealthy socket settles pending waiters with a bounded error'
   expect(refetch).not.toHaveBeenCalled();
 });
 
+test('WS mode: an unauthorized socket settles pending waiters with a bounded error', async () => {
+  queueStatuses();
+  asyncEvent.init(wsConfig);
+
+  const refetch = jest.fn();
+  const promise = asyncEvent.waitForAsyncData(
+    { task_ids: ['task-1'] },
+    refetch,
+  );
+  await new Promise(resolve => {
+    setTimeout(resolve, 0);
+  });
+
+  // The session lost the realtime permission: no socket will ever settle this.
+  mockRealtimeStateListener?.('unauthorized');
+
+  await expect(promise).rejects.toThrow('Realtime connection unavailable');
+  expect(refetch).not.toHaveBeenCalled();
+});
+
 test('WS mode: coalesces many same-tick registrations into one catch-up', async () => {
   jest.useFakeTimers();
   queueStatuses(); // all catch-ups see no change

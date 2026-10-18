@@ -1239,8 +1239,11 @@ browser authenticates with a short-lived connection ticket fetched from
 `GET /api/v1/realtime/token/` and sent as the first frame of the socket, then
 refreshes it on the open socket before it expires, so the server no longer needs
 to share a host with the web application and no credential rides the handshake or
-the URL. The websocket server and the frontend ship in the same image, so there is
-no compatibility window; the `WEBSOCKET_JWT_COOKIE_NAME`,
+the URL. Upgrade the web servers and the websocket servers together, and reload
+open browser tabs: a tab still running the previous cookie-based client is
+refused by the new server (it closes the socket after the 10 second auth
+timeout, repeatedly) until it is reloaded, and the same applies to replicas rolled
+at different times. The `WEBSOCKET_JWT_COOKIE_NAME`,
 `WEBSOCKET_JWT_COOKIE_SECURE`, `WEBSOCKET_JWT_COOKIE_SAMESITE` and
 `WEBSOCKET_JWT_COOKIE_DOMAIN` Flask settings and the websocket server's
 `jwtCookieName` / `JWT_COOKIE_NAME` option are removed. During websocket JWT

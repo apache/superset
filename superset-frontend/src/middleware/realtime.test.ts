@@ -582,6 +582,8 @@ test('re-authenticates in place with the new tab id when the tab id changes', as
   // A duplicated tab is reassigned a new id: the server must rebind the per-tab
   // channel (else tab-targeted events miss it and only polling notices
   // completion), and it does so from an `auth` frame on the live socket.
+  const reasons: string[] = [];
+  subscribeRealtimeOpen(reason => reasons.push(reason));
   fireTabIdChange('tab-2');
   await flush();
 
@@ -592,6 +594,25 @@ test('re-authenticates in place with the new tab id when the tab id changes', as
     token: 'ticket-2',
     tab_id: 'tab-2',
   });
+
+  // The rebind acknowledgement raises exactly one reconciliation event, so a
+  // message sent to the old tab channel in the meantime is not lost.
+  expect(reasons).toEqual([]);
+  ack(ws);
+  expect(reasons).toEqual(['rebind']);
+});
+
+test('an ordinary ticket refresh acknowledgement raises no open event', async () => {
+  const reasons: string[] = [];
+  subscribeRealtimeOpen(reason => reasons.push(reason));
+  const ws = await connectAuthenticated(60);
+  expect(reasons).toEqual(['initial']);
+
+  jest.advanceTimersByTime(45_000);
+  await flush();
+  ack(ws, 60);
+
+  expect(reasons).toEqual(['initial']);
 });
 
 test('a tab id change before the socket is open is picked up by the first frame', async () => {

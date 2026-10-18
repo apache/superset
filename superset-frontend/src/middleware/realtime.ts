@@ -102,10 +102,12 @@ let generation = 0;
 const handlersByTopic = new Map<string, Set<RealtimeHandler>>();
 
 // Why a socket became OPEN, passed to open-listeners so a consumer can decide
-// whether to reconcile: `initial` (first connect) or `reconnect` (recovered from
-// a drop — a message may have been missed). Ticket refreshes happen on the open
-// socket and never reopen it, so they raise no event.
-export type RealtimeOpenReason = 'initial' | 'reconnect';
+// whether to reconcile: `initial` (first connect), `reconnect` (recovered from a
+// drop — a message may have been missed), or `rebind` (the server acknowledged a
+// changed tab id on the open socket — a message sent to the old per-tab channel
+// may have been missed). Ordinary ticket refreshes happen on the open socket and
+// raise no event.
+export type RealtimeOpenReason = 'initial' | 'reconnect' | 'rebind';
 
 type RealtimeOpenListener = (reason: RealtimeOpenReason) => void;
 
@@ -311,8 +313,26 @@ const isUnauthorizedError = (err: unknown): boolean => {
   return status === 401 || status === 403;
 };
 
+// Tab ids carried by `auth` frames the server has not acknowledged yet, oldest
+// first, and the tab id the server last acknowledged. The server answers every
+// frame in order, so comparing the two tells whether an ack rebound the tab.
+let unackedTabIds: string[] = [];
+let ackedTabId: string | undefined;
+
 const sendAuthFrame = (ws: WebSocket, token: string): void => {
-  ws.send(JSON.stringify({ type: 'auth', token, tab_id: getTabId() }));
+  const tabId = getTabId();
+  ws.send(JSON.stringify({ type: 'auth', token, tab_id: tabId }));
+  unackedTabIds.push(tabId);
+};
+
+const notifyOpen = (reason: RealtimeOpenReason): void => {
+  openListeners.forEach(listener => {
+    try {
+      listener(reason);
+    } catch (err) {
+      logging.warn('Realtime open-listener error', err);
+    }
+  });
 };
 
 // Stop connecting after the server refused this session. Closes any live socket
@@ -398,6 +418,8 @@ async function openSocket(
     return;
   }
   socket = ws;
+  unackedTabIds = [];
+  ackedTabId = undefined;
   // Set once the server acknowledges the first `auth` frame.
   let authenticated = false;
 
@@ -431,19 +453,21 @@ async function openSocket(
       () => refreshTicket(thisGeneration, ws),
       expiresIn * 1000 * REFRESH_FRACTION,
     );
-    if (authenticated) return;
+    const tabId = unackedTabIds.shift();
+    if (authenticated) {
+      if (tabId !== undefined && tabId !== ackedTabId) {
+        ackedTabId = tabId;
+        notifyOpen('rebind');
+      }
+      return;
+    }
     authenticated = true;
+    ackedTabId = tabId;
     if (authTimeoutId) clearTimeout(authTimeoutId);
     // Recovered: reset the failure counter and report a healthy connection.
     reconnectAttempts = 0;
     emitState('open');
-    openListeners.forEach(listener => {
-      try {
-        listener(reason);
-      } catch (err) {
-        logging.warn('Realtime open-listener error', err);
-      }
-    });
+    notifyOpen(reason);
   };
 
   ws.onmessage = (event: MessageEvent) => {

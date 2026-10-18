@@ -368,6 +368,12 @@ export const isSocketActive = (socketId: string): boolean => {
 export const activeSocketCount = (): number =>
   Object.keys(sockets).filter(isSocketActive).length;
 
+// Connections that have upgraded but not yet authenticated. They hold a server
+// socket for up to AUTH_TIMEOUT_MS, so they count toward `maxTotalConnections`
+// and are bounded by `maxPendingConnections`.
+let pendingConnections = 0;
+export const pendingConnectionCount = (): number => pendingConnections;
+
 /**
  * Counts the active sockets currently registered on the given channel.
  */
@@ -389,7 +395,10 @@ export const activeChannelSocketCount = (channel: string): number =>
 export const connectionLimitReason = (channel: string): string | null => {
   const { maxTotalConnections, maxConnectionsPerChannel } = opts;
 
-  if (maxTotalConnections > 0 && activeSocketCount() >= maxTotalConnections) {
+  if (
+    maxTotalConnections > 0 &&
+    activeSocketCount() + pendingConnections >= maxTotalConnections
+  ) {
     return `total connection limit (${maxTotalConnections}) reached`;
   }
 
@@ -826,16 +835,55 @@ export const wsConnection = (ws: WebSocket) => {
   // Set once the first `auth` frame is accepted; `undefined` while pending_auth.
   let socketId: string | undefined;
 
+  // Reserve capacity at upgrade time so unauthenticated sockets cannot bypass
+  // the configured caps while they wait out the auth window.
+  const { maxPendingConnections } = opts;
+  const limitReason = connectionLimitReason('');
+  if (
+    limitReason ||
+    (maxPendingConnections > 0 && pendingConnections >= maxPendingConnections)
+  ) {
+    statsd.increment('ws_connection_rejected');
+    logger.warn(
+      `Refusing connection: ${limitReason ?? 'pre-auth connection limit reached'}`,
+    );
+    ws.close(CONNECTION_LIMIT_CLOSE_CODE, limitReason ?? 'too many pending');
+    return;
+  }
+  pendingConnections += 1;
+  let pendingReleased = false;
+  const releasePending = () => {
+    if (pendingReleased) return;
+    pendingReleased = true;
+    pendingConnections -= 1;
+  };
+
   const authTimer = setTimeout(() => {
     if (socketId === undefined) {
       statsd.increment('ws_auth_timeout');
+      releasePending();
       ws.close(AUTH_CLOSE_CODE, 'authentication timeout');
     }
   }, AUTH_TIMEOUT_MS);
-  ws.on('close', () => clearTimeout(authTimer));
+  ws.on('close', () => {
+    clearTimeout(authTimer);
+    releasePending();
+  });
 
   const authenticate = (frame: AuthFrame, identity: SocketIdentity) => {
     const { channel } = identity;
+
+    // The socket stops being pending here, so it no longer counts against the
+    // pending reservation when the real limits are evaluated below.
+    releasePending();
+
+    // The subscriber may have dropped between the upgrade and this frame; a
+    // socket registered now would miss messages and no recovery would close it.
+    if (!subscriberHealthy) {
+      statsd.increment('ws_upgrade_rejected');
+      ws.close(SUBSCRIBER_UNHEALTHY_CLOSE_CODE, 'realtime backend unavailable');
+      return;
+    }
 
     // Refuse the connection if a configured connection limit has been reached,
     // before tracking it against the internal registries. The cap is keyed on the
@@ -1143,6 +1191,7 @@ export const resetState = () => {
   channels = {};
   sockets = {};
   messageBound = false;
+  pendingConnections = 0;
   // A reset server is a clean, running (subscribed) server, so tests start from a
   // healthy transport; a test drives the unhealthy edge with markSubscriberUnhealthy.
   subscriberHealthy = true;
