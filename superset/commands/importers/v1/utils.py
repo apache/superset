@@ -37,6 +37,7 @@ from superset.commands.importers.exceptions import (
 )
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.databases.utils import make_url_safe
+from superset.exceptions import SupersetException
 from superset.extensions import feature_flag_manager
 from superset.models.core import Database
 from superset.models.dashboard import dashboard_slices
@@ -426,7 +427,12 @@ def open_import_bundle(upload: Union[IO[bytes], FileStorage]) -> Iterator[ZipFil
 
 
 def get_contents_from_bundle(bundle: ZipFile) -> dict[str, str]:
-    check_is_safe_zip(bundle)
+    # An unsafe bundle (oversized member, oversized total, or high compress
+    # ratio) is user-fixable bad input, so surface it as a 422, not a 500.
+    try:
+        check_is_safe_zip(bundle)
+    except SupersetException as ex:
+        raise IncorrectFormatError(ex.message) from ex
     return {
         remove_root(file_name): bundle.read(file_name).decode()
         for file_name in bundle.namelist()
