@@ -276,3 +276,57 @@ test('an upgrade while the subscriber is unhealthy is answered with 503', async 
 
   expect(status).toBe(503);
 });
+
+test('unauthenticated sockets count toward maxTotalConnections', async () => {
+  server.opts.maxTotalConnections = 1;
+  try {
+    await open();
+    expect(server.pendingConnectionCount()).toBe(1);
+
+    const second = await open();
+
+    expect(await second.closed).toMatchObject({ code: 1013 });
+  } finally {
+    server.opts.maxTotalConnections = 0;
+  }
+});
+
+test('maxPendingConnections caps unauthenticated sockets separately', async () => {
+  server.opts.maxPendingConnections = 1;
+  try {
+    const first = await open();
+    const second = await open();
+    expect(await second.closed).toMatchObject({ code: 1013 });
+
+    // Authenticating releases the reservation for the next connection.
+    first.ws.send(authFrame(signTicket()));
+    await vi.waitFor(() => expect(first.frames).toHaveLength(1));
+    expect(server.pendingConnectionCount()).toBe(0);
+    const third = await open();
+    third.ws.send(authFrame(signTicket()));
+    await vi.waitFor(() => expect(third.frames).toHaveLength(1));
+  } finally {
+    server.opts.maxPendingConnections = 0;
+  }
+});
+
+test('a pending socket releases its reservation when it closes', async () => {
+  const { ws, closed } = await open();
+  expect(server.pendingConnectionCount()).toBe(1);
+
+  ws.close();
+  await closed;
+
+  expect(server.pendingConnectionCount()).toBe(0);
+});
+
+test('auth is refused when the subscriber dropped after the upgrade', async () => {
+  const { ws, closed } = await open();
+  server.markSubscriberUnhealthy('test drop');
+
+  ws.send(authFrame(signTicket()));
+
+  expect(await closed).toMatchObject({ code: 1012 });
+  expect(server.channels).toEqual({});
+  expect(server.sockets).toEqual({});
+});

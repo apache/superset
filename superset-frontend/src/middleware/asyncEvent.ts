@@ -507,7 +507,9 @@ subscribeRealtimeState(state => {
   if (!wsEnabled || !waitersByTaskId.size) return;
   if (state === 'reconnecting') {
     scheduleCatchUp();
-  } else if (state === 'unhealthy') {
+  } else if (state === 'unhealthy' || state === 'unauthorized') {
+    // `unauthorized` is terminal (the session lost the realtime permission or
+    // ended), so no socket will ever settle these waiters.
     abandonRealtimeWaiters();
   }
 });

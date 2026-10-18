@@ -160,9 +160,11 @@ The service is stateless apart from process-local live socket handles. Each
 replica subscribes to the same Redis Pub/Sub channel, receives the same
 events, and forwards only to matching sockets connected to that replica. Sticky
 sessions are not required; reconnecting to another replica presents a fresh
-ticket and binds the socket to the same principal channel. Short websocket JWT
-lifetimes keep connection lifetime bounded for pod recycling; if a pod is
-terminated before expiry, connected browsers reconnect and a one-shot catch-up
+ticket and binds the socket to the same principal channel. Because clients
+refresh their ticket on the open socket, the ticket lifetime does not bound
+connection lifetime: draining a replica requires closing its sockets explicitly
+or terminating the pod. When a pod is terminated, connected browsers reconnect
+and a one-shot catch-up
 fetch on reconnect reconciles any events missed while disconnected (chart-data
 waiters re-check `/task/status_changes` from their retained cursor; list views
 refetch their displayed rows). There is no recurring poll while the socket is
@@ -226,6 +228,9 @@ image, review these before exposing it publicly:
 - **Connection caps** — the server accepts unlimited connections by default
   (`0`). Set `maxTotalConnections` and `maxConnectionsPerChannel` (and
   optionally `maxSocketBufferBytes`) to bound resource use and blunt abuse.
+  Upgraded sockets that have not yet authenticated count toward
+  `maxTotalConnections` while they wait out the 10 second auth window, and
+  `maxPendingConnections` (`MAX_PENDING_CONNECTIONS`) can cap them separately.
 - **Keepalive/timeouts** — `pingSocketsIntervalMs` / `socketResponseTimeoutMs`
   govern dead-connection reaping; the defaults are sane, tune per environment.
 

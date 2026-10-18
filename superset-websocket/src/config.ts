@@ -76,6 +76,7 @@ type ConfigType = {
   maxSocketBufferBytes: number;
   maxConnectionsPerChannel: number;
   maxTotalConnections: number;
+  maxPendingConnections: number;
 };
 
 function defaultConfig(): ConfigType {
@@ -98,6 +99,7 @@ function defaultConfig(): ConfigType {
     // 0 disables the limit (unlimited); set a positive value to opt in.
     maxConnectionsPerChannel: 0,
     maxTotalConnections: 0,
+    maxPendingConnections: 0,
     statsd: {
       host: '127.0.0.1',
       port: 8125,
@@ -239,6 +241,11 @@ function applyEnvOverrides(config: ConfigType): ConfigType {
       (config.maxTotalConnections = toNonNegativeNumber(
         val,
         config.maxTotalConnections,
+      )),
+    MAX_PENDING_CONNECTIONS: val =>
+      (config.maxPendingConnections = toNonNegativeNumber(
+        val,
+        config.maxPendingConnections,
       )),
     REDIS_HOST: val => (config.redis.host = val),
     REDIS_PORT: val =>
