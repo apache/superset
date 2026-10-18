@@ -393,11 +393,14 @@ def test_cancel_chart_query_for_user_cannot_reach_another_users_query() -> None:
     lookup misses: no engine cancellation is attempted and user 1's handle is
     left untouched.
     """
-    from superset.tasks.query_cancel import cancel_chart_query_for_user
+    from superset.tasks.query_cancel import (
+        _registry_key,
+        cancel_chart_query_for_user,
+    )
 
     cache = _FakeCache()
     victim_handle = {"database_id": 5, "cancel_query_id": "engine-1"}
-    cache.store["chart-query-cancel:1:client-1"] = victim_handle
+    cache.store[_registry_key(1, "client-1")] = victim_handle
 
     with _registry_env(2, cache):
         with (
@@ -408,14 +411,16 @@ def test_cancel_chart_query_for_user_cannot_reach_another_users_query() -> None:
 
     cancel.assert_not_called()
     find_by_id.assert_not_called()
-    assert cache.store == {"chart-query-cancel:1:client-1": victim_handle}
+    assert cache.store == {_registry_key(1, "client-1"): victim_handle}
 
 
 def test_cancellable_chart_query_cannot_overwrite_another_users_handle() -> None:
     """A client_id colliding with another user's lands in its own namespace."""
+    from superset.tasks.query_cancel import _registry_key
+
     cache = _FakeCache()
     victim_handle = {"database_id": 5, "cancel_query_id": "engine-victim"}
-    cache.store["chart-query-cancel:1:client-1"] = victim_handle
+    cache.store[_registry_key(1, "client-1")] = victim_handle
 
     database = MagicMock()
     database.id = 9
@@ -424,12 +429,12 @@ def test_cancellable_chart_query_cannot_overwrite_another_users_handle() -> None
     )
 
     # The attacker's own entry is separate; the victim's is intact throughout.
-    assert inside["chart-query-cancel:1:client-1"] == victim_handle
-    assert inside["chart-query-cancel:2:client-1"] == {
+    assert inside[_registry_key(1, "client-1")] == victim_handle
+    assert inside[_registry_key(2, "client-1")] == {
         "database_id": 9,
         "cancel_query_id": "engine-attacker",
     }
-    assert cache.store == {"chart-query-cancel:1:client-1": victim_handle}
+    assert cache.store == {_registry_key(1, "client-1"): victim_handle}
 
 
 def test_cancel_chart_query_for_user_returns_false_for_anonymous() -> None:
