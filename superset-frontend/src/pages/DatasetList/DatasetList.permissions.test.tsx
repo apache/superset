@@ -18,6 +18,7 @@
  */
 import { act, screen, waitFor, within } from '@testing-library/react';
 import fetchMock from 'fetch-mock';
+import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import {
   setupMocks,
   setupApiPermissions,
@@ -29,6 +30,11 @@ import {
   mockDatasets,
   mockDatasetListEndpoints,
 } from './DatasetList.testHelpers';
+
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 // Increase default timeout for tests that involve multiple async operations
 // CI parallel load can cause timeouts with default 15s
@@ -105,6 +111,30 @@ test('read-only users cannot see Actions column', async () => {
     expect(within(table).queryByText(/Actions/i)).not.toBeInTheDocument();
   });
 });
+
+test.each([
+  [true, 'archive'],
+  [false, 'delete'],
+])(
+  'soft delete %s uses the dataset row permission hint for %s',
+  async (enabled, verb) => {
+    (isFeatureEnabled as jest.Mock).mockImplementation(
+      flag => enabled && flag === FeatureFlag.SoftDelete,
+    );
+    setupApiPermissions(['can_read', 'can_write']);
+    renderDatasetList(mockWriteUser);
+    const row = (await screen.findByText(mockDatasets[0].table_name)).closest(
+      'tr',
+    );
+    const action = within(row!).getByTestId('dataset-row-delete');
+    await act(async () => {
+      action.dispatchEvent(new MouseEvent('mouseover', { bubbles: true }));
+    });
+    expect(await screen.findByRole('tooltip')).toHaveTextContent(
+      `You must be a dataset editor in order to ${verb}.`,
+    );
+  },
+);
 
 test('read-only users cannot see bulk select button', async () => {
   // Setup API with read-only permissions

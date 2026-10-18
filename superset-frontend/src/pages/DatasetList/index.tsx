@@ -1106,9 +1106,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   tooltip={
                     allowEdit
                       ? deleteActionLabel()
-                      : t(
-                          'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
-                        )
+                      : softDelete
+                        ? t(
+                            'You must be a dataset editor in order to archive. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
+                        : t(
+                            'You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access.',
+                          )
                   }
                   placement="bottom"
                   icon={<Icons.DeleteOutlined iconSize="l" />}

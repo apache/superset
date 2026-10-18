@@ -17,6 +17,7 @@
  * under the License.
  */
 
+import { GenericDataType } from '@apache-superset/core/common';
 import { QueryFormColumn, QueryFormMetric } from '@superset-ui/core';
 import {
   Groupby,
@@ -33,25 +34,37 @@ import {
 const ADDITIVE_AGGREGATES = new Set(['SUM', 'COUNT', 'MIN', 'MAX']);
 
 /**
- * Whether a metric's total can be derived additively from per-group results.
- * Conservative: only SIMPLE metrics with a known additive aggregate qualify;
- * saved-metric references (strings) and SQL/adhoc metrics are treated as
- * non-additive because their aggregate cannot be determined from form data.
+ * Whether the client may derive a metric's rollup totals from per-group
+ * results (SUM/COUNT by adding, MIN/MAX by taking the min/max). Conservative:
+ * only SIMPLE metrics with one of those aggregates qualify; saved-metric
+ * references (strings) and SQL/adhoc metrics are treated as non-aggregatable
+ * because their aggregate cannot be determined from form data, and MIN/MAX
+ * only qualify on a column known to be numeric (see below).
  */
-export function isAdditiveMetric(metric: QueryFormMetric): boolean {
+export function isClientAggregatableMetric(metric: QueryFormMetric): boolean {
   if (typeof metric === 'string' || metric.expressionType !== 'SIMPLE') {
     return false;
   }
-  return !!metric.aggregate && ADDITIVE_AGGREGATES.has(metric.aggregate);
+  if (!metric.aggregate || !ADDITIVE_AGGREGATES.has(metric.aggregate)) {
+    return false;
+  }
+  // The fast-path reduces values with Number(), which would blank a MIN/MAX
+  // over a text or temporal column, so only numeric columns may take it.
+  if (metric.aggregate === 'MIN' || metric.aggregate === 'MAX') {
+    return metric.column?.type_generic === GenericDataType.Numeric;
+  }
+  return true;
 }
 
 /**
- * True when every metric is additive, so totals/subtotals can use the cheap
- * single-query + client-side summation path instead of one query per rollup
- * level. An empty metric list is not considered additive (nothing to optimize).
+ * True when every metric is client-aggregatable, so totals/subtotals can use
+ * the cheap single-query + client-side reduction path instead of one query per
+ * rollup level. An empty metric list does not qualify (nothing to optimize).
  */
-export function allMetricsAdditive(metrics: QueryFormMetric[]): boolean {
-  return metrics.length > 0 && metrics.every(isAdditiveMetric);
+export function allMetricsClientAggregatable(
+  metrics: QueryFormMetric[],
+): boolean {
+  return metrics.length > 0 && metrics.every(isClientAggregatableMetric);
 }
 
 export type RollupReducer = 'sum' | 'min' | 'max';
@@ -80,9 +93,10 @@ const GROUP_SEP = '\u0000';
  * Additive fast-path: synthesize each rollup level's rows from the full-detail
  * leaf rows by grouping on that level's dimensions and reducing each metric,
  * instead of issuing one query per level. Correct only for additive metrics
- * (see {@link allMetricsAdditive}). Dimension and metric keys are the data-row
- * keys (labels) the caller resolves; `metricReducers` maps each metric key to
- * its reducer. Returns one row array per input level, in the same order.
+ * (see {@link allMetricsClientAggregatable}). Dimension and metric keys are
+ * the data-row keys (labels) the caller resolves; `metricReducers` maps each
+ * metric key to its reducer. Returns one row array per input level, in the
+ * same order.
  */
 export function synthesizeAdditiveLevels(
   leafRows: Record<string, unknown>[],
