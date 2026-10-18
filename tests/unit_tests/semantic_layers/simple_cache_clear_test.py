@@ -149,7 +149,10 @@ def test_generation_binding_precedes_provider_construction(
         )
         view: SemanticView = SemanticView(name="view", semantic_layer=layer)
         assert view.metadata_generation == layer.metadata_generation
-        assert view.get_extra_cache_keys({}) == [layer.metadata_generation]
+        assert view.get_extra_cache_keys({}) == [
+            layer.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
 
 
 def test_host_generation_is_named_apart_from_provider_token(
@@ -166,7 +169,10 @@ def test_host_generation_is_named_apart_from_provider_token(
         assert view.metadata_generation == layer.metadata_generation
         # Containment (#42760) still reads the host generation by its older name.
         assert view.metadata_cache_token == view.metadata_generation
-        assert view.get_extra_cache_keys({}) == [layer.metadata_generation]
+        assert view.get_extra_cache_keys({}) == [
+            layer.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
 
 
 @pytest.mark.parametrize(
@@ -265,6 +271,8 @@ def test_suggestion_cache_rotates_with_metadata_generation(
     view.metadata_generation = "generation-zero"
     view.result_cache_discriminator = None
     view.implementation.selection_identity_version = None
+    view.metrics = [Mock(metric_name="metric")]
+    view.columns = [Mock(column_name="dimension")]
     view.get_compatible_metrics.return_value = []
     view.get_compatible_dimensions.return_value = []
     view.values_for_column.return_value = ["one"]
@@ -286,7 +294,13 @@ def test_suggestion_cache_rotates_with_metadata_generation(
 
         def request() -> Any:
             return (
-                client.post(endpoint, json={})
+                client.post(
+                    endpoint,
+                    json={
+                        "selected_metrics": ["metric"],
+                        "selected_dimensions": ["dimension"],
+                    },
+                )
                 if route == "compatible"
                 else client.get(endpoint)
             )
@@ -634,6 +648,7 @@ def test_cache_keys_compose_metadata_and_producer_versions(
         first_annotation: dict[str, Any] = processor._annotation_cache_context(query)
         assert first_result == [
             first_generation,
+            "semantic-null-filters-v1",
             ("semantic-result-version", "test", "v1"),
         ]
         assert first_annotation["source_versions"] == {"7": first_generation}

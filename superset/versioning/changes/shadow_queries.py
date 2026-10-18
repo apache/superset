@@ -209,17 +209,22 @@ def _dataset_child_records_for_tx_from_shadows(
         if prior_tx is None:
             continue
 
+        # Read pre-state just before this transaction, not at ``prior_tx``:
+        # columns and metrics are versioned separately, so the latest column
+        # shadow can predate a later metric-only edit, which would then be
+        # emitted again here.
+        pre_tx = transaction_id - 1
         post_cols = shadow_rows_valid_at(
             session, cols_tbl, "table_id", dataset_id, transaction_id
         )
         pre_cols = shadow_rows_valid_at(
-            session, cols_tbl, "table_id", dataset_id, prior_tx
+            session, cols_tbl, "table_id", dataset_id, pre_tx
         )
         post_metrics = shadow_rows_valid_at(
             session, metrics_tbl, "table_id", dataset_id, transaction_id
         )
         pre_metrics = shadow_rows_valid_at(
-            session, metrics_tbl, "table_id", dataset_id, prior_tx
+            session, metrics_tbl, "table_id", dataset_id, pre_tx
         )
 
         records: list[ChangeRecord] = []

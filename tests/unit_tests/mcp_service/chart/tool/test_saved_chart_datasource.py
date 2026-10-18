@@ -39,6 +39,8 @@ from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
+pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
+
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("tool_name", ["get_chart_data", "get_chart_info"])
@@ -355,14 +357,14 @@ def test_chart_data_access_check_uses_the_source_type(
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("outcome", ["allowed", "denied"])
-async def test_update_chart_refuses_saved_semantic_charts(outcome: str) -> None:
-    """update_chart builds table-typed form data, so an authorized semantic chart
-    is refused rather than rebound to a same-id table; denial stays uniform."""
+async def test_update_chart_preserves_saved_semantic_charts(outcome: str) -> None:
+    """Authorized semantic renames retain their family; denial stays uniform."""
     update_module: ModuleType = importlib.import_module(
         "superset.mcp_service.chart.tool.update_chart"
     )
     chart: SimpleNamespace = SimpleNamespace(
         id=9,
+        uuid=None,
         slice_name="Sales",
         viz_type="table",
         datasource_id=17,
@@ -372,6 +374,7 @@ async def test_update_chart_refuses_saved_semantic_charts(outcome: str) -> None:
     view: SemanticView = SemanticView(id=17, name="Sales")
     table_lookup: Mock
     update_command: Mock
+    preview: Mock
     with (
         patch(
             "superset.mcp_service.auth.get_user_from_request",
@@ -403,6 +406,11 @@ async def test_update_chart_refuses_saved_semantic_charts(outcome: str) -> None:
             else None,
         ),
         patch("superset.commands.chart.update.UpdateChartCommand") as update_command,
+        patch.object(
+            update_module,
+            "_create_preview_url",
+            return_value=("http://localhost/explore/?form_data_key=key", "key", []),
+        ) as preview,
     ):
         async with Client(mcp) as client:
             response: CallToolResult = await client.call_tool(
@@ -410,13 +418,15 @@ async def test_update_chart_refuses_saved_semantic_charts(outcome: str) -> None:
                 {"request": {"identifier": 9, "chart_name": "Renamed"}},
             )
     result: dict[str, Any] = response.structured_content or {}
-    assert result["success"] is False, result
-    error: dict[str, Any] = result["error"]
     table_lookup.assert_not_called()
     update_command.assert_not_called()
     if outcome == "denied":
+        assert result["success"] is False, result
+        error: dict[str, Any] = result["error"]
         assert error["error_type"] == "DatasetNotAccessible"
         assert "private source detail" not in error["message"]
+        preview.assert_not_called()
     else:
-        assert error["error_type"] == "UnsupportedDatasourceType"
-        assert "semantic view" in error["message"]
+        assert result["success"] is True, result["error"]
+        assert preview.call_args.args[1]["datasource"] == "17__semantic_view"
+        assert preview.call_args.kwargs["datasource_type"] == "semantic_view"

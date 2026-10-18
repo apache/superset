@@ -373,6 +373,53 @@ test('relatedHeadline falls back when the server summary is empty', () => {
   ).toBe('Item updated: Trend');
 });
 
+test('relatedHeadline is neutral when the row spans several kinds of change', () => {
+  const description = record({
+    source: 'related',
+    entity_kind: 'dataset',
+    entity_name: 'my_virtual_ds',
+    kind: 'field',
+    summary: 'Dataset updated: my_virtual_ds',
+  });
+  const column = { ...description, kind: 'column' };
+  const metric = {
+    ...description,
+    kind: 'metric',
+    summary: 'Dataset metric changed: my_virtual_ds',
+  };
+
+  // Records arrive newest-sequence first, so the metric record leads.
+  expect(relatedHeadline(metric, [metric, column, description])).toBe(
+    'Dataset updated: my_virtual_ds',
+  );
+  expect(
+    relatedHeadline({ ...metric, entity_kind: 'chart' }, [
+      { ...metric, entity_kind: 'chart' },
+      { ...column, entity_kind: 'chart' },
+    ]),
+  ).toBe('Chart updated: my_virtual_ds');
+  // One kind keeps the server's specific summary.
+  expect(relatedHeadline(metric, [metric, { ...metric }])).toBe(
+    'Dataset metric changed: my_virtual_ds',
+  );
+  expect(relatedHeadline(metric)).toBe('Dataset metric changed: my_virtual_ds');
+});
+
+test('relatedHeadline keeps the redacted summary for a deleted related entity', () => {
+  const tombstone = record({
+    source: 'related',
+    entity_kind: 'dataset',
+    entity_name: '',
+    entity_deleted: true,
+    kind: 'metric',
+    summary: '(deleted) Dataset',
+  });
+
+  expect(
+    relatedHeadline(tombstone, [tombstone, { ...tombstone, kind: 'column' }]),
+  ).toBe('(deleted) Dataset');
+});
+
 test('formatAuthor handles system, named, and nameless users', () => {
   expect(formatAuthor(null)).toBe('System');
   expect(

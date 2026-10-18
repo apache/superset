@@ -63,7 +63,7 @@ jobs:
           curl --proto '=https' --tlsv1.2 -LsSf https://github.com/j178/prek/releases/download/v0.4.11/prek-installer.sh | sh
 
       - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "superset-frontend/.nvmrc"
           cache: "npm"
@@ -198,6 +198,20 @@ jobs:
             echo "📖 More details here: https://superset.apache.org/docs/contributing/development#git-hooks"
             exit 1
           fi
+
+      # Sole-input mypy regression guards (tests/mypy_fixtures/). Each fixture
+      # pins a type that mypy resolves differently when the file is its only
+      # input than when the whole tree is loaded, so neither the scoped run
+      # above nor the nightly all-files sweep can stand in for this: a revert
+      # of the guarded declaration only surfaces when the fixture is checked
+      # alone. Hence one prek invocation per fixture.
+      - name: mypy sole-input fixtures
+        run: |
+          set -euo pipefail
+          for fixture in tests/mypy_fixtures/[!_]*.py; do
+            echo "ℹ️ Checking ${fixture} as mypy's sole input."
+            prek run mypy-sole-input-fixtures --stage manual --files "${fixture}"
+          done
 
   actions-timeline:
     needs: pre-commit

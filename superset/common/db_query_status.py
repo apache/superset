@@ -28,3 +28,9 @@ class QueryStatus(StrEnum):
     SUCCESS = "success"
     FETCHING = "fetching"
     TIMED_OUT = "timed_out"
+
+
+# Terminal outcomes that a stop request must not overwrite.
+FINISHED_QUERY_STATUSES = frozenset(
+    {QueryStatus.SUCCESS, QueryStatus.FAILED, QueryStatus.TIMED_OUT}
+)

@@ -24,6 +24,7 @@ from io import BytesIO
 from typing import Any
 from unittest.mock import ANY, Mock
 from uuid import UUID
+from zipfile import is_zipfile, ZipFile
 
 import pytest
 import yaml
@@ -614,7 +615,7 @@ def test_import(
         ),
     }
     mocker.patch("superset.databases.api.is_zipfile", return_value=True)
-    mocker.patch("superset.databases.api.ZipFile")
+    mocker.patch("superset.databases.api.open_import_bundle")
     mocker.patch(
         "superset.databases.api.get_contents_from_bundle",
         return_value=contents,
@@ -675,7 +676,7 @@ def test_import_with_encrypted_extra_secrets(
         ),
     }
     mocker.patch("superset.databases.api.is_zipfile", return_value=True)
-    mocker.patch("superset.databases.api.ZipFile")
+    mocker.patch("superset.databases.api.open_import_bundle")
     mocker.patch(
         "superset.databases.api.get_contents_from_bundle",
         return_value=contents,
@@ -733,6 +734,46 @@ def test_non_zip_import(client: Any, full_api_access: None) -> None:
                         {
                             "code": 1010,
                             "message": "Issue 1010 - Superset encountered an error while running a command.",  # noqa: E501
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_corrupt_zip_import(client: Any, full_api_access: None) -> None:
+    """
+    Test that a ZIP with a corrupt central directory returns a 422, not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+    corrupt = BytesIO(buf.getvalue().replace(b"PK\x01\x02", b"XXXX"))
+    assert is_zipfile(corrupt)
+    form_data = {
+        "formData": (corrupt, "corrupt.zip"),
+    }
+    response = client.post(
+        "/api/v1/database/import/",
+        data=form_data,
+        content_type="multipart/form-data",
+    )
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "Invalid or corrupted ZIP file",
+                "error_type": "GENERIC_COMMAND_ERROR",
+                "level": "warning",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1010,
+                            "message": (
+                                "Issue 1010 - Superset encountered an error while "
+                                "running a command."
+                            ),
                         }
                     ]
                 },
@@ -2797,7 +2838,7 @@ def test_import_includes_configuration_method(
 
     with (
         patch("superset.databases.api.is_zipfile", return_value=True),
-        patch("superset.databases.api.ZipFile"),
+        patch("superset.databases.api.open_import_bundle"),
         patch("superset.databases.api.get_contents_from_bundle", return_value=contents),
     ):
         form_data = {"formData": (BytesIO(b"test"), "test.zip")}

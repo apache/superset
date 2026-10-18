@@ -227,6 +227,42 @@ def resolve_dataset_reference(
     return matches[0] if matches else None
 
 
+def resolve_dataset_column(
+    column_name: str, dataset_context: DatasetContext
+) -> Mapping[str, Any] | None:
+    """Resolve an exact, otherwise unique case-insensitive dataset column.
+
+    Metadata ordering must never decide which SQL type is used for validation.
+    Exact case is authoritative; a case-insensitive fallback is safe only when
+    it identifies one column.
+    """
+
+    exact = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"] == column_name
+    ]
+    if len(exact) == 1:
+        return exact[0]
+    if len(exact) > 1:
+        raise ValueError(f"Duplicate exact dataset column {column_name!r}")
+
+    folded = [
+        column
+        for column in dataset_context.available_columns
+        if column["name"].casefold() == column_name.casefold()
+    ]
+    if len(folded) == 1:
+        return folded[0]
+    if len(folded) > 1:
+        raise AmbiguousDatasetReferenceError(
+            column_name,
+            [column["name"] for column in folded],
+            "column",
+        )
+    return None
+
+
 class DatasetValidator:
     """Validates chart configuration against dataset schema."""
 

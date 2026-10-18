@@ -44,7 +44,7 @@ cachelib==0.17.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.2.0
+cachetools==7.2.1
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
@@ -128,7 +128,7 @@ flask-babel==4.0.0
     # via flask-appbuilder
 flask-caching==2.5.1
     # via apache-superset (pyproject.toml)
-flask-compress==1.24
+flask-compress==1.25
     # via apache-superset (pyproject.toml)
 flask-cors==6.0.5
     # via apache-superset (pyproject.toml)
@@ -207,7 +207,7 @@ kombu==5.6.2
     # via celery
 limits==5.1.0
     # via flask-limiter
-mako==1.4.1
+mako==1.4.3
     # via
     #   -r requirements/base.in
     #   apache-superset (pyproject.toml)
@@ -315,7 +315,7 @@ pyopenssl==26.4.0
     # via
     #   -r requirements/base.in
     #   shillelagh
-pyparsing==3.3.2
+pyparsing==3.3.3
     # via apache-superset (pyproject.toml)
 python-calamine==0.8.2
     # via pandas
@@ -427,7 +427,7 @@ tzlocal==5.4.4
     # via celery
 url-normalize==2.2.1
     # via requests-cache
-urllib3==2.7.0
+urllib3==2.8.0
     # via
     #   -r requirements/base.in
     #   requests
@@ -441,7 +441,7 @@ watchdog==6.0.0
     # via apache-superset (pyproject.toml)
 wcwidth==0.2.13
     # via prompt-toolkit
-werkzeug==3.1.6
+werkzeug==3.1.9
     # via
     #   -r requirements/base.in
     #   flask

@@ -26,7 +26,7 @@ from datetime import datetime, time as dt_time, timezone
 from decimal import Decimal
 from enum import Enum
 from types import SimpleNamespace
-from typing import Any, cast
+from typing import Any, Callable, cast
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
@@ -1105,6 +1105,9 @@ async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
         coltypes=[GenericDataType.TEMPORAL],
     )
 
+    # Capture the producer offset before timezone hooks are disabled.
+    dublin_iso: str = values[0].isoformat()
+
     def hostile_timezone_hook(*_args: Any, **_kwargs: Any) -> None:
         raise AssertionError("dateutil timezone hook executed")
 
@@ -1127,7 +1130,7 @@ async def test_unsaved_get_data_preserves_dateutil_transition_offsets(
 
     payload = result.structured_content.get("result", result.structured_content)
     assert payload["data"] == [
-        {"value": "2024-10-27T01:30:00.123456+01:00"},
+        {"value": dublin_iso},
         {"value": "2024-03-10T02:30:00-04:00"},
         {"value": "2040-07-01T12:00:00-05:00"},
         {"value": "2024-01-01T12:00:00-03:00"},
@@ -3265,7 +3268,7 @@ class TestSavedChartExtraFormDataFilters:
             {"filters": [{"col": "country", "op": "==", "val": "USA"}]}, mcp_server
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_adhoc_filters_key_reaches_executed_query(
@@ -3287,7 +3290,7 @@ class TestSavedChartExtraFormDataFilters:
             mcp_server,
         )
         filters = loaded["queries"][0].get("filters", [])
-        assert {"col": "country", "op": "==", "val": "USA"} in filters
+        assert {"col": "country", "op": "==", "val": "USA", "isExtra": True} in filters
 
     @pytest.mark.asyncio
     async def test_temporal_range_filter_reaches_executed_query(
@@ -3311,6 +3314,7 @@ class TestSavedChartExtraFormDataFilters:
             "col": "order_date",
             "op": "TEMPORAL_RANGE",
             "val": "2024-01-01 : 2024-02-01",
+            "isExtra": True,
         } in filters
 
     @pytest.mark.asyncio
@@ -3929,6 +3933,321 @@ class TestOAuthErrorRouting:
         assert data["error_type"] != "DataError"
 
 
+def _guest_rls_refusal() -> Exception:
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    return SupersetSecurityException(
+        SupersetError(
+            message="Semantic views cannot enforce guest row-level security rules.",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.WARNING,
+        )
+    )
+
+
+def _invalid_filter_rejection() -> Exception:
+    from superset_core.semantic_layers.errors import SemanticQueryErrorCode
+
+    from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+
+    return SemanticLayerQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+
+
+def _provider_fault() -> Exception:
+    from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+
+    return SemanticLayerExecutionError()
+
+
+# (raising stage, error factory, MCP error type, message fragment). Access is
+# refused while validating; providers reject or fail while running.
+CATEGORIZED_QUERY_ERRORS: list[Any] = [
+    pytest.param(
+        "validate",
+        _guest_rls_refusal,
+        "AccessDenied",
+        "Semantic views cannot enforce guest row-level security rules.",
+        id="refusal",
+    ),
+    pytest.param(
+        "run",
+        _invalid_filter_rejection,
+        "ValidationError",
+        "A semantic query filter is invalid.",
+        id="rejection",
+    ),
+    pytest.param(
+        "run",
+        _provider_fault,
+        "DataError",
+        "An error occurred while fetching the data.",
+        id="fault",
+    ),
+]
+
+
+def _raising_command(stage: str, error: Exception) -> type:
+    """Build a ChartDataCommand stand-in that raises at the given stage."""
+
+    class RaisingChartDataCommand:
+        def __init__(self, query_context: object) -> None:
+            self.query_context: object = query_context
+
+        def validate(self) -> None:
+            if stage == "validate":
+                raise error
+
+        def run(self) -> dict[str, Any]:
+            raise error
+
+    return RaisingChartDataCommand
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stage,make_error,error_type,message", CATEGORIZED_QUERY_ERRORS
+)
+async def test_saved_chart_query_error_keeps_api_category(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    stage: str,
+    make_error: Callable[[], Exception],
+    error_type: str,
+    message: str,
+) -> None:
+    """Refusals are access errors and provider rejections are validation errors."""
+    routing: TestOAuthErrorRouting = TestOAuthErrorRouting()
+    routing._patch_query_path(monkeypatch, routing._make_chart(), make_error())
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command(stage, make_error()),
+    )
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == error_type
+    assert message in data["error"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "stage,make_error,error_type,message", CATEGORIZED_QUERY_ERRORS
+)
+async def test_unsaved_chart_query_error_keeps_api_category(
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+    stage: str,
+    make_error: Callable[[], Exception],
+    error_type: str,
+    message: str,
+) -> None:
+    """The form_data_key path categorizes errors like the saved-chart path."""
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "get_cached_form_data",
+        lambda *args, **kwargs: json.dumps(
+            {
+                "datasource_id": 1,
+                "datasource_type": "table",
+                "viz_type": "table",
+                "metrics": ["count"],
+                "groupby": ["gender"],
+                "row_limit": 10,
+            }
+        ),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *args, **kwargs: SimpleNamespace(queries=[], form_data={}),
+    )
+    monkeypatch.setattr(
+        importlib.import_module("superset.commands.chart.data.get_data_command"),
+        "ChartDataCommand",
+        _raising_command(stage, make_error()),
+    )
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == error_type
+    assert message in data["error"]
+
+
+EMPTY_IN_QUERY: dict[str, Any] = {
+    "columns": ["STATUS"],
+    "metrics": ["ORDER_COUNT"],
+    "filters": [{"col": "STATUS", "op": "IN", "val": []}],
+}
+
+
+def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> MagicMock:
+    """Patch in a saved semantic chart the real mapper refuses while it runs.
+
+    Returns the provider mock so tests can assert it was never queried.
+    """
+    import pyarrow as pa
+    from superset_core.semantic_layers.types import Dimension, Metric
+    from superset_core.semantic_layers.view import SemanticView as ProviderView
+
+    from superset.semantic_layers.models import SemanticView
+
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    processor_module: Any = importlib.import_module(
+        "superset.common.query_context_processor"
+    )
+    provider: MagicMock = MagicMock(spec=ProviderView)
+    provider.features = frozenset()
+    provider.selection_identity_version = None
+    provider.uid.return_value = "empty-filter-test"
+    provider.get_dimensions.return_value = {
+        Dimension(id="orders.STATUS", name="STATUS", type=pa.utf8(), grain=None)
+    }
+    provider.get_metrics.return_value = {
+        Metric(
+            id="orders.ORDER_COUNT",
+            name="ORDER_COUNT",
+            type=pa.int64(),
+            definition="COUNT(*)",
+        )
+    }
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    view.__dict__["implementation"] = provider
+
+    chart: MagicMock = MagicMock()
+    chart.id = 1
+    chart.slice_name = "Orders by status"
+    chart.viz_type = "table"
+    chart.datasource_id = 7
+    chart.datasource_type = "semantic_view"
+    chart.params = json.dumps({"viz_type": "table"})
+    chart.query_context = json.dumps(
+        {
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [EMPTY_IN_QUERY],
+            "result_format": "json",
+            "result_type": "full",
+        }
+    )
+    validation: MagicMock = MagicMock(is_valid=True, warnings=[])
+    monkeypatch.setattr(chart_data_module, "is_semantic_layers_enabled", lambda: True)
+    monkeypatch.setattr(
+        chart_data_module, "find_chart_by_identifier", lambda *a, **k: chart
+    )
+    monkeypatch.setattr(
+        chart_data_module, "validate_chart_semantic_view", lambda *a, **k: validation
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context_factory.DatasourceDAO.get_datasource",
+        lambda *a, **k: view,
+    )
+    monkeypatch.setattr(
+        "superset.common.query_context.QueryContext.raise_for_access",
+        lambda self: None,
+    )
+    monkeypatch.setattr(
+        "superset.security_manager.raise_for_unsupported_guest_rls",
+        lambda *a, **k: None,
+    )
+    monkeypatch.setattr(
+        processor_module.QueryContextProcessor,
+        "query_cache_key",
+        lambda *a, **k: "empty-filter-test",
+    )
+    monkeypatch.setattr(
+        processor_module.QueryContextProcessor, "get_cache_timeout", lambda self: -1
+    )
+    return provider
+
+
+@pytest.mark.asyncio
+async def test_saved_chart_mapper_refusal_is_validation_error(
+    app_context: None,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The real command path keeps a semantic mapper refusal out of DataError."""
+    from unittest.mock import AsyncMock
+
+    provider: MagicMock = _patch_empty_filter_semantic_chart(monkeypatch)
+    ctx_error: AsyncMock = AsyncMock()
+    monkeypatch.setattr("fastmcp.Context.error", ctx_error)
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"identifier": 1}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "ValidationError"
+    assert data["error"] == "Semantic IN/NOT IN filters cannot be empty."
+    provider.get_table.assert_not_called()
+    # Validation errors are not error-level MCP notifications.
+    ctx_error.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_unsaved_chart_mapper_refusal_is_validation_error(
+    app_context: None,
+    mcp_server: Any,
+    mock_auth: Any,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The form_data_key path keeps a mapper refusal out of DataError too."""
+    from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
+    from superset.common.query_context_factory import QueryContextFactory
+
+    provider: MagicMock = _patch_empty_filter_semantic_chart(monkeypatch)
+    chart_data_module: Any = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "get_cached_form_data",
+        lambda *a, **k: json.dumps(
+            {"datasource": "7__semantic_view", "viz_type": "table"}
+        ),
+    )
+    monkeypatch.setattr(
+        chart_data_module,
+        "build_query_context_from_form_data",
+        lambda *a, **k: QueryContextFactory().create(
+            datasource={"id": 7, "type": "semantic_view"},
+            queries=[EMPTY_IN_QUERY],
+            result_type=ChartDataResultType.FULL,
+            result_format=ChartDataResultFormat.JSON,
+            force=True,
+        ),
+    )
+
+    async with Client(mcp_server) as client:
+        result: Any = await client.call_tool(
+            "get_chart_data", {"request": {"form_data_key": "cached-key"}}
+        )
+        data: dict[str, Any] = json.loads(result.content[0].text)
+
+    assert data["error_type"] == "ValidationError"
+    assert data["error"] == "Semantic IN/NOT IN filters cannot be empty."
+    provider.get_table.assert_not_called()
+
+
 # ---------------------------------------------------------------------------
 # Tests for _recommend_visualizations
 # ---------------------------------------------------------------------------
@@ -4010,6 +4329,41 @@ def test_recommend_caps_at_max():
 def test_recommend_empty_columns_returns_table():
     result = _recommend_visualizations("table", [], row_count=0)
     assert result == ["table"]
+
+
+def test_recommend_time_spatial_keeps_geographic_points():
+    """A timestamp alongside coordinates must not shadow the map suggestion."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("longitude", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "geographic points" in result
+    assert "line chart" in result
+
+
+def test_recommend_time_spatial_spends_the_cap_on_the_map():
+    """The map displaces only the nearest variant of a surviving suggestion."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("longitude", "numeric"),
+        _col("revenue", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert result == ["geographic points", "line chart", "area chart", "bar chart"]
+
+
+def test_recommend_non_spatial_temporal_omits_geographic_points():
+    """Coordinates are only suggested when both are actually present."""
+    cols = [
+        _col("recorded_at", "temporal"),
+        _col("latitude", "numeric"),
+        _col("revenue", "numeric"),
+    ]
+    result = _recommend_visualizations("table", cols, row_count=50)
+    assert "geographic points" not in result
 
 
 def test_recommend_pie_only_for_low_cardinality():
@@ -5649,6 +6003,54 @@ class TestBigNumberHeadline:
             assert headline is not None
             assert headline["value"] == expected_value
             assert headline["aggregation"] == expected_aggregation
+
+
+@pytest.mark.asyncio
+async def test_disabled_semantic_chart_returns_availability_error(
+    mcp_server: Any,
+    mock_auth: Any,
+) -> None:
+    """Semantic chart data is refused before validation, cache or provider work."""
+    import importlib
+    from types import ModuleType
+    from unittest.mock import patch
+
+    from fastmcp import Client
+    from fastmcp.client.client import CallToolResult
+
+    from superset.models.slice import Slice
+
+    client: Client
+    command: MagicMock
+    validate: MagicMock
+    module: ModuleType = importlib.import_module(
+        "superset.mcp_service.chart.tool.get_chart_data"
+    )
+    chart: Slice = Slice(
+        id=17,
+        slice_name="semantic",
+        datasource_id=17,
+        datasource_type="semantic_view",
+        viz_type="table",
+        params="{}",
+    )
+    with (
+        patch("superset.feature_flag_manager.is_feature_enabled", return_value=False),
+        patch.object(module, "find_chart_by_identifier", return_value=chart),
+        patch.object(module, "validate_chart_dataset") as validate,
+        patch(
+            "superset.commands.chart.data.get_data_command.ChartDataCommand"
+        ) as command,
+    ):
+        async with Client(mcp_server) as client:
+            result: CallToolResult = await client.call_tool(
+                "get_chart_data", {"request": {"identifier": 17}}
+            )
+    payload: dict[str, Any] = json.loads(result.content[0].text)
+    assert payload["error"] == "Semantic layers are not enabled."
+    assert payload["error_type"] == "SemanticLayersDisabledError"
+    validate.assert_not_called()
+    command.assert_not_called()
 
 
 @pytest.mark.parametrize("engine", ["csv", "openpyxl", "xlsxwriter"])
