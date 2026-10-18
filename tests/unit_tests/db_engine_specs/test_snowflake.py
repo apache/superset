@@ -1004,8 +1004,8 @@ def test_snowflake_update_params_from_encrypted_extra_null_or_empty_auth_params(
     auth_params: Optional[dict[str, Any]],
 ) -> None:
     """
-    Verify update_params_from_encrypted_extra handles null and empty auth_params
-    safely without raising AttributeError or KeyError.
+    Verify update_params_from_encrypted_extra raises ValueError when auth_method is
+    keypair but no key material is supplied in auth_params.
     """
     from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
 
@@ -1018,10 +1018,60 @@ def test_snowflake_update_params_from_encrypted_extra_null_or_empty_auth_params(
     )
 
     params: dict[str, Any] = {}
+    with pytest.raises(
+        ValueError,
+        match="Either 'privatekey_body' or 'privatekey_path' must be provided",
+    ):
+        SnowflakeEngineSpec.update_params_from_encrypted_extra(mock_db, params)
+
+
+def test_snowflake_update_params_from_encrypted_extra_keypair_path(
+    tmp_path: Any,
+) -> None:
+    """
+    Verify update_params_from_encrypted_extra reads private key from privatekey_path
+    and sets connect_args['private_key'] to the expected PKCS8 DER bytes.
+    """
+    from pathlib import Path
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric import rsa
+
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    private_key = rsa.generate_private_key(
+        public_exponent=65537,
+        key_size=2048,
+    )
+    pem_bytes = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
+    key_file = Path(tmp_path) / "test_private_key.pem"
+    key_file.write_bytes(pem_bytes)
+
+    mock_db = mock.MagicMock()
+    mock_db.encrypted_extra = json.dumps(
+        {
+            "auth_method": "keypair",
+            "auth_params": {
+                "privatekey_path": str(key_file),
+            },
+        }
+    )
+
+    params: dict[str, Any] = {}
     SnowflakeEngineSpec.update_params_from_encrypted_extra(mock_db, params)
 
+    expected_der = private_key.private_bytes(
+        encoding=serialization.Encoding.DER,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    )
     assert "connect_args" in params
-    assert "private_key" not in params["connect_args"]
+    assert "private_key" in params["connect_args"]
+    assert params["connect_args"]["private_key"] == expected_der
 
 
 @pytest.mark.parametrize("privatekey_pass", ["", None])
