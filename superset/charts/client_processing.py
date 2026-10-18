@@ -25,7 +25,9 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
+import math
 from collections.abc import Callable
+from decimal import Decimal
 from functools import partial
 from io import BytesIO, StringIO
 from typing import Any, Optional, TYPE_CHECKING, Union
@@ -835,6 +837,20 @@ pivot_v2_aggfunc_map = {
 }
 
 
+def is_small_number(value: Any) -> bool:
+    """
+    Whether a cell takes the small-number format, as the browser decides it.
+
+    ``formatColumnValue`` in ``plugin-chart-table`` switches formatter when
+    ``Math.abs(value) < 1``, which only applies to numbers; booleans are not
+    numbers there.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
+        return False
+    number = float(value)
+    return not math.isnan(number) and not math.isinf(number) and abs(number) < 1
+
+
 def format_column(
     df: pd.DataFrame,
     column: Any,
@@ -843,6 +859,8 @@ def format_column(
     detected_currency: Optional[str] = None,
     currency_context: Optional[pd.Series] = None,
     fallback_to_detected: bool = True,
+    small_d3_format: Optional[str] = None,
+    small_currency: Optional[dict[str, Any]] = None,
 ) -> None:
     """
     Format a column in place when a number or currency format is configured.
@@ -851,18 +869,37 @@ def format_column(
     parallel ``currency_context`` series is present, AUTO uses each row/cell's
     contributing currencies first. Mixed context renders a neutral number;
     empty context optionally falls back to query-wide detection.
+
+    ``small_d3_format`` is the column's small-number format. The choice is per
+    cell rather than per column, matching ``formatColumnValue``: a value below
+    one in absolute value takes that format with the column config's own
+    currency, exactly what ``getSmallNumberFormatter`` builds, and every other
+    value keeps the column's normal format.
     """
-    if d3_format or currency.get("symbol"):
+    if d3_format or currency.get("symbol") or small_d3_format:
         if currency_context is None:
             resolved_currency = resolve_auto_currency(currency, detected_currency)
-            df[column] = df[column].apply(
-                partial(format_number_with_config, d3_format, resolved_currency)
+            format_value = partial(
+                format_number_with_config, d3_format, resolved_currency
             )
+            if small_d3_format:
+                format_small = partial(
+                    format_number_with_config, small_d3_format, small_currency or {}
+                )
+                df[column] = df[column].apply(
+                    lambda value: format_small(value)
+                    if is_small_number(value)
+                    else format_value(value)
+                )
+                return
+            df[column] = df[column].apply(format_value)
             return
 
         contexts = currency_context.reindex(df.index)
         df[column] = [
-            format_number_with_config(
+            format_number_with_config(small_d3_format, small_currency or {}, value)
+            if small_d3_format and is_small_number(value)
+            else format_number_with_config(
                 d3_format,
                 resolve_auto_currency(
                     currency,
@@ -1246,15 +1283,37 @@ def table(
             if configured_currency.get("symbol")
             else currency_by_label.get(column) or {}
         )
+        # The small-number format has no dataset-level counterpart, and the
+        # browser pairs it with the column config's own currency rather than
+        # the resolved one, so both come straight from ``config``. A cleared
+        # Select leaves a blank string behind, which the browser treats as
+        # unset.
+        small_number_format = (config.get("d3SmallNumberFormat") or "").strip() or None
 
         is_number = pd.api.types.is_numeric_dtype(df[column])
 
         if column in percent_metric_labels:
-            format_column(df, column, number_format or PERCENT_3_POINT, {})
+            format_column(
+                df,
+                column,
+                number_format or PERCENT_3_POINT,
+                {},
+                small_d3_format=small_number_format,
+                small_currency=configured_currency,
+            )
         elif (column in metric_labels and is_number) or (
-            is_number and (number_format or currency.get("symbol"))
+            is_number
+            and (number_format or currency.get("symbol") or small_number_format)
         ):
-            if not number_format and not currency.get("symbol"):
+            # Only a metric falls back to SMART_NUMBER, the way
+            # ``transformProps`` only builds a default formatter for one. A
+            # plain numeric column configured with just a small-number format
+            # keeps its other cells unformatted, as the browser does.
+            if (
+                column in metric_labels
+                and not number_format
+                and not currency.get("symbol")
+            ):
                 number_format = SMART_NUMBER
             format_column(
                 df,
@@ -1264,6 +1323,8 @@ def table(
                 detected_currency,
                 row_currency_context,
                 fallback_to_detected=False,
+                small_d3_format=small_number_format,
+                small_currency=configured_currency,
             )
 
     return df

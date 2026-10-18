@@ -2501,6 +2501,118 @@ def test_table_applies_si_number_format() -> None:
     assert formatted["amount"].tolist() == ["1.23k"]
 
 
+def test_table_applies_small_number_format() -> None:
+    """
+    A cell below one in absolute value takes the column's small-number format.
+
+    ``formatColumnValue`` in the Table plugin picks the formatter per value, so
+    the report has to switch per cell rather than per column.
+    """
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 12.5, 2: -0.5, 3: 0.0}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {
+            "ratio": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": ".1%"}
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ratio"].tolist() == ["5.2%", "12.50", "-50.0%", "0.0%"]
+
+
+def test_table_ignores_blank_small_number_format() -> None:
+    """
+    A cleared Select leaves an empty string behind, which
+    ``getSmallNumberFormatter`` treats as unset.
+    """
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {
+            "ratio": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": "  "}
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["ratio"].tolist() == ["0.05", "12.50"]
+
+
+def test_table_small_number_format_without_a_normal_format() -> None:
+    """
+    A small-number format on its own is enough to format the small cells.
+
+    The other cells follow the browser: a metric falls back to SMART_NUMBER,
+    while a numeric dimension gets no formatter at all and is printed as is.
+    """
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 1200.0}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["ratio"],
+        "column_config": {"ratio": {"d3SmallNumberFormat": ".1%"}},
+    }
+    assert table(df, form_data)["ratio"].tolist() == ["5.2%", "1.2k"]
+
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "column_config": {"ratio": {"d3SmallNumberFormat": ".1%"}},
+    }
+    assert table(df, form_data)["ratio"].tolist() == ["5.2%", "12.5"]
+
+
+def test_table_small_number_format_uses_the_column_config_currency() -> None:
+    """
+    ``getSmallNumberFormatter`` pairs the small format with the column config's
+    own currency, and the currency formatter drops percent signs.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ".1%",
+                "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    formatted = table(df, form_data)
+    assert formatted["amount"].tolist() == ["$ 50.0", "$ 12.50"]
+
+
+def test_table_small_number_format_on_a_percent_metric() -> None:
+    """
+    Percent metric columns are numeric too, so they switch formatter the same
+    way; their other cells keep the PERCENT_3_POINT default.
+    """
+    df = pd.DataFrame.from_dict({"%cnt": {0: 0.004, 1: 2.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "percent_metrics": ["cnt"],
+        "column_config": {"%cnt": {"d3SmallNumberFormat": ".2%"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["%cnt"].tolist() == ["0.40%", "250.000%"]
+
+
+def test_table_small_number_format_leaves_non_numeric_columns_alone() -> None:
+    """
+    The plugin only switches formatter for a numeric column, so a string column
+    configured with a small-number format is untouched.
+    """
+    df = pd.DataFrame.from_dict({"name": {0: "a", 1: "b"}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "column_config": {"name": {"d3SmallNumberFormat": ".1%"}},
+    }
+    formatted = table(df, form_data)
+    assert formatted["name"].tolist() == ["a", "b"]
+
+
 def test_table_applies_smart_number_default_to_unconfigured_metric() -> None:
     """
     A metric with no saved d3 format still renders like Explore. The Table
