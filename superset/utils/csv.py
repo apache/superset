@@ -115,6 +115,18 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
                 if isinstance(value, str):
                     df.at[label, name] = escape_value(value)
 
+    # Row labels and axis names are written out whenever the caller asks for the
+    # index, which both export paths do once post-processing has replaced the
+    # range index: pivot_table_v2 promotes the row dimension's warehouse values
+    # into index labels and the dimension name into ``index.name``. Escaping
+    # happens after the cell loop so the labels ``.at`` addresses stay the ones
+    # the frame was handed over with. ``rename`` applies the mapper to every
+    # level of a MultiIndex; the axis names are a separate attribute, hence the
+    # ``rename_axis``. This mirrors the four places
+    # ``superset.utils.excel.quote_formulas`` covers for the xlsx writer.
+    df = df.rename(index=escape_values)
+    df = df.rename_axis(index=escape_values, columns=escape_values)
+
     return df.to_csv(escapechar="\\", **kwargs)
 
 

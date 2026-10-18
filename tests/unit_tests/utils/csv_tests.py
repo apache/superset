@@ -292,6 +292,63 @@ def test_df_to_escaped_csv_non_default_index():
     assert rows[2] == ["girl Mary", "safe"]
 
 
+def test_df_to_escaped_csv_escapes_index_labels():
+    """
+    Formulas in row labels are escaped too, not just cells and headers.
+
+    Pivot post-processing promotes the row dimension's values into the index,
+    and both export paths write the index out once it is no longer a
+    RangeIndex, so a hostile warehouse string can reach the first column of
+    the file.
+    """
+    df = pd.DataFrame(
+        data={"SUM(num)": [10.0, 20.0]},
+        index=pd.Index(['=cmd|" /C calc"!A0', "safe"], name="dim"),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    assert rows[1].startswith("\"'=cmd")
+    assert rows[2].startswith("safe,")
+    # The caller's frame is left alone.
+    assert df.index.tolist() == ['=cmd|" /C calc"!A0', "safe"]
+
+
+def test_df_to_escaped_csv_escapes_multiindex_labels_and_axis_names():
+    """
+    Every level of a MultiIndex is escaped, and so are the axis *names*.
+
+    Axis names are a separate attribute from the labels, so ``rename`` alone
+    leaves them untouched while pandas still writes them out as header cells.
+    A pivoted group-by puts a warehouse-controlled column name there.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("a", '=cmd|" /C calc"!A0'), ("b", "safe")],
+            names=["level", "+name"],
+        ),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    # Header row carries the escaped axis name.
+    assert rows[0] == "level,'+name,v"
+    # The inner level label is escaped, pipes included.
+    assert "'=cmd" in rows[1]
+    assert rows[2].endswith("safe,2")
+
+
+def test_df_to_escaped_csv_leaves_safe_index_alone():
+    """
+    A numeric index and a negative numeric label are not escaped, so ordinary
+    exports are unchanged.
+    """
+    df = pd.DataFrame(data={"a": [1, 2]}, index=[-1, -2])
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=True) == ",a\n-1,1\n-2,2\n"
+
+
 def test_get_chart_dataframe_returns_none_when_no_content(
     monkeypatch: pytest.MonkeyPatch,
 ):
