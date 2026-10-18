@@ -72,6 +72,25 @@ VIRTUAL_TABLE_STRING_TYPES: dict[str, Pattern[str]] = {
     "sqlite": re.compile(r"^STRING$"),
 }
 
+ADHOC_JINJA_METRIC: dict[str, Any] = {
+    "label": "mine",
+    "expressionType": "SQL",
+    "sqlExpression": "COUNT(CASE WHEN user = '{{ current_username() }}' THEN 1 END)",
+}
+ADHOC_PLAIN_METRIC: dict[str, Any] = {
+    "label": "all",
+    "expressionType": "SQL",
+    "sqlExpression": "COUNT(*)",
+}
+ADHOC_JINJA_COLUMN: dict[str, Any] = {
+    "label": "is_mine",
+    "sqlExpression": "user = '{{ current_username() }}'",
+}
+ADHOC_PLAIN_COLUMN: dict[str, Any] = {
+    "label": "is_abc",
+    "sqlExpression": "user = 'abc'",
+}
+
 
 @pytest.mark.parametrize(
     "expression, expected_comment",
@@ -1071,6 +1090,53 @@ def test_extra_cache_keys_in_adhoc_metrics_and_columns(
         == has_extra_cache_keys
     )
     assert extra_cache_keys == expected_cache_keys
+
+
+@pytest.mark.usefixtures("app_context")
+@pytest.mark.parametrize(
+    "query_obj_fragment,has_extra_cache_keys",
+    [
+        ({"orderby": [[ADHOC_JINJA_METRIC, False]]}, True),
+        ({"orderby": [[ADHOC_PLAIN_METRIC, False]]}, False),
+        ({"series_limit_metric": ADHOC_JINJA_METRIC}, True),
+        ({"series_limit_metric": ADHOC_PLAIN_METRIC}, False),
+        ({"timeseries_limit_metric": ADHOC_JINJA_METRIC}, True),
+        ({"filter": [{"col": ADHOC_JINJA_COLUMN, "op": "==", "val": 1}]}, True),
+        ({"filter": [{"col": ADHOC_PLAIN_COLUMN, "op": "==", "val": 1}]}, False),
+        ({"filter": [{"col": "user", "op": "==", "val": 1}]}, False),
+    ],
+)
+def test_extra_cache_keys_in_orderby_series_limit_and_filter(
+    query_obj_fragment: dict[str, Any],
+    has_extra_cache_keys: bool,
+):
+    """
+    `get_sqla_query` renders `orderby` adhoc metrics, `series_limit_metric` and
+    adhoc filter columns through the template processor, so a macro in any of
+    them has to trigger the extra cache key extraction. Without that, two users
+    whose rendered SQL differs share one cache entry.
+    """
+    table = SqlaTable(
+        table_name="test_has_no_extra_cache_keys_table",
+        sql="SELECT 'abc' as user",
+        database=get_example_database(),
+    )
+    query_obj: dict[str, Any] = {
+        "granularity": None,
+        "from_dttm": None,
+        "to_dttm": None,
+        "groupby": [],
+        "metrics": [],
+        "columns": [],
+        "is_timeseries": False,
+        "filter": [],
+        **query_obj_fragment,
+    }
+
+    assert (
+        table.has_extra_cache_key_calls(cast(QueryObjectDict, query_obj))
+        == has_extra_cache_keys
+    )
 
 
 @pytest.mark.usefixtures("app_context")

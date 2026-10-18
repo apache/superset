@@ -2593,26 +2593,62 @@ class SqlaTable(
             templatable_statements.append(extras["where"])
         if "having" in extras:
             templatable_statements.append(extras["having"])
-        if columns := query_obj.get("columns"):
-            calculated_columns: dict[str, Any] = {
-                c.column_name: c.expression for c in self.columns if c.expression
-            }
-            for column_ in columns:
-                if utils.is_adhoc_column(column_):
-                    templatable_statements.append(column_["sqlExpression"])
-                elif isinstance(column_, str) and column_ in calculated_columns:
-                    templatable_statements.append(calculated_columns[column_])
-        if metrics := query_obj.get("metrics"):
-            metrics_by_name: dict[str, Any] = {
-                m.metric_name: m.expression for m in self.metrics
-            }
-            for metric in metrics:
-                if utils.is_adhoc_metric(metric) and (
-                    sql := metric.get("sqlExpression")
-                ):
+        calculated_columns: dict[str, Any] = {
+            c.column_name: c.expression for c in self.columns if c.expression
+        }
+        metrics_by_name: dict[str, Any] = {
+            m.metric_name: m.expression for m in self.metrics
+        }
+
+        def column_expression(column_: Any) -> Any:
+            """The templatable expression behind an adhoc or calculated column."""
+            if utils.is_adhoc_column(column_):
+                return column_["sqlExpression"]
+            if isinstance(column_, str):
+                return calculated_columns.get(column_)
+            return None
+
+        def metric_expression(metric: Any) -> Any:
+            """The templatable expression behind an adhoc or saved metric."""
+            if utils.is_adhoc_metric(metric):
+                return metric.get("sqlExpression")
+            if isinstance(metric, str):
+                return metrics_by_name.get(metric)
+            return None
+
+        for column_ in query_obj.get("columns") or []:
+            if expression := column_expression(column_):
+                templatable_statements.append(expression)
+        for metric in query_obj.get("metrics") or []:
+            if expression := metric_expression(metric):
+                templatable_statements.append(expression)
+        # ``get_sqla_query`` renders these through the same template processor as
+        # the columns and metrics above, so a macro in them must trigger the
+        # extraction too, otherwise two users whose rendered SQL differs share a
+        # cache key:
+        #   - an adhoc metric in ``orderby``, or an ``orderby`` entry naming a
+        #     saved metric or calculated column not selected by the query
+        #   - ``series_limit_metric`` (and its legacy ``timeseries_limit_metric``
+        #     alias), via ``_get_series_orderby``
+        #   - a filter whose ``col`` is an adhoc or calculated column
+        for order_by in query_obj.get("orderby") or []:
+            entry = order_by[0] if isinstance(order_by, (list, tuple)) else order_by
+            if isinstance(entry, dict):
+                if sql := entry.get("sqlExpression"):
                     templatable_statements.append(sql)
-                elif isinstance(metric, str) and metric in metrics_by_name:
-                    templatable_statements.append(metrics_by_name[metric])
+            elif expression := metric_expression(entry) or column_expression(entry):
+                templatable_statements.append(expression)
+        for limit_metric in (
+            query_obj.get("series_limit_metric"),
+            query_obj.get("timeseries_limit_metric"),
+        ):
+            if expression := metric_expression(limit_metric):
+                templatable_statements.append(expression)
+        for flt in query_obj.get("filter") or []:
+            if isinstance(flt, dict) and (
+                expression := column_expression(flt.get("col"))
+            ):
+                templatable_statements.append(expression)
         if self.is_rls_supported:
             templatable_statements += [
                 f.clause for f in security_manager.get_rls_filters(self)
