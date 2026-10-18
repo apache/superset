@@ -93,7 +93,9 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
   //    query, regardless of additivity -- every scope reduces its own
   //    original leaf records client-side, so there is nothing for the
   //    database to roll up in advance.
-  const additive = allMetricsClientAggregatable(ensureIsArray(formData.metrics));
+  const additive = allMetricsClientAggregatable(
+    ensureIsArray(formData.metrics),
+  );
   const resultAggregation = getResultAggregation(formData.aggregateFunction);
   const groupingSets =
     additive || resultAggregation
