@@ -467,6 +467,20 @@ unusable estimate also returns unavailable. Invalid rules, access failures, and
 database or network errors remain errors. Omitting `check_warning` preserves the
 manual estimator response.
 
+When you deliberately select **Run** (including Run selection or its keyboard
+shortcut), SQL Lab checks the captured request before execution. While checking,
+**Cancel** in the Run area prevents that attempt from executing; it does not
+forcibly cancel a database dry run. An estimate above the threshold offers
+**Cancel** and **Run anyway**. An unavailable estimate explains why and offers
+**Run without estimate**. Errors stop the attempt without executing it.
+
+Changing the SQL or selection, connection, catalog, schema, template parameters,
+effective limit, asynchronous execution setting, or locally loaded warning
+settings cancels a pending attempt. Switching editor tabs does too. Confirming
+runs the captured request once. Remote policy changes become visible when
+connection metadata is refreshed; the dialog does not detect them in advance.
+
+
 ### SQL Lab Tips
 
 **Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.

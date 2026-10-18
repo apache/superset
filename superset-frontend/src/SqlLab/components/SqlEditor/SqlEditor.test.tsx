@@ -42,7 +42,6 @@ import {
 import ResultSet from 'src/SqlLab/components/ResultSet';
 import { api } from 'src/hooks/apiResources/queryApi';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
-import { queryEditorSetSql } from 'src/SqlLab/actions/sqlLab';
 import type { Action, Middleware, Store } from 'redux';
 import SqlEditor, { Props } from '.';
 
@@ -207,23 +206,35 @@ describe('SqlEditor', () => {
   });
 
   test.each([
-    { bytes: [99], proceed: false, executions: 1, confirmation: false },
-    { bytes: [100], proceed: false, executions: 1, confirmation: false },
-    { bytes: [101], proceed: false, executions: 0, confirmation: true },
-    { bytes: [101], proceed: true, executions: 1, confirmation: true },
-    { bytes: [null], proceed: false, executions: 0, confirmation: true },
-    { bytes: [null], proceed: true, executions: 1, confirmation: true },
-    { bytes: [0], proceed: false, executions: 0, confirmation: true },
-    { bytes: [50, 200], proceed: false, executions: 0, confirmation: true },
+    { status: 'disabled', proceed: false, executions: 1 },
+    { status: 'unsupported', proceed: false, executions: 1 },
+    { status: 'within_threshold', proceed: false, executions: 1 },
+    { status: 'exceeded', proceed: false, executions: 0 },
+    { status: 'exceeded', proceed: true, executions: 1 },
+    { status: 'unavailable', proceed: false, executions: 0 },
+    { status: 'unavailable', proceed: true, executions: 1 },
   ])(
-    'pre-run estimate $bytes, confirmation $proceed submits $executions queries',
-    async ({ bytes, proceed, executions, confirmation }) => {
-      mockIsFeatureEnabled.mockImplementation(
-        flag => flag === FeatureFlag.EstimateQueryCost,
+    'pre-run $status, continue $proceed executes $executions queries',
+    async ({ status, proceed, executions }) => {
+      mockIsFeatureEnabled.mockImplementation(flag =>
+        [
+          FeatureFlag.EstimateQueryCost,
+          FeatureFlag.SqlLabQueryCostWarnings,
+        ].includes(flag),
       );
       fetchMock.post(
         'glob:*/api/v1/sqllab/estimate/',
-        { result: { estimate: [], bytes_processed: bytes } },
+        {
+          result: {
+            status,
+            metric: 'bytes_processed',
+            label: 'Estimated bytes processed',
+            unit: 'bytes',
+            value: status === 'unavailable' ? null : 101,
+            threshold: 100,
+            message: 'Estimate result',
+          },
+        },
         { name: 'pre-run-estimate' },
       );
       store = createStore({
@@ -234,139 +245,40 @@ describe('SqlEditor', () => {
             1991: {
               ...mockInitialState.sqlLab.databases[1991],
               id: 1991,
-              backend: 'bigquery',
               allows_cost_estimate: true,
-              cost_estimate_warning_threshold_bytes: 100,
+              query_cost_warning: {
+                enabled: true,
+                metric: 'bytes_processed',
+                threshold: 100,
+              },
             },
           },
         },
       });
       try {
-        const { findByTestId, findByRole, queryByRole } = setup(
-          mockedProps,
-          store,
-        );
+        const { findByTestId, findByRole } = setup(mockedProps, store);
         fireEvent.click(await findByTestId('run-query-action'));
-        await waitFor(() => {
-          expect(fetchMock.callHistory.called('pre-run-estimate')).toBe(true);
-        });
         await act(async () => {
           await fetchMock.callHistory.flush(true);
         });
-        if (confirmation) {
-          const decision = await findByRole('button', {
-            name: proceed ? 'Run anyway' : 'Cancel',
-          });
-          await act(async () => {
-            fireEvent.click(decision);
-          });
-        } else {
-          expect(queryByRole('dialog')).not.toBeInTheDocument();
+        if (status === 'exceeded' || status === 'unavailable') {
+          fireEvent.click(
+            await findByRole('button', {
+              name: proceed
+                ? status === 'exceeded'
+                  ? 'Run anyway'
+                  : 'Run without estimate'
+                : 'Cancel',
+            }),
+          );
         }
-        expect(
-          actions.filter(action => action.type === 'START_QUERY'),
-        ).toHaveLength(executions);
+        await waitFor(() =>
+          expect(
+            actions.filter(action => action.type === 'START_QUERY'),
+          ).toHaveLength(executions),
+        );
       } finally {
         fetchMock.removeRoute('pre-run-estimate');
-        mockIsFeatureEnabled.mockReset();
-      }
-    },
-  );
-
-  test.each([false, true])(
-    'pending estimate deduplicates clicks and discards changed SQL (%s)',
-    async changed => {
-      mockIsFeatureEnabled.mockImplementation(
-        flag => flag === FeatureFlag.EstimateQueryCost,
-      );
-      let finishEstimate: (value: {
-        result: { bytes_processed: number[] };
-      }) => void = () => {};
-      const response = new Promise<{ result: { bytes_processed: number[] } }>(
-        resolve => {
-          finishEstimate = resolve;
-        },
-      );
-      fetchMock.post('glob:*/api/v1/sqllab/estimate/', () => response, {
-        name: 'pending-estimate',
-      });
-      store = createStore({
-        ...mockInitialState,
-        sqlLab: {
-          ...mockInitialState.sqlLab,
-          databases: {
-            1991: {
-              ...mockInitialState.sqlLab.databases[1991],
-              id: 1991,
-              backend: 'bigquery',
-              allows_cost_estimate: true,
-              cost_estimate_warning_threshold_bytes: 100,
-            },
-          },
-          unsavedQueryEditor: {
-            ...mockInitialState.sqlLab.unsavedQueryEditor,
-            sql: 'SELECT 1',
-            catalog: 'project',
-            schema: 'dataset',
-            templateParams: '{"limit": 5}',
-          },
-        },
-      });
-      try {
-        const { findByTestId, findByRole, queryByRole } = setup(
-          mockedProps,
-          store,
-        );
-        const button = await findByTestId('run-query-action');
-        fireEvent.click(button);
-        fireEvent.click(button);
-        await waitFor(() => {
-          expect(fetchMock.callHistory.calls('pending-estimate')).toHaveLength(
-            1,
-          );
-        });
-        const body = JSON.parse(
-          String(
-            fetchMock.callHistory.calls('pending-estimate')[0].options.body,
-          ),
-        );
-        expect(body).toEqual({
-          database_id: 1991,
-          catalog: 'project',
-          schema: 'dataset',
-          sql: 'SELECT 1',
-          template_params: { limit: 5 },
-          include_raw: true,
-        });
-        expect(
-          actions.filter(action => action.type === 'START_QUERY'),
-        ).toHaveLength(0);
-        if (changed) {
-          act(() => {
-            store.dispatch(
-              queryEditorSetSql(mockedProps.queryEditor, 'SELECT 2'),
-            );
-          });
-        }
-        await act(async () => {
-          finishEstimate({ result: { bytes_processed: [101] } });
-          await fetchMock.callHistory.flush(true);
-        });
-        if (!changed) {
-          const continueButton = await findByRole('button', {
-            name: 'Run anyway',
-          });
-          await act(async () => {
-            fireEvent.click(continueButton);
-          });
-        } else {
-          expect(queryByRole('dialog')).not.toBeInTheDocument();
-        }
-        expect(
-          actions.filter(action => action.type === 'START_QUERY'),
-        ).toHaveLength(changed ? 0 : 1);
-      } finally {
-        fetchMock.removeRoute('pending-estimate');
         mockIsFeatureEnabled.mockReset();
       }
     },

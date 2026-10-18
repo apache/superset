@@ -39,6 +39,9 @@ export interface RunQueryActionButtonProps {
   runQuery: () => void;
   stopQuery: () => void;
   overlayCreateAsMenu: ReactElement | null;
+  checkingCost?: boolean;
+  cancelCostCheck?: () => void;
+  awaitingConfirmation?: boolean;
 }
 
 const buildTextAndIcon = (
@@ -66,7 +69,7 @@ const onClick = (
   isStopAction: boolean,
   runQuery: () => void = () => undefined,
   stopQuery = () => {},
-  logAction: (name: string, payload: Record<string, any>) => void,
+  logAction: (name: string, payload: Record<string, unknown>) => void,
 ): void => {
   const eventName = isStopAction
     ? LOG_ACTIONS_SQLLAB_STOP_QUERY
@@ -97,6 +100,9 @@ const RunQueryActionButton = ({
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
+  checkingCost = false,
+  cancelCostCheck,
+  awaitingConfirmation = false,
 }: RunQueryActionButtonProps) => {
   const theme = useTheme();
   const logAction = useLogAction({ queryEditorId });
@@ -110,14 +116,20 @@ const RunQueryActionButton = ({
   const shouldShowStopBtn =
     !!queryState && ['running', 'pending'].indexOf(queryState) > -1;
 
-  const ButtonComponent: FC<QueryButtonProps> = overlayCreateAsMenu
+  const showMenu =
+    overlayCreateAsMenu && !checkingCost && !awaitingConfirmation;
+  const ButtonComponent: FC<QueryButtonProps> = showMenu
     ? (DropdownButton as FC)
     : Button;
 
   const sqlContent = selectedText || sql || '';
-  const isDisabled = !sqlContent
-    ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
-    .trim();
+  const isDisabled =
+    !shouldShowStopBtn &&
+    (checkingCost ||
+      awaitingConfirmation ||
+      !sqlContent
+        ?.replace(/(\/\*[^*]*\*\/)|(\/\/[^*]*)|(--[^.].*)/gm, '')
+        .trim());
 
   const stopButtonTooltipText = useMemo(
     () =>
@@ -147,7 +159,7 @@ const RunQueryActionButton = ({
               : t('Run query (Ctrl + Return)'))) as string
         }
         cta
-        {...(overlayCreateAsMenu
+        {...(showMenu
           ? {
               popupRender: () => overlayCreateAsMenu,
               icon: (
@@ -168,9 +180,18 @@ const RunQueryActionButton = ({
               icon,
             })}
       >
-        {overlayCreateAsMenu && <>{icon}</>}
-        {text}
+        {showMenu && <>{icon}</>}
+        {checkingCost && !shouldShowStopBtn ? t('Checking cost…') : text}
       </ButtonComponent>
+      {checkingCost && (
+        <Button
+          buttonStyle="secondary"
+          onClick={cancelCostCheck}
+          tooltip={t('Cancel cost check')}
+        >
+          {t('Cancel')}
+        </Button>
+      )}
     </StyledButton>
   );
 };

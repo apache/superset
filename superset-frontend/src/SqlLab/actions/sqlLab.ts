@@ -565,6 +565,34 @@ export function runQuery(
   };
 }
 
+/** Capture the execution inputs shared by deliberate Run and its advisory check. */
+export function getSqlEditorQuery(
+  database: Database | null,
+  queryEditor: QueryEditor,
+  defaultQueryLimit: number,
+  tempTable?: string,
+  ctas?: boolean,
+  ctasMethod?: string,
+): Query {
+  return {
+    id: nanoid(11),
+    dbId: queryEditor.dbId,
+    sql: queryEditor.selectedText || queryEditor.sql,
+    sqlEditorId: queryEditor.tabViewId ?? queryEditor.id,
+    sqlEditorImmutableId: queryEditor.immutableId,
+    tab: queryEditor.name,
+    catalog: queryEditor.catalog,
+    schema: queryEditor.schema,
+    tempTable,
+    templateParams: queryEditor.templateParams,
+    queryLimit: queryEditor.queryLimit || defaultQueryLimit,
+    runAsync: database ? database.allow_run_async : false,
+    ctas,
+    ctas_method: ctasMethod,
+    updateTabState: !queryEditor.selectedText,
+  };
+}
+
 export function runQueryFromSqlEditor(
   database: Database | null,
   queryEditor: QueryEditor,
@@ -575,23 +603,14 @@ export function runQueryFromSqlEditor(
 ): SqlLabThunkAction {
   return function (dispatch: AppDispatch, getState: GetState) {
     const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
-    const query: Query = {
-      id: nanoid(11),
-      dbId: qe.dbId,
-      sql: qe.selectedText || qe.sql,
-      sqlEditorId: qe.tabViewId ?? qe.id,
-      sqlEditorImmutableId: qe.immutableId,
-      tab: qe.name,
-      catalog: qe.catalog,
-      schema: qe.schema,
+    const query = getSqlEditorQuery(
+      database,
+      qe,
+      defaultQueryLimit,
       tempTable,
-      templateParams: qe.templateParams,
-      queryLimit: qe.queryLimit || defaultQueryLimit,
-      runAsync: database ? database.allow_run_async : false,
       ctas,
-      ctas_method: ctasMethod,
-      updateTabState: !qe.selectedText,
-    };
+      ctasMethod,
+    );
     dispatch(runQuery(query));
   };
 }

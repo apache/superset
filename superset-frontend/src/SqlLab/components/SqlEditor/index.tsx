@@ -30,7 +30,7 @@ import {
 
 import type { editors } from '@apache-superset/core';
 import useEffectEvent from 'src/hooks/useEffectEvent';
-import { shallowEqual, useSelector, useStore } from 'react-redux';
+import { shallowEqual, useSelector } from 'react-redux';
 import { useAppDispatch } from 'src/SqlLab/hooks/useAppDispatch';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { t } from '@apache-superset/core/translation';
@@ -41,7 +41,6 @@ import {
   QueryResponse,
   Query,
   QueryState,
-  SupersetClient,
 } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
@@ -69,7 +68,6 @@ import {
   addNewQueryEditor,
   CtasEnum,
   estimateQueryCost,
-  getUpToDateQuery,
   persistEditorHeight,
   postStopQuery,
   queryEditorSetAutorun,
@@ -77,11 +75,9 @@ import {
   queryEditorSetCursorPosition,
   queryEditorSetAndSaveSql,
   queryEditorSetTemplateParams,
-  runQueryFromSqlEditor,
   saveQuery,
   addSavedQueryToTabState,
   scheduleQuery,
-  setActiveSouthPaneTab,
   updateSavedQuery,
   formatQuery,
   fetchQueryEditor,
@@ -125,6 +121,8 @@ import KeyboardShortcutButton, {
 } from '../KeyboardShortcutButton';
 import SqlEditorTopBar from '../SqlEditorTopBar';
 import SqlEditorLeftBar from '../SqlEditorLeftBar';
+import useQueryCostWarning from './useQueryCostWarning';
+import QueryCostWarningDialog from './QueryCostWarningDialog';
 
 const bootstrapData = getBootstrapData();
 const scheduledQueriesConf = bootstrapData?.common?.conf?.SCHEDULED_QUERIES;
@@ -243,16 +241,6 @@ const SqlEditor: FC<Props> = ({
 }) => {
   const theme = useTheme();
   const dispatch = useAppDispatch();
-  const store = useStore<SqlLabRootState>();
-  const [costWarningModal, costWarningContext] = Modal.useModal();
-  const estimatePending = useRef(false);
-  const mounted = useRef(true);
-  useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-    };
-  }, []);
 
   const {
     database,
@@ -311,125 +299,15 @@ const SqlEditor: FC<Props> = ({
   const successful = latestQuery?.state === QueryState.Success;
   const resultColumns = latestQuery?.results?.columns || [];
 
-  const executeQuery = useCallback(
+  const costWarning = useQueryCostWarning(queryEditor, defaultQueryLimit);
+  const startQuery = useCallback(
     (
       ctasArg = false,
       ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
-    ) => {
-      if (!database) return;
-      dispatch(
-        runQueryFromSqlEditor(
-          {
-            id: database.id,
-            allow_run_async: Boolean(database.allow_run_async),
-          },
-          queryEditor,
-          defaultQueryLimit,
-          ctasArg ? ctas : '',
-          ctasArg,
-          ctas_method,
-        ),
-      );
-      dispatch(setActiveSouthPaneTab('Results'));
-    },
-    [ctas, database, defaultQueryLimit, dispatch, queryEditor],
-  );
-
-  const startQuery = useCallback(
-    async (
-      ctasArg = false,
-      ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
-    ) => {
-      if (!database || estimatePending.current) {
-        return;
-      }
-
-      const warningThreshold = database.cost_estimate_warning_threshold_bytes;
-      if (
-        !ctasArg &&
-        isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
-        database.backend === 'bigquery' &&
-        database.allows_cost_estimate &&
-        typeof warningThreshold === 'number' &&
-        Number.isSafeInteger(warningThreshold) &&
-        warningThreshold >= 0
-      ) {
-        const getInputs = () => {
-          const qe = getUpToDateQuery(store.getState(), queryEditor);
-          return {
-            database_id: qe.dbId,
-            catalog: qe.catalog,
-            schema: qe.schema,
-            sql: qe.selectedText || qe.sql,
-            template_params: qe.templateParams || '{}',
-            query_limit: qe.queryLimit,
-          };
-        };
-        const inputs = getInputs();
-        const isCurrent = () =>
-          mounted.current &&
-          JSON.stringify(inputs) === JSON.stringify(getInputs());
-        estimatePending.current = true;
-        let estimatedBytes: unknown;
-        try {
-          const { json } = await SupersetClient.post({
-            endpoint: '/api/v1/sqllab/estimate/',
-            jsonPayload: {
-              database_id: inputs.database_id,
-              catalog: inputs.catalog,
-              schema: inputs.schema,
-              sql: inputs.sql,
-              template_params: JSON.parse(inputs.template_params),
-              include_raw: true,
-            },
-          });
-          const bytes: unknown = json.result?.bytes_processed;
-          estimatedBytes =
-            Array.isArray(bytes) && bytes.length === 1 ? bytes[0] : undefined;
-        } catch {
-          estimatedBytes = undefined;
-        }
-        try {
-          if (!isCurrent()) return;
-          let message = t(
-            'The query size could not be reliably estimated. Zero-byte estimates and unsupported statements may still process data.',
-          );
-          if (
-            typeof estimatedBytes === 'number' &&
-            Number.isSafeInteger(estimatedBytes) &&
-            estimatedBytes > 0
-          ) {
-            if (estimatedBytes <= warningThreshold) {
-              executeQuery(ctasArg, ctas_method);
-              return;
-            }
-            message = t(
-              'This query is estimated to process %(estimate)s bytes. The warning threshold is %(threshold)s bytes.',
-              {
-                estimate: estimatedBytes.toLocaleString(),
-                threshold: warningThreshold.toLocaleString(),
-              },
-            );
-          }
-          const confirmed = await costWarningModal.confirm({
-            title: t('Query cost warning'),
-            content: message,
-            okText: t('Run anyway'),
-            cancelText: t('Cancel'),
-            autoFocusButton: 'cancel',
-          });
-          if (confirmed && isCurrent()) {
-            executeQuery(ctasArg, ctas_method);
-          }
-        } finally {
-          estimatePending.current = false;
-        }
-        return;
-      }
-
-      executeQuery(ctasArg, ctas_method);
-    },
-    [costWarningModal, database, executeQuery, queryEditor, store],
+      automatic = false,
+    ) =>
+      costWarning.start(ctasArg ? ctas : '', ctasArg, ctas_method, automatic),
+    [costWarning.start, ctas],
   );
 
   const formatCurrentQuery = useCallback(
@@ -443,11 +321,12 @@ const SqlEditor: FC<Props> = ({
   );
 
   const stopQuery = useCallback(() => {
+    costWarning.cancel();
     if (latestQuery && ['running', 'pending'].indexOf(latestQuery.state) >= 0) {
       dispatch(postStopQuery(latestQuery));
     }
     return false;
-  }, [dispatch, latestQuery]);
+  }, [costWarning.cancel, dispatch, latestQuery]);
 
   const runQuery = () => {
     if (database) {
@@ -459,7 +338,7 @@ const SqlEditor: FC<Props> = ({
     if (autorun) {
       setAutorun(false);
       dispatch(queryEditorSetAutorun(queryEditor, false));
-      startQuery();
+      startQuery(false, CtasEnum.Table, true);
     }
   }, [autorun, dispatch, queryEditor, startQuery]);
 
@@ -671,6 +550,8 @@ const SqlEditor: FC<Props> = ({
             end,
           });
           startQuery();
+          // Keep the captured selection stable while a warning awaits a decision.
+          if (costWarning.hasPending()) return;
 
           // Clear selection and restore cursor position
           editor.setSelection({
@@ -700,7 +581,7 @@ const SqlEditor: FC<Props> = ({
     }
 
     return base;
-  }, [getHotkeyConfig, startQuery]);
+  }, [costWarning.hasPending, getHotkeyConfig, startQuery]);
 
   const onBeforeUnload = useEffectEvent(event => {
     if (
@@ -949,6 +830,9 @@ const SqlEditor: FC<Props> = ({
         <RunQueryActionButton
           queryEditorId={queryEditor.id}
           queryState={latestQuery?.state}
+          checkingCost={costWarning.checking}
+          cancelCostCheck={costWarning.cancel}
+          awaitingConfirmation={!!costWarning.confirmation}
           runQuery={runQuery}
           stopQuery={stopQuery}
           overlayCreateAsMenu={showMenu ? runMenuBtn : null}
@@ -1203,7 +1087,11 @@ const SqlEditor: FC<Props> = ({
         <span>{t('Name')}</span>
         <Input placeholder={createModalPlaceHolder} onChange={ctasChanged} />
       </Modal>
-      {costWarningContext}
+      <QueryCostWarningDialog
+        estimate={costWarning.confirmation}
+        onCancel={costWarning.cancel}
+        onContinue={costWarning.continueRun}
+      />
     </StyledSqlEditor>
   );
 };
