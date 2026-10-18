@@ -2056,3 +2056,68 @@ def test_expand_nested_columns_default_returns_input() -> None:
     ]
 
     assert BaseEngineSpec.expand_nested_columns(object(), columns) is columns
+
+
+@pytest.mark.parametrize(
+    "value",
+    [None, "1", True, False, -1, float("nan"), float("inf"), float("-inf"), {}, []],
+)
+def test_query_cost_warning_rejects_unusable_values(value: object) -> None:
+    """Unusable provider values cannot become an apparently safe zero."""
+    from superset.db_engine_specs.base import QueryCostEstimate
+
+    estimate = QueryCostEstimate.from_value(value)
+    assert estimate.value is None
+    assert estimate.compare(100) == "unavailable"
+
+
+@pytest.mark.parametrize(
+    "value,accuracy,expected",
+    [
+        (0, "PRECISE", "within_threshold"),
+        (99.5, "PRECISE", "within_threshold"),
+        (100, "PRECISE", "within_threshold"),
+        (100.01, "PRECISE", "above_threshold"),
+        (2**60 + 1, "PRECISE", "above_threshold"),
+        (101, "LOWER_BOUND", "above_threshold"),
+        (100, "LOWER_BOUND", "unavailable"),
+        (0, "LOWER_BOUND", "unavailable"),
+        (101, "UPPER_BOUND", "above_threshold"),
+        (100, "UPPER_BOUND", "within_threshold"),
+        (1000, "UNKNOWN", "unavailable"),
+        (1000, None, "unavailable"),
+    ],
+)
+def test_query_cost_warning_compares_raw_bounds(
+    value: int | float, accuracy: str | None, expected: str
+) -> None:
+    """Only useful bounds prove a threshold crossing or a within-threshold estimate."""
+    from superset.db_engine_specs.base import QueryCostEstimate
+
+    estimate = QueryCostEstimate.from_value(value, accuracy)
+    assert estimate.value == value
+    assert estimate.compare(100) == expected
+
+
+def test_query_cost_warning_masked_estimate_is_unavailable() -> None:
+    """Keep row-security information without interpreting masked usage as safe."""
+    from superset.db_engine_specs.base import QueryCostEstimate
+
+    estimate = QueryCostEstimate.from_value(0, "PRECISE", True)
+    assert estimate.row_level_security_applied is True
+    assert estimate.compare(100) == "unavailable"
+
+
+def test_query_cost_warning_unsupported_engine_does_not_estimate() -> None:
+    """Other engines do not inherit warning support from manual cost estimation."""
+    from unittest.mock import MagicMock
+
+    database = MagicMock()
+    assert BaseEngineSpec.get_public_information()["query_cost_warning_metric"] is None
+    assert (
+        BaseEngineSpec.estimate_query_cost_for_warning(
+            database, None, "", "SELECT 1"
+        ).compare(100)
+        == "unavailable"
+    )
+    database.get_raw_connection.assert_not_called()
