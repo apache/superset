@@ -2848,6 +2848,44 @@ def test_table_auto_currency_uses_per_row_currency_context() -> None:
     ]
 
 
+def test_table_small_number_format_resolves_auto_currency_per_row() -> None:
+    """
+    The browser hands the row's data to the small-number formatter as well, so a
+    value below one keeps the row's own currency symbol.
+    """
+    form_data = {
+        "viz_type": "table",
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ",.3f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [100.0, 0.5, 0.25, 0.75],
+            "currency": ["USD", " eur ", None, "invalid"],
+        }
+    )
+
+    formatted = table(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted["amount"].tolist() == [
+        "$ 100.00",
+        "€ 0.500",
+        "0.250",
+        "0.750",
+    ]
+
+
 def test_table_saved_auto_currency_uses_per_row_currency_context() -> None:
     datasource = MagicMock()
     datasource.data = {

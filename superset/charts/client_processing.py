@@ -874,7 +874,9 @@ def format_column(
     cell rather than per column, matching ``formatColumnValue``: a value below
     one in absolute value takes that format with the column config's own
     currency, exactly what ``getSmallNumberFormatter`` builds, and every other
-    value keeps the column's normal format.
+    value keeps the column's normal format. An AUTO currency resolves against
+    the row's context on both paths, since the browser passes the row data to
+    either formatter.
     """
     if d3_format or currency.get("symbol") or small_d3_format:
         if currency_context is None:
@@ -896,10 +898,24 @@ def format_column(
             return
 
         contexts = currency_context.reindex(df.index)
-        df[column] = [
-            format_number_with_config(small_d3_format, small_currency or {}, value)
-            if small_d3_format and is_small_number(value)
-            else format_number_with_config(
+
+        def format_with_context(value: Any, context: Any) -> Any:
+            if small_d3_format and is_small_number(value):
+                # ``formatValue`` hands the row's data to the small-number
+                # formatter too, so an AUTO currency there resolves against
+                # that row's contributing currencies. That formatter never
+                # sees the query-wide detection, hence no fallback to it.
+                return format_number_with_config(
+                    small_d3_format,
+                    resolve_auto_currency(
+                        small_currency or {},
+                        None,
+                        context,
+                        fallback_to_detected=False,
+                    ),
+                    value,
+                )
+            return format_number_with_config(
                 d3_format,
                 resolve_auto_currency(
                     currency,
@@ -909,6 +925,9 @@ def format_column(
                 ),
                 value,
             )
+
+        df[column] = [
+            format_with_context(value, context)
             for value, context in zip(df[column], contexts, strict=True)
         ]
 
