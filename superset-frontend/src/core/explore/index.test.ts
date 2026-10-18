@@ -99,12 +99,30 @@ test('getControlValues returns {} when Explore is not the active surface', () =>
   expect(explore.getControlValues()).toEqual({});
 });
 
-test('getControlValues returns a copy of the current form_data', () => {
-  const formData = { datasource: '1__table', viz_type: 'big_number' };
-  activateExplore({ form_data: formData });
-  const values = explore.getControlValues();
-  expect(values).toEqual(formData);
-  expect(values).not.toBe(formData);
+test('getControlValues returns the form data derived from the current controls', () => {
+  activateExplore({
+    controls: {
+      datasource: { value: '1__table' },
+      viz_type: { value: 'big_number' },
+    },
+  });
+  expect(explore.getControlValues()).toEqual({
+    datasource: '1__table',
+    viz_type: 'big_number',
+  });
+});
+
+test('getControlValues reflects controls that form_data has not caught up with', () => {
+  // e.g. chart-history restoration updates `controls` without `form_data`.
+  activateExplore({
+    form_data: { datasource: '1__table', viz_type: 'echarts_timeseries_bar' },
+    controls: {
+      datasource: { value: '1__table' },
+      viz_type: { value: 'big_number' },
+    },
+  });
+  expect(explore.getControlValues().viz_type).toBe('big_number');
+  expect(explore.getControlValue('viz_type')).toBe('big_number');
 });
 
 test('getControlValue returns undefined when Explore is not the active surface', () => {
@@ -113,7 +131,10 @@ test('getControlValue returns undefined when Explore is not the active surface',
 
 test("getControlValue returns a single control's current value", () => {
   activateExplore({
-    form_data: { datasource: '1__table', viz_type: 'big_number' },
+    controls: {
+      datasource: { value: '1__table' },
+      viz_type: { value: 'big_number' },
+    },
   });
   expect(explore.getControlValue('viz_type')).toBe('big_number');
   expect(explore.getControlValue('nonexistent')).toBeUndefined();

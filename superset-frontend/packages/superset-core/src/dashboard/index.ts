@@ -270,7 +270,9 @@ export interface FilterValueUpdate {
   filterId: string;
 
   /**
-   * The new query-modifying payload to apply.
+   * The new query-modifying payload to apply. Charts are queried with this,
+   * not `filterState`, so a value change that should narrow chart data must
+   * supply the matching `extraFormData` alongside its `filterState`.
    */
   extraFormData?: Record<string, unknown>;
 
@@ -292,7 +294,11 @@ export interface FilterValueUpdate {
  * @example
  * ```typescript
  * await dashboard.updateFilters([
- *   { filterId: 'NATIVE_FILTER-abc123', filterState: { value: ['US'] } },
+ *   {
+ *     filterId: 'NATIVE_FILTER-abc123',
+ *     filterState: { value: ['US'] },
+ *     extraFormData: { filters: [{ col: 'country', op: 'IN', val: ['US'] }] },
+ *   },
  * ]);
  * ```
  */
@@ -312,10 +318,12 @@ export declare function updateFilters(
  *
  * @param chartId The chart's ID. Use `getLayout()` to find chart IDs on
  * this dashboard — each `CHART`-type node's `meta.chartId`.
- * @returns Promise that resolves once the chart has been re-queried and
- * re-rendered with its latest saved configuration.
- * @throws If no dashboard is active, the chart isn't on this dashboard, or
- * its configuration couldn't be retrieved.
+ * @returns Promise that resolves once the chart has been re-queried with its
+ * latest saved configuration. A chart that is off-screen (virtualized) is
+ * re-queried but not re-rendered until it scrolls into view.
+ * @throws If no dashboard is active, the chart isn't on this dashboard, its
+ * configuration couldn't be retrieved, or the user navigates away or the
+ * chart is removed before the refresh completes.
  *
  * @example
  * ```typescript

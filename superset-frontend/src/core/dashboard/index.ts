@@ -69,6 +69,13 @@ const isDashboardActive = (): boolean => {
   return id != null && (String(id) === idOrSlug || slug === idOrSlug);
 };
 
+// True only while the dashboard identified by `dashboardId` is still the one
+// on screen. An async API call captures its dashboard's id up front and
+// rechecks it after each await, so a navigation that completes in between
+// can't have a stale response applied to the dashboard now being shown.
+const isStillActiveDashboard = (dashboardId: number): boolean =>
+  isDashboardActive() && getState().dashboardInfo.id === dashboardId;
+
 const requireDashboardId = (): number => {
   const { id } = getState().dashboardInfo;
   if (!isDashboardActive() || id == null) {
@@ -175,7 +182,6 @@ const saveFilters: typeof dashboardApi.saveFilters = async (
 ) => {
   const dashboardId = requireDashboardId();
   const { filters: currentFilters } = getState().nativeFilters;
-  const { dataMask: currentDataMask } = getState();
 
   const modified = updates.map(
     ({ filterId, name, targets, defaultDataMask }) => {
@@ -207,6 +213,16 @@ const saveFilters: typeof dashboardApi.saveFilters = async (
     endpoint: `/api/v1/dashboard/${dashboardId}/filters`,
   });
   const response = await putFilters(filterChanges);
+
+  // The save is already persisted, but the navigation that completed while
+  // it was in flight means the local state now belongs to another dashboard,
+  // which must not receive this one's saved filters.
+  if (!isStillActiveDashboard(dashboardId)) return;
+
+  // Snapshot the live filter values only now, immediately before they are
+  // reset below, so a value the user changed while the request was pending
+  // isn't reverted to a stale one.
+  const { dataMask: currentDataMask } = getState();
   applySavedFilterChanges(
     store.dispatch,
     filterChanges,
@@ -218,7 +234,7 @@ const saveFilters: typeof dashboardApi.saveFilters = async (
   // filterState back to its default unless the filter is required or
   // defaultToFirstItem (see updateDataMaskForFilterChanges), even for an
   // update that never touched the filter's value (e.g. a rename). Restore
-  // whatever was live immediately before this save for any filter whose
+  // whatever was live immediately before that reset for any filter whose
   // update didn't explicitly set a new one.
   updates.forEach(({ filterId, defaultDataMask }) => {
     if (defaultDataMask !== undefined) return;
@@ -233,23 +249,50 @@ const saveFilters: typeof dashboardApi.saveFilters = async (
   });
 };
 
-// TRIGGER_QUERY synchronously sets chartStatus to 'loading'; the mounted
-// Chart component then re-queries and re-renders it, landing on one of
-// these terminal statuses (see chartReducer.ts).
+// TRIGGER_QUERY synchronously sets chartStatus to 'loading'; the chart then
+// re-queries and lands on one of these statuses (see chartReducer.ts).
+// 'success' is included because a virtualized chart below the fold finishes
+// its query without ever mounting ChartRenderer, so it never advances to
+// 'rendered'.
 const isTerminalChartStatus = (status: string | null | undefined): boolean =>
-  status === 'rendered' || status === 'failed' || status === 'stopped';
+  status === 'success' ||
+  status === 'rendered' ||
+  status === 'failed' ||
+  status === 'stopped';
 
-const waitForChartRefresh = (chartId: number): Promise<void> =>
-  new Promise(resolve => {
-    if (isTerminalChartStatus(getState().charts[chartId]?.chartStatus)) {
-      resolve();
-      return;
-    }
-    const unsubscribe = store.subscribe(() => {
-      if (isTerminalChartStatus(getState().charts[chartId]?.chartStatus)) {
-        unsubscribe();
-        resolve();
+const waitForChartRefresh = (
+  chartId: number,
+  dashboardId: number,
+): Promise<void> =>
+  new Promise((resolve, reject) => {
+    // Returns true once the wait is settled, either way.
+    const settle = (): boolean => {
+      if (!isStillActiveDashboard(dashboardId)) {
+        reject(
+          new Error(
+            `The dashboard changed before chart ${chartId} finished refreshing`,
+          ),
+        );
+        return true;
       }
+      const chart = getState().charts[chartId];
+      if (!chart) {
+        reject(
+          new Error(
+            `Chart ${chartId} was removed before it finished refreshing`,
+          ),
+        );
+        return true;
+      }
+      if (isTerminalChartStatus(chart.chartStatus)) {
+        resolve();
+        return true;
+      }
+      return false;
+    };
+    if (settle()) return;
+    const unsubscribe = store.subscribe(() => {
+      if (settle()) unsubscribe();
     });
   });
 
@@ -270,6 +313,14 @@ const refreshChart: typeof dashboardApi.refreshChart = async (
   if (!chartEntity?.form_data) {
     throw new Error(`Could not load chart ${chartId}'s current configuration`);
   }
+  // The fetched configuration belongs to the dashboard the request started
+  // on; applying it after a navigation would overwrite a chart that merely
+  // shares this chart's id on the dashboard now being shown.
+  if (!isStillActiveDashboard(dashboardId)) {
+    throw new Error(
+      `The dashboard changed before chart ${chartId} finished refreshing`,
+    );
+  }
 
   const formData = applyDefaultFormData({
     ...chartEntity.form_data,
@@ -286,7 +337,7 @@ const refreshChart: typeof dashboardApi.refreshChart = async (
   invalidateChartFormDataCache(chartId);
   store.dispatch(setChartFormData(formData, chartId));
   store.dispatch(triggerQuery(true, chartId));
-  await waitForChartRefresh(chartId);
+  await waitForChartRefresh(chartId, dashboardId);
 };
 
 export const dashboard: typeof dashboardApi = {

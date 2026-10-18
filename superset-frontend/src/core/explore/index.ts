@@ -35,31 +35,30 @@ const getExploreState = () => (store.getState() as RootState).explore;
 // over from before the user navigated to another page.
 const isExploreActive = (): boolean => navigation.getPage() === 'explore';
 
+// Every read here derives from the current `controls` state (see
+// ExploreViewContainer's mapStateToProps), not the pre-normalization
+// `form_data` slice, which can lag behind — e.g. after chart-history
+// restoration updates `controls` alone, or for controls filled in by defaults.
+// Sharing getVisibleFormDataFromControls with mapStateToProps keeps the
+// getters and getQuery()/getChartData() describing the same data as the chart
+// on screen.
+const getCurrentFormData = (): QueryFormData => {
+  const { controls, hiddenFormData } = getExploreState();
+  return getVisibleFormDataFromControls(controls ?? {}, hiddenFormData);
+};
+
 const getChartId: typeof exploreApi.getChartId = () =>
   isExploreActive()
     ? (getExploreState().slice?.slice_id ?? undefined)
     : undefined;
 
 const getControlValues: typeof exploreApi.getControlValues = () =>
-  isExploreActive()
-    ? { ...(getExploreState().form_data as Record<string, unknown>) }
-    : {};
+  isExploreActive() ? { ...getCurrentFormData() } : {};
 
 const getControlValue: typeof exploreApi.getControlValue = (name: string) =>
   isExploreActive()
-    ? (getExploreState().form_data as Record<string, unknown>)[name]
+    ? (getCurrentFormData() as Record<string, unknown>)[name]
     : undefined;
-
-// Explore queries with the form data derived from the current `controls`
-// state (see ExploreViewContainer's mapStateToProps), not the pre-normalization
-// `form_data` slice, which can lag behind controls filled in by defaults or by
-// mapStateToProps. Sharing getVisibleFormDataFromControls with
-// mapStateToProps keeps getQuery()/getChartData() describing the same data
-// as the chart on screen.
-const getCurrentFormData = (): QueryFormData => {
-  const { controls, hiddenFormData } = getExploreState();
-  return getVisibleFormDataFromControls(controls ?? {}, hiddenFormData);
-};
 
 // Mirrors the currently-applied server-side state (e.g. a Table chart's
 // current page) that Explore keeps in `dataMask` rather than `form_data`, so

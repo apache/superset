@@ -533,6 +533,91 @@ test('refreshChart waits for the chart to reach a terminal status before resolvi
   expect(unsubscribe).toHaveBeenCalled();
 });
 
+test('refreshChart resolves for a virtualized chart whose query succeeds without rendering', async () => {
+  const charts: Record<number, { id: number; chartStatus?: string }> = {
+    123: { id: 123, chartStatus: 'loading' },
+  };
+  activateDashboard({ charts });
+  mockClientGet.mockResolvedValue({
+    json: { result: [{ id: 123, form_data: { slice_id: 123 } }] },
+  });
+  mockStoreSubscribe.mockImplementation(listener => {
+    queueMicrotask(() => {
+      charts[123].chartStatus = 'success';
+      listener();
+    });
+    return jest.fn();
+  });
+
+  await expect(dashboard.refreshChart(123)).resolves.toBeUndefined();
+});
+
+test('refreshChart rejects and unsubscribes when the chart is removed mid-refresh', async () => {
+  const charts: Record<number, { id: number; chartStatus?: string }> = {
+    123: { id: 123, chartStatus: 'loading' },
+  };
+  activateDashboard({ charts });
+  mockClientGet.mockResolvedValue({
+    json: { result: [{ id: 123, form_data: { slice_id: 123 } }] },
+  });
+  const unsubscribe = jest.fn();
+  mockStoreSubscribe.mockImplementation(listener => {
+    queueMicrotask(() => {
+      delete charts[123];
+      listener();
+    });
+    return unsubscribe;
+  });
+
+  await expect(dashboard.refreshChart(123)).rejects.toThrow(
+    'Chart 123 was removed before it finished refreshing',
+  );
+  expect(unsubscribe).toHaveBeenCalled();
+});
+
+test('refreshChart rejects and unsubscribes when the user navigates away mid-refresh', async () => {
+  const charts: Record<number, { id: number; chartStatus?: string }> = {
+    123: { id: 123, chartStatus: 'loading' },
+  };
+  activateDashboard({ charts });
+  mockClientGet.mockResolvedValue({
+    json: { result: [{ id: 123, form_data: { slice_id: 123 } }] },
+  });
+  const unsubscribe = jest.fn();
+  mockStoreSubscribe.mockImplementation(listener => {
+    queueMicrotask(() => {
+      mockGetPage.mockReturnValue('home');
+      listener();
+    });
+    return unsubscribe;
+  });
+
+  await expect(dashboard.refreshChart(123)).rejects.toThrow(
+    'The dashboard changed before chart 123 finished refreshing',
+  );
+  expect(unsubscribe).toHaveBeenCalled();
+});
+
+test('refreshChart does not apply a fetched configuration after navigating to another dashboard', async () => {
+  activateDashboard({ charts: { 123: { id: 123, chartStatus: 'rendered' } } });
+  let resolveGet: (value: unknown) => void = () => {};
+  mockClientGet.mockReturnValue(new Promise(resolve => (resolveGet = resolve)));
+
+  const pending = dashboard.refreshChart(123);
+  activateDashboard({
+    dashboardInfo: { id: 8, css: '' },
+    charts: { 123: { id: 123, chartStatus: 'rendered' } },
+  });
+  resolveGet({
+    json: { result: [{ id: 123, form_data: { slice_id: 123 } }] },
+  });
+
+  await expect(pending).rejects.toThrow(
+    'The dashboard changed before chart 123 finished refreshing',
+  );
+  expect(mockDispatch).not.toHaveBeenCalled();
+});
+
 test('saveFilters throws when the dashboard is not active', async () => {
   await expect(
     dashboard.saveFilters([{ filterId: 'NATIVE_FILTER-1', name: 'EMEA' }]),
@@ -623,6 +708,57 @@ test('saveFilters restores a filter’s live value after a save that only change
     extraFormData: { filters: [{ col: 'region', op: 'IN', val: ['US'] }] },
     filterState: { value: ['US'] },
   });
+});
+
+test('saveFilters restores the live value as of the response, not as of the call', async () => {
+  const state = {
+    dashboardInfo: { id: 7, css: '' },
+    dashboardLayout: { present: {} },
+    dashboardState: { activeTabs: [] },
+    nativeFilters: { filters: { 'NATIVE_FILTER-1': existingFilter } },
+    dataMask: {
+      'NATIVE_FILTER-1': { filterState: { value: ['US'] } },
+    } as Record<string, unknown>,
+    charts: {},
+  };
+  activateDashboard(state);
+  let resolveRequest: (value: unknown) => void = () => {};
+  mockMakeApi.mockReturnValue(
+    jest.fn(() => new Promise(resolve => (resolveRequest = resolve))),
+  );
+
+  const pending = dashboard.saveFilters([
+    { filterId: 'NATIVE_FILTER-1', name: 'EMEA' },
+  ]);
+  // The user changes the filter while the request is in flight.
+  state.dataMask['NATIVE_FILTER-1'] = { filterState: { value: ['CA'] } };
+  resolveRequest({ result: [{ ...existingFilter, name: 'EMEA' }] });
+  await pending;
+
+  expect(updateDataMask).toHaveBeenCalledWith('NATIVE_FILTER-1', {
+    extraFormData: undefined,
+    filterState: { value: ['CA'] },
+  });
+});
+
+test('saveFilters does not apply the response after navigating to another dashboard', async () => {
+  activateDashboard({
+    nativeFilters: { filters: { 'NATIVE_FILTER-1': existingFilter } },
+  });
+  let resolveRequest: (value: unknown) => void = () => {};
+  mockMakeApi.mockReturnValue(
+    jest.fn(() => new Promise(resolve => (resolveRequest = resolve))),
+  );
+
+  const pending = dashboard.saveFilters([
+    { filterId: 'NATIVE_FILTER-1', name: 'EMEA' },
+  ]);
+  activateDashboard({ dashboardInfo: { id: 8, css: '' } });
+  resolveRequest({ result: [{ ...existingFilter, name: 'EMEA' }] });
+  await pending;
+
+  expect(mockApplySavedFilterChanges).not.toHaveBeenCalled();
+  expect(updateDataMask).not.toHaveBeenCalled();
 });
 
 test('saveFilters does not restore a live value when the update explicitly sets a new default', async () => {
