@@ -20,16 +20,21 @@ under the License.
 # Pivot result aggregation exports
 
 Pivot Table result aggregation summarizes the grouped metric values returned by
-the chart query. For example, with grouped values 1, 9, 20 and 100, choosing
-**Median** produces a grand summary of 14.5. It does not calculate the median
+the chart query. For example, with grouped values 1, 9, 20 and 100, a saved
+**Median** aggregation produces a grand summary of 14.5. It does not calculate the median
 of intermediate subtotals. Query filters and row limits apply before this step.
 
-## Configure the export
+## Saved aggregation settings
 
-Select a result aggregation in the Pivot Table chart, then save the chart for
-scheduled reports or download its pivoted CSV or Excel output. **Metric** keeps
-the metric-definition behavior; choices such as **Sum**, **Average** and
-**Median** apply a second aggregation to the returned grouped results.
+The chart control panel exposes **Show values as**, but does not expose a
+result-aggregation selector. This export behavior applies to charts whose saved
+configuration already contains an `aggregateFunction`, for example from a
+version with an aggregation selector. This page does not describe a new control
+available in the chart editor.
+
+A missing, unrecognized or **Metric** setting keeps metric-definition behavior.
+Saved settings such as **Sum**, **Average** and **Median** apply a second
+aggregation to the returned grouped results.
 
 Row and column subtotals can be enabled independently of grand totals. A shared
 total combining different metrics is blank because those metrics do not have a
@@ -41,7 +46,8 @@ or the table is transposed.
 **Sum as Fraction of Total**, **Rows** or **Columns**, and the corresponding
 **Count** choices, use only their own metric in the denominator. Result
 aggregation takes precedence over the separate **Show values as** setting.
-Use **Metric** to apply that setting to database-computed metric values.
+Without a saved result aggregation, that setting applies to database-computed
+metric values.
 
 Formatted results display fractions as percentages, including when a metric has
 a currency override. CSV exports retain raw numeric ratios. Excel fractions

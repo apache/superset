@@ -5097,3 +5097,71 @@ def test_result_single_observation_statistic(aggregate: str) -> None:
     )
     assert result.loc[("a",), ("sales",)] == 0
     assert result.loc[("b",), ("sales",)] == 0
+
+
+@pytest.mark.parametrize("aggregate", [None, "Metric", "unknown", "Sum"])
+@pytest.mark.parametrize(
+    "labels", [[1, 2], pd.to_datetime(["2026-01-01", "2026-01-02"])]
+)
+def test_auto_currency_index_matches_metric_values(
+    aggregate: str | None, labels: Any
+) -> None:
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    form: dict[str, Any] = {
+        "groupbyRows": ["id"],
+        "metrics": ["sales"],
+        "valueFormat": ",.2f",
+        "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+    }
+    if aggregate is not None:
+        form["aggregateFunction"] = aggregate
+    result = pivot_table_v2(
+        pd.DataFrame({"id": labels, "sales": [100, 200], "currency": ["USD", "EUR"]}),
+        form,
+        datasource,
+        detected_currency="GBP",
+    )
+    assert result.iloc[:, 0].tolist() == ["$ 100.00", "€ 200.00"]
+
+
+@pytest.mark.parametrize("layout", ["ROWS", "COLUMNS"])
+@pytest.mark.parametrize("combine", [True, False])
+@pytest.mark.parametrize("totals", [True, False])
+def test_datetime_result_summary_depth(
+    layout: str, combine: bool, totals: bool
+) -> None:
+    data = pd.DataFrame(
+        {
+            "group": ["A", "A"],
+            "date": pd.to_datetime(["2026-01-01", "2026-01-02"]),
+            "sales": [10, 20],
+        }
+    )
+    result = pivot_table_v2(
+        data,
+        {
+            "groupbyRows": ["date"] if layout == "ROWS" else ["group"],
+            "groupbyColumns": ["group"] if layout == "ROWS" else ["date"],
+            "metrics": ["sales"],
+            "aggregateFunction": "Sum",
+            "metricsLayout": layout,
+            "combineMetric": combine,
+            "rowTotals": totals,
+            "colTotals": totals,
+            "rowSubTotals": True,
+            "colSubTotals": True,
+        },
+        apply_number_format=False,
+    )
+    if layout == "ROWS":
+        result = result.T
+    total_columns = [c for c in result.columns if "Total (Sum)" in c]
+    assert bool(total_columns) == totals
+    if totals:
+        assert result.loc[("A",), total_columns[0]] == 30
+        assert result.iloc[-1, -1] == 30

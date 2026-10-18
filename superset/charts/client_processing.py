@@ -544,6 +544,12 @@ def _result_scope_key(
     return row_parts[:row_depth] + dimensions[:column_depth]
 
 
+def _summary_depth_key(label: Any) -> tuple[Any, ...]:
+    """Restore summary padding coerced to NaN/NaT by typed index levels."""
+    parts = label if isinstance(label, tuple) else (label,)
+    return tuple("" if pd.isna(part) else part for part in parts)
+
+
 def _apply_result_aggregation(  # noqa: C901
     frame: pd.DataFrame,
     source: pd.DataFrame,
@@ -596,8 +602,8 @@ def _apply_result_aggregation(  # noqa: C901
     }.get(old_fraction)
     for ri, row in enumerate(frame.index):
         for ci, column in enumerate(frame.columns):
-            rd = row_depths.get(row, len(rows))
-            cd = column_depths.get(column, len(columns))
+            rd = row_depths.get(_summary_depth_key(row), len(rows))
+            cd = column_depths.get(_summary_depth_key(column), len(columns))
             metric = _metric_of_column(column, metric_level)
             selected_metrics = (
                 [metric] if metric in metrics else list(dict.fromkeys(metrics))
@@ -642,6 +648,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     result_aggregation: bool = False,
     show_row_subtotals: Optional[bool] = None,
     show_column_subtotals: Optional[bool] = None,
+    preserve_dimension_types: bool = False,
 ) -> pd.DataFrame:
     percent_mode = (
         show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
@@ -765,7 +772,10 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
     # convert to a MultiIndex to simplify logic
     if not isinstance(df.index, pd.MultiIndex):
         df.index = pd.MultiIndex.from_tuples(
-            [(i if independent_summaries else str(i),) for i in df.index]
+            [
+                (i if result_aggregation or preserve_dimension_types else str(i),)
+                for i in df.index
+            ]
         )
     if not isinstance(df.columns, pd.MultiIndex):
         df.columns = pd.MultiIndex.from_tuples([(str(i),) for i in df.columns])
@@ -939,20 +949,20 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
             [
                 key
                 for key in df.index
-                if key not in row_prefix_depth
+                if _summary_depth_key(key) not in row_prefix_depth
                 or (
                     render_column_total
-                    if row_prefix_depth[key] == 0
+                    if row_prefix_depth[_summary_depth_key(key)] == 0
                     else show_row_subtotals is not False
                 )
             ],
             [
                 key
                 for key in df.columns
-                if key not in column_prefix_depth
+                if _summary_depth_key(key) not in column_prefix_depth
                 or (
                     render_row_total
-                    if column_prefix_depth[key] == 0
+                    if column_prefix_depth[_summary_depth_key(key)] == 0
                     and _metric_of_column(key, totals_metric_level) not in metrics
                     else show_column_subtotals is not False
                 )
@@ -1186,6 +1196,7 @@ def build_pivot_currency_context(
         **pivot_options,
         "aggfunc": CURRENCY_CONTEXT_AGGREGATION,
         "result_aggregation": False,
+        "preserve_dimension_types": pivot_options.get("result_aggregation", False),
         "metric_name_aggfunc": pivot_options["aggfunc"],
         # Cells here hold currency-code sets, not numbers, so a percent
         # transform would coerce them away.
