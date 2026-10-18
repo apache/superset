@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-18 18:27-0400\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -1396,6 +1396,16 @@ msgstr "Un set di dati riutilizzabile verrà salvato con il grafico."
 msgid "A rule with this name already exists."
 msgstr ""
 
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
+"A semantic view's provider query is produced when the chart runs and "
+"returned with its data."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -2394,6 +2404,9 @@ msgstr "Errore"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Un alert chiamato \"%(name)s\" esiste già"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -2692,9 +2705,6 @@ msgstr "Si è verificato un errore durante l'analisi della chiave."
 
 msgid "An error occurred while pruning logs "
 msgstr "Si è verificato un errore durante l'eliminazione dei log "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Si è verificato un errore nell'aggiornare lo schema di configurazione"
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -3831,6 +3841,9 @@ msgstr "Per chiave: utilizza i nomi delle righe come chiave di ordinamento"
 msgid "By value: use metric values as sorting key"
 msgstr "Per valore: utilizza i valori metrici come chiave di ordinamento"
 
+msgid "Bytes"
+msgstr ""
+
 msgid "CC recipients"
 msgstr "destinatari CC"
 
@@ -3941,6 +3954,9 @@ msgstr "La query CVAS (create view as select) non è un'istruzione SELECT."
 msgid "Cache Timeout (seconds)"
 msgstr "Timeout cache (secondi)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid ""
@@ -4018,6 +4034,9 @@ msgstr "Annulla"
 
 msgid "Cancel Task"
 msgstr "Annulla Task"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Annulla query all'evento di unload della finestra"
@@ -4592,6 +4611,9 @@ msgstr "Seleziona per forzare le partizioni della data ad avere la stessa altezz
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
+msgid "Checking cost…"
+msgstr ""
+
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
@@ -5047,6 +5069,9 @@ msgstr "Collassa pannello dati"
 
 msgid "Collapse row"
 msgstr "Collassa riga"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Comprimi impostazioni"
@@ -5891,6 +5916,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Impossibile connettersi al database: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Non posso connettermi al server"
 
@@ -5922,6 +5951,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -5950,6 +5984,12 @@ msgstr "Conteggio"
 
 msgid "Country"
 msgstr "Nazione"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk,
@@ -7559,6 +7599,9 @@ msgstr "Disattiva il drill-to-dettaglio"
 msgid "Disable embedding?"
 msgstr "Disabilitare embedding?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Disabilitato"
 
@@ -8448,8 +8491,16 @@ msgstr "Abilita matrixify"
 msgid "Enable node dragging"
 msgstr "Abilita trascinamento nodi"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Abilita stima costo query"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Abilita espansione delle righe negli schemi"
@@ -8552,8 +8603,19 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Inserire una parte del nome oggetto"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Immettere il nome dell'avviso"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Immettere la durata in secondi"
@@ -8610,6 +8672,9 @@ msgid "Enter theme name"
 msgstr "Immettere il nome del tema"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -8821,6 +8886,20 @@ msgstr "Stima il costo della query selezionata"
 # uk, zh, zh_TW]
 msgid "Estimate the cost before running a query"
 msgstr "Stimare il costo prima di eseguire una query"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Evento"
@@ -9309,6 +9388,9 @@ msgstr "Impossibile caricare i dati del grafico."
 msgid "Failed to load columns for %s %s"
 msgstr "Errore nel caricare le colonne per %s %s"
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -9577,6 +9659,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtra grafici"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -9612,6 +9700,10 @@ msgstr "Valore filtro (case sensitive)"
 msgid "Filter value is required"
 msgstr "Valore del filtro obbligatorio"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "La lista valore filtro non può essere vuota"
 
@@ -9623,6 +9715,10 @@ msgstr "Controlli del filtro"
 
 msgid "Filters"
 msgstr "Filtri"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filtri e controlli"
@@ -9726,6 +9822,12 @@ msgid "Fit data"
 msgstr "Adatta ai dati"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings before saving."
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -10728,6 +10830,9 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Includi la descrizione da inviare con %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -10739,6 +10844,10 @@ msgstr "Includi il nome della serie come asse"
 # zh, zh_TW]
 msgid "Include time"
 msgstr "Includere il tempo"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Aumenta"
@@ -11100,6 +11209,9 @@ msgstr "Tipo di risultato non valido: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type non valido: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -11926,6 +12038,9 @@ msgstr "Dati caricati memorizzati nella cache"
 msgid "Loaded from cache"
 msgstr "Caricato dalla cache"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Caricamento"
 
@@ -12063,6 +12178,10 @@ msgstr ""
 "Limite inferiore della scala di colori. Quando sono impostati sia "
 "l'inizio che la fine, la legenda utilizza questo intervallo fisso invece "
 "dell'intervallo automatico dei dati."
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk, zh,
@@ -12782,6 +12901,9 @@ msgstr "Parametri URL mancanti"
 msgid "Mixed Chart"
 msgstr "Grafico misto"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Modificato"
 
@@ -13288,6 +13410,9 @@ msgstr ""
 "Nessun grafico deck.gl multistrato è attualmente aggiunto a questa "
 "dashboard."
 
+msgid "No provider query is available for this run."
+msgstr ""
+
 msgid "No records found"
 msgstr "Nessun record trovato"
 
@@ -13744,6 +13869,9 @@ msgstr "Una o più metriche da mostrare"
 # es, ja, lv, mi, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "One or more annotation layers failed loading."
 msgstr "Impossibile caricare uno o più livelli di annotazioni."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
@@ -14929,6 +15057,9 @@ msgstr "Posizione del totale parziale a livello di riga"
 msgid "Position of the data label relative to the data point"
 msgstr ""
 
+msgid "PostgreSQL's planner cost is relative, not dollars or memory."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14973,6 +15104,11 @@ msgid "Preparing dashboard Excel export…"
 msgstr ""
 
 msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -15152,6 +15288,12 @@ msgstr "Storia delle Query"
 
 msgid "Query State"
 msgstr "Stato query"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 msgid "Query data in SQL Lab"
 msgstr "Interroga i dati in SQL Lab"
@@ -15473,6 +15615,9 @@ msgstr "Ricarica"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Reload SQL Lab"
 msgstr "Ricarica SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -16248,6 +16393,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -16277,6 +16425,9 @@ msgstr "Esegui la query in una nuova scheda"
 
 msgid "Run selection"
 msgstr "Seleziona una colonna"
+
+msgid "Run without estimate"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16362,6 +16513,11 @@ msgstr ""
 # sr_Latn, tr, uk, zh, zh_TW]
 msgid "SQL Query"
 msgstr "Query SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Espressione SQL"
@@ -16602,6 +16758,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -17423,6 +17584,9 @@ msgstr "Vista semantica"
 msgid "Semantic Views"
 msgstr "Viste semantiche"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Livello semantico"
 
@@ -17449,6 +17613,16 @@ msgstr "Tipo di livello semantico"
 
 msgid "Semantic layer updated"
 msgstr "Livello semantico aggiornato"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Semantic view could not be created."
 msgstr "La vista semantica non può essere creata."
@@ -18056,6 +18230,9 @@ msgid "Show summary"
 msgstr "Mostra riepilogo"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 msgid "Show total"
@@ -18676,6 +18853,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -19523,6 +19705,10 @@ msgstr ""
 "nei filtri per intervallo di tempo nei dashboard. Desideri aggiungerlo "
 "all'elenco dei filtri?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -19858,6 +20044,17 @@ msgid ""
 msgstr ""
 "L'oggetto engine_params viene decompresso nella chiamata "
 "sqlalchemy.create_engine."
+
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
 
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "L'esponente da cui calcolare tutte le dimensioni. Solamente \"EXP\""
@@ -20362,6 +20559,9 @@ msgstr ""
 msgid "The provided table was not found in the provided database"
 msgstr "La tabella indicata non è stata trovata nel database indicato"
 
+msgid "The provider query will be available after the chart runs."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -20392,6 +20592,26 @@ msgid ""
 "The query context for chart ID %(chart_id)s (referenced by annotation "
 "layer '%(layer_name)s') was not found. Please ensure the chart is "
 "properly configured and has a valid query context."
+msgstr ""
+
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
 msgstr ""
 
 msgid "The query couldn't be loaded"
@@ -20540,6 +20760,14 @@ msgstr "È stato raggiunto il limite di righe impostato per il grafico. "
 msgid "The sample row limit was reached. This %s may contain more rows."
 msgstr ""
 
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -20591,6 +20819,26 @@ msgstr "È in corso la generazione dello screenshot. Non abbandonare la pagina."
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"
@@ -20819,6 +21067,9 @@ msgstr "La versione del servizio"
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "The visible title of the layer"
 msgstr "Il titolo visibile del livello"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21386,6 +21637,18 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -21601,6 +21864,11 @@ msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "Questo indirizzo email è già associato a un account. Sceglierne un altro."
+
+msgid ""
+"This engine does not support pre-run warnings. BigQuery and PostgreSQL "
+"are supported."
+msgstr ""
 
 #, python-format
 msgid "This export was requested on %(when)s UTC."
@@ -21858,6 +22126,19 @@ msgstr "Questa sezione contiene errori di convalida"
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk]
@@ -22013,6 +22294,9 @@ msgstr "Livello alfa di soglia per la determinazione della significatività"
 # lv, ro, ru, sr, sr_Latn, tr, uk]
 msgid "Threshold for Other"
 msgstr "Soglia per Altro"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "Soglia:"
@@ -22569,6 +22853,9 @@ msgstr "Martedì"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -22676,6 +22963,9 @@ msgstr ""
 # es, fa, fr, ja, lv, mi, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Unable to calculate such a date delta"
 msgstr "Impossibile calcolare tale delta di date"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -23475,6 +23765,9 @@ msgstr "Formato Valore"
 msgid "Value and Percentage"
 msgstr "Valore e percentuale"
 
+msgid "Value axis labels"
+msgstr ""
+
 msgid "Value bounds"
 msgstr "Limiti valore"
 
@@ -23861,6 +24154,24 @@ msgstr "Warehouse"
 msgid "Warning"
 msgstr "Avvertimento"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr, sr_Latn,
 # tr, uk, zh, zh_TW]
@@ -23885,6 +24196,12 @@ msgid ""
 msgstr ""
 "Avviso: le query ILIKE potrebbero essere lente su dataset di grandi "
 "dimensioni poiché non possono utilizzare gli indici in modo efficace."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -25589,6 +25906,9 @@ msgstr "pulsante (cmd + z) finché non salvi le modifiche."
 msgid "by using"
 msgstr "utilizzando"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -26191,6 +26511,9 @@ msgstr "locale_key"
 msgid "log"
 msgstr "tronco d'albero"
 
+msgid "lower bound"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -26399,6 +26722,9 @@ msgstr ""
 # zh_TW]
 msgid "pixels"
 msgstr "pixel"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "precedente mese di calendario"
@@ -26654,6 +26980,9 @@ msgstr "reimposta"
 msgid "updated"
 msgstr "aggiornato"
 
+msgid "upper bound"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -26760,14 +27089,3 @@ msgstr[1] ""
 # sr_Latn]
 msgid "№"
 msgstr "№"
-
-msgid ""
-"A semantic view's provider query is produced when the chart runs and "
-"returned with its data."
-msgstr ""
-
-msgid "No provider query is available for this run."
-msgstr ""
-
-msgid "The provider query will be available after the chart runs."
-msgstr ""

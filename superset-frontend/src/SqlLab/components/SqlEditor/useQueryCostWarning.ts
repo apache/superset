@@ -44,9 +44,9 @@ export type WarningEstimate = {
   label: string;
   unit: string;
   value: number | bigint | null;
-  threshold: number;
+  threshold: number | bigint;
   message?: string;
-  accuracy?: string;
+  accuracy?: string | null;
 };
 type CheckResult = WarningEstimate | { status: 'disabled' | 'unsupported' };
 type Attempt = { query: Query; key: string; result?: WarningEstimate };
@@ -69,11 +69,13 @@ export function parseWarningResult(result: unknown): CheckResult {
     !value.label.trim() ||
     typeof value.unit !== 'string' ||
     !value.unit.trim() ||
-    typeof value.threshold !== 'number' ||
-    !Number.isFinite(value.threshold) ||
+    (typeof value.threshold !== 'number' &&
+      typeof value.threshold !== 'bigint') ||
+    (typeof value.threshold === 'number' &&
+      !Number.isFinite(value.threshold)) ||
     value.threshold <= 0 ||
     (value.message !== undefined && typeof value.message !== 'string') ||
-    (value.accuracy !== undefined && typeof value.accuracy !== 'string')
+    (value.accuracy != null && typeof value.accuracy !== 'string')
   )
     throw invalid();
   const usable =
@@ -82,9 +84,10 @@ export function parseWarningResult(result: unknown): CheckResult {
         (typeof value.value === 'number' &&
           Number.isSafeInteger(value.value) &&
           value.value >= 0)
-      : typeof value.value === 'number' &&
-        Number.isFinite(value.value) &&
-        value.value >= 0;
+      : (typeof value.value === 'bigint' && value.value >= BigInt(0)) ||
+        (typeof value.value === 'number' &&
+          Number.isFinite(value.value) &&
+          value.value >= 0);
   if (
     (!usable && !(value.status === 'unavailable' && value.value === null)) ||
     (value.metric === 'bytes_processed' &&

@@ -257,7 +257,10 @@ class TestSqlLabApi(SupersetTestCase):
 
         db_mock = mock.Mock()
         db_mock.db_engine_spec = mock.Mock()
-        db_mock.db_engine_spec.estimate_query_cost = mock.Mock(return_value=100)
+        estimate_response = [{"Total cost": 100}]
+        db_mock.db_engine_spec.estimate_query_cost = mock.Mock(
+            return_value=estimate_response
+        )
         db_mock.db_engine_spec.query_cost_formatter = mock.Mock(
             return_value=formatter_response
         )
@@ -278,6 +281,9 @@ class TestSqlLabApi(SupersetTestCase):
         resp_data = json.loads(rv.data.decode("utf-8"))
         self.assertDictEqual(resp_data, success_resp)  # noqa: PT009
         assert rv.status_code == 200
+        db_mock.db_engine_spec.query_cost_formatter.assert_called_once_with(
+            estimate_response
+        )
 
     def test_format_sql_request(self):
         self.login(ADMIN_USERNAME)

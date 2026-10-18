@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-18 18:27-0400\n"
 "PO-Revision-Date: 2025-06-27 12:56+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ca\n"
@@ -1171,6 +1171,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -2032,6 +2037,9 @@ msgstr "S'ha Produït un Error"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Ja existeix una alerta anomenada \"%(name)s\""
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2317,9 +2325,6 @@ msgstr "S'ha produït un error mentre s'analitzava la clau."
 
 msgid "An error occurred while pruning logs "
 msgstr "S'ha produït un error mentre es netejaven els registres "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -3259,6 +3264,9 @@ msgstr "Per clau: utilitzar noms de fila com a clau d'ordenació"
 msgid "By value: use metric values as sorting key"
 msgstr "Per valor: utilitzar valors de mètrica com a clau d'ordenació"
 
+msgid "Bytes"
+msgstr ""
+
 msgid "CC recipients"
 msgstr "Destinataris CC"
 
@@ -3356,6 +3364,9 @@ msgstr "La consulta CVAS (crear vista com a selecció) no és una declaració SE
 msgid "Cache Timeout (seconds)"
 msgstr "Temps d'Espera de la Memòria Cau (segons)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -3421,6 +3432,9 @@ msgstr "Cancel·lar"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Cancel·lar"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Cancel·lar consulta en l'esdeveniment de descàrrega de finestra"
@@ -3943,6 +3957,9 @@ msgstr "Marcar per forçar que les particions de data tinguin la mateixa alçada
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
+msgid "Checking cost…"
+msgstr ""
+
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
@@ -4308,6 +4325,9 @@ msgstr "Col·lapsar panell de dades"
 
 msgid "Collapse row"
 msgstr "Col·lapsar fila"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Replega la configuració"
@@ -4973,6 +4993,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "No s'ha pogut connectar a la base de dades: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "No s'han pogut recuperar tots els gràfics desats"
 
@@ -5002,6 +5026,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "No s'ha pogut resoldre el nom del servidor: \"%(host)s\"."
@@ -5025,6 +5054,12 @@ msgstr "Recompte"
 
 msgid "Country"
 msgstr "País"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Esquema de Colors de País"
@@ -6471,6 +6506,9 @@ msgstr "Desactivar exploració en detall"
 msgid "Disable embedding?"
 msgstr "Desactivar incrustació?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Desactivat"
 
@@ -7233,8 +7271,16 @@ msgstr "Activa matrixify"
 msgid "Enable node dragging"
 msgstr "Habilitar arrossegament de nodes"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Habilitar estimació de cost de consulta"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Habilitar expansió de files en esquemes"
@@ -7330,8 +7376,19 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Si omplir els objectes"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Introdueix nom de l'alerta"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Introdueix duració en segons"
@@ -7391,6 +7448,9 @@ msgid "Enter theme name"
 msgstr "Introdueix nom de l'alerta"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7558,6 +7618,20 @@ msgstr "Estimar cost de la consulta seleccionada"
 
 msgid "Estimate the cost before running a query"
 msgstr "Estimar el cost abans d'executar una consulta"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Esdeveniment"
@@ -7976,6 +8050,9 @@ msgstr "Ha fallat en carregar dades del gràfic."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8225,6 +8302,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrar gràfics"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "El filtre té valor per defecte"
 
@@ -8255,6 +8338,10 @@ msgstr "Valor del filtre (sensible a majúscules)"
 msgid "Filter value is required"
 msgstr "El valor del filtre és obligatori"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "La llista de valors del filtre no pot estar buida"
 
@@ -8266,6 +8353,10 @@ msgstr "Filtrar els teus gràfics"
 
 msgid "Filters"
 msgstr "Filtres"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -8350,6 +8441,12 @@ msgid "Fit data"
 msgstr "Ajustar a les dades"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings before saving."
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -9140,11 +9237,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Incloure descripció per enviar amb %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Incloure nom de sèrie com a eix"
 
 msgid "Include time"
 msgstr "Incloure temps"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Augment"
@@ -9425,6 +9529,9 @@ msgstr "Tipus de resultat invàlid: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Tipus de rolling invàlid: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Estat invàlid."
@@ -10086,6 +10193,9 @@ msgstr "Dades carregades en memòria cau"
 msgid "Loaded from cache"
 msgstr "Carregat des de memòria cau"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "Carregant..."
@@ -10200,6 +10310,10 @@ msgstr "Llindar Inferior"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10769,6 +10883,9 @@ msgstr "Falten paràmetres URL"
 
 msgid "Mixed Chart"
 msgstr "Gràfic Mixt"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Modificat"
@@ -11607,6 +11724,9 @@ msgstr "Una o moltes mètriques a mostrar"
 
 msgid "One or more annotation layers failed loading."
 msgstr "Una o més capes d'anotació van fallar en carregar."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Una o més columnes ja existeixen"
@@ -12522,6 +12642,9 @@ msgstr "Posició del subtotal a nivell de fila"
 msgid "Position of the data label relative to the data point"
 msgstr ""
 
+msgid "PostgreSQL's planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid "Powered by Apache Superset"
 msgstr "Impulsat per Apache Superset"
 
@@ -12554,6 +12677,11 @@ msgid "Preparing dashboard Excel export…"
 msgstr ""
 
 msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 msgid "Preview"
@@ -12704,6 +12832,12 @@ msgstr "Historial de Consultes"
 #, fuzzy
 msgid "Query State"
 msgstr "Consulta A"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 #, fuzzy
 msgid "Query data in SQL Lab"
@@ -12975,6 +13109,9 @@ msgstr "Recarregar"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Torna a carregar SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13615,6 +13752,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -13638,6 +13778,9 @@ msgstr "Executar consulta en una nova pestanya"
 
 msgid "Run selection"
 msgstr "Executar selecció"
+
+msgid "Run without estimate"
+msgstr ""
 
 msgid "Running"
 msgstr "Executant"
@@ -13703,6 +13846,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Consulta SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Expressió SQL"
@@ -13911,6 +14059,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -14677,6 +14830,9 @@ msgstr "Vista semàntica"
 msgid "Semantic Views"
 msgstr "Vistes semàntiques"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Capa d'anotació"
@@ -14712,6 +14868,16 @@ msgstr "Tipus de capa d'anotació"
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "Plantilla d'anotació actualitzada"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -15221,6 +15387,9 @@ msgid "Show summary"
 msgstr "Mostrar resum"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 msgid "Show total"
@@ -15753,6 +15922,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16477,6 +16651,10 @@ msgstr ""
 "            filtres de rang temporal als dashboards. Vols afegir-lo a la "
 "llista de filtres?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -16771,6 +16949,17 @@ msgid ""
 msgstr ""
 "L'objecte engine_params es desempaqueta a la crida "
 "sqlalchemy.create_engine."
+
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
 
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "L'exponent per calcular totes les mides. Només \"EXP\""
@@ -17188,6 +17377,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "La consulta no s'ha pogut carregar"
 
@@ -17307,6 +17516,14 @@ msgstr ""
 msgid "The sample row limit was reached. This %s may contain more rows."
 msgstr ""
 
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
+msgstr ""
+
 #, python-format
 msgid ""
 "The schema \"%(schema)s\" does not exist. A valid schema must be used to "
@@ -17350,6 +17567,26 @@ msgstr ""
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"
@@ -17547,6 +17784,9 @@ msgstr "La versió del servei"
 
 msgid "The visible title of the layer"
 msgstr "El títol visible de la capa"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "La manera com les marques estan disposades a l'eix X"
@@ -18036,6 +18276,18 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18199,6 +18451,11 @@ msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "Aquest correu electrònic ja està associat amb un compte."
+
+msgid ""
+"This engine does not support pre-run warnings. BigQuery and PostgreSQL "
+"are supported."
+msgstr ""
 
 #, python-format
 msgid "This export was requested on %(when)s UTC."
@@ -18435,6 +18692,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -18569,6 +18839,9 @@ msgstr "Nivell alfa del llindar per determinar significança"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "Llindar"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "Llindar: "
@@ -19006,6 +19279,9 @@ msgstr "Dimarts"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -19113,6 +19389,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "No es pot calcular aquest delta de data"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
@@ -19755,6 +20034,9 @@ msgstr "Format de Valor"
 msgid "Value and Percentage"
 msgstr "Valor i Percentatge"
 
+msgid "Value axis labels"
+msgstr ""
+
 msgid "Value bounds"
 msgstr "Límits de valor"
 
@@ -20072,6 +20354,24 @@ msgstr "Magatzem"
 msgid "Warning"
 msgstr "Avís"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Avís!"
 
@@ -20091,6 +20391,12 @@ msgid ""
 msgstr ""
 "Advertència: les consultes ILIKE poden ser lentes en conjunts de dades "
 "grans, ja que no poden utilitzar índexs de manera efectiva."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "No s'ha pogut comprovar la teva consulta"
@@ -21400,6 +21706,9 @@ msgstr "botó (cmd + z) fins que desis els teus canvis."
 msgid "by using"
 msgstr "usant"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -21869,6 +22178,9 @@ msgstr "Escala Logarítmica"
 msgid "log"
 msgstr "logarítmic"
 
+msgid "lower bound"
+msgstr ""
+
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22051,6 +22363,9 @@ msgstr "Pivotat"
 
 msgid "pixels"
 msgstr "píxels"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "mes del calendari anterior"
@@ -22263,6 +22578,9 @@ msgstr "no establert"
 
 msgid "updated"
 msgstr "actualitzat"
+
+msgid "upper bound"
+msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

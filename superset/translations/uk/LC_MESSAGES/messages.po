@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: ted.korostiled@gmail.com\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-18 18:27-0400\n"
 "PO-Revision-Date: 2026-04-30 22:04+0300\n"
 "Last-Translator: Danylo Korostil\n"
 "Language: uk\n"
@@ -1202,6 +1202,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -2025,6 +2030,9 @@ msgstr "Трапилась помилка"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "Оповіщення з назвою «%(name)s» вже існує"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2281,9 +2289,6 @@ msgstr "Не вдалося розібрати ключ."
 
 msgid "An error occurred while pruning logs "
 msgstr "Не вдалося очистити журнали "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -3153,6 +3158,9 @@ msgstr "За ключем: використовувати назви рядкі�
 msgid "By value: use metric values as sorting key"
 msgstr "За значенням: використовувати значення показників для сортування"
 
+msgid "Bytes"
+msgstr ""
+
 msgid "CC recipients"
 msgstr "Одержувачі в копії"
 
@@ -3248,6 +3256,9 @@ msgstr ""
 msgid "Cache Timeout (seconds)"
 msgstr "Тривалість кешу (у секундах)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -3307,6 +3318,9 @@ msgstr "Скасувати"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "Скасувати"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "Скасувати запит після закриття вкладки"
@@ -3798,6 +3812,9 @@ msgstr "Встановити однакову висоту для всіх пе�
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
+msgid "Checking cost…"
+msgstr ""
+
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
@@ -4129,6 +4146,9 @@ msgstr "Згорнути панель даних"
 
 msgid "Collapse row"
 msgstr "Згорнути рядок"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Згорнути параметри"
@@ -4771,6 +4791,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Не вдалося підʼєднатися до бази даних: «%(database)s»"
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Не вдалося одержати всі збережені діаграми"
 
@@ -4800,6 +4824,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Не вдалося розпізнати вузол: «%(host)s»."
@@ -4823,6 +4852,12 @@ msgstr "Кількість"
 
 msgid "Country"
 msgstr "Країна"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Кольорова схема країни"
@@ -6203,6 +6238,9 @@ msgstr "Вимкнути деталізацію"
 msgid "Disable embedding?"
 msgstr "Вимкнути вбудовування?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "Вимкнено"
 
@@ -6908,8 +6946,16 @@ msgstr "Увімкнути матрицю"
 msgid "Enable node dragging"
 msgstr "Дозволити перетягування вузлів"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "Увімкнути обрахунок вартості запиту"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "Дозволити розгортання рядків у схемах"
@@ -6993,8 +7039,19 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Введіть частину назви об’єкта"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Введіть назву оповіщення"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "Введіть тривалість у секундах"
@@ -7046,6 +7103,9 @@ msgid "Enter theme name"
 msgstr "Введіть назву теми"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7203,6 +7263,20 @@ msgstr "Порахувати вартість вибраного запиту"
 
 msgid "Estimate the cost before running a query"
 msgstr "Порахувати вартість перед виконанням запиту"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "Подія"
@@ -7602,6 +7676,9 @@ msgstr "Не вдалося завантажити дані діаграми."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7824,6 +7901,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Відфільтрувати діаграми"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Фільтр має початкове значення"
 
@@ -7852,6 +7935,10 @@ msgstr "Фільтрувати значення (з урахуванням ре�
 msgid "Filter value is required"
 msgstr "Значення фільтра обов'язкове"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "Перелік значень фільтра не може бути порожнім"
 
@@ -7863,6 +7950,10 @@ msgstr "Пошук діаграм"
 
 msgid "Filters"
 msgstr "Фільтри"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Фільтри та контролі"
@@ -7943,6 +8034,12 @@ msgid "Fit data"
 msgstr "Підігнати дані"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings before saving."
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -8662,11 +8759,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Додайте опис, що надсилатиметься разом із %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Додати назву рядів як вісь"
 
 msgid "Include time"
 msgstr "Додати час"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Ріст"
@@ -8926,6 +9030,9 @@ msgstr "Неправильний тип результату: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Неправильний ковзний тип: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Неправильний стан."
@@ -9559,6 +9666,9 @@ msgstr "Завантажені дані закешовано"
 msgid "Loaded from cache"
 msgstr "Завантажено з кешу"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "Завантаження..."
@@ -9665,6 +9775,10 @@ msgstr "Нижній поріг"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10205,6 +10319,9 @@ msgstr "Бракує параметра в посиланні"
 
 msgid "Mixed Chart"
 msgstr "Змішана діаграма"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "Змінено"
@@ -11009,6 +11126,9 @@ msgstr "Які показники показувати"
 
 msgid "One or more annotation layers failed loading."
 msgstr "Не вдалося завантажити один або кілька шарів анотацій."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "Один або кілька стовпців вже існують"
@@ -11889,6 +12009,9 @@ msgstr "Розміщення проміжного підсумку на рівн
 msgid "Position of the data label relative to the data point"
 msgstr ""
 
+msgid "PostgreSQL's planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid "Powered by Apache Superset"
 msgstr "На основі Superset Apache"
 
@@ -11921,6 +12044,11 @@ msgid "Preparing dashboard Excel export…"
 msgstr ""
 
 msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 msgid "Preview"
@@ -12065,6 +12193,12 @@ msgstr "Історія запитів"
 
 msgid "Query State"
 msgstr "Стан запиту"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 msgid "Query data in SQL Lab"
 msgstr "Дослідити дані в майстерні запитів"
@@ -12321,6 +12455,9 @@ msgstr "Перезавантажити"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Перезавантажити SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -12944,6 +13081,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -12967,6 +13107,9 @@ msgstr "Виконати запит в окремій вкладці"
 
 msgid "Run selection"
 msgstr "Виконати вибране"
+
+msgid "Run without estimate"
+msgstr ""
 
 msgid "Running"
 msgstr "Виконується"
@@ -13031,6 +13174,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "Запит SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "Вираз SQL"
@@ -13232,6 +13380,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -13945,6 +14098,9 @@ msgstr "Семантичний вигляд"
 msgid "Semantic Views"
 msgstr "Семантичні вигляди"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Анотаційний шар"
@@ -13980,6 +14136,18 @@ msgstr "Тип анотаційного шару"
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "Шаблон анотації оновлено"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -14449,6 +14617,9 @@ msgid "Show summary"
 msgstr "Показати підсумки"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 msgid "Show total"
@@ -14949,6 +15120,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15643,6 +15819,10 @@ msgstr ""
 "Бракує осі X у переліку фільтрів, тому її не можна використовувати для "
 "фільтрування проміжків часу у звіті. Додати її до переліку фільтрів?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -15915,6 +16095,17 @@ msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
 "call."
 msgstr "Об’єкт engine_params розпаковується у виклик sqlalchemy.create_engine."
+
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
 
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "Ступінь для обчислення всіх розмірів. Тільки для «EXP»"
@@ -16311,6 +16502,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "Запит не вдалося завантажити"
 
@@ -16422,6 +16633,14 @@ msgstr ""
 msgid "The sample row limit was reached. This %s may contain more rows."
 msgstr ""
 
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
+msgstr ""
+
 #, python-format
 msgid ""
 "The schema \"%(schema)s\" does not exist. A valid schema must be used to "
@@ -16461,6 +16680,26 @@ msgstr "Знімок створено. Не покидайте цю сторін
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"
@@ -16646,6 +16885,9 @@ msgstr "Версія служби"
 
 msgid "The visible title of the layer"
 msgstr "Видима назва шару"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "Розташування поділок на осі X"
@@ -17117,6 +17359,18 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17272,6 +17526,11 @@ msgid ""
 msgstr ""
 "Ця електронна адреса вже пов'язана з наявним обліковим записом. Виберіть "
 "іншу."
+
+msgid ""
+"This engine does not support pre-run warnings. BigQuery and PostgreSQL "
+"are supported."
+msgstr ""
 
 #, python-format
 msgid "This export was requested on %(when)s UTC."
@@ -17467,6 +17726,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -17596,6 +17868,9 @@ msgstr "Поріг рівня (alpha), який використовується
 
 msgid "Threshold for Other"
 msgstr "Поріг для «Інше»"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "Поріг: "
@@ -18016,6 +18291,9 @@ msgstr "Вівторок"
 msgid "Tukey"
 msgstr "Підхід Тьюкі"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -18116,6 +18394,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "Неможливо порахувати таку різницю між датами"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
@@ -18707,6 +18988,9 @@ msgstr "Формат значення"
 msgid "Value and Percentage"
 msgstr "Значення та відсоток"
 
+msgid "Value axis labels"
+msgstr ""
+
 msgid "Value bounds"
 msgstr "Межі значення"
 
@@ -19010,6 +19294,24 @@ msgstr "Обчислювальний ресурс (Warehouse)"
 msgid "Warning"
 msgstr "Зауваження"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "Зауваження!"
 
@@ -19029,6 +19331,12 @@ msgid ""
 msgstr ""
 "Попередження: запити ILIKE можуть бути повільними на великих наборах "
 "даних, оскільки вони не можуть ефективно використовувати індекси."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "Не вдалося перевірити ваш запит"
@@ -20299,6 +20607,9 @@ msgstr "натискайте кнопку (cmd + z), доки не збереж�
 msgid "by using"
 msgstr "через"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -20753,6 +21064,9 @@ msgstr "Місцева"
 msgid "log"
 msgstr "журнал"
 
+msgid "lower bound"
+msgstr ""
+
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -20928,6 +21242,9 @@ msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "пікселі"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "попередній календарний місяць"
@@ -21137,6 +21454,9 @@ msgstr "скинути"
 
 msgid "updated"
 msgstr "оновлено"
+
+msgid "upper bound"
+msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

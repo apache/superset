@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-18 18:27-0400\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -1308,6 +1308,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -2200,6 +2205,9 @@ msgstr "حدث خطأ"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "تنبيه باسم \"%(name)s\" موجود بالفعل"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2479,9 +2487,6 @@ msgstr "حدث خطأ أثناء تحليل المفتاح."
 
 msgid "An error occurred while pruning logs "
 msgstr "حدث خطأ أثناء تقليم السجلات "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -3420,6 +3425,9 @@ msgstr "حسب المفتاح: استخدم أسماء الصفوف كمفتاح
 msgid "By value: use metric values as sorting key"
 msgstr "حسب القيمة: استخدام قيم المقاييس كمفتاح فرز"
 
+msgid "Bytes"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, pl, ro, ru, sk, sl, sr, sr_Latn, uk]
 #, fuzzy
@@ -3518,6 +3526,9 @@ msgstr "استعلام CVAS (إنشاء طريقة عرض كتحديد) ليس �
 msgid "Cache Timeout (seconds)"
 msgstr "مهلة ذاكرة التخزين المؤقت (بالثواني)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -3581,6 +3592,9 @@ msgstr "إلغاء الأمر"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "إلغاء الأمر"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "إلغاء الاستعلام في حدث إلغاء تحميل النافذة"
@@ -4118,6 +4132,9 @@ msgstr "تحقق لفرض أقسام التاريخ ليكون لها نفس ا�
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
+msgid "Checking cost…"
+msgstr ""
+
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
@@ -4487,6 +4504,9 @@ msgstr "طي لوحة البيانات"
 
 msgid "Collapse row"
 msgstr "طي الصف"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "طي الإعدادات"
@@ -5178,6 +5198,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "تعذر الاتصال بقاعدة البيانات: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "تعذر جلب جميع المخططات المحفوظة"
 
@@ -5207,6 +5231,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "تعذر حل اسم المضيف: \"%(host)s\"."
@@ -5233,6 +5262,12 @@ msgstr "عد"
 
 msgid "Country"
 msgstr "بلد"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "نظام ألوان البلد"
@@ -6739,6 +6774,9 @@ msgstr "قم بالتنقيب عن التفاصيل"
 msgid "Disable embedding?"
 msgstr "تعطيل التضمين؟"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "مُعطل"
 
@@ -7546,8 +7584,16 @@ msgstr "تمكين matrixify"
 msgid "Enable node dragging"
 msgstr "تمكين سحب العقدة"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "تمكين تقدير تكلفة الاستعلام"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "تمكين توسيع الصفوف في المخططات"
@@ -7639,9 +7685,20 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "ما إذا كنت تريد ملء الكائنات"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "اسم التنبيه"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "أدخل المدة بالثواني"
@@ -7713,6 +7770,9 @@ msgid "Enter theme name"
 msgstr "اسم التنبيه"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7887,6 +7947,20 @@ msgstr "تقدير تكلفة الاستعلام المحدد"
 
 msgid "Estimate the cost before running a query"
 msgstr "قم بتقدير التكلفة قبل تشغيل الاستعلام"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "حدث"
@@ -8316,6 +8390,9 @@ msgstr "فشل تحميل بيانات المخطط."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8568,6 +8645,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "مخططات التصفية"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "يحتوي عامل التصفية على قيمة افتراضية"
 
@@ -8598,6 +8681,10 @@ msgstr "قيمة الفلتر (حساس لحالة الأحرف)"
 msgid "Filter value is required"
 msgstr "قيمة التصفية مطلوبة"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "لا يمكن أن تكون قائمة قيم التصفية فارغة"
 
@@ -8609,6 +8696,10 @@ msgstr "تصفية الرسوم البيانية الخاصة بك"
 
 msgid "Filters"
 msgstr "مرشحات"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -8701,6 +8792,12 @@ msgid "Fit data"
 msgstr "ملاءمة البيانات"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings before saving."
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -9496,11 +9593,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr ""
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "قم بتضمين اسم السلسلة كمحور"
 
 msgid "Include time"
 msgstr "قم بتضمين الوقت"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "زيادة"
@@ -9793,6 +9897,9 @@ msgstr "نوع نتيجة غير صالح: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "نوع التدوير غير صالح: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "حالة غير صالحة."
@@ -10472,6 +10579,9 @@ msgstr "تم تخزين البيانات المحملة مؤقتًا"
 msgid "Loaded from cache"
 msgstr "تم تحميله من ذاكرة التخزين المؤقت"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "جارٍ التحميل…"
@@ -10588,6 +10698,10 @@ msgstr "الحد الأدنى"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -11184,6 +11298,9 @@ msgstr "معلمات URL المفقودة"
 
 msgid "Mixed Chart"
 msgstr "مخطط مختلط"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "تم التعديل"
@@ -12040,6 +12157,9 @@ msgstr "مقياس واحد أو عدة مقاييس لعرضها"
 #, fuzzy
 msgid "One or more annotation layers failed loading."
 msgstr "فشلت طبقة أخرى من التعليقات التوضيحية في التحميل."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "عمود واحد أو أكثر موجود بالفعل"
@@ -12985,6 +13105,9 @@ msgstr "موضع المجموع الفرعي لمستوى الصف"
 msgid "Position of the data label relative to the data point"
 msgstr ""
 
+msgid "PostgreSQL's planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid "Powered by Apache Superset"
 msgstr "مدعوم من أباتشي سوبيرسيت"
 
@@ -13017,6 +13140,11 @@ msgid "Preparing dashboard Excel export…"
 msgstr ""
 
 msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 msgid "Preview"
@@ -13171,6 +13299,12 @@ msgstr "سجل الاستعلام"
 #, fuzzy
 msgid "Query State"
 msgstr "الاستعلام أ"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 #, fuzzy
 msgid "Query data in SQL Lab"
@@ -13447,6 +13581,9 @@ msgstr "إعادة تحميل"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "إعادة تحميل SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -14118,6 +14255,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -14141,6 +14281,9 @@ msgstr "تشغيل الاستعلام في علامة تبويب جديدة"
 
 msgid "Run selection"
 msgstr "اختيار التشغيل"
+
+msgid "Run without estimate"
+msgstr ""
 
 msgid "Running"
 msgstr "قيد التشغيل"
@@ -14202,6 +14345,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "استعلام SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "تعبير SQL"
@@ -14411,6 +14559,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 #, fuzzy
@@ -15192,6 +15345,9 @@ msgstr "العرض الدلالي"
 msgid "Semantic Views"
 msgstr "العروض الدلالية"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "طبقة التعليقات التوضيحية"
@@ -15227,6 +15383,20 @@ msgstr "نوع طبقة التعليق التوضيحي"
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "تم تحديث قالب التعليق التوضيحي"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -15742,6 +15912,9 @@ msgid "Show summary"
 msgstr "عرض الملخص"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 #, fuzzy
@@ -16261,6 +16434,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -17008,6 +17186,10 @@ msgstr ""
 " فلاتر النطاق الزمني في لوحات المعلومات. هل ترغب في إضافته إلى قائمة "
 "الفلاتر؟"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -17312,6 +17494,17 @@ msgid ""
 "The engine_params object gets unpacked into the sqlalchemy.create_engine "
 "call."
 msgstr "يتم تفكيك كائن engine_params في استدعاء sqlalchemy.create_engine."
+
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -17733,6 +17926,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "لا يمكن تحميل الاستعلام"
 
@@ -17854,6 +18067,14 @@ msgstr "تم الوصول إلى حد الصفوف المحدد للمخطط. ق
 msgid "The sample row limit was reached. This %s may contain more rows."
 msgstr ""
 
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
+msgstr ""
+
 #, python-format
 msgid ""
 "The schema \"%(schema)s\" does not exist. A valid schema must be used to "
@@ -17900,6 +18121,26 @@ msgstr "جارٍ إنشاء لقطة الشاشة. يرجى عدم مغادرة 
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 #, fuzzy
@@ -18097,6 +18338,9 @@ msgstr "اختر موضع وسيلة الإيضاح"
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "اعرض القيمة أعلى الشريط"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "الطريقة التي يتم بها وضع القراد على المحور السيني"
@@ -18596,6 +18840,18 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18753,6 +19009,11 @@ msgid ""
 "This email is already associated with an account. Please choose another "
 "one."
 msgstr "هذا البريد الإلكتروني مرتبط بالفعل بحساب. يرجى اختيار بريد إلكتروني آخر."
+
+msgid ""
+"This engine does not support pre-run warnings. BigQuery and PostgreSQL "
+"are supported."
+msgstr ""
 
 #, python-format
 msgid "This export was requested on %(when)s UTC."
@@ -18985,6 +19246,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -19134,6 +19408,9 @@ msgstr "عتبة مستوى ألفا لتحديد الأهمية"
 #, fuzzy
 msgid "Threshold for Other"
 msgstr "عتبة"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "العتبة: "
@@ -19574,6 +19851,9 @@ msgstr "يوم الثلاثاء"
 msgid "Tukey"
 msgstr "توكي"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -19684,6 +19964,9 @@ msgstr ""
 #, fuzzy
 msgid "Unable to calculate such a date delta"
 msgstr "تعذر حساب فارق التاريخ هذا"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
@@ -20335,6 +20618,9 @@ msgstr "تنسيق القيمة"
 msgid "Value and Percentage"
 msgstr "القيمة والنسبة المئوية"
 
+msgid "Value axis labels"
+msgstr ""
+
 msgid "Value bounds"
 msgstr "حدود القيمة"
 
@@ -20663,6 +20949,24 @@ msgstr "المستودع"
 msgid "Warning"
 msgstr "تحذير"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "تحذير!"
 
@@ -20682,6 +20986,12 @@ msgid ""
 msgstr ""
 "تحذير: قد تكون استعلامات ILIKE بطيئة على مجموعات البيانات الكبيرة لأنها "
 "لا تستطيع استخدام الفهارس بفعالية."
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
+msgstr ""
 
 msgid "Was unable to check your query"
 msgstr "لم يكن قادرًا على التحقق من الاستعلام الخاص بك"
@@ -22004,6 +22314,9 @@ msgstr "زر (cmd + z) حتى تقوم بحفظ التغييرات."
 msgid "by using"
 msgstr "باستخدام"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -22494,6 +22807,9 @@ msgstr "مقياس لوغاريتمي"
 msgid "log"
 msgstr "خشبة"
 
+msgid "lower bound"
+msgstr ""
+
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -22676,6 +22992,9 @@ msgstr "ممحور"
 
 msgid "pixels"
 msgstr "بكسل"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "الشهر التقويمي السابق"
@@ -22892,6 +23211,9 @@ msgid "unset"
 msgstr "حزيران (يونيو)"
 
 msgid "updated"
+msgstr ""
+
+msgid "upper bound"
 msgstr ""
 
 msgid ""

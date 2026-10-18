@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-18 18:27-0400\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -1140,6 +1140,11 @@ msgid "A rule with this name already exists."
 msgstr ""
 
 msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
+msgstr ""
+
+msgid ""
 "A semantic view's provider query is produced when the chart runs and "
 "returned with its data."
 msgstr ""
@@ -1964,6 +1969,9 @@ msgstr "ஒரு பிழை ஏற்பட்டது"
 msgid "An alert named \"%(name)s\" already exists"
 msgstr "\"%(name)s\" என்ற பெயரில் ஒரு எச்சரிக்கை ஏற்கனவே உள்ளது"
 
+msgid "An enabled query cost warning requires this field."
+msgstr ""
+
 msgid ""
 "An enclosed time range (both start and end) must be specified when using "
 "a Time Comparison."
@@ -2231,9 +2239,6 @@ msgstr "திறவுகோலை (key) பாகுபடுத்தும�
 
 msgid "An error occurred while pruning logs "
 msgstr "பதிவுகளை (logs) நீக்கும்போது ஒரு பிழை ஏற்பட்டது "
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -3103,6 +3108,9 @@ msgstr "சாவி மூலம்: வரிசைப் பெயர்க�
 msgid "By value: use metric values as sorting key"
 msgstr "மதிப்பு மூலம்: அளவீட்டு மதிப்புகளை வரிசைப்படுத்தும் சாவியாகப் பயன்படுத்து"
 
+msgid "Bytes"
+msgstr ""
+
 msgid "CC recipients"
 msgstr "CC பெறுநர்கள்"
 
@@ -3190,6 +3198,9 @@ msgstr "CVAS வினவல் ஒரு SELECT கூற்று அல்ல
 msgid "Cache Timeout (seconds)"
 msgstr "கேச் (Cache) காலாவதி நேரம் (விநாடிகள்)"
 
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
+
 msgid ""
 "Cache data separately for each user based on their data access roles and "
 "permissions. When disabled, a single cache will be used for all users."
@@ -3251,6 +3262,9 @@ msgstr "ரத்து செய்"
 #, fuzzy
 msgid "Cancel Task"
 msgstr "ரத்து செய்"
+
+msgid "Cancel cost check"
+msgstr ""
 
 msgid "Cancel query on window unload event"
 msgstr "விண்டோ அன்லோட் (window unload) நிகழ்வின் போது வினவலை ரத்து செய்யவும்"
@@ -3746,6 +3760,9 @@ msgstr ""
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
+msgid "Checking cost…"
+msgstr ""
+
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
@@ -4089,6 +4106,9 @@ msgstr "தரவுப் பலகத்தைச் சுருக்கு"
 
 msgid "Collapse row"
 msgstr "வரிசையைச் சுருக்கு"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "அமைப்புகளைச் சுருக்கு"
@@ -4728,6 +4748,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "\"%(database)s\" தரவுத்தளத்துடன் இணைக்க முடியவில்லை"
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "சேமிக்கப்பட்ட அனைத்து சார்ட்டுகளையும் பெற முடியவில்லை"
 
@@ -4756,6 +4780,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "\"%(host)s\" ஹோஸ்ட் பெயரைத் தீர்க்க முடியவில்லை."
@@ -4779,6 +4808,12 @@ msgstr "எண்ணிக்கை (Count)"
 
 msgid "Country"
 msgstr "நாடு"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "நாட்டின் வண்ணத் திட்டம்"
@@ -6115,6 +6150,9 @@ msgstr "டிரில்-டு-டீடைல் (drill to detail) வசத
 msgid "Disable embedding?"
 msgstr "உட்பொதிப்பதை (embedding) முடக்கவா?"
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr "முடக்கப்பட்டது"
 
@@ -6825,8 +6863,16 @@ msgstr "Matrixify-ஐ இயக்கு"
 msgid "Enable node dragging"
 msgstr "முனைகளை (nodes) இழுக்கும் வசதியை இயக்கு"
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
 msgstr "வினவல் செலவு மதிப்பீட்டை (query cost estimation) இயக்கு"
+
+msgid ""
+"Enable query cost estimation to activate pre-run warnings. Saved settings"
+" are retained."
+msgstr ""
 
 msgid "Enable row expansion in schemas"
 msgstr "ஸ்கீமாக்களில் வரிசை விரிவாக்கத்தை (row expansion) இயக்கு"
@@ -6910,8 +6956,19 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "பொருளின் பெயரின் ஒரு பகுதியை உள்ளிடவும்"
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "எச்சரிக்கை பெயரை உள்ளிடவும்"
+
+msgid ""
+"Enter an amount that equals positive whole bytes, no greater than "
+"9,007,199,254,740,991."
+msgstr ""
 
 msgid "Enter duration in seconds"
 msgstr "கால அளவை விநாடிகளில் உள்ளிடவும்"
@@ -6965,6 +7022,9 @@ msgid "Enter theme name"
 msgstr "தீம் பெயரை உள்ளிடவும்"
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -7123,6 +7183,20 @@ msgstr "தேர்ந்தெடுக்கப்பட்ட வினவ�
 
 msgid "Estimate the cost before running a query"
 msgstr "வினவலை இயக்குவதற்கு முன் அதன் செலவை மதிப்பிடவும்"
+
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid ""
+"Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = "
+"1,000,000,000 bytes."
+msgstr ""
 
 msgid "Event"
 msgstr "நிகழ்வு"
@@ -7520,6 +7594,9 @@ msgstr "சார்ட் தரவை ஏற்றுவதில் தோல
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7738,6 +7815,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "சார்ட்டுகளை வடிகட்டு"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "வடிகட்டி இயல்புநிலை மதிப்பைக் கொண்டுள்ளது"
 
@@ -7768,6 +7851,10 @@ msgstr "வடிகட்டி மதிப்பு (எழுத்து �
 msgid "Filter value is required"
 msgstr "வடிகட்டி மதிப்பு தேவை"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "வடிகட்டி மதிப்புப் பட்டியல் காலியாக இருக்கக்கூடாது"
 
@@ -7779,6 +7866,10 @@ msgstr "உங்கள் சார்ட்டுகளை வடிகட்�
 
 msgid "Filters"
 msgstr "வடிகட்டிகள்"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "வடிகட்டிகள் மற்றும் கட்டுப்பாடுகள்"
@@ -7853,6 +7944,12 @@ msgid "Fit data"
 msgstr "தரவுத்தொகுப்பைத் திருத்து"
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings before saving."
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid ""
@@ -8572,11 +8669,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "%s உடன் அனுப்பப்பட வேண்டிய விளக்கத்தைச் சேர்க்கவும்"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "தொடரின் பெயரை ஒரு அச்சாகச் சேர்"
 
 msgid "Include time"
 msgstr "நேரத்தைச் சேர்"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "அதிகரிப்பு"
@@ -8834,6 +8938,9 @@ msgstr "தவறான முடிவு வகை: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "தவறான rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "தவறான நிலை."
@@ -9452,6 +9559,9 @@ msgstr "ஏற்றப்பட்ட தரவு கேச் (cache) செ�
 msgid "Loaded from cache"
 msgstr "கேச் (cache)-லிருந்து ஏற்றப்பட்டது"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "ஏற்றுகிறது..."
@@ -9558,6 +9668,10 @@ msgstr "குறைந்த வரம்பு (Lower Threshold)"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10062,6 +10176,9 @@ msgstr "URL அளவுருக்கள் இல்லை"
 
 msgid "Mixed Chart"
 msgstr "கலப்பு சார்ட் (Mixed Chart)"
+
+msgid "Mixed cache"
+msgstr ""
 
 msgid "Modified"
 msgstr "மாற்றப்பட்டது"
@@ -10842,6 +10959,9 @@ msgstr "காட்டப்பட வேண்டிய ஒன்று அல
 
 msgid "One or more annotation layers failed loading."
 msgstr "ஒன்று அல்லது அதற்கு மேற்பட்ட குறிப்பு அடுக்குகள் ஏற்றப்பட முடியவில்லை."
+
+msgid "One or more chart-data queries failed"
+msgstr ""
 
 msgid "One or more columns already exist"
 msgstr "ஒன்று அல்லது அதற்கு மேற்பட்ட நெடுவரிசைகள் ஏற்கனவே உள்ளன"
@@ -11683,6 +11803,9 @@ msgstr "வரிசை நிலை துணைத் தொகையின்
 msgid "Position of the data label relative to the data point"
 msgstr ""
 
+msgid "PostgreSQL's planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid "Powered by Apache Superset"
 msgstr "Apache Superset மூலம் இயக்கப்படுகிறது"
 
@@ -11715,6 +11838,11 @@ msgid "Preparing dashboard Excel export…"
 msgstr ""
 
 msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 msgid "Preview"
@@ -11853,6 +11981,12 @@ msgstr "வினவல் வரலாறு"
 
 msgid "Query State"
 msgstr "வினவல் நிலை"
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
+msgstr ""
 
 msgid "Query data in SQL Lab"
 msgstr "SQL லேப்பில் தரவை வினவவும்"
@@ -12109,6 +12243,9 @@ msgstr "மீண்டும் ஏற்று (Reload)"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL லேப்"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -12716,6 +12853,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -12739,6 +12879,9 @@ msgstr "புதிய தாவலில் வினவலை இயக்க
 
 msgid "Run selection"
 msgstr "தேர்ந்தெடுக்கப்பட்டதை இயக்கு"
+
+msgid "Run without estimate"
+msgstr ""
 
 msgid "Running"
 msgstr "இயங்குகிறது"
@@ -12787,6 +12930,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "SQL வினவல்"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "SQL கோவை (expression)"
@@ -12986,6 +13134,11 @@ msgid ""
 "Display titles cannot be recovered automatically. For API requests, "
 "select current member IDs and supply semantic_selection_version from "
 "datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid ""
+"Saved warning settings are invalid. Turn warnings off to clear invalid "
+"fields."
 msgstr ""
 
 msgid "Saving..."
@@ -13651,6 +13804,9 @@ msgstr ""
 msgid "Semantic Views"
 msgstr ""
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "சிறுகுறிப்பு அடுக்கு"
@@ -13686,6 +13842,16 @@ msgstr "சிறுகுறிப்பு அடுக்கின் வக�
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "சிறுகுறிப்பு டெம்ப்ளேட் புதுப்பிக்கப்பட்டது"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -14146,6 +14312,9 @@ msgid "Show summary"
 msgstr "சுருக்கத்தைக் காண்பி"
 
 msgid "Show the main ticks on axes."
+msgstr ""
+
+msgid "Show the numbers along the value axis."
 msgstr ""
 
 msgid "Show total"
@@ -14630,6 +14799,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15281,6 +15455,10 @@ msgstr ""
 "X-அச்சு வடிகட்டி பட்டியலில் இல்லை. நேர வரம்பு வடிகட்டிகளில் பயன்படுத்த "
 "அதைச் சேர்க்க விரும்புகிறீர்களா?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -15530,6 +15708,17 @@ msgid ""
 msgstr ""
 "engine_params பொருள் sqlalchemy.create_engine அழைப்பில் "
 "விரிவுபடுத்தப்படுகிறது."
+
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid ""
+"The estimate is unavailable or cannot establish whether usage is within "
+"the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
 
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr "அனைத்து அளவுகளையும் கணக்கிட வேண்டிய அடுக்கு (Exponent)."
@@ -15888,6 +16077,26 @@ msgid ""
 "properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid ""
+"The query cost warning threshold must be whole bytes no greater than "
+"9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr "வினவலை ஏற்ற முடியவில்லை"
 
@@ -15983,6 +16192,14 @@ msgstr ""
 msgid "The sample row limit was reached. This %s may contain more rows."
 msgstr ""
 
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid ""
+"The saved warning metric is not supported by this engine. Turn warnings "
+"off or enter a new threshold."
+msgstr ""
+
 #, python-format
 msgid ""
 "The schema \"%(schema)s\" does not exist. A valid schema must be used to "
@@ -16026,6 +16243,26 @@ msgstr ""
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"
@@ -16189,6 +16426,9 @@ msgstr "சேவையின் பதிப்பு"
 
 msgid "The visible title of the layer"
 msgstr "அடுக்கின் காணக்கூடிய தலைப்பு"
+
+msgid "The warning metric is not supported by this engine."
+msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
 msgstr "X-அச்சில் குறிகள் (Ticks) அமைக்கப்பட்டுள்ள விதம்"
@@ -16652,6 +16892,18 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16803,6 +17055,11 @@ msgid ""
 msgstr ""
 "இந்த மின்னஞ்சல் ஏற்கனவே ஒரு கணக்குடன் இணைக்கப்பட்டுள்ளது. வேறு ஒன்றை "
 "தேர்ந்தெடுக்கவும்."
+
+msgid ""
+"This engine does not support pre-run warnings. BigQuery and PostgreSQL "
+"are supported."
+msgstr ""
 
 #, python-format
 msgid "This export was requested on %(when)s UTC."
@@ -16979,6 +17236,19 @@ msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
 msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
+msgstr ""
+
+msgid ""
 "This session has encountered an interruption, and some controls may not "
 "work as intended. If you are the developer of this app, please check that"
 " the guest token is being generated correctly."
@@ -17097,6 +17367,9 @@ msgstr "முக்கியத்துவத்தைத் தீர்ம�
 
 msgid "Threshold for Other"
 msgstr "'மற்றவை' க்கான வரம்பு"
+
+msgid "Threshold size unit"
+msgstr ""
 
 msgid "Threshold: "
 msgstr "வரம்பு: "
@@ -17501,6 +17774,9 @@ msgstr "செவ்வாய்"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -17591,6 +17867,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "அத்தகைய தேதி வித்தியாசத்தைக் கணக்கிட முடியவில்லை"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
@@ -18153,6 +18432,9 @@ msgstr "மதிப்பு வடிவம்"
 msgid "Value and Percentage"
 msgstr "மதிப்பு மற்றும் சதவீதம்"
 
+msgid "Value axis labels"
+msgstr ""
+
 msgid "Value bounds"
 msgstr "மதிப்பு எல்லைகள்"
 
@@ -18448,6 +18730,24 @@ msgstr "தரவுக் கிடங்கு (Warehouse)"
 msgid "Warning"
 msgstr "எச்சரிக்கை"
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr "எச்சரிக்கை!"
 
@@ -18461,6 +18761,12 @@ msgstr ""
 msgid ""
 "Warning: ILIKE queries may be slow on large datasets as they cannot use "
 "indexes effectively."
+msgstr ""
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 msgid "Was unable to check your query"
@@ -19703,6 +20009,9 @@ msgstr "மாற்றங்களைச் சேமிக்கும் வ�
 msgid "by using"
 msgstr "பயன்படுத்துவதன் மூலம்"
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -20134,6 +20443,9 @@ msgstr ""
 msgid "log"
 msgstr "லாக் (log)"
 
+msgid "lower bound"
+msgstr ""
+
 msgid ""
 "lower percentile must be greater than 0 and less than 100. Must be lower "
 "than upper percentile."
@@ -20289,6 +20601,9 @@ msgstr "pivoted_xlsx"
 
 msgid "pixels"
 msgstr "பிக்சல்கள்"
+
+msgid "planner cost units"
+msgstr ""
 
 msgid "previous calendar month"
 msgstr "முந்தைய காலண்டர் மாதம்"
@@ -20494,6 +20809,9 @@ msgstr "நீக்கு (unset)"
 
 msgid "updated"
 msgstr "புதுப்பிக்கப்பட்டது"
+
+msgid "upper bound"
+msgstr ""
 
 msgid ""
 "upper percentile must be greater than 0 and less than 100. Must be higher"

@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-10 10:31+0100\n"
+"POT-Creation-Date: 2026-10-18 18:27-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,7 +146,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
@@ -174,7 +174,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr ""
 
@@ -988,6 +988,9 @@ msgstr ""
 msgid "A rule with this name already exists."
 msgstr ""
 
+msgid "A semantic query filter is invalid. Check its operator and values, then try again."
+msgstr ""
+
 msgid "A semantic view's provider query is produced when the chart runs and returned with its data."
 msgstr ""
 
@@ -1694,6 +1697,9 @@ msgstr ""
 
 #, python-format
 msgid "An alert named \"%(name)s\" already exists"
+msgstr ""
+
+msgid "An enabled query cost warning requires this field."
 msgstr ""
 
 msgid "An enclosed time range (both start and end) must be specified when using a Time Comparison."
@@ -2666,6 +2672,9 @@ msgstr ""
 msgid "By value: use metric values as sorting key"
 msgstr ""
 
+msgid "Bytes"
+msgstr ""
+
 msgid "CC recipients"
 msgstr ""
 
@@ -2793,6 +2802,9 @@ msgid "Cancel"
 msgstr ""
 
 msgid "Cancel Task"
+msgstr ""
+
+msgid "Cancel cost check"
 msgstr ""
 
 msgid "Cancel query on window unload event"
@@ -3236,6 +3248,9 @@ msgid "Check to force date partitions to have the same height"
 msgstr ""
 
 msgid "Checking charts and dashboards that use this dataset…"
+msgstr ""
+
+msgid "Checking cost…"
 msgstr ""
 
 msgid "Checking for affected charts and dashboards…"
@@ -5324,6 +5339,9 @@ msgstr ""
 msgid "Disable embedding?"
 msgstr ""
 
+msgid "Disable saved rule"
+msgstr ""
+
 msgid "Disabled"
 msgstr ""
 
@@ -5933,7 +5951,13 @@ msgstr ""
 msgid "Enable node dragging"
 msgstr ""
 
+msgid "Enable pre-run cost warnings"
+msgstr ""
+
 msgid "Enable query cost estimation"
+msgstr ""
+
+msgid "Enable query cost estimation to activate pre-run warnings. Saved settings are retained."
 msgstr ""
 
 msgid "Enable row expansion in schemas"
@@ -6013,7 +6037,16 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr ""
 
+msgid "Enter a positive, finite warning threshold."
+msgstr ""
+
+msgid "Enter a warning threshold."
+msgstr ""
+
 msgid "Enter alert name"
+msgstr ""
+
+msgid "Enter an amount that equals positive whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter duration in seconds"
@@ -6066,6 +6099,9 @@ msgid "Enter theme name"
 msgstr ""
 
 msgid "Enter values"
+msgstr ""
+
+msgid "Enter whole bytes, no greater than 9,007,199,254,740,991."
 msgstr ""
 
 msgid "Enter your current password"
@@ -6222,6 +6258,18 @@ msgstr ""
 msgid "Estimate the cost before running a query"
 msgstr ""
 
+msgid "Estimated bytes processed"
+msgstr ""
+
+msgid "Estimated planner cost"
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill."
+msgstr ""
+
+msgid "Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = 1,000,000,000 bytes."
+msgstr ""
+
 msgid "Event"
 msgstr ""
 
@@ -6338,10 +6386,7 @@ msgstr ""
 msgid "Expired"
 msgstr ""
 
-msgid ""
-"Explicit formats validate all values against bundled boundaries. "
-"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
-"ambiguous values fail rather than displaying blank regions."
+msgid "Explicit formats validate all values against bundled boundaries. Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or ambiguous values fail rather than displaying blank regions."
 msgstr ""
 
 msgid "Explore"
@@ -6906,6 +6951,12 @@ msgid "Fit data"
 msgstr ""
 
 msgid "Fix the Extra JSON to edit certification"
+msgstr ""
+
+msgid "Fix the query cost warning settings before saving."
+msgstr ""
+
+msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 
 msgid "Fix the trend line to the full time range specified in case filtered results do not include the start or end dates"
@@ -7521,10 +7572,6 @@ msgstr ""
 msgid "Inactive"
 msgstr ""
 
-#, python-format
-msgid "Incompatible filters (%d)"
-msgstr ""
-
 msgid "Include Series"
 msgstr ""
 
@@ -7551,6 +7598,10 @@ msgid "Include series name as an axis"
 msgstr ""
 
 msgid "Include time"
+msgstr ""
+
+#, python-format
+msgid "Incompatible filters (%d)"
 msgstr ""
 
 msgid "Increase"
@@ -10423,6 +10474,9 @@ msgstr ""
 msgid "Position of the data label relative to the data point"
 msgstr ""
 
+msgid "PostgreSQL's planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid "Powered by Apache Superset"
 msgstr ""
 
@@ -10592,6 +10646,12 @@ msgid "Query History"
 msgstr ""
 
 msgid "Query State"
+msgstr ""
+
+msgid "Query cost check failed."
+msgstr ""
+
+msgid "Query cost warning"
 msgstr ""
 
 msgid "Query data in SQL Lab"
@@ -11413,6 +11473,9 @@ msgstr ""
 msgid "Run alert query as type"
 msgstr ""
 
+msgid "Run anyway"
+msgstr ""
+
 msgid "Run as"
 msgstr ""
 
@@ -11435,6 +11498,9 @@ msgid "Run query in a new tab"
 msgstr ""
 
 msgid "Run selection"
+msgstr ""
+
+msgid "Run without estimate"
 msgstr ""
 
 msgid "Running"
@@ -11672,6 +11738,9 @@ msgid "Saved query parameters are invalid."
 msgstr ""
 
 msgid "Saved semantic selections use an older identity format. Reset and explicitly reselect the metrics and dimensions, then save the chart. Display titles cannot be recovered automatically. For API requests, select current member IDs and supply semantic_selection_version from datasource metadata or MCP list_metrics."
+msgstr ""
+
+msgid "Saved warning settings are invalid. Turn warnings off to clear invalid fields."
 msgstr ""
 
 msgid "Saving..."
@@ -13871,6 +13940,15 @@ msgstr ""
 msgid "The engine_params object gets unpacked into the sqlalchemy.create_engine call."
 msgstr ""
 
+msgid "The estimate exceeds this connection's warning threshold."
+msgstr ""
+
+msgid "The estimate is unavailable or cannot establish whether usage is within the warning threshold."
+msgstr ""
+
+msgid "The estimate is within this connection's warning threshold."
+msgstr ""
+
 msgid "The exponent to compute all sizes from. \"EXP\" only"
 msgstr ""
 
@@ -14120,6 +14198,24 @@ msgstr ""
 msgid "The query context for chart ID %(chart_id)s (referenced by annotation layer '%(layer_name)s') was not found. Please ensure the chart is properly configured and has a valid query context."
 msgstr ""
 
+msgid "The query cost estimate timed out."
+msgstr ""
+
+msgid "The query cost warning enabled setting must be a boolean."
+msgstr ""
+
+msgid "The query cost warning metric is not supported by this engine."
+msgstr ""
+
+msgid "The query cost warning response was invalid."
+msgstr ""
+
+msgid "The query cost warning threshold must be a positive finite number."
+msgstr ""
+
+msgid "The query cost warning threshold must be whole bytes no greater than 9007199254740991."
+msgstr ""
+
 msgid "The query couldn't be loaded"
 msgstr ""
 
@@ -14190,6 +14286,12 @@ msgstr ""
 msgid "The sample row limit was reached. This %s may contain more rows."
 msgstr ""
 
+msgid "The saved query cost warning rule is invalid."
+msgstr ""
+
+msgid "The saved warning metric is not supported by this engine. Turn warnings off or enter a new threshold."
+msgstr ""
+
 #, python-format
 msgid "The schema \"%(schema)s\" does not exist. A valid schema must be used to run this query."
 msgstr ""
@@ -14225,6 +14327,9 @@ msgid "The semantic layer could not verify that this query result is complete. R
 msgstr ""
 
 msgid "The semantic layer returned only part of this query result. Narrow the time range or selected dimensions, or request a smaller explicit row limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid "The semantic query is invalid. Check its fields and options, then try again."
 msgstr ""
 
 msgid "The semantic-layer provider is unavailable."
@@ -14347,6 +14452,9 @@ msgid "The version of the service"
 msgstr ""
 
 msgid "The visible title of the layer"
+msgstr ""
+
+msgid "The warning metric is not supported by this engine."
 msgstr ""
 
 msgid "The way the ticks are laid out on the X-axis"
@@ -14848,6 +14956,9 @@ msgstr ""
 msgid "This email is already associated with an account. Please choose another one."
 msgstr ""
 
+msgid "This engine does not support pre-run warnings. BigQuery and PostgreSQL are supported."
+msgstr ""
+
 #, python-format
 msgid "This export was requested on %(when)s UTC."
 msgstr ""
@@ -14971,6 +15082,12 @@ msgstr ""
 msgid "This semantic layer has no dependent semantic views."
 msgstr ""
 
+msgid "This semantic provider cannot apply the requested offset. Turn off pagination or use a supported limit and offset."
+msgstr ""
+
+msgid "This semantic provider does not support this query. Remove unsupported filters or grouping and try again."
+msgstr ""
+
 msgid "This semantic view does not support server pagination."
 msgstr ""
 
@@ -15056,6 +15173,9 @@ msgid "Threshold alpha level for determining significance"
 msgstr ""
 
 msgid "Threshold for Other"
+msgstr ""
+
+msgid "Threshold size unit"
 msgstr ""
 
 msgid "Threshold: "
@@ -15688,9 +15808,7 @@ msgstr ""
 msgid "Unpin from top"
 msgstr ""
 
-msgid ""
-"Unrecognized or duplicate country value; choose the matching country "
-"format or normalize source values before aggregation."
+msgid "Unrecognized or duplicate country value; choose the matching country format or normalize source values before aggregation."
 msgstr ""
 
 #, python-format
@@ -16226,6 +16344,24 @@ msgstr ""
 msgid "Warning"
 msgstr ""
 
+msgid "Warning checks are unavailable for SQL templates."
+msgstr ""
+
+msgid "Warning checks are unavailable for custom SQL transformations."
+msgstr ""
+
+msgid "Warning checks require a single read-only SELECT."
+msgstr ""
+
+msgid "Warning threshold"
+msgstr ""
+
+msgid "Warning threshold (bytes processed)"
+msgstr ""
+
+msgid "Warning threshold (planner cost)"
+msgstr ""
+
 msgid "Warning!"
 msgstr ""
 
@@ -16233,6 +16369,12 @@ msgid "Warning! Changing the dataset may break the chart if the metadata does no
 msgstr ""
 
 msgid "Warning: ILIKE queries may be slow on large datasets as they cannot use indexes effectively."
+msgstr ""
+
+msgid "Warnings are inactive because ESTIMATE_QUERY_COST is off."
+msgstr ""
+
+msgid "Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off."
 msgstr ""
 
 msgid "Was unable to check your query"
@@ -17226,6 +17368,9 @@ msgstr ""
 msgid "by using"
 msgstr ""
 
+msgid "bytes"
+msgstr ""
+
 #, python-format
 msgid "cannot be deleted because %s dataset is still attached to it."
 msgid_plural "cannot be deleted because %s datasets are still attached to it."
@@ -17636,6 +17781,9 @@ msgstr ""
 msgid "log"
 msgstr ""
 
+msgid "lower bound"
+msgstr ""
+
 msgid "lower percentile must be greater than 0 and less than 100. Must be lower than upper percentile."
 msgstr ""
 
@@ -17784,6 +17932,9 @@ msgid "pivoted_xlsx"
 msgstr ""
 
 msgid "pixels"
+msgstr ""
+
+msgid "planner cost units"
 msgstr ""
 
 msgid "previous calendar month"
@@ -17978,6 +18129,9 @@ msgstr ""
 msgid "updated"
 msgstr ""
 
+msgid "upper bound"
+msgstr ""
+
 msgid "upper percentile must be greater than 0 and less than 100. Must be higher than lower percentile."
 msgstr ""
 
@@ -18052,22 +18206,4 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
-msgstr ""
-
-msgid ""
-"A semantic query filter is invalid. Check its operator and values, then try "
-"again."
-msgstr ""
-
-msgid "The semantic query is invalid. Check its fields and options, then try again."
-msgstr ""
-
-msgid ""
-"This semantic provider cannot apply the requested offset. Turn off pagination"
-" or use a supported limit and offset."
-msgstr ""
-
-msgid ""
-"This semantic provider does not support this query. Remove unsupported "
-"filters or grouping and try again."
 msgstr ""

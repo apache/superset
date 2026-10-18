@@ -183,7 +183,11 @@ class SqlLabRestApi(BaseSupersetApi):
                     type: object
                     properties:
                       result:
-                        type: object
+                        oneOf:
+                          - type: array
+                            items:
+                              type: object
+                          - type: object
             400:
               $ref: '#/components/responses/400'
             401:

@@ -296,9 +296,16 @@ def query_cost_warning_threshold_validator(value: object) -> None:
 class QueryCostWarningSchema(Schema):
     """Validate a connection warning rule before checking engine support."""
 
-    enabled = fields.Raw(required=True, validate=query_cost_warning_enabled_validator)
+    enabled = fields.Raw(
+        required=True,
+        validate=query_cost_warning_enabled_validator,
+        metadata={"type": "boolean"},
+    )
     metric = fields.String()
-    threshold = fields.Raw(validate=query_cost_warning_threshold_validator)
+    threshold = fields.Raw(
+        validate=query_cost_warning_threshold_validator,
+        metadata={"type": "number", "minimum": 0, "exclusiveMinimum": True},
+    )
 
     @validates_schema
     def validate_rule(self, data: dict[str, Any], **kwargs: Any) -> None:

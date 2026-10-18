@@ -248,6 +248,25 @@ test.each(['checking', 'dialog'])(
   },
 );
 
+test('an unavailable estimate with missing accuracy can be confirmed once', async () => {
+  const h = setup();
+  h.start();
+  await h.finish({
+    ...warning,
+    status: 'unavailable',
+    value: null,
+    accuracy: null,
+    row_level_security_applied: null,
+  });
+  expect(h.executions()).toHaveLength(0);
+  expect(h.result.current.confirmation?.status).toBe('unavailable');
+  act(() => {
+    h.result.current.continueRun();
+    h.result.current.continueRun();
+  });
+  await waitFor(() => expect(h.executions()).toHaveLength(1));
+});
+
 test('a cancelled response cannot replace a newer attempt', async () => {
   const h = setup();
   h.start();
@@ -434,6 +453,23 @@ test('byte results preserve values beyond JavaScript safe integers', () => {
       ...warning,
       metric: 'bytes_processed',
       value: 9007199254740992,
+    }),
+  ).toThrow();
+});
+
+test('planner results preserve large finite integer values and thresholds', () => {
+  const threshold = BigInt('9007199254740993');
+  const value = threshold + BigInt(1);
+  expect(parseWarningResult({ ...warning, threshold, value })).toMatchObject({
+    threshold,
+    value,
+  });
+  expect(() =>
+    parseWarningResult({
+      ...warning,
+      metric: 'bytes_processed',
+      threshold,
+      value,
     }),
   ).toThrow();
 });
