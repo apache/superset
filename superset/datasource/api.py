@@ -33,6 +33,7 @@ from superset.common.tabular_query import (
     resolve_explorable,
     ResolvedExplorable,
     TabularQueryValidationError,
+    validate_names,
     validate_query_names,
 )
 from superset.connectors.sqla.models import BaseDatasource
@@ -45,8 +46,11 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
-from superset.semantic_layers.access import (
-    SemanticLayersDisabledError,
+from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
 )
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
 from superset.semantic_layers.models import SemanticView
@@ -237,9 +241,10 @@ class DatasourceRestApi(BaseSupersetApi):
               type: string
             name: q
             description: >-
-              Optional case-insensitive substring; only values containing it are
-              returned. Lets the client search the full column rather than the
-              truncated first page.
+              Optional substring search for SQL dataset columns and text semantic
+              dimensions. Semantic non-text dimensions return the bounded page
+              without server-side search. Case sensitivity follows the datasource
+              or semantic provider.
           - in: query
             schema:
               type: string
@@ -370,6 +375,8 @@ class DatasourceRestApi(BaseSupersetApi):
                 selection_version=selection_version,
                 force=force,
             )
+        except (SemanticLayerQueryRejectedError, SemanticLayerExecutionError) as ex:
+            return self.response(ex.status, message=ex.message)
         except QueryObjectValidationError as ex:
             # Validation errors can quote dataset SQL; embedded guests get the
             # same generic text as the chart-data API.
@@ -570,7 +577,9 @@ class DatasourceRestApi(BaseSupersetApi):
         log_to_statsd=False,
     )
     def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
-        """Return metrics and dimensions compatible with the current selection.
+        """Return compatible members, refusing unknown selected names with a 400.
+
+        Non-string entries in selection lists do not select datasource members.
         ---
         post:
           summary: Get compatible metrics and dimensions
@@ -642,9 +651,42 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        body = request.get_json(silent=True) or {}
-        selected_metrics = body.get("selected_metrics", [])
-        selected_dimensions = body.get("selected_dimensions", [])
+        body: Any = request.get_json(silent=True) or {}
+        raw_metrics: object = body.get("selected_metrics", [])
+        raw_dimensions: object = body.get("selected_dimensions", [])
+        if not isinstance(raw_metrics, list) or not isinstance(raw_dimensions, list):
+            return self.response(
+                400, message="selected_metrics and selected_dimensions must be lists"
+            )
+
+        selected_metrics: list[str] = [
+            name for name in raw_metrics if isinstance(name, str)
+        ]
+        selected_dimensions: list[str] = [
+            name for name in raw_dimensions if isinstance(name, str)
+        ]
+
+        # Check names before the result cache: live datasource members can change
+        # without invalidating a previously cached compatibility result.
+        selection_errors: list[str] = []
+        if selected_metrics:
+            selection_errors.extend(
+                validate_names(
+                    selected_metrics,
+                    {metric.metric_name for metric in datasource.metrics},
+                    "metric",
+                )
+            )
+        if selected_dimensions:
+            selection_errors.extend(
+                validate_names(
+                    selected_dimensions,
+                    {dimension.column_name for dimension in datasource.columns},
+                    "dimension",
+                )
+            )
+        if selection_errors:
+            return self.response(400, message="; ".join(selection_errors))
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
@@ -670,14 +712,17 @@ class DatasourceRestApi(BaseSupersetApi):
         if (cached := cache_manager.data_cache.get(cache_key)) is not None:
             return self.response(200, result=cached)
 
-        result = {
-            "compatible_metrics": datasource.get_compatible_metrics(
-                selected_metrics, selected_dimensions
-            ),
-            "compatible_dimensions": datasource.get_compatible_dimensions(
-                selected_metrics, selected_dimensions
-            ),
-        }
+        try:
+            result: dict[str, list[str]] = {
+                "compatible_metrics": datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions
+                ),
+                "compatible_dimensions": datasource.get_compatible_dimensions(
+                    selected_metrics, selected_dimensions
+                ),
+            }
+        except AmbiguousDimensionError as ex:
+            return self.response(400, message=str(ex))
 
         timeout = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300

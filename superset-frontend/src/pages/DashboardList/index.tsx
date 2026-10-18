@@ -587,9 +587,13 @@ function DashboardList(props: DashboardListProps) {
                       tooltip={
                         allowEdit
                           ? deleteActionLabel()
-                          : t(
-                              'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                            )
+                          : softDelete
+                            ? t(
+                                'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+                              )
+                            : t(
+                                'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+                              )
                       }
                       placement="bottom"
                       icon={
@@ -931,11 +935,16 @@ function DashboardList(props: DashboardListProps) {
               )}
               {dashboardToDelete && (
                 <DeleteModal
+                  recoverable={softDelete}
                   description={
-                    <>
-                      {t('Are you sure you want to delete')}{' '}
-                      <b>{dashboardToDelete.dashboard_title}</b>?
-                    </>
+                    softDelete ? (
+                      archiveConfirmDescription(t('dashboard'))
+                    ) : (
+                      <>
+                        {t('Are you sure you want to delete')}{' '}
+                        <b>{dashboardToDelete.dashboard_title}</b>?
+                      </>
+                    )
                   }
                   onConfirm={() => {
                     handleDashboardDelete(
@@ -950,7 +959,13 @@ function DashboardList(props: DashboardListProps) {
                   }}
                   onHide={() => setDashboardToDelete(null)}
                   open={!!dashboardToDelete}
-                  title={t('Please confirm')}
+                  title={
+                    softDelete
+                      ? t('Archive %(name)s?', {
+                          name: dashboardToDelete.dashboard_title,
+                        })
+                      : t('Please confirm')
+                  }
                 />
               )}
               <ListView<Dashboard>

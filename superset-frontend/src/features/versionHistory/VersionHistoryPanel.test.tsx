@@ -415,6 +415,38 @@ test('related rows link to the entity unless it was deleted', () => {
   expect(screen.getByText(/\(deleted\)/)).toBeInTheDocument();
 });
 
+test('a related row spanning several kinds of change gets a neutral linked headline', () => {
+  // Server order: newest sequence first, so the metric record leads.
+  const sales = {
+    source: 'related' as const,
+    entity_kind: 'dataset' as const,
+    entity_name: 'Sales',
+    entity_uuid: 'ds-1',
+    transaction_id: 40,
+  };
+  const props = defaultProps(
+    buildTimeline([
+      record({
+        ...sales,
+        kind: 'metric',
+        summary: 'Dataset metric changed: Sales',
+      }),
+      record({
+        ...sales,
+        kind: 'column',
+        summary: 'Dataset column changed: Sales',
+      }),
+      record({ ...sales, kind: 'field', summary: 'Dataset updated: Sales' }),
+    ]),
+  );
+  props.onOpenRelated = jest.fn();
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(screen.getByRole('button', { name: 'Sales' })).toBeInTheDocument();
+  expect(screen.getByText(/Dataset updated:/)).toBeInTheDocument();
+  expect(screen.queryByText(/metric changed/)).not.toBeInTheDocument();
+});
+
 test('same-transaction related cascades roll up into one pluralized row', async () => {
   const timeline = buildTimeline(
     Array.from({ length: 10 }, (_, i) =>

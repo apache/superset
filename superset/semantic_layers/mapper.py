@@ -61,6 +61,7 @@ from superset.common.query_object import QueryObject
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
     get_since_until_from_time_range,
+    get_time_range_from_filters,
 )
 from superset.connectors.sqla.models import BaseDatasource
 from superset.constants import (
@@ -77,6 +78,10 @@ from superset.semantic_layers.cache import SemanticCacheOutcome
 from superset.semantic_layers.cache_host import build_cache_configuration
 from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import ViewMeta
+from superset.semantic_layers.dimension_resolution import (
+    DimensionUsage,
+    resolve_dimensions,
+)
 from superset.semantic_layers.exceptions import execute_semantic_query
 from superset.semantic_layers.members import members_by_key
 from superset.superset_typing import (
@@ -211,10 +216,15 @@ def get_results(query_object: QueryObject) -> QueryResult:
         raise ValueError("QueryObject must have a datasource defined.")
     query_object = cast(ValidatedQueryObject, query_object)
     metadata: _ViewMetadata = _validation_metadata(query_object)
-    _validate_query_object(query_object, metadata)
 
-    # Track execution time
-    start_time = current_time()
+    # Track validation, translation and execution time, excluding discovery.
+    start_time: float = current_time()
+    # Step 1: Translate the main query followed by any time-offset queries.
+    try:
+        _validate_query_object(query_object, metadata)
+        queries: list[SemanticQuery] = _map_query_object(query_object, metadata)
+    except ValueError as ex:
+        raise QueryObjectValidationError(str(ex)) from ex
 
     semantic_view = query_object.datasource.implementation
     dispatcher = (
@@ -222,10 +232,6 @@ def get_results(query_object: QueryObject) -> QueryResult:
         if query_object.is_rowcount
         else semantic_view.get_table
     )
-
-    # Step 1: Convert QueryObject to list of SemanticQuery objects
-    # The first query is the main query, subsequent queries are for time offsets
-    queries: list[SemanticQuery] = _map_query_object(query_object, metadata)
 
     # Step 2: Execute the main query (first in the list)
     main_query = queries[0]
@@ -502,7 +508,9 @@ def _map_query_object(
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
 
     all_metrics: dict[str, Metric] = members_by_key(view_metrics)
-    all_dimensions: dict[str, Dimension] = members_by_key(view_dimensions)
+    all_dimensions: dict[str, Dimension] = resolve_dimensions(
+        view_dimensions, usage=DimensionUsage.FILTER
+    )
 
     validate_filter_columns(query_object.filter, all_dimensions, all_metrics)
 
@@ -520,64 +528,48 @@ def _map_query_object(
 
     grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
     time_axis_column = _get_grain_time_axis_column(query_object, all_dimensions)
-    # A semantic view can expose multiple Dimension variants per name (one per
-    # supported time grain). Pick exactly one variant per selected column:
-    # for the time-axis column we honor the user's grain selection, falling
-    # back to the raw / no-grain variant when no exact match exists and then
-    # to any available variant so the axis is never silently dropped; for
-    # every other selected column we prefer the raw variant and otherwise
-    # take any available variant.
-    seen_non_axis: dict[str, Dimension] = {}
-    axis_variants: list[Dimension] = []
-    axis_match: Dimension | None = None
-    for dimension in view_dimensions:
-        if dimension.name not in normalized_columns:
-            continue
-        if dimension.name == time_axis_column:
-            axis_variants.append(dimension)
-            if axis_match is None and dimension.grain == grain:
-                axis_match = dimension
-            continue
-        existing = seen_non_axis.get(dimension.name)
-        if existing is None or (existing.grain is not None and dimension.grain is None):
-            seen_non_axis[dimension.name] = dimension
-
-    selected_dimensions: dict[str, Dimension] = dict(seen_non_axis)
-    if axis_match is not None and time_axis_column is not None:
-        selected_dimensions[time_axis_column] = axis_match
-    elif axis_variants:
-        # No variant matches the requested grain. Prefer the raw (grain=None)
-        # variant; otherwise pick a deterministic fallback so the axis stays
-        # on the query instead of being silently dropped.
-        raw_variant = next((v for v in axis_variants if v.grain is None), None)
-        selected_axis: Dimension = (
-            raw_variant
-            if raw_variant is not None
-            else min(axis_variants, key=lambda v: v.grain.name if v.grain else "")
-        )
-        selected_dimensions[selected_axis.name] = selected_axis
+    grouping_grains: dict[str, Grain | None] = (
+        {time_axis_column: grain}
+        if time_axis_column is not None and time_axis_column in normalized_columns
+        else {}
+    )
+    grouping_dimensions: dict[str, Dimension] = resolve_dimensions(
+        view_dimensions, usage=DimensionUsage.GROUP, grouping_grains=grouping_grains
+    )
     dimensions: list[Dimension] = [
-        selected_dimensions[name]
+        grouping_dimensions[name]
         for name in normalized_column_order
-        if name in selected_dimensions
+        if name in grouping_dimensions
     ]
-
-    order = _get_order_from_query_object(query_object, all_metrics, all_dimensions)
+    order: list[OrderTuple] = _get_order_from_query_object(
+        query_object,
+        all_metrics,
+        resolve_dimensions(
+            view_dimensions, usage=DimensionUsage.ORDER, grouping_grains=grouping_grains
+        ),
+    )
     limit = query_object.row_limit
     offset = query_object.row_offset
 
     group_limit = _get_group_limit_from_query_object(
         query_object,
         all_metrics,
-        all_dimensions,
+        all_dimensions=all_dimensions,
+        ranking_dimensions=resolve_dimensions(
+            view_dimensions,
+            usage=DimensionUsage.SERIES_LIMIT,
+            grouping_grains=grouping_grains,
+        ),
     )
 
+    offset_axis_column: str | None = _get_time_axis_column(query_object, all_dimensions)
     queries = []
     for time_offset in [None] + query_object.time_offsets:
         filters = _get_filters_from_query_object(
             query_object,
             time_offset,
             all_dimensions,
+            is_time_series=offset_axis_column in normalized_columns,
         )
         queries.append(
             SemanticQuery(
@@ -601,6 +593,8 @@ def _get_filters_from_query_object(
     query_object: ValidatedQueryObject,
     time_offset: str | None,
     all_dimensions: dict[str, Dimension],
+    *,
+    is_time_series: bool = False,
 ) -> set[FilterExpression]:
     """
     Extract all filters from the query object, including time range filters.
@@ -626,35 +620,71 @@ def _get_filters_from_query_object(
 
     # 2. Add time range filter based on from_dttm/to_dttm
     # For time offsets, this automatically calculates the shifted bounds
-    time_filters = _get_time_filter(query_object, time_offset, all_dimensions)
+    time_filters: set[Filter] = _get_time_filter(
+        query_object,
+        time_offset,
+        all_dimensions,
+    )
     filters.update(time_filters)
 
     # 3. Add filters from query_object.extras (WHERE and HAVING clauses)
     extras_filters = _get_filters_from_extras(query_object.extras)
     filters.update(extras_filters)
 
-    # 4. Add all other filters from query_object.filter.
-    # ``TEMPORAL_RANGE`` filters are skipped only when ``_get_time_filter``
-    # actually emitted bounds — that path takes over both the base range and
-    # the ``time_offset`` shift, so pass-through would duplicate the bounds
-    # (or, worse, ship the un-shifted literal bounds into the offset query).
-    # When it did not emit anything (e.g. an open-ended range like
-    # ``"2020-01-01 : "``, where ``_get_time_filter`` requires both
-    # ``from_dttm`` and ``to_dttm``), we fall through to
-    # ``_convert_query_object_filter``'s TEMPORAL_RANGE handler so the one-
-    # sided predicate still lands on the query instead of silently widening
-    # the scan.
-    time_bounds_emitted = bool(time_filters)
+    replaced_time_axis: str | None = (
+        _get_time_axis_column(query_object, all_dimensions) if time_filters else None
+    )
+    filters.update(
+        _get_adhoc_filters(
+            query_object,
+            all_dimensions,
+            replaced_time_axis,
+            replace_all_axis_ranges=time_offset is not None and is_time_series,
+            time_shift=time_offset if not is_time_series else None,
+        )
+    )
+
+    return filters
+
+
+def _get_adhoc_filters(
+    query_object: ValidatedQueryObject,
+    all_dimensions: dict[str, Dimension],
+    replaced_time_axis: str | None,
+    *,
+    replace_all_axis_ranges: bool = False,
+    time_shift: str | None = None,
+) -> set[FilterExpression]:
+    """Replace axis predicates with the factory-derived bounds.
+
+    Match its original expression before parsing: relative clocks, time shifts
+    and custom anchors can make a second evaluation differ from those bounds.
+    Time-series offsets and separate inner-bound queries replace all ranges on
+    the selected axis. Non-series offsets shift remaining temporal ranges
+    independently, matching the SQL-dataset comparison paths.
+    """
+    replaced_range: str | None = (
+        get_time_range_from_filters(
+            query_object.time_range, query_object.filter, query_object.columns
+        )
+        if replaced_time_axis is not None
+        else None
+    )
+    filters: set[FilterExpression] = set()
+    converted: set[FilterExpression] | None
     for filter_ in query_object.filter:
         if (
-            filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value
-            and time_bounds_emitted
+            replaced_time_axis is not None
+            and filter_["op"] == FilterOperator.TEMPORAL_RANGE.value
+            and filter_["col"] == replaced_time_axis
+            and (replace_all_axis_ranges or filter_["val"] == replaced_range)
         ):
             continue
-
-        if converted_filters := _convert_query_object_filter(filter_, all_dimensions):
-            filters.update(converted_filters)
-
+        converted = _convert_query_object_filter(
+            filter_, all_dimensions, time_shift=time_shift
+        )
+        if converted:
+            filters.update(converted)
     return filters
 
 
@@ -748,7 +778,9 @@ def _get_time_axis_column(
     # time-range filters on aggregate-only charts) carries the temporal
     # column name in its ``col`` field.
     for filter_ in query_object.filter or []:
-        if filter_.get("op") != FilterOperator.TEMPORAL_RANGE.value:
+        if filter_.get("op") != FilterOperator.TEMPORAL_RANGE.value or not isinstance(
+            filter_.get("val"), str
+        ):
             continue
         col = filter_.get("col")
         if isinstance(col, str) and is_temporal(col):
@@ -845,6 +877,8 @@ def _get_time_bounds(
 def _convert_query_object_filter(
     filter_: ValidatedQueryObjectFilterClause,
     all_dimensions: dict[str, Dimension],
+    *,
+    time_shift: str | None = None,
 ) -> set[FilterExpression] | None:
     """
     Convert a QueryObject filter dict to a semantic layer Filter.
@@ -867,7 +901,9 @@ def _convert_query_object_filter(
             return None
         start: datetime | None
         end: datetime | None
-        start, end = get_since_until_from_time_range(time_range=raw_value)
+        start, end = get_since_until_from_time_range(
+            time_range=raw_value, time_shift=time_shift
+        )
         filters: set[FilterExpression] = set()
         if start is not None:
             filters.add(
@@ -963,8 +999,11 @@ def _normalize_membership_filter(filter_: Filter) -> set[FilterExpression]:
 
 
 def _timestamp_target_tz(dtype: pa.DataType) -> tzinfo | None:
-    tz_name = getattr(dtype, "tz", None)
-    return ZoneInfo(tz_name) if tz_name else None
+    tz_name: str | None = getattr(dtype, "tz", None)
+    try:
+        return ZoneInfo(tz_name) if tz_name else None
+    except ValueError as ex:
+        raise RuntimeError("Invalid timezone in semantic dimension metadata") from ex
 
 
 def _align_tz(dt: datetime, target_tz: tzinfo | None) -> datetime:
@@ -1133,7 +1172,9 @@ def _get_order_from_query_object(
 def _get_group_limit_from_query_object(
     query_object: ValidatedQueryObject,
     all_metrics: dict[str, Metric],
+    *,
     all_dimensions: dict[str, Dimension],
+    ranking_dimensions: dict[str, Dimension],
 ) -> GroupLimit | None:
     if query_object.series_limit > 0 and not query_object.series_columns:
         logger.debug(
@@ -1146,7 +1187,9 @@ def _get_group_limit_from_query_object(
     if query_object.series_limit == 0 or not query_object.columns:
         return None
 
-    dimensions = [all_dimensions[dim_id] for dim_id in query_object.series_columns]
+    dimensions: list[Dimension] = [
+        ranking_dimensions[dim_id] for dim_id in query_object.series_columns
+    ]
     top = query_object.series_limit
     metric = (
         all_metrics[query_object.series_limit_metric]
@@ -1158,7 +1201,9 @@ def _get_group_limit_from_query_object(
 
     # Check if we need separate filters for the group limit subquery
     # This happens when inner_from_dttm/inner_to_dttm differ from from_dttm/to_dttm
-    group_limit_filters = _get_group_limit_filters(query_object, all_dimensions)
+    group_limit_filters: set[FilterExpression] | None = _get_group_limit_filters(
+        query_object, all_dimensions
+    )
 
     return GroupLimit(
         dimensions=dimensions,
@@ -1204,7 +1249,8 @@ def _get_group_limit_filters(
     # time column only in a ``TEMPORAL_RANGE`` adhoc filter still get the
     # group-limit subquery scoped to the inner bounds instead of falling
     # through to the outer bounds.
-    time_axis_column = _get_time_axis_column(query_object, all_dimensions)
+    time_axis_column: str | None = _get_time_axis_column(query_object, all_dimensions)
+    time_dimension: Dimension | None
     if time_axis_column and (time_dimension := all_dimensions.get(time_axis_column)):
         filters.update(
             {
@@ -1242,19 +1288,14 @@ def _get_group_limit_filters(
     extras_filters = _get_filters_from_extras(query_object.extras)
     filters.update(extras_filters)
 
-    # Add all other non-temporal filters from query_object.filter. Skip
-    # ``TEMPORAL_RANGE`` only when the inner-bound filters were actually
-    # emitted — otherwise dropping the pass-through would silently widen the
-    # group-limit subquery to the full history.
-    for filter_ in query_object.filter:
-        if (
-            filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value
-            and time_bounds_emitted
-        ):
-            continue
-
-        if converted_filters := _convert_query_object_filter(filter_, all_dimensions):
-            filters.update(converted_filters)
+    filters.update(
+        _get_adhoc_filters(
+            query_object,
+            all_dimensions,
+            time_axis_column if time_bounds_emitted else None,
+            replace_all_axis_ranges=time_bounds_emitted,
+        )
+    )
 
     return filters if filters else None
 
@@ -1331,7 +1372,10 @@ def validate_query_object(
 
     validated: ValidatedQueryObject = cast(ValidatedQueryObject, query_object)
     metadata: _ViewMetadata = _validation_metadata(validated)
-    _validate_query_object(validated, metadata)
+    try:
+        _validate_query_object(validated, metadata)
+    except ValueError as ex:
+        raise QueryObjectValidationError(str(ex)) from ex
     return True
 
 
@@ -1438,7 +1482,9 @@ def _validate_granularity(
     Make sure time column and time grain are valid.
     """
     view_dimensions: tuple[Dimension, ...] = metadata.dimensions
-    all_dimensions: dict[str, Dimension] = members_by_key(view_dimensions)
+    all_dimensions: dict[str, Dimension] = resolve_dimensions(
+        view_dimensions, usage=DimensionUsage.METADATA
+    )
     dimension_names = set(all_dimensions.keys())
 
     if (legacy_time_column := query_object.granularity) and (

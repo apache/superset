@@ -124,6 +124,48 @@ def _strip_opaque_fields(item: Any) -> Any:
     return {k: v for k, v in item.items() if k not in _CHILD_ITEM_OPAQUE_FIELDS}
 
 
+def _normalized_child_extra(extra: Any) -> Any:
+    """Return a dataset column/metric ``extra`` in a comparable form.
+
+    The dataset editor re-sends every column and metric with ``extra``
+    serialized by the browser (``"{}"`` when nothing is set), while rows
+    created by the backend store NULL or differently spaced JSON. NULL,
+    ``""`` and a JSON object that is empty once null-valued keys are dropped
+    (at any depth) all mean unset (``None``); any other JSON compares as
+    canonical text, so
+    spacing and key order don't matter but values and types do. Unparseable
+    strings compare as stored.
+    """
+    if extra is None or extra == "":
+        return None
+    if not isinstance(extra, str):
+        return extra
+    try:
+        parsed = _json.loads(extra)
+    except (TypeError, ValueError):
+        return extra
+    parsed = _without_null_values(parsed)
+    if parsed == {}:
+        return None
+    return _json.dumps(parsed, sort_keys=True)
+
+
+def _without_null_values(value: Any) -> Any:
+    """Return *value* with null-valued object keys dropped at every depth."""
+    if isinstance(value, list):
+        return [_without_null_values(v) for v in value]
+    if not isinstance(value, dict):
+        return value
+    return {k: _without_null_values(v) for k, v in value.items() if v is not None}
+
+
+def _comparable_dataset_child(item: Any) -> Any:
+    """Return a stripped dataset column/metric with ``extra`` normalized."""
+    if not isinstance(item, dict) or "extra" not in item:
+        return item
+    return {**item, "extra": _normalized_child_extra(item["extra"])}
+
+
 # Chart ``params`` sub-keys that are promoted to first-class kinds.
 # Every other params sub-key falls through to ``kind="field"``.
 _CHART_PARAMS_KIND_BY_KEY: dict[str, str] = {
@@ -405,10 +447,13 @@ def _diff_list_by_natural_key(
     from_list: list[Any] | None,
     to_list: list[Any] | None,
     key_fn: Callable[[Any], Key | None],
+    comparable: Callable[[Any], Any] | None = None,
 ) -> list[ChangeRecord]:
     """Diff two lists, matching elements by natural key.
 
-    Emits one record per add / remove / modify. When ``key_fn`` returns
+    Emits one record per add / remove / modify. ``comparable``, when
+    given, maps a stripped item to the form used to decide whether it
+    changed; records still carry the stripped items. When ``key_fn`` returns
     ``None`` for an item (natural key missing or empty), the item falls
     back to its position as a synthetic key — so insertions in the
     middle of a keyless list still produce sensible records, at the
@@ -454,7 +499,12 @@ def _diff_list_by_natural_key(
             )
             continue
         stripped_to = _strip_opaque_fields(to_item)
-        if stripped_from != stripped_to:
+        same = (
+            comparable(stripped_from) == comparable(stripped_to)
+            if comparable
+            else stripped_from == stripped_to
+        )
+        if not same:
             records.append(
                 ChangeRecord(
                     kind=kind,
@@ -1060,6 +1110,7 @@ def diff_dataset_columns(
         from_list=from_columns,
         to_list=to_columns,
         key_fn=lambda c: c.get("column_name") if isinstance(c, dict) else None,
+        comparable=_comparable_dataset_child,
     )
 
 
@@ -1074,6 +1125,7 @@ def diff_dataset_metrics(
         from_list=from_metrics,
         to_list=to_metrics,
         key_fn=lambda m: m.get("metric_name") if isinstance(m, dict) else None,
+        comparable=_comparable_dataset_child,
     )
 
 

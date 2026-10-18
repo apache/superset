@@ -52,6 +52,7 @@ from superset.daos.exceptions import (
 from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
+    QueryObjectValidationMessage,
     SemanticResultCompletenessError,
     SupersetException,
     SupersetTemplateException,
@@ -332,7 +333,8 @@ class QueryContextProcessor:
             except SemanticResultCompletenessError:
                 raise
             except QueryObjectValidationError as ex:
-                cache.error_message = str(ex)
+                # Keep the type: ChartDataCommand reads it to answer 400.
+                cache.error_message = QueryObjectValidationMessage(ex)
                 cache.status = QueryStatus.FAILED
             finally:
                 data_acquisition_ns = max(
