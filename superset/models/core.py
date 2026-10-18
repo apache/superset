@@ -305,16 +305,6 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         return rule
 
     @property
-    def is_query_cost_warning_enabled(self) -> bool:
-        """Activate explicit opt-in only when both flags and estimation allow it."""
-        return bool(
-            is_feature_enabled("SQLLAB_QUERY_COST_WARNINGS")
-            and is_feature_enabled("ESTIMATE_QUERY_COST")
-            and self.allows_cost_estimate is True
-            and self.query_cost_warning["enabled"]
-        )
-
-    @property
     def allows_virtual_table_explore(self) -> bool:
         extra = self.get_extra()
         return bool(extra.get("allows_virtual_table_explore", True))

@@ -334,9 +334,10 @@ def get_query_cost_warning(extra: dict[str, Any], engine: str) -> dict[str, Any]
     threshold = extra.get("cost_estimate_warning_threshold_bytes")
     if (
         engine == "bigquery"
-        and isinstance(threshold, int)
+        and isinstance(threshold, (int, float))
         and not isinstance(threshold, bool)
         and 0 < threshold <= 2**53 - 1
+        and threshold == int(threshold)
     ):
         return {
             "enabled": extra.get("cost_estimate_warning_enabled") is True,

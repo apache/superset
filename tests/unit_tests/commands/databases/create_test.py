@@ -21,8 +21,69 @@ import pytest
 from pytest_mock import MockerFixture
 
 from superset.commands.database.create import CreateDatabaseCommand
+from superset.commands.database.exceptions import DatabaseInvalidError
 from superset.exceptions import OAuth2RedirectError
 from superset.extensions import security_manager
+from superset.utils import json
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_create_normalizes_legacy_warning_without_losing_extras(
+    mocker: MockerFixture, enabled: bool
+) -> None:
+    """Command saves preserve draft keys and accept whole numeric byte amounts."""
+    mocker.patch(
+        "superset.commands.database.create.DatabaseDAO.validate_uniqueness",
+        return_value=True,
+    )
+    extra = {
+        "cost_estimate_warning_threshold_bytes": 100.0,
+        "cost_estimate_warning_enabled": enabled,
+        "engine_params": {"pool_pre_ping": True},
+    }
+    command = CreateDatabaseCommand(
+        {
+            "database_name": "test",
+            "sqlalchemy_uri": "bigquery://project",
+            "extra": json.dumps(extra),
+        }
+    )
+    command.validate()
+    assert json.loads(command._properties["extra"]) == {
+        **extra,
+        "query_cost_warning": {
+            "enabled": enabled,
+            "metric": "bytes_processed",
+            "threshold": 100,
+        },
+    }
+
+
+def test_create_rejects_warning_metric_for_another_engine(
+    mocker: MockerFixture,
+) -> None:
+    """Direct command callers also validate enabled metrics against the URI."""
+    mocker.patch(
+        "superset.commands.database.create.DatabaseDAO.validate_uniqueness",
+        return_value=True,
+    )
+    command = CreateDatabaseCommand(
+        {
+            "database_name": "test",
+            "sqlalchemy_uri": "postgresql://",
+            "extra": json.dumps(
+                {
+                    "query_cost_warning": {
+                        "enabled": True,
+                        "metric": "bytes_processed",
+                        "threshold": 100,
+                    }
+                }
+            ),
+        }
+    )
+    with pytest.raises(DatabaseInvalidError):
+        command.validate()
 
 
 @pytest.fixture

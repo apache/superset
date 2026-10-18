@@ -135,11 +135,6 @@ def import_database(  # noqa: C901
                 _sync_permissions_best_effort(existing)
             return existing
         config["id"] = existing.id
-        # Stored secrets must not be rebound to a different endpoint: without
-        # fresh credentials, an overwrite that changes where the database (or
-        # its SSH tunnel) connects would exfiltrate the stored secret to the
-        # new endpoint on the next connection.
-        _refuse_stored_secret_reuse(existing, config)
     elif not can_write:
         raise ImportFailedError(
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
@@ -148,6 +143,11 @@ def import_database(  # noqa: C901
     stored_extra = json.loads(existing.extra or "{}") if existing else None
     if existing and set(incoming_extra) == {"query_cost_warning"}:
         incoming_extra = {**(stored_extra or {}), **incoming_extra}
+    config["extra"] = incoming_extra
+    if existing:
+        # Check the resulting connection settings after a rule-only patch has
+        # retained engine_params; omitted settings do not change the endpoint.
+        _refuse_stored_secret_reuse(existing, config)
     config["extra"] = normalize_query_cost_warning(
         incoming_extra, config["sqlalchemy_uri"], stored_extra
     )

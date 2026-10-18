@@ -63,7 +63,7 @@ from tests.unit_tests.conftest import with_feature_flags
     "engine,metric", [("bigquery", "bytes_processed"), ("postgresql", "total_cost")]
 )
 @pytest.mark.parametrize("enabled", [False, True])
-def test_cost_warning_policy(
+def test_cost_warning_rule_survives_inactive_settings(
     mocker: MockerFixture,
     request: pytest.FixtureRequest,
     warnings_flag: bool,
@@ -73,7 +73,7 @@ def test_cost_warning_policy(
     metric: str,
     enabled: bool,
 ) -> None:
-    """Saved rules survive inactive estimation and require every activation gate."""
+    """Saved rules remain available for display independently of activation gates."""
     request.addfinalizer(Database.get_db_engine_spec.cache_clear)
     mocker.patch(
         "superset.models.core.is_feature_enabled",
@@ -94,9 +94,6 @@ def test_cost_warning_policy(
         extra=json.dumps({"query_cost_warning": rule}),
     )
     assert database.query_cost_warning == rule
-    assert database.is_query_cost_warning_enabled is (
-        warnings_flag and estimate_flag and connection_estimation and enabled
-    )
 
 
 @pytest.mark.parametrize(

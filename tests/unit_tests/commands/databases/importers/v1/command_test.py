@@ -19,10 +19,94 @@ import copy
 import json  # noqa: TID251
 from typing import Any
 
+import pytest
+from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
 
 from tests.unit_tests.fixtures.assets_configs import databases_config
+
+
+@pytest.mark.parametrize("broken", [False, True])
+def test_import_disables_saved_warning_and_preserves_unrelated_extras(
+    mocker: MockerFixture, session: Session, broken: bool
+) -> None:
+    """The real import path can repair a rule without dropping connection settings."""
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.databases.schemas import ImportV1DatabaseSchema
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch("superset.commands.database.importers.v1.utils.add_permissions")
+    Database.metadata.create_all(db.session.get_bind())
+    rule = {
+        "enabled": True,
+        "metric": "total_cost",
+        "threshold": "bad" if broken else 12.5,
+    }
+    stored = {
+        "query_cost_warning": rule,
+        "engine_params": {"pool_pre_ping": True},
+        "cost_estimate_warning_threshold_bytes": 100,
+    }
+    database = Database(
+        database_name="warning-test",
+        sqlalchemy_uri="postgresql://",
+        extra=json.dumps(stored),
+    )
+    db.session.add(database)
+    db.session.flush()
+    config = ImportV1DatabaseSchema().load(
+        {
+            "database_name": database.database_name,
+            "sqlalchemy_uri": "postgresql://",
+            "uuid": str(database.uuid),
+            "version": "1.0.0",
+            "extra": {"query_cost_warning": {"enabled": False}},
+        }
+    )
+    imported = import_database(config, overwrite=True)
+    assert imported.id == database.id
+    disabled_rule: dict[str, object] = (
+        {"enabled": False} if broken else {**rule, "enabled": False}
+    )
+    assert json.loads(imported.extra) == {
+        **stored,
+        "query_cost_warning": disabled_rule,
+    }
+
+
+def test_import_rejects_warning_incompatible_with_resulting_engine(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """An overwrite validates a retained rule against the incoming connection URI."""
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    Database.metadata.create_all(db.session.get_bind())
+    database = Database(database_name="warning-test", sqlalchemy_uri="bigquery://")
+    db.session.add(database)
+    db.session.flush()
+    with pytest.raises(ValidationError):
+        import_database(
+            {
+                "database_name": database.database_name,
+                "sqlalchemy_uri": "postgresql://",
+                "password": "fresh-test-password",
+                "uuid": database.uuid,
+                "extra": {
+                    "query_cost_warning": {
+                        "enabled": True,
+                        "metric": "bytes_processed",
+                        "threshold": 100,
+                    }
+                },
+            },
+            overwrite=True,
+        )
 
 
 def test_import_database_with_encrypted_extra(

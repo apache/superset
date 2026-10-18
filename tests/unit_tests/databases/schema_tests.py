@@ -164,14 +164,16 @@ def test_legacy_query_cost_warning_values_are_preserved_without_validation(
 
 
 @pytest.mark.parametrize("enabled", [None, False, True, "true", 1])
+@pytest.mark.parametrize("threshold", [100, 100.0])
 def test_legacy_query_cost_warning_prefill_requires_explicit_boolean_opt_in(
     enabled: object,
+    threshold: int | float,
 ) -> None:
     """A valid legacy amount prefills BigQuery but does not opt the user in."""
     from superset.databases.schemas import get_query_cost_warning
 
     extra = {
-        "cost_estimate_warning_threshold_bytes": 100,
+        "cost_estimate_warning_threshold_bytes": threshold,
         **({"cost_estimate_warning_enabled": enabled} if enabled is not None else {}),
     }
     original = extra.copy()
