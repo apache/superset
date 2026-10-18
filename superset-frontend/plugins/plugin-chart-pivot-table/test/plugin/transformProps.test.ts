@@ -456,7 +456,7 @@ test('additive metrics: synthesizes rollup levels from a single leaf query', () 
 test('conditional formatting scales over leaf cells only, not rollup totals', () => {
   const gm = (col: string) => `${col}__superset_grouping`;
   // `metrics` below is a plain string, i.e. a saved-metric reference.
-  // `isAdditiveMetric` treats every string as non-additive no matter what it is
+  // `isClientAggregatableMetric` treats every string as non-additive no matter what it is
   // named, because form data does not reveal the aggregate behind a saved
   // metric -- so a saved metric labelled "SUM(sales)" (as in the report this
   // regression comes from) takes the non-additive path despite the name. That
