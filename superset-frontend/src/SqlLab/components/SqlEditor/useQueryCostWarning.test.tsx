@@ -182,7 +182,6 @@ test.each(['disabled', 'unsupported', 'within_threshold'])(
     h.start();
     h.start();
     expect(h.result.current.checking).toBe(true);
-    expect(h.result.current.hasPending()).toBe(true);
     await h.finish({ ...warning, status, value: 0 });
     await waitFor(() => expect(h.executions()).toHaveLength(1));
     const checked = JSON.parse(
@@ -208,7 +207,6 @@ test.each(['disabled', 'unsupported', 'within_threshold'])(
       runAsync: false,
     });
     expect(h.result.current.checking).toBe(false);
-    expect(h.result.current.hasPending()).toBe(false);
   },
 );
 

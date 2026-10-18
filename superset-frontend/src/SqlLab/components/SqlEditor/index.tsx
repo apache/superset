@@ -305,8 +305,15 @@ const SqlEditor: FC<Props> = ({
       ctasArg = false,
       ctas_method: (typeof CtasEnum)[keyof typeof CtasEnum] = CtasEnum.Table,
       automatic = false,
+      sql?: string,
     ) =>
-      costWarning.start(ctasArg ? ctas : '', ctasArg, ctas_method, automatic),
+      costWarning.start(
+        ctasArg ? ctas : '',
+        ctasArg,
+        ctas_method,
+        automatic,
+        sql,
+      ),
     [costWarning.start, ctas],
   );
 
@@ -544,22 +551,16 @@ const SqlEditor: FC<Props> = ({
             start = { line: currentLine, column: 0 };
           }
 
-          // Set selection and run query
-          editor.setSelection({
-            start: start ?? { line: 0, column: 0 },
-            end,
-          });
-          startQuery();
-          // Keep the captured selection stable while a warning awaits a decision.
-          if (costWarning.hasPending()) return;
-
-          // Clear selection and restore cursor position
-          editor.setSelection({
-            start: cursorPosition,
-            end: cursorPosition,
-          });
-          editor.moveCursorToPosition(cursorPosition);
-          editor.scrollToLine(cursorPosition.line);
+          // Capture the existing statement range without changing the user's selection.
+          const statementStart = start ?? { line: 0, column: 0 };
+          const statementLines = lines.slice(statementStart.line, end.line + 1);
+          const lastIndex = statementLines.length - 1;
+          statementLines[lastIndex] = statementLines[lastIndex].slice(
+            0,
+            end.column,
+          );
+          statementLines[0] = statementLines[0].slice(statementStart.column);
+          startQuery(false, CtasEnum.Table, false, statementLines.join('\n'));
         },
       },
     ];
@@ -581,7 +582,7 @@ const SqlEditor: FC<Props> = ({
     }
 
     return base;
-  }, [costWarning.hasPending, getHotkeyConfig, startQuery]);
+  }, [getHotkeyConfig, startQuery]);
 
   const onBeforeUnload = useEffectEvent(event => {
     if (

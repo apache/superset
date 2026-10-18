@@ -152,7 +152,6 @@ export default function useQueryCostWarning(
     current.current = undefined;
     setPending(undefined);
   }, []);
-  const hasPending = useCallback(() => !!current.current, []);
   const isCurrent = useCallback(
     (attempt: Attempt) =>
       mounted.current &&
@@ -198,13 +197,14 @@ export default function useQueryCostWarning(
       ctas = false,
       ctasMethod: string = CtasEnum.Table,
       automatic = false,
+      sql?: string,
     ) => {
       if (current.current) return;
       const { editor, database, flags, key, active } = readInputs();
       if (!database || (!active && !automatic)) return;
       const query = getSqlEditorQuery(
         { id: database.id, allow_run_async: Boolean(database.allow_run_async) },
-        editor,
+        sql === undefined ? editor : { ...editor, selectedText: sql },
         inputs.current.defaultQueryLimit,
         tempTable,
         ctas,
@@ -267,7 +267,6 @@ export default function useQueryCostWarning(
   );
   return {
     start,
-    hasPending,
     cancel,
     continueRun,
     checking: !!pending && !pending.result,

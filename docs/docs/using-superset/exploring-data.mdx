@@ -468,7 +468,8 @@ database or network errors remain errors. Omitting `check_warning` preserves the
 manual estimator response.
 
 When you deliberately select **Run** (including Run selection or its keyboard
-shortcut), SQL Lab checks the captured request before execution. While checking,
+shortcut), SQL Lab checks the captured request before execution. The current-statement
+shortcut uses the existing statement range without changing your selection. While checking,
 **Cancel** in the Run area prevents that attempt from executing; it does not
 forcibly cancel a database dry run. An estimate above the threshold offers
 **Cancel** and **Run anyway**. An unavailable estimate explains why and offers
