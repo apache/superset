@@ -49,6 +49,31 @@ from tests.integration_tests.base_tests import SupersetTestCase
 
 
 class TestQueryEstimationCommand(SupersetTestCase):
+    @patch("superset.commands.sql_lab.estimate.is_feature_enabled", return_value=False)
+    def test_warning_preparation_does_not_pollute_session(
+        self, mock_is_feature_enabled: Mock
+    ) -> None:
+        """The limit probe must not leave an incomplete Query pending for autoflush."""
+        database = get_example_database()
+        command = estimate.QueryEstimationCommand(
+            {
+                "database_id": database.id,
+                "sql": "SELECT 1",
+                "catalog": None,
+                "schema": None,
+                "template_params": {},
+                "query_limit": 10,
+                "check_warning": True,
+            }
+        )
+        command._database = database
+        sql, reason = command._prepare_warning_sql()
+        assert reason is None
+        assert sql is not None
+        assert "LIMIT 11" in sql
+        assert not any(isinstance(obj, Query) for obj in db.session.new)
+        db.session.flush()
+
     def test_validation_no_database(self) -> None:
         params = {"database_id": 1, "sql": "SELECT 1"}
         schema = EstimateQueryCostSchema()

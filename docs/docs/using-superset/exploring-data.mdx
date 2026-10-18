@@ -445,6 +445,21 @@ The existing manual estimate button keeps its formatted display. Warning checks
 are advisory and are intended for deliberate SQL Lab runs, not dashboards,
 scheduled queries, automatic retries, CTAS/CVAS, or enforced warehouse limits.
 
+API clients can check a warning with `POST /api/v1/sqllab/estimate/`, setting
+`check_warning` to `true` and passing the selected `sql`, `database_id`, `catalog`,
+`schema`, `template_params`, and SQL Lab dropdown `query_limit`. The check applies
+the execution row limits, including the extra row fetched to detect truncation.
+The result reports `disabled`, `unsupported`, `within_threshold`, `exceeded`, or
+`unavailable`, with the native metric, label, unit, raw value, threshold, and
+message where applicable. Equality does not warn. Treat the server's status as
+authoritative; byte counts can exceed JavaScript's safe integer range.
+
+Checking supports one read-only SELECT. Templates, multiple statements, and
+custom SQL transformations are unavailable. A known estimation timeout or an
+unusable estimate also returns unavailable. Invalid rules, access failures, and
+database or network errors remain errors. Omitting `check_warning` preserves the
+manual estimator response.
+
 ### SQL Lab Tips
 
 **Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.

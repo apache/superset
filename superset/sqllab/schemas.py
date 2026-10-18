@@ -51,6 +51,15 @@ class EstimateQueryCostSchema(Schema):
         allow_none=True, metadata={"description": "The database schema"}
     )
     include_raw = fields.Boolean(load_default=False)
+    check_warning = fields.Boolean(
+        load_default=False,
+        metadata={"description": "Check the connection's advisory warning threshold"},
+    )
+    query_limit = fields.Integer(
+        allow_none=True,
+        strict=True,
+        metadata={"description": "The SQL Lab dropdown row limit"},
+    )
 
 
 class FormatQueryPayloadSchema(Schema):
