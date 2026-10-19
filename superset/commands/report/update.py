@@ -496,6 +496,8 @@ class UpdateReportScheduleCommand(UpdateMixin, BaseReportScheduleCommand):
             self._properties.get("report_format", self._model.report_format),
             exceptions,
         )
+        # Always validate the effective Teams recipients, even for metadata-only PUTs.
+        self.validate_teams_recipients(exceptions)
         if "recipients" in self._properties:
             self.validate_recipients_policy(exceptions)
         self._validate_executors(
