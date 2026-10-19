@@ -3927,6 +3927,10 @@
           "main_dttm_col": {
             "type": "string"
           },
+          "metadata_error": {
+            "description": "Validation error for this dataset only.",
+            "type": "string"
+          },
           "metrics": {
             "items": {
               "type": "object"
@@ -7933,6 +7937,38 @@
             "nullable": true
           }
         },
+        "type": "object"
+      },
+      "PasswordRecoveryRequestSchema": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 320,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "PasswordRecoveryResetSchema": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "token"
+        ],
         "type": "object"
       },
       "PermissionApi.get": {
@@ -25632,7 +25668,7 @@
             }
           },
           {
-            "description": "Optional case-insensitive substring; only values containing it are returned. Lets the client search the full column rather than the truncated first page.",
+            "description": "Optional substring search for SQL dataset columns and text semantic dimensions. Semantic non-text dimensions return the bounded page without server-side search. Case sensitivity follows the datasource or semantic provider.",
             "in": "query",
             "name": "q",
             "schema": {
@@ -27386,6 +27422,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "description": "Query already finished or target transaction committed; includes the recorded query\\n"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -30670,6 +30709,110 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/": {
+      "post": {
+        "description": "Emails a single-use password reset link if the address belongs to an active account with a local password. The response is the same whether or not it does.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryRequestSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Request accepted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [],
+        "summary": "Request a password reset link",
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/reset/": {
+      "post": {
+        "description": "Consumes the single-use token from a password reset link and sets the account's new password. Every existing browser session for the account is signed out.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryResetSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Password reset"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The new password was rejected (``message.password``) or the token is invalid, expired or already used (``message.token``)"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [],
+        "summary": "Reset a password with a recovery token",
         "tags": [
           "Security"
         ]

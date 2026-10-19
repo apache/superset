@@ -33,9 +33,21 @@ from flask_appbuilder.const import (
     AUTH_REMOTE_USER,
     AUTH_SAML,
 )
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import (
+    assoc_group_role,
+    assoc_permissionview_role,
+    assoc_user_group,
+    assoc_user_role,
+    Group,
+    Permission,
+    PermissionView,
+    Role,
+    User,
+    ViewMenu,
+)
 from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
 from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
 from werkzeug.exceptions import NotFound
 
 from superset.common.chart_data import ChartDataResultType
@@ -6109,3 +6121,123 @@ def test_semantic_layer_delete_retains_child_grant_on_mysql_repeatable_read(
 
     connection.execute.assert_called_once()
     delete_pvm.assert_not_called()
+
+
+def _create_fab_security_tables(session: Session) -> None:
+    """
+    The shared in-memory SQLite ``session`` fixture only creates Superset's own
+    metadata; FAB's security tables live on a separate declarative base, so
+    they have to be created explicitly before they can be populated.
+    """
+    Permission.metadata.create_all(
+        session.get_bind(),
+        tables=[
+            Permission.__table__,
+            ViewMenu.__table__,
+            PermissionView.__table__,
+            Role.__table__,
+            User.__table__,
+            Group.__table__,
+            assoc_permissionview_role,
+            assoc_user_role,
+            assoc_user_group,
+            assoc_group_role,
+        ],
+        checkfirst=True,
+    )
+
+
+def _build_rbac_graph(session: Session) -> dict[str, int]:
+    """
+    Build a small RBAC graph exercising both ways a user can hold a role:
+    granted directly, and granted via a group.
+
+        direct_user  --role--> role_direct --pvm--> [db].[direct_schema]
+        group_user   --group--> grp --role--> role_group --pvm--> [db].[group_schema]
+        no_access_user holds neither.
+
+    An extra ``schema_access`` pvm attached to no role at all guards against
+    the query returning permissions nobody was granted.
+    """
+    perm = Permission(name="schema_access")
+    session.add(perm)
+
+    vm_direct = ViewMenu(name="[db].[direct_schema]")
+    vm_group = ViewMenu(name="[db].[group_schema]")
+    vm_orphan = ViewMenu(name="[db].[ungranted_schema]")
+    session.add_all([vm_direct, vm_group, vm_orphan])
+    session.flush()
+
+    pvm_direct = PermissionView(permission=perm, view_menu=vm_direct)
+    pvm_group = PermissionView(permission=perm, view_menu=vm_group)
+    pvm_orphan = PermissionView(permission=perm, view_menu=vm_orphan)
+    session.add_all([pvm_direct, pvm_group, pvm_orphan])
+    session.flush()
+
+    role_direct = Role(name="role_direct", permissions=[pvm_direct])
+    role_group = Role(name="role_group", permissions=[pvm_group])
+    session.add_all([role_direct, role_group])
+    session.flush()
+
+    grp = Group(name="grp", roles=[role_group])
+    session.add(grp)
+    session.flush()
+
+    users = {}
+    for name, roles, groups in (
+        ("direct_user", [role_direct], []),
+        ("group_user", [], [grp]),
+        ("both_user", [role_direct], [grp]),
+        ("no_access_user", [], []),
+    ):
+        user = User(
+            first_name=name,
+            last_name="t",
+            username=name,
+            email=f"{name}@example.invalid",
+            roles=roles,
+            groups=groups,
+        )
+        session.add(user)
+        session.flush()
+        users[name] = user.id
+    session.commit()
+    return users
+
+
+@pytest.mark.parametrize(
+    "username,expected",
+    [
+        ("direct_user", {"[db].[direct_schema]"}),
+        ("group_user", {"[db].[group_schema]"}),
+        ("both_user", {"[db].[direct_schema]", "[db].[group_schema]"}),
+        ("no_access_user", set()),
+    ],
+)
+def test_user_view_menu_names_resolves_direct_and_group_roles(
+    mocker: MockerFixture,
+    app_context: None,
+    session: Session,
+    username: str,
+    expected: set[str],
+) -> None:
+    """
+    ``user_view_menu_names`` must resolve permissions from roles held directly
+    *and* from roles inherited through a group, and must never return a
+    permission that no role was granted.
+    """
+    _create_fab_security_tables(session)
+    users = _build_rbac_graph(session)
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(
+        type(sm), "session", new_callable=mocker.PropertyMock, return_value=session
+    )
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch(
+        "superset.security.manager.g",
+        new=SimpleNamespace(user=SimpleNamespace(is_anonymous=False)),
+    )
+    mocker.patch("superset.security.manager.get_user_id", return_value=users[username])
+
+    assert sm.user_view_menu_names("schema_access") == expected

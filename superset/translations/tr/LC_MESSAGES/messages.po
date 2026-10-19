@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: avsarcoteli@gmail.com\n"
-"POT-Creation-Date: 2026-10-18 18:27-0400\n"
+"POT-Creation-Date: 2026-10-19 01:19-0400\n"
 "PO-Revision-Date: 2024-02-25 14:00+0300\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: tr\n"
@@ -1121,6 +1121,12 @@ msgstr "Yeni bir grafik oluşturulacaktır."
 msgid "A new dashboard will be created."
 msgstr "Yeni bir pano oluşturulacak."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1594,10 +1600,10 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Sanal veri kümesine %s yeni sütun eklendi"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Veri kümesine %s yeni sütun eklendi"
 
 #, python-format
 msgid "Added a %s"
@@ -2949,6 +2955,9 @@ msgstr "Geri dön"
 msgid "Back to all"
 msgstr "Geri dön"
 
+msgid "Back to sign in"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3855,6 +3864,10 @@ msgstr "Grafik başlığı"
 msgid "Chart type"
 msgstr "Grafik başlığı"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 #, fuzzy
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "Grafikler silinemedi."
@@ -3908,6 +3921,9 @@ msgstr "Bu panoyu kontrol edin:"
 msgid "Check to force date partitions to have the same height"
 msgstr "Aynı yüksekliklere sahip olmak için tarih bölmelerini kontrol edin"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3941,6 +3957,9 @@ msgstr "Bir veriseti seçin"
 
 msgid "Choose a metric for right axis"
 msgstr "Doğru eksen için bir metrik seçin"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Bir numara format seçin"
@@ -5509,6 +5528,10 @@ msgstr "Gösterim Paneli başlığı"
 msgid "Dashboard updated %s"
 msgstr "Pano güncellendi %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Gösterim Paneli kullanımı"
 
@@ -5766,6 +5789,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Dataset şeması geçersizdir, neden:   %(error)s "
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7328,6 +7355,11 @@ msgstr "aralığı filtre için minimum ve maksimum değerler girin"
 msgid "Enter report name"
 msgstr "Rapor ismi"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 #, fuzzy
 msgid "Enter the group's description"
 msgstr "Alarm adı"
@@ -8504,6 +8536,12 @@ msgstr "Yabancı anahtar"
 msgid "Forest Green"
 msgstr "Orman Yeşil"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr ""
 "Form verileri önbellek olarak bulamadı, grafik metadata'ya yeniden "
@@ -8685,7 +8723,7 @@ msgstr "Kolon seç"
 msgid "Get the last date by the date unit."
 msgstr "Tarih birimi tarafından son tarihi alın."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Tatil için belirtilen tarih alın"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8982,6 +9020,15 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Bir metrik belirtilmişse, metrik değere dayalı sıralama yapılacaktır."
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -8999,6 +9046,11 @@ msgid "If table already exists"
 msgstr ""
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -9801,6 +9853,9 @@ msgstr "Layout type of tree"
 
 msgid "Least recently modified"
 msgstr "Least son zamanlarda değiştirilmiş"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -10786,10 +10841,10 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Son düzenleme %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Sanal veri kümesindeki %s sütun değiştirildi"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Veri kümesindeki %s sütun değiştirildi"
 
 msgid "Modified by"
 msgstr "Düzenleyen"
@@ -11701,6 +11756,12 @@ msgstr "Sadece varsayılan katalog bu bağlantı için desteklenmektedir"
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -13058,10 +13119,10 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Sanal veri setinden %s sütun kaldırıldı"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Veri setinden %s sütun kaldırıldı"
 
 #, python-format
 msgid "Removed a %s"
@@ -13252,6 +13313,12 @@ msgstr "düğümler arasındaki güç"
 msgid "Request Access"
 msgstr "İstek Access"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -13333,6 +13400,10 @@ msgstr "Sıfır devlet"
 
 msgid "Reset to default folders?"
 msgstr "Varsayılan klasörleri sıfırlamak mı?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 #, fuzzy
 msgid "Resize"
@@ -14727,6 +14798,12 @@ msgstr "Semantik Görünümler"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14852,6 +14929,9 @@ msgstr "PNG olarak gönder"
 
 msgid "Send as text"
 msgstr "metin olarak gönderin"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -15363,6 +15443,9 @@ msgstr "Sign in Sign in"
 msgid "Sign in with"
 msgstr "Sign in with"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "Significance Level"
 
@@ -15533,6 +15616,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "Bir şey yanlış gitti."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -17086,6 +17172,9 @@ msgid "The parameter %(parameters)s in your query is undefined."
 msgid_plural "The following parameters in your query are undefined: %(parameters)s."
 msgstr[0] "Parametre   %(parameters)s in your query is undefined."
 
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Kullanıcı adı \"  %(username)s \" için sağlanan şifre yanlış."
@@ -18398,6 +18487,10 @@ msgstr ""
 "ve pozisyonları sürükleyerek dinamik olarak oluşturulur ve pano "
 "görünümünde düşer ve düşer"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -18469,6 +18562,12 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Bu parola çok yaygın; lütfen daha az tahmin edilebilir bir tane seçin."
+
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -18874,6 +18973,9 @@ msgstr[0] ""
 
 msgid "Token Request URI"
 msgstr "Hediye İste URIRIRI"
+
+msgid "Too many requests. Please wait and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
@@ -21053,6 +21155,11 @@ msgstr ""
 "erişimi istemek için bir %s düzenleyicisine ulaşın."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -21063,6 +21170,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -21070,6 +21182,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -21191,6 +21308,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"

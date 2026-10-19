@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-18 18:27-0400\n"
+"POT-Creation-Date: 2026-10-19 01:19-0400\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1146,6 +1146,12 @@ msgstr "Bude vytvorený nový graf."
 msgid "A new dashboard will be created."
 msgstr "Bude vytvorená nová nástenka."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1593,12 +1599,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Do virtuálnej sady dát bol pridaný %s nový stĺpec"
-msgstr[1] "Do virtuálnej sady dát boli pridané %s nové stĺpce"
-msgstr[2] "Do virtuálnej sady dat bolo pridané %s nových stĺpcov"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Do sady dát bol pridaný %s nový stĺpec"
+msgstr[1] "Do sady dát boli pridané %s nové stĺpce"
+msgstr[2] "Do sady dat bolo pridané %s nových stĺpcov"
 
 #, python-format
 msgid "Added a %s"
@@ -2901,6 +2907,9 @@ msgstr "Späť"
 msgid "Back to all"
 msgstr "Späť na vše"
 
+msgid "Back to sign in"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3783,6 +3792,10 @@ msgstr "Názov grafu"
 msgid "Chart type"
 msgstr "Typ grafu"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 #, fuzzy
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "Graf bol uložený, ale sa nepodarilo pridať do vybraného panela."
@@ -3839,6 +3852,9 @@ msgstr "Podívejte sa na tuto nástenku: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Zaškrtnite pre vynútenie rovnakej výšky dátových oddielov"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3869,6 +3885,9 @@ msgstr "Vyberte oddelovač"
 
 msgid "Choose a metric for right axis"
 msgstr "Vyberte metriku pre pravou osu"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Vyberte formát čísla"
@@ -5376,6 +5395,10 @@ msgstr "Názov nástenky"
 msgid "Dashboard updated %s"
 msgstr "Naposledy aktualizované %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Použití nástenky"
 
@@ -5622,6 +5645,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Schéma sady dat je neplatné, spôsobené: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7176,6 +7203,11 @@ msgstr "Zadejte minimální a maximální hodnoty pre filter rozsahu"
 msgid "Enter report name"
 msgstr "Zadejte názov reportu"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 msgid "Enter the group's description"
 msgstr "Zadejte popis skupiny"
 
@@ -8313,6 +8345,12 @@ msgstr "Cizí kľúč"
 msgid "Forest Green"
 msgstr "Lesní zelená"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "Data formuláře nenalezena v mezipameti, vraciam sa k metadatům grafu."
 
@@ -8481,7 +8519,7 @@ msgstr "Stĺpec geometrie"
 msgid "Get the last date by the date unit."
 msgstr "Získat poslední dátum popodľa jednotky data."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Získat zadané dátum pre svátek"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8776,6 +8814,15 @@ msgstr ""
 "metriky"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -8793,6 +8840,11 @@ msgid "If table already exists"
 msgstr "Pokiaľ tabuľka již existuje"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -9572,6 +9624,9 @@ msgstr "Typ rozloženie stromu"
 
 msgid "Least recently modified"
 msgstr "Nejméne nedávno zmenenýé"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -10531,12 +10586,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Zmenené %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Upraven %s stĺpec ve virtuálnej sade dat"
-msgstr[1] "Upraveny %s stĺpce ve virtuálnej sade dat"
-msgstr[2] "Upraveno %s stĺpcov ve virtuálnej sade dat"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Upraven %s stĺpec v sade dat"
+msgstr[1] "Upraveny %s stĺpce v sade dat"
+msgstr[2] "Upraveno %s stĺpcov v sade dat"
 
 msgid "Modified by"
 msgstr "Zmenil(a)"
@@ -11426,6 +11481,12 @@ msgstr "Podporován je iba predvolený katalog pre toto pripojenie."
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -12764,12 +12825,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Odstranen %s stĺpec z virtuálnej sady dat"
-msgstr[1] "Odstraneny %s stĺpce z virtuálnej sady dat"
-msgstr[2] "Odstránené %s stĺpcov z virtuálnej sady dat"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Odstranen %s stĺpec zo sady dat"
+msgstr[1] "Odstraneny %s stĺpce zo sady dat"
+msgstr[2] "Odstránené %s stĺpcov zo sady dat"
 
 #, python-format
 msgid "Removed a %s"
@@ -12959,6 +13020,12 @@ msgstr "Síla odpuzovanie mezi uzly"
 msgid "Request Access"
 msgstr "Požádat o prístup"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -13042,6 +13109,10 @@ msgstr "Resetovať stav"
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Opravdu chcete resetovať na predvolený priečinka?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 #, fuzzy
 msgid "Resize"
@@ -14377,6 +14448,12 @@ msgstr "Sémantické pohľady"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Vrstva anotací"
@@ -14476,6 +14553,9 @@ msgstr "Odoslať ako PNG"
 
 msgid "Send as text"
 msgstr "Odoslať ako text"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -14984,6 +15064,9 @@ msgstr "Prihlásiť se"
 msgid "Sign in with"
 msgstr "Prihlásiť sa pomocí"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "Úroveň významnosti"
 
@@ -15154,6 +15237,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "Niečo sa pokazilo."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -16677,6 +16763,9 @@ msgstr[0] "Parameter %(parameters)s vo vašom dotazu nie je definován."
 msgstr[1] "Následující parametre vo vašom dotazu nesú definovány: %(parameters)s."
 msgstr[2] "Následující parametre vo vašom dotazu nesú definovány: %(parameters)s."
 
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Zadané heslo pre používateľské meno „%(username)s“ je nesprávné."
@@ -17960,6 +18049,10 @@ msgstr ""
 "dynamicky pri úprave veľkosti a pozic widgetů pomocí přetahovanie v "
 "zobrazenie nástenky"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -18030,6 +18123,12 @@ msgstr ""
 #, fuzzy
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Toto heslo je príliš bežné; zvoľte si ťažšie uhádnuteľné heslo."
+
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -18439,6 +18538,9 @@ msgstr[2] ""
 
 msgid "Token Request URI"
 msgstr "URI žádosti o token"
+
+msgid "Too many requests. Please wait and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
@@ -20604,6 +20706,11 @@ msgstr ""
 "požiadajte o úpravy alebo prístup k úpravám."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -20614,6 +20721,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -20621,6 +20733,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -20739,6 +20856,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"

@@ -100,6 +100,7 @@ def mock_database() -> MagicMock:
     database.db_engine_spec.get_cancel_query_id = MagicMock(return_value=None)
     database.db_engine_spec.patch = MagicMock()
     database.db_engine_spec.fetch_data = MagicMock(return_value=[])
+    database.db_engine_spec.is_autocommit = MagicMock(return_value=False)
     # Mirrors the real `Database.mutate_sql_based_on_config` default (no-op
     # when no `SQL_QUERY_MUTATOR` is configured), so SQL parsed from its
     # return value stays valid instead of an un-parseable `MagicMock`.

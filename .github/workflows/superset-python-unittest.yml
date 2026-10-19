@@ -65,6 +65,13 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      # The babel_update.sh tests run the script's msgcat step and fail on CI
+      # when gettext is missing (tests/unit_tests/scripts/translations).
+      - name: Install gettext tools
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: gettext
+          version: 1.0
       # Runs in parallel via pytest-xdist: the serial suite had grown to
       # ~27-28 min against this job's 30-minute timeout, so the trailing
       # coverage/upload steps were being killed on ordinary runner variance

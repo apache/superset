@@ -75,7 +75,6 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
-from sqlalchemy.sql import exists
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
 
@@ -2992,22 +2991,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not g.user.is_anonymous:
             user_id = get_user_id()
 
-            user_roles_filter = or_(
-                exists().where(
-                    (assoc_user_role.c.user_id == user_id)
-                    & (assoc_user_role.c.role_id == self.role_model.id)
-                    & (self.permission_model.name == permission_name)
-                ),
-                exists().where(
-                    (assoc_user_group.c.user_id == user_id)
-                    & (assoc_user_group.c.group_id == self.group_model.id)
-                    & (assoc_group_role.c.group_id == self.group_model.id)
-                    & (assoc_group_role.c.role_id == self.role_model.id)
-                    & (self.permission_model.name == permission_name)
-                ),
+            # The user's effective roles: granted directly, or via a group.
+            #
+            # Filtering on this (small) set of role ids rather than on an OR of
+            # two correlated EXISTS lets the planner drive the join from
+            # ab_permission_view_role(role_id). With the EXISTS form the
+            # permission name is trapped inside both branches of the OR, so it
+            # cannot restrict the join, and the whole of
+            # ab_permission_view_role is scanned and filtered on every call.
+            # The cost then scales with the total number of permissions on the
+            # instance instead of with the number of roles the user holds.
+            user_role_ids = (
+                select(assoc_user_role.c.role_id)
+                .where(assoc_user_role.c.user_id == user_id)
+                .union(
+                    select(assoc_group_role.c.role_id)
+                    .select_from(
+                        assoc_user_group.join(
+                            assoc_group_role,
+                            assoc_group_role.c.group_id == assoc_user_group.c.group_id,
+                        )
+                    )
+                    .where(assoc_user_group.c.user_id == user_id)
+                )
             )
 
-            view_menu_names = base_query.filter(user_roles_filter).all()
+            view_menu_names = (
+                base_query.filter(self.permission_model.name == permission_name).filter(
+                    self.role_model.id.in_(user_role_ids)
+                )
+            ).all()
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user

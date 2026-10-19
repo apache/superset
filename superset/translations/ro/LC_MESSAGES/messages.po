@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-18 18:27-0400\n"
+"POT-Creation-Date: 2026-10-19 01:19-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -1210,6 +1210,12 @@ msgstr "Un grafic nou va fi creat."
 msgid "A new dashboard will be created."
 msgstr "Un panou de control va fi creat."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1696,12 +1702,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Adăugată %s coloană nouă la setul de date virtual"
-msgstr[1] "Adăugate %s coloane noi la setul de date virtual"
-msgstr[2] "Adăugate %s de coloane noi la setul de date virtual"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Adăugată %s coloană nouă la setul de date"
+msgstr[1] "Adăugate %s coloane noi la setul de date"
+msgstr[2] "Adăugate %s de coloane noi la setul de date"
 
 #, python-format
 msgid "Added a %s"
@@ -3049,6 +3055,9 @@ msgstr "Înapoi"
 msgid "Back to all"
 msgstr "Înapoi la toate"
 
+msgid "Back to sign in"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3960,6 +3969,10 @@ msgstr "Titlu grafic"
 msgid "Chart type"
 msgstr "Tip grafic"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -4018,6 +4031,9 @@ msgstr "Verifică acest panou de control: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Bifează pentru a forța partițiile de dată să aibă aceeași înălțime"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -4050,6 +4066,9 @@ msgstr "Alege un delimitator"
 
 msgid "Choose a metric for right axis"
 msgstr "Alege un indicator pentru axa din dreapta"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Alege un format de număr"
@@ -5635,6 +5654,10 @@ msgstr "Titlu panou de control"
 msgid "Dashboard updated %s"
 msgstr "Tabloul de bord actualizat %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Utilizare panou de control"
 
@@ -5893,6 +5916,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Schema setului de date este invalidă, cauzată de: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7523,6 +7550,11 @@ msgstr "Introduceți valorile minime și maxime pentru filtrul de interval"
 msgid "Enter report name"
 msgstr "Introduceți numele raportului"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 msgid "Enter the group's description"
 msgstr "Introduceți descrierea grupului"
 
@@ -8699,6 +8731,12 @@ msgstr "Cheie străină"
 msgid "Forest Green"
 msgstr "Verde Pădure"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "Date formular nu găsite în cache, revenire la metadatele graficului."
 
@@ -8878,7 +8916,7 @@ msgstr "Coloană Geometrie"
 msgid "Get the last date by the date unit."
 msgstr "Obține ultima dată după unitatea de dată."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Obține data specificată pentru sărbătoare"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -9197,6 +9235,15 @@ msgstr ""
 "acestuia"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -9217,6 +9264,11 @@ msgid "If table already exists"
 msgstr "Dacă tabelul există deja"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -10038,6 +10090,9 @@ msgstr "Tip aspect de arbore"
 
 msgid "Least recently modified"
 msgstr "Cel mai puțin modificat recent"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -11032,12 +11087,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Modificat %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Modificată %s coloană în setul de date virtual"
-msgstr[1] "Modificate %s coloane în setul de date virtual"
-msgstr[2] "Modificate %s de coloane în setul de date virtual"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Modificată %s coloană în setul de date"
+msgstr[1] "Modificate %s coloane în setul de date"
+msgstr[2] "Modificate %s de coloane în setul de date"
 
 msgid "Modified by"
 msgstr "Modificat de"
@@ -11952,6 +12007,12 @@ msgstr "Doar catalogul implicit este suportat pentru această conexiune"
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -13320,12 +13381,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Eliminată %s coloană din setul de date virtual"
-msgstr[1] "Eliminate %s coloane din setul de date virtual"
-msgstr[2] "Eliminate %s de coloane din setul de date virtual"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Eliminată %s coloană din setul de date"
+msgstr[1] "Eliminate %s coloane din setul de date"
+msgstr[2] "Eliminate %s de coloane din setul de date"
 
 #, python-format
 msgid "Removed a %s"
@@ -13517,6 +13578,12 @@ msgstr "Intensitate repulsie între noduri"
 msgid "Request Access"
 msgstr "Solicită acces"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -13602,6 +13669,10 @@ msgstr "Resetează starea"
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Resetați la folderele implicite?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, lv, ru, sr, sr_Latn, uk]
@@ -15009,6 +15080,12 @@ msgstr "Vizualizări semantice"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -15136,6 +15213,9 @@ msgstr "Trimite ca PNG"
 
 msgid "Send as text"
 msgstr "Trimite ca text"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -15656,6 +15736,9 @@ msgstr "Autentificare"
 msgid "Sign in with"
 msgstr "Autentificare cu"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "Nivel de semnificație"
 
@@ -15825,6 +15908,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "Ceva a mers greșit."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -17430,6 +17516,9 @@ msgstr[0] "Parametrul %(parameters)s din interogarea dvs. este nedefinit."
 msgstr[1] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(parameters)s."
 msgstr[2] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(parameters)s."
 
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr ""
@@ -18789,6 +18878,10 @@ msgstr ""
 "control. Este generat dinamic când se ajustează dimensiunea și pozițiile "
 "widget-urilor folosind drag & drop în vizualizarea panoului de control."
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -18862,6 +18955,12 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Această parolă este prea comună; vă rugăm să alegeți una mai greu de "
 "ghicit."
+
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -19288,6 +19387,9 @@ msgstr[2] ""
 #, fuzzy
 msgid "Token Request URI"
 msgstr "URI de solicitare a tokenului"
+
+msgid "Too many requests. Please wait and try again."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
@@ -21530,6 +21632,11 @@ msgstr ""
 "pentru %s pentru a solicita modificări sau acces de editare."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -21540,6 +21647,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -21547,6 +21659,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -21672,6 +21789,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"
