@@ -1047,7 +1047,9 @@ at different times. The `WEBSOCKET_JWT_COOKIE_NAME`,
 `jwtCookieName` / `JWT_COOKIE_NAME` option are removed. During websocket JWT
 secret rotation, set the websocket server's `previousJwtSecret` /
 `PREVIOUS_JWT_SECRET` to the old key while Flask continues minting tickets with
-`WEBSOCKET_JWT_SECRET`. The server is bundled in the official Superset image
+`WEBSOCKET_JWT_SECRET`. After a logout or session revocation, an open socket stays
+authenticated until its current ticket expires, because the next refresh fails.
+The server is bundled in the official Superset image
 and launched via an alternate entrypoint — no separate image is required:
 `docker run <superset-image> /app/docker/entrypoints/run-websocket.sh` (or the
 opt-in `websocket` profile in `docker compose`). It **subscribes** to a single

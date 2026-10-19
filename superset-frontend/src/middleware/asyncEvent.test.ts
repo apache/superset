@@ -43,9 +43,11 @@ jest.mock('src/hooks/useTabId', () => {
 /* eslint-disable no-var, vars-on-top */
 var mockRealtimeOpenListener: (() => void) | undefined;
 var mockRealtimeStateListener: ((state: string) => void) | undefined;
+var mockRealtimeState: string;
 /* eslint-enable no-var, vars-on-top */
 jest.mock('src/middleware/realtime', () => ({
   connectRealtime: jest.fn(),
+  getRealtimeState: () => mockRealtimeState ?? 'open',
   subscribeRealtime: jest.fn(() => () => {}),
   subscribeRealtimeOpen: (listener: () => void) => {
     mockRealtimeOpenListener = listener;
@@ -55,6 +57,7 @@ jest.mock('src/middleware/realtime', () => ({
   },
   subscribeRealtimeState: (listener: (state: string) => void) => {
     mockRealtimeStateListener = listener;
+    mockRealtimeState = 'open';
     return () => {
       mockRealtimeStateListener = undefined;
     };
@@ -876,6 +879,22 @@ test('WS mode: an unauthorized socket settles pending waiters with a bounded err
   await expect(promise).rejects.toThrow('Realtime connection unavailable');
   expect(refetch).not.toHaveBeenCalled();
 });
+
+test.each(['unauthorized', 'unhealthy'])(
+  'WS mode: a waiter registered while the socket is %s settles immediately',
+  async state => {
+    queueStatuses();
+    asyncEvent.init(wsConfig);
+    mockRealtimeState = state;
+
+    const refetch = jest.fn();
+    await expect(
+      asyncEvent.waitForAsyncData({ task_ids: ['task-1'] }, refetch),
+    ).rejects.toThrow('Realtime connection unavailable');
+    expect(refetch).not.toHaveBeenCalled();
+    mockRealtimeState = 'open';
+  },
+);
 
 test('WS mode: coalesces many same-tick registrations into one catch-up', async () => {
   jest.useFakeTimers();

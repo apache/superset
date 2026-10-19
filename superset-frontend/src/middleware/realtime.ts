@@ -99,6 +99,11 @@ let started = false;
 // Bumped on every (re)configuration so an in-flight reconnect, ticket fetch, or
 // refresh scheduled against a superseded socket detects it is stale and stops.
 let generation = 0;
+// Identifies the latest connection attempt within a generation. Every attempt
+// takes a new value, so a ticket fetch, ack, timer or close event belonging to an
+// earlier attempt can tell it has been superseded and must not touch the
+// current connection.
+let attemptSeq = 0;
 const handlersByTopic = new Map<string, Set<RealtimeHandler>>();
 
 // Why a socket became OPEN, passed to open-listeners so a consumer can decide
@@ -131,6 +136,15 @@ type RealtimeStateListener = (state: RealtimeConnectionState) => void;
 
 const stateListeners = new Set<RealtimeStateListener>();
 
+let currentState: RealtimeConnectionState = 'connecting';
+
+/**
+ * The current connection state. Consumers that register after a transition
+ * (e.g. a chart request started while the transport is `unauthorized`) read it
+ * here instead of relying on having observed the transition.
+ */
+export const getRealtimeState = (): RealtimeConnectionState => currentState;
+
 // Consecutive socket closes (or connect failures) with no intervening OPEN. Reset
 // to 0 on OPEN. Drives the reconnect backoff and the `unhealthy` transition.
 let reconnectAttempts = 0;
@@ -151,6 +165,7 @@ export const subscribeRealtimeState = (
 };
 
 const emitState = (state: RealtimeConnectionState): void => {
+  currentState = state;
   stateListeners.forEach(listener => {
     try {
       listener(state);
@@ -388,13 +403,17 @@ async function openSocket(
 ): Promise<void> {
   if (thisGeneration !== generation) return;
   if (!enabled || !url || typeof WebSocket === 'undefined') return;
+  attemptSeq += 1;
+  const attempt = attemptSeq;
+  const isCurrent = () =>
+    thisGeneration === generation && attempt === attemptSeq;
   emitState('connecting');
 
   let ticket: Ticket;
   try {
     ticket = await fetchTicket();
   } catch (err) {
-    if (thisGeneration !== generation) return;
+    if (!isCurrent()) return;
     if (isUnauthorizedError(err)) {
       enterUnauthorized();
       return;
@@ -403,7 +422,7 @@ async function openSocket(
     scheduleReconnect(thisGeneration);
     return;
   }
-  if (thisGeneration !== generation) return;
+  if (!isCurrent()) return;
 
   let ws: WebSocket;
   try {
@@ -583,6 +602,7 @@ export const resetRealtimeForTests = (): void => {
   handlersByTopic.clear();
   openListeners.clear();
   stateListeners.clear();
+  currentState = 'connecting';
   reconnectAttempts = 0;
   started = false;
   enabled = false;
