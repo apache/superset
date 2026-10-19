@@ -1329,7 +1329,8 @@ class PivotData {
     const fractionType = resultAggregation
       ? undefined
       : FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
-    const defaultFormat = this.props.defaultFormatter as Formatter;
+    const defaultFormat =
+      (this.props.defaultFormatter as Formatter | undefined) ?? usFmt;
     const resultFactory = resultAggregation
       ? (...args: unknown[]): Aggregator => {
           const build = aggregators[resultAggregation] as (
