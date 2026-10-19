@@ -933,8 +933,11 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
             client = getattr(dbapi_connection, "_client", None)
             if not isinstance(client, bigquery.Client):
                 return QueryCostEstimate()
+            # Direct SDK calls bypass DBAPI's percent unescaping for parameters=None.
             job = client.query(
-                cls.process_statement(script.statements[0], database),
+                cls.process_statement(script.statements[0], database).replace(
+                    "%%", "%"
+                ),
                 job_config=bigquery.QueryJobConfig(dry_run=True),
                 job_retry=None,
             )

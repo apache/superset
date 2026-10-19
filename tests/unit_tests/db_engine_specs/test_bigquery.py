@@ -1659,6 +1659,76 @@ def test_warning_dry_run_uses_execution_client_and_raw_statistics(
         engine.dispose()
 
 
+@pytest.mark.parametrize(
+    "sql,expected",
+    [
+        (
+            "SELECT PARSE_DATE('%%Y-%%m-%%d', '2026-01-01')",
+            "SELECT PARSE_DATE('%Y-%m-%d', '2026-01-01')",
+        ),
+        ("SELECT '50%'", "SELECT '50%'"),
+        ("SELECT '%%%%'", "SELECT '%%'"),
+        ("SELECT 1", "SELECT 1"),
+    ],
+)
+def test_warning_sql_matches_dbapi_execution_formatting(
+    mocker: MockerFixture, sql: str, expected: str
+) -> None:
+    """Direct dry runs match the real driver's single percent-unescaping pass."""
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.bigquery import Client, QueryJob
+    from google.cloud.bigquery.dbapi import Connection
+
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    client = Client(project="project", credentials=AnonymousCredentials())
+    connection = Connection(client=client, prefer_bqstorage_client=False)
+    database = mocker.MagicMock()
+    database.mutate_sql_based_on_config.side_effect = lambda sql, **kwargs: sql
+    database.get_raw_connection.return_value.__enter__.return_value = SimpleNamespace(
+        driver_connection=connection
+    )
+    job = QueryJob("dry-run", sql, client)
+    api_call = mocker.patch.object(client, "_call_api", return_value=job._properties)
+    process = mocker.spy(BigQueryEngineSpec, "process_statement")
+    try:
+        BigQueryEngineSpec.estimate_query_cost_for_warning(
+            database, "project", "dataset", sql
+        )
+        process.assert_called_once()
+        api_call.assert_called_once()
+        warning_request = api_call.call_args.kwargs["data"]
+        assert warning_request["configuration"]["dryRun"] is True
+
+        # Supply completed REST responses for either jobs.query or jobs.insert.
+        api_call.reset_mock()
+        api_call.return_value = {
+            "jobReference": {"projectId": "project", "jobId": "execution"},
+            "configuration": {"query": {"query": expected}},
+            "status": {"state": "DONE"},
+            "jobComplete": True,
+            "schema": {"fields": []},
+            "totalRows": "0",
+            "rows": [],
+        }
+        cursor = connection.cursor()
+        execute = mocker.spy(cursor, "execute")
+        BaseEngineSpec.execute(cursor, process.spy_return, database)
+        execute.assert_called_once_with(process.spy_return)
+        execution_request = api_call.call_args_list[0].kwargs["data"]
+        execution_sql = (
+            execution_request["configuration"]["query"]["query"]
+            if "configuration" in execution_request
+            else execution_request["query"]
+        )
+        assert warning_request["configuration"]["query"]["query"] == execution_sql
+        assert " ".join(execution_sql.split()) == expected
+    finally:
+        connection.close()
+        client.close()
+
+
 def test_warning_dry_run_unverified_bigquery_subclass_is_unsupported(
     mocker: MockerFixture,
 ) -> None:
