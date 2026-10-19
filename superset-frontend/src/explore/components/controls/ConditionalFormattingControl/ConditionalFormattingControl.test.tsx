@@ -131,7 +131,7 @@ test('renders verbose column name when available', () => {
 });
 
 // Writing [] for a chart with no formatters made version history record a
-// "Set 'conditional formatting'" change the user never made (sc-126894).
+// "Set 'conditional formatting'" change the user never made.
 test('leaves an unset value unset when nothing is configured', () => {
   const onChange = jest.fn();
   render(

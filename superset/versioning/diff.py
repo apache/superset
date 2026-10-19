@@ -736,7 +736,7 @@ DASHBOARD_JSON_METADATA_AUDIT_KEYS: frozenset[str] = frozenset(
 # json_metadata sub-keys the dashboard save path fills with a default when
 # they are missing, mapped to that default. A dashboard created elsewhere
 # (e.g. from Explore's Save modal) lacks them until its first full save, which
-# would otherwise record every one as "Set '<key>'" (sc-126894). Sources:
+# would otherwise record every one as "Set '<key>'". Sources:
 #   ``saveDashboardRequest`` in superset-frontend/src/dashboard/actions/
 #     dashboardState.ts: ``cleanedData.metadata`` (color_scheme_domain,
 #     expanded_slices, expand_all_slices, label_colors, refresh_frequency,

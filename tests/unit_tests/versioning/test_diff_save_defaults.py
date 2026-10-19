@@ -14,7 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Save-path defaults are not user changes (sc-126894).
+"""Save-path defaults are not user changes.
 
 A dashboard's first full save fills in metadata keys it never had
 (``refresh_frequency: 0``, ``label_colors: {}`` and so on). Recording those as
@@ -251,7 +251,7 @@ def test_chart_save_without_conditional_formatting_lists_only_user_edits() -> No
 
 
 def test_chart_params_keep_recording_absent_to_empty() -> None:
-    """Chart params have no save-default table: SC-115766 deliberately
+    """Chart params have no save-default table: version history deliberately
     records an empty or default value unless Explore's hydration evidence
     covers it, so the fix for charts is in the control, not here."""
     records: list[ChangeRecord] = diff_slice_params(
