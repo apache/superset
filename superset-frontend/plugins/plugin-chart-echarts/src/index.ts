@@ -21,7 +21,11 @@ export { default as EchartsCandlestickChartPlugin } from './Candlestick';
 export { default as EchartsRoseChartPlugin } from './Rose';
 export { default as EchartsTimePivotChartPlugin } from './TimePivot';
 export { default as EchartsBulletChartPlugin } from './Bullet';
-export { tokenizeToNumericArray, isRangesInputComplete } from './Bullet/utils';
+export {
+  tokenizeToNumericArray,
+  isRangesInputComplete,
+  hasTrailingBlankToken,
+} from './Bullet/utils';
 export { default as EchartsTimeseriesChartPlugin } from './Timeseries';
 export { default as EchartsAreaChartPlugin } from './Timeseries/Area';
 export { default as EchartsTimeseriesBarChartPlugin } from './Timeseries/Regular/Bar';

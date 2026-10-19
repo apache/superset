@@ -18,7 +18,7 @@
  */
 import type { RgbaColor } from '@superset-ui/core';
 
-const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i;
+const HEX_COLOR = /^#([0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i;
 
 const isChannel = (value: unknown): value is number =>
   typeof value === 'number' && Number.isFinite(value);
@@ -56,7 +56,12 @@ export function normalizeRgbaColor(
       const [r, g, b] = [0, 2, 4].map(i =>
         parseInt(digits.slice(i, i + 2), 16),
       );
-      return { r, g, b, a: 1 };
+      // An 8-digit hex (emitted by the alpha-enabled ColorPickerControl
+      // whenever a non-opaque color is picked) carries its own alpha byte;
+      // a 3- or 6-digit hex has none and stays fully opaque.
+      const a =
+        digits.length === 8 ? parseInt(digits.slice(6, 8), 16) / 255 : 1;
+      return { r, g, b, a };
     }
   }
   return fallback;

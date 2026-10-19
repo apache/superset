@@ -1974,6 +1974,7 @@ class BulletRenderModel:
     measures: list[float]
     ranges: list[float]
     range_labels: list[str]
+    range_colors: list[str]
     markers: list[float]
     marker_labels: list[str]
     marker_lines: list[float]
@@ -2522,6 +2523,12 @@ def resolve_bullet_render_model(  # noqa: C901
         raise BulletOutputError("Bullet label and legend controls must be booleans")
 
     range_labels = _bullet_string_tokens(dict.get(form_data, "range_labels"))
+    raw_range_colors = dict.get(form_data, "range_colors")
+    range_colors = (
+        [color if type(color) is str else "" for color in raw_range_colors]
+        if type(raw_range_colors) is list
+        else []
+    )
     marker_labels = _bullet_string_tokens(dict.get(form_data, "marker_labels"))
     marker_line_labels = _bullet_string_tokens(
         dict.get(form_data, "marker_line_labels")
@@ -2533,6 +2540,7 @@ def resolve_bullet_render_model(  # noqa: C901
         measures=measures,
         ranges=ranges,
         range_labels=range_labels,
+        range_colors=range_colors,
         markers=markers,
         marker_labels=marker_labels,
         marker_lines=marker_lines,
@@ -2787,18 +2795,24 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
         )
 
     layers: list[dict[str, Any]] = []
+    # Custom colors (if any) are authored positionally against the original,
+    # pre-sort `ranges` order via the `range_colors` control -- capture each
+    # range's color here, before the descending sort below reorders them.
+    # Mirrors Bullet/transformProps.ts exactly, so the MCP preview matches
+    # what Explore actually renders for the saved chart.
     range_entries = sorted(
         [
             (
                 threshold,
                 label_at(model.range_labels, index, threshold, "Range"),
+                model.range_colors[index] if index < len(model.range_colors) else "",
             )
             for index, threshold in enumerate(model.ranges)
         ],
         key=lambda entry: entry[0],
         reverse=True,
     )
-    for index, (threshold, label) in enumerate(range_entries):
+    for index, (threshold, label, color) in enumerate(range_entries):
         transforms, threshold_tooltip = threshold_details(
             label, threshold, "Range", "Threshold"
         )
@@ -2813,9 +2827,18 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                     "x": {"datum": axis_min, "type": "quantitative"},
                     "x2": {"datum": threshold},
                     "y": y_encoding,
-                    "color": legend_color(
-                        (f"{label}: " if label else "")
-                        + f"≤ {_format_bullet_number(model.y_axis_format, threshold)}"
+                    # A custom `range_colors` entry wins; otherwise fall back
+                    # to the default categorical legend coloring exactly as
+                    # before this control existed, so a Bullet chart saved
+                    # without `range_colors` previews unchanged.
+                    "color": (
+                        {"value": color}
+                        if color
+                        else legend_color(
+                            (f"{label}: " if label else "")
+                            + "≤ "
+                            + _format_bullet_number(model.y_axis_format, threshold)
+                        )
                     ),
                     "tooltip": threshold_tooltip,
                 },

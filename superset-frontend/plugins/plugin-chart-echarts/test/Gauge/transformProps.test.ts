@@ -18,6 +18,7 @@
  */
 import {
   CategoricalColorNamespace,
+  CategoricalColorScale,
   ChartProps,
   SqlaFormData,
   VizType,
@@ -839,6 +840,33 @@ describe('getIntervalBoundsAndColors', () => {
       [0.4, '#ff0000'],
       [0.8, colorFn.colors[1]],
       [1, colorFn.colors[2]],
+    ]);
+  });
+
+  test('wraps the interval_colors fallback around the scheme like the editor does', () => {
+    // With more bounds than colors in the scheme, a bound past the end of
+    // `intervalColors` must wrap around the scheme the same way
+    // `IntervalColorsControl`'s own display does (`index % schemeColors.length`),
+    // rather than indexing straight off the end into `undefined`.
+    const colorFn = new CategoricalColorScale([
+      '#1f77b4',
+      '#ff7f0e',
+      '#2ca02c',
+    ]);
+    expect(
+      getIntervalBoundsAndColors(
+        '4, 6, 8, 10',
+        '',
+        ['#ff0000'],
+        colorFn,
+        0,
+        10,
+      ),
+    ).toEqual([
+      [0.4, '#ff0000'],
+      [0.6, '#ff7f0e'],
+      [0.8, '#2ca02c'],
+      [1, '#1f77b4'],
     ]);
   });
 

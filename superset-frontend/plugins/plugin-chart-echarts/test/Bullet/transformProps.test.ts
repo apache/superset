@@ -473,6 +473,21 @@ test('derives the label color from the fill itself, including near-opaque alpha'
   ]);
 });
 
+test('picks the dark foreground for a mid-tone fill where it actually contrasts better', () => {
+  // '#999999' has WCAG relative luminance ~0.32: above the old, wrong 0.4
+  // cutoff's "light" side, but well above the ~0.21 luminance where white
+  // and the dark foreground actually have equal contrast against a fill.
+  // The dark foreground (#1f1f1f) contrasts far better here (~5.8:1 vs
+  // ~2.85:1), so it must be the one picked.
+  const { echartOptions } = transformProps(
+    chartProps({ showLabels: true, rangeColors: ['#999999'] }),
+  );
+  const labelColors = (echartOptions as any).series[0].markArea.data.map(
+    (d: any) => d[0].label.color,
+  );
+  expect(labelColors[labelColors.length - 1]).toBe('#1f1f1f');
+});
+
 test('falls back to the default theme-token ramp when range_colors is absent (backward compatibility)', () => {
   const { echartOptions } = transformProps(chartProps());
   const { series } = echartOptions as any;

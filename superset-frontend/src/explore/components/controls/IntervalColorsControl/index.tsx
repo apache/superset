@@ -18,7 +18,10 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { getCategoricalSchemeRegistry } from '@superset-ui/core';
-import { isRangesInputComplete } from '@superset-ui/plugin-chart-echarts';
+import {
+  isRangesInputComplete,
+  hasTrailingBlankToken,
+} from '@superset-ui/plugin-chart-echarts';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
 import type { ColorPickerValue } from '../ColorPickerControl';
@@ -52,6 +55,14 @@ export default function IntervalColorsControl({
   // which would otherwise shift colors to the wrong bound once the blank is
   // filled back in -- same hazard `BulletRangeColorsControl` guards against.
   const boundsComplete = isRangesInputComplete(intervals);
+  // See the identical guard in `BulletRangeColorsControl`: while `intervals`
+  // ends in the one tolerated trailing blank (the last bound is being
+  // retyped), `bounds` is transiently one entry short. Writing a color at
+  // that moment must not truncate the array to that shorter length, or the
+  // color for the bound being retyped is permanently lost.
+  const writeLength = hasTrailingBlankToken(intervals)
+    ? Math.max(bounds.length, value?.length ?? 0)
+    : bounds.length;
   const legacyColors = resolveLegacyColors(
     bounds,
     legacyIntervalColorIndices,
@@ -73,7 +84,7 @@ export default function IntervalColorsControl({
 
   const handleColorChange = (index: number) => (color: ColorPickerValue) => {
     if (typeof color !== 'string' || !boundsComplete) return;
-    onChange?.(replaceColorAtIndex(bounds.length, index, color, colorAt));
+    onChange?.(replaceColorAtIndex(writeLength, index, color, colorAt));
   };
 
   return (

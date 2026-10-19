@@ -43,6 +43,19 @@ const BAND_LABEL_COLORS = {
   // eslint-disable-next-line theme-colors/no-literal-colors
   dark: '#1f1f1f',
 };
+// Relative luminance of each fixed foreground, computed once so the pick
+// between them is a real WCAG contrast comparison against the fill, not a
+// magic threshold that can drift away from these two colors' actual
+// break-even point.
+const BAND_LABEL_LUMINANCE = {
+  light: getColorLuminance(BAND_LABEL_COLORS.light) ?? 1,
+  dark: getColorLuminance(BAND_LABEL_COLORS.dark) ?? 0,
+};
+const wcagContrast = (luminanceA: number, luminanceB: number): number => {
+  const lighter = Math.max(luminanceA, luminanceB);
+  const darker = Math.min(luminanceA, luminanceB);
+  return (lighter + 0.05) / (darker + 0.05);
+};
 const MEASURE_BAR_FRACTION = 0.28;
 // Small pixel gap below the measure bar so the target/marker symbol doesn't
 // touch its edge.
@@ -133,8 +146,14 @@ export default function transformProps(
     const luminance = fill ? getColorLuminance(fill) : null;
     if (luminance === null) return theme.colorTextSecondary;
     // Fixed light/dark foregrounds, not `theme.colorText`: that token flips
-    // to a light color in dark themes and would vanish on a light custom fill.
-    return luminance < 0.4 ? BAND_LABEL_COLORS.light : BAND_LABEL_COLORS.dark;
+    // to a light color in dark themes and would vanish on a light custom
+    // fill. Pick whichever foreground actually contrasts better against
+    // this fill, rather than a single magic luminance cutoff that doesn't
+    // match where white and the dark foreground really break even.
+    return wcagContrast(luminance, BAND_LABEL_LUMINANCE.light) >=
+      wcagContrast(luminance, BAND_LABEL_LUMINANCE.dark)
+      ? BAND_LABEL_COLORS.light
+      : BAND_LABEL_COLORS.dark;
   };
   const bands = sortedRanges.map(({ value, label, color }, i) => ({
     name: label,

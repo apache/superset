@@ -41,6 +41,24 @@ test('parses 6 and 3 digit hex strings', () => {
   });
 });
 
+test('parses an 8-digit hex string and its alpha channel', () => {
+  // ColorPickerControl emits 8-digit hex (#rrggbbaa) whenever a non-opaque
+  // color is picked (e.g. switching a Big Number comparison color, picked
+  // at 50% opacity, over to Waterfall or Candlestick).
+  expect(normalizeRgbaColor('#33669980', fallback)).toEqual({
+    r: 51,
+    g: 102,
+    b: 153,
+    a: 128 / 255,
+  });
+  expect(normalizeRgbaColor('#000000ff', fallback)).toEqual({
+    r: 0,
+    g: 0,
+    b: 0,
+    a: 1,
+  });
+});
+
 test('falls back for undefined, semantic names and malformed values', () => {
   expect(normalizeRgbaColor(undefined, fallback)).toBe(fallback);
   expect(normalizeRgbaColor('Green', fallback)).toBe(fallback);
