@@ -37,7 +37,16 @@ from contextlib import contextmanager
 from datetime import timedelta
 from email.mime.multipart import MIMEMultipart
 from importlib.resources import files
-from typing import Any, Callable, Iterator, Literal, Optional, TYPE_CHECKING, TypedDict
+from typing import (
+    Any,
+    Callable,
+    ContextManager,
+    Iterator,
+    Literal,
+    Optional,
+    TYPE_CHECKING,
+    TypedDict,
+)
 
 import click
 from celery.schedules import crontab
@@ -3652,6 +3661,18 @@ DISTRIBUTED_COORDINATION_CONFIG: CacheConfig | None = None
 # streams for tasks that never get awaited cannot accumulate in Redis/Valkey
 # indefinitely. Defaults to 24 hours.
 DISTRIBUTED_COORDINATION_SIGNAL_TTL = int(timedelta(hours=24).total_seconds())
+
+# Optional hook for propagating caller-thread context (e.g. a multi-tenant
+# deployment's per-workspace state) into background threads Superset spawns, such as
+# the task abort listener. Superset calls the factory on the *calling* thread, where
+# that context is live; the factory returns a zero-argument callable that the
+# background thread invokes to get a context manager, which wraps the thread's whole
+# lifetime. The context manager is responsible for pushing its own app context
+# (never share the caller's: SQLAlchemy sessions are scoped to it). Defaults to
+# None, which leaves background threads to push a bare app context as before.
+BACKGROUND_THREAD_CONTEXT_FACTORY: (
+    Callable[[], Callable[[], ContextManager[Any]]] | None
+) = None
 
 # Maximum time to wait for a semantic-cache descriptor lease.
 SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS: float = 1.0
