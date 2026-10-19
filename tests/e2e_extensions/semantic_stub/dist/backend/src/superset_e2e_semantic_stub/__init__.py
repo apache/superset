@@ -37,6 +37,10 @@ from typing import Any
 import pyarrow as pa
 from pydantic import BaseModel, ConfigDict
 from superset_core.semantic_layers.decorators import semantic_layer
+from superset_core.semantic_layers.errors import (
+    SemanticQueryErrorCode,
+    SemanticQueryRejectedError,
+)
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.types import (
     AggregationType,
@@ -97,9 +101,9 @@ class StubConfiguration(BaseModel):
 
 def _validate_filter(filter_: Filter) -> None:
     if filter_.type != PredicateType.WHERE or not isinstance(filter_.column, Dimension):
-        raise ValueError("The E2E stub only supports WHERE filters on dimensions")
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
     if filter_.operator not in SUPPORTED_OPERATORS:
-        raise ValueError(f"The E2E stub does not support {filter_.operator.value}")
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
 
 
 def _matches(row: dict[str, Any], filter_: Filter) -> bool:
