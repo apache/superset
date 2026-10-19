@@ -66,16 +66,9 @@ class Grains:
        quarter, year;
     3. then any remaining grain representation, in lexical order.
 
-    This describes the intended contract. Resolving every host lookup through
-    this one preference is the work of apache/superset#44454; until it lands, the
-    host does not apply it everywhere. Filter resolution keeps whichever variant
-    of a name it sees last, and ``get_dimensions`` returns a set, so that choice
-    is arbitrary; the grouping fallback orders the remaining grains by name. A
-    provider should not rely on which variant a given lookup picks today.
-
-    Once that work lands, the preference governs column metadata, filters and the
+    The preference governs column metadata, filters and the
     grouping fallback. An explicit supported grouping grain is always honored.
-    Filters and time bounds will use the default preference **independently of
+    Filters and time bounds use the default preference **independently of
     grouping**: grouping by month with a lower bound of January 15 will still
     filter the raw time dimension from January 15 rather than testing month
     buckets against that bound. Sorting and series limits use the selected
@@ -89,10 +82,7 @@ class Grains:
     Conflicting IDs, types, definitions or descriptions for the same name and
     grain make the catalog ambiguous; that is a provider defect to fix rather
     than a tie for the host to break by picking a variant.
-    The host does not detect such a conflict: grouping keeps the first variant
-    it sees for a ``(name, grain)`` pair, while filters and ordering resolve the
-    name to the last variant seen, so one query can group and filter on
-    different IDs.
+    The host rejects conflicting variants rather than choosing an arbitrary ID.
     """
 
     SECOND = Grain("Second", "PT1S")
@@ -145,9 +135,9 @@ class Dimension:
     at most one per ``(name, grain)`` pair: two dimensions sharing a name and
     grain are a provider defect, not a tie for the host to break silently.
     Metric names are unique on their own, and must not collide with a dimension
-    name. Both rules are provider obligations: the host does not currently
-    detect a duplicate ``(name, grain)`` (grouping and filtering may then pick
-    different variants) or a metric name that collides with a dimension name.
+    name. Both rules are provider obligations: the host rejects conflicting
+    ``(name, grain)`` variants, but does not detect a metric name that collides
+    with a dimension name.
     A query selects at most one
     variant per name, so a result carries one column per selected member name.
 
