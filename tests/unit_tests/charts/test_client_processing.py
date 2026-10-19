@@ -3580,6 +3580,77 @@ def test_apply_pivot_number_formats_auto_currency_without_detection() -> None:
     assert df[("sales",)].tolist() == ["1,234.50"]
 
 
+def test_apply_client_processing_formats_an_ag_grid_table() -> None:
+    """
+    An AG Grid table report is formatted, not sent out with raw numbers.
+    """
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"name": "a", "SUM(amount)": 1234567.0, "%SUM(amount)": 0.9},
+                    {"name": "b", "SUM(amount)": 42.0, "%SUM(amount)": 0.1},
+                ],
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "ag-grid-table",
+        "metrics": ["SUM(amount)"],
+        "percent_metrics": ["SUM(amount)"],
+        "column_config": {"SUM(amount)": {"d3NumberFormat": ",.2f"}},
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    assert processed["queries"][0]["data"] == {
+        "name": {0: "a", 1: "b"},
+        "SUM(amount)": {0: "1,234,567.00", 1: "42.00"},
+        "%SUM(amount)": {0: "90.000%", 1: "10.000%"},
+    }
+
+
+def test_apply_client_processing_ag_grid_table_matches_table() -> None:
+    """
+    The two table viz types format a payload identically, since the AG Grid
+    plugin's column meta and cell formatting are the Table plugin's.
+    """
+
+    def payload() -> dict[str, Any]:
+        return {
+            "queries": [
+                {
+                    "result_format": ChartDataResultFormat.JSON,
+                    "detected_currency": "USD",
+                    "data": [{"dim": "x", "amount": 1234.5, "count": 7.0}],
+                }
+            ]
+        }
+
+    def form_data(viz_type: str) -> dict[str, Any]:
+        return {
+            "viz_type": viz_type,
+            "metrics": ["amount", "count"],
+            "column_config": {
+                "amount": {
+                    "d3NumberFormat": ",.2f",
+                    "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+                }
+            },
+        }
+
+    as_table = apply_client_processing(payload(), form_data("table"))
+    as_ag_grid = apply_client_processing(payload(), form_data("ag-grid-table"))
+
+    assert as_ag_grid["queries"][0]["data"] == as_table["queries"][0]["data"]
+    assert as_ag_grid["queries"][0]["data"] == {
+        "dim": {0: "x"},
+        "amount": {0: "$ 1,234.50"},
+        "count": {0: "7"},
+    }
+
+
 def test_apply_client_processing_no_form_invalid_viz_type():
     """
     Test with invalid viz type. It should just return the result

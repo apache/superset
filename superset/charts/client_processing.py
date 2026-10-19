@@ -1407,6 +1407,11 @@ def table(
 post_processors = {
     "pivot_table_v2": pivot_table_v2,
     "table": table,
+    # The AG Grid table plugin's column meta block and ``formatColumnValue``
+    # are the Table plugin's, same column config keys and same rules, so a
+    # report on one is formatted by the same post-processor. The query-building
+    # side pairs the two viz types the same way.
+    "ag-grid-table": table,
 }
 
 
