@@ -292,8 +292,9 @@ async def duplicate_dashboard(
     """
     Duplicate an existing dashboard under a new title.
 
-    By default the copy references the same charts as the source.
-    Set duplicate_slices=true to also deep-copy every chart into new
+    By default the copy deep-copies charts so subsequent edits are isolated.
+    Set duplicate_slices=false only to deliberately share source charts.
+    With duplicate_slices=true, every chart is copied into new
     chart objects owned by you, so edits to the copies never affect
     the originals.
 

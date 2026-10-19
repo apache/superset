@@ -141,6 +141,26 @@ a first-item filter also clears a defined legacy stored selection (including
 Select filters with legacy string-column
 targets support both default updates and applied selections.
 
+## Dashboard copying, ownership and data limits
+
+`duplicate_dashboard` defaults to `duplicate_slices=true`, creating independent
+charts for the new dashboard. Set it to `false` only when sharing charts is
+intentional: edits to a shared chart also affect the source dashboard.
+
+For `list_dashboards`, `edited_by_me=true` selects direct user editors (owners),
+not access inherited through roles or groups. Combining it with `created_by_me`
+returns their union. Unknown fields such as `owned_by_me` are validation errors.
+
+Each chart in `get_dashboard_data` includes `fetch_row_limit`, `sample_rows_limit`
+and a `completeness_note`. Example rows are not the full population. Histogram
+bins can be computed after the input row limit, so one output row with
+`truncated=false` does not prove that all source rows were included. Check the
+saved chart configuration and source aggregates before interpreting distributions.
+
+Chart configuration examples use plain number formats. Currency formatting should
+come from user instructions or verified source metadata, not a field name such
+as sales, revenue or CPC.
+
 ## Bounding dashboard dataset metadata
 
 `get_dashboard_datasets` lists a dashboard's datasets and semantic views with

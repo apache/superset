@@ -1021,7 +1021,14 @@ class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
     title: str | None = Field(None, max_length=200)
     scale: Literal["linear", "log"] | None = "linear"
-    format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
+    format: str | None = Field(
+        None,
+        description=(
+            "D3 format, e.g. ,.2f; currency symbols require verified "
+            "currency metadata or user instructions"
+        ),
+        max_length=50,
+    )
 
 
 class LegendConfig(UnknownFieldCheckMixin):
@@ -1038,7 +1045,12 @@ class CurrencyFormat(UnknownFieldCheckMixin):
 
     symbol: str = Field(
         ...,
-        description="Currency code or symbol (e.g. 'USD', 'EUR', '$', '€')",
+        description=(
+            "Currency code or symbol established by user instructions "
+            "or verified source metadata. Do not infer currency from "
+            "CPC, sales, revenue or other metric names. "
+            "Omit currency_format when unknown."
+        ),
         max_length=20,
     )
     symbol_position: Literal["prefix", "suffix"] = Field(
@@ -3675,7 +3687,7 @@ class TableChartConfig(BaseChartConfig):
             "its label). Use columnWidth for minimum width in pixels, "
             "d3NumberFormat for D3 number formats such as ',.2f' or '.1%', and "
             "d3TimeFormat for D3 time formats such as '%Y-%m-%d'. Example: "
-            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': '$,.2f'}, "
+            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': ',.2f'}, "
             "'Order Date': {'d3TimeFormat': '%Y-%m-%d'}}."
         ),
     )

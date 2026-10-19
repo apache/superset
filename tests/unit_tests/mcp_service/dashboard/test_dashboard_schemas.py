@@ -1427,3 +1427,31 @@ def test_apply_filter_range_rejects_boolean_bounds(bound: bool, index: int) -> N
         ApplyFilterValueSpec.model_validate(
             {"filter_name_or_id": "Cost", "range": bounds}
         )
+
+
+@pytest.mark.parametrize("field", ["owned_by_me", "created_by_my", "page_szie"])
+def test_list_dashboards_rejects_unknown_arguments(field: str) -> None:
+    with pytest.raises(ValidationError) as exc:
+        ListDashboardsRequest.model_validate({field: True})
+    assert exc.value.errors()[0]["loc"] == (field,)
+    assert exc.value.errors()[0]["type"] == "extra_forbidden"
+
+
+def test_list_dashboards_preserves_supported_filters_and_aliases() -> None:
+    request = ListDashboardsRequest.model_validate(
+        {"created_by_me": True, "edited_by_me": True, "columns": ["id"], "page_size": 5}
+    )
+    assert request.created_by_me
+    assert request.edited_by_me
+    assert request.select_columns == ["id"]
+    assert request.page_size == 5
+    assert ListDashboardsRequest.model_json_schema()["additionalProperties"] is False
+
+
+def test_dashboard_self_ownership_schema_describes_direct_membership() -> None:
+    schema = ListDashboardsRequest.model_json_schema()
+    description = schema["properties"]["edited_by_me"]["description"]
+    assert "USER editor" in description
+    assert "roles or groups" in description
+    assert "OR" in description
+    assert ListDashboardsRequest(edited_by_me=True).edited_by_me is True

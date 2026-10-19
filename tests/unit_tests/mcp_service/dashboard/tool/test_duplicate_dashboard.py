@@ -25,7 +25,7 @@ Follows the same pattern used in test_add_chart_to_existing_dashboard.py:
 - auth is mocked via the autouse mock_auth fixture
 
 Covers:
-- Duplicate referencing the same charts (duplicate_slices=False, default)
+- Duplicate referencing the same charts (duplicate_slices=False, explicit opt-in)
 - Duplicate with deep-copied charts (duplicate_slices=True)
 - Source dashboard not found
 - Source dashboard access denied / copy forbidden
@@ -207,7 +207,7 @@ async def test_duplicate_referencing_same_charts(
     mock_find_by_id: Mock,
     mcp_server: object,
 ) -> None:
-    """Happy path: the copy references the same charts (default)."""
+    """Happy path: the copy references the same charts only by explicit opt-in."""
     chart = _mock_chart(id=10)
     source = _mock_dashboard(
         id=1,
@@ -223,7 +223,13 @@ async def test_duplicate_referencing_same_charts(
     async with Client(mcp_server) as client:
         result = await client.call_tool(
             "duplicate_dashboard",
-            {"request": {"dashboard_id": 1, "dashboard_title": "Staging Copy"}},
+            {
+                "request": {
+                    "dashboard_id": 1,
+                    "dashboard_title": "Staging Copy",
+                    "duplicate_slices": False,
+                }
+            },
         )
 
     content = result.structured_content
@@ -768,3 +774,19 @@ async def test_tool_input_schemas_omit_sanitization_warnings(
         "duplicate_dashboard",
     ):
         assert "sanitization_warnings" not in str(tools[name].inputSchema)
+
+
+def test_duplicate_defaults_to_isolated_charts() -> None:
+    from superset.mcp_service.dashboard.schemas import DuplicateDashboardRequest
+
+    request = DuplicateDashboardRequest(dashboard_id=1, dashboard_title="New copy")
+    assert request.duplicate_slices is True
+    source = _mock_dashboard(id=1, slices=[_mock_chart(id=10)])
+    from superset.mcp_service.dashboard.tool.duplicate_dashboard import (
+        _build_copy_payload,
+    )
+
+    payload, _ = _build_copy_payload(
+        source, request.dashboard_title, request.duplicate_slices
+    )
+    assert payload["duplicate_slices"] is True

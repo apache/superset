@@ -24,6 +24,11 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `duplicate_dashboard` deep-copies charts by default. Callers that intentionally
+  share charts with the source dashboard must pass `duplicate_slices=false`.
+  MCP `list_dashboards` rejects unknown request fields instead of silently ignoring
+  them; use `edited_by_me` for direct user ownership, not `owned_by_me`.
+
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
