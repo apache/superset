@@ -58,6 +58,7 @@ from flask_appbuilder.security.sqla.models import User
 from flask_babel import get_locale, lazy_gettext as _
 from jinja2.exceptions import TemplateError, UndefinedError
 from markupsafe import escape, Markup
+from marshmallow import ValidationError
 from pandas import DateOffset, Timedelta
 from sqlalchemy import and_, Column, or_, UniqueConstraint
 from sqlalchemy.exc import MultipleResultsFound
@@ -93,6 +94,7 @@ from superset.common.grouping_sets import (
 from superset.common.utils import dataframe_utils
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
+    get_since_until_from_temporal_filter,
     get_since_until_from_time_range,
 )
 from superset.constants import (
@@ -2927,7 +2929,15 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         cache_keys: list[str | None] = []
         offset_dfs: dict[str, pd.DataFrame] = {}
 
-        outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(query_object)
+        try:
+            outer_from_dttm, outer_to_dttm = get_since_until_from_query_object(
+                query_object
+            )
+        except (ValidationError, ValueError) as ex:
+            # The range comes from the last temporal filter, which is not
+            # necessarily the one the query context was built from and so is not
+            # necessarily one that has already been parsed and reported on.
+            raise QueryObjectValidationError(str(ex)) from ex
         if not outer_from_dttm or not outer_to_dttm:
             raise QueryObjectValidationError(
                 _(
@@ -3082,8 +3092,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             (
                                 new_outer_from_dttm,
                                 new_outer_to_dttm,
-                            ) = get_since_until_from_time_range(
+                            ) = get_since_until_from_temporal_filter(
                                 time_range=time_range,
+                                column=str(flt.get("col")),
                                 time_shift=offset,
                             )
                             flt["val"] = f"{new_outer_from_dttm} : {new_outer_to_dttm}"
@@ -5951,8 +5962,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         and isinstance(eq, str)
                         and col_obj is not None
                     ):
-                        _since, _until = get_since_until_from_time_range(
+                        _since, _until = get_since_until_from_temporal_filter(
                             time_range=eq,
+                            column=get_column_name(flt_col),
                             time_shift=time_shift,
                             extras=extras,
                         )

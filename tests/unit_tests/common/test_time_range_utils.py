@@ -21,10 +21,12 @@ import pytest
 
 from superset.common.utils.time_range_utils import (
     get_since_until_from_query_object,
+    get_since_until_from_temporal_filter,
     get_since_until_from_time_range,
     get_time_range_from_filters,
 )
 from superset.constants import NO_TIME_RANGE
+from superset.exceptions import QueryObjectValidationError
 
 
 @pytest.mark.parametrize("invalid_value", [None, 42, True, [], ["2001 : 2002"], {}])
@@ -40,6 +42,40 @@ def test_time_range_selection_ignores_non_string_values(invalid_value: object) -
         datetime(2001, 1, 1),
         datetime(2002, 1, 1),
     )
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "a : b",
+        "last 0 days",
+        "2024-02-01 : 2024-01-01",
+        "DATEADD(DATETIME('today'), 7, bogus) : today",
+        "DATETRUNC(DATETIME('today'), bogus) : today",
+        "LASTDAY(DATETIME('today'), bogus) : today",
+        "HOLIDAY('Nonexistent Holiday', DATETIME('today'))",
+    ],
+)
+def test_temporal_filter_range_failure_is_a_bad_request(
+    app_context: None, time_range: str
+) -> None:
+    """
+    A range that cannot be parsed is a bad request however it fails, whether as
+    a marshmallow ``ValidationError`` or as a bare ``ValueError``.
+    """
+    with pytest.raises(QueryObjectValidationError) as excinfo:
+        get_since_until_from_temporal_filter(time_range, column="other_ds")
+
+    # The column is named, because the range reaching this helper belongs to a
+    # filter the response would otherwise not identify.
+    assert "other_ds" in excinfo.value.message
+
+
+def test_temporal_filter_range_parses_like_the_plain_helper(app_context: None) -> None:
+    """A usable range is parsed, and the bounds are the plain helper's."""
+    assert get_since_until_from_temporal_filter(
+        "2001 : 2002", column="ds"
+    ) == get_since_until_from_time_range("2001 : 2002")
 
 
 def test_time_range_selection_ignores_missing_value() -> None:
