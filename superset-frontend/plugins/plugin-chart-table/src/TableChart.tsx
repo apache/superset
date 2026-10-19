@@ -55,7 +55,7 @@ import {
   useTheme,
   SupersetTheme,
 } from '@apache-superset/core/theme';
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { GenericDataType } from '@apache-superset/core/common';
 import {
   Input,
@@ -274,6 +274,7 @@ const VisuallyHidden = styled.label`
 `;
 
 function SearchInput({
+  count,
   value,
   onChange,
   onBlur,
@@ -285,8 +286,8 @@ function SearchInput({
     <Space direction="vertical" size={4} className="dt-global-filter">
       <span aria-hidden="true">{t('Search')}</span>
       <Input
-        aria-label={t('Search records')}
-        placeholder={t('Search records')}
+        aria-label={t('Search %s records', count)}
+        placeholder={tn('%s record...', '%s records...', count, count)}
         value={value}
         size="small"
         onChange={onChange}

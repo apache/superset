@@ -14806,6 +14806,10 @@ msgstr "向下捲動到底部以啟用覆寫變更。"
 msgid "Search"
 msgstr "搜索"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr "搜索 / 過濾"
 
@@ -14875,9 +14879,6 @@ msgstr "搜索 / 過濾"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "搜索指標和列"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

@@ -14671,6 +14671,10 @@ msgstr "Role para baixo para ativar a substituição de alterações."
 msgid "Search"
 msgstr "Pesquisar"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr "Pesquisa / Filtro"
 
@@ -14730,9 +14734,6 @@ msgstr "Pesquisar em filtros"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Pesquise métricas por chave ou rótulo"
-
-msgid "Search records"
-msgstr "Pesquisar registros"
 
 #, fuzzy
 msgid "Search tags"

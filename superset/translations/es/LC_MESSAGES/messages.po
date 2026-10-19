@@ -14043,6 +14043,10 @@ msgstr ""
 msgid "Search"
 msgstr "Buscar"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr "Buscar / Filtrar"
 
@@ -14102,9 +14106,6 @@ msgstr "Buscar en filtros"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Buscar métricas y columnas"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

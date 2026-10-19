@@ -16345,6 +16345,10 @@ msgstr "Скролујте до дна да бисте омогућили пре
 msgid "Search"
 msgstr "Претрага"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Search / Filter"
@@ -16408,9 +16412,6 @@ msgstr "Претрага у филтерима"
 
 msgid "Search metrics by key or label"
 msgstr "Претражи метрике по кључу или ознаци"
-
-msgid "Search records"
-msgstr ""
 
 # uk]
 msgid "Search tags"

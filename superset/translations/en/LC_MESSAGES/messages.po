@@ -12530,6 +12530,10 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr ""
 
@@ -12582,9 +12586,6 @@ msgid "Search in filters"
 msgstr ""
 
 msgid "Search metrics by key or label"
-msgstr ""
-
-msgid "Search records"
 msgstr ""
 
 msgid "Search tags"

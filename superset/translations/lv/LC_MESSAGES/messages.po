@@ -13460,6 +13460,10 @@ msgstr "Ritiniet uz leju, lai iespējotu izmaiņu pārrakstīšanu. "
 msgid "Search"
 msgstr "Meklēt"
 
+#, python-format
+msgid "Search %s records"
+msgstr ""
+
 msgid "Search / Filter"
 msgstr "Meklēt / Filtrēt"
 
@@ -13517,9 +13521,6 @@ msgstr "Meklēt filtros"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Meklēt metriku un kolonnas"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "Meklēt birkas"
