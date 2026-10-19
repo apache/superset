@@ -84,7 +84,7 @@
     "@types/react": "^19.1.8",
     "oxfmt": "^0.72.0",
     "oxlint": "^1.87.0",
-    "oxlint-tsgolint": "^7.0.2003",
+    "oxlint-tsgolint": "^7.0.2004",
     "typescript": "7.0.2",
     "webpack": "^5.111.1"
   },
