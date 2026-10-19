@@ -450,7 +450,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const relevantDataMask = useSelector(selectRelevantDatamask);
   const activeFilters = useSelector(selectActiveFilters);
 
-  useSyncActiveTabsToUrl(readyToRender && hasDashboardInfoInitiated);
+  useSyncActiveTabsToUrl(readyToRender && hydratedDashboardId === id);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 

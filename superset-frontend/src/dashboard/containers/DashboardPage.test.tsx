@@ -46,6 +46,7 @@ import {
 } from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
+import { getPermalinkValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -781,3 +782,61 @@ test('clears undo history after hydrating the dashboard', async () => {
     .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });
+
+test.each([null, 'TAB-explicit'])(
+  'preserves permalink tabs during SPA navigation with explicit tabs %s',
+  async explicitTab => {
+    const search = new URLSearchParams({ permalink_key: 'saved-dashboard' });
+    if (explicitTab) search.set('active_tabs', explicitTab);
+    window.history.replaceState({}, '', `/superset/dashboard/1/?${search}`);
+    jest
+      .mocked(getUrlParam)
+      .mockImplementation(param =>
+        new URLSearchParams(window.location.search).get(param.name),
+      );
+    type PermalinkValue = Awaited<ReturnType<typeof getPermalinkValue>>;
+    let resolvePermalink!: (value: PermalinkValue) => void;
+    const permalinkValue: PermalinkValue = {
+      dashboardId: '1',
+      state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+    };
+    jest.mocked(getPermalinkValue).mockReturnValueOnce(
+      new Promise<PermalinkValue>(resolve => {
+        resolvePermalink = resolve;
+      }),
+    );
+
+    const { unmount } = render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="1" />
+      </Suspense>,
+      {
+        useRedux: true,
+        useRouter: true,
+        initialState: {
+          dashboardInfo: { id: 2, metadata: {} },
+          dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+          nativeFilters: { filters: {} },
+          dataMask: {},
+        },
+      },
+    );
+
+    try {
+      await waitFor(() => expect(getPermalinkValue).toHaveBeenCalled());
+      expect(
+        new URLSearchParams(window.location.search).get('active_tabs'),
+      ).toBe(explicitTab);
+      resolvePermalink(permalinkValue);
+      await waitFor(() =>
+        expect(hydrateDashboard).toHaveBeenCalledWith(
+          expect.objectContaining({ activeTabs: [explicitTab ?? 'TAB-saved'] }),
+        ),
+      );
+    } finally {
+      resolvePermalink(permalinkValue);
+      unmount();
+      window.history.replaceState({}, '', '/');
+    }
+  },
+);
