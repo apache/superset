@@ -25,7 +25,6 @@ def test_estimate_schema_keeps_manual_defaults() -> None:
     assert EstimateQueryCostSchema().load({"database_id": 1, "sql": "SELECT 1"}) == {
         "database_id": 1,
         "sql": "SELECT 1",
-        "include_raw": False,
         "check_warning": False,
     }
 

@@ -1011,10 +1011,7 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
                     query_bytes_processed / (byte_division**3), 2
                 )
 
-            return {
-                f"{byte_type} Processed": total_bytes_processed,
-                "bytes_processed": query_bytes_processed,
-            }
+            return {f"{byte_type} Processed": total_bytes_processed}
         return {}
 
     @classmethod

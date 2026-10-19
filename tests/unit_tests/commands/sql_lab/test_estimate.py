@@ -46,22 +46,20 @@ def _make_params(**kwargs: object) -> EstimateQueryCostType:
     return base
 
 
-@pytest.mark.parametrize("include_raw", [False, True])
 @patch("superset.commands.sql_lab.estimate.app")
-def test_raw_bytes_preserve_manual_estimate_contract(
-    mock_app: MagicMock, include_raw: bool
+def test_manual_estimate_preserves_formatted_response(
+    mock_app: MagicMock,
 ) -> None:
-    """Exact bytes are opt-in; manual estimates retain their display fields."""
+    """Manual estimates return the engine formatter's existing display fields."""
     mock_app.config = {
         "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
         "QUERY_COST_FORMATTERS_BY_ENGINE": {},
     }
-    command = QueryEstimationCommand(_make_params(include_raw=include_raw))
+    command = QueryEstimationCommand(_make_params())
     database = MagicMock()
     database.db_engine_spec.engine = "bigquery"
-    database.db_engine_spec.estimate_query_cost.return_value = [
-        {"KB Processed": 1.0, "bytes_processed": 1025}
-    ]
+    estimate = [{"KB Processed": 1.0}]
+    database.db_engine_spec.estimate_query_cost.return_value = estimate
     database.db_engine_spec.query_cost_formatter.side_effect = lambda rows: [
         {key: str(value) for key, value in row.items()} for row in rows
     ]
@@ -71,25 +69,37 @@ def test_raw_bytes_preserve_manual_estimate_contract(
         patch.object(command, "_apply_sql_security", side_effect=lambda sql: sql),
     ):
         result = command.run()
-    display = [{"KB Processed": "1.0"}]
-    assert result == (
-        {"estimate": display, "bytes_processed": [1025]} if include_raw else display
-    )
+    assert result == [{"KB Processed": "1.0"}]
+    database.db_engine_spec.query_cost_formatter.assert_called_once_with(estimate)
 
 
-@pytest.mark.parametrize("sql", ["SELECT 1; SELECT 2", "CREATE TABLE t AS SELECT 1"])
-def test_pre_run_check_does_not_estimate_unsupported_scripts(sql: str) -> None:
-    """Unsupported statement shapes return unavailable without contacting BigQuery."""
-    command = QueryEstimationCommand(_make_params(sql=sql, include_raw=True))
+@pytest.mark.parametrize("engine", ["bigquery", "postgresql"])
+@patch("superset.commands.sql_lab.estimate.app")
+def test_manual_estimate_passes_native_rows_to_custom_formatter(
+    mock_app: MagicMock, engine: str
+) -> None:
+    """Configured formatters receive unmodified engine rows and own the response."""
+    formatted = [{"estimate": "custom display"}]
+    formatter = MagicMock(return_value=formatted)
+    mock_app.config = {
+        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
+        "QUERY_COST_FORMATTERS_BY_ENGINE": {engine: formatter},
+    }
+    command = QueryEstimationCommand(_make_params())
     database = MagicMock()
-    database.db_engine_spec.engine = "bigquery"
+    database.db_engine_spec.engine = engine
+    estimate = [{"KB Processed": 1.0} if engine == "bigquery" else {"Total cost": 12.5}]
+    database.db_engine_spec.estimate_query_cost.return_value = estimate
     command._database = database
     with (
         patch.object(command, "validate"),
         patch.object(command, "_apply_sql_security", side_effect=lambda value: value),
     ):
-        assert command.run() == {"estimate": [], "bytes_processed": [None]}
-    database.db_engine_spec.estimate_query_cost.assert_not_called()
+        result = command.run()
+    assert result is formatted
+    formatter.assert_called_once_with(estimate)
+    assert formatter.call_args.args[0] is estimate
+    database.db_engine_spec.query_cost_formatter.assert_not_called()
 
 
 def _security_exception() -> SupersetSecurityException:

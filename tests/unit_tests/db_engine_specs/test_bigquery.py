@@ -39,16 +39,26 @@ from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
 
 
-@pytest.mark.parametrize("processed", [None, 0, 1025, 1024**4 + 1])
-def test_dry_run_keeps_exact_bytes(processed: int | None) -> None:
-    """Warnings must use the provider's integer bytes without display rounding."""
+@pytest.mark.parametrize(
+    "processed,expected",
+    [
+        (None, {}),
+        (0, {"B Processed": 0}),
+        (1025, {"KB Processed": 1.0}),
+        (1024**4 + 1, {"GB Processed": 1024.0}),
+    ],
+)
+def test_manual_dry_run_preserves_display_fields(
+    processed: int | None, expected: dict[str, int | float]
+) -> None:
+    """Manual dry runs retain their display units without adding raw-value fields."""
     from superset.db_engine_specs.bigquery import BigQueryEngineSpec
 
     client = mock.MagicMock()
     client.query.return_value.total_bytes_processed = processed
     result = BigQueryEngineSpec.custom_estimate_statement_cost("SELECT 1", client)
 
-    assert result.get("bytes_processed") == processed
+    assert result == expected
     assert client.query.call_args.kwargs["job_config"].dry_run is True
 
 

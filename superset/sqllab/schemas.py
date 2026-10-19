@@ -50,7 +50,6 @@ class EstimateQueryCostSchema(Schema):
     schema = fields.String(
         allow_none=True, metadata={"description": "The database schema"}
     )
-    include_raw = fields.Boolean(load_default=False)
     check_warning = fields.Boolean(
         load_default=False,
         metadata={"description": "Check the connection's advisory warning threshold"},

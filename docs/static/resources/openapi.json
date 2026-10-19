@@ -7324,10 +7324,6 @@
             "description": "The database id",
             "type": "integer"
           },
-          "include_raw": {
-            "default": false,
-            "type": "boolean"
-          },
           "query_limit": {
             "description": "The SQL Lab dropdown row limit",
             "nullable": true,
