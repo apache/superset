@@ -73,14 +73,46 @@ def test_query_datasource_still_reaches_extra_bypass_hook(
     assert bypass_mock.call_args.kwargs["datasource"] is query
 
 
-def test_saved_chart_path_unaffected(mocker: MockerFixture) -> None:
-    """A saved chart keeps going through the chart-based access check."""
+def test_saved_chart_also_requires_dataset_access(mocker: MockerFixture) -> None:
+    """A saved chart is checked as a chart *and* as the dataset it explores.
+
+    Explore is a query builder, so chart access alone must not open it over a
+    dataset the user cannot read -- that would hand over the dataset's full
+    column and metric list plus a UI for composing queries the saved chart
+    never ran. Callers that hold chart access by other means (dashboard RBAC,
+    an ``EXTRA_RAISE_FOR_ACCESS_BYPASS`` hook) reach this path with no dataset
+    grant of their own.
+    """
     slc = Slice()
+    dataset = SqlaTable()
     mock_sm = mocker.patch("superset.commands.explore.get.security_manager")
 
-    _authorize_datasource(SqlaTable(), slc)
+    _authorize_datasource(dataset, slc)
 
-    mock_sm.raise_for_access.assert_called_once_with(chart=slc)
+    assert mock_sm.raise_for_access.call_args_list == [
+        mocker.call(chart=slc),
+        mocker.call(datasource=dataset),
+    ]
+
+
+def test_saved_chart_on_a_query_keeps_the_authorship_bypass(
+    mocker: MockerFixture,
+) -> None:
+    """The dataset leg of a chart path still routes a Query by authorship."""
+    slc = Slice()
+    query = Query()
+    mock_sm = mocker.patch("superset.commands.explore.get.security_manager")
+
+    _authorize_datasource(query, slc)
+
+    assert mock_sm.raise_for_access.call_args_list == [
+        mocker.call(chart=slc),
+        mocker.call(
+            query=query,
+            datasource=query,
+            allow_query_authorship_bypass=True,
+        ),
+    ]
 
 
 def test_table_datasource_path_unaffected(mocker: MockerFixture) -> None:

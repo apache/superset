@@ -16,6 +16,7 @@
 # under the License.
 
 from types import SimpleNamespace
+from typing import Any
 
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine
@@ -23,6 +24,7 @@ from sqlalchemy.sql.elements import ColumnElement, False_
 
 from superset.extensions import security_manager
 from superset.utils.filters import (
+    apply_extra_access_exclusions,
     get_dataset_access_filters,
     guest_embedded_dashboard_filter,
 )
@@ -248,3 +250,68 @@ def test_guest_embedded_dashboard_filter_ignores_slug_in_mixed_token(
     assert "embedded_dashboards" in compiled
     assert "dashboards.id IN" in compiled
     assert "dashboards.slug" not in compiled
+
+
+def test_apply_extra_access_exclusions_noop_without_hook(app_context: None) -> None:
+    """The default build configures no hook, so the query is untouched."""
+    from superset import db
+    from superset.models.slice import Slice
+
+    query = db.session.query(Slice)
+    assert apply_extra_access_exclusions(query, "charts", Slice.id) is query
+
+
+def test_apply_extra_access_exclusions_noop_without_user(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """No authenticated user means nothing to exclude."""
+    from flask import current_app
+
+    from superset import db
+    from superset.models.slice import Slice
+
+    mocker.patch("superset.utils.core.get_user_id", return_value=None)
+    mocker.patch.dict(
+        current_app.config,
+        {"EXTRA_ACCESS_QUERY_EXCLUSIONS": {"charts": lambda _uid: None}},
+    )
+
+    query = db.session.query(Slice)
+    assert apply_extra_access_exclusions(query, "charts", Slice.id) is query
+
+
+def test_apply_extra_access_exclusions_withholds_ids(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A configured hook withholds the IDs it names.
+
+    Executed rather than string-matched: the point is that a hook returning a
+    ``.subquery()`` -- the shape ``EXTRA_ACCESS_QUERY_FILTERS`` already
+    requires -- composes into ``NOT IN`` and produces valid SQL.
+    """
+    from flask import current_app
+
+    from superset import db
+    from superset.models.slice import Slice
+
+    excluded = Slice(slice_name="excluded", datasource_id=1, datasource_type="table")
+    kept = Slice(slice_name="kept", datasource_id=1, datasource_type="table")
+    db.session.add_all([excluded, kept])
+    db.session.flush()
+
+    def hook(_user_id: int) -> Any:
+        return db.session.query(Slice.id).filter(Slice.id == excluded.id).subquery()
+
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {"EXTRA_ACCESS_QUERY_EXCLUSIONS": {"charts": hook}},
+    )
+
+    query = apply_extra_access_exclusions(db.session.query(Slice), "charts", Slice.id)
+    returned = {slc.id for slc in query.all()}
+
+    assert excluded.id not in returned
+    assert kept.id in returned

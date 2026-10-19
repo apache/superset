@@ -3499,9 +3499,36 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
     dashboards: Callable[[int], Query]
 
 
+# Extra access query exclusions inject an AND NOT condition into ChartFilter
+# and DashboardAccessFilter, letting a deployment *withhold* asset visibility.
+# ``EXTRA_ACCESS_QUERY_FILTERS`` can only widen a result set, because its
+# conditions are OR'd with the role paths -- so a deployment that needs to keep
+# an asset out of the list, an export or a related-field lookup has no way to
+# express that through it.
+#
+# Exclusions are applied before the ``is_admin`` / ``can_access_all_datasources``
+# short-circuits, so they hold for every principal except embedded guests,
+# whose scope is set by their token alone.
+#
+# The callable receives the current user ID and returns a subquery of the asset
+# IDs to withhold.
+class ExtraAccessQueryExclusions(TypedDict, total=False):
+    charts: Callable[[int], Query]
+    dashboards: Callable[[int], Query]
+    # Narrower than the two above: assets selectable as the target of a
+    # scheduled report, which renders as the configured executor rather than
+    # as the user who created it. A deployment may hold assets a user can read
+    # but cannot schedule a report on.
+    report_target_charts: Callable[[int], Query]
+    report_target_dashboards: Callable[[int], Query]
+
+
 # Extension hooks for deployments to plug in custom access logic.
 # Additional query filters for chart/dashboard list views.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Asset IDs to withhold from chart/dashboard list views, exports and
+# related-field lookups. See ``ExtraAccessQueryExclusions`` above.
+EXTRA_ACCESS_QUERY_EXCLUSIONS: ExtraAccessQueryExclusions = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 # The hook receives the complete query context, so setting it turns off the
 # semantic-view chart-data check that otherwise denies before provider metadata

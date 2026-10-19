@@ -17,7 +17,7 @@
 
 """Tests for raise_for_access viewer access paths (Phase 4, Step 7)."""
 
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import call, MagicMock, patch, PropertyMock
 
 import pytest
 from flask import current_app
@@ -569,7 +569,7 @@ def test_raise_for_access_query_schema_access_denied_ungranted_schema(app_contex
             )
 
 
-def test_explore_command_uses_chart_access_when_slice_exists(app_context):
+def test_explore_command_checks_chart_and_dataset_when_slice_exists(app_context):
     """GetExploreCommand checks chart access when a chart exists."""
     from superset.commands.explore.get import GetExploreCommand
     from superset.commands.explore.parameters import CommandParameters
@@ -616,4 +616,10 @@ def test_explore_command_uses_chart_access_when_slice_exists(app_context):
         patch("superset.commands.explore.get.request", mock_request),
     ):
         cmd.run()
-        mock_sm.raise_for_access.assert_called_once_with(chart=mock_slc)
+        # Chart access, and then the dataset itself: Explore is a query builder,
+        # so chart access alone must not open it over a dataset the caller
+        # cannot read.
+        assert mock_sm.raise_for_access.call_args_list == [
+            call(chart=mock_slc),
+            call(datasource=mock_datasource),
+        ]

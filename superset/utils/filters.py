@@ -21,6 +21,7 @@ from sqlalchemy import and_, false, or_, true
 from sqlalchemy.sql.elements import BooleanClauseList, ColumnElement
 
 if TYPE_CHECKING:
+    from sqlalchemy.orm.query import Query
     from sqlalchemy.orm.util import AliasedClass
 
     from superset.connectors.sqla.models import SqlaTable
@@ -176,3 +177,33 @@ def guest_embedded_dashboard_filter() -> Optional[ColumnElement[bool]]:
         # dashboards, never a plain internal id.
         conditions.append(and_(Dashboard.id.in_(int_ids), Dashboard.embedded.any()))
     return or_(*conditions) if conditions else false()
+
+
+def apply_extra_access_exclusions(
+    query: "Query",
+    asset_kind: str,
+    id_column: "ColumnElement[Any]",
+) -> "Query":
+    """Withhold the asset IDs an ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` hook names.
+
+    ``EXTRA_ACCESS_QUERY_FILTERS`` can only widen a result set -- its conditions
+    are OR'd with the role paths -- so a deployment with its own notion of a
+    withheld asset cannot express that through it. This is the matching AND NOT.
+
+    Returns ``query`` unchanged when no hook is configured or there is no
+    authenticated user, so the default build is unaffected.
+    """
+    from flask import current_app
+
+    from superset.utils.core import get_user_id
+
+    exclusions = current_app.config.get("EXTRA_ACCESS_QUERY_EXCLUSIONS") or {}
+    hook = exclusions.get(asset_kind)
+    if not hook:
+        return query
+
+    user_id = get_user_id()
+    if not user_id:
+        return query
+
+    return query.filter(id_column.notin_(hook(user_id)))
