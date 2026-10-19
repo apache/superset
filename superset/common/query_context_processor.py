@@ -50,11 +50,13 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.dataframe import df_to_records
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
     QueryObjectValidationMessage,
     SemanticResultCompletenessError,
     SupersetException,
+    SupersetSecurityException,
     SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
@@ -1018,6 +1020,13 @@ class QueryContextProcessor:
             SemanticResultCompletenessError,
         ):
             raise
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
+            raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 
@@ -1033,7 +1042,18 @@ class QueryContextProcessor:
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
             try:
-                security_manager.raise_for_access(query=self._qc_datasource)
+                # Query-backed chart-data runs the stored query's raw SQL, so
+                # editorship of a same-named dataset must not authorize its
+                # tables -- otherwise a no-table decoy dataset named after a
+                # table would let its editor read that table through a
+                # persisted query. ``allow_editorship=False`` stops honoring
+                # editorship while keeping the regular catalog/schema/
+                # datasource_access checks this ongoing-fetch path has always
+                # used (it is deliberately not the stricter
+                # ``force_dataset_match`` that SQL Lab execution uses).
+                security_manager.raise_for_access(
+                    query=self._qc_datasource, allow_editorship=False
+                )
             except TemplateError as ex:
                 raise SupersetTemplateException(str(ex)) from ex
         else:
