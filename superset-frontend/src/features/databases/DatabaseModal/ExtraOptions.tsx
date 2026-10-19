@@ -293,7 +293,6 @@ const ExtraOptions = ({
                   <QueryCostWarningSettings
                     key={`${db?.id}-${db?.backend || db?.engine}`}
                     extra={extraJson}
-                    engine={db?.backend || db?.engine}
                     metric={db?.engine_information?.query_cost_warning_metric}
                     onChange={onExtraInputChange}
                     onValidationChange={onQueryCostWarningValidationChange}

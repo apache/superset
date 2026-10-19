@@ -211,28 +211,6 @@ describe('ExtraOptions Component', () => {
     },
   );
 
-  test('legacy amount alone prefills without opting in', () => {
-    renderComponent({
-      ...defaultDb,
-      backend: 'bigquery',
-      engine_information: {
-        ...defaultDb.engine_information,
-        query_cost_warning_metric: 'bytes_processed',
-      },
-      extra: JSON.stringify({
-        cost_estimate_enabled: true,
-        cost_estimate_warning_threshold_bytes: 100,
-      }),
-    });
-    fireEvent.click(screen.getByText('SQL Lab'));
-    expect(
-      screen.getByLabelText('Enable pre-run cost warnings'),
-    ).not.toBeChecked();
-    expect(
-      screen.getByLabelText('Warning threshold (bytes processed)'),
-    ).toHaveValue(100);
-  });
-
   test('enabled warnings remain disableable after estimation is turned off', () => {
     renderComponent({
       ...defaultDb,

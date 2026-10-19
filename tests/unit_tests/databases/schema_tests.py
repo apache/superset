@@ -117,8 +117,6 @@ def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
         "query_cost_warning": rule,
         "cost_estimate_enabled": False,
         "engine_params": {"connect_args": {"application_name": "test"}},
-        "cost_estimate_warning_enabled": "invalid legacy toggle",
-        "cost_estimate_warning_threshold_bytes": -1,
     }
     assert warning_extra_loader(extra) == extra
 
@@ -135,84 +133,13 @@ def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
         {"enabled": True, "threshold": 100},
     ],
 )
-def test_invalid_query_cost_warning_does_not_fall_back_to_legacy(
+def test_invalid_query_cost_warning_is_rejected(
     warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
     rule: object,
 ) -> None:
-    """A present new rule is authoritative even when legacy settings are valid."""
+    """A supplied rule must be well formed and complete when enabled."""
     with pytest.raises(ValidationError):
-        warning_extra_loader(
-            {
-                "query_cost_warning": rule,
-                "cost_estimate_warning_enabled": True,
-                "cost_estimate_warning_threshold_bytes": 100,
-            }
-        )
-
-
-@pytest.mark.parametrize("threshold", [-1, 0, 1.5, "100", True, None, 2**53])
-def test_legacy_query_cost_warning_values_are_preserved_without_validation(
-    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
-    threshold: object,
-) -> None:
-    """Invalid draft settings remain inert data and do not block connection saves."""
-    extra = {
-        "cost_estimate_warning_enabled": "invalid legacy toggle",
-        "cost_estimate_warning_threshold_bytes": threshold,
-    }
-    assert warning_extra_loader(extra) == extra
-
-
-@pytest.mark.parametrize("enabled", [None, False, True, "true", 1])
-@pytest.mark.parametrize("threshold", [100, 100.0])
-def test_legacy_query_cost_warning_prefill_requires_explicit_boolean_opt_in(
-    enabled: object,
-    threshold: int | float,
-) -> None:
-    """A valid legacy amount prefills BigQuery but does not opt the user in."""
-    from superset.databases.schemas import get_query_cost_warning
-
-    extra = {
-        "cost_estimate_warning_threshold_bytes": threshold,
-        **({"cost_estimate_warning_enabled": enabled} if enabled is not None else {}),
-    }
-    original = extra.copy()
-    assert get_query_cost_warning(extra, "bigquery") == {
-        "enabled": enabled is True,
-        "metric": "bytes_processed",
-        "threshold": 100,
-    }
-    assert extra == original
-
-
-@pytest.mark.parametrize("threshold", [-1, 0, 1.5, "100", True, None, 2**53])
-@pytest.mark.parametrize("engine", ["bigquery", "postgresql"])
-def test_invalid_legacy_query_cost_warning_has_no_guessed_threshold(
-    threshold: object, engine: str
-) -> None:
-    """Unsupported or invalid legacy settings leave warnings off without an amount."""
-    from superset.databases.schemas import get_query_cost_warning
-
-    assert get_query_cost_warning(
-        {
-            "cost_estimate_warning_enabled": True,
-            "cost_estimate_warning_threshold_bytes": threshold,
-        },
-        engine,
-    ) == {"enabled": False}
-
-
-def test_valid_legacy_byte_threshold_is_not_a_postgres_cost_threshold() -> None:
-    """Legacy bytes apply only to BigQuery, even with an explicit old opt-in."""
-    from superset.databases.schemas import get_query_cost_warning
-
-    assert get_query_cost_warning(
-        {
-            "cost_estimate_warning_enabled": True,
-            "cost_estimate_warning_threshold_bytes": 100,
-        },
-        "postgresql",
-    ) == {"enabled": False}
+        warning_extra_loader({"query_cost_warning": rule})
 
 
 @pytest.mark.parametrize(
@@ -222,38 +149,22 @@ def test_valid_legacy_byte_threshold_is_not_a_postgres_cost_threshold() -> None:
         {"enabled": True, "metric": "bytes_processed", "threshold": 50},
     ],
 )
-def test_new_query_cost_warning_takes_precedence_over_legacy(
+def test_get_query_cost_warning_preserves_explicit_rule(
     rule: dict[str, object],
 ) -> None:
-    """Explicit rules, including disabled rules, always take precedence."""
+    """Reading a rule preserves its settings without mutating the supplied extra."""
     from superset.databases.schemas import get_query_cost_warning
 
-    assert (
-        get_query_cost_warning(
-            {
-                "query_cost_warning": rule,
-                "cost_estimate_warning_enabled": True,
-                "cost_estimate_warning_threshold_bytes": 100,
-            },
-            "bigquery",
-        )
-        == rule
-    )
+    extra = {"query_cost_warning": rule}
+    assert get_query_cost_warning(extra) == rule
+    assert extra == {"query_cost_warning": rule}
 
 
-def test_invalid_new_query_cost_warning_cannot_use_valid_legacy_settings() -> None:
-    """An invalid explicit rule is a validation error, never a fallback request."""
+def test_missing_query_cost_warning_is_disabled() -> None:
+    """Connections without a rule have no implicit opt-in or threshold."""
     from superset.databases.schemas import get_query_cost_warning
 
-    with pytest.raises(ValidationError):
-        get_query_cost_warning(
-            {
-                "query_cost_warning": {"enabled": True, "threshold": "100"},
-                "cost_estimate_warning_enabled": True,
-                "cost_estimate_warning_threshold_bytes": 100,
-            },
-            "bigquery",
-        )
+    assert get_query_cost_warning({"cost_estimate_enabled": True}) == {"enabled": False}
 
 
 if TYPE_CHECKING:

@@ -1303,7 +1303,6 @@ def test_warning_update_can_disable_broken_rule_without_losing_extras(
                     "threshold": "invalid",
                 },
                 "metadata_params": {},
-                "cost_estimate_warning_threshold_bytes": 100,
             }
         ),
     )
@@ -1318,7 +1317,6 @@ def test_warning_update_can_disable_broken_rule_without_losing_extras(
     assert saved == {
         "query_cost_warning": {"enabled": False},
         "metadata_params": {},
-        "cost_estimate_warning_threshold_bytes": 100,
     }
 
 
@@ -1346,11 +1344,19 @@ def test_warning_update_validates_retained_rule_against_new_engine(
         command.validate()
 
 
-def test_warning_update_normalizes_legacy_rule_on_next_save(
-    mocker: MockerFixture,
+@pytest.mark.parametrize("enabled", [False, True])
+def test_warning_update_preserves_rule_without_resubmitting_extra(
+    mocker: MockerFixture, enabled: bool
 ) -> None:
-    """A legacy amount is retained but does not become an implicit opt-in."""
-    extra = {"cost_estimate_warning_threshold_bytes": 100, "metadata_params": {}}
+    """Unrelated updates retain the connection's explicit warning settings."""
+    extra = {
+        "query_cost_warning": {
+            "enabled": enabled,
+            "metric": "bytes_processed",
+            "threshold": 100,
+        },
+        "metadata_params": {},
+    }
     database = Database(
         database_name="test", sqlalchemy_uri="bigquery://", extra=json.dumps(extra)
     )
@@ -1358,11 +1364,4 @@ def test_warning_update_normalizes_legacy_rule_on_next_save(
     command._model = database
     mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
     command.validate()
-    assert json.loads(command._properties["extra"]) == {
-        **extra,
-        "query_cost_warning": {
-            "enabled": False,
-            "metric": "bytes_processed",
-            "threshold": 100,
-        },
-    }
+    assert json.loads(command._properties["extra"]) == extra

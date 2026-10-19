@@ -101,61 +101,18 @@ test('disabled rules keep valid values from a different engine', () => {
   ).toBeDefined();
 });
 
-test.each([undefined, false, true, 'true', 1])(
-  'legacy opt-in must be exactly true (%s)',
-  enabled => {
-    const extra = {
-      cost_estimate_warning_enabled: enabled,
-      cost_estimate_warning_threshold_bytes: 100,
-    } as ExtraJson;
-    expect(getQueryCostWarning(extra, 'bigquery')).toEqual({
-      enabled: enabled === true,
-      metric: 'bytes_processed',
-      threshold: 100,
-    });
-  },
-);
-
-test.each([-1, 0, 1.5, '100', true, null, 2 ** 53])(
-  'invalid legacy threshold stays off without a default (%s)',
-  threshold => {
-    expect(
-      getQueryCostWarning(
-        {
-          cost_estimate_warning_enabled: true,
-          cost_estimate_warning_threshold_bytes: threshold,
-        } as ExtraJson,
-        'bigquery',
-      ),
-    ).toEqual({ enabled: false });
-  },
-);
-
-test('legacy bytes do not become a PostgreSQL planner threshold', () => {
-  expect(
-    getQueryCostWarning(
-      {
-        cost_estimate_warning_enabled: true,
-        cost_estimate_warning_threshold_bytes: 100,
-      },
-      'postgresql',
-    ),
-  ).toEqual({ enabled: false });
+test('missing settings leave warnings off without a threshold', () => {
+  expect(getQueryCostWarning({ cost_estimate_enabled: true })).toEqual({
+    enabled: false,
+  });
 });
 
 test.each([null, { enabled: false }, { enabled: true, threshold: 'invalid' }])(
-  'an explicit new rule prevents legacy fallback (%j)',
+  'reads an explicit rule without inventing missing fields (%j)',
   rule => {
-    expect(
-      getQueryCostWarning(
-        {
-          query_cost_warning: rule,
-          cost_estimate_warning_enabled: true,
-          cost_estimate_warning_threshold_bytes: 100,
-        } as ExtraJson,
-        'bigquery',
-      ),
-    ).toEqual(rule || {});
+    const extra = { query_cost_warning: rule } as ExtraJson;
+    expect(getQueryCostWarning(extra)).toEqual(rule || {});
+    expect(extra).toEqual({ query_cost_warning: rule });
   },
 );
 

@@ -109,29 +109,13 @@ export function getQueryCostWarningError(
   return undefined;
 }
 
-/** Read the explicit rule or a valid BigQuery draft without implicit opt-in. */
-export function getQueryCostWarning(
-  extra: ExtraJson,
-  engine?: string,
-): Record<string, unknown> {
+/** Read the connection's warning rule without implicit opt-in. */
+export function getQueryCostWarning(extra: ExtraJson): Record<string, unknown> {
   if ('query_cost_warning' in extra) {
     const rule: unknown = extra.query_cost_warning;
     return rule && typeof rule === 'object' && !Array.isArray(rule)
       ? { ...(rule as Record<string, unknown>) }
       : {};
-  }
-  const threshold = extra.cost_estimate_warning_threshold_bytes;
-  if (
-    engine === 'bigquery' &&
-    typeof threshold === 'number' &&
-    Number.isSafeInteger(threshold) &&
-    threshold > 0
-  ) {
-    return {
-      enabled: extra.cost_estimate_warning_enabled === true,
-      metric: 'bytes_processed',
-      threshold,
-    };
   }
   return { enabled: false };
 }

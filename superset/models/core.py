@@ -296,7 +296,7 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         from superset.databases.schemas import get_query_cost_warning
 
         try:
-            rule = get_query_cost_warning(self.get_extra(), self.db_engine_spec.engine)
+            rule = get_query_cost_warning(self.get_extra())
         except ValidationError:
             return {"enabled": False}
         metric = self.db_engine_spec.get_query_cost_warning_metric()

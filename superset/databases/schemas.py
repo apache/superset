@@ -333,24 +333,10 @@ class QueryCostWarningSchema(Schema):
                 )
 
 
-def get_query_cost_warning(extra: dict[str, Any], engine: str) -> dict[str, Any]:
-    """Read the explicit rule or a valid BigQuery draft without mutating extras."""
+def get_query_cost_warning(extra: dict[str, Any]) -> dict[str, Any]:
+    """Read the connection's warning rule without mutating extras."""
     if "query_cost_warning" in extra:
         return QueryCostWarningSchema().load(extra["query_cost_warning"])
-
-    threshold = extra.get("cost_estimate_warning_threshold_bytes")
-    if (
-        engine == "bigquery"
-        and isinstance(threshold, (int, float))
-        and not isinstance(threshold, bool)
-        and 0 < threshold <= 2**53 - 1
-        and threshold == int(threshold)
-    ):
-        return {
-            "enabled": extra.get("cost_estimate_warning_enabled") is True,
-            "metric": "bytes_processed",
-            "threshold": threshold,
-        }
     return {"enabled": False}
 
 
@@ -364,10 +350,10 @@ def normalize_query_cost_warning(
     spec = get_engine_spec(
         url.get_backend_name(), url.drivername.partition("+")[2] or None
     )
-    rule = get_query_cost_warning(extra, spec.engine)
+    rule = get_query_cost_warning(extra)
     if stored_extra and "query_cost_warning" in extra and rule["enabled"] is False:
         try:
-            previous = get_query_cost_warning(stored_extra, spec.engine)
+            previous = get_query_cost_warning(stored_extra)
         except ValidationError:
             previous = {"enabled": False}
         if rule.get("metric", previous.get("metric")) != previous.get("metric"):
@@ -1135,8 +1121,6 @@ class ImportV1DatabaseExtraSchema(Schema):
     )
     schemas_allowed_for_csv_upload = fields.List(fields.String())
     cost_estimate_enabled = fields.Boolean()
-    cost_estimate_warning_enabled = fields.Raw(allow_none=True)
-    cost_estimate_warning_threshold_bytes = fields.Raw(allow_none=True)
     query_cost_warning = fields.Nested(QueryCostWarningSchema)
     allows_virtual_table_explore = fields.Boolean(required=False)
     cancel_query_on_windows_unload = fields.Boolean(required=False)

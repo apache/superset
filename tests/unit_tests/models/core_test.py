@@ -103,20 +103,14 @@ def test_cost_warning_rule_survives_inactive_settings(
         {"enabled": True, "metric": "total_cost", "threshold": 100},
     ],
 )
-def test_invalid_saved_cost_warning_is_inactive_without_legacy_fallback(
+def test_invalid_saved_cost_warning_is_inactive(
     rule: dict[str, object],
 ) -> None:
-    """Broken explicit rules never silently activate a valid legacy amount."""
+    """Invalid saved rules are inactive in the displayed connection settings."""
     database = Database(
         database_name="test",
         sqlalchemy_uri="bigquery://",
-        extra=json.dumps(
-            {
-                "query_cost_warning": rule,
-                "cost_estimate_warning_threshold_bytes": 100,
-                "cost_estimate_warning_enabled": True,
-            }
-        ),
+        extra=json.dumps({"query_cost_warning": rule}),
     )
     assert database.query_cost_warning == {"enabled": False}
 

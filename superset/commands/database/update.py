@@ -291,8 +291,10 @@ class UpdateDatabaseCommand(BaseCommand):
         assert self._model
         stored = self._model.extra or "{}"
         submitted_extra = self._properties.get("extra") or "{}"
-        keys = ("query_cost_warning", "cost_estimate_warning_threshold_bytes")
-        if not any(key in stored or key in submitted_extra for key in keys):
+        if (
+            "query_cost_warning" not in stored
+            and "query_cost_warning" not in submitted_extra
+        ):
             return
         try:
             previous = json.loads(stored)

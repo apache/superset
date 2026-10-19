@@ -44,13 +44,11 @@ import { no_margin_bottom, StyledInputContainer } from './styles';
 /** Edit a native warning threshold while keeping display units out of saved extras. */
 export default function QueryCostWarningSettings({
   extra,
-  engine,
   metric,
   onChange,
   onValidationChange,
 }: {
   extra: ExtraJson;
-  engine?: string;
   metric?: QueryCostWarningMetric | null;
   onChange: (
     event: CheckboxChangeEvent | ChangeEvent<HTMLInputElement>,
@@ -58,7 +56,7 @@ export default function QueryCostWarningSettings({
   onValidationChange?: (hasError: boolean) => void;
 }) {
   const theme = useTheme();
-  const rule = getQueryCostWarning(extra, engine);
+  const rule = getQueryCostWarning(extra);
   const enabled = rule.enabled === true;
   const flagsEnabled = isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings);
   const estimationFlag = isFeatureEnabled(FeatureFlag.EstimateQueryCost);

@@ -2142,7 +2142,6 @@ describe('dbReducer', () => {
     threshold => {
       const extra = {
         unrelated: { keep: true },
-        cost_estimate_warning_threshold_bytes: 55,
         query_cost_warning: {
           enabled: true,
           metric: 'bytes_processed',

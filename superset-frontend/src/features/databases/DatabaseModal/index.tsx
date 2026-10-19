@@ -348,10 +348,7 @@ export function dbReducer(
         action.payload.name === 'query_cost_warning_enabled' ||
         action.payload.name === 'query_cost_warning_threshold'
       ) {
-        const rule = getQueryCostWarning(
-          extraJson,
-          trimmedState.backend || trimmedState.engine,
-        );
+        const rule = getQueryCostWarning(extraJson);
         const metric =
           trimmedState.engine_information?.query_cost_warning_metric;
         const queryCostWarning =
@@ -994,7 +991,7 @@ const DatabaseModal: FunctionComponent<DatabaseModalProps> = ({
 
   const onSave = async () => {
     const extra: ExtraJson = JSON.parse(db?.extra || '{}');
-    const warningRule = getQueryCostWarning(extra, db?.backend || db?.engine);
+    const warningRule = getQueryCostWarning(extra);
     if (
       queryCostWarningHasError ||
       getQueryCostWarningError(

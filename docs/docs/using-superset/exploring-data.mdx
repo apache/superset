@@ -445,14 +445,8 @@ Disabling warnings retains valid saved values. Turning connection estimation off
 also retains the rule and makes checking inactive. A broken rule can be replaced
 with `{ "enabled": false }` to disable it without retaining invalid fields.
 
-Older BigQuery drafts used `cost_estimate_warning_threshold_bytes` and
-`cost_estimate_warning_enabled`. A valid positive whole-byte amount prefills the
-new controls, but the old enabled value must be exactly `true` to opt in; an
-amount alone does not enable warnings. Invalid legacy amounts leave warnings off
-without a guessed replacement. The next connection save writes the new rule and
-keeps the legacy keys unchanged. A present `query_cost_warning` rule is
-authoritative and must validate, even when legacy settings are valid. Create,
-update, and import validate against the resulting connection's engine.
+Create, update, and import validate the rule against the resulting connection's
+engine.
 
 The warning estimator uses BigQuery dry runs and PostgreSQL `EXPLAIN (FORMAT
 JSON)` without `ANALYZE`. It compares raw values on the server. Valid zero

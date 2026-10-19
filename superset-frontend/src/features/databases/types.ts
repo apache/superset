@@ -254,8 +254,6 @@ export interface ExtraJson {
   allows_virtual_table_explore?: boolean; // in SQL Lab
   cancel_query_on_windows_unload?: boolean; // in Performance
   cost_estimate_enabled?: boolean; // in SQL Lab
-  cost_estimate_warning_enabled?: boolean;
-  cost_estimate_warning_threshold_bytes?: number;
   query_cost_warning?: QueryCostWarning;
   disable_data_preview?: boolean; // in SQL Lab
   disable_drill_to_detail?: boolean;

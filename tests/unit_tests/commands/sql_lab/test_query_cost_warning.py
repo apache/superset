@@ -307,15 +307,13 @@ def test_warning_unsupported_engine(mocker: MockerFixture) -> None:
     ],
 )
 def test_warning_invalid_rule_is_an_error(mocker: MockerFixture, rule: object) -> None:
-    """Never hide an invalid saved rule or fall back to the legacy draft."""
+    """Invalid saved rules remain errors instead of allowing execution."""
     command = _make_command(mocker)
     _set_extra(
         command,
         {
             "cost_estimate_enabled": True,
             "query_cost_warning": rule,
-            "cost_estimate_warning_enabled": True,
-            "cost_estimate_warning_threshold_bytes": 1,
         },
     )
     with pytest.raises(SupersetErrorException) as error:

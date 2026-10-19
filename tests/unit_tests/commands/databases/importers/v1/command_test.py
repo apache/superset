@@ -48,7 +48,6 @@ def test_import_disables_saved_warning_and_preserves_unrelated_extras(
     stored = {
         "query_cost_warning": rule,
         "engine_params": {"pool_pre_ping": True},
-        "cost_estimate_warning_threshold_bytes": 100,
     }
     database = Database(
         database_name="warning-test",

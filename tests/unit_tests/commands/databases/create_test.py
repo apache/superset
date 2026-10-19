@@ -28,35 +28,34 @@ from superset.utils import json
 
 
 @pytest.mark.parametrize("enabled", [False, True])
-def test_create_normalizes_legacy_warning_without_losing_extras(
-    mocker: MockerFixture, enabled: bool
+@pytest.mark.parametrize(
+    "engine,metric", [("bigquery", "bytes_processed"), ("postgresql", "total_cost")]
+)
+def test_create_preserves_warning_rule_and_unrelated_extras(
+    mocker: MockerFixture, enabled: bool, engine: str, metric: str
 ) -> None:
-    """Command saves preserve draft keys and accept whole numeric byte amounts."""
+    """Command saves preserve explicit rules and unrelated connection settings."""
     mocker.patch(
         "superset.commands.database.create.DatabaseDAO.validate_uniqueness",
         return_value=True,
     )
     extra = {
-        "cost_estimate_warning_threshold_bytes": 100.0,
-        "cost_estimate_warning_enabled": enabled,
+        "query_cost_warning": {
+            "enabled": enabled,
+            "metric": metric,
+            "threshold": 100,
+        },
         "engine_params": {"pool_pre_ping": True},
     }
     command = CreateDatabaseCommand(
         {
             "database_name": "test",
-            "sqlalchemy_uri": "bigquery://project",
+            "sqlalchemy_uri": f"{engine}://",
             "extra": json.dumps(extra),
         }
     )
     command.validate()
-    assert json.loads(command._properties["extra"]) == {
-        **extra,
-        "query_cost_warning": {
-            "enabled": enabled,
-            "metric": "bytes_processed",
-            "threshold": 100,
-        },
-    }
+    assert json.loads(command._properties["extra"]) == extra
 
 
 def test_create_rejects_warning_metric_for_another_engine(

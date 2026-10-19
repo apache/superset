@@ -49,7 +49,6 @@ function SettingsHarness({
     <>
       <QueryCostWarningSettings
         extra={JSON.parse(db?.extra || '{}') as ExtraJson}
-        engine={engine}
         metric={metric}
         onValidationChange={setHasError}
         onChange={({ target }) => {
@@ -106,8 +105,6 @@ beforeEach(() => {
 test('unit changes preserve bytes and disabled values survive reopening', async () => {
   const initial: ExtraJson = {
     cost_estimate_enabled: true,
-    cost_estimate_warning_threshold_bytes: 2000000000,
-    cost_estimate_warning_enabled: true,
     allows_virtual_table_explore: true,
     query_cost_warning: {
       enabled: true,
@@ -248,25 +245,6 @@ test('PostgreSQL accepts decimals and explains its relative planner cost', () =>
   expect(savedExtra().query_cost_warning?.threshold).toBe(12.125);
   expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
-
-test.each([undefined, false, true])(
-  'legacy values prefill with explicit opt-in %s',
-  enabled => {
-    const extra = {
-      cost_estimate_enabled: true,
-      cost_estimate_warning_enabled: enabled,
-      cost_estimate_warning_threshold_bytes: 1500000,
-    };
-    render(<SettingsHarness extra={extra} />);
-    expect(
-      screen.getByLabelText('Warning threshold (bytes processed)'),
-    ).toHaveValue(1500000);
-    expect(
-      screen.getByLabelText('Enable pre-run cost warnings'),
-    ).toHaveProperty('checked', enabled === true);
-    expect(savedExtra()).toEqual(extra);
-  },
-);
 
 test.each([
   null,
