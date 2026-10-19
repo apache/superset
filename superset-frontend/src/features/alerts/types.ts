@@ -52,6 +52,7 @@ export enum NotificationMethodOption {
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
   Webhook = 'Webhook',
+  Teams = 'Teams',
 }
 
 export type SelectValue = {
@@ -65,6 +66,12 @@ export type NotificationSetting = {
   cc?: string;
   bcc?: string;
   options: NotificationMethodOption[];
+};
+
+export type TeamsDestination = {
+  key: string;
+  label: string;
+  available: boolean;
 };
 
 export type SlackChannel = {
@@ -199,6 +206,7 @@ export enum RecipientIconName {
   Slack = 'Slack',
   SlackV2 = 'SlackV2',
   Webhook = 'Webhook',
+  Teams = 'Teams',
 }
 export interface AlertsReportsConfig {
   ALERT_REPORTS_DEFAULT_WORKING_TIMEOUT: number;
