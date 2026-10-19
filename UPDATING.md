@@ -2015,8 +2015,13 @@ percent choice is the more recent, explicit intent (made on top of
 database-computed totals), and a result aggregation would both change those
 totals and hide the percent display. The migration drops the orphaned
 `aggregateFunction` from such a chart (and from its saved `query_context`)
-instead of restoring it, so it keeps rendering exactly as before. A
-one-time migration tags every other such chart with a `legacy-pivot-aggregation-restored`
+instead of restoring it, so it keeps rendering exactly as before. This drop
+is a one-time, upgrade-time heuristic, not a durable fact about the chart: if
+you later downgrade past this migration and then re-upgrade, a chart where
+you deliberately chose both an `aggregateFunction` and a percent "Show values
+as" *after* the control was restored looks identical to the original
+pre-restoration orphan, and the migration drops that deliberate choice again.
+A one-time migration tags every other such chart with a `legacy-pivot-aggregation-restored`
 custom tag; opening a tagged chart in Explore shows a notice that its totals
 may now look different, which clears once you review and accept it (or save
 the chart). Accepting only removes the tag; it does not rebuild the saved
