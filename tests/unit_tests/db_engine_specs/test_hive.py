@@ -50,6 +50,57 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+def test_week_time_grain_buckets_to_monday() -> None:
+    """
+    Evaluate the Hive ``WEEK`` grain expression and check that every day of a
+    week maps to that week's Monday.
+
+    The expression runs on SQLite with Python stand-ins for the Hive functions
+    it uses, following Hive's semantics (``'u'`` is the ISO day of week).
+    """
+    import sqlite3
+    from datetime import date, timedelta, timezone
+
+    from superset.constants import TimeGrain
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    def unix_timestamp(value: str) -> int:
+        day = datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
+        return int(day.timestamp())
+
+    def from_unixtime(seconds: int, fmt: str) -> str:
+        assert fmt == "u"
+        return str(datetime.fromtimestamp(seconds, timezone.utc).isoweekday())
+
+    def date_sub(value: str, days: int) -> str:
+        return (date.fromisoformat(value[:10]) - timedelta(days=days)).isoformat()
+
+    def date_format(value: str, fmt: str) -> str:
+        day = date.fromisoformat(value[:10])
+        return (
+            fmt.replace("yyyy", f"{day.year:04d}")
+            .replace("MM", f"{day.month:02d}")
+            .replace("dd", f"{day.day:02d}")
+        )
+
+    connection = sqlite3.connect(":memory:")
+    connection.create_function("unix_timestamp", 1, unix_timestamp)
+    connection.create_function("from_unixtime", 2, from_unixtime)
+    connection.create_function("date_sub", 2, date_sub)
+    connection.create_function("date_format", 2, date_format)
+
+    expression = HiveEngineSpec._time_grain_expressions[TimeGrain.WEEK].format(col="d")
+    monday = date(2025, 1, 6)
+    for offset in range(14):
+        day = monday + timedelta(days=offset)
+        (bucket,) = connection.execute(
+            f"SELECT {expression} FROM (SELECT ? AS d)",  # noqa: S608
+            (day.isoformat(),),
+        ).fetchone()
+        expected = monday + timedelta(days=(offset // 7) * 7)
+        assert bucket == f"{expected.isoformat()} 00:00:00", day
+
+
 def test_get_schema_from_engine_params() -> None:
     """
     Test the ``get_schema_from_engine_params`` method.
