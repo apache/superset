@@ -19,10 +19,15 @@
 from __future__ import annotations
 
 import asyncio
+import os
+import signal
+import threading
+import time
 from collections.abc import AsyncIterator, Iterator
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta, timezone
 from email.utils import format_datetime
+from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock
@@ -30,6 +35,8 @@ from unittest.mock import MagicMock
 import httpx
 import pytest
 import requests
+from billiard import current_process
+from billiard.exceptions import SoftTimeLimitExceeded
 from flask import current_app, Flask
 from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
@@ -60,6 +67,7 @@ adapter = pytest.importorskip(
 TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 APPLICATION = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 SERVICE_URL = "https://smba.trafficmanager.net/amer/"
+REAL_DELIVERY_PROCESS = adapter._run_delivery_process
 
 
 @pytest.fixture
@@ -375,6 +383,13 @@ def retry_clock(monkeypatch: pytest.MonkeyPatch) -> list[float]:
     elapsed = [0.0]
     sleeps: list[float] = []
     monkeypatch.setattr(adapter, "monotonic", lambda: elapsed[0])
+    # Exercise retry policy/SDK serialization in-process; dedicated deadline
+    # tests below use real child processes and wall time.
+    monkeypatch.setattr(
+        adapter,
+        "_run_delivery_process",
+        lambda operation, *args: operation(lambda: None),
+    )
 
     async def sleep(delay: float) -> None:
         """Advance the same clock used by the retry budget."""
@@ -763,3 +778,436 @@ def test_auth_http_closes_response_and_preserves_retry_delay(
     assert exc.value.retry_after == "7"
     response.close.assert_called_once()
     assert session.request.call_args.kwargs["timeout"] == 10
+
+
+@pytest.mark.parametrize(
+    "phase",
+    ["construction", "post", "refresh", "cleanup", "post-and-cleanup", "loop-shutdown"],
+)
+def test_delivery_process_bounds_the_entire_synchronous_call(
+    configured: TeamsConfig,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    phase: str,
+) -> None:
+    monkeypatch.setattr(adapter, "_DELIVERY_TIMEOUT", 0.3)
+    transport = FakeTransport(
+        [adapter.TeamsTransportError(401)] if phase == "refresh" else [None]
+    )
+    pid_file = tmp_path / "child"
+    cleanup_file = tmp_path / "cleanup"
+
+    async def stall() -> None:
+        time.sleep(4)
+
+    if phase in {"post", "post-and-cleanup"}:
+        monkeypatch.setattr(transport, "post_root", lambda *args: stall())
+    if phase == "refresh":
+        monkeypatch.setattr(transport, "refresh_auth", stall)
+
+    async def background() -> None:
+        try:
+            await asyncio.Future()
+        finally:
+            time.sleep(4)
+
+    @asynccontextmanager
+    async def factory(*args: Any) -> AsyncIterator[FakeTransport]:
+        pid_file.write_text(str(os.getpid()))
+        try:
+            if phase == "construction":
+                time.sleep(4)
+            if phase == "loop-shutdown":
+                asyncio.create_task(background())
+            yield transport
+        finally:
+            cleanup_file.write_text("started")
+            if phase in {"cleanup", "post-and-cleanup"}:
+                time.sleep(4)
+            cleanup_file.write_text("closed")
+
+    started = time.monotonic()
+    with pytest.raises(
+        adapter.TeamsDeliveryError, match="temporarily unavailable"
+    ) as exc:
+        adapter.deliver_teams_alert(
+            configured,
+            configured.destinations[0],
+            SERVICE_URL,
+            {},
+            transport_factory=factory,
+        )
+    assert time.monotonic() - started < 0.5
+    assert exc.value.category == "transient"
+    assert cleanup_file.exists()
+    if phase not in {"cleanup", "post-and-cleanup"}:
+        assert cleanup_file.read_text() == "closed"
+    child = int(pid_file.read_text())
+    assert child != os.getpid()
+    with pytest.raises(ChildProcessError):
+        os.waitpid(child, os.WNOHANG)
+    assert adapter._DELIVERY_WORKERS == set()
+
+
+@pytest.mark.parametrize("phase", ["metadata", "token"])
+def test_stalled_msal_http_is_interrupted_and_sdk_resources_close(
+    configured: TeamsConfig,
+    sdk_network: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+    phase: str,
+) -> None:
+    monkeypatch.setattr(adapter, "monotonic", time.monotonic)
+    monkeypatch.setattr(adapter, "_run_delivery_process", REAL_DELIVERY_PROCESS)
+    monkeypatch.setattr(adapter, "_DELIVERY_TIMEOUT", 0.4)
+    session_type = adapter.requests.Session
+    request = session_type.request
+    close_session = session_type.close
+    close_http = adapter.httpx.AsyncClient.aclose
+    auth_closed = tmp_path / "auth-closed"
+    http_closed = tmp_path / "http-closed"
+
+    def stalled_request(
+        self: requests.Session, method: str, url: str, *args: Any, **kwargs: Any
+    ) -> requests.Response:
+        if (phase == "metadata" and method == "GET") or (
+            phase == "token" and method == "POST"
+        ):
+            time.sleep(4)
+        return request(self, method, url, *args, **kwargs)
+
+    def auth_close(self: requests.Session) -> None:
+        close_session(self)
+        auth_closed.write_text("closed")
+
+    async def http_close(self: httpx.AsyncClient) -> None:
+        await close_http(self)
+        http_closed.write_text(str(len(sdk_network.posts)))
+
+    monkeypatch.setattr(session_type, "request", stalled_request)
+    monkeypatch.setattr(session_type, "close", auth_close)
+    monkeypatch.setattr(adapter.httpx.AsyncClient, "aclose", http_close)
+    started = time.monotonic()
+    with pytest.raises(NotificationTransientError, match="temporarily unavailable"):
+        notifications._send_to_teams(
+            configured, configured.destinations[0], SERVICE_URL, {}
+        )
+    assert time.monotonic() - started < 0.6
+    assert auth_closed.read_text() == "closed"
+    assert http_closed.read_text() == "0"
+    assert adapter._DELIVERY_WORKERS == set()
+
+
+def test_one_budget_covers_token_post_and_cleanup(
+    configured: TeamsConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(adapter, "_DELIVERY_TIMEOUT", 0.3)
+    transport = FakeTransport([None])
+
+    async def post(*args: Any) -> None:
+        time.sleep(0.14)
+        time.sleep(0.14)
+
+    @asynccontextmanager
+    async def factory(*args: Any) -> AsyncIterator[FakeTransport]:
+        try:
+            yield transport
+        finally:
+            time.sleep(0.14)
+
+    monkeypatch.setattr(transport, "post_root", post)
+    started = time.monotonic()
+    with pytest.raises(adapter.TeamsDeliveryError):
+        adapter.deliver_teams_alert(
+            configured,
+            configured.destinations[0],
+            SERVICE_URL,
+            {},
+            transport_factory=factory,
+        )
+    assert time.monotonic() - started < 0.39
+    assert adapter._DELIVERY_WORKERS == set()
+
+
+@pytest.mark.parametrize(
+    "outcome",
+    ["success", "authorization", "parameter", "transient", "unexpected", "crash"],
+)
+def test_delivery_child_outcomes_are_sanitized(outcome: str) -> None:
+    def operation(begin_cleanup: Any) -> None:
+        if outcome == "crash":
+            os._exit(7)
+        if outcome == "unexpected":
+            raise ValueError("credential and SQL diagnostic")
+        if outcome != "success":
+            raise adapter.TeamsDeliveryError(outcome)
+
+    started = time.monotonic()
+    if outcome == "success":
+        adapter._run_delivery_process(operation, started + 0.5, started + 0.6)
+    else:
+        with pytest.raises(adapter.TeamsDeliveryError) as exc:
+            adapter._run_delivery_process(operation, started + 0.5, started + 0.6)
+        assert exc.value.category == (
+            outcome if outcome in {"authorization", "parameter"} else "transient"
+        )
+        assert "credential" not in str(exc.value)
+        assert "SQL" not in str(exc.value)
+        assert exc.value.__cause__ is None
+    assert adapter._DELIVERY_WORKERS == set()
+
+
+def test_parent_worker_alarm_and_handler_are_preserved(configured: TeamsConfig) -> None:
+    previous_handler = signal.getsignal(signal.SIGALRM)
+    previous_usr1 = signal.getsignal(signal.SIGUSR1)
+    previous_mask = signal.pthread_sigmask(signal.SIG_BLOCK, set())
+    received: list[int] = []
+
+    def worker_handler(signum: int, frame: Any) -> None:
+        received.append(signum)
+
+    signal.signal(signal.SIGALRM, worker_handler)
+    signal.setitimer(signal.ITIMER_REAL, 4)
+    try:
+        transport = FakeTransport([None])
+        adapter.deliver_teams_alert(
+            configured,
+            configured.destinations[0],
+            SERVICE_URL,
+            {},
+            transport_factory=transport.factory,
+        )
+        assert signal.getsignal(signal.SIGALRM) is worker_handler
+        assert signal.getsignal(signal.SIGUSR1) == previous_usr1
+        assert signal.pthread_sigmask(signal.SIG_BLOCK, set()) == previous_mask
+        remaining, interval = signal.getitimer(signal.ITIMER_REAL)
+        assert 0 < remaining <= 4
+        assert interval == 0
+        assert received == []
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_handler)
+
+
+def test_thread_context_fails_before_opening_transport(configured: TeamsConfig) -> None:
+    transport = FakeTransport([None])
+    failures: list[str] = []
+
+    def deliver() -> None:
+        try:
+            adapter.deliver_teams_alert(
+                configured,
+                configured.destinations[0],
+                SERVICE_URL,
+                {},
+                transport_factory=transport.factory,
+            )
+        except adapter.TeamsDeliveryError as exc:
+            failures.append(exc.category)
+
+    thread = threading.Thread(target=deliver)
+    thread.start()
+    thread.join(timeout=1)
+    assert not thread.is_alive()
+    assert failures == ["transient"]
+    assert transport.loop is None
+
+
+def test_parent_interruption_kills_and_reaps_delivery_child(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    interrupted = RuntimeError("worker soft limit")
+    monkeypatch.setattr(
+        adapter, "select", SimpleNamespace(select=MagicMock(side_effect=interrupted))
+    )
+
+    def operation(begin_cleanup: Any) -> None:
+        time.sleep(4)
+
+    started = time.monotonic()
+    with pytest.raises(RuntimeError) as exc:
+        adapter._run_delivery_process(operation, started + 0.5, started + 0.6)
+    assert exc.value is interrupted
+    assert adapter._DELIVERY_WORKERS == set()
+
+
+def test_delivery_fork_failure_is_transient_and_closes_the_pipe(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    pipe = os.pipe
+    descriptors: list[int] = []
+
+    def tracked_pipe() -> tuple[int, int]:
+        pair = pipe()
+        descriptors.extend(pair)
+        return pair
+
+    monkeypatch.setattr(adapter.os, "pipe", tracked_pipe)
+    monkeypatch.setattr(
+        adapter.os, "fork", MagicMock(side_effect=OSError("internal diagnostic"))
+    )
+    started = time.monotonic()
+    with pytest.raises(adapter.TeamsDeliveryError, match="temporarily unavailable"):
+        adapter._run_delivery_process(
+            lambda callback: None, started + 0.5, started + 0.6
+        )
+    for descriptor in descriptors:
+        with pytest.raises(OSError, match="Bad file descriptor"):
+            os.fstat(descriptor)
+    assert adapter._DELIVERY_WORKERS == set()
+
+
+def test_successful_delivery_waits_for_cleanup(
+    configured: TeamsConfig,
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    monkeypatch.setattr(adapter, "_DELIVERY_TIMEOUT", 1.0)
+    transport = FakeTransport([None])
+    closed = tmp_path / "closed"
+
+    async def post(*args: Any) -> None:
+        time.sleep(0.55)
+
+    @asynccontextmanager
+    async def factory(*args: Any) -> AsyncIterator[FakeTransport]:
+        try:
+            yield transport
+        finally:
+            time.sleep(0.36)
+            closed.write_text("closed")
+
+    monkeypatch.setattr(transport, "post_root", post)
+    adapter.deliver_teams_alert(
+        configured,
+        configured.destinations[0],
+        SERVICE_URL,
+        {},
+        transport_factory=factory,
+    )
+    assert closed.read_text() == "closed"
+    assert adapter._DELIVERY_WORKERS == set()
+
+
+@pytest.mark.parametrize(
+    "mode", ["removed-destination", "disabled", "report", "attachments"]
+)
+def test_saved_notification_rechecks_changes_before_touching_installations(
+    notification_context: SimpleNamespace,
+    content: NotificationContent,
+    monkeypatch: pytest.MonkeyPatch,
+    mode: str,
+) -> None:
+    entry = recipient()
+    saved_json = entry.recipient_config_json
+    notification = notifications.TeamsNotification(entry, content)
+    if mode == "removed-destination":
+        notification_context.app.config["ALERT_REPORTS_TEAMS"]["destinations"][0][
+            "key"
+        ] = "changed"
+    elif mode == "disabled":
+        notification_context.app.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
+    elif mode == "report":
+        content.header_data["notification_type"] = "Report"
+    else:
+        content.header_data["notification_format"] = "PNG"
+    lookup = MagicMock()
+    monkeypatch.setattr(TeamsInstallationStore, "get_active", lookup)
+    with pytest.raises(NotificationParamException):
+        notification.send()
+    lookup.assert_not_called()
+    notification_context.send.assert_not_called()
+    assert entry.recipient_config_json == saved_json
+
+
+def test_daemonic_celery_worker_can_deliver(configured: TeamsConfig) -> None:
+    process = current_process()
+    previous = process.daemon
+    process.daemon = True
+    try:
+        transport = FakeTransport([None])
+        adapter.deliver_teams_alert(
+            configured,
+            configured.destinations[0],
+            SERVICE_URL,
+            {},
+            transport_factory=transport.factory,
+        )
+        assert adapter._DELIVERY_WORKERS == set()
+    finally:
+        process.daemon = previous
+
+
+def test_celery_soft_limit_is_preserved_and_delivery_child_is_reaped() -> None:
+    previous_alarm = signal.getsignal(signal.SIGALRM)
+    previous_usr1 = signal.getsignal(signal.SIGUSR1)
+
+    def soft_limit(signum: int, frame: Any) -> None:
+        raise SoftTimeLimitExceeded()
+
+    def fire_soft_limit(signum: int, frame: Any) -> None:
+        signal.raise_signal(signal.SIGUSR1)
+
+    def operation(begin_cleanup: Any) -> None:
+        time.sleep(4)
+
+    signal.signal(signal.SIGUSR1, soft_limit)
+    signal.signal(signal.SIGALRM, fire_soft_limit)
+    signal.setitimer(signal.ITIMER_REAL, 0.05)
+    started = time.monotonic()
+    try:
+        with pytest.raises(SoftTimeLimitExceeded):
+            adapter._run_delivery_process(operation, started + 0.5, started + 0.6)
+        assert time.monotonic() - started < 0.5
+        assert adapter._DELIVERY_WORKERS == set()
+        assert signal.getsignal(signal.SIGUSR1) is soft_limit
+        assert signal.getsignal(signal.SIGALRM) is fire_soft_limit
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous_alarm)
+        signal.signal(signal.SIGUSR1, previous_usr1)
+
+
+def test_child_watchdog_bounds_cleanup_without_parent_termination(
+    configured: TeamsConfig,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(adapter, "_DELIVERY_TIMEOUT", 0.3)
+    original_close = adapter._close_delivery_process
+    exits: list[int] = []
+
+    def reap_without_killing(
+        reader: int, writer: int, pid: int | None, deadline: float
+    ) -> None:
+        assert pid is not None
+        try:
+            while time.monotonic() < deadline + 0.2:
+                exited, status = os.waitpid(pid, os.WNOHANG)
+                if exited:
+                    exits.append(os.waitstatus_to_exitcode(status))
+                    adapter._DELIVERY_WORKERS.discard(pid)
+                    return
+                time.sleep(0.001)
+            pytest.fail("The delivery child survived its independent deadline")
+        finally:
+            original_close(reader, writer, pid, deadline)
+
+    @asynccontextmanager
+    async def factory(*args: Any) -> AsyncIterator[FakeTransport]:
+        try:
+            yield FakeTransport([None])
+        finally:
+            time.sleep(4)
+
+    monkeypatch.setattr(adapter, "_close_delivery_process", reap_without_killing)
+    with pytest.raises(adapter.TeamsDeliveryError):
+        adapter.deliver_teams_alert(
+            configured,
+            configured.destinations[0],
+            SERVICE_URL,
+            {},
+            transport_factory=factory,
+        )
+    assert exits == [1]
+    assert adapter._DELIVERY_WORKERS == set()
