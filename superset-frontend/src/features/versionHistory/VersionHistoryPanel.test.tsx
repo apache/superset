@@ -21,6 +21,7 @@ import {
   screen,
   selectOption,
   userEvent,
+  within,
 } from 'spec/helpers/testing-library';
 import type {
   ActivityRecord,
@@ -372,6 +373,33 @@ test('the include filter calls back with the selected scope', async () => {
   await selectOption('Related items only', 'Filter version history');
   expect(props.onIncludeChange).toHaveBeenCalledWith('related');
 });
+
+test.each([
+  ['chart', 'This chart only'],
+  ['dashboard', 'This dashboard only'],
+] as const)(
+  'the %s panel stacks search and scope filter, each on a full-width row',
+  (entityType, selfScopeLabel) => {
+    // Half of the 320px panel is too narrow for the scope labels in the
+    // control and in its option list (the list matches the control's
+    // width). jsdom has no layout, so this pins the stacking that gives each
+    // control the full row; truncation itself is checked visually.
+    const props = defaultProps([group()], entityType);
+    props.include = 'self';
+    render(<VersionHistoryPanel {...props} />);
+
+    const controls = screen.getByTestId('version-history-controls');
+    expect(controls).toContainElement(
+      screen.getByRole('textbox', { name: 'Search actions' }),
+    );
+    expect(controls).toContainElement(
+      screen.getByRole('combobox', { name: 'Filter version history' }),
+    );
+    expect(controls).toHaveStyleRule('flex-direction', 'column');
+    expect(controls).toHaveStyleRule('align-items', 'stretch');
+    expect(within(controls).getByTitle(selfScopeLabel)).toBeInTheDocument();
+  },
+);
 
 test('an empty timeline shows the no-history empty state', () => {
   const props = defaultProps([]);

@@ -74,16 +74,17 @@ const PanelTitle = styled.span`
   `}
 `;
 
+// Search and scope filter are stacked, each the panel's full content width.
+// Half of the 320px panel is too narrow for the scope labels ("This
+// dashboard only", "Related items only") in the control and in its option
+// list, which takes the control's width.
 const Controls = styled.div`
   ${({ theme }) => `
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
-    > * {
-      flex: 1 1 0;
-      min-width: 0;
-    }
   `}
 `;
 
@@ -243,7 +244,7 @@ export default function VersionHistoryPanel({
           <Icons.CloseOutlined iconSize="xl" />
         </CloseButton>
       </PanelHeader>
-      <Controls>
+      <Controls data-test="version-history-controls">
         <Input
           allowClear
           placeholder={t('Search actions')}
