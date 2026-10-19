@@ -138,7 +138,6 @@ def test_mapper_metadata_fault_is_not_converted(
 ) -> None:
     """The mapper leaves provider metadata exceptions unchanged."""
     view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
-    view.__dict__["implementation"] = date_view
     query: QueryObject = QueryObject(columns=["ORDER_DATE"], metrics=["ORDER_COUNT"])
     query.datasource = view
     error: ValueError = ValueError("metadata fault")

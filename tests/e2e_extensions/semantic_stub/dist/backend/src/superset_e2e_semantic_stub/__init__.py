@@ -36,6 +36,10 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel, ConfigDict
+from superset_core.semantic_layers.context import (
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
@@ -230,14 +234,29 @@ class StubOrdersView(SemanticView):
 )
 class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
     configuration_class: type[StubConfiguration] = StubConfiguration
+    context: SemanticExecutionContext
+    cache_token: str
+    credentials: SemanticCredentials | None
 
     def __init__(self, configuration: StubConfiguration) -> None:
         """Keep validated configuration available to host schema requests."""
         self.configuration: StubConfiguration = configuration
 
     @classmethod
-    def from_configuration(cls, configuration: dict[str, Any]) -> StubSemanticLayer:
-        return cls(StubConfiguration.model_validate(configuration))
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
+    ) -> StubSemanticLayer:
+        """Bind to the host identity; the in-memory stub has no caches to key."""
+        layer: StubSemanticLayer = cls(StubConfiguration.model_validate(configuration))
+        layer.context = context
+        layer.cache_token = cache_token
+        layer.credentials = credentials
+        return layer
 
     @classmethod
     def get_configuration_schema(

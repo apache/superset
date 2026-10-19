@@ -4128,7 +4128,7 @@ def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> Magic
         )
     }
     view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
-    view.__dict__["implementation"] = provider
+    monkeypatch.setattr(SemanticView, "implementation", property(lambda _: provider))
 
     chart: MagicMock = MagicMock()
     chart.id = 1

@@ -79,7 +79,7 @@ from superset.utils.core import GenericDataType
     ],
 )
 def test_column_metadata_default_is_order_independent(
-    grains: tuple[Grain | None, ...], expected: Grain | None
+    grains: tuple[Grain | None, ...], expected: Grain | None, mocker: MockerFixture
 ) -> None:
     """Metadata keeps the same raw/finest/custom choice across extraction."""
     dimensions: tuple[Dimension, ...] = tuple(
@@ -88,14 +88,19 @@ def test_column_metadata_default_is_order_independent(
     )
     implementation: MagicMock = MagicMock()
     view: SemanticView = SemanticView()
-    view.implementation = implementation
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    )
     for ordering in permutations(dimensions):
         implementation.get_dimensions.return_value = ordering
         assert len(view._unique_dimensions) == 1
         assert view._unique_dimensions[0].grain == expected
 
 
-def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
+def test_column_metadata_rejects_ambiguous_grain_ids(mocker: MockerFixture) -> None:
     """Metadata must not hide an ambiguity that prevents query mapping."""
     implementation: MagicMock = MagicMock()
     implementation.get_dimensions.return_value = {
@@ -104,7 +109,12 @@ def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
         Dimension("raw", "event_time", pa.timestamp("us")),
     }
     view: SemanticView = SemanticView()
-    view.implementation = implementation
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    )
     with pytest.raises(QueryObjectValidationError, match="ambiguous"):
         _columns: list[ColumnMetadata] = view.columns
 
@@ -2789,7 +2799,9 @@ def test_values_search_failure_never_retries_without_filter(
     "method", ["get_compatible_metrics", "get_compatible_dimensions"]
 )
 @pytest.mark.parametrize("ambiguous", [False, True])
-def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> None:
+def test_compatibility_resolves_grain_variants(
+    method: str, ambiguous: bool, mocker: MockerFixture
+) -> None:
     """Both compatibility projections use default identities and reject collisions."""
     raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
     month: Dimension = Dimension(
@@ -2806,7 +2818,12 @@ def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> 
     provider_method: MagicMock = getattr(implementation, method)
     provider_method.return_value = set()
     view: SemanticView = SemanticView()
-    view.implementation = implementation
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    )
     for ordering in permutations(catalog):
         implementation.get_dimensions.return_value = ordering
         if ambiguous:

@@ -51,11 +51,23 @@ from superset.semantic_layers.models import (
     SemanticView,
 )
 from superset.semantic_layers.registry import registry
+from tests.unit_tests.semantic_layers.conftest import make_execution_context
 
 STUB_PATH: Path = (
     Path(__file__).resolve().parents[2] / "e2e_extensions" / "semantic_stub"
 )
 STUB_TYPE: str = "extensions.superset-e2e.semantic-stub.stub"
+
+
+def _bind(
+    stub_layer: type[SemanticLayer[Any, Any]], configuration: dict[str, Any]
+) -> SemanticLayer[Any, Any]:
+    """Construct the stub the way the host does, with an execution identity."""
+    return stub_layer.from_configuration(
+        configuration,
+        cache_token="e2e-stub",  # noqa: S106
+        context=make_execution_context(),
+    )
 
 
 @pytest.fixture
@@ -79,9 +91,7 @@ def stub_view(
     stub_layer: type[SemanticLayer[Any, Any]], mocker: MockerFixture
 ) -> SemanticViewABC:
     """Serve chart-data requests for a semantic view backed by the stub."""
-    view: SemanticViewABC = stub_layer.from_configuration({}).get_semantic_view(
-        "orders", {}
-    )
+    view: SemanticViewABC = _bind(stub_layer, {}).get_semantic_view("orders", {})
     model: SemanticView = SemanticView(
         id=91,
         name="orders",
@@ -122,9 +132,9 @@ def test_stub_registers_through_the_extension_loader(
 ) -> None:
     """The stub carries the extension-prefixed type that seeding code uses."""
     assert stub_layer.name == "E2E Semantic Stub"
-    assert {
-        view.name for view in stub_layer.from_configuration({}).get_semantic_views({})
-    } == {"orders"}
+    assert {view.name for view in _bind(stub_layer, {}).get_semantic_views({})} == {
+        "orders"
+    }
 
 
 def test_stub_rejects_configuration_and_unknown_views(
@@ -132,9 +142,9 @@ def test_stub_rejects_configuration_and_unknown_views(
 ) -> None:
     """Typos in seeding fail at creation instead of producing an empty view."""
     with pytest.raises(ValueError, match="Extra inputs are not permitted"):
-        stub_layer.from_configuration({"account": "unexpected"})
+        _bind(stub_layer, {"account": "unexpected"})
     with pytest.raises(ValueError, match="no semantic view"):
-        stub_layer.from_configuration({}).get_semantic_view("missing", {})
+        _bind(stub_layer, {}).get_semantic_view("missing", {})
 
 
 @pytest.mark.parametrize(
