@@ -27,12 +27,14 @@ from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
+from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
     SemanticRequest,
     SemanticResult,
 )
+from werkzeug.test import TestResponse
 
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 
@@ -399,6 +401,86 @@ def test_versioned_suggestions_are_unavailable_before_cache(
     implementation.get_values.assert_not_called()
 
 
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("search", [False, True])
+@pytest.mark.parametrize(
+    "code",
+    [
+        "UNSUPPORTED_QUERY",
+        "UNSUPPORTED_OFFSET",
+        "INVALID_FILTER",
+        "INVALID_QUERY",
+        "unknown-private-code",
+    ],
+)
+def test_values_provider_rejection_matches_chart_error(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    guest: bool,
+    search: bool,
+    code: str,
+) -> None:
+    """Use sync-chart guidance without an unfiltered retry or cache write."""
+    from superset_core.semantic_layers.errors import SemanticQueryRejectedError
+
+    from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    rejection: SemanticQueryRejectedError = SemanticQueryRejectedError(code)
+    implementation.get_values.side_effect = rejection
+    expected: SemanticLayerQueryRejectedError = SemanticLayerQueryRejectedError(
+        rejection.code
+    )
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: Any = _get(
+        client, "category/values/?q=oo" if search else "category/values/"
+    )
+
+    assert response.status_code == expected.status == 400
+    assert response.json == {"message": expected.message}
+    assert "private" not in response.get_data(as_text=True)
+    implementation.get_values.assert_called_once()
+    cache.set.assert_not_called()
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("search", [False, True])
+@pytest.mark.parametrize("fault", [ValueError, RuntimeError, TimeoutError])
+def test_values_provider_fault_stays_server_error(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    guest: bool,
+    search: bool,
+    fault: type[Exception],
+) -> None:
+    """Provider bugs are not caller errors and must not trigger an unfiltered retry."""
+    from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.get_values.side_effect = fault("private-provider-diagnostic")
+    expected: SemanticLayerExecutionError = SemanticLayerExecutionError()
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: Any = _get(
+        client, "category/values/?q=oo" if search else "category/values/"
+    )
+
+    assert response.status_code == expected.status == 500
+    assert response.json == {"message": expected.message}
+    assert "private" not in response.get_data(as_text=True)
+    implementation.get_values.assert_called_once()
+    cache.set.assert_not_called()
+
+
 @pytest.mark.parametrize("version", [None, "old-title-version", "cube-member-id-v1"])
 @pytest.mark.parametrize("cached", [False, True])
 def test_versioned_suggestions_require_selection_provenance(
@@ -497,3 +579,29 @@ def test_unversioned_suggestion_cache_material_is_unchanged(
         }
         keys.append(cache.get.call_args.args[0])
     assert keys[0] == keys[1]
+
+
+def test_ambiguous_values_are_a_400_without_query_or_cache_write(
+    client: FlaskClient,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    """Report catalog ambiguity before executing or caching a values query."""
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.get_dimensions.return_value = [
+        Dimension("first", "category", pa.utf8()),
+        Dimension("second", "category", pa.utf8()),
+    ]
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: TestResponse = client.get(
+        "/api/v1/datasource/semantic_view/1/column/category/values/"
+    )
+
+    assert response.status_code == 400
+    assert response.json is not None
+    assert "ambiguous" in response.json["message"]
+    implementation.get_values.assert_not_called()
+    cache.set.assert_not_called()

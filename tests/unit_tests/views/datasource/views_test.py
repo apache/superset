@@ -27,13 +27,18 @@ from unittest.mock import ANY, call, MagicMock, patch
 import pytest
 from flask import Flask
 
-from superset.commands.dataset.exceptions import DatasetForbiddenError
+from superset.commands.dataset.exceptions import (
+    DatasetForbiddenError,
+    DatasetSamplesFailedError,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.partition_mapping import MAX_TRANSFORM_LENGTH
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.sql.parse import Table
 from superset.utils import json as superset_json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+from superset.views.error_handling import handle_api_exception
 
 
 def _identity_gettext(message: str, **variables: Any) -> str:
@@ -82,6 +87,7 @@ def _save_orm_dataset(**overrides: Any) -> MagicMock:
             "schema": "public",
             "catalog": None,
             "sql": None,
+            "template_params": None,
             "is_virtual": False,
             "data": {"id": 1},
             **overrides,
@@ -585,6 +591,22 @@ def test_save_repoint_to_unknown_database_is_rejected(
             {"table_name": "my_table", "schema": "public"},
             id="unchanged_datasource",
         ),
+        # Params are compared as execution reads them, so re-serialized JSON
+        # with the same values is not a repoint.
+        pytest.param(
+            {
+                "sql": "SELECT * FROM {{ t }}",
+                "is_virtual": True,
+                "template_params": '{"t": "public.orders"}',
+            },
+            {
+                "table_name": "my_table",
+                "schema": "public",
+                "sql": "SELECT * FROM {{ t }}",
+                "template_params": '{"t":"public.orders"}',
+            },
+            id="virtual_template_params_reserialized",
+        ),
     ],
 )
 def test_save_skips_table_check_when_not_repointed(
@@ -663,6 +685,8 @@ def test_save_rejects_sql_repoint_without_access(
         sql=payload["sql"],
         catalog=None,
         schema=payload["schema"],
+        template_params={},
+        allow_editorship=False,
     )
     mock_get_database_by_id.assert_not_called()
 
@@ -693,14 +717,288 @@ def test_save_checks_both_table_and_sql_on_cross_database_repoint(
     )
 
     assert mock_security_manager.raise_for_access.call_args_list == [
-        call(database=new_database, table=ANY),
+        call(database=new_database, table=ANY, allow_editorship=False),
         call(
             database=new_database,
             sql="SELECT * FROM secret_table",
             catalog=None,
             schema="public",
+            template_params={},
+            allow_editorship=False,
         ),
     ]
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_rejects_template_params_repoint_without_access(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    With the SQL, database, schema and catalog unchanged, new
+    ``template_params`` still repoint a templated ``FROM``. The save is
+    authorised against the SQL as rendered with the submitted params, without
+    the editorship accept, and refused before anything is written.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}",
+        is_virtual=True,
+        template_params='{"t": "public.orders"}',
+    )
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(
+            database={"id": 1},
+            table_name="my_table",
+            schema="public",
+            sql="SELECT * FROM {{ t }}",
+            template_params='{"t": "private.secrets"}',
+        )
+
+    mock_security_manager.raise_for_access.assert_called_once_with(
+        database=mock_orm.database,
+        sql="SELECT * FROM {{ t }}",
+        catalog=None,
+        schema="public",
+        template_params={"t": "private.secrets"},
+        allow_editorship=False,
+    )
+    mock_orm.update_from_object.assert_not_called()
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize("legacy_params", ['[["t", "v"]]', "{bad", "   ", "42"])
+def test_save_metadata_edit_keeps_legacy_template_params(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    legacy_params: str,
+) -> None:
+    """
+    A metadata-only save that echoes a legacy non-object ``template_params``
+    back (unchanged SQL/schema/database) is not a repoint and must not be
+    rejected -- no access check runs and nothing is written is blocked.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}", is_virtual=True, template_params=legacy_params
+    )
+    mock_get_datasource.return_value = mock_orm
+
+    response = _run_save(
+        database={"id": 1},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT * FROM {{ t }}",
+        template_params=legacy_params,
+    )
+
+    # Not a repoint -> no access check, and the save proceeds (no 422).
+    mock_security_manager.raise_for_access.assert_not_called()
+    assert not (hasattr(response, "status_code") and response.status_code == 422)
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_template_params_type_change_is_rechecked(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    Changing only a param's JSON type (``1`` -> ``true``) repoints a templated
+    ``FROM`` (Jinja distinguishes them), so the save is re-authorised rather
+    than judged unchanged by Python dict equality.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}", is_virtual=True, template_params='{"t": 1}'
+    )
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(
+            database={"id": 1},
+            table_name="my_table",
+            schema="public",
+            sql="SELECT * FROM {{ t }}",
+            template_params='{"t": true}',
+        )
+
+    assert mock_security_manager.raise_for_access.call_args.kwargs[
+        "template_params"
+    ] == {"t": True}
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_auth_check_drops_reserved_params(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    The repoint check renders with the submitted params minus the names the
+    template processor consumes structurally, matching execution.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}", is_virtual=True, template_params='{"t": "a"}'
+    )
+    mock_get_datasource.return_value = mock_orm
+
+    _run_save(
+        database={"id": 1},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT * FROM {{ t }}",
+        template_params='{"t": "b", "extra_cache_keys": [], "database": "z"}',
+    )
+
+    assert mock_security_manager.raise_for_access.call_args.kwargs[
+        "template_params"
+    ] == {"t": "b"}
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "template_params",
+    ["{bad", '"t"', '["t"]', '[["t", "private.secrets"]]'],
+)
+def test_save_rejects_unreadable_template_params(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    template_params: str,
+) -> None:
+    """
+    Params that aren't a JSON object can't be read the way execution reads
+    them, so a save carrying SQL refuses them with a 422 -- not a 500, and not
+    an access decision made against a guess.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}",
+        is_virtual=True,
+        template_params='{"t": "public.orders"}',
+    )
+    mock_get_datasource.return_value = mock_orm
+
+    response = _run_save(
+        database={"id": 1},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT * FROM {{ t }}",
+        template_params=template_params,
+    )
+
+    assert response.status_code == 422
+    mock_security_manager.raise_for_access.assert_not_called()
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.commands.dataset.exceptions._", _identity_gettext)
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_render_error_is_rejected_as_invalid(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    SQL that can't be rendered with the submitted params can't be authorized:
+    the save is refused with a 422 instead of surfacing a 500.
+    """
+    mock_orm = _save_orm_dataset(sql="SELECT {{ p + 1 }}", is_virtual=True)
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = TypeError(
+        'can only concatenate str (not "int") to str'
+    )
+
+    response = _run_save(
+        database={"id": 1},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT {{ p + 1 }}",
+        template_params='{"p": "a"}',
+    )
+
+    assert response.status_code == 422
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "submitted, rendered_with",
+    [
+        ('{"t": "public.orders"}', {"t": "public.orders"}),
+        # Omitted params land as ``None`` and replace the stored ones, which
+        # changes what the SQL reads even though nothing was submitted.
+        (None, {}),
+    ],
+)
+def test_save_rechecks_when_stored_template_params_unreadable(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    submitted: str | None,
+    rendered_with: dict[str, Any],
+) -> None:
+    """
+    Stored params execution reads differently (a list of pairs reaches Jinja
+    through ``dict.update``) never count as unchanged, so the save is
+    authorised against the params it applies.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}",
+        is_virtual=True,
+        template_params='[["t", "public.orders"]]',
+    )
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(
+            database={"id": 1},
+            table_name="my_table",
+            schema="public",
+            sql="SELECT * FROM {{ t }}",
+            template_params=submitted,
+        )
+
+    assert (
+        mock_security_manager.raise_for_access.call_args.kwargs["template_params"]
+        == rendered_with
+    )
+    mock_orm.update_from_object.assert_not_called()
 
 
 @patch("superset.views.datasource.views.db")
@@ -1430,6 +1728,144 @@ def test_samples_proceeds_for_supported_datasource_type(
 
     mock_get_samples.assert_called_once()
     view.json_response.assert_called_once_with({"result": {"rows": []}})
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.DashboardDAO")
+@patch("superset.views.datasource.views.DatasetDAO")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_guest_response_is_redacted_by_the_real_helper(
+    mock_view_security_manager: MagicMock,
+    mock_dataset_dao: MagicMock,
+    mock_dashboard_dao: MagicMock,
+    mock_get_samples: MagicMock,
+    mock_global_security_manager: MagicMock,
+) -> None:
+    """An embedded guest without "can view query on Dashboard" gets the generated
+    SQL stripped from the actual samples response.
+
+    Exercises the real ``redact_sensitive_query_fields`` (not a mock) through the
+    guest branch, so a regression that made the redaction a no-op for guests
+    would fail here. ``mock_view_security_manager`` drives the view's guest-access
+    checks; ``mock_global_security_manager`` is the ``from superset import
+    security_manager`` the helper resolves (guest, lacking the permission)."""
+    mock_view_security_manager.is_guest_user.return_value = True
+    mock_view_security_manager.can_drill_dataset_via_dashboard_access.return_value = (
+        True
+    )
+    # The helper's principal: a guest without "can view query on Dashboard".
+    mock_global_security_manager.is_guest_user.return_value = True
+    mock_global_security_manager.can_access.return_value = False
+
+    rv = {
+        "query": "SELECT secret_col FROM private_table",
+        "stacktrace": "Traceback (most recent call last): ...",
+        "data": [{"id": 1}],
+        "colnames": ["id"],
+        "total_count": 1,
+    }
+    mock_get_samples.return_value = rv
+
+    # Serialize what the view hands to ``json_response`` at call time, as the
+    # real ``json_response`` does, so the assertions see what a client receives
+    # and would catch the redaction running only after the response is built.
+    sent: list[dict[str, Any]] = []
+    view = _view_self()
+    view.json_response.side_effect = lambda obj, *args, **kwargs: sent.append(
+        superset_json.loads(superset_json.dumps(obj))
+    )
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=table&datasource_id=1&dashboard_id=5",
+        method="POST",
+        json={},
+    ):
+        _get_view_func("samples")(view)
+
+    # The serialized response carries no generated SQL or stacktrace, while the
+    # rendering fields were left intact.
+    assert len(sent) == 1
+    result = sent[0]["result"]
+    assert "query" not in result
+    assert "stacktrace" not in result
+    assert result["data"] == [{"id": 1}]
+    mock_global_security_manager.can_access.assert_called_once_with(
+        "can_view_query", "Dashboard"
+    )
+
+
+# A raw driver error can quote the full statement (SQLAlchemy appends
+# ``[SQL: ...]``), so it must not reach a guest on the failure path either.
+_RAW_SAMPLES_ERROR = (
+    '(psycopg2.errors.UndefinedColumn) column "secret_col" does not exist\n'
+    "LINE 1: SELECT secret_col FROM private_table\n"
+    "[SQL: SELECT secret_col FROM private_table]"
+)
+
+
+def _run_failing_samples(app: Flask, *, is_guest: bool, query_string: str) -> Any:
+    """Run the samples view body under its real ``handle_api_exception`` for a
+    query that fails with a raw driver error, as a guest or an authenticated
+    user. On failure ``get_samples`` raises rather than returning the payload,
+    so the error handler -- not ``redact_sensitive_query_fields`` -- decides
+    what the client sees."""
+    with (
+        patch(
+            "superset.views.datasource.views.security_manager",
+            new_callable=MagicMock,
+        ) as view_security_manager,
+        patch("superset.views.datasource.views.DatasetDAO"),
+        patch("superset.views.datasource.views.DashboardDAO"),
+        patch(
+            "superset.views.datasource.views.get_samples",
+            side_effect=DatasetSamplesFailedError(_RAW_SAMPLES_ERROR),
+        ),
+        patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            return_value=is_guest,
+        ),
+        app.test_request_context(
+            f"/datasource/samples?{query_string}", method="POST", json={}
+        ),
+    ):
+        view_security_manager.is_guest_user.return_value = is_guest
+        view_security_manager.can_drill_dataset_via_dashboard_access.return_value = True
+        return handle_api_exception(_get_view_func("samples"))(_view_self())
+
+
+def test_samples_failure_returns_generic_error_to_guests(app: Flask) -> None:
+    """When the Drill to detail query fails for an embedded guest, the response
+    carries the generic message: no SQL, table or column names leak through the
+    driver error, and no ``query``/``stacktrace`` payload is serialized."""
+    response = _run_failing_samples(
+        app,
+        is_guest=True,
+        query_string="datasource_type=table&datasource_id=1&dashboard_id=5",
+    )
+
+    assert response.status_code == 422
+    body = response.get_data(as_text=True)
+    assert superset_json.loads(body) == {"error": str(GENERIC_ERROR_MESSAGE)}
+    for leaked in ("private_table", "secret_col", "SELECT"):
+        assert leaked not in body
+
+
+def test_samples_failure_keeps_driver_error_for_authenticated_users(
+    app: Flask,
+) -> None:
+    """The guest redaction is scoped: an authenticated user still gets the
+    actionable driver error from a failed samples query."""
+    response = _run_failing_samples(
+        app,
+        is_guest=False,
+        query_string="datasource_type=query&datasource_id=1",
+    )
+
+    assert response.status_code == 422
+    body = response.get_data(as_text=True)
+    assert superset_json.loads(body) == {"error": _RAW_SAMPLES_ERROR}
 
 
 @patch("superset.views.datasource.views._", _identity_gettext)

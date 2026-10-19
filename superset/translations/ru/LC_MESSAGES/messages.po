@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 20:29+0000\n"
+"POT-Creation-Date: 2026-10-19 18:27+0000\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -221,6 +221,13 @@ msgstr "% итого"
 
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(column)s is an array column, which cannot be compared against the "
+"single value a transform returns. Mirrored filters on this mapping would "
+"fail at the database. Map a scalar partition column instead."
 msgstr ""
 
 #, python-format
@@ -1240,6 +1247,12 @@ msgid ""
 "engine will evaluate it, not inside a string literal or a comment."
 msgstr ""
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1679,12 +1692,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Добавлен %s новый столбец в виртуальный датасет"
-msgstr[1] "Добавлено %s новых столбца в виртуальный датасет"
-msgstr[2] "Добавлено %s новых столбцов в виртуальный датасет"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Добавлен %s новый столбец в датасет"
+msgstr[1] "Добавлено %s новых столбца в датасет"
+msgstr[2] "Добавлено %s новых столбцов в датасет"
 
 #, python-format
 msgid "Added a %s"
@@ -2950,6 +2963,9 @@ msgstr "Назад"
 msgid "Back to all"
 msgstr "Вернуться ко всем"
 
+msgid "Back to sign in"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3810,6 +3826,10 @@ msgstr "Заголовок диаграммы"
 msgid "Chart type"
 msgstr "Тип диаграммы"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "Диаграмма сохранена, но не может быть добавлена на выбранную вкладку."
 
@@ -3865,6 +3885,9 @@ msgstr "Посмотреть дашборд: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Выберите, чтобы сделать высоту разделов по датам одинаковой"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3892,6 +3915,9 @@ msgstr "Выберите разделитель"
 
 msgid "Choose a metric for right axis"
 msgstr "Выберите меру для правой оси"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Выберите числовой формат"
@@ -5355,6 +5381,10 @@ msgstr "Название дашборда"
 msgid "Dashboard updated %s"
 msgstr "Дата изменения %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Использование в дашбордах"
 
@@ -5592,6 +5622,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Схема датасета невалидна, причина: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7052,6 +7086,11 @@ msgstr "Введите минимальное и максимальное зна
 msgid "Enter report name"
 msgstr "Введите имя отчета"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 msgid "Enter the group's description"
 msgstr "Введите описание группы"
 
@@ -7884,6 +7923,10 @@ msgstr "Фильтровать значения (зависит от регис�
 msgid "Filter value is required"
 msgstr "Требуется значение фильтра"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "Список для фильтрации не может быть пуст"
 
@@ -8131,6 +8174,12 @@ msgstr "Внешний ключ"
 msgid "Forest Green"
 msgstr "Лесной зеленый"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "Данные формы не найдены в кэше. Откат к метаданным диаграммы."
 
@@ -8298,7 +8347,7 @@ msgstr "Столбец с геометрическими данными"
 msgid "Get the last date by the date unit."
 msgstr "Получает последнюю дату указанного временного периода."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Получает конкретную дату праздника"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8584,6 +8633,15 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Если выбрать меру, список значений фильтров будет отсортирован по ней"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr "Если включено, сортирует результаты по убыванию"
@@ -8599,6 +8657,11 @@ msgid "If table already exists"
 msgstr "Если таблица уже существует"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -9357,6 +9420,9 @@ msgstr "Способ отрисовки дерева"
 
 msgid "Least recently modified"
 msgstr "Измененные давно"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -10294,12 +10360,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Изменено %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Изменен %s столбец в виртуальном датасете"
-msgstr[1] "Изменено %s столбца в виртуальном датасете"
-msgstr[2] "Изменено %s столбцов в виртуальном датасете"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Изменен %s столбец в датасете"
+msgstr[1] "Изменено %s столбца в датасете"
+msgstr[2] "Изменено %s столбцов в датасете"
 
 msgid "Modified by"
 msgstr "Кем изменено"
@@ -11200,6 +11266,12 @@ msgstr "Для этого подключения поддерживается т
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -12506,12 +12578,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Удален %s столбец из виртуального датасета"
-msgstr[1] "Удалено %s столбца из виртуального датасета"
-msgstr[2] "Удалено %s столбцов из виртуального датасета"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Удален %s столбец из датасета"
+msgstr[1] "Удалено %s столбца из датасета"
+msgstr[2] "Удалено %s столбцов из датасета"
 
 #, python-format
 msgid "Removed a %s"
@@ -12707,6 +12779,12 @@ msgstr "Сила отталкивания вершин"
 msgid "Request Access"
 msgstr "Запросить доступ"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -12792,6 +12870,10 @@ msgstr "Сбросить текущее состояние"
 
 msgid "Reset to default folders?"
 msgstr "Сбросить папки к значениям по умолчанию?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 msgid "Resize"
 msgstr "Изменить размер"
@@ -14036,6 +14118,12 @@ msgstr "Представления аннотаций"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Слой аннотаций"
 
@@ -14115,6 +14203,9 @@ msgstr "Отправить как PNG"
 
 msgid "Send as text"
 msgstr "Отправить текстом"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -14610,6 +14701,9 @@ msgstr "Вход"
 msgid "Sign in with"
 msgstr "Войти при помощи"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "Уровень значимости"
 
@@ -14772,6 +14866,9 @@ msgstr "Ошибка встроенной аутентификации. Подр
 
 msgid "Something went wrong."
 msgstr "Что-то пошло не так"
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -15535,6 +15632,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Параметры шаблона"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "Ошибка обработки шаблона: %(error)s"
@@ -16254,6 +16354,9 @@ msgid ""
 msgstr ""
 
 msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+msgid "The password could not be reset. Please try again."
 msgstr ""
 
 #, python-format
@@ -17547,6 +17650,10 @@ msgstr ""
 "Этот JSON-объект описывает расположение виджетов на дашборде. Он "
 "генерируется динамически при их изменении и перемещении."
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Перейти по этой ссылке невозможно, так как ее адрес небезопасен."
@@ -17610,6 +17717,12 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Такой пароль слишком часто встречается. Придумайте какой-нибудь другой, "
 "который было бы сложнее угадать."
+
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -18010,6 +18123,9 @@ msgid "Token Request URI"
 msgstr "URI запроса токена"
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many requests. Please wait and try again."
 msgstr ""
 
 #, python-format
@@ -20100,6 +20216,11 @@ msgstr ""
 " %s, чтобы запросить изменения или доступ на редактирование."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -20110,6 +20231,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -20117,6 +20243,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -20233,6 +20364,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"

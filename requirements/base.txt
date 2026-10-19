@@ -44,7 +44,7 @@ cachelib==0.17.0
     # via
     #   flask-caching
     #   flask-session
-cachetools==7.2.0
+cachetools==7.2.1
     # via apache-superset (pyproject.toml)
 cattrs==25.1.1
     # via requests-cache
@@ -294,11 +294,11 @@ pyasn1-modules==0.4.2
     # via google-auth
 pycparser==2.22
     # via cffi
-pydantic==2.13.5
+pydantic==2.14.1
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
-pydantic-core==2.46.5
+pydantic-core==2.50.1
     # via pydantic
 pygeohash==3.2.2
     # via apache-superset (pyproject.toml)
@@ -390,7 +390,7 @@ sqlalchemy==2.0.52
     #   sqlalchemy-utils
 sqlalchemy-continuum==1.8.0
     # via apache-superset (pyproject.toml)
-sqlalchemy-utils==0.42.1
+sqlalchemy-utils==0.43.0
     # via
     #   apache-superset (pyproject.toml)
     #   apache-superset-core
@@ -417,7 +417,7 @@ typing-extensions==4.16.0
     #   shillelagh
     #   sqlalchemy
     #   typing-inspection
-typing-inspection==0.4.2
+typing-inspection==0.4.4
     # via pydantic
 tzdata==2025.2
     # via

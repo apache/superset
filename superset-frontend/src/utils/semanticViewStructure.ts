@@ -53,7 +53,7 @@ export const mapSemanticTypeToGenericDataType = (
   }
 
   if (
-    /(\b(u?int\d*)\b|\bfloat\d*\b|\bdouble\b|\bdecimal\d*\b|\bnumber\b)/.test(
+    /(\b(u?int\d*|integer|bigint|smallint|tinyint|numeric|real|halffloat)\b|\bfloat\d*\b|\bdouble\b|\bdecimal\d*\b|\bnumber\b)/.test(
       normalized,
     )
   ) {

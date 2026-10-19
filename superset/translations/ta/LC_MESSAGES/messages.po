@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 20:29+0000\n"
+"POT-Creation-Date: 2026-10-19 18:27+0000\n"
 "PO-Revision-Date: 2026-03-31 02:00-0700\n"
 "Last-Translator: Maazin Ahamed\n"
 "Language: ta\n"
@@ -226,6 +226,13 @@ msgstr "மொத்தத்தில் %"
 
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(column)s is an array column, which cannot be compared against the "
+"single value a transform returns. Mirrored filters on this mapping would "
+"fail at the database. Map a scalar partition column instead."
 msgstr ""
 
 #, python-format
@@ -1214,6 +1221,12 @@ msgid ""
 "engine will evaluate it, not inside a string literal or a comment."
 msgstr ""
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1670,11 +1683,11 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "விர்ச்சுவல் தரவுத்தொகுப்பில் %s புதிய நெடுவரிசை சேர்க்கப்பட்டது"
-msgstr[1] "விர்ச்சுவல் தரவுத்தொகுப்பில் %s புதிய நெடுவரிசைகள் சேர்க்கப்பட்டன"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "தரவுத்தொகுப்பில் %s புதிய நெடுவரிசை சேர்க்கப்பட்டது"
+msgstr[1] "தரவுத்தொகுப்பில் %s புதிய நெடுவரிசைகள் சேர்க்கப்பட்டன"
 
 #, python-format
 msgid "Added a %s"
@@ -2960,6 +2973,9 @@ msgstr "பின்செல்"
 msgid "Back to all"
 msgstr "அனைத்திற்கும் திரும்பு"
 
+msgid "Back to sign in"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3818,6 +3834,10 @@ msgstr "சார்ட் தலைப்பு"
 msgid "Chart type"
 msgstr "சார்ட் வகை"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr ""
 "சார்ட் சேமிக்கப்பட்டது, ஆனால் தேர்ந்தெடுக்கப்பட்ட தாவலில் (tab) சேர்க்க "
@@ -3877,6 +3897,9 @@ msgstr ""
 "தேதிப் பிரிவுகள் (date partitions) ஒரே உயரத்தைக் கொண்டிருக்கச் "
 "சரிபார்க்கவும்"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3906,6 +3929,9 @@ msgstr "பிரிப்பானைத் (delimiter) தேர்ந்த�
 
 msgid "Choose a metric for right axis"
 msgstr "வலது அச்சிற்கான அளவீட்டைத் தேர்ந்தெடுக்கவும்"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "எண் வடிவத்தைத் தேர்ந்தெடுக்கவும்"
@@ -5395,6 +5421,10 @@ msgstr "டேஷ்போர்டு தலைப்பு"
 msgid "Dashboard updated %s"
 msgstr ""
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "டேஷ்போர்டு பயன்பாடு"
 
@@ -5629,6 +5659,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "தரவுத்தொகுப்பு ஸ்கீமா செல்லாது, காரணம்: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -7093,6 +7127,11 @@ msgstr ""
 msgid "Enter report name"
 msgstr "அறிக்கை பெயரை உள்ளிடவும்"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 msgid "Enter the group's description"
 msgstr "குழுவின் விளக்கத்தை உள்ளிடவும்"
 
@@ -7940,6 +7979,10 @@ msgstr "வடிகட்டி மதிப்பு (எழுத்து �
 msgid "Filter value is required"
 msgstr "வடிகட்டி மதிப்பு தேவை"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "வடிகட்டி மதிப்புப் பட்டியல் காலியாக இருக்கக்கூடாது"
 
@@ -8183,6 +8226,12 @@ msgstr "வெளிப்புறச் சாவி (Foreign key)"
 msgid "Forest Green"
 msgstr "அடர் பச்சை நிறம் (Forest Green)"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr ""
 "படிவத் தரவு கேச்சில் காணப்படவில்லை, சார்ட் மெட்டாடேட்டாவிற்குத் "
@@ -8347,7 +8396,7 @@ msgstr "வடிவியல் நெடுவரிசை (Geometry Column)"
 msgid "Get the last date by the date unit."
 msgstr "தேதி அலகின் படி கடைசித் தேதியைப் பெறவும்."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "விடுமுறைக்கான குறிப்பிட்ட தேதியைப் பெறவும்"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8636,6 +8685,15 @@ msgstr ""
 "வரிசைப்படுத்தப்படும்"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -8653,6 +8711,11 @@ msgid "If table already exists"
 msgstr "அட்டவணை ஏற்கனவே இருந்தால்"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -9400,6 +9463,9 @@ msgstr "மரத்தின் (tree) அமைப்பு வகை"
 
 msgid "Least recently modified"
 msgstr "மிகக் குறைவாக மாற்றப்பட்டது"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -10309,11 +10375,11 @@ msgstr ""
 msgid "Modified %s"
 msgstr "%s மாற்றப்பட்டது"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "மெய்நிகர் தரவுத்தொகுப்பில் %s நெடுவரிசை மாற்றப்பட்டது"
-msgstr[1] "மெய்நிகர் தரவுத்தொகுப்பில் %s நெடுவரிசைகள் மாற்றப்பட்டன"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "தரவுத்தொகுப்பில் %s நெடுவரிசை மாற்றப்பட்டது"
+msgstr[1] "தரவுத்தொகுப்பில் %s நெடுவரிசைகள் மாற்றப்பட்டன"
 
 msgid "Modified by"
 msgstr "மாற்றியவர்"
@@ -11192,6 +11258,12 @@ msgstr "இந்த இணைப்பிற்கு இயல்புநி�
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -12482,11 +12554,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "மெய்நிகர் தரவுத்தொகுப்பிலிருந்து %s நெடுவரிசை நீக்கப்பட்டது"
-msgstr[1] "மெய்நிகர் தரவுத்தொகுப்பிலிருந்து %s நெடுவரிசைகள் நீக்கப்பட்டன"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "தரவுத்தொகுப்பிலிருந்து %s நெடுவரிசை நீக்கப்பட்டது"
+msgstr[1] "தரவுத்தொகுப்பிலிருந்து %s நெடுவரிசைகள் நீக்கப்பட்டன"
 
 #, python-format
 msgid "Removed a %s"
@@ -12675,6 +12747,12 @@ msgstr "நோட்களுக்கு இடையிலான விலக�
 msgid "Request Access"
 msgstr "அணுகல் கோரவும்"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -12760,6 +12838,10 @@ msgstr "நிலையை மீட்டமை"
 
 msgid "Reset to default folders?"
 msgstr "இயல்புநிலைக் கோப்புறைகளுக்கு மீட்டமைக்கவா?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 msgid "Resize"
 msgstr "அளவை மாற்று (Resize)"
@@ -13984,6 +14066,12 @@ msgstr ""
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "சிறுகுறிப்பு அடுக்கு"
@@ -14077,6 +14165,9 @@ msgstr "PNG ஆக அனுப்பு"
 
 msgid "Send as text"
 msgstr "உரையாக அனுப்பு"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -14570,6 +14661,9 @@ msgstr "உள்நுழைக"
 msgid "Sign in with"
 msgstr "இதன் மூலம் உள்நுழைக"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "முக்கியத்துவ நிலை"
 
@@ -14731,6 +14825,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "ஏதோ தவறு நிகழ்ந்துவிட்டது."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -15489,6 +15586,9 @@ msgstr "செல் தலைப்புகளுக்கான டெம்�
 msgid "Template parameters"
 msgstr "டெம்ப்ளேட் அளவுருக்கள்"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr "டெம்ப்ளேட் செயலாக்க பிழை: %(error)s"
@@ -16153,6 +16253,9 @@ msgid ""
 msgstr ""
 
 msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+msgid "The password could not be reset. Please try again."
 msgstr ""
 
 #, python-format
@@ -17367,6 +17470,10 @@ msgid ""
 "and positions by using drag & drop in the dashboard view"
 msgstr "இந்த JSON பொருள் டாஷ்போர்டில் விட்ஜெட்களின் நிலையை விவரிக்கிறது."
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 msgid "This link cannot be followed because its address is unsafe."
 msgstr ""
 
@@ -17428,6 +17535,12 @@ msgstr ""
 "தெரியவில்லை."
 
 msgid "This password is too common; please choose a less guessable one."
+msgstr ""
+
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
 msgstr ""
 
 msgid ""
@@ -17817,6 +17930,9 @@ msgid "Token Request URI"
 msgstr "டோக்கன் கோரிக்கை URI"
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many requests. Please wait and try again."
 msgstr ""
 
 #, python-format
@@ -19865,6 +19981,11 @@ msgid ""
 " to request modifications or edit access."
 msgstr ""
 
+msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
 #, fuzzy
 msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
@@ -19877,6 +19998,11 @@ msgid ""
 "editor to request modifications or edit access."
 msgstr "எடிட் செய்ய நீங்கள் தரவுத்தொகுப்பின் உரிமையாளராக இருக்க வேண்டும்."
 
+msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
 #, fuzzy
 msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
@@ -19888,6 +20014,11 @@ msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr "எடிட் செய்ய நீங்கள் தரவுத்தொகுப்பின் உரிமையாளராக இருக்க வேண்டும்."
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
 
 #, fuzzy
 msgid ""
@@ -19995,6 +20126,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"

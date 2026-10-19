@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 20:29+0000\n"
+"POT-Creation-Date: 2026-10-19 18:27+0000\n"
 "PO-Revision-Date: 2026-06-14 13:20+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sr_Latn\n"
@@ -249,6 +249,13 @@ msgstr "% od ukupnog"
 
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
+msgstr ""
+
+#, python-format
+msgid ""
+"%(column)s is an array column, which cannot be compared against the "
+"single value a transform returns. Mirrored filters on this mapping would "
+"fail at the database. Map a scalar partition column instead."
 msgstr ""
 
 #, python-format
@@ -1421,6 +1428,12 @@ msgid ""
 "engine will evaluate it, not inside a string literal or a comment."
 msgstr ""
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1970,12 +1983,12 @@ msgid "Added '%s' dimension"
 msgstr ""
 
 # ja, lv, mi, ru, sk, uk]
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Dodata je %s nova kolona u virtuelni skup podataka"
-msgstr[1] "Dodate su %s nove kolone u virtuelni skup podataka"
-msgstr[2] "Dodato je %s novih kolona u virtuelni skup podataka"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Dodata je %s nova kolona u skup podataka"
+msgstr[1] "Dodate su %s nove kolone u skup podataka"
+msgstr[2] "Dodato je %s novih kolona u skup podataka"
 
 #, python-format
 msgid "Added a %s"
@@ -3546,6 +3559,9 @@ msgstr "Nazad"
 msgid "Back to all"
 msgstr "Nazad na sve"
 
+msgid "Back to sign in"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
@@ -4611,6 +4627,10 @@ msgstr "Naslov grafikona"
 msgid "Chart type"
 msgstr "Tip grafikona"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 # ru, uk]
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "Grafikon je sačuvan, ali nije mogao biti dodat na izabranu karticu."
@@ -4680,6 +4700,9 @@ msgstr "Pogledajte ovu kontrolnu tablu: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Označite da biste primorali datumske particije da imaju istu visinu"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -4715,6 +4738,9 @@ msgstr "Izaberite graničnik"
 # zh_TW]
 msgid "Choose a metric for right axis"
 msgstr "Izaberite metriku za desnu osu"
+
+msgid "Choose a new password"
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Choose a number format"
@@ -6522,6 +6548,10 @@ msgstr "Naslov kontrolne table"
 msgid "Dashboard updated %s"
 msgstr "Kontrolna tabla ažurirana %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Dashboard usage"
 msgstr "Korišćenje kontrolne table"
@@ -6842,6 +6872,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Šema skupa podataka nije valjana, uzrok: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -8664,6 +8698,11 @@ msgstr "Unesite minimalnu i maksimalnu vrednost za filter opsega"
 msgid "Enter report name"
 msgstr "Unesite naziv izveštaja"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 # lv, ru, sk, uk]
 msgid "Enter the group's description"
 msgstr "Unesite opis grupe"
@@ -9680,6 +9719,10 @@ msgstr "Vrednost filtera (osetljivo na velika i mala slova)"
 msgid "Filter value is required"
 msgstr "Vrednost filtera je obavezna"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh, zh_TW]
 msgid "Filter value list cannot be empty"
 msgstr "Lista vrednosti filtera ne može biti prazna"
@@ -9990,6 +10033,12 @@ msgstr "Strani ključ"
 msgid "Forest Green"
 msgstr "Šumsko zelena"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "Podaci forme nisu pronađeni u kešu, vraćanje na metapodatke grafikona."
@@ -10189,7 +10238,7 @@ msgid "Get the last date by the date unit."
 msgstr "Dobavlja zadnji datum prema jedinici datuma."
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Dobavlja određeni datum za praznik"
 
 # es, fa, fr, ja, lv, mi, pl, ru, sk, sl, uk]
@@ -10541,6 +10590,15 @@ msgstr ""
 "Ako je metrika navedena, sortiranje će se vršiti na osnovu vrednosti "
 "metrike"
 
+msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
 msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
@@ -10562,6 +10620,11 @@ msgid "If table already exists"
 msgstr "Ako tabela već postoji"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -11506,6 +11569,9 @@ msgstr "Tip rasporeda stabla"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Least recently modified"
 msgstr "Najmanje nedavno izmenjeno"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -12631,12 +12697,12 @@ msgid "Modified %s"
 msgstr "Izmenjeno %s"
 
 # fr, ja, lv, mi, ru, sk, uk]
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Izmenjena %s kolona u virtuelnom skupu podataka"
-msgstr[1] "Izmenjene %s kolone u virtuelnom skupu podataka"
-msgstr[2] "Izmenjeno %s kolona u virtuelnom skupu podataka"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Izmenjena %s kolona u skupu podataka"
+msgstr[1] "Izmenjene %s kolone u skupu podataka"
+msgstr[2] "Izmenjeno %s kolona u skupu podataka"
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -13750,6 +13816,12 @@ msgstr "Za ovu vezu je podržan samo podrazumevani katalog"
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -15363,12 +15435,12 @@ msgid "Removed '%s' metric"
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Uklonjena je %s kolona iz virtuelnog skupa podataka"
-msgstr[1] "Uklonjene su %s kolone iz virtuelnog skupa podataka"
-msgstr[2] "Uklonjeno je %s kolona iz virtuelnog skupa podataka"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Uklonjena je %s kolona iz skupa podataka"
+msgstr[1] "Uklonjene su %s kolone iz skupa podataka"
+msgstr[2] "Uklonjeno je %s kolona iz skupa podataka"
 
 #, python-format
 msgid "Removed a %s"
@@ -15603,6 +15675,12 @@ msgstr "Snaga odbijanja između čvorova"
 msgid "Request Access"
 msgstr "Zahtevaj pristup"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -15704,6 +15782,10 @@ msgstr "Resetuj stanje"
 
 msgid "Reset to default folders?"
 msgstr "Resetovati fascikle na podrazumevano?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 # ru, uk]
 msgid "Resize"
@@ -17264,6 +17346,12 @@ msgstr "Semantički pogledi"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Semantički sloj"
 
@@ -17347,6 +17435,9 @@ msgstr "Pošalji kao PNG"
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Send as text"
 msgstr "Pošalji kao tekst"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -17960,6 +18051,9 @@ msgstr "Prijavi se"
 msgid "Sign in with"
 msgstr "Prijavi se preko"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 msgid "Significance Level"
 msgstr "Nivo značajnosti"
@@ -18145,6 +18239,9 @@ msgstr ""
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk]
 msgid "Something went wrong."
 msgstr "Nešto nije u redu."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, python-format
@@ -19104,6 +19201,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parametri šablona"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 # uk]
 #, python-format
 msgid "Template processing error: %(error)s"
@@ -19932,6 +20032,9 @@ msgid ""
 msgstr ""
 
 msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+msgid "The password could not be reset. Please try again."
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -21417,6 +21520,10 @@ msgstr ""
 "Dinamički se generiše pri podešavanju veličine i pozicije vidžeta pomoću "
 "povlačenja i ispuštanja (drag & drop) u prikazu kontrolne table"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -21490,6 +21597,12 @@ msgid "This password is too common; please choose a less guessable one."
 msgstr ""
 "Ova lozinka je previše uobičajena; molimo izaberite lozinku koja se teže "
 "pogađa."
+
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -21972,6 +22085,9 @@ msgid "Token Request URI"
 msgstr "URI zahteva za token"
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many requests. Please wait and try again."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
@@ -24496,6 +24612,11 @@ msgstr ""
 "da biste zatražili izmene ili pristup za uređivanje."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -24506,6 +24627,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -24513,6 +24639,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -24638,6 +24769,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,

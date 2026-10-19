@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-14 20:29+0000\n"
+"POT-Creation-Date: 2026-10-19 18:27+0000\n"
 "PO-Revision-Date: 2018-02-11 22:26+0200\n"
 "Last-Translator: Raffaele Spangaro <raffa@raffaelespangaro.it>\n"
 "Language: it\n"
@@ -245,6 +245,13 @@ msgstr "% del totale"
 #, python-format
 msgid "%(alertType)s \"%(alertName)s\" triggered successfully"
 msgstr "%(alertType)s \"%(alertName)s\" attivato con successo"
+
+#, python-format
+msgid ""
+"%(column)s is an array column, which cannot be compared against the "
+"single value a transform returns. Mirrored filters on this mapping would "
+"fail at the database. Map a scalar partition column instead."
+msgstr ""
 
 #, python-format
 msgid "%(count)s %(label)s"
@@ -1467,6 +1474,12 @@ msgid ""
 "engine will evaluate it, not inside a string literal or a comment."
 msgstr ""
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -2012,11 +2025,11 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Aggiunta 1 nuova colonna al dataset virtuale"
-msgstr[1] "Aggiunte %s nuove colonne al dataset virtuale"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Aggiunta 1 nuova colonna al dataset"
+msgstr[1] "Aggiunte %s nuove colonne al dataset"
 
 #, python-format
 msgid "Added a %s"
@@ -3591,6 +3604,9 @@ msgstr "Indietro"
 msgid "Back to all"
 msgstr "Torna a tutto"
 
+msgid "Back to sign in"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -4668,6 +4684,10 @@ msgstr "Titolo grafico"
 msgid "Chart type"
 msgstr "Tipo grafico"
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr "Il grafico è stato salvato ma non può essere aggiunto al tab selezionato."
 
@@ -4728,6 +4748,9 @@ msgstr "Dai un'occhiata a questa dashboard: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Seleziona per forzare le partizioni della data ad avere la stessa altezza"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -4758,6 +4781,9 @@ msgstr "Seleziona un delimitatore"
 
 msgid "Choose a metric for right axis"
 msgstr "Seleziona una metrica per l'asse destro"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Seleziona un formato numerico"
@@ -6677,6 +6703,10 @@ msgstr "Titolo dashboard"
 msgid "Dashboard updated %s"
 msgstr "Dashboard aggiornata %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr "Utilizzo dashboard"
 
@@ -6961,6 +6991,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Lo schema del set di dati non è valido, causato da: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -8743,6 +8777,11 @@ msgstr "Inserisci i valori minimo e massimo per il filtro intervallo"
 msgid "Enter report name"
 msgstr "Immettere il nome del report"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 msgid "Enter the group's description"
 msgstr "Immettere la descrizione del gruppo"
 
@@ -9789,6 +9828,10 @@ msgstr "Valore filtro (case sensitive)"
 msgid "Filter value is required"
 msgstr "Valore del filtro obbligatorio"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "La lista valore filtro non può essere vuota"
 
@@ -10134,6 +10177,12 @@ msgstr "Chiave esterna"
 msgid "Forest Green"
 msgstr "Verde foresta"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "Dati del form non trovati in cache, ritorno ai metadati del grafico"
 
@@ -10354,7 +10403,7 @@ msgstr "Ottieni l'ultima data in base all'unità di data."
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Ottieni la data specifica per la vacanza"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
@@ -10744,6 +10793,15 @@ msgstr ""
 "Se viene specificata una metrica, l'ordinamento verrà eseguito in base al"
 " valore della metrica"
 
+msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid ""
@@ -10768,6 +10826,11 @@ msgstr "Se la tabella esiste già"
 
 msgid "If you delete this item, you won't be able to recover it."
 msgstr "Se elimini questo elemento, non sarai più in grado di recuperarlo."
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
+msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
 msgstr "Se non hai richiesto questo messaggio, puoi ignorare questa email."
@@ -11798,6 +11861,9 @@ msgstr "Tipo di layout dell'albero"
 
 msgid "Least recently modified"
 msgstr "Modificato più di recente"
+
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
 
 msgid "Leave blank to keep the current password"
 msgstr ""
@@ -13035,11 +13101,11 @@ msgstr "Modificato %s"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Modificata 1 colonna nel dataset virtuale"
-msgstr[1] "Modificate %s colonne nel dataset virtuale"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Modificata 1 colonna nel dataset"
+msgstr[1] "Modificate %s colonne nel dataset"
 
 msgid "Modified by"
 msgstr "Modificato"
@@ -14144,6 +14210,12 @@ msgstr "Solo il catalogo predefinito è supportato per questa connessione"
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -15856,11 +15928,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Rimossa 1 colonna dal dataset virtuale"
-msgstr[1] "Rimosse %s colonne dal dataset virtuale"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Rimossa 1 colonna dal dataset"
+msgstr[1] "Rimosse %s colonne dal dataset"
 
 #, python-format
 msgid "Removed a %s"
@@ -16118,6 +16190,12 @@ msgstr "Forza di repulsione tra i nodi"
 msgid "Request Access"
 msgstr "Richiedi l'accesso"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -16230,6 +16308,10 @@ msgstr "Reimposta lo stato"
 
 msgid "Reset to default folders?"
 msgstr "Reimpostare alle cartelle predefinite?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 msgid "Resize"
 msgstr "Ridimensiona"
@@ -17764,6 +17846,12 @@ msgstr "Viste semantiche"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Livello semantico"
 
@@ -17859,6 +17947,9 @@ msgstr "Invia come PNG"
 # uk, zh, zh_TW]
 msgid "Send as text"
 msgstr "Invia come testo"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -18518,6 +18609,9 @@ msgstr "Accedi"
 msgid "Sign in with"
 msgstr "Accedi con"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -18744,6 +18838,9 @@ msgstr "Qualcosa è andato storto con l'autenticazione incorporata. "
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
 msgid "Something went wrong."
 msgstr "Qualcosa è andato storto."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -19676,6 +19773,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr "Parametri template"
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
 #, python-format
@@ -20600,6 +20700,9 @@ msgid ""
 msgstr ""
 
 msgid "The partition filter mapping was cleared: its column is gone"
+msgstr ""
+
+msgid "The password could not be reset. Please try again."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -22229,6 +22332,10 @@ msgstr ""
 "la dimensione usando la funzione di drag & drop nella vista della "
 "dashboard. "
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 msgid "This link cannot be followed because its address is unsafe."
 msgstr "Impossibile seguire questo collegamento perché l'indirizzo non è sicuro."
@@ -22312,6 +22419,12 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Questa password è troppo comune; scegline una più difficile da indovinare."
+
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
 
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
@@ -22821,6 +22934,9 @@ msgid "Token Request URI"
 msgstr "URI Richiesta Token"
 
 msgid "Too many preview requests for this dataset. Wait a moment and try again."
+msgstr ""
+
+msgid "Too many requests. Please wait and try again."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
@@ -25619,6 +25735,11 @@ msgstr ""
 "%s per richiedere modifiche o accesso in modifica."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -25633,6 +25754,11 @@ msgstr ""
 " di grafici per richiedere modifiche o l'accesso in modifica."
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -25645,6 +25771,11 @@ msgid ""
 msgstr ""
 "Devi essere un editor di dashboard per poter modificare. Contatta un "
 "editor di dashboard per richiedere modifiche o l'accesso in modifica."
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
+msgstr ""
 
 msgid ""
 "You must be a dataset editor in order to delete. Please reach out to a "
@@ -25793,6 +25924,15 @@ msgstr "Impossibile completare l'esportazione di \"%(title)s\"."
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
 msgstr "L'esportazione di \"%(title)s\" è pronta."
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
+msgstr ""
 
 msgid "Your query could not be saved"
 msgstr "La tua query non può essere salvata"

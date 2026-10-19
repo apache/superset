@@ -1428,14 +1428,27 @@ class SQLExecutor:
 
     @staticmethod
     def _cancel_async_query(query_id: int, database: Database) -> bool:
-        """Cancel an async query."""
+        """Accept a stop with best-effort engine cancellation, or report a lost race."""
+        from superset.common.db_query_status import QueryStatus as DBQueryStatus
         from superset.models.sql_lab import Query as QueryModel
+        from superset.sql.execution.utils import finish_query_stop, set_query_stopped
+        from superset.utils.dates import now_as_float
 
         query = db.session.query(QueryModel).filter_by(id=query_id).one_or_none()
-        if not query:
+        if not query or query.status in (
+            DBQueryStatus.SUCCESS,
+            DBQueryStatus.FAILED,
+            DBQueryStatus.TIMED_OUT,
+        ):
             return False
 
-        return SQLExecutor._cancel_query(database, query)
+        with db.session.no_autoflush:
+            if not set_query_stopped(query, now_as_float()):
+                db.session.commit()  # pylint: disable=consider-using-transaction
+                return False
+            return finish_query_stop(
+                query, lambda: SQLExecutor._cancel_query(database, query)
+            )
 
     @staticmethod
     def _cancel_query(database: Database, query: Any) -> bool:
@@ -1450,6 +1463,7 @@ class SQLExecutor:
         :param query: Query model instance to cancel
         :returns: True if cancelled successfully, False otherwise
         """
+        from superset.common.db_query_status import FINISHED_QUERY_STATUSES
         from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
         from superset.utils.core import QuerySource
 
@@ -1459,6 +1473,10 @@ class SQLExecutor:
 
         # Some databases may need to make preparations for query cancellation
         database.db_engine_spec.prepare_cancel_query(query)
+
+        # The query may have finished while the stop was being prepared
+        if query.status in FINISHED_QUERY_STATUSES:
+            return False
 
         # Check early cancellation flag
         if query.extra.get(QUERY_EARLY_CANCEL_KEY):

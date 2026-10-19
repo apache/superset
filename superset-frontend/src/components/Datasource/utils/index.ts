@@ -192,8 +192,8 @@ export function updateColumns(
   if (columnChanges.modified.length) {
     addSuccessToast(
       tn(
-        'Modified 1 column in the virtual dataset',
-        'Modified %s columns in the virtual dataset',
+        'Modified 1 column in the dataset',
+        'Modified %s columns in the dataset',
         columnChanges.modified.length,
         columnChanges.modified.length,
       ),
@@ -202,8 +202,8 @@ export function updateColumns(
   if (columnChanges.removed.length) {
     addSuccessToast(
       tn(
-        'Removed 1 column from the virtual dataset',
-        'Removed %s columns from the virtual dataset',
+        'Removed 1 column from the dataset',
+        'Removed %s columns from the dataset',
         columnChanges.removed.length,
         columnChanges.removed.length,
       ),
@@ -212,8 +212,8 @@ export function updateColumns(
   if (columnChanges.added.length) {
     addSuccessToast(
       tn(
-        'Added 1 new column to the virtual dataset',
-        'Added %s new columns to the virtual dataset',
+        'Added 1 new column to the dataset',
+        'Added %s new columns to the dataset',
         columnChanges.added.length,
         columnChanges.added.length,
       ),

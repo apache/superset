@@ -25,7 +25,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-15 17:43+0000\n"
+"POT-Creation-Date: 2026-10-19 18:27+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -146,7 +146,7 @@ msgstr ""
 msgid "\"%s\" is now the system default theme"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% calculation"
 msgstr ""
 
@@ -166,7 +166,7 @@ msgstr ""
 msgid "% of grand total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of parent"
 msgstr ""
 
@@ -174,7 +174,7 @@ msgstr ""
 msgid "% of row total"
 msgstr ""
 
-#, python-format
+#, no-python-format
 msgid "% of total"
 msgstr ""
 
@@ -1418,8 +1418,8 @@ msgid "Added '%s' dimension"
 msgstr ""
 
 #, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -3287,6 +3287,10 @@ msgstr ""
 msgid "Chart type"
 msgstr ""
 
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
+
 msgid "Chart was saved but could not be added to the selected tab."
 msgstr ""
 
@@ -4674,6 +4678,10 @@ msgstr ""
 msgid "Dashboard updated %s"
 msgstr ""
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 msgid "Dashboard usage"
 msgstr ""
 
@@ -4886,6 +4894,10 @@ msgstr ""
 
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
+msgstr ""
+
+#, python-format
+msgid "Dataset updated: %s"
 msgstr ""
 
 #, python-format
@@ -7291,7 +7303,7 @@ msgstr ""
 msgid "Get the last date by the date unit."
 msgstr ""
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr ""
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8284,6 +8296,9 @@ msgstr ""
 msgid "Least recently modified"
 msgstr ""
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
 msgid "Leave blank to keep the current password"
 msgstr ""
 
@@ -9116,8 +9131,8 @@ msgid "Modified %s"
 msgstr ""
 
 #, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -9940,6 +9955,10 @@ msgstr ""
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid "Only the first %s values are listed. Enter a value manually if it is not listed."
 msgstr ""
 
 #, python-format
@@ -11111,8 +11130,8 @@ msgid "Removed '%s' metric"
 msgstr ""
 
 #, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
 msgstr[0] ""
 msgstr[1] ""
 
@@ -12481,6 +12500,10 @@ msgstr ""
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid "Semantic dimension '%(name)s' has ambiguous variants for grain '%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 msgid "Semantic layer"
 msgstr ""
 
@@ -13806,6 +13829,9 @@ msgid "Template for cell titles. Use Handlebars templating syntax (a popular tem
 msgstr ""
 
 msgid "Template parameters"
+msgstr ""
+
+msgid "Template parameters must be a valid JSON object."
 msgstr ""
 
 #, python-format
@@ -17274,16 +17300,25 @@ msgstr ""
 msgid "You must be a %s editor in order to edit. Please reach out to a %s editor to request modifications or edit access."
 msgstr ""
 
+msgid "You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access."
+msgstr ""
+
 msgid "You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access."
 msgstr ""
 
 msgid "You must be a chart editor in order to edit. Please reach out to a chart editor to request modifications or edit access."
 msgstr ""
 
+msgid "You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access."
+msgstr ""
+
 msgid "You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access."
 msgstr ""
 
 msgid "You must be a dashboard editor in order to edit. Please reach out to a dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid "You must be a dataset editor in order to archive. Please reach out to a dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid "You must be a dataset editor in order to delete. Please reach out to a dataset editor to request modifications or edit access."
