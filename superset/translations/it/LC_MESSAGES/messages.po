@@ -16887,7 +16887,7 @@ msgstr "Cerca"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Cerca %s record"
 
 msgid "Search / Filter"
 msgstr "Cerca / Filtra"

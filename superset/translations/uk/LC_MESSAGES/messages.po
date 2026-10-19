@@ -13466,7 +13466,7 @@ msgstr "Пошук"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Пошук серед %s записів"
 
 msgid "Search / Filter"
 msgstr "Пошук / фільтр"

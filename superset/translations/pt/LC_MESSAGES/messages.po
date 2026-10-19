@@ -17481,7 +17481,7 @@ msgstr "Pesquisar"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Pesquisar %s registos"
 
 msgid "Search / Filter"
 msgstr "Pesquisa / Filtro"

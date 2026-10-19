@@ -13402,7 +13402,7 @@ msgstr "Suche"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Suche %s Einträge"
 
 msgid "Search / Filter"
 msgstr "Suchen / Filtern"

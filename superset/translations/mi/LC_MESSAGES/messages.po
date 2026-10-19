@@ -14076,7 +14076,7 @@ msgstr "Rapu"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Rapu %s rekoata"
 
 msgid "Search / Filter"
 msgstr "Rapu / Tātari"

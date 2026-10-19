@@ -14789,7 +14789,7 @@ msgstr "Szukaj"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Przeszukaj %s rekordów"
 
 msgid "Search / Filter"
 msgstr "Szukaj / Filtruj"

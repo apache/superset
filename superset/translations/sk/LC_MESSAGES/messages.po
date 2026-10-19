@@ -13723,7 +13723,7 @@ msgstr "Hľadať"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Hľadať %s záznamov"
 
 msgid "Search / Filter"
 msgstr "Hľadať / Filtrovať"

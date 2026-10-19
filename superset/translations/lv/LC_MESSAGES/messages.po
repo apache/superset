@@ -13462,7 +13462,7 @@ msgstr "Meklēt"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Meklēt %s ierakstos"
 
 msgid "Search / Filter"
 msgstr "Meklēt / Filtrēt"

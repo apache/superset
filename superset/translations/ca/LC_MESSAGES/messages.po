@@ -14144,7 +14144,7 @@ msgstr "Cercar"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Cercar %s registres"
 
 msgid "Search / Filter"
 msgstr "Cercar / Filtrar"

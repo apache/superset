@@ -16347,7 +16347,7 @@ msgstr "Претрага"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Претражи %s записа"
 
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]

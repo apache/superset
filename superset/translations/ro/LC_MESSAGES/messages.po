@@ -14311,7 +14311,7 @@ msgstr "Caută"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Caută %s înregistrări"
 
 msgid "Search / Filter"
 msgstr "Caută / Filtrează"

@@ -13618,7 +13618,7 @@ msgstr "Rechercher"
 
 #, python-format
 msgid "Search %s records"
-msgstr ""
+msgstr "Rechercher dans %s enregistrements"
 
 msgid "Search / Filter"
 msgstr "Rechercher / Filtrer"
