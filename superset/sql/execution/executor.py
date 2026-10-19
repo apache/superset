@@ -452,9 +452,10 @@ def _decode_async_statement_data(stmt_data: dict[str, Any]) -> pd.DataFrame | No
 
         table = pa.ipc.open_stream(pa.BufferReader(data)).read_all()
         df = SupersetResultSet.convert_table_to_df(table)
-        for name, data in stmt_data.get("nested_columns_msgpack", {}).items():
+        sidecars = stmt_data.get("nested_columns_msgpack")
+        for name, sidecar in (sidecars if isinstance(sidecars, dict) else {}).items():
             try:
-                values = deserialize_nested_columns({name: data})[name]
+                values = deserialize_nested_columns({name: sidecar})[name]
                 if name not in df.columns:
                     raise ValueError("Nested sidecar has no Arrow column")
                 if not isinstance(values, list) or len(values) != len(df):

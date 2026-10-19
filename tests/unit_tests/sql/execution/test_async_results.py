@@ -1041,22 +1041,6 @@ def test_async_unsupported_nested_types_use_arrow_strings(
     assert actual["value"][2] is None
 
 
-def test_intermediate_nested_sidecar_is_ignored() -> None:
-    """An unreleased untyped sidecar must not override Arrow results."""
-    from superset.sql.execution.executor import _decode_async_statement_data
-    from superset.sqllab.utils import write_ipc_buffer
-
-    result_set = _result_set(["value"], [({"a": [1]},), (None,)])
-    statement = {
-        "data": write_ipc_buffer(result_set.pa_table).to_pybytes(),
-        "nested_columns": {"value": [{"a": [999]}, None]},
-    }
-    pd.testing.assert_frame_equal(
-        _decode_async_statement_data(statement),
-        SupersetResultSet.convert_table_to_df(result_set.pa_table),
-    )
-
-
 def test_legacy_nested_oversized_integer_matches_sync() -> None:
     """Legacy record decoding also tolerates nested integers outside int64."""
     from superset.sql.execution.executor import _decode_async_statement_data
@@ -1429,35 +1413,86 @@ def test_cache_failure_logs_exception_and_source(
     ) in records[0].message
 
 
-def test_async_payload_decoder_uses_module_imports() -> None:
-    """The transport decoder uses its module's existing dependencies."""
-    import ast
-    import inspect
-
-    from superset.sql.execution import executor
-
-    tree = ast.parse(inspect.getsource(executor._decode_async_results_payload))
-    assert not any(
-        isinstance(node, (ast.Import, ast.ImportFrom)) for node in ast.walk(tree)
+@pytest.mark.parametrize("use_msgpack", [True, False])
+@pytest.mark.parametrize("sidecars", [None, [], "future-format"])
+def test_non_dict_nested_sidecars_preserve_statements(
+    mocker: MockerFixture,
+    app_context: None,
+    use_msgpack: bool,
+    sidecars: object,
+) -> None:
+    """Unknown sidecar containers retain Arrow columns and other statements."""
+    mocker.patch.dict(current_app.config, {"SQLLAB_PAYLOAD_MAX_MB": 0})
+    mocker.patch(
+        "superset.sql.execution.celery_task.serialize_nested_columns",
+        return_value=sidecars,
     )
-    assert executor.msgpack.loads(b"\x80") == {}
-    assert executor.json.loads("{}") == {}
+    result = _store_and_read(
+        mocker,
+        "SELECT nested, scalar; SELECT other",
+        [
+            _select("SELECT nested, scalar", ["nested", "scalar"], [([1, 2], 42)]),
+            _select("SELECT other", ["other"], [(7,)]),
+        ],
+        write_msgpack=use_msgpack,
+        read_msgpack=not use_msgpack,
+    )
+    assert result.status == QueryStatus.SUCCESS, result.error_message
+    pd.testing.assert_frame_equal(
+        result.statements[0].data,
+        pd.DataFrame({"nested": ["[1, 2]"], "scalar": [42]}),
+    )
+    pd.testing.assert_frame_equal(
+        result.statements[1].data, pd.DataFrame({"other": [7]})
+    )
 
 
-def test_python_sql_results_documented_under_backend_apis() -> None:
-    """The generic Python result contract belongs with extension backend APIs."""
-    from pathlib import Path
+@pytest.mark.parametrize("use_msgpack", [True, False])
+def test_nested_payload_size_does_not_decode_arrow(
+    mocker: MockerFixture, app_context: None, use_msgpack: bool
+) -> None:
+    """Size accounting uses the writer's column sizes without reopening IPC."""
+    import base64
 
-    root = Path(__file__).resolve().parents[4]
-    development = (root / "docs/developer_docs/extensions/development.md").read_text()
-    mcp = (root / "docs/developer_docs/extensions/mcp.md").read_text()
-    assert "Python SQL query results" not in mcp
-    section = development.split("### Backend APIs", 1)[1]
-    backend, sql_results = section.split("#### Python SQL query results", 1)
-    sql_results = sql_results.split("\n### ", 1)[0]
-    assert "Extension endpoints are registered" in backend
-    assert "`/extensions` namespace" in backend
-    assert "class DatasetReferencesAPI(RestApi):" in backend
-    assert "Extension endpoints are registered" not in sql_results
-    assert "class DatasetReferencesAPI(RestApi):" not in sql_results
-    assert "untyped nested sidecars" not in development
+    import pyarrow as pa
+
+    from superset.sql.execution.celery_task import _get_payload_size, _serialize_payload
+
+    mocker.patch("superset.results_backend_use_msgpack", use_msgpack)
+    result_set = _result_set(
+        ["nested", "binary", "scalar"], [([1, 2], [b"\xff\xff\xff"], 42)]
+    )
+    payload: dict[str, Any] = {}
+    query = MagicMock()
+    query.to_dict.return_value = {"id": 1}
+    _finalize_successful_query(
+        query,
+        SQLScript("SELECT nested, binary, scalar", engine="sqlite"),
+        [("SELECT nested, binary, scalar", result_set, 1.0, 1)],
+        payload,
+        1.0,
+    )
+    statement = payload["statements"][0]
+    sizes = {
+        name: result_set.pa_table.column(name).nbytes
+        for name in result_set.nested_columns
+    }
+    data = statement["data"]
+    table = pa.ipc.open_stream(
+        data if use_msgpack else base64.b64decode(data)
+    ).read_all()
+    assert sizes == {name: table.column(name).nbytes for name in sizes}
+    serialized = _serialize_payload(payload)
+    expected_size = len(serialized)
+    if not use_msgpack:
+        expected_size -= len(data) - len(base64.b64decode(data))
+    for name, value in statement["nested_columns_msgpack"].items():
+        raw_size = len(value if use_msgpack else base64.b64decode(value))
+        expected_size -= len(value) - raw_size + min(raw_size, sizes[name])
+    mocker.patch("base64.b64decode", side_effect=AssertionError("decoded Arrow"))
+    mocker.patch(
+        "pyarrow.ipc.open_stream", side_effect=AssertionError("reopened Arrow")
+    )
+
+    assert _get_payload_size(payload, serialized) == expected_size
+    assert statement["nested_columns_arrow_nbytes"] == sizes

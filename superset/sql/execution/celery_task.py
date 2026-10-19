@@ -32,7 +32,6 @@ from collections.abc import Callable
 from typing import Any, TYPE_CHECKING
 
 import msgpack
-import pyarrow as pa
 from celery.exceptions import SoftTimeLimitExceeded
 from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
@@ -215,6 +214,10 @@ def _finalize_successful_query(
             if result_set.nested_columns:
                 # Keep supported nested values out of the outer JSON/MessagePack
                 # serializer, which coerces types or rejects oversized integers.
+                statements_data[-1]["nested_columns_arrow_nbytes"] = {
+                    name: result_set.pa_table.column(name).nbytes
+                    for name in result_set.nested_columns
+                }
                 statements_data[-1]["nested_columns_msgpack"] = (
                     serialize_nested_columns(
                         result_set.nested_columns,
@@ -271,16 +274,11 @@ def _get_payload_size(payload: dict[str, Any], serialized_payload: bytes) -> int
             size -= len(data) - raw_size(data)
         if sidecars := statement.get("nested_columns_msgpack"):
             # Arrow keeps nested columns as text for older readers and unknown
-            # tags. Discount only the part of each typed copy also held there;
-            # binary values replaced by placeholders still count at raw size.
-            arrow = base64.b64decode(data) if isinstance(data, str) else data
-            table = pa.ipc.open_stream(pa.BufferReader(arrow)).read_all()
+            # tags. Count each nested column once, at the larger of its Arrow
+            # column and its raw typed copy.
+            column_sizes = statement.get("nested_columns_arrow_nbytes", {})
             for name, value in sidecars.items():
-                duplicate = (
-                    min(raw_size(value), table.column(name).nbytes)
-                    if name in table.column_names
-                    else 0
-                )
+                duplicate = min(raw_size(value), column_sizes.get(name, 0))
                 size -= len(value) - raw_size(value) + duplicate
     return size
 

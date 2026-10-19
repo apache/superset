@@ -273,11 +273,12 @@ that column, without discarding other columns or statements.
 For these async results, `SQLLAB_PAYLOAD_MAX_MB` counts the uncompressed payload
 with raw Arrow IPC bytes instead of their Base64 representation. Nested-value
 sidecars count at their raw size, discounting at most the size of the matching
-Arrow column to avoid charging twice for values represented there. Binary values
-replaced by small placeholders in Arrow still count toward the limit. Envelope
-and sidecar metadata also count. Both copies are retained in storage so a reader
-can fall back to Arrow strings for unknown tags. MessagePack stores sidecars as
-raw bytes; JSON uses Base64. Stored payloads are compressed.
+Arrow column, so each nested column counts once, at the larger of its two
+copies. Envelope and sidecar metadata also count. Both copies are retained in
+storage so a reader can fall back to Arrow strings for unknown tags, which lets
+the uncompressed payload reach about twice the counted size (more in JSON mode,
+which Base64-encodes it). MessagePack stores sidecars as raw bytes; JSON uses
+Base64. Stored payloads are compressed.
 
 Legacy JSON-record results remain readable, but types
 already converted to strings or floats cannot be recovered; rerun those queries

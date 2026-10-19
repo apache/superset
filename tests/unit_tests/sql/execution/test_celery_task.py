@@ -818,6 +818,11 @@ def test_store_results_in_backend_raw_arrow_size_boundary(
             {
                 "data": data,
                 "columns": columns,
+                "nested_columns_arrow_nbytes": (
+                    {"nested": mock_result_set.pa_table.column("nested").nbytes}
+                    if nested_column_present
+                    else {}
+                ),
                 "nested_columns_msgpack": serialize_nested_columns(
                     {"nested": [nested_value]}, use_msgpack=use_msgpack
                 ),
