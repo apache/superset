@@ -40,6 +40,7 @@ from uuid import UUID
 
 import sqlalchemy as sa
 from flask_babel import gettext as _
+from sqlalchemy.orm.attributes import set_committed_value
 from sqlalchemy_continuum import version_class
 
 from superset.extensions import db
@@ -720,6 +721,9 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     Returns the ids of snapshot members that no longer exist and were
     skipped. Live charts' content is never touched — restoring a chart's
     content is the chart's own restore endpoint's job.
+
+    An archived (soft-deleted) chart still exists: it stays a recoverable
+    member, so its membership follows the snapshot like any other chart's.
     """
     # pylint: disable=import-outside-toplevel
     # Local imports: models.slice transitively imports models.core, which needs
@@ -728,6 +732,8 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
     # imported lazily for the same reason: it pulls the window helpers, whose
     # package transitively imports the versioning.changes listener graph, so a
     # module-top import here would re-enter that same bootstrap cycle.
+    from superset.models.dashboard import dashboard_slices
+    from superset.models.helpers import skip_visibility_filter
     from superset.models.slice import Slice
     from superset.versioning.membership import chart_attachment_windows_for_dashboard
 
@@ -742,11 +748,29 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
             if window.contains(transaction_id)
         }
     )
-    if not member_ids:
-        dashboard.slices = []
-        return []
-
-    live_slices = db.session.query(Slice).filter(Slice.id.in_(member_ids)).all()
+    # Archived charts must be visible both to the lookup and to the
+    # assignment, which diffs against the current membership. A membership
+    # loaded through ``dashboard.slices`` misses archived members, even inside
+    # the bypass, because the dashboard's own load carried the filter, so the
+    # flush would keep or re-insert their rows. Read it from the association
+    # table instead and diff against that.
+    with skip_visibility_filter(db.session, Slice):
+        current_slices: list[Slice] = (
+            db.session.query(Slice)
+            .join(dashboard_slices, dashboard_slices.c.slice_id == Slice.id)
+            .filter(dashboard_slices.c.dashboard_id == dashboard.id)
+            .all()
+        )
+        live_slices: list[Slice] = (
+            db.session.query(Slice).filter(Slice.id.in_(member_ids)).all()
+            if member_ids
+            else []
+        )
+    # Installing the baseline drops any unflushed change to the collection.
+    # There is none here: the dashboard revert restores no relationships, and
+    # single_flush_scope holds back autoflush until the restore is done.
+    set_committed_value(dashboard, "slices", current_slices)
+    dashboard.slices = live_slices
     live_ids = {slc.id for slc in live_slices}
     skipped = sorted(set(member_ids) - live_ids)
     if skipped:
@@ -758,7 +782,6 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
             len(skipped),
             skipped,
         )
-    dashboard.slices = live_slices
     return skipped
 
 
