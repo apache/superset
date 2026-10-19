@@ -88,7 +88,7 @@ const sqlLabTools: chat.ClientTool[] = [
   {
     name: 'sqlLab__get_editor_tabs',
     description:
-      'List open SQL Lab tabs and their database, catalog, and schema. Switch tabs before reading or editing their SQL.',
+      'List open SQL Lab tabs and their database, catalog, and schema.',
     inputSchema: emptySchema,
     annotations: { readOnlyHint: true },
     handler: () => ({
@@ -108,16 +108,17 @@ const sqlLabTools: chat.ClientTool[] = [
   },
   {
     name: 'sqlLab__get_editor_sql',
-    description: 'Read the active SQL Lab editor SQL, selection, and metadata.',
-    inputSchema: emptySchema,
+    description:
+      'Read SQL, selection, and metadata from the SQL Lab editor specified by editor_id.',
+    inputSchema: editorIdSchema,
     annotations: { readOnlyHint: true },
-    handler: async () => {
-      const tab = currentTab();
+    handler: async input => {
+      const tab = targetTab(input);
       const editor = await tab.getEditor();
       return {
         success: true,
         editor: {
-          ...tabMetadata(tab),
+          ...tabMetadata(targetTab({ editor_id: tab.id })),
           sql: editor.getValue(),
           selectedText: editor.getSelectedText(),
         },
@@ -139,7 +140,7 @@ const sqlLabTools: chat.ClientTool[] = [
       const sql = stringInput(inputObject(input), 'sql');
       const tab = currentTab();
       const editor = await tab.getEditor();
-      editor.setValue(sql);
+      if (editor.getValue() !== sql) editor.setValue(sql);
       return { success: true, editor_id: tab.id };
     },
   },
