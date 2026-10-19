@@ -145,8 +145,10 @@ socket with `4401`, so the client knows to reconnect with a fresh ticket.
 
 Because permission is checked when Superset mints a ticket, revocation after
 minting is bounded by the ticket lifetime (`WEBSOCKET_JWT_EXPIRATION_SECONDS`;
-the Superset default is 15 minutes). After a logout the ticket endpoint returns
-401, so no refresh happens and the server closes the socket at expiry.
+the Superset default is 15 minutes). After a logout or session revocation, an
+open socket stays authenticated until its current ticket expires, because the
+next refresh fails (the ticket endpoint returns 401 or 403); the server then
+closes the socket at expiry.
 
 During websocket JWT secret rotation, the websocket service can accept both the
 current key (`jwtSecret` / `JWT_SECRET`) and one previous verify-only key

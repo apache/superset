@@ -20,6 +20,7 @@ import { SupersetClient } from '@superset-ui/core';
 import {
   connectRealtime,
   dispatchRealtimeMessage,
+  getRealtimeState,
   resetRealtimeForTests,
   subscribeRealtime,
   subscribeRealtimeOpen,
@@ -649,4 +650,124 @@ test('a ticket that arrives after disconnect does not open a socket', async () =
   await flush();
 
   expect(FakeWebSocket.instances).toHaveLength(0);
+});
+
+/** A ticket endpoint whose responses the test releases by hand. */
+const deferTickets = () => {
+  const pending: Array<
+    (ticket: { token: string; expires_in: number }) => void
+  > = [];
+  getSpy.mockImplementation(
+    () =>
+      new Promise(resolve => {
+        pending.push(json => resolve({ json }));
+      }),
+  );
+  return pending;
+};
+
+test('a ticket fetched for a refresh is dropped if the client disconnected meanwhile', async () => {
+  const ws = await connectAuthenticated(60);
+  const pending = deferTickets();
+
+  jest.advanceTimersByTime(45_000); // refresh starts; its fetch is in flight
+  expect(pending).toHaveLength(1);
+  resetRealtimeForTests();
+  pending[0]({ token: 'late', expires_in: 60 });
+  await flush();
+
+  expect(ws.authFrames.map(frame => frame.token)).toEqual(['ticket-1']);
+  expect(FakeWebSocket.instances).toHaveLength(1);
+});
+
+test('a superseded connect attempt cannot open a socket after a reconfigure', async () => {
+  const pending = deferTickets();
+  connectRealtime(ENABLED);
+  await flush();
+  connectRealtime({ ...ENABLED, WEBSOCKET_URL: 'ws://other:8080/' });
+  await flush();
+  expect(pending).toHaveLength(2);
+
+  // The older attempt's ticket arrives last and must be ignored.
+  pending[1]({ token: 'new', expires_in: 60 });
+  await flush();
+  pending[0]({ token: 'old', expires_in: 60 });
+  await flush();
+
+  expect(FakeWebSocket.instances).toHaveLength(1);
+  expect(lastSocket().url).toBe('ws://other:8080/');
+});
+
+test('an auth ack from an obsolete socket does not authenticate the current one', async () => {
+  const states: string[] = [];
+  const reasons: string[] = [];
+  const handler = jest.fn();
+  subscribeRealtime('task.status', handler);
+  const old = await connectAuthenticated(60);
+  subscribeRealtimeState(state => states.push(state));
+  subscribeRealtimeOpen(reason => reasons.push(reason));
+
+  old.readyState = 3;
+  old.onclose?.({ code: 1006 });
+  jest.advanceTimersByTime(5_000);
+  await flush();
+  const current = lastSocket();
+  expect(current).not.toBe(old);
+  current.readyState = 1;
+  current.onopen?.();
+
+  // A delayed ack, a close and a message from the dead socket arrive late.
+  ack(old, 60);
+  old.onclose?.({ code: 4401 });
+  old.onmessage?.({
+    data: JSON.stringify({ topic: 'task.status', payload: { stale: true } }),
+  });
+  await flush();
+
+  expect(states).not.toContain('open');
+  expect(reasons).toEqual([]);
+  expect(handler).not.toHaveBeenCalled();
+  expect(FakeWebSocket.instances).toHaveLength(2);
+
+  // The current socket still authenticates normally.
+  ack(current, 60);
+  expect(states[states.length - 1]).toBe('open');
+  expect(reasons).toEqual(['reconnect']);
+});
+
+test.each([
+  ['404 from an older web server', { status: 404 }],
+  ['500', { status: 500 }],
+  ['502', { status: 502 }],
+  ['a network error', new TypeError('Failed to fetch')],
+])(
+  '%s is transient: it backs off and retries, never unauthorized',
+  async (_label, error) => {
+    getSpy.mockRejectedValue(error);
+    const states: string[] = [];
+    subscribeRealtimeState(state => states.push(state));
+
+    connectRealtime(ENABLED);
+    await flush();
+    jest.advanceTimersByTime(5_000);
+    await flush();
+
+    expect(states).not.toContain('unauthorized');
+    expect(states).toContain('reconnecting');
+    expect(getSpy.mock.calls.length).toBeGreaterThan(1);
+
+    // Once the endpoint appears (the rollout finished) the client connects.
+    serveTickets();
+    jest.advanceTimersByTime(30_000);
+    await flush();
+    expect(FakeWebSocket.instances).toHaveLength(1);
+  },
+);
+
+test('getRealtimeState reflects the latest transition', async () => {
+  rejectTickets(401);
+  connectRealtime(ENABLED);
+  await flush();
+
+  expect(getRealtimeState()).toBe('unauthorized');
 });
