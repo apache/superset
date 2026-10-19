@@ -46,6 +46,7 @@ import type { QueryEditor, SqlLabRootState, Table } from '../types';
 import { newQueryTabName } from '../utils/newQueryTabName';
 import getInitialState from '../reducers/getInitialState';
 import { rehydratePersistedState } from '../utils/reduxStateToLocalStorageHelper';
+import { clearNorthPaneStorage } from '../utils/northPaneStorage';
 import { PREVIEW_QUERY_LIMIT } from '../constants';
 import { EMPTY_STATE_QE_ID } from '../hooks/useQueryEditor';
 import { queryHistoryApi } from '../../hooks/apiResources/queries';
@@ -1010,6 +1011,7 @@ export function clearDestoryedQueryEditor(queryEditorId: string): SqlLabAction {
 }
 
 export function removeQueryEditor(queryEditor: QueryEditor): SqlLabAction {
+  clearNorthPaneStorage(queryEditor);
   return { type: REMOVE_QUERY_EDITOR, queryEditor };
 }
 
