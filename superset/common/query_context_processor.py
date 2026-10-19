@@ -52,6 +52,7 @@ from superset.daos.exceptions import (
 from superset.dataframe import df_to_records
 from superset.exceptions import (
     QueryObjectValidationError,
+    QueryObjectValidationMessage,
     SemanticResultCompletenessError,
     SupersetException,
     SupersetTemplateException,
@@ -332,7 +333,8 @@ class QueryContextProcessor:
             except SemanticResultCompletenessError:
                 raise
             except QueryObjectValidationError as ex:
-                cache.error_message = str(ex)
+                # Keep the type: ChartDataCommand reads it to answer 400.
+                cache.error_message = QueryObjectValidationMessage(ex)
                 cache.status = QueryStatus.FAILED
             finally:
                 data_acquisition_ns = max(
@@ -1031,7 +1033,18 @@ class QueryContextProcessor:
         # caller is not allowed to access.
         if self._qc_datasource.type == DatasourceType.QUERY:
             try:
-                security_manager.raise_for_access(query=self._qc_datasource)
+                # Query-backed chart-data runs the stored query's raw SQL, so
+                # editorship of a same-named dataset must not authorize its
+                # tables -- otherwise a no-table decoy dataset named after a
+                # table would let its editor read that table through a
+                # persisted query. ``allow_editorship=False`` stops honoring
+                # editorship while keeping the regular catalog/schema/
+                # datasource_access checks this ongoing-fetch path has always
+                # used (it is deliberately not the stricter
+                # ``force_dataset_match`` that SQL Lab execution uses).
+                security_manager.raise_for_access(
+                    query=self._qc_datasource, allow_editorship=False
+                )
             except TemplateError as ex:
                 raise SupersetTemplateException(str(ex)) from ex
         else:
