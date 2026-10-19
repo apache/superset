@@ -27,7 +27,9 @@ import {
   TimeGranularity,
 } from '@superset-ui/core';
 import { Groupby, PivotTableQueryFormData } from '../types';
-import buildGroupbyCombinations, { allMetricsAdditive } from './utilities';
+import buildGroupbyCombinations, {
+  allMetricsClientAggregatable,
+} from './utilities';
 
 // Build the query `columns` for a single rollup level (one prefix of row dims
 // crossed with one prefix of column dims), applying temporal BASE_AXIS handling.
@@ -86,7 +88,9 @@ export default function buildQuery(formData: PivotTableQueryFormData) {
   //    per displayed total/subtotal) so the database computes every level; the
   //    backend falls back to per-level queries on engines without native
   //    support. transformProps splits the combined result by level.
-  const additive = allMetricsAdditive(ensureIsArray(formData.metrics));
+  const additive = allMetricsClientAggregatable(
+    ensureIsArray(formData.metrics),
+  );
   const groupingSets = additive
     ? undefined
     : buildGroupbyCombinations(formData).map(level =>

@@ -1463,6 +1463,7 @@ class SQLExecutor:
         :param query: Query model instance to cancel
         :returns: True if cancelled successfully, False otherwise
         """
+        from superset.common.db_query_status import FINISHED_QUERY_STATUSES
         from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
         from superset.utils.core import QuerySource
 
@@ -1472,6 +1473,10 @@ class SQLExecutor:
 
         # Some databases may need to make preparations for query cancellation
         database.db_engine_spec.prepare_cancel_query(query)
+
+        # The query may have finished while the stop was being prepared
+        if query.status in FINISHED_QUERY_STATUSES:
+            return False
 
         # Check early cancellation flag
         if query.extra.get(QUERY_EARLY_CANCEL_KEY):
