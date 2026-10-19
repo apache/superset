@@ -408,6 +408,9 @@ class ImportDatasetsCommand(BaseCommand):
             .filter(
                 SqlaTable.table_name == table_name,
                 SqlaTable.schema == dataset.get("schema"),
+                SqlaTable.catalog == dataset["catalog"]
+                if dataset.get("catalog") is not None
+                else True,
                 SqlaTable.database_id == database.id,
             )
             .one_or_none()
