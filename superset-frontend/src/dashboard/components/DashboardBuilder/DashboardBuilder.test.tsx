@@ -263,29 +263,24 @@ describe('DashboardBuilder', () => {
           Node.DOCUMENT_POSITION_FOLLOWING,
       ).toBeTruthy();
 
-      // Wide: an in-flow third column beside the content, in the content
-      // row only — never spanning the header row.
+      // One layout at every viewport width: the panel is anchored
+      // absolutely inside the CONTENT cell (column 2, row 2), so it adds no
+      // width to the page and leaves nothing beside the header. It stacks
+      // below the sticky header (99) so the header stays clickable.
+      expect(column).toHaveStyleRule('position', 'absolute');
+      expect(column).toHaveStyleRule('grid-column', '2');
       expect(column).toHaveStyleRule('grid-row', '2');
-      expect(column).toHaveStyleRule('grid-column', '3');
-      expect(column).toHaveStyleRule('position', 'sticky');
-      expect(column).toHaveStyleRule('top', '120px');
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      expect(column).toHaveStyleRule('right', '0');
+      expect(column).toHaveStyleRule('align-self', 'stretch');
+      expect(column).toHaveStyleRule('z-index', '98');
       expect(column).toHaveStyleRule('display', 'none', { target: ':empty' });
-
-      // Below XXL: anchored absolutely inside the CONTENT cell (column 2,
-      // row 2) — not fixed to the viewport — and stacked below the sticky
-      // header (99) so the header stays clickable.
+      // No breakpoint switches the layout.
       const narrow = { media: `(max-width: ${supersetTheme.screenXLMax}px)` };
-      expect(column).toHaveStyleRule('position', 'absolute', narrow);
-      expect(column).toHaveStyleRule('grid-column', '2', narrow);
-      expect(column).toHaveStyleRule('right', '0', narrow);
-      expect(column).toHaveStyleRule('align-self', 'stretch', narrow);
-      expect(column).toHaveStyleRule('z-index', '98', narrow);
-      expect(column).not.toHaveStyleRule('position', 'fixed', narrow);
+      expect(column).not.toHaveStyleRule('position', 'absolute', narrow);
       // The panel itself sticks below the measured header height while the
       // page scrolls, so it never slides under the header.
-      expect(column).toHaveStyleRule('top', '120px', {
-        ...narrow,
+      expect(column).toHaveStyleRule('top', '120px', { target: 'aside' });
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', {
         target: 'aside',
       });
     } finally {
@@ -309,24 +304,17 @@ describe('DashboardBuilder', () => {
     try {
       const { findByTestId, unmount } = setup();
       const column = await findByTestId('dashboard-version-history-column');
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)');
+      const aside = { target: 'aside' };
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)', aside);
       headerTop = 0;
       fireEvent.scroll(column);
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', {
-        media: `(max-width: ${supersetTheme.screenXLMax}px)`,
-        target: 'aside',
-      });
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', aside);
       headerTop = -200;
       fireEvent.scroll(column);
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)');
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 120px)', aside);
       headerTop = 64;
       fireEvent.scroll(window);
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)');
-      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)', {
-        media: `(max-width: ${supersetTheme.screenXLMax}px)`,
-        target: 'aside',
-      });
+      expect(column).toHaveStyleRule('height', 'calc(100vh - 184px)', aside);
       const scrollListener = addListenerSpy.mock.calls.find(
         ([type, , options]) =>
           type === 'scroll' &&
