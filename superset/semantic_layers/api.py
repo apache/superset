@@ -398,7 +398,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 errors.append(
                     {"name": view_data.get("name"), "error": "Semantic layer not found"}
                 )
-            except SemanticViewForbiddenError as ex:
+            except (SemanticViewForbiddenError, SemanticViewInvalidError) as ex:
                 errors.append({"name": view_data.get("name"), "error": str(ex)})
             except SemanticViewCreateFailedError as ex:
                 logger.error(

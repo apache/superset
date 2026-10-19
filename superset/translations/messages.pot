@@ -18180,3 +18180,11 @@ msgstr[1] ""
 
 msgid "№"
 msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic layer"
+" is unreachable."
+msgstr ""
+
+msgid "The view configuration must be a JSON object."
+msgstr ""
