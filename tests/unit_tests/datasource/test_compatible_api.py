@@ -17,7 +17,7 @@
 
 """Compatibility API preserves semantic provider identities before caching."""
 
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 from uuid import uuid4
 
 import pyarrow as pa
@@ -55,7 +55,9 @@ def test_compatible_endpoint_resolves_semantic_variants(
         uuid=uuid4(), name="events-layer", type="test", cache_version=0
     )
     view: SemanticView = SemanticView(id=73, name="events", semantic_layer=layer)
-    view.implementation = provider
+    mocker.patch.object(
+        SemanticView, "implementation", new_callable=PropertyMock, return_value=provider
+    )
     mocker.patch(
         "superset.datasource.api.DatasourceDAO.get_datasource", return_value=view
     )

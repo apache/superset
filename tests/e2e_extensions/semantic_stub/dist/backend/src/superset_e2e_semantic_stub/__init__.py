@@ -36,6 +36,10 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel, ConfigDict
+from superset_core.semantic_layers.context import (
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
@@ -231,13 +235,36 @@ class StubOrdersView(SemanticView):
 class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
     configuration_class: type[StubConfiguration] = StubConfiguration
 
-    def __init__(self, configuration: StubConfiguration) -> None:
-        """Keep validated configuration available to host schema requests."""
+    def __init__(
+        self,
+        configuration: StubConfiguration,
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
+    ) -> None:
+        """Keep configuration and the supplied host execution binding."""
         self.configuration: StubConfiguration = configuration
+        self.cache_token: str = cache_token
+        self.context: SemanticExecutionContext = context
+        self.credentials: SemanticCredentials | None = credentials
 
     @classmethod
-    def from_configuration(cls, configuration: dict[str, Any]) -> StubSemanticLayer:
-        return cls(StubConfiguration.model_validate(configuration))
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
+    ) -> StubSemanticLayer:
+        """Bind the test provider to the explicit SDK execution context."""
+        return cls(
+            StubConfiguration.model_validate(configuration),
+            cache_token=cache_token,
+            context=context,
+            credentials=credentials,
+        )
 
     @classmethod
     def get_configuration_schema(

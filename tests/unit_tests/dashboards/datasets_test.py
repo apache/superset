@@ -363,6 +363,7 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     client: Any,
     full_api_access: None,
     semantic_view: SemanticView,
+    mock_implementation: MagicMock,
     can_access_ambiguous: bool,
 ) -> None:
     """One ambiguous view cannot hide healthy metadata or leak it without access."""
@@ -379,7 +380,6 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     implementation.get_metrics.return_value = []
     implementation.features = frozenset()
     implementation.uid.return_value = "provider-ambiguous"
-    ambiguous.__dict__["implementation"] = implementation
     broken_chart: Slice = Slice(datasource_id=2, datasource_type="semantic_view")
     broken_chart.semantic_view = ambiguous
     healthy_chart: Slice = Slice(
@@ -388,6 +388,15 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     healthy_chart.semantic_view = semantic_view
     dashboard: Dashboard = Dashboard(id=17, slices=[broken_chart, healthy_chart])
     with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            new=property(
+                lambda view: implementation
+                if view is ambiguous
+                else mock_implementation
+            ),
+        ),
         patch(
             "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
             return_value=dashboard,
