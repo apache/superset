@@ -113,9 +113,10 @@ test('missing settings leave warnings off without a threshold', () => {
 test.each([null, { enabled: false }, { enabled: true, threshold: 'invalid' }])(
   'reads an explicit rule without inventing missing fields (%j)',
   rule => {
+    const original = rule === null ? null : { ...rule };
     const extra = { query_cost_warning: rule } as ExtraJson;
-    expect(getQueryCostWarning(extra)).toEqual(rule || {});
-    expect(extra).toEqual({ query_cost_warning: rule });
+    expect(getQueryCostWarning(extra)).toEqual(original || {});
+    expect(extra).toEqual({ query_cost_warning: original });
   },
 );
 

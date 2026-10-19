@@ -49,26 +49,21 @@ def warning_extra_loader(
 
 @pytest.mark.parametrize("enabled", ["true", "false", 1, 0, None, [], {}])
 def test_query_cost_warning_requires_boolean_opt_in(
-    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
     enabled: object,
 ) -> None:
     """Warning activation never coerces a truthy value to an opt-in."""
+    from superset.databases.schemas import QueryCostWarningSchema
+
     message = (
         "Field may not be null."
         if enabled is None
         else "The query cost warning enabled setting must be a boolean."
     )
     with pytest.raises(ValidationError, match=message) as exc_info:
-        warning_extra_loader(
-            {
-                "query_cost_warning": {
-                    "enabled": enabled,
-                    "metric": "total_cost",
-                    "threshold": 10,
-                }
-            }
+        QueryCostWarningSchema().load(
+            {"enabled": enabled, "metric": "total_cost", "threshold": 10}
         )
-    assert "enabled" in str(exc_info.value.messages)
+    assert "enabled" in exc_info.value.messages
 
 
 @pytest.mark.parametrize("enabled", [False, True])
@@ -77,52 +72,34 @@ def test_query_cost_warning_requires_boolean_opt_in(
     [-1, 0, "100", True, False, None, float("inf"), float("-inf"), float("nan")],
 )
 def test_query_cost_warning_rejects_invalid_thresholds(
-    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
-    request: pytest.FixtureRequest,
     enabled: bool,
     threshold: object,
 ) -> None:
     """A supplied threshold must be valid even when warnings are disabled."""
-    # JSON extras encode non-finite numbers as null; imports validate raw values.
-    loaded_threshold = threshold
-    if (
-        request.node.callspec.params["warning_extra_loader"]
-        != "ImportV1DatabaseExtraSchema"
-    ):
-        loaded_threshold = json.loads(json.dumps(threshold))
+    from superset.databases.schemas import QueryCostWarningSchema
+
     message = (
         "Field may not be null."
-        if loaded_threshold is None
+        if threshold is None
         else "The query cost warning threshold must be a positive finite number."
     )
     with pytest.raises(ValidationError, match=message) as exc_info:
-        warning_extra_loader(
-            {
-                "query_cost_warning": {
-                    "enabled": enabled,
-                    "metric": "total_cost",
-                    "threshold": threshold,
-                }
-            }
+        QueryCostWarningSchema().load(
+            {"enabled": enabled, "metric": "total_cost", "threshold": threshold}
         )
-    assert "threshold" in str(exc_info.value.messages)
+    assert "threshold" in exc_info.value.messages
 
 
 @pytest.mark.parametrize("threshold", [0.5, 1.5, 2**53, 2**53 + 1])
 def test_query_cost_warning_requires_safe_whole_bytes(
-    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
     threshold: int | float,
 ) -> None:
     """Byte thresholds cannot be fractional or lose precision in SQL Lab."""
+    from superset.databases.schemas import QueryCostWarningSchema
+
     with pytest.raises(ValidationError):
-        warning_extra_loader(
-            {
-                "query_cost_warning": {
-                    "enabled": False,
-                    "metric": "bytes_processed",
-                    "threshold": threshold,
-                }
-            }
+        QueryCostWarningSchema().load(
+            {"enabled": False, "metric": "bytes_processed", "threshold": threshold}
         )
 
 
@@ -137,13 +114,25 @@ def test_query_cost_warning_requires_safe_whole_bytes(
         {"enabled": True, "metric": "bytes_processed", "threshold": 2**53 - 1},
     ],
 )
-def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
-    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+def test_query_cost_warning_preserves_valid_rules(
     rule: dict[str, object],
 ) -> None:
-    """Saving warnings does not discard connection settings or disabled values."""
+    """Valid rules retain their values even when warnings are disabled."""
+    from superset.databases.schemas import QueryCostWarningSchema
+
+    assert QueryCostWarningSchema().load(rule) == rule
+
+
+def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+) -> None:
+    """Each connection schema validates warnings and retains unrelated settings."""
     extra = {
-        "query_cost_warning": rule,
+        "query_cost_warning": {
+            "enabled": False,
+            "metric": "total_cost",
+            "threshold": 12.5,
+        },
         "cost_estimate_enabled": False,
         "engine_params": {"connect_args": {"application_name": "test"}},
     }
@@ -164,12 +153,24 @@ def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
     ],
 )
 def test_invalid_query_cost_warning_is_rejected(
-    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
     rule: object,
 ) -> None:
     """A supplied rule must be well formed and complete when enabled."""
+    from superset.databases.schemas import QueryCostWarningSchema
+
     with pytest.raises(ValidationError):
-        warning_extra_loader({"query_cost_warning": rule})
+        QueryCostWarningSchema().load(rule)
+
+
+def test_connection_schemas_reject_invalid_query_cost_warning(
+    warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+) -> None:
+    """Create, update, and import reject enabled rules without a threshold."""
+    with pytest.raises(ValidationError) as exc_info:
+        warning_extra_loader(
+            {"query_cost_warning": {"enabled": True, "metric": "total_cost"}}
+        )
+    assert "threshold" in str(exc_info.value.messages)
 
 
 @pytest.mark.parametrize(
@@ -185,9 +186,10 @@ def test_get_query_cost_warning_preserves_explicit_rule(
     """Reading a rule preserves its settings without mutating the supplied extra."""
     from superset.databases.schemas import get_query_cost_warning
 
+    original = rule.copy()
     extra = {"query_cost_warning": rule}
-    assert get_query_cost_warning(extra) == rule
-    assert extra == {"query_cost_warning": rule}
+    assert get_query_cost_warning(extra) == original
+    assert extra == {"query_cost_warning": original}
 
 
 def test_missing_query_cost_warning_is_disabled() -> None:

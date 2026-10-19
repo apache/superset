@@ -24,6 +24,8 @@ import fetchMock from 'fetch-mock';
 import { createWrapper, waitFor } from 'spec/helpers/testing-library';
 import { initialState, defaultQueryEditor } from 'src/SqlLab/fixtures';
 import { DEFAULT_BOOTSTRAP_DATA } from 'src/constants';
+import { ADD_TOAST } from 'src/components/MessageToasts/actions';
+import { ToastType } from 'src/components/MessageToasts/types';
 import type { SqlLabRootState } from 'src/SqlLab/types';
 import useQueryCostWarning, { parseWarningResult } from './useQueryCostWarning';
 
@@ -114,15 +116,14 @@ function setup() {
       },
     },
   };
-  const store = createStore(
+  const reducer = jest.fn(
     (
       currentState = state,
       action: { type: string; state?: SqlLabRootState },
     ): SqlLabRootState =>
       action.type === 'REPLACE' && action.state ? action.state : currentState,
-    state,
-    applyMiddleware(thunk),
   );
+  const store = createStore(reducer, state, applyMiddleware(thunk));
   const hook = renderHook(
     ({ limit = 1000 }) => useQueryCostWarning(editor, limit),
     {
@@ -144,7 +145,16 @@ function setup() {
       hook.result.current.start();
     });
   const executions = () => fetchMock.callHistory.calls('warning-execute');
-  return { ...hook, replace, finish, start, executions, editor, store };
+  return {
+    ...hook,
+    replace,
+    finish,
+    start,
+    executions,
+    editor,
+    store,
+    reducer,
+  };
 }
 
 beforeEach(() => {
@@ -211,12 +221,13 @@ test.each(['disabled', 'unsupported', 'within_threshold'])(
 );
 
 test.each([
-  { status: 'exceeded', runAsync: false },
-  { status: 'exceeded', runAsync: true },
-  { status: 'unavailable', runAsync: false },
+  { status: 'exceeded', runAsync: false, accuracy: undefined },
+  { status: 'exceeded', runAsync: true, accuracy: undefined },
+  { status: 'unavailable', runAsync: false, accuracy: undefined },
+  { status: 'unavailable', runAsync: false, accuracy: null },
 ])(
-  'requires confirmation for $status with runAsync=$runAsync and continues once',
-  async ({ status, runAsync }) => {
+  'requires confirmation for $status with runAsync=$runAsync, accuracy=$accuracy and continues once',
+  async ({ status, runAsync, accuracy }) => {
     const h = setup();
     h.replace(state => ({
       ...state,
@@ -244,6 +255,7 @@ test.each([
       ...warning,
       status,
       value: status === 'unavailable' ? null : 12.5,
+      ...(accuracy === null && { accuracy, row_level_security_applied: null }),
     });
     expect(h.executions()).toHaveLength(0);
     expect(h.result.current.confirmation?.status).toBe(status);
@@ -290,25 +302,6 @@ test.each(['checking', 'dialog'])(
     expect(h.result.current.confirmation).toBeUndefined();
   },
 );
-
-test('an unavailable estimate with missing accuracy can be confirmed once', async () => {
-  const h = setup();
-  h.start();
-  await h.finish({
-    ...warning,
-    status: 'unavailable',
-    value: null,
-    accuracy: null,
-    row_level_security_applied: null,
-  });
-  expect(h.executions()).toHaveLength(0);
-  expect(h.result.current.confirmation?.status).toBe('unavailable');
-  act(() => {
-    h.result.current.continueRun();
-    h.result.current.continueRun();
-  });
-  await waitFor(() => expect(h.executions()).toHaveLength(1));
-});
 
 test('a cancelled response cannot replace a newer attempt', async () => {
   const h = setup();
@@ -394,8 +387,13 @@ test('invalidates a default effective limit change', async () => {
   const h = setup();
   h.start();
   h.rerender({ limit: 2000 });
-  await h.finish(warning);
+  await h.finish({ ...warning, status: 'within_threshold', value: 0 });
+  await act(async () => {
+    await fetchMock.callHistory.flush(true);
+  });
+  expect(h.executions()).toHaveLength(0);
   expect(h.result.current.confirmation).toBeUndefined();
+  expect(h.result.current.checking).toBe(false);
 });
 
 test('tab changes close an existing confirmation and invalidate its action', async () => {
@@ -416,7 +414,10 @@ test('unmounted editors ignore a late response', async () => {
   const h = setup();
   h.start();
   h.unmount();
-  await h.finish(warning);
+  await h.finish({ ...warning, status: 'within_threshold', value: 0 });
+  await act(async () => {
+    await fetchMock.callHistory.flush(true);
+  });
   expect(h.executions()).toHaveLength(0);
 });
 
@@ -450,6 +451,16 @@ test.each([403, 400, 500])(
     await waitFor(() => expect(h.result.current.checking).toBe(false));
     expect(h.executions()).toHaveLength(0);
     expect(h.result.current.confirmation).toBeUndefined();
+    expect(h.reducer).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: ADD_TOAST,
+        payload: expect.objectContaining({
+          toastType: ToastType.Danger,
+          text: 'Check failed',
+        }),
+      }),
+    );
   },
 );
 
