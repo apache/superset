@@ -999,28 +999,65 @@ def test_warning_schema_validates_resulting_engine(
             schema.load(payload)
 
 
+@pytest.mark.parametrize("engine", ["bigquery", "postgresql", "sqlite"])
 @pytest.mark.parametrize(
-    "stored_rule,expected",
-    [
-        (
-            {"enabled": True, "metric": "total_cost", "threshold": 12.5},
-            {"enabled": False, "metric": "total_cost", "threshold": 12.5},
-        ),
-        (
-            {"enabled": True, "metric": "total_cost", "threshold": "invalid"},
-            {"enabled": False},
-        ),
-    ],
+    "extra",
+    [{}, {"metadata_params": {}}, {"query_cost_warning": {"enabled": False}}],
 )
-def test_minimal_disable_preserves_only_valid_saved_values(
-    stored_rule: dict[str, object], expected: dict[str, object]
+def test_normalize_query_cost_warning_does_not_add_rule_fields(
+    engine: str, extra: dict[str, object]
 ) -> None:
-    """Minimal disables preserve valid values without resurrecting bad fields."""
+    """Normalization validates supplied settings without supplying a rule or fields."""
     from superset.databases.schemas import normalize_query_cost_warning
 
-    saved = normalize_query_cost_warning(
-        {"query_cost_warning": {"enabled": False}},
-        "postgresql://",
-        {"query_cost_warning": stored_rule},
-    )
-    assert saved["query_cost_warning"] == expected
+    assert normalize_query_cost_warning(extra, f"{engine}://") == extra
+
+
+@pytest.mark.parametrize(
+    "schema_name", ["DatabasePostSchema", "DatabasePutSchema", "ImportV1DatabaseSchema"]
+)
+@pytest.mark.parametrize("extra", [{}, {"metadata_params": {}}])
+def test_warning_schema_keeps_rule_absent(
+    mocker: MockerFixture, schema_name: str, extra: dict[str, object]
+) -> None:
+    """An explicit extra replacement without a rule stays free of warning settings."""
+    from superset.databases import schemas
+
+    session = mocker.patch("superset.databases.schemas.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = None
+    payload: dict[str, object] = {
+        "database_name": "test",
+        "sqlalchemy_uri": "postgresql://",
+        "extra": extra
+        if schema_name == "ImportV1DatabaseSchema"
+        else json.dumps(extra),
+    }
+    if schema_name == "ImportV1DatabaseSchema":
+        payload.update(uuid="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", version="1.0.0")
+
+    result = getattr(schemas, schema_name)().load(payload)
+
+    saved_extra = result["extra"]
+    assert (
+        saved_extra
+        if schema_name == "ImportV1DatabaseSchema"
+        else json.loads(saved_extra)
+    ) == extra
+
+
+@pytest.mark.parametrize(
+    "schema_name", ["DatabasePostSchema", "DatabasePutSchema", "ImportV1DatabaseSchema"]
+)
+def test_warning_schema_keeps_omitted_extra_absent(
+    mocker: MockerFixture, schema_name: str
+) -> None:
+    """Warning validation does not introduce extra into a request that omitted it."""
+    from superset.databases import schemas
+
+    session = mocker.patch("superset.databases.schemas.db.session")
+    session.query.return_value.filter_by.return_value.first.return_value = None
+    payload = {"database_name": "test", "sqlalchemy_uri": "postgresql://"}
+    if schema_name == "ImportV1DatabaseSchema":
+        payload.update(uuid="aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee", version="1.0.0")
+
+    assert "extra" not in getattr(schemas, schema_name)().load(payload)

@@ -343,22 +343,15 @@ def get_query_cost_warning(extra: dict[str, Any]) -> dict[str, Any]:
 def normalize_query_cost_warning(
     extra: dict[str, Any],
     sqlalchemy_uri: str,
-    stored_extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Validate warning settings against the resulting connection's engine."""
+    """Validate a supplied rule against the resulting engine without adding fields."""
+    if "query_cost_warning" not in extra:
+        return extra.copy()
     url = make_url_safe(sqlalchemy_uri)
     spec = get_engine_spec(
         url.get_backend_name(), url.drivername.partition("+")[2] or None
     )
     rule = get_query_cost_warning(extra)
-    if stored_extra and "query_cost_warning" in extra and rule["enabled"] is False:
-        try:
-            previous = get_query_cost_warning(stored_extra)
-        except ValidationError:
-            previous = {"enabled": False}
-        if rule.get("metric", previous.get("metric")) != previous.get("metric"):
-            previous.pop("threshold", None)
-        rule = QueryCostWarningSchema().load({**previous, **rule})
     metric = spec.get_query_cost_warning_metric()
     if rule["enabled"] and (metric is None or rule.get("metric") != metric):
         raise ValidationError(
@@ -368,8 +361,6 @@ def normalize_query_cost_warning(
                 ]
             }
         )
-    if metric is None and "query_cost_warning" not in extra:
-        return extra.copy()
     return {**extra, "query_cost_warning": rule}
 
 
@@ -1139,9 +1130,10 @@ class ImportV1DatabaseSchema(Schema):
         self, data: dict[str, Any], **kwargs: Any
     ) -> dict[str, Any]:
         """Apply the same warning rules to imported connections and API saves."""
-        data["extra"] = normalize_query_cost_warning(
-            data.get("extra", {}), data["sqlalchemy_uri"]
-        )
+        if "extra" in data:
+            data["extra"] = normalize_query_cost_warning(
+                data["extra"], data["sqlalchemy_uri"]
+            )
         return data
 
     @pre_load

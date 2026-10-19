@@ -127,7 +127,7 @@ class CreateDatabaseCommand(BaseCommand):
         sqlalchemy_uri: Optional[str] = self._properties.get("sqlalchemy_uri")
         if not sqlalchemy_uri:
             exceptions.append(DatabaseRequiredFieldValidationError("sqlalchemy_uri"))
-        else:
+        elif "extra" in self._properties:
             try:
                 self._properties["extra"] = json.dumps(
                     normalize_query_cost_warning(

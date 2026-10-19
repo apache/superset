@@ -58,6 +58,28 @@ def test_create_preserves_warning_rule_and_unrelated_extras(
     assert json.loads(command._properties["extra"]) == extra
 
 
+@pytest.mark.parametrize("extra", [None, {}, {"metadata_params": {}}])
+def test_create_does_not_add_warning_settings(
+    mocker: MockerFixture, extra: dict[str, object] | None
+) -> None:
+    """Creating a connection without a rule preserves absent and explicit extras."""
+    mocker.patch(
+        "superset.commands.database.create.DatabaseDAO.validate_uniqueness",
+        return_value=True,
+    )
+    properties = {"database_name": "test", "sqlalchemy_uri": "postgresql://"}
+    if extra is not None:
+        properties["extra"] = json.dumps(extra)
+    command = CreateDatabaseCommand(properties)
+
+    command.validate()
+
+    if extra is None:
+        assert "extra" not in command._properties
+    else:
+        assert json.loads(command._properties["extra"]) == extra
+
+
 def test_create_rejects_warning_metric_for_another_engine(
     mocker: MockerFixture,
 ) -> None:

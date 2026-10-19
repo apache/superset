@@ -28,10 +28,18 @@ from tests.unit_tests.fixtures.assets_configs import databases_config
 
 
 @pytest.mark.parametrize("broken", [False, True])
-def test_import_disables_saved_warning_and_preserves_unrelated_extras(
-    mocker: MockerFixture, session: Session, broken: bool
+@pytest.mark.parametrize("engine", ["postgresql", "bigquery"])
+@pytest.mark.parametrize(
+    "extra", [None, {}, {"query_cost_warning": {"enabled": False}}]
+)
+def test_import_replaces_extra_without_restoring_saved_warning_fields(
+    mocker: MockerFixture,
+    session: Session,
+    broken: bool,
+    engine: str,
+    extra: dict[str, object] | None,
 ) -> None:
-    """The real import path can repair a rule without dropping connection settings."""
+    """Imports replace extra, including when a saved rule is broken or incompatible."""
     from superset import db, security_manager
     from superset.commands.database.importers.v1.utils import import_database
     from superset.databases.schemas import ImportV1DatabaseSchema
@@ -56,30 +64,71 @@ def test_import_disables_saved_warning_and_preserves_unrelated_extras(
     )
     db.session.add(database)
     db.session.flush()
-    config = ImportV1DatabaseSchema().load(
-        {
-            "database_name": database.database_name,
-            "sqlalchemy_uri": "postgresql://",
-            "uuid": str(database.uuid),
-            "version": "1.0.0",
-            "extra": {"query_cost_warning": {"enabled": False}},
-        }
-    )
+    payload: dict[str, object] = {
+        "database_name": database.database_name,
+        "sqlalchemy_uri": f"{engine}://",
+        "password": "fresh-test-password",
+        "uuid": str(database.uuid),
+        "version": "1.0.0",
+    }
+    if extra is not None:
+        payload["extra"] = extra
+    config = ImportV1DatabaseSchema().load(payload)
     imported = import_database(config, overwrite=True)
     assert imported.id == database.id
-    disabled_rule: dict[str, object] = (
-        {"enabled": False} if broken else {**rule, "enabled": False}
+    assert json.loads(imported.extra) == (extra if extra is not None else {})
+
+
+def test_import_warning_replacement_keeps_secret_rebind_validation(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """Dropping stored engine parameters must still require fresh credentials."""
+    from superset import db, security_manager
+    from superset.commands.database.importers.v1.utils import import_database
+    from superset.commands.exceptions import ImportFailedError
+    from superset.models.core import Database
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    add_permissions = mocker.patch(
+        "superset.commands.database.importers.v1.utils.add_permissions"
     )
-    assert json.loads(imported.extra) == {
-        **stored,
-        "query_cost_warning": disabled_rule,
+    Database.metadata.create_all(db.session.get_bind())
+    stored = {
+        "engine_params": {"connect_args": {"host": "override.example.com"}},
+        "query_cost_warning": {
+            "enabled": True,
+            "metric": "total_cost",
+            "threshold": 10,
+        },
     }
+    database = Database(
+        database_name="warning-test",
+        sqlalchemy_uri="postgresql://user:stored-test-password@host/test",
+        extra=json.dumps(stored),
+    )
+    database.set_sqlalchemy_uri(database.sqlalchemy_uri)
+    db.session.add(database)
+    db.session.flush()
+
+    with pytest.raises(ImportFailedError, match="without providing new credentials"):
+        import_database(
+            {
+                "database_name": database.database_name,
+                "sqlalchemy_uri": database.sqlalchemy_uri,
+                "uuid": database.uuid,
+                "extra": {"query_cost_warning": {"enabled": False}},
+            },
+            overwrite=True,
+        )
+
+    assert json.loads(database.extra) == stored
+    add_permissions.assert_not_called()
 
 
 def test_import_rejects_warning_incompatible_with_resulting_engine(
     mocker: MockerFixture, session: Session
 ) -> None:
-    """An overwrite validates a retained rule against the incoming connection URI."""
+    """An overwrite validates the supplied rule against the incoming connection URI."""
     from superset import db, security_manager
     from superset.commands.database.importers.v1.utils import import_database
     from superset.models.core import Database

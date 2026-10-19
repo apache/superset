@@ -287,36 +287,22 @@ class UpdateDatabaseCommand(BaseCommand):
             self._check_no_unsafe_secret_rebind()
 
     def _validate_query_cost_warning(self) -> None:
-        """Validate retained rules and rule-only patches against the resulting URI."""
+        """Validate replacement or retained settings without adding omitted extra."""
         assert self._model
-        stored = self._model.extra or "{}"
-        submitted_extra = self._properties.get("extra") or "{}"
-        if (
-            "query_cost_warning" not in stored
-            and "query_cost_warning" not in submitted_extra
-        ):
+        serialized_extra = self._properties.get("extra", self._model.extra) or "{}"
+        if "query_cost_warning" not in serialized_extra:
             return
         try:
-            previous = json.loads(stored)
-            extra = previous.copy()
-            if "extra" in self._properties:
-                submitted = json.loads(submitted_extra)
-                # Replacing the rule permits disabling broken saved fields while
-                # preserving unrelated settings in a rule-only update.
-                extra = (
-                    {**extra, **submitted}
-                    if set(submitted) == {"query_cost_warning"}
-                    else submitted
-                )
+            extra = json.loads(serialized_extra)
         except json.JSONDecodeError as ex:
             raise DatabaseInvalidError(exceptions=[ValidationError(str(ex))]) from ex
         uri = self._properties.get("sqlalchemy_uri") or self._model.sqlalchemy_uri
         try:
-            self._properties["extra"] = json.dumps(
-                normalize_query_cost_warning(extra, uri, previous)
-            )
+            validated_extra = normalize_query_cost_warning(extra, uri)
         except ValidationError as ex:
             raise DatabaseInvalidError(exceptions=[ex]) from ex
+        if "extra" in self._properties:
+            self._properties["extra"] = json.dumps(validated_extra)
 
     def _check_no_unsafe_secret_rebind(self) -> None:
         """

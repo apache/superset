@@ -20,6 +20,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from pytest_mock import MockerFixture
+from sqlalchemy.orm.session import Session
 
 from superset import db
 from superset.commands.database.exceptions import (
@@ -28,6 +29,7 @@ from superset.commands.database.exceptions import (
 )
 from superset.commands.database.update import UpdateDatabaseCommand
 from superset.constants import PASSWORD_MASK
+from superset.databases.schemas import DatabasePutSchema
 from superset.databases.ssh_tunnel.models import SSHTunnel
 from superset.extensions import security_manager
 from superset.models.core import Database
@@ -1287,11 +1289,12 @@ def test_update_oauth2_unresolvable_endpoints_purges_tokens(
     purge_oauth2_tokens.assert_called_once()
 
 
-@pytest.mark.parametrize("new_uri", [None, "postgresql://"])
-def test_warning_update_can_disable_broken_rule_without_losing_extras(
-    mocker: MockerFixture, new_uri: str | None
+@pytest.mark.parametrize("new_uri", ["bigquery://", "postgresql://"])
+def test_warning_update_with_uri_and_empty_extra_clears_saved_settings(
+    mocker: MockerFixture, session: Session, new_uri: str
 ) -> None:
-    """Rule-only replacement permits repairs and retains unrelated settings."""
+    """The PUT schema and real update command preserve an explicit empty replacement."""
+    Database.metadata.create_all(db.session.get_bind())
     database = Database(
         database_name="test",
         sqlalchemy_uri="bigquery://",
@@ -1300,7 +1303,49 @@ def test_warning_update_can_disable_broken_rule_without_losing_extras(
                 "query_cost_warning": {
                     "enabled": True,
                     "metric": "bytes_processed",
-                    "threshold": "invalid",
+                    "threshold": 100,
+                },
+                "cost_estimate_enabled": True,
+                "metadata_params": {},
+            }
+        ),
+    )
+    db.session.add(database)
+    db.session.flush()
+    properties = DatabasePutSchema().load({"sqlalchemy_uri": new_uri, "extra": "{}"})
+    mocker.patch(
+        "superset.commands.database.update.DatabaseDAO.find_by_id",
+        return_value=database,
+    )
+    mocker.patch.object(Database, "get_default_catalog", return_value=None)
+    mocker.patch("superset.commands.database.update.SyncPermissionsCommand")
+    mocker.patch("superset.commands.database.update.get_username", return_value="test")
+    command = UpdateDatabaseCommand(database.id, properties)
+
+    updated = command.run()
+
+    assert json.loads(properties["extra"]) == {}
+    assert isinstance(updated, Database)
+    assert updated.extra == "{}"
+    assert json.loads(command._properties["extra"]) == {}
+    assert db.session.get(Database, database.id) is updated
+
+
+@pytest.mark.parametrize("new_uri", [None, "postgresql://"])
+@pytest.mark.parametrize("threshold", ["invalid", 100])
+def test_warning_update_replaces_rule_without_restoring_saved_fields(
+    mocker: MockerFixture, new_uri: str | None, threshold: str | int
+) -> None:
+    """A minimal disabled rule replaces all submitted extra without restoring fields."""
+    database = Database(
+        database_name="test",
+        sqlalchemy_uri="bigquery://",
+        extra=json.dumps(
+            {
+                "query_cost_warning": {
+                    "enabled": True,
+                    "metric": "bytes_processed",
+                    "threshold": threshold,
                 },
                 "metadata_params": {},
             }
@@ -1316,7 +1361,6 @@ def test_warning_update_can_disable_broken_rule_without_losing_extras(
     saved = json.loads(command._properties["extra"])
     assert saved == {
         "query_cost_warning": {"enabled": False},
-        "metadata_params": {},
     }
 
 
@@ -1337,16 +1381,21 @@ def test_warning_update_validates_retained_rule_against_new_engine(
             }
         ),
     )
-    command = UpdateDatabaseCommand(1, {"sqlalchemy_uri": "postgresql://"})
+    properties = DatabasePutSchema().load({"sqlalchemy_uri": "postgresql://"})
+    command = UpdateDatabaseCommand(1, properties)
     command._model = database
     mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
     with pytest.raises(DatabaseInvalidError):
         command.validate()
+    assert "extra" not in command._properties
 
 
-@pytest.mark.parametrize("enabled", [False, True])
+@pytest.mark.parametrize(
+    "enabled,new_uri",
+    [(False, None), (True, None), (False, "postgresql://"), (True, "bigquery://other")],
+)
 def test_warning_update_preserves_rule_without_resubmitting_extra(
-    mocker: MockerFixture, enabled: bool
+    mocker: MockerFixture, enabled: bool, new_uri: str | None
 ) -> None:
     """Unrelated updates retain the connection's explicit warning settings."""
     extra = {
@@ -1360,8 +1409,12 @@ def test_warning_update_preserves_rule_without_resubmitting_extra(
     database = Database(
         database_name="test", sqlalchemy_uri="bigquery://", extra=json.dumps(extra)
     )
-    command = UpdateDatabaseCommand(1, {})
+    properties = DatabasePutSchema().load(
+        {"sqlalchemy_uri": new_uri} if new_uri else {}
+    )
+    command = UpdateDatabaseCommand(1, properties)
     command._model = database
     mocker.patch.object(command, "_check_no_unsafe_secret_rebind")
     command.validate()
-    assert json.loads(command._properties["extra"]) == extra
+    assert "extra" not in command._properties
+    assert json.loads(database.extra) == extra

@@ -140,16 +140,12 @@ def import_database(  # noqa: C901
             "Database doesn't exist and user doesn't have permission to create databases"  # noqa: E501
         )
     incoming_extra = config.get("extra", {})
-    stored_extra = json.loads(existing.extra or "{}") if existing else None
-    if existing and set(incoming_extra) == {"query_cost_warning"}:
-        incoming_extra = {**(stored_extra or {}), **incoming_extra}
     config["extra"] = incoming_extra
     if existing:
-        # Check the resulting connection settings after a rule-only patch has
-        # retained engine_params; omitted settings do not change the endpoint.
+        # Check the replacement settings before normalizing the warning rule.
         _refuse_stored_secret_reuse(existing, config)
     config["extra"] = normalize_query_cost_warning(
-        incoming_extra, config["sqlalchemy_uri"], stored_extra
+        incoming_extra, config["sqlalchemy_uri"]
     )
     # Check if this URI is allowed (skip for system imports like examples)
     if app.config["PREVENT_UNSAFE_DB_CONNECTIONS"] and not ignore_permissions:
