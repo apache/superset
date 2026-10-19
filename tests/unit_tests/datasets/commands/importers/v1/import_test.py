@@ -1040,6 +1040,46 @@ def _record_binding_checks(mocker: MockerFixture) -> list[dict[str, Any]]:
     return binding_checks
 
 
+def test_import_dataset_template_params_type_change_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that changes only a param's JSON type (``1`` -> ``true``)
+    still repoints a templated ``FROM``, so it re-runs the binding check
+    rather than being judged unchanged by Python dict equality.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}", template_params=json.dumps({"t": 1})
+    )
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, template_params={"t": True}), True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": True}
+
+
+def test_import_dataset_binding_check_drops_reserved_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The import binding check renders with the submitted params minus the names
+    the processor consumes structurally, matching execution.
+    """
+    existing, _ = _existing_dataset(sql="SELECT * FROM {{ t }}")
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(
+            existing, template_params={"t": "public.ok", "extra_cache_keys": []}
+        ),
+        True,
+    )
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": "public.ok"}
+
+
 def test_import_dataset_virtual_rename_skips_binding_check(
     mocker: MockerFixture, session: Session
 ) -> None:

@@ -467,6 +467,52 @@ def _deny_sql_access(**kwargs: Any) -> None:
         )
 
 
+def test_update_dataset_template_params_type_change_is_rechecked(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A params-only edit that changes a value's JSON type (``1`` -> ``true``)
+    can repoint a templated ``FROM`` -- Jinja distinguishes them -- so it must
+    re-authorize the SQL, even though the parsed dicts are Python-equal.
+    """
+    mock_dataset_dao, *_ = _mock_virtual_dataset_update(
+        mocker, template_params='{"x": 1}'
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        side_effect=_deny_sql_access,
+    )
+
+    with pytest.raises(DatasetInvalidError):
+        UpdateDatasetCommand(1, {"template_params": '{"x": true}'}).run()
+
+    assert any(c.kwargs.get("sql") for c in raise_for_access.call_args_list)
+    mock_dataset_dao.update.assert_not_called()
+
+
+def test_update_dataset_auth_check_drops_reserved_params(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The SQL access check renders with the submitted params minus the names the
+    template processor consumes structurally, so the authorized render matches
+    execution (which never exposes them as Jinja variables).
+    """
+    mock_dataset_dao, _, _, dataset = _mock_virtual_dataset_update(
+        mocker, template_params='{"x": 1}'
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+    )
+
+    UpdateDatasetCommand(
+        1, {"template_params": '{"x": 2, "extra_cache_keys": [], "database": "z"}'}
+    ).run()
+
+    sql_call = next(c for c in raise_for_access.call_args_list if c.kwargs.get("sql"))
+    assert sql_call.kwargs["template_params"] == {"x": 2}
+
+
 @pytest.mark.parametrize(
     "payload, database_id, catalog, schema",
     [

@@ -45,7 +45,10 @@ from superset.exceptions import (
 )
 from superset.extensions import db
 from superset.models.core import Database
-from superset.models.helpers import parse_template_params
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
@@ -199,7 +202,7 @@ class DuplicateDatasetCommand(CreateMixin, BaseCommand):
                 sql=base_model.sql.strip().strip(";"),
                 catalog=base_model.catalog,
                 schema=base_model.schema,
-                template_params=template_params,
+                template_params=template_params_for_access_check(template_params),
                 allow_editorship=False,
             )
         except SupersetSecurityException as ex:

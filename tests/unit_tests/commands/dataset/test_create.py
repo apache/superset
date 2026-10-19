@@ -352,6 +352,41 @@ def test_create_dataset_passes_template_params() -> None:
     assert raise_for_access.call_args.kwargs.get("allow_editorship") is False
 
 
+def test_create_dataset_auth_check_drops_reserved_params() -> None:
+    """
+    The SQL access check renders with the submitted params minus the names the
+    template processor consumes structurally, so the authorized render matches
+    execution (which never exposes them as Jinja variables).
+    """
+    mock_database = Mock(spec=Database)
+    mock_database.id = 1
+    mock_database.get_default_catalog.return_value = None
+    dao, uniqueness, table_exists, subjects = _patched_create_validation(mock_database)
+
+    with (
+        dao,
+        uniqueness,
+        table_exists,
+        subjects,
+        patch(
+            "superset.commands.dataset.create.security_manager.raise_for_access",
+        ) as raise_for_access,
+    ):
+        CreateDatasetCommand(
+            {
+                "database": 1,
+                "table_name": "t",
+                "schema": "public",
+                "sql": "SELECT * FROM {{ p }}",
+                "template_params": '{"p": "public.ok", "extra_cache_keys": []}',
+            }
+        ).validate()
+
+    assert raise_for_access.call_args.kwargs.get("template_params") == {
+        "p": "public.ok"
+    }
+
+
 def _patched_create_validation(mock_database: Mock) -> tuple[Any, Any, Any, Any]:
     """Patch the DAO/subject lookups around ``CreateDatasetCommand.validate``."""
     return (

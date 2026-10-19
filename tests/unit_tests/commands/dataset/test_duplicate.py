@@ -123,6 +123,39 @@ def test_duplicate_dataset_access_check_passes_through() -> None:
                     assert mock_access.call_count == 2
 
 
+def test_duplicate_dataset_auth_check_drops_reserved_params() -> None:
+    """
+    The copy's SQL access check renders with the base's params minus the names
+    the template processor consumes structurally, matching execution.
+    """
+    mock_dataset = MagicMock()
+    mock_dataset.id = 1
+    mock_dataset.kind = "virtual"
+    mock_dataset.sql = "SELECT * FROM {{ t }}"
+    mock_dataset.template_params = '{"t": "a", "extra_cache_keys": [], "query": 1}'
+
+    with (
+        patch(
+            "superset.commands.dataset.duplicate.DatasetDAO.find_by_id",
+            return_value=mock_dataset,
+        ),
+        patch(
+            "superset.commands.dataset.duplicate.security_manager.raise_for_access"
+        ) as mock_access,
+        patch(
+            "superset.commands.dataset.duplicate.DatasetDAO.validate_uniqueness",
+            return_value=True,
+        ),
+        patch("superset.commands.utils.populate_subject_list", return_value=[]),
+    ):
+        DuplicateDatasetCommand(
+            {"base_model_id": 1, "table_name": "copy", "is_managed_externally": False}
+        ).validate()
+
+    sql_call = next(c for c in mock_access.call_args_list if c.kwargs.get("sql"))
+    assert sql_call.kwargs["template_params"] == {"t": "a"}
+
+
 def test_duplicate_dataset_copy_requires_data_access() -> None:
     """
     Editorship of the base dataset (which the ``datasource=`` check accepts)

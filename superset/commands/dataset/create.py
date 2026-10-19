@@ -49,7 +49,10 @@ from superset.exceptions import (
     SupersetTimeoutException,
 )
 from superset.extensions import security_manager
-from superset.models.helpers import parse_template_params
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_for_access_check,
+)
 from superset.sql.parse import process_jinja_sql, Table
 from superset.utils.decorators import on_error, transaction
 
@@ -244,7 +247,9 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
                         sql=sql,
                         catalog=catalog,
                         schema=schema,
-                        template_params=template_params,
+                        template_params=template_params_for_access_check(
+                            template_params
+                        ),
                         allow_editorship=False,
                     )
                 except SupersetSecurityException as ex:

@@ -40,7 +40,11 @@ from superset.daos.datasource import Datasource as DatasourceModel, DatasourceDA
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import parse_template_params
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_equivalent,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
@@ -123,18 +127,6 @@ def _repoints_table(
     )
 
 
-def _stored_template_params(datasource: SqlaTable) -> dict[str, Any] | None:
-    """``datasource``'s stored template params, or ``None`` if unreadable.
-
-    ``None`` never equals a readable request, so a dataset holding params
-    that execution would read differently is always re-authorized.
-    """
-    try:
-        return parse_template_params(datasource.template_params)
-    except ValueError:
-        return None
-
-
 def _repoints_sql(
     datasource: DatasourceModel,
     database_changed: bool,
@@ -159,7 +151,9 @@ def _repoints_sql(
         or requested_sql != datasource.sql
         or (requested_table.schema, requested_table.catalog)
         != (datasource.schema or None, datasource.catalog or None)
-        or requested_template_params != _stored_template_params(datasource)
+        or not template_params_equivalent(
+            requested_template_params, datasource.template_params
+        )
     )
 
 
@@ -248,8 +242,12 @@ def _authorize_repoint(
                 catalog=requested_table.catalog,
                 schema=requested_table.schema,
                 # Render with the submitted params so a templated FROM is
-                # authorized as the table it actually resolves to.
-                template_params=requested_template_params,
+                # authorized as the table it actually resolves to, minus the
+                # names the processor consumes structurally (so the render
+                # matches execution).
+                template_params=template_params_for_access_check(
+                    requested_template_params
+                ),
                 allow_editorship=False,
             )
     except SupersetSecurityException as ex:

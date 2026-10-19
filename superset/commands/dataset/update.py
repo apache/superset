@@ -58,7 +58,11 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.core import Database
-from superset.models.helpers import parse_template_params
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_equivalent,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
@@ -79,15 +83,10 @@ def _template_params_differ(requested: str | None, stored: str | None) -> bool:
     templated SQL renders?
 
     Compared the way execution reads them, so re-serialized JSON with the same
-    values is no change. Params execution would read differently than any
-    access check can (see ``parse_template_params``) always count as one.
+    values is no change while values of different JSON types (e.g. ``1`` vs
+    ``true``, which Jinja distinguishes) are a change.
     """
-    if requested == stored:
-        return False
-    try:
-        return parse_template_params(requested) != parse_template_params(stored)
-    except ValueError:
-        return True
+    return not template_params_equivalent(requested, stored)
 
 
 class UpdateDatasetCommand(UpdateMixin, BaseCommand):
@@ -349,7 +348,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 sql=effective_sql,
                 catalog=catalog,
                 schema=schema,
-                template_params=template_params,
+                template_params=template_params_for_access_check(template_params),
                 allow_editorship=False,
             )
         except SupersetSecurityException as ex:

@@ -54,7 +54,12 @@ from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import ChildMultipleResultsFound, parse_template_params
+from superset.models.helpers import (
+    ChildMultipleResultsFound,
+    parse_template_params,
+    template_params_equivalent,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
@@ -311,8 +316,13 @@ def _raise_for_import_binding_access(
     )
     if "template_params" in config:
         requested_params = _readable_template_params(config["template_params"])
+        # Compared type-sensitively (as execution reads them): ``1`` and
+        # ``true`` are a change even though the dicts are Python-equal. An
+        # unreadable value on either side counts as a change (fail closed).
         params_unchanged = (
-            requested_params is not None and requested_params == stored_params
+            requested_params is not None
+            and stored_params is not None
+            and template_params_equivalent(requested_params, stored_params)
         )
     else:
         requested_params = stored_params
@@ -350,7 +360,7 @@ def _raise_for_import_binding_access(
                 # catalog/schema, so they are normalized to None.
                 catalog=requested_catalog or None,
                 schema=requested_schema or None,
-                template_params=requested_params,
+                template_params=template_params_for_access_check(requested_params),
                 allow_editorship=False,
             )
         except TEMPLATE_RENDER_ERRORS as ex:

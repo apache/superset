@@ -768,6 +768,74 @@ def test_save_rejects_template_params_repoint_without_access(
     mock_get_database_by_id.assert_not_called()
 
 
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_template_params_type_change_is_rechecked(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    Changing only a param's JSON type (``1`` -> ``true``) repoints a templated
+    ``FROM`` (Jinja distinguishes them), so the save is re-authorised rather
+    than judged unchanged by Python dict equality.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}", is_virtual=True, template_params='{"t": 1}'
+    )
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(
+            database={"id": 1},
+            table_name="my_table",
+            schema="public",
+            sql="SELECT * FROM {{ t }}",
+            template_params='{"t": true}',
+        )
+
+    assert mock_security_manager.raise_for_access.call_args.kwargs[
+        "template_params"
+    ] == {"t": True}
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_auth_check_drops_reserved_params(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    The repoint check renders with the submitted params minus the names the
+    template processor consumes structurally, matching execution.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}", is_virtual=True, template_params='{"t": "a"}'
+    )
+    mock_get_datasource.return_value = mock_orm
+
+    _run_save(
+        database={"id": 1},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT * FROM {{ t }}",
+        template_params='{"t": "b", "extra_cache_keys": [], "database": "z"}',
+    )
+
+    assert mock_security_manager.raise_for_access.call_args.kwargs[
+        "template_params"
+    ] == {"t": "b"}
+
+
 @patch("superset.views.datasource.views._", _identity_gettext)
 @patch("superset.views.datasource.views.db")
 @patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
