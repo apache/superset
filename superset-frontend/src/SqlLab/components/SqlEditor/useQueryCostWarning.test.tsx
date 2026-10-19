@@ -210,11 +210,36 @@ test.each(['disabled', 'unsupported', 'within_threshold'])(
   },
 );
 
-test.each(['exceeded', 'unavailable'])(
-  'requires confirmation for %s and continues once',
-  async status => {
+test.each([
+  { status: 'exceeded', runAsync: false },
+  { status: 'exceeded', runAsync: true },
+  { status: 'unavailable', runAsync: false },
+])(
+  'requires confirmation for $status with runAsync=$runAsync and continues once',
+  async ({ status, runAsync }) => {
     const h = setup();
+    h.replace(state => ({
+      ...state,
+      sqlLab: {
+        ...state.sqlLab,
+        databases: {
+          ...state.sqlLab.databases,
+          [h.editor.dbId!]: {
+            ...state.sqlLab.databases[h.editor.dbId!],
+            allow_run_async: runAsync,
+          },
+        },
+        unsavedQueryEditor: {
+          id: h.editor.id,
+          sql: 'SELECT 42',
+          catalog: 'catalog',
+          schema: 'schema',
+          queryLimit: 25,
+        },
+      },
+    }));
     h.start();
+    expect(h.executions()).toHaveLength(0);
     await h.finish({
       ...warning,
       status,
@@ -229,6 +254,24 @@ test.each(['exceeded', 'unavailable'])(
       h.result.current.continueRun();
     });
     await waitFor(() => expect(h.executions()).toHaveLength(1));
+    const checked = JSON.parse(
+      String(fetchMock.callHistory.calls('warning-check')[0].options.body),
+    );
+    expect(checked).toMatchObject({
+      database_id: h.editor.dbId,
+      sql: 'SELECT 42',
+      catalog: 'catalog',
+      schema: 'schema',
+      query_limit: 25,
+    });
+    expect(JSON.parse(String(h.executions()[0].options.body))).toMatchObject({
+      database_id: checked.database_id,
+      sql: checked.sql,
+      catalog: checked.catalog,
+      schema: checked.schema,
+      queryLimit: checked.query_limit,
+      runAsync,
+    });
     expect(h.result.current.confirmation).toBeUndefined();
   },
 );
@@ -410,42 +453,54 @@ test.each([403, 400, 500])(
   },
 );
 
-test.each(['flag', 'estimation', 'rule', 'unsupported', 'ctas', 'automatic'])(
-  'known inactive %s keeps the existing execution path',
-  async reason => {
-    const h = setup();
-    if (reason === 'flag') featureEnabled.mockReturnValue(false);
-    if (['estimation', 'rule', 'unsupported'].includes(reason))
-      h.replace(state => ({
-        ...state,
-        sqlLab: {
-          ...state.sqlLab,
-          databases: {
-            [h.editor.dbId!]: {
-              ...state.sqlLab.databases[h.editor.dbId!],
-              ...(reason === 'estimation' && { allows_cost_estimate: false }),
-              ...(reason === 'rule' && {
-                query_cost_warning: { enabled: false },
-              }),
-              ...(reason === 'unsupported' && {
-                engine_information: { query_cost_warning_metric: null },
-              }),
-            },
+test.each([
+  'warning flag',
+  'estimate flag',
+  'estimation',
+  'rule',
+  'unsupported',
+  'ctas',
+  'automatic',
+])('known inactive %s keeps the existing execution path', async reason => {
+  const h = setup();
+  if (reason === 'warning flag')
+    featureEnabled.mockImplementation(
+      flag => flag === FeatureFlag.EstimateQueryCost,
+    );
+  if (reason === 'estimate flag')
+    featureEnabled.mockImplementation(
+      flag => flag === FeatureFlag.SqlLabQueryCostWarnings,
+    );
+  if (['estimation', 'rule', 'unsupported'].includes(reason))
+    h.replace(state => ({
+      ...state,
+      sqlLab: {
+        ...state.sqlLab,
+        databases: {
+          [h.editor.dbId!]: {
+            ...state.sqlLab.databases[h.editor.dbId!],
+            ...(reason === 'estimation' && { allows_cost_estimate: false }),
+            ...(reason === 'rule' && {
+              query_cost_warning: { enabled: false },
+            }),
+            ...(reason === 'unsupported' && {
+              engine_information: { query_cost_warning_metric: null },
+            }),
           },
         },
-      }));
-    act(() => {
-      h.result.current.start(
-        '',
-        reason === 'ctas',
-        'TABLE',
-        reason === 'automatic',
-      );
-    });
-    await waitFor(() => expect(h.executions()).toHaveLength(1));
-    expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(0);
-  },
-);
+      },
+    }));
+  act(() => {
+    h.result.current.start(
+      '',
+      reason === 'ctas',
+      'TABLE',
+      reason === 'automatic',
+    );
+  });
+  await waitFor(() => expect(h.executions()).toHaveLength(1));
+  expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(0);
+});
 
 test('byte results preserve values beyond JavaScript safe integers', () => {
   const value = BigInt('9007199254740993123');

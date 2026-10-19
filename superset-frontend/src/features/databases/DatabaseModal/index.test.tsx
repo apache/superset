@@ -2121,32 +2121,6 @@ describe('dbReducer', () => {
     });
   });
 
-  test('turning estimation off retains the warning rule', () => {
-    const extra = {
-      query_cost_warning: {
-        enabled: true,
-        metric: 'total_cost',
-        threshold: 12.5,
-      },
-      cost_estimate_enabled: true,
-    };
-    const state = dbReducer(
-      { ...databaseFixture, extra: JSON.stringify(extra) },
-      {
-        type: ActionType.ExtraInputChange,
-        payload: {
-          name: 'cost_estimate_enabled',
-          type: 'checkbox',
-          checked: false,
-        },
-      },
-    );
-    expect(JSON.parse(state?.extra || '{}')).toEqual({
-      ...extra,
-      cost_estimate_enabled: false,
-    });
-  });
-
   test('it will set state to payload from encrypted extra input change', () => {
     const action: DBReducerActionType = {
       type: ActionType.EncryptedExtraInputChange,

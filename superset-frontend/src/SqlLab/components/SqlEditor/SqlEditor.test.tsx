@@ -206,13 +206,9 @@ describe('SqlEditor', () => {
   });
 
   test.each([
-    { status: 'disabled', proceed: false, executions: 1 },
-    { status: 'unsupported', proceed: false, executions: 1 },
     { status: 'within_threshold', proceed: false, executions: 1 },
     { status: 'exceeded', proceed: false, executions: 0 },
     { status: 'exceeded', proceed: true, executions: 1 },
-    { status: 'unavailable', proceed: false, executions: 0 },
-    { status: 'unavailable', proceed: true, executions: 1 },
   ])(
     'pre-run $status, continue $proceed executes $executions queries',
     async ({ status, proceed, executions }) => {
@@ -230,7 +226,7 @@ describe('SqlEditor', () => {
             metric: 'bytes_processed',
             label: 'Estimated bytes processed',
             unit: 'bytes',
-            value: status === 'unavailable' ? null : 101,
+            value: 101,
             threshold: 100,
             message: 'Estimate result',
           },
@@ -261,14 +257,10 @@ describe('SqlEditor', () => {
         await act(async () => {
           await fetchMock.callHistory.flush(true);
         });
-        if (status === 'exceeded' || status === 'unavailable') {
+        if (status === 'exceeded') {
           fireEvent.click(
             await findByRole('button', {
-              name: proceed
-                ? status === 'exceeded'
-                  ? 'Run anyway'
-                  : 'Run without estimate'
-                : 'Cancel',
+              name: proceed ? 'Run anyway' : 'Cancel',
             }),
           );
         }

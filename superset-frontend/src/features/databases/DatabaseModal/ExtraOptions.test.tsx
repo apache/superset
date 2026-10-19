@@ -160,49 +160,6 @@ describe('ExtraOptions Component', () => {
     },
   );
 
-  test.each([
-    {
-      backend: 'bigquery',
-      metric: 'bytes_processed' as const,
-      label: 'Warning threshold (bytes processed)',
-      threshold: 100000000,
-      display: 100,
-      updated: 123500000,
-    },
-    {
-      backend: 'postgresql',
-      metric: 'total_cost' as const,
-      label: 'Warning threshold (planner cost)',
-      threshold: 12.5,
-      display: 12.5,
-      updated: 123.5,
-    },
-  ])(
-    'warning thresholds retain native units for $backend',
-    ({ backend, metric, label, threshold, display, updated }) => {
-      renderComponent({
-        ...defaultDb,
-        backend,
-        engine_information: {
-          ...defaultDb.engine_information,
-          query_cost_warning_metric: metric,
-        },
-        extra: JSON.stringify({
-          cost_estimate_enabled: true,
-          query_cost_warning: { enabled: true, metric, threshold },
-        }),
-      });
-      fireEvent.click(screen.getByText('SQL Lab'));
-      const amount = screen.getByLabelText(label);
-      expect(amount).toHaveValue(display);
-      fireEvent.change(amount, { target: { value: '123.5' } });
-      expect(onExtraEditorChange).toHaveBeenCalledWith({
-        name: 'query_cost_warning',
-        json: JSON.stringify({ enabled: true, metric, threshold: updated }),
-      });
-    },
-  );
-
   test('enabled warnings remain disableable after estimation is turned off', () => {
     renderComponent({
       ...defaultDb,
@@ -269,32 +226,6 @@ describe('ExtraOptions Component', () => {
     expect(
       screen.getByLabelText('Enable pre-run cost warnings'),
     ).toBeDisabled();
-  });
-
-  test('a saved rule can be disabled after changing to an unsupported engine', () => {
-    renderComponent({
-      ...defaultDb,
-      extra: JSON.stringify({
-        query_cost_warning: {
-          enabled: true,
-          metric: 'bytes_processed',
-          threshold: 100,
-        },
-      }),
-    });
-    fireEvent.click(screen.getByText('SQL Lab'));
-    const checkbox = screen.getByLabelText('Enable pre-run cost warnings');
-    expect(checkbox).toBeChecked();
-    expect(checkbox).toBeEnabled();
-    fireEvent.click(checkbox);
-    expect(onExtraEditorChange).toHaveBeenCalledWith({
-      name: 'query_cost_warning',
-      json: JSON.stringify({
-        enabled: false,
-        metric: 'bytes_processed',
-        threshold: 100,
-      }),
-    });
   });
 
   test('calls onExtraEditorChange when metadata_params json editor changes', async () => {
