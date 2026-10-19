@@ -892,6 +892,35 @@ This information can then be retrieved from the endpoint `/api/v1/saved_query/` 
 schedule the queries that have `schedule_info` in their JSON metadata. For schedulers other than
 Airflow, additional fields can be easily added to the configuration file above.
 
+## Microsoft Teams configuration (development)
+
+The optional `apache-superset[teams]` extra provides MSAL for bot authentication.
+`FEATURE_FLAGS["ALERT_REPORT_TEAMS"]` defaults to `False`. This configuration
+foundation does not register a recipient type or send messages yet.
+
+Set `ALERT_REPORTS_TEAMS` in `superset_config.py` with `tenant_id` (UUID),
+`application_id` (bot application UUID), `credential` (client secret from your
+secret store), and a nonempty `destinations` list. Each destination requires:
+
+- `key`: unique stable identifier, 1–128 letters, digits, underscores or hyphens,
+  starting with a letter or digit. Retain this key when changing channel details.
+- `label`: display name.
+- `team_id`: Teams team identifier.
+- `channel_id`: Teams channel identifier.
+
+An empty mapping leaves Teams unconfigured. The server-side
+`superset.integrations.teams.config.parse_teams_config` function validates the
+mapping and rejects missing/unknown fields and duplicate keys or channels.
+Only one tenant and bot identity are accepted per deployment. Operators must
+approve standard channels in that tenant; the parser cannot verify channel type
+or tenant membership without Teams metadata. Private/shared channels, DMs,
+scheduled reports, and attachments are outside the integration scope.
+
+Keep the entire mapping on the server. Browser destination lists must use
+`TeamsConfig.public_destinations()` (keys and labels only). Recipient JSON must
+store only the selected destination key, never credentials or routing details.
+Do not serialize the parsed configuration object, including via `dataclasses.asdict`.
+
 :::resources
 
 - [Tutorial: Automated Alerts and Reporting via Slack/Email in Superset](https://dev.to/ngtduc693/apache-superset-topic-5-automated-alerts-and-reporting-via-slackemail-in-superset-2gbe)
