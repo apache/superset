@@ -21,6 +21,7 @@ from typing import Any, cast
 import pytest
 
 from superset.security.guest_token import (
+    GUEST_TOKEN_IDENTITY_FIELDS,
     GUEST_TOKEN_IDENTITY_MAX_LENGTH,
     GuestTokenUser,
     validate_guest_token_identity,
@@ -44,7 +45,16 @@ def test_missing_fields_are_accepted() -> None:
     validate_guest_token_identity({"username": "only-username"})
 
 
-@pytest.mark.parametrize("field", ["username", "first_name", "last_name"])
+def test_missing_user_claim_is_accepted() -> None:
+    validate_guest_token_identity(None)
+
+
+def test_non_object_user_claim_is_rejected() -> None:
+    with pytest.raises(ValueError, match="must be an object"):
+        validate_guest_token_identity(cast(GuestTokenUser, "user@example.com"))
+
+
+@pytest.mark.parametrize("field", GUEST_TOKEN_IDENTITY_FIELDS)
 @pytest.mark.parametrize(
     "value",
     [
@@ -60,7 +70,7 @@ def test_control_characters_are_rejected(field: str, value: str) -> None:
         validate_guest_token_identity(_identity(field, value))
 
 
-@pytest.mark.parametrize("field", ["username", "first_name", "last_name"])
+@pytest.mark.parametrize("field", GUEST_TOKEN_IDENTITY_FIELDS)
 def test_overlong_value_is_rejected(field: str) -> None:
     with pytest.raises(ValueError, match="maximum length"):
         validate_guest_token_identity(
@@ -72,7 +82,7 @@ def test_value_at_maximum_length_is_accepted() -> None:
     validate_guest_token_identity({"username": "x" * GUEST_TOKEN_IDENTITY_MAX_LENGTH})
 
 
-@pytest.mark.parametrize("field", ["username", "first_name", "last_name"])
+@pytest.mark.parametrize("field", GUEST_TOKEN_IDENTITY_FIELDS)
 def test_non_string_value_is_rejected(field: str) -> None:
     with pytest.raises(ValueError, match="must be a string"):
         validate_guest_token_identity(_identity(field, 123))

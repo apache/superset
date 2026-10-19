@@ -16,7 +16,7 @@
 # under the License.
 import logging
 import threading
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 from flask import after_this_request, current_app, request, Response
 from flask_appbuilder import expose
@@ -36,6 +36,7 @@ from marshmallow import (
     RAISE,
     Schema,
     validate,
+    validates_schema,
     ValidationError,
 )
 from sqlalchemy import asc, desc
@@ -61,6 +62,8 @@ from superset.security import password_recovery
 from superset.security.guest_token import (
     build_guest_token_audit_payload,
     GuestTokenResourceType,
+    GuestTokenUser,
+    validate_guest_token_identity,
 )
 from superset.utils.core import get_user_id
 from superset.views.base_api import (
@@ -89,6 +92,13 @@ class UserSchema(PermissiveSchema):
     attributes = fields.Dict(
         keys=fields.String(), values=fields.Raw(allow_none=True), allow_none=True
     )
+
+    @validates_schema
+    def validate_identity(self, data: dict[str, Any], **kwargs: Any) -> None:
+        try:
+            validate_guest_token_identity(cast(GuestTokenUser, data))
+        except ValueError as ex:
+            raise ValidationError(str(ex)) from ex
 
 
 class ResourceSchema(PermissiveSchema):

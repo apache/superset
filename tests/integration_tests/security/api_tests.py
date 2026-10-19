@@ -369,6 +369,21 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert resource == decoded_token["resources"][0]
 
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
+    def test_post_guest_token_invalid_identity(self) -> None:
+        self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
+        self.embedded = EmbeddedDashboardDAO.upsert(self.dash, [])
+        self.login(ADMIN_USERNAME)
+        user = {"username": "bob\nalice", "first_name": "Bob", "last_name": "Bob"}
+        resource = {"type": "dashboard", "id": str(self.embedded.uuid)}
+        params = {"user": user, "resources": [resource], "rls": []}
+
+        response = self.client.post(
+            self.uri, data=json.dumps(params), content_type="application/json"
+        )
+
+        self.assert400(response)
+
+    @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_bad_resources(self):
         self.login(ADMIN_USERNAME)
         user = {"username": "bob", "first_name": "Bob", "last_name": "Also Bob"}

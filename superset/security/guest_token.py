@@ -22,6 +22,7 @@ from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
 
 from superset.utils.backports import StrEnum
+from superset.utils.file import CONTROL_CHARS_RE
 
 logger = logging.getLogger(__name__)
 
@@ -139,17 +140,12 @@ class GuestTokenUser(TypedDict, total=False):
 
 
 # Upper bound for the identity strings carried in a guest token's ``user``
-# claim. 255 matches the width of the stored username/name columns elsewhere.
+# claim, a generous bound for a display identity.
 GUEST_TOKEN_IDENTITY_MAX_LENGTH = 255
-_GUEST_TOKEN_IDENTITY_FIELDS = ("username", "first_name", "last_name")
+GUEST_TOKEN_IDENTITY_FIELDS = ("username", "first_name", "last_name")
 
 
-def _has_control_characters(value: str) -> bool:
-    # C0 controls (includes newline/carriage return/tab), DEL, and C1 controls.
-    return any(ord(char) < 0x20 or 0x7F <= ord(char) <= 0x9F for char in value)
-
-
-def validate_guest_token_identity(user: GuestTokenUser) -> None:
+def validate_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
     """Validate the identity strings carried in a guest token's ``user`` claim.
 
     ``username``/``first_name``/``last_name`` are supplied by the host
@@ -159,10 +155,17 @@ def validate_guest_token_identity(user: GuestTokenUser) -> None:
     request-supplied strings are validated: a display identity has no reason to
     carry control characters (e.g. an embedded newline) or an unbounded value.
 
+    A missing ``user`` claim is not rejected here; that check belongs to the
+    point where the token is consumed.
+
     :param user: the ``user`` claim from a guest token
     :raises ValueError: if a provided identity field is not a valid string
     """
-    for field in _GUEST_TOKEN_IDENTITY_FIELDS:
+    if user is None:
+        return
+    if not isinstance(user, dict):
+        raise ValueError("Guest token user must be an object")
+    for field in GUEST_TOKEN_IDENTITY_FIELDS:
         value = user.get(field)
         if value is None:
             continue
@@ -170,7 +173,7 @@ def validate_guest_token_identity(user: GuestTokenUser) -> None:
             raise ValueError(f"Guest token {field} must be a string")
         if len(value) > GUEST_TOKEN_IDENTITY_MAX_LENGTH:
             raise ValueError(f"Guest token {field} exceeds the maximum length")
-        if _has_control_characters(value):
+        if CONTROL_CHARS_RE.search(value):
             raise ValueError(f"Guest token {field} contains invalid characters")
 
 
