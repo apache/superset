@@ -7719,7 +7719,7 @@ msgstr "ジオメトリ列"
 msgid "Get the last date by the date unit."
 msgstr "日付単位に基づいて最後の日付を取得します。"
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "指定された休日の日付を取得します"
 
 msgid "Give access to multiple catalogs in a single database connection."
