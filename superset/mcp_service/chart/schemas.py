@@ -2936,8 +2936,15 @@ class PivotTableChartConfig(BaseChartConfig):
         "Maximum",
         "Count",
         "Count Unique Values",
+        "List Unique Values",
         "First",
         "Last",
+        "Sum as Fraction of Total",
+        "Sum as Fraction of Rows",
+        "Sum as Fraction of Columns",
+        "Count as Fraction of Total",
+        "Count as Fraction of Rows",
+        "Count as Fraction of Columns",
     ] = Field(
         "Metric",
         description="Totals aggregation. 'Metric' keeps the database-computed "

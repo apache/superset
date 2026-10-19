@@ -2354,6 +2354,23 @@ def test_pivot_table_v2_sample_statistics_sparse_summaries(
     assert (pivoted[summary_columns] == 0).all(axis=None)
 
 
+def test_sample_dispersion_zero_observations_is_zero_not_nan() -> None:
+    """A DataFrame scope with zero non-null observations must render 0, the
+    same as the single-observation case just above, not NaN -- the mask only
+    covered `count(axis=axis) == 1`, silently leaving an all-null scope (e.g.
+    a metric entirely absent for one row of a sparse multi-metric pivot)
+    unmasked and NaN instead.
+    """
+    from superset.charts.client_processing import (  # pylint: disable=import-outside-toplevel
+        _sample_dispersion,
+    )
+
+    df = pd.DataFrame({"a": [float("nan"), float("nan")], "b": [1.0, 2.0]})
+
+    assert _sample_dispersion(df, "var", axis=0)["a"] == 0
+    assert _sample_dispersion(df, "var", axis=0)["b"] == pytest.approx(0.5)
+
+
 def test_pivot_table_v2_ignores_stale_show_values_as_under_result_aggregation():
     """A result aggregation hides `showValuesAs` in Explore and always wins
     over it on the chart (`resultFactory ?? fractionType` in utilities.ts);

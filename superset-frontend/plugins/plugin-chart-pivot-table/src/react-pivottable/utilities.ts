@@ -58,6 +58,26 @@ interface Aggregator {
   isColSubtotal?: boolean;
 }
 
+/**
+ * A plain `Aggregator`, plus the two fields `isAllNullScope` reads -- present
+ * only on a `sum`-templated aggregator (see its `sawNull`/`sawValue`
+ * tracking above), optional here because `fractionOf` can wrap any
+ * aggregator template, not just `sum`.
+ */
+type NullTrackingAggregator = Aggregator & {
+  sawNull?: boolean;
+  sawValue?: boolean;
+};
+
+/**
+ * The shape `fractionOf`'s denominator lookup expects: whichever concrete
+ * `Aggregator` is actually configured for the table (the same `aggregators`
+ * map builds every cell, subtotal, and metric-total slot alike), narrowed to
+ * the one property this lookup reads off it -- the wrapped aggregator a
+ * `fractionOf` instance delegates to.
+ */
+type FractionDenominator = Aggregator & { inner?: NullTrackingAggregator };
+
 interface SubtotalOptions {
   rowEnabled?: boolean;
   colEnabled?: boolean;
@@ -952,7 +972,7 @@ const baseAggregatorTemplates = {
             return this.fraction(true);
           },
           fraction(forSort: boolean) {
-            const read = (agg: any) =>
+            const read = (agg: Aggregator) =>
               forSort && agg.sortValue ? agg.sortValue() : agg.value();
             // `buildGroupbyCombinations` requests the denominator's rollup
             // level whenever a percent `showValuesAs` is selected, but fall
@@ -1000,7 +1020,7 @@ const baseAggregatorTemplates = {
             // populates these same maps itself -- see its "Metric-collapse
             // totals" section -- so they resolve there too, not just under
             // `processResultRecord`'s result-aggregation reducer.
-            let denominatorAggregator: any;
+            let denominatorAggregator: FractionDenominator | undefined;
             if (metricSubstituted === 'col') {
               denominatorAggregator =
                 selRow.length === 0
@@ -1037,6 +1057,14 @@ const baseAggregatorTemplates = {
             if (numerator === null || isAllNullScope(this.inner)) {
               return null;
             }
+            // Mirrors the denominator's own `typeof acc === 'string'` branch
+            // below: a string-valued numerator (e.g. MAX()/MIN() on a text
+            // column) has no ratio to compute either, and `numerator / acc`
+            // would otherwise coerce it through JS's numeric coercion rather
+            // than render it as-is.
+            if (typeof numerator === 'string') {
+              return numerator;
+            }
 
             const acc = read(denominatorAggregator.inner);
 
@@ -1048,6 +1076,14 @@ const baseAggregatorTemplates = {
             // instead of the blank the null/missing-denominator contract
             // above already establishes.
             if (acc === null || isAllNullScope(denominatorAggregator.inner)) {
+              return null;
+            }
+            // A literal zero denominator (e.g. a row that nets to zero on a
+            // signed metric) would otherwise produce Infinity/NaN under `/`.
+            // The backend's equivalent (`_apply_show_values_as` in
+            // client_processing.py) blanks this same case by replacing a
+            // zero denominator with NaN before dividing; match that here.
+            if (acc === 0) {
               return null;
             }
 

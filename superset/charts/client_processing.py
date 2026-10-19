@@ -824,10 +824,13 @@ def _sample_dispersion(
     if isinstance(data, pd.DataFrame):
         axis = 0 if axis is None else axis
         result = getattr(data, method)(axis=axis)
-        # A scope with exactly one non-null observation has a defined spread of
-        # 0 (as for a single-cell aggregation); count observations per scope so
-        # sparse pivots, where physical columns outnumber observations, agree.
-        return result.mask(data.count(axis=axis) == 1, 0)
+        # A scope with zero or one non-null observations has a defined spread
+        # of 0 (as for a single-cell aggregation, or an empty one); count
+        # observations per scope so sparse pivots, where physical columns
+        # outnumber observations, agree. `<= 1` (not `== 1`) also covers the
+        # zero-observation case, which `getattr(data, method)` otherwise
+        # leaves as NaN instead of 0, unlike the Series branch below.
+        return result.mask(data.count(axis=axis) <= 1, 0)
     return getattr(data, method)() if len(data) > 1 else 0
 
 

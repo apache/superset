@@ -35,6 +35,7 @@ import {
 } from '@superset-ui/core';
 import { MetricsLayoutEnum, ShowValuesAsEnum } from '../types';
 import {
+  getResultAggregation,
   METRIC_DEFINITION_AGGREGATION,
   RESULT_AGGREGATIONS,
   RESULT_AGGREGATION_LABELS,
@@ -332,11 +333,15 @@ const config: ControlPanelConfig = {
               // has its own "... as Fraction of ..." choices built in, and
               // takes over the cell/summary computation entirely -- this
               // control's percent transform would otherwise be silently
-              // ignored rather than applied on top of it.
+              // ignored rather than applied on top of it. Route through
+              // `getResultAggregation` rather than comparing the raw value,
+              // so an unrecognized/stale `aggregateFunction` falls back to
+              // "Use metric definition" the same way the renderer does,
+              // instead of hiding this control for a value that doesn't
+              // actually select a result aggregation.
               visibility: ({ controls }) =>
-                (controls?.aggregateFunction?.value ??
-                  METRIC_DEFINITION_AGGREGATION) ===
-                METRIC_DEFINITION_AGGREGATION,
+                getResultAggregation(controls?.aggregateFunction?.value) ===
+                undefined,
             },
           },
         ],
