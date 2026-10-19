@@ -52,8 +52,8 @@ logger = logging.getLogger(__name__)
 # Database._execute_sql_with_mutation_and_logging hands the sink the live cursor
 # before the blocking execute so the task can capture an engine cancel id.
 # Absent (None) for every other get_df caller, so this is a no-op elsewhere.
-_cancel_id_sink: ContextVar["Callable[[Any], None] | None"] = ContextVar(
-    "gtf_cancel_id_sink", default=None
+_cancel_id_sink: ContextVar["Callable[[Any, Database | None], None] | None"] = (
+    ContextVar("gtf_cancel_id_sink", default=None)
 )
 
 

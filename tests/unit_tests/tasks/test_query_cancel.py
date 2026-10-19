@@ -148,8 +148,8 @@ def test_capture_registers_abort_handler_once_when_id_available() -> None:
         with _capture_query_cancellation(qc):
             sink = _cancel_id_sink.get()
             assert sink is not None
-            sink(MagicMock())  # first cursor -> registers handler
-            sink(MagicMock())  # second cursor -> no double registration
+            sink(MagicMock(), None)  # first cursor -> registers handler
+            sink(MagicMock(), None)  # second cursor -> no double registration
 
     ctx.on_abort.assert_called_once()
     # The handle is persisted (for the orphan reaper) before on_abort, whose
@@ -191,7 +191,7 @@ def test_capture_skips_abort_handler_when_engine_has_no_cancel_id() -> None:
         with _capture_query_cancellation(qc):
             sink = _cancel_id_sink.get()
             assert sink is not None
-            sink(MagicMock())
+            sink(MagicMock(), None)
 
     ctx.on_abort.assert_not_called()
     ctx.set_cancellation.assert_not_called()
