@@ -35,6 +35,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import inspect, select
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.orm import Session
+from superset_core.semantic_layers.context import ExecutionMethod
 from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     Dimension,
@@ -288,37 +289,88 @@ def test_semantic_layer_repr_without_name() -> None:
     assert repr(layer) == str(test_uuid)
 
 
-def test_semantic_layer_implementation_not_implemented() -> None:
+def test_semantic_layer_implementation_not_implemented(mocker: MockerFixture) -> None:
     """Test that implementation raises KeyError for unregistered type."""
-    layer = SemanticLayer()
+    mocker.patch(
+        "superset.semantic_layers.execution.semantic_namespace", return_value="test"
+    )
+    layer: SemanticLayer = SemanticLayer()
     with pytest.raises(KeyError):
         _ = layer.implementation
 
 
-def test_semantic_layer_implementation() -> None:
-    """Test that implementation returns a configured semantic layer."""
-    layer = SemanticLayer()
-    layer.type = "test_type"
-    layer.configuration = '{"key": "value"}'
+def test_semantic_layer_implementation_is_scoped_to_owning_session(
+    session: Session, mocker: MockerFixture
+) -> None:
+    """The same identity reuses bindings within, but never across, ORM sessions."""
+    from flask import current_app
+    from flask_appbuilder.security.sqla.models import User
 
-    mock_class = MagicMock()
-    mock_impl = MagicMock()
-    mock_class.from_configuration_with_cache_token.return_value = mock_impl
+    from superset.utils.core import override_user
+    from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
-    with patch.dict(
-        "superset.semantic_layers.models.registry",
-        {"test_type": mock_class},
-    ):
-        # Clear cached property if it exists
-        if "implementation" in layer.__dict__:
-            del layer.__dict__["implementation"]
-
-        result = layer.implementation
-
-    mock_class.from_configuration_with_cache_token.assert_called_once_with(
-        {"key": "value"}, cache_token=layer.metadata_generation
+    engine: Engine = cast(Engine, session.get_bind())
+    SemanticLayer.metadata.create_all(engine)
+    layer_id: uuid.UUID = uuid.uuid4()
+    session.add(
+        SemanticLayer(
+            uuid=layer_id, name="Session scoped", type="test", configuration="{}"
+        )
     )
-    assert result == mock_impl
+    session.commit()
+    mocker.patch.dict(
+        current_app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "session-test"}
+    )
+    mocker.patch.dict("superset.semantic_layers.models.registry", {"test": LegacyLayer})
+    factory: MagicMock = mocker.spy(LegacyLayer, "from_configuration")
+    first_session: Session
+    second_session: Session
+    with (
+        override_user(User(id=7)),
+        Session(engine) as first_session,
+        Session(engine) as second_session,
+    ):
+        first_layer: SemanticLayer | None = first_session.get(SemanticLayer, layer_id)
+        second_layer: SemanticLayer | None = second_session.get(SemanticLayer, layer_id)
+        assert first_layer is not None
+        assert second_layer is not None
+        assert first_layer is not second_layer
+        first: LegacyLayer = cast(LegacyLayer, first_layer.implementation)
+        assert first_layer.implementation is first
+        second: LegacyLayer = cast(LegacyLayer, second_layer.implementation)
+        assert second_layer.implementation is second
+        assert first_layer.implementation is first
+        assert first.context == second.context
+        assert first.context.principal_id == "7"
+        assert first is not second
+        assert factory.call_count == 2
+
+
+def test_semantic_layer_implementation(mocker: MockerFixture) -> None:
+    """Test that implementation returns a configured semantic layer."""
+    from superset.semantic_layers.execution import current_host_execution_context
+
+    mocker.patch(
+        "superset.semantic_layers.execution.semantic_namespace", return_value="test"
+    )
+    layer: SemanticLayer = SemanticLayer(
+        type="test_type", configuration='{"key": "value"}'
+    )
+    mock_class: MagicMock = MagicMock(
+        supported_execution_methods={ExecutionMethod.CONNECTION}
+    )
+    mock_impl: MagicMock = mock_class.from_configuration.return_value
+    with patch.dict(
+        "superset.semantic_layers.models.registry", {"test_type": mock_class}
+    ):
+        assert layer.implementation is mock_impl
+        assert layer.implementation is mock_impl
+    mock_class.from_configuration.assert_called_once_with(
+        {"key": "value"},
+        cache_token=layer.metadata_generation,
+        context=current_host_execution_context(),
+        credentials=None,
+    )
 
 
 # =============================================================================
@@ -392,7 +444,9 @@ def mock_implementation(
 
 
 @pytest.fixture
-def semantic_view(mock_implementation: MagicMock) -> SemanticView:
+def semantic_view(
+    mock_implementation: MagicMock, mocker: MockerFixture
+) -> SemanticView:
     """Create a SemanticView with mocked implementation."""
     layer = SemanticLayer()
     layer.name = "Test Layer"
@@ -410,8 +464,12 @@ def semantic_view(mock_implementation: MagicMock) -> SemanticView:
     view.configuration = "{}"
     view.perm = "[Test Layer].[Orders View](id:1)"
 
-    # Persist mocked implementation on this instance
-    view.__dict__["implementation"] = mock_implementation
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=mock_implementation,
+    )
 
     return view
 
@@ -1376,30 +1434,43 @@ def test_semantic_view_explore_url() -> None:
     )
 
 
-def test_semantic_view_implementation() -> None:
-    """Test SemanticView implementation property."""
-    view = SemanticView()
-    view.name = "Test View"
-    view.configuration = '{"key": "value"}'
+def test_semantic_view_implementation(mocker: MockerFixture) -> None:
+    """Views share the layer binding and canonicalize equivalent configuration."""
+    from superset.semantic_layers.execution import SemanticBindingMemo
 
-    mock_semantic_layer = MagicMock()
-    mock_semantic_view_impl = MagicMock()
-    mock_semantic_layer.implementation.get_semantic_view.return_value = (
-        mock_semantic_view_impl
+    view: SemanticView = SemanticView(
+        name="Test View", configuration='{"tenant": "A", "key": "value"}'
     )
-    view.semantic_layer = mock_semantic_layer
-
-    # Clear cached property if it exists
-    if "implementation" in view.__dict__:
-        del view.__dict__["implementation"]
-
-    result = view.implementation
-
-    mock_semantic_layer.implementation.get_semantic_view.assert_called_once_with(
-        "Test View",
-        {"key": "value"},
+    view.semantic_layer = SemanticLayer()
+    equivalent: SemanticView = SemanticView(
+        name="Test View",
+        configuration='{"key": "value", "tenant": "A"}',
+        semantic_layer=view.semantic_layer,
     )
-    assert result == mock_semantic_view_impl
+    different: SemanticView = SemanticView(
+        name="Test View",
+        configuration='{"tenant": "B", "key": "value"}',
+        semantic_layer=view.semantic_layer,
+    )
+    provider: MagicMock = MagicMock()
+    first: MagicMock = MagicMock()
+    second: MagicMock = MagicMock()
+    provider.get_semantic_view.side_effect = [first, second]
+    memo: SemanticBindingMemo = SemanticBindingMemo()
+    mocker.patch.object(SemanticBindingMemo, "for_layer", return_value=memo)
+    mocker.patch.object(memo, "bind", return_value=(provider, {}))
+    assert view.implementation is first
+    assert view.implementation is first
+    assert equivalent.implementation is first
+    provider.get_semantic_view.assert_called_once_with(
+        "Test View", {"tenant": "A", "key": "value"}
+    )
+    assert different.implementation is second
+    assert different.implementation is not first
+    assert provider.get_semantic_view.call_count == 2
+    provider.get_semantic_view.assert_called_with(
+        "Test View", {"tenant": "B", "key": "value"}
+    )
 
 
 def test_semantic_view_get_compatible_metrics(

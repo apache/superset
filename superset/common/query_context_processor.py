@@ -50,11 +50,13 @@ from superset.daos.exceptions import (
     DatasourceValueIsIncorrect,
 )
 from superset.dataframe import df_to_records
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
     QueryObjectValidationMessage,
     SemanticResultCompletenessError,
     SupersetException,
+    SupersetSecurityException,
     SupersetTemplateException,
 )
 from superset.explorables.base import Explorable
@@ -1018,6 +1020,13 @@ class QueryContextProcessor:
             SemanticResultCompletenessError,
         ):
             raise
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
+            raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
         except SupersetException as ex:
             raise QueryObjectValidationError(error_msg_from_exception(ex)) from ex
 

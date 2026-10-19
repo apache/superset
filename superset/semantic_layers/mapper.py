@@ -94,7 +94,7 @@ from superset.utils.core import (
     QueryObjectFilterClause,
     TIME_COMPARISON,
 )
-from superset.utils.date_parser import get_past_or_future
+from superset.utils.date_parser import get_past_or_future, is_no_time_range
 
 logger: logging.Logger = logging.getLogger(__name__)
 
@@ -449,7 +449,8 @@ def map_semantic_result_to_query_result(
         # Template filters - not applicable to semantic layers
         # (semantic layers don't use Jinja templates)
         applied_template_filters=None,
-        # Match SQL datasets: unknown columns are rejected, not silently applied.
+        # Dashboard (isExtra) filters on columns the view lacks are reported
+        # as rejected; chart-defined ones were refused during validation.
         applied_filter_columns=[
             column
             for column in filter_columns
@@ -1436,22 +1437,48 @@ def validate_filter_columns(
     dimension_names: Collection[str],
     metric_names: Collection[str],
 ) -> None:
-    """Refuse chart-defined metric predicates; report incompatible extras later."""
+    """Refuse chart-defined predicates on metrics or on columns the view lacks.
+
+    Dashboard (``isExtra``) filters are not refused: incompatible ones are
+    skipped and reported, so a dashboard filter cannot break the chart. A
+    "No filter" time range constrains nothing, so missing columns are allowed;
+    chart-defined metric filters remain unsupported.
+    """
     for filter_ in filters:
         column: Column = filter_["col"]
         if (
-            isinstance(column, str)
-            and column not in dimension_names
-            and column in metric_names
-            and not filter_.get("isExtra")
+            not isinstance(column, str)
+            or column in dimension_names
+            or filter_.get("isExtra")
         ):
+            continue
+        if column in metric_names:
             raise QueryObjectValidationError(
                 _(
                     "Filter column '%(column)s' is a metric; semantic views only "
-                    "filter on dimensions",
+                    "filter on dimensions. Select a dimension or remove the filter.",
                     column=column,
                 )
             )
+        if _is_no_op_time_range(filter_):
+            continue
+        raise QueryObjectValidationError(
+            _(
+                "Filter column '%(column)s' is not in this semantic view. Select a "
+                "dimension or remove the filter.",
+                column=column,
+            )
+        )
+
+
+def _is_no_op_time_range(
+    filter_: QueryObjectFilterClause | ValidatedQueryObjectFilterClause,
+) -> bool:
+    """Whether a filter is a time range that applies no bounds."""
+    value: object = filter_.get("val")
+    return filter_.get("op") == FilterOperator.TEMPORAL_RANGE.value and (
+        value is None or (isinstance(value, str) and is_no_time_range(value))
+    )
 
 
 def _validate_filters(

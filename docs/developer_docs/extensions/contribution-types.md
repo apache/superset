@@ -245,12 +245,17 @@ See [MCP Integration](./mcp.md) for implementation details.
 
 ### Semantic Layers
 
-See [cache invalidation](../semantic-layer-cache-clear.md) for the optional
-cache-token factory hook and provider cache requirements.
+See [cache invalidation](../semantic-layer-cache-clear.md) for the required
+cache-token factory argument and provider cache requirements.
+
+See the [execution context contract](semantic-execution-context.md) for provider construction and connection-mode guarantees.
 
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
 
 ```python
+from typing import Any
+
+from superset_core.semantic_layers.context import SemanticCredentials, SemanticExecutionContext
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.layer import SemanticLayer
 
@@ -266,10 +271,21 @@ from my_extension.view import MySemanticView
 class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
     configuration_class = MyConfig
 
+    def __init__(
+        self, configuration: MyConfig, *, cache_token: str,
+        context: SemanticExecutionContext,
+    ) -> None:
+        self.configuration: MyConfig = configuration
+        self.cache_token: str = cache_token
+        self.context: SemanticExecutionContext = context
+
     @classmethod
-    def from_configuration(cls, configuration: dict) -> "MySemanticLayer":
-        config = MyConfig.model_validate(configuration)
-        return cls(config)
+    def from_configuration(
+        cls, configuration: dict[str, Any], *, cache_token: str,
+        context: SemanticExecutionContext, credentials: SemanticCredentials | None = None,
+    ) -> "MySemanticLayer":
+        config: MyConfig = MyConfig.model_validate(configuration)
+        return cls(config, cache_token=cache_token, context=context)
 
     @classmethod
     def get_configuration_schema(cls, configuration=None) -> dict:
