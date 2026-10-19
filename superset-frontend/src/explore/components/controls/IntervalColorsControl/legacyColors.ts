@@ -66,16 +66,24 @@ export const resolveLegacyIntervalColors = (
   } catch {
     indices = [];
   }
+  // An index past the static palette can only be resolved against the
+  // renderer's render-time palette (which grows under USE_ANALOGOUS_COLORS),
+  // so wrapping it modulo the static scheme would show -- and, once a row is
+  // edited, persist -- a different color than the chart renders. Leave every
+  // band unresolved so such charts keep rendering through the renderer's own
+  // legacy path.
+  if (indices.some(index => index > schemeColors.length)) {
+    return bounds.map(() => '');
+  }
   // Bounds without an explicit legacy index keep their positional color,
-  // exactly as the Gauge renderer does (`colors[idx]`).
+  // exactly as the Gauge renderer does (`colors[idx]`). Indices below 1 are
+  // not valid 1-indexed positions: the renderer yields `undefined` for them
+  // and falls back to that same positional color, so this does too.
   return bounds.map((_, index) => {
     const legacyIndex = indices[index];
     if (schemeColors.length === 0) return '';
-    if (Number.isFinite(legacyIndex)) {
-      return schemeColors[
-        (((legacyIndex - 1) % schemeColors.length) + schemeColors.length) %
-          schemeColors.length
-      ];
+    if (Number.isFinite(legacyIndex) && legacyIndex >= 1) {
+      return schemeColors[(legacyIndex - 1) % schemeColors.length];
     }
     return schemeColors[index % schemeColors.length];
   });

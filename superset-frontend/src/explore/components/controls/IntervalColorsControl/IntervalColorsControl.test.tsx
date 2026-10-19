@@ -129,6 +129,42 @@ test('explicit value takes precedence over legacy indices', () => {
   expect(screen.getByText('#00FF00')).toBeInTheDocument();
 });
 
+test('a non-positive legacy index falls back to the positional scheme color like the renderer', () => {
+  // The renderer computes `colors[(ind - 1) % n]`, which is `undefined` for
+  // index 0, so that band uses `colors[idx]`; it must not wrap to the last
+  // scheme color.
+  render(
+    <IntervalColorsControl
+      onChange={jest.fn()}
+      intervals="20,60"
+      legacyIntervalColorIndices="0,2"
+      colorScheme="testScheme"
+    />,
+  );
+
+  expect(screen.getByText('#1F77B4')).toBeInTheDocument();
+  expect(screen.getByText('#FF7F0E')).toBeInTheDocument();
+  expect(screen.queryByText('#2CA02C')).not.toBeInTheDocument();
+});
+
+test('a legacy index past the scheme length leaves every legacy index unresolved', () => {
+  // The renderer may index a palette that grew past the static scheme, so
+  // wrapping modulo the scheme length would show (and later persist) a
+  // different color than the chart renders.
+  render(
+    <IntervalColorsControl
+      onChange={jest.fn()}
+      intervals="20,60"
+      legacyIntervalColorIndices="10,3"
+      colorScheme="testScheme"
+    />,
+  );
+
+  expect(screen.getByText('#1F77B4')).toBeInTheDocument();
+  expect(screen.getByText('#FF7F0E')).toBeInTheDocument();
+  expect(screen.queryByText('#2CA02C')).not.toBeInTheDocument();
+});
+
 test('a single unparseable legacy index discards every legacy index, not just its own', () => {
   // Matches `getIntervalBoundsAndColors` in Gauge/transformProps.ts exactly:
   // one bad token falls back to the positional scheme color for every

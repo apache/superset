@@ -1395,3 +1395,23 @@ def test_gauge_preview_keeps_explicit_colors_over_legacy_indices() -> None:
     prepared = _prepare_gauge_preview([{"progress": 40}], form_data)
     assert not isinstance(prepared, ChartError)
     assert prepared[1]["interval_colors"] == ["#111111", "#222222", "#333333"]
+
+
+@pytest.mark.parametrize("stale_indices", ["1,2", "not,numbers"])
+def test_gauge_preview_ignores_stale_indices_when_explicit_colors_exist(
+    stale_indices: str,
+) -> None:
+    """Explicit interval_colors make the renderer ignore legacy indices."""
+    prepared = _prepare_gauge_preview(
+        [{"progress": 40}],
+        {
+            "metric": "progress",
+            "min_val": 0,
+            "max_val": 100,
+            "intervals": "30,60,100",
+            "interval_color_indices": stale_indices,
+            "interval_colors": ["#111111", "#222222", "#333333"],
+        },
+    )
+    assert not isinstance(prepared, ChartError)
+    assert prepared[1]["interval_colors"] == ["#111111", "#222222", "#333333"]
