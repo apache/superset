@@ -4459,6 +4459,9 @@ msgstr "إغلاق محرر نقاط توقف الألوان"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "إغلاق علامة التبويب"
 
@@ -9292,10 +9295,10 @@ msgstr "يخفي الخط الخاص بالسلسلة الزمنية"
 msgid "Hierarchy"
 msgstr "التسلسل الهرمي"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10672,10 +10675,10 @@ msgstr "خطوط الطول والعرض"
 msgid "Longitude of default viewport"
 msgstr "خط طول إطار العرض الافتراضي"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -12259,9 +12262,6 @@ msgstr "عتامة الفقاعات، 0 تعني الشفافية الكاملة
 msgid "Opacity, expects values between 0 and 100"
 msgstr "العتامة، تتوقع القيم بين 0 و 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "افتح علامة تبويب مصدر البيانات"
 
@@ -12297,6 +12297,9 @@ msgstr "افتح في مختبر SQL"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "افتح في مختبر SQL"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "افتح الاستعلام في SQL Lab"

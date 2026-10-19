@@ -4082,6 +4082,9 @@ msgstr "Farb-Breakpoint-Editor schließen"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Registerkarte schließen"
 
@@ -8434,10 +8437,10 @@ msgstr "Blendet die Linie für die Zeitreihe aus"
 msgid "Hierarchy"
 msgstr "Hierarchie"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9703,10 +9706,10 @@ msgstr "Längen- und Breitengrad"
 msgid "Longitude of default viewport"
 msgstr "Längengrad des Standardansichtfensters"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11167,9 +11170,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Deckkraft, erwartet Werte zwischen 0 und 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Datenquellen-Registerkarte öffnen"
 
@@ -11203,6 +11203,9 @@ msgstr "In SQL-Lab öffnen"
 
 msgid "Open in SQL lab"
 msgstr "In SQL-Lab öffnen"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Abfrage in SQL-Lab öffnen"

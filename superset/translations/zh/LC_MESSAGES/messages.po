@@ -4156,6 +4156,9 @@ msgstr "关闭颜色断点编辑器"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "关闭选项卡"
 
@@ -8699,10 +8702,10 @@ msgstr "隐藏时间序列的线"
 msgid "Hierarchy"
 msgstr "层次"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10049,10 +10052,10 @@ msgstr "经度/纬度"
 msgid "Longitude of default viewport"
 msgstr "默认视口经度"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 #, fuzzy
@@ -11617,9 +11620,6 @@ msgstr "气泡的不透明度，0表示完全透明，1表示不透明"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "不透明度，期望值在0到100之间"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "打开数据源选项卡"
 
@@ -11651,6 +11651,9 @@ msgstr "在 SQL Lab 中打开"
 
 msgid "Open in SQL lab"
 msgstr "在 SQL Lab 中打开"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "在 SQL Lab 中打开查询"

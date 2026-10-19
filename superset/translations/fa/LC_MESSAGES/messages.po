@@ -4277,6 +4277,9 @@ msgstr "بستن ویرایشگر نقطه شکست رنگ"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "بستن برگه"
 
@@ -8970,10 +8973,10 @@ msgstr "خط زمانبندی را پنهان می‌کند"
 msgid "Hierarchy"
 msgstr "سلسله‌مراتب"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10349,10 +10352,10 @@ msgstr "طول و عرض جغرافیایی"
 msgid "Longitude of default viewport"
 msgstr "طول جغرافیایی نمای پیش‌فرض"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11903,9 +11906,6 @@ msgstr "شفافیت حباب‌ها، ۰ به معنی کاملاً شفاف و
 msgid "Opacity, expects values between 0 and 100"
 msgstr "شفافیت، انتظار مقادیر بین ۰ تا ۱۰۰ دارد."
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "برگه داده‌منبع را باز کنید"
 
@@ -11941,6 +11941,9 @@ msgstr "در SQL Lab باز کنید"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "در SQL Lab باز کنید"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "باز کردن کوئری در آزمایشگاه SQL"
