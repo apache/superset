@@ -20,13 +20,18 @@ from __future__ import annotations
 
 import asyncio
 import math
+import os
+import select
+import signal
+import threading
 from collections.abc import AsyncIterator, Callable
 from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from email.utils import parsedate_to_datetime
-from time import monotonic
-from typing import Any, Literal, Protocol
+from time import monotonic, sleep
+from types import FrameType
+from typing import Any, Literal, NoReturn, Protocol
 from uuid import UUID
 
 import httpx
@@ -228,7 +233,9 @@ def process_teams_event(
 
 # Count every send, including the single 401 replay, against the same retry bound.
 _DELIVERY_ATTEMPTS = 4
-_DELIVERY_RETRY_WINDOW = 60.0
+_DELIVERY_TIMEOUT = 60.0
+_DELIVERY_CLEANUP_RESERVE = 5.0
+_DELIVERY_WORKERS: set[int] = set()
 _DELIVERY_REQUEST_TIMEOUT = 10.0
 
 
@@ -282,7 +289,7 @@ class TeamsTransport(Protocol):
 
 
 def _remaining(deadline: float) -> float:
-    """Bound each request by both its timeout and remaining retry window."""
+    """Bound each request by its timeout and remaining delivery work time."""
     remaining = deadline - monotonic()
     if remaining <= 0:
         raise TeamsTransportError()
@@ -492,6 +499,155 @@ TransportFactory = Callable[
 ]
 
 
+DeliveryOperation = Callable[[Callable[[], None]], None]
+
+
+class _DeliveryDeadlineExpired(BaseException):
+    """Interrupt token acquisition without being swallowed by SDK exception handlers."""
+
+
+def _reap_delivery_worker(pid: int) -> bool:
+    """Reap only a delivery child owned by this worker, without blocking Celery."""
+    try:
+        exited, _ = os.waitpid(pid, os.WNOHANG)
+    except ChildProcessError:
+        exited = pid
+    if exited:
+        _DELIVERY_WORKERS.discard(pid)
+    return bool(exited)
+
+
+def _close_delivery_process(
+    reader: int, writer: int, pid: int | None, deadline: float
+) -> None:
+    """Kill a stalled child and bound reaping by the same synchronous-call budget."""
+    previous_mask = signal.pthread_sigmask(
+        signal.SIG_BLOCK, {signal.SIGALRM, signal.SIGUSR1}
+    )
+    try:
+        os.close(reader)
+        if writer >= 0:
+            os.close(writer)
+        if pid is None or _reap_delivery_worker(pid):
+            return
+        try:
+            os.kill(pid, signal.SIGKILL)
+        except ProcessLookupError:
+            pass
+        reap_deadline = min(deadline, monotonic() + 1.0)
+        while not _reap_delivery_worker(pid):
+            remaining = reap_deadline - monotonic()
+            if remaining <= 0:
+                return
+            sleep(min(0.001, remaining))
+    finally:
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+
+
+def _delivery_child(
+    operation: DeliveryOperation,
+    pipe: tuple[int, int],
+    work_deadline: float,
+    deadline: float,
+    previous_mask: set[int | signal.Signals],
+) -> NoReturn:
+    """Own all SDK resources in a child; report only a sanitized one-byte outcome."""
+    reader, writer = pipe
+    outcome = b"t"
+    watchdog: threading.Timer | None = None
+
+    def interrupt(_signum: int, _frame: FrameType | None) -> None:
+        """Leave time for ordinary SDK teardown before the parent enforces exit."""
+        raise _DeliveryDeadlineExpired()
+
+    def begin_cleanup() -> None:
+        """Let the parent bound cleanup, including stalled finalizers."""
+        signal.setitimer(signal.ITIMER_REAL, 0)
+
+    try:
+        os.close(reader)
+        signal.signal(signal.SIGALRM, interrupt)
+        signal.signal(signal.SIGUSR1, signal.SIG_IGN)
+        signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask - {signal.SIGALRM})
+        signal.setitimer(signal.ITIMER_REAL, max(work_deadline - monotonic(), 0.001))
+        # Remain bounded even if the Celery worker exits before it can reap us.
+        watchdog = threading.Timer(max(deadline - monotonic(), 0), os._exit, (1,))
+        watchdog.daemon = True
+        watchdog.start()
+        operation(begin_cleanup)
+        outcome = b"0"
+    except TeamsDeliveryError as error:
+        outcome = {"authorization": b"a", "parameter": b"p", "transient": b"t"}[
+            error.category
+        ]
+    finally:
+        try:
+            if watchdog is not None:
+                watchdog.cancel()
+            signal.setitimer(signal.ITIMER_REAL, 0)
+            os.write(writer, outcome)
+        finally:
+            # Do not run inherited Flask/Celery finalizers. Exiting also closes
+            # sockets if Python or SDK cleanup could not finish within budget.
+            os._exit(0)
+
+
+def _run_delivery_process(
+    operation: DeliveryOperation, work_deadline: float, deadline: float
+) -> None:
+    """Bound synchronous SDK work and cleanup from the existing Celery worker.
+
+    Direct fork supports Celery's daemonic prefork workers without starting an
+    SDK server. No configuration, tokens or exceptions cross the outcome pipe.
+    Other execution contexts fail before constructing the SDK transport.
+    """
+    if (
+        threading.current_thread() is not threading.main_thread()
+        or not hasattr(os, "fork")
+        or not hasattr(signal, "pthread_sigmask")
+        or monotonic() >= work_deadline
+    ):
+        raise TeamsDeliveryError("transient")
+    for previous_pid in tuple(_DELIVERY_WORKERS):
+        _reap_delivery_worker(previous_pid)
+    try:
+        reader, writer = os.pipe()
+    except OSError:
+        raise TeamsDeliveryError("transient") from None
+    pid: int | None = None
+    outcome = b"t"
+    try:
+        previous_mask = signal.pthread_sigmask(
+            signal.SIG_BLOCK, {signal.SIGALRM, signal.SIGUSR1}
+        )
+        try:
+            pid = os.fork()
+            if pid == 0:
+                _delivery_child(
+                    operation, (reader, writer), work_deadline, deadline, previous_mask
+                )
+            _DELIVERY_WORKERS.add(pid)
+        finally:
+            signal.pthread_sigmask(signal.SIG_SETMASK, previous_mask)
+        os.close(writer)
+        writer = -1
+        # Leave time to kill/reap a child whose token acquisition or cleanup stalls.
+        worker_deadline = deadline - min(1.0, (deadline - work_deadline) / 2)
+        remaining = worker_deadline - monotonic()
+        if remaining > 0 and select.select([reader], [], [], remaining)[0]:
+            outcome = os.read(reader, 1)
+    except OSError:
+        raise TeamsDeliveryError("transient") from None
+    finally:
+        _close_delivery_process(reader, writer, pid, deadline)
+    if outcome != b"0":
+        categories: dict[bytes, Literal["authorization", "parameter", "transient"]] = {
+            b"a": "authorization",
+            b"p": "parameter",
+        }
+        raise TeamsDeliveryError(categories.get(outcome, "transient"))
+
+
 def deliver_teams_alert(
     config: TeamsConfig,
     destination: TeamsDestination,
@@ -500,13 +656,22 @@ def deliver_teams_alert(
     *,
     transport_factory: TransportFactory | None = None,
 ) -> None:
-    """Send one card as a root channel post using an operation-scoped transport."""
+    """Bound the complete synchronous call, including token acquisition and cleanup."""
+    deadline = monotonic() + _DELIVERY_TIMEOUT
+    cleanup_reserve = min(_DELIVERY_CLEANUP_RESERVE, _DELIVERY_TIMEOUT / 10)
+    work_deadline = deadline - cleanup_reserve
 
-    async def deliver() -> None:
+    async def deliver(begin_cleanup: Callable[[], None]) -> None:
         """Construct, retry, and close the transport before closing the event loop."""
-        deadline = monotonic() + _DELIVERY_RETRY_WINDOW
         factory = transport_factory or _create_transport
-        async with factory(config, service_url, deadline) as transport:
-            await _deliver_with_retries(transport, destination, card, deadline)
+        async with factory(config, service_url, work_deadline) as transport:
+            try:
+                await _deliver_with_retries(transport, destination, card, work_deadline)
+            finally:
+                begin_cleanup()
 
-    asyncio.run(deliver())
+    def operation(begin_cleanup: Callable[[], None]) -> None:
+        """Finish SDK teardown and loop shutdown before acknowledging delivery."""
+        asyncio.run(deliver(begin_cleanup))
+
+    _run_delivery_process(operation, work_deadline, deadline)

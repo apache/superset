@@ -1001,3 +1001,17 @@ installation-required notice. Install the notification bot in the approved team
 before delivery. Removed configuration keys remain visible as unavailable when
 editing saved alerts; restore the configuration or select another approved channel.
 Credentials are managed only in deployment configuration.
+
+Teams delivery has a single 60-second wall-clock budget covering SDK construction,
+synchronous token acquisition, channel posting, resource cleanup, event-loop
+shutdown, and delivery-child reaping. Up to five seconds are reserved for cleanup
+and reaping. An exhausted operation raises the existing transient notification
+error; retries do not reset its budget. Request-level timeouts also apply.
+
+Bounded delivery requires a Unix main-thread worker, such as Celery's prefork or
+solo worker. Each delivery uses a short-lived child process, without starting an
+SDK HTTP server. Only a sanitized outcome crosses the child's result pipe. The
+parent's alarms and signal handlers remain intact. If SDK teardown stalls, the
+parent terminates and reaps the child within the same operation budget. The child
+also enforces its deadline if the Celery worker exits during delivery. Other
+execution contexts fail before opening the transport.
