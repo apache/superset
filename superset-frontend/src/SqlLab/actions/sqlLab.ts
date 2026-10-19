@@ -603,6 +603,12 @@ export function reRunQuery(query: Query): SqlLabThunkAction {
   };
 }
 
+export function refreshQueries(
+  alteredQueries: Record<string, Query>,
+): SqlLabAction {
+  return { type: REFRESH_QUERIES, alteredQueries };
+}
+
 export function postStopQuery(
   query: Query,
 ): SqlLabThunkAction<Promise<unknown>> {
@@ -614,7 +620,25 @@ export function postStopQuery(
     })
       .then(() => dispatch(stopQuery(query)))
       .then(() => dispatch(addSuccessToast(t('Query was stopped.'))))
-      .catch(() => dispatch(addDangerToast(t('Failed to stop query.'))));
+      .catch(async (response: Response) => {
+        if (response.status === 422) {
+          const payload: { query?: Query } = await response
+            .json()
+            .catch(() => ({}));
+          const finishedQuery = payload.query;
+          if (
+            finishedQuery &&
+            finishedQuery.id === query.id &&
+            ['success', 'failed', 'timed_out'].includes(
+              finishedQuery.state ?? '',
+            )
+          ) {
+            dispatch(refreshQueries({ [query.id]: finishedQuery }));
+            return;
+          }
+        }
+        dispatch(addDangerToast(t('Failed to stop query.')));
+      });
   };
 }
 
@@ -1517,12 +1541,6 @@ export function removeTables(
         ),
       );
   };
-}
-
-export function refreshQueries(
-  alteredQueries: Record<string, Query>,
-): SqlLabAction {
-  return { type: REFRESH_QUERIES, alteredQueries };
 }
 
 export function setUserOffline(offline: boolean): SqlLabAction {
