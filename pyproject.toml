@@ -262,7 +262,7 @@ pinot = ["pinotdb[sqlalchemy]>=8.0.0, <10.0.0"]
 playwright = ["playwright>=1.63.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
-teams = ["msal>=1.31.0, <2"]
+teams = ["microsoft-teams-apps==2.1.1"]
 trino = ["trino>=0.340.0"]
 prophet = ["prophet>=1.5.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
