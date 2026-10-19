@@ -92,7 +92,7 @@ def capture_cancel_query_id(database: "Database", cursor: Any) -> "str | None":
 
 
 @contextmanager
-def capture_cancel_id(sink: "Callable[[Any], None]") -> Iterator[None]:
+def capture_cancel_id(sink: "Callable[[Any, Database | None], None]") -> Iterator[None]:
     """Register a cursor sink for the duration of a chart-data query execution."""
     token = _cancel_id_sink.set(sink)
     try:
@@ -101,8 +101,11 @@ def capture_cancel_id(sink: "Callable[[Any], None]") -> Iterator[None]:
         _cancel_id_sink.reset(token)
 
 
-def notify_cursor(cursor: Any) -> None:
+def notify_cursor(cursor: Any, database: "Database | None" = None) -> None:
     """Hand the live cursor to the active sink, if any.
+
+    ``database`` is the database the cursor belongs to, so a sink can ignore
+    cursors from other databases (e.g. an annotation layer's source chart).
 
     Called from ``get_df`` before the query executes. Best-effort: a capture
     failure must never break query execution — it only forfeits cancellability.
@@ -111,7 +114,7 @@ def notify_cursor(cursor: Any) -> None:
     if sink is None:
         return
     try:
-        sink(cursor)
+        sink(cursor, database)
     except Exception:  # noqa: BLE001 pylint: disable=broad-except
         logger.warning("Cancel-id capture failed", exc_info=True)
 
