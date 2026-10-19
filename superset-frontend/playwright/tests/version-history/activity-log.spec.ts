@@ -178,8 +178,15 @@ testWithAssets(
     const groups = panel.locator('[data-test="version-history-save-group"]');
     await expect(groups.first(), 'shows a save group').toBeVisible();
 
-    // The newest save is the live one and is tagged "Current".
-    await expect(panel.getByText('Current')).toBeVisible();
+    // The newest save is the live one. With no unsaved changes there is no
+    // "Current version" section, so the live save is the single row marked
+    // current, by aria-current rather than a visible tag.
+    await expect(
+      panel.getByRole('button', { name: 'Current version' }),
+    ).toHaveCount(0);
+    await expect(panel.locator('[aria-current="true"]')).toHaveCount(1);
+    await expect(groups.first()).toHaveAttribute('aria-current', 'true');
+    await expect(panel.getByText('Current', { exact: true })).toHaveCount(0);
 
     // Expand the newest group and confirm the rename rendered as a descriptive
     // action row — not a raw field path.
