@@ -21,7 +21,7 @@ import { escape } from 'lodash-es';
 import { t, tn } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
-import { ensureAppRoot } from 'src/utils/pathUtils';
+import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 export interface ToastContent {
   text: string;
