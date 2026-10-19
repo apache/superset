@@ -19,7 +19,6 @@ from typing import get_type_hints
 
 import pyarrow as pa
 import pytest
-from superset_core.semantic_layers import decorators
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
@@ -27,7 +26,7 @@ from superset_core.semantic_layers.errors import (
 from superset_core.semantic_layers.layer import ConfigT, SemanticLayer
 from superset_core.semantic_layers.types import Dimension
 
-pytest_plugins: list[str] = ["superset_core.semantic_layers.testing"]
+pytest_plugins: list[str] = ["pytester", "superset_core.semantic_layers.testing"]
 
 
 def test_configuration_is_part_of_the_typed_contract() -> None:
@@ -54,10 +53,32 @@ def test_sdk_only_provider(semantic_layer_registration: None) -> None:
     assert view.metadata_cache_token is None
 
 
-def test_registration_remains_host_owned() -> None:
-    """The fixture must not leave registration enabled outside its lifetime."""
-    with pytest.raises(NotImplementedError):
-        decorators.semantic_layer(id="outside", name="Outside")
+def test_registration_restores_original_decorator(pytester: pytest.Pytester) -> None:
+    """Exercise fixture activation and restoration in one isolated lifecycle."""
+    pytester.makepyfile(
+        """
+        from collections.abc import Iterator
+
+        import pytest
+        from superset_core.semantic_layers import decorators
+
+        pytest_plugins: list[str] = ["superset_core.semantic_layers.testing"]
+
+        @pytest.fixture(autouse=True)
+        def verify_restore() -> Iterator[None]:
+            original: object = decorators.semantic_layer
+            yield
+            assert decorators.semantic_layer is original
+
+        def test_activation(semantic_layer_registration: None) -> None:
+            class Provider:
+                "A test provider with no host registration."
+
+            assert decorators.semantic_layer("example", "Example")(Provider) is Provider
+        """
+    )
+    result: pytest.RunResult = pytester.runpytest_subprocess("-q", "-o", "addopts=")
+    result.assert_outcomes(passed=1)
 
 
 def test_example_rejects_unknown_dimension(semantic_layer_registration: None) -> None:

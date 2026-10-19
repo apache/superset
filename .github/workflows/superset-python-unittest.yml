@@ -65,6 +65,12 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      - name: SDK unit tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          PYTHONPATH: ${{ github.workspace }}/superset-core/src
+        run: |
+          python -m pytest -q -o addopts='' superset-core/tests --junit-xml=test-results/junit-sdk.xml
       # Runs in parallel via pytest-xdist: the serial suite had grown to
       # ~27-28 min against this job's 30-minute timeout, so the trailing
       # coverage/upload steps were being killed on ordinary runner variance
