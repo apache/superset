@@ -534,7 +534,7 @@ const RightMenu = ({
             return null;
           }
           return {
-            key: command.id,
+            key: `extension:${command.id}`,
             label: command.title,
             title: command.description,
             onClick: () => commands.executeCommand(command.id),
