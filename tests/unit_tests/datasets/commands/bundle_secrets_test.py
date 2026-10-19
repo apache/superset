@@ -58,8 +58,8 @@ def snowflake_like_paths(mocker: MockerFixture) -> None:
     )
 
 
-def _export_bundle() -> dict[str, str]:
-    """Export a dataset on a connection that carries both secret blocks."""
+def _export_bundle(secure_extra: dict[str, Any] | None = None) -> dict[str, str]:
+    """Export a dataset on a connection carrying ``secure_extra``."""
     from superset.commands.dataset.export import ExportDatasetsCommand
     from superset.connectors.sqla.models import SqlaTable
     from superset.models.core import Database
@@ -69,7 +69,7 @@ def _export_bundle() -> dict[str, str]:
         database_name="promoted",
         sqlalchemy_uri="sqlite://",
         impersonate_user=True,
-        encrypted_extra=json.dumps(SECRETS),
+        encrypted_extra=json.dumps(SECRETS if secure_extra is None else secure_extra),
     )
     db.session.add(database)
     db.session.flush()
@@ -181,3 +181,55 @@ def test_bundle_import_reuses_an_existing_connection_without_asking(
     ImportDatasetsCommand(bundle).run()
 
     assert existing.encrypted_extra is None
+
+
+CERTIFICATES = {
+    "certificates": {
+        "client-cert.pem": "-----BEGIN CERTIFICATE-----cert-----END CERTIFICATE-----",
+        "client-key.pem": "-----BEGIN PRIVATE KEY-----key-----END PRIVATE KEY-----",
+    }
+}
+
+
+@pytest.mark.usefixtures("snowflake_like_paths")
+def test_bundle_export_never_carries_the_rest_of_secure_extra(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A bundle carries only the OAuth2 client and embedded credential blocks.
+
+    Anyone who can export a dashboard or dataset gets the bundle, and an engine's
+    own Secure Extra -- a Postgres client key -- is not registered as sensitive,
+    so masking alone would leave it in clear.
+    """
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    bundle = _export_bundle({**SECRETS, **CERTIFICATES})
+
+    config = yaml.safe_load(bundle[_database_file(bundle)])
+
+    assert "encrypted_extra" not in config
+    carried = json.loads(config["masked_encrypted_extra"])
+    assert set(carried) == {"oauth2_client_info", "embedded_credentials"}
+    for content in bundle.values():
+        assert "client-key.pem" not in content
+        assert "PRIVATE KEY" not in content
+
+
+@pytest.mark.usefixtures("snowflake_like_paths")
+def test_bundle_export_carries_no_secure_extra_without_the_blocks(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """A connection with neither block exports no Secure Extra at all."""
+    from superset import security_manager
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    bundle = _export_bundle(CERTIFICATES)
+
+    config = yaml.safe_load(bundle[_database_file(bundle)])
+
+    assert "encrypted_extra" not in config
+    assert "masked_encrypted_extra" not in config
+    for content in bundle.values():
+        assert "PRIVATE KEY" not in content

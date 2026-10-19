@@ -163,6 +163,24 @@ class SnowflakeParametersType(TypedDict):
     embedded_credentials: NotRequired[dict[str, Any] | None]
 
 
+# Snowflake driver arguments that choose who a connection signs in as. Embedded
+# guests sign in as the embedded account only, so none of the connection's own
+# may reach the driver on their login.
+_CONNECTION_IDENTITY_ARGUMENTS = (
+    "user",
+    "password",
+    "role",
+    "authenticator",
+    "token",
+    "private_key",
+    "private_key_file",
+    "private_key_file_pwd",
+    "private_key_pwd",
+    "passcode",
+    "passcode_in_password",
+)
+
+
 class SnowflakeEngineSpec(PostgresBaseEngineSpec):
     engine = "snowflake"
     engine_name = "Snowflake"
@@ -434,14 +452,16 @@ class SnowflakeEngineSpec(PostgresBaseEngineSpec):
         url, engine_kwargs = super().apply_embedded_credentials(
             database, credentials, url, engine_kwargs
         )
-        # The connection's `authenticator` belongs to the connection's own sign-in:
-        # `SNOWFLAKE_JWT` there would make the driver expect a key pair from a
-        # password guest. The driver picks key-pair sign-in itself when the
-        # embedded credential supplies `private_key`.
-        url = url.difference_update_query(["role", "authenticator"])
+        # Everything that signs in as the connection's own account goes: the
+        # driver merges the URI query and `connect_args` into its arguments, so a
+        # `user`/`password`, key or token left in either would win over the
+        # embedded account. `authenticator=SNOWFLAKE_JWT` would also make the
+        # driver expect a key pair from a password guest; it picks key-pair
+        # sign-in itself when the embedded credential supplies `private_key`.
+        url = url.difference_update_query(_CONNECTION_IDENTITY_ARGUMENTS)
         connect_args = engine_kwargs.get("connect_args", {})
-        connect_args.pop("role", None)
-        connect_args.pop("authenticator", None)
+        for argument in _CONNECTION_IDENTITY_ARGUMENTS:
+            connect_args.pop(argument, None)
 
         if credentials.get("auth_method") == "keypair":
             engine_kwargs.setdefault("connect_args", {})["private_key"] = (

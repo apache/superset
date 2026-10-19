@@ -1330,3 +1330,52 @@ def test_embedded_guest_ignores_the_connections_key_pair_authenticator(
     assert "authenticator" not in url.query
     assert "authenticator" not in engine_kwargs["connect_args"]
     assert url.query["warehouse"] == "COMPUTE_WH"
+
+
+@pytest.mark.parametrize("key_pair", [False, True])
+def test_embedded_guest_never_signs_in_with_the_connections_own_credentials(
+    mocker: MockerFixture, key_pair: bool
+) -> None:
+    """
+    Test that the connection's own sign-in arguments are dropped on a guest login.
+
+    The driver merges the URI query and ``connect_args`` into its arguments, so a
+    user/password, key or token left in either would win over the embedded
+    account.
+    """
+    from superset.db_engine_specs.snowflake import SnowflakeEngineSpec
+
+    mocker.patch.object(SnowflakeEngineSpec, "_load_private_key", return_value=b"der")
+    url = make_url(
+        "snowflake://svc_user:svc_pass@xy12345/ANALYTICS_DB"
+        "?warehouse=COMPUTE_WH&user=base_user&password=base_pw"
+        "&private_key_file=/keys/base.p8&token=base-token"
+    )
+    engine_kwargs: dict[str, Any] = {
+        "connect_args": {
+            "user": "base_user",
+            "password": "base_pw",
+            "private_key_file": "/keys/base.p8",
+            "private_key_file_pwd": "base-passphrase",
+            "token": "base-token",
+            "client_session_keep_alive": True,
+        }
+    }
+    credentials = (
+        {"username": "embedded_svc", "auth_method": "keypair", "privatekey_body": "x"}
+        if key_pair
+        else {"username": "embedded_svc", "password": "embedded_pw"}
+    )
+
+    url, engine_kwargs = SnowflakeEngineSpec.apply_embedded_credentials(
+        mocker.MagicMock(), credentials, url, engine_kwargs
+    )
+
+    connect_args = engine_kwargs["connect_args"]
+    assert url.username == "embedded_svc"
+    assert dict(url.query) == {"warehouse": "COMPUTE_WH"}
+    rendered = url.render_as_string(hide_password=False) + repr(connect_args)
+    for base_value in ("base_user", "base_pw", "base.p8", "base-token"):
+        assert base_value not in rendered
+    assert connect_args["client_session_keep_alive"] is True
+    assert (connect_args.get("private_key") == b"der") is key_pair
