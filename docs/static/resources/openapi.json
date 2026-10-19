@@ -11195,7 +11195,12 @@
             "type": "integer"
           },
           "query_cost_warning": {
-            "$ref": "#/components/schemas/QueryCostWarning"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/QueryCostWarning"
+              }
+            ],
+            "nullable": true
           }
         },
         "type": "object"

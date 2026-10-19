@@ -217,8 +217,8 @@ export default function useQueryCostWarning(
         ctas ||
         automatic ||
         flags.some(flag => !flag) ||
-        // The display rule masks invalid settings; only the server can disable it.
         database.allows_cost_estimate === false ||
+        database.query_cost_warning?.enabled === false ||
         database.engine_information?.query_cost_warning_metric === null
       ) {
         execute(query);

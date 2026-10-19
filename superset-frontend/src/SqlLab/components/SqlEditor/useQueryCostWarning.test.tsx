@@ -406,7 +406,7 @@ test.each([403, 400, 500])(
   },
 );
 
-test.each(['flag', 'estimation', 'unsupported', 'ctas', 'automatic'])(
+test.each(['flag', 'estimation', 'rule', 'unsupported', 'ctas', 'automatic'])(
   'known inactive %s keeps the existing execution path',
   async reason => {
     const h = setup();
@@ -474,25 +474,35 @@ test('planner results preserve large finite integer values and thresholds', () =
   ).toThrow();
 });
 
-test('a disabled display fallback still lets the server validate the saved rule', async () => {
-  const h = setup();
-  h.replace(state => ({
-    ...state,
-    sqlLab: {
-      ...state.sqlLab,
-      databases: {
-        [h.editor.dbId!]: {
-          ...state.sqlLab.databases[h.editor.dbId!],
-          query_cost_warning: { enabled: false },
+test.each([null, undefined])(
+  'a %s warning rule reaches server validation and errors never execute',
+  async rule => {
+    const h = setup();
+    h.replace(state => ({
+      ...state,
+      sqlLab: {
+        ...state.sqlLab,
+        databases: {
+          [h.editor.dbId!]: {
+            ...state.sqlLab.databases[h.editor.dbId!],
+            query_cost_warning: rule,
+          },
         },
       },
-    },
-  }));
-  h.start();
-  await h.finish({ status: 'disabled' });
-  await waitFor(() => expect(h.executions()).toHaveLength(1));
-  expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(1);
-});
+    }));
+    fetchMock.modifyRoute('warning-check', {
+      response: {
+        status: 400,
+        body: { message: 'The saved query cost warning rule is invalid.' },
+      },
+    });
+    h.start();
+    await waitFor(() => expect(h.result.current.checking).toBe(false));
+    expect(fetchMock.callHistory.calls('warning-check')).toHaveLength(1);
+    expect(h.executions()).toHaveLength(0);
+    expect(h.result.current.confirmation).toBeUndefined();
+  },
+);
 
 test('the existing bigint response parser preserves large estimated bytes over HTTP', async () => {
   const h = setup();

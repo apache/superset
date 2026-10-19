@@ -291,17 +291,17 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         )
 
     @property
-    def query_cost_warning(self) -> dict[str, Any]:
+    def query_cost_warning(self) -> dict[str, Any] | None:
         """Return a validated rule without exposing the connection's other extras."""
         from superset.databases.schemas import get_query_cost_warning
 
         try:
             rule = get_query_cost_warning(self.get_extra())
         except ValidationError:
-            return {"enabled": False}
+            return None
         metric = self.db_engine_spec.get_query_cost_warning_metric()
         if rule["enabled"] and (metric is None or rule.get("metric") != metric):
-            return {"enabled": False}
+            return None
         return rule
 
     @property

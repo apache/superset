@@ -20,6 +20,15 @@ from marshmallow import ValidationError
 from superset.sqllab.schemas import EstimateQueryCostSchema
 
 
+def test_sqllab_bootstrap_database_allows_null_warning_rule() -> None:
+    """Invalid saved rules are represented by null in the connection response."""
+    from superset.sqllab.schemas import SQLLabBootstrapDatabaseSchema
+
+    schema = SQLLabBootstrapDatabaseSchema()
+    assert schema.load({"query_cost_warning": None}) == {"query_cost_warning": None}
+    assert schema.dump({"query_cost_warning": None}) == {"query_cost_warning": None}
+
+
 def test_estimate_schema_keeps_manual_defaults() -> None:
     """Existing clients need neither warning checks nor a dropdown limit."""
     assert EstimateQueryCostSchema().load({"database_id": 1, "sql": "SELECT 1"}) == {

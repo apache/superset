@@ -175,10 +175,8 @@ class QueryEstimationCommand(BaseCommand):
         return sql
 
     def _get_warning_rule(self, metric: str) -> dict[str, Any]:
-        """Validate saved settings without the display property's disabled fallback."""
+        """Validate saved settings directly so invalid rules remain errors."""
         try:
-            # Do not use Database.query_cost_warning: its display fallback hides
-            # invalid saved rules, which must remain errors on this path.
             rule = get_query_cost_warning(json.loads(self._database.extra or "{}"))
             if rule["enabled"] and rule["metric"] != metric:
                 raise ValidationError(

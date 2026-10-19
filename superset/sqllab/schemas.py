@@ -184,7 +184,7 @@ class SQLLabBootstrapDatabaseSchema(Schema):
     allow_run_async = fields.Boolean()
     allow_multi_catalog = fields.Boolean()
     allows_cost_estimate = fields.Boolean(allow_none=True)
-    query_cost_warning = fields.Nested(QueryCostWarningSchema)
+    query_cost_warning = fields.Nested(QueryCostWarningSchema, allow_none=True)
     allows_subquery = fields.Boolean()
     allows_virtual_table_explore = fields.Boolean()
     disable_data_preview = fields.Boolean()

@@ -97,7 +97,7 @@ export type DatabaseObject = {
 
   // SQL Lab
   allows_cost_estimate?: boolean;
-  query_cost_warning?: QueryCostWarning;
+  query_cost_warning?: QueryCostWarning | null;
   allow_ctas?: boolean;
   allow_cvas?: boolean;
   allow_dml?: boolean;
