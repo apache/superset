@@ -123,6 +123,7 @@ def _compile_chart(  # noqa: C901
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
         ChartDataQueryFailedError,
+        ChartDataQueryValidationError,
     )
     from superset.mcp_service.chart.chart_helpers import (
         build_query_context_from_form_data,
@@ -217,7 +218,8 @@ def _compile_chart(  # noqa: C901
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
         if (
-            datasource_type == DatasourceType.TABLE.value
+            not isinstance(exc, ChartDataQueryValidationError)
+            and datasource_type == DatasourceType.TABLE.value
             and _classify_as_database_error(exc, dataset_id)
         ):
             logger.warning(

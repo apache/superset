@@ -29,6 +29,7 @@ from unittest.mock import Mock, patch
 import numpy as np
 import pandas as pd
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.common.db_query_status import QueryStatus
 from superset.mcp_service.chart.compile import (
@@ -1133,3 +1134,45 @@ def test_compile_chart_returns_structured_error_for_malformed_gantt_form_data(
     assert result.error_obj.error_type == "compile_error"
     assert "tooltip_columns must contain at most 50 entries" in (result.error or "")
     mock_cmd_cls.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Error in jinja expression in metric expression: "
+        "Unsafe template value for key time_grain: TimeGrain",
+        "Invalid post-processing operation",
+    ],
+)
+def test_compile_chart_validation_failure_is_not_connection_error(
+    mocker: MockerFixture, message: str
+) -> None:
+    """Typed template/processing failures must bypass generic DB classification."""
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+
+    context = Mock()
+    context.get_payload.return_value = {
+        "queries": [
+            {"error": QueryObjectValidationMessage(QueryObjectValidationError(message))}
+        ]
+    }
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = BaseEngineSpec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+
+    result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert result.error_obj.error_code == "CHART_COMPILE_FAILED"
+    assert message in result.error_obj.details

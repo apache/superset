@@ -473,6 +473,14 @@ also have `data: null`. For each statement, `executed_sql` is `null` when it equ
 - Ask for smaller result sets: use filters, reduce `page_size`, or request specific columns
 - Example: "Show me the top 10 rows from the sales dataset" instead of "Show me all sales data"
 
+### Chart query and template errors
+
+MCP chart tools accept ISO-8601 time grains such as `P1M` for monthly
+buckets, including Big Number trendlines with saved metrics. Template-rendering
+and query-processing validation failures are reported as `compile_error`, with
+the underlying error in `details`, rather than as database connection failures.
+Check the chart configuration or dataset expressions before retrying.
+
 ### AI doesn't see Superset tools
 
 - Verify the connection in your AI client (e.g., the hammer icon in Claude Desktop)
