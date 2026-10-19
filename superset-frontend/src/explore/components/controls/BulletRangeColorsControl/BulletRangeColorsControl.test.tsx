@@ -118,6 +118,46 @@ test('resets a single row back to "no custom color" without touching the others'
   });
 });
 
+test('keeps a trailing custom color while the last range value is being retyped', async () => {
+  // Erasing the last range value (e.g. deleting "60" from "20,40,60") leaves
+  // the text as "20,40," -- a trailing blank `isRangesInputComplete`
+  // deliberately tolerates, since that's the normal shape of the string
+  // while the user is about to retype it. During that window there are
+  // only 2 tokenized range values, but the 3rd saved color must not be
+  // truncated away just because of that transient shape.
+  const onChange = jest.fn();
+  render(
+    <BulletRangeColorsControl
+      onChange={onChange}
+      ranges="20,40,"
+      value={['#ff0000', '#00ff00', '#0000ff']}
+    />,
+  );
+
+  const triggers = document.querySelectorAll('.ant-color-picker-trigger');
+  expect(triggers).toHaveLength(2);
+
+  await userEvent.click(triggers[0]);
+  await waitFor(() => {
+    expect(document.querySelector('.ant-color-picker')).toBeInTheDocument();
+  });
+
+  const hexInput = document.querySelector<HTMLInputElement>(
+    '.ant-color-picker-input input',
+  );
+  await userEvent.clear(hexInput!);
+  await userEvent.type(hexInput!, '336699{enter}');
+
+  await waitFor(() => {
+    expect(onChange).toHaveBeenCalled();
+  });
+  const lastCall = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+  expect(lastCall).toHaveLength(3);
+  expect(lastCall[0].toLowerCase()).toBe('#336699');
+  expect(lastCall[1]).toBe('#00ff00');
+  expect(lastCall[2]).toBe('#0000ff');
+});
+
 test('disables editing and resets while ranges has a blank token between numbers', () => {
   const onChange = jest.fn();
   render(

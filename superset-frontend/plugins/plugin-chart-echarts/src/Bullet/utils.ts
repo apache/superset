@@ -70,6 +70,23 @@ export function isRangesInputComplete(value?: string): boolean {
 }
 
 /**
+ * Whether `value` ends in the single tolerated blank token
+ * `isRangesInputComplete` lets through (e.g. "20,40," while the user is
+ * about to retype a last value). During that window the tokenized bound
+ * list is transiently one entry shorter than it was a moment ago, so a
+ * color edit must not let that shrink the persisted color array -- doing so
+ * would permanently drop the color for the bound being retyped. Callers use
+ * this to keep (rather than truncate to) the array's prior length only in
+ * this specific transient case; a deliberate removal of a bound (no
+ * trailing comma) still shrinks the array normally.
+ */
+export function hasTrailingBlankToken(value?: string): boolean {
+  if (!value?.trim()) return false;
+  const tokens = value.split(',').map(token => token.trim());
+  return tokens.length > 1 && tokens[tokens.length - 1] === '';
+}
+
+/**
  * Relative luminance (0-1) of a `#rgb` / `#rrggbb` / `#rrggbbaa` / `rgb[a]()`
  * color, or `null` when the value cannot be parsed or is mostly transparent
  * (alpha below 0.5), in which case the theme background shows through and the

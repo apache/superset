@@ -129,6 +129,7 @@ const config: ControlPanelConfig = {
             config: {
               ...comparisonColorControlConfig,
               label: t('Color for increase'),
+              ariaLabel: t('Color for increase'),
               description: t(
                 'Color used for the arrow and symbols when the metric ' +
                   'increased from the comparison value. Defaults to green.',
@@ -140,6 +141,7 @@ const config: ControlPanelConfig = {
             config: {
               ...comparisonColorControlConfig,
               label: t('Color for decrease'),
+              ariaLabel: t('Color for decrease'),
               description: t(
                 'Color used for the arrow and symbols when the metric ' +
                   'decreased from the comparison value. Defaults to red.',

@@ -436,7 +436,13 @@ test('handleDeprecatedControls is a no-op for BigNumberPeriodOverPeriod without 
   expect(formData.decrease_color).toBeUndefined();
 });
 
-test('handleDeprecatedControls migrates interval_color_indices into interval_colors', () => {
+test('handleDeprecatedControls does not resolve interval_color_indices by default', () => {
+  // Merely opening a legacy Gauge in Explore must not freeze its
+  // palette-relative legacy indices into literal colors: the renderer (and
+  // IntervalColorsControl's own display) already resolve them against the
+  // effective palette on every render, and freezing them here means an
+  // unrelated resave stops following a dashboard's color_scheme override --
+  // the same hazard the dashboard hydration path below is written to avoid.
   const formData: any = {
     viz_type: VizType.Gauge,
     intervals: '20,40,60',
@@ -444,6 +450,19 @@ test('handleDeprecatedControls migrates interval_color_indices into interval_col
     color_scheme: 'testScheme',
   };
   handleDeprecatedControls(formData);
+
+  expect(formData.interval_colors).toBeUndefined();
+  expect(formData.interval_color_indices).toBe('2,3');
+});
+
+test('handleDeprecatedControls migrates interval_color_indices into interval_colors when opted in', () => {
+  const formData: any = {
+    viz_type: VizType.Gauge,
+    intervals: '20,40,60',
+    interval_color_indices: '2,3',
+    color_scheme: 'testScheme',
+  };
+  handleDeprecatedControls(formData, { resolveLegacyGaugeColors: true });
 
   // The uncovered third bound keeps its positional scheme color, matching
   // what the Gauge renderer drew before the migration.
@@ -453,16 +472,47 @@ test('handleDeprecatedControls migrates interval_color_indices into interval_col
 test('applyDefaultFormData keeps legacy interval_color_indices unresolved for dashboards', () => {
   // The dashboard's color_scheme override is applied after hydration, so the
   // legacy palette-relative indices must not be frozen into literal colors.
-  const result = applyDefaultFormData({
-    viz_type: VizType.Gauge,
-    datasource: '1__table',
-    intervals: '20,40,60',
-    interval_color_indices: '2,3',
-    color_scheme: 'testScheme',
-  } as any);
+  // Registering Gauge's `interval_colors` control (instead of relying on
+  // `?? []` to paper over `interval_colors` being entirely absent from
+  // `controlsState`, since only 'test-chart' is registered above) exercises
+  // the actual default `getAllControlsState` supplies once that control is
+  // in scope, same as a real hydration would -- matching the control's own
+  // declaration in Gauge/controlPanel.tsx (`default: DEFAULT_FORM_DATA.intervalColors`, i.e. `[]`).
+  getChartControlPanelRegistry().registerValue(VizType.Gauge, {
+    controlPanelSections: [
+      {
+        label: 'Chart Options',
+        expanded: true,
+        controlSetRows: [
+          [
+            {
+              name: 'interval_colors',
+              config: {
+                type: 'IntervalColorsControl',
+                label: 'Interval colors',
+                default: [],
+                renderTrigger: true,
+              },
+            },
+          ],
+        ],
+      },
+    ],
+  });
+  try {
+    const result = applyDefaultFormData({
+      viz_type: VizType.Gauge,
+      datasource: '1__table',
+      intervals: '20,40,60',
+      interval_color_indices: '2,3',
+      color_scheme: 'testScheme',
+    } as any);
 
-  expect(result.interval_color_indices).toBe('2,3');
-  expect(result.interval_colors ?? []).toEqual([]);
+    expect(result.interval_color_indices).toBe('2,3');
+    expect(result.interval_colors).toEqual([]);
+  } finally {
+    getChartControlPanelRegistry().remove(VizType.Gauge);
+  }
 });
 
 test('handleDeprecatedControls does not override an already-populated interval_colors', () => {
@@ -473,7 +523,7 @@ test('handleDeprecatedControls does not override an already-populated interval_c
     interval_colors: ['#000000'],
     color_scheme: 'testScheme',
   };
-  handleDeprecatedControls(formData);
+  handleDeprecatedControls(formData, { resolveLegacyGaugeColors: true });
 
   expect(formData.interval_colors).toEqual(['#000000']);
 });
@@ -485,7 +535,7 @@ test('handleDeprecatedControls falls back to the default scheme when the saved s
     interval_color_indices: '2,3',
     color_scheme: 'not-a-real-scheme',
   };
-  handleDeprecatedControls(formData);
+  handleDeprecatedControls(formData, { resolveLegacyGaugeColors: true });
 
   // Mirrors the Gauge renderer, which resolves against the default scheme.
   expect(formData.interval_colors).toEqual(['#ff7f0e', '#2ca02c', '#2ca02c']);

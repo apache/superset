@@ -21,6 +21,7 @@ import { Button } from '@superset-ui/core/components';
 import {
   tokenizeToNumericArray,
   isRangesInputComplete,
+  hasTrailingBlankToken,
 } from '@superset-ui/plugin-chart-echarts';
 import ControlHeader from '../../ControlHeader';
 import ColorPickerControl from '../ColorPickerControl';
@@ -55,17 +56,26 @@ export default function BulletRangeColorsControl({
   // shift colors to the wrong positions. Block commits until it's complete
   // again so no edit can be positionally misaligned once it is.
   const rangesComplete = isRangesInputComplete(ranges);
+  // `isRangesInputComplete` tolerates a single trailing blank token (the
+  // user is about to retype the last value), so `rangesComplete` stays true
+  // and edits stay enabled through that window -- but `rangeValues` is
+  // transiently one entry shorter while it lasts. Writing a color then must
+  // not truncate the array to that shorter length, or the color for the
+  // range being retyped is permanently lost even once it's typed back in.
+  const writeLength = hasTrailingBlankToken(ranges)
+    ? Math.max(rangeValues.length, value?.length ?? 0)
+    : rangeValues.length;
 
   const colorAt = (index: number): string => value?.[index] || '';
 
   const handleColorChange = (index: number) => (color: ColorPickerValue) => {
     if (typeof color !== 'string' || !rangesComplete) return;
-    onChange?.(replaceColorAtIndex(rangeValues.length, index, color, colorAt));
+    onChange?.(replaceColorAtIndex(writeLength, index, color, colorAt));
   };
 
   const handleReset = (index: number) => {
     if (!rangesComplete) return;
-    onChange?.(replaceColorAtIndex(rangeValues.length, index, '', colorAt));
+    onChange?.(replaceColorAtIndex(writeLength, index, '', colorAt));
   };
 
   return (

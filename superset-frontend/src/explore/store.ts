@@ -69,7 +69,7 @@ type FormData = QueryFormData & {
 export function handleDeprecatedControls(
   formData: FormData,
   {
-    resolveLegacyGaugeColors = true,
+    resolveLegacyGaugeColors = false,
   }: { resolveLegacyGaugeColors?: boolean } = {},
 ): void {
   // Reaffectation / handling of deprecated controls
@@ -134,15 +134,23 @@ export function handleDeprecatedControls(
       : ColorSchemeEnum.Red;
   }
 
-  // #42910: migrate the legacy Gauge `interval_color_indices`
+  // #42910: on request, migrate the legacy Gauge `interval_color_indices`
   // (comma-separated, 1-indexed positions into `color_scheme`) into real hex
-  // colors stored by `interval_colors`, which replaced it. Same rationale as
-  // the comparison_color_scheme migration above -- `interval_color_indices`
-  // is no longer a registered control, so it's otherwise dropped on save.
-  // Skipped on the dashboard hydration path: the dashboard's `color_scheme`
-  // override is applied after this runs, so freezing literal colors here would
-  // pin the chart's own palette. The renderer resolves the legacy indices
-  // against the effective palette instead.
+  // colors stored by `interval_colors`, which replaced it. Defaults to off
+  // (unlike the comparison_color_scheme migration above): unlike that
+  // control, `interval_color_indices` is never dropped from `form_data` by
+  // an unrelated save -- it isn't a registered control, but `form_data` is
+  // persisted as a plain object, not rebuilt from registered controls, so
+  // an untouched legacy string survives save as-is. Eagerly resolving it
+  // merely from opening the chart (the old default here) froze it into
+  // literal colors on the *first* unrelated resave too, silently breaking a
+  // dashboard override of this chart's `color_scheme` applied afterward --
+  // the exact hazard the dashboard hydration path below was already written
+  // to avoid, just not for this path. `IntervalColorsControl` already shows
+  // the resolved colors for display on its own (see its own
+  // `legacyIntervalColorIndices` prop), so the indices stay palette-relative
+  // and keep following the effective palette until the user actually edits
+  // an interval color, which is the only point this needs to be literal.
   if (
     resolveLegacyGaugeColors &&
     formData.viz_type === VizType.Gauge &&

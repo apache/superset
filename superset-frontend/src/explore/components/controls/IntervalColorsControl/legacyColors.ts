@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getCategoricalSchemeRegistry } from '@superset-ui/core';
+import {
+  getCategoricalSchemeRegistry,
+  validateNumber,
+} from '@superset-ui/core';
 
 export const parseIntervalBounds = (intervals?: string): number[] =>
   (intervals ?? '')
@@ -44,10 +47,25 @@ export const resolveLegacyIntervalColors = (
   // falls back to the registry's default scheme.
   const schemeColors =
     getCategoricalSchemeRegistry().get(colorScheme)?.colors ?? [];
-  const indices = (legacyIntervalColorIndices ?? '')
-    .split(',')
-    .map(part => part.trim())
-    .map(part => (part === '' ? NaN : Number(part)));
+  // Parse with the exact same semantics `getIntervalBoundsAndColors` in
+  // Gauge/transformProps.ts uses for this same legacy fallback (via
+  // `parseNumbersList`, not reimported here to avoid pulling the whole
+  // `@superset-ui/plugin-chart-echarts` package -- and every chart plugin it
+  // eagerly registers -- into `explore/store.ts`'s import graph): one
+  // unparseable (or blank) token discards every legacy index for the whole
+  // list, rather than resolving the other tokens independently. A more
+  // lenient parser here would let this one-time migration (and this
+  // display-only preview) disagree with how an untouched legacy chart has
+  // always rendered -- see #42910 review thread on this file.
+  let indices: number[];
+  try {
+    indices = (legacyIntervalColorIndices ?? '').split(',').map(part => {
+      if (validateNumber(part)) throw new Error('All values must be numeric');
+      return Number(part);
+    });
+  } catch {
+    indices = [];
+  }
   // Bounds without an explicit legacy index keep their positional color,
   // exactly as the Gauge renderer does (`colors[idx]`).
   return bounds.map((_, index) => {

@@ -76,7 +76,12 @@ export const getIntervalBoundsAndColors = (
   if (Array.isArray(intervalColors) && intervalColors.length > 0) {
     return intervalBounds.map((val, idx) => [
       val,
-      intervalColors[idx] || colorFn.colors[idx],
+      // Wrap around the scheme for a bound past the end of `intervalColors`,
+      // matching `IntervalColorsControl`'s own positional fallback exactly --
+      // otherwise this and the editor's display disagree once there are more
+      // bounds than colors in the chosen scheme, and editing any other band
+      // would persist the wrong (undefined-turned-into-missing) color here.
+      intervalColors[idx] || colorFn.colors[idx % (colorFn.colors.length || 1)],
     ]);
   }
 

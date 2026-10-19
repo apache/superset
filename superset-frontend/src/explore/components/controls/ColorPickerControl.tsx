@@ -36,6 +36,20 @@ export type SpecialColorKey = keyof typeof SPECIAL_COLORS;
 export type ColorPickerValue = RGBColor | SpecialColorKey | string;
 export type ColorOutputFormat = 'hex' | 'rgb';
 
+// `SPECIAL_COLORS` are legacy 2-choice sentinel names that also happen to
+// name a live semantic theme token (BigNumberPeriodOverPeriod's
+// `increase_color`/`decrease_color` resolve 'Green'/'Red' to
+// `theme.colorSuccess`/`theme.colorError` at render time -- see
+// `getComparisonColorTokens`). When a theme token is available, showing the
+// token's actual current color here keeps the picker's own preview honest
+// about what the chart will render, instead of `SPECIAL_COLORS`' fixed,
+// muted stand-in going stale the moment the theme's real success/error
+// colors differ from it.
+const SPECIAL_COLOR_THEME_TOKENS: Partial<Record<SpecialColorKey, string>> = {
+  Green: 'colorSuccess',
+  Red: 'colorError',
+};
+
 export interface ColorPickerControlProps {
   onChange?: (color: ColorPickerValue) => void;
   value?: ColorPickerValue;
@@ -96,19 +110,38 @@ const getReverseThemeColorMap = (
   return reverseMap;
 };
 
-function toDisplayHex(
+export function toDisplayHex(
   value: ColorPickerValue | undefined,
   themeColors: Record<string, string>,
+  resolveThemeTokens: boolean,
 ): string | undefined {
   if (!value) return undefined;
 
   if (typeof value === 'string') {
+    // Theme-token / SPECIAL_COLORS resolution is opt-in via
+    // `resolveThemeTokens`: callers that store arbitrary literal strings
+    // (e.g. ThemeColorPickers, which never sets this flag) must not have a
+    // string that happens to collide with a theme key or a SPECIAL_COLORS
+    // name (a numeric antd token like `fontSize`, or the literal CSS color
+    // "Red") silently reinterpreted into something else -- or, for a
+    // non-string theme value, thrown on.
+    if (!resolveThemeTokens) return value.toLowerCase();
+
+    const themeToken = SPECIAL_COLOR_THEME_TOKENS[value as SpecialColorKey];
+    if (
+      themeToken &&
+      Object.prototype.hasOwnProperty.call(themeColors, themeToken) &&
+      typeof themeColors[themeToken] === 'string'
+    ) {
+      return themeColors[themeToken].toLowerCase();
+    }
     if (value in SPECIAL_COLORS) {
       return rgbaToHex(SPECIAL_COLORS[value as SpecialColorKey]).toLowerCase();
     }
     if (
       themeColors &&
-      Object.prototype.hasOwnProperty.call(themeColors, value)
+      Object.prototype.hasOwnProperty.call(themeColors, value) &&
+      typeof themeColors[value] === 'string'
     ) {
       return themeColors[value as string].toLowerCase();
     }
@@ -217,7 +250,7 @@ export default function ColorPickerControl({
     else onChange(hex);
   };
 
-  const hexValue = toDisplayHex(value, themeColors);
+  const hexValue = toDisplayHex(value, themeColors, resolveThemeTokens);
 
   // AntD renders the swatch trigger as a plain div with no tab stop, so
   // keyboard-only users could not reach or open it. Make the trigger
