@@ -6822,7 +6822,15 @@ msgid "Filter charts"
 msgstr ""
 
 #, python-format
-msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions"
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"

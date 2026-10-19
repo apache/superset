@@ -118,8 +118,21 @@ assists people when migrating to a new version.
   the metric; select a dimension or remove the unsupported predicate. Dashboard
   filters on incompatible columns (including metrics) are skipped and reported
   as rejected, so the chart renders with an **Incompatible** filter indicator.
-  Unknown chart-defined columns are also reported as rejected, matching SQL
-  datasets. Valid dimension filters are reported as applied.
+  A chart-defined filter on a column the semantic view no longer has also
+  returns a client error naming the column, instead of being skipped (which
+  widened the result); edit the chart's filters and select a dimension. This
+  differs from SQL datasets, which skip and report such filters. Scheduled
+  reports, alerts and thumbnails for such charts fail until the chart is edited.
+  A "No filter" time range on a missing column is not refused. Dashboard time
+  overrides mark only previously unbounded temporal predicates as dashboard
+  filters; bounded chart-defined filters on missing columns or metrics remain
+  refused. This change affects only opt-in, pre-GA deployments with
+  `SEMANTIC_LAYERS` enabled. On upgrade, dashboard tabs already open across the
+  deploy send filters without `isExtra`; their semantic charts return HTTP 400
+  for incompatible dashboard filters until the user reloads the page. This
+  accepted pre-GA compatibility window will be revisited before GA. A dashboard
+  filter carried into a new chart (such as drill-by "Edit chart") becomes a chart
+  filter. Valid dimension filters are reported as applied.
 
 - Dashboard-applied filters now carry `isExtra` in chart-data requests, including
   MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for
