@@ -18,7 +18,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
 import pandas as pd
@@ -2309,6 +2309,40 @@ def test_raise_for_access_wraps_template_error_for_query_datasource():
     query.validate.assert_not_called()
 
 
+def test_raise_for_access_query_datasource_disallows_editorship():
+    """
+    Query-backed chart-data runs the stored query's raw SQL, so it must
+    authorize with allow_editorship=False (editorship of a same-named dataset
+    must not stand in for data access), and a denial must stop query.validate().
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.QUERY
+    processor = QueryContextProcessor(query_context)
+
+    denial = SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+            message="no access",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=denial,
+    ) as raise_for_access:
+        with pytest.raises(SupersetSecurityException):
+            processor.raise_for_access()
+
+    assert raise_for_access.call_args.kwargs.get("allow_editorship") is False
+    query.validate.assert_not_called()
+
+
 def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     """
     The fallback used on engines without native GROUPING SETS support must
@@ -3036,6 +3070,7 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
 
 def test_semantic_annotation_null_protocol_versions_parent_cache(
     app_context: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
     from superset.common.query_context import QueryContext
@@ -3049,7 +3084,9 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     provider: MagicMock = MagicMock()
     provider.result_cache_version = None
     provider.get_dimensions.return_value = []
-    view.__dict__["implementation"] = provider
+    monkeypatch.setattr(
+        SemanticView, "implementation", PropertyMock(return_value=provider)
+    )
     chart: Slice = Slice(
         id=7,
         datasource_id=17,
