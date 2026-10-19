@@ -729,11 +729,22 @@ class ChartDataRestApi(ChartRestApi):
 
         return filename, expected_rows
 
+    @staticmethod
+    def _as_int(value: Any) -> int | None:
+        """Coerce a request-supplied id to an int, or None when it isn't one."""
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
     def _map_form_data_datasource_to_dataset_id(
         self, form_data: dict[str, Any]
     ) -> dict[str, Any]:
+        inner = form_data.get("form_data", {})
         return {
-            "dashboard_id": form_data.get("form_data", {}).get("dashboardId"),
+            # dashboardId / slice_id are request-supplied; keep them as ints (or
+            # None) rather than passing arbitrary strings into the log context.
+            "dashboard_id": self._as_int(inner.get("dashboardId")),
             "dataset_id": (
                 form_data.get("datasource", {}).get("id")
                 if isinstance(form_data.get("datasource"), dict)
@@ -741,7 +752,7 @@ class ChartDataRestApi(ChartRestApi):
                 == DatasourceType.TABLE.value
                 else None
             ),
-            "slice_id": form_data.get("form_data", {}).get("slice_id"),
+            "slice_id": self._as_int(inner.get("slice_id")),
         }
 
     @logs_context(context_func=_map_form_data_datasource_to_dataset_id)
