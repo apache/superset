@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChangeEvent, useEffect, useState } from 'react';
+import { ChangeEvent, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
@@ -33,6 +33,7 @@ import { ExtraJson, QueryCostWarningMetric } from '../types';
 import {
   CostWarningUnit,
   costWarningUnits,
+  disableQueryCostWarning,
   formatWarningBytes,
   getCostWarningUnit,
   getQueryCostWarning,
@@ -46,14 +47,10 @@ export default function QueryCostWarningSettings({
   extra,
   metric,
   onChange,
-  onValidationChange,
 }: {
   extra: ExtraJson;
   metric?: QueryCostWarningMetric | null;
-  onChange: (
-    event: CheckboxChangeEvent | ChangeEvent<HTMLInputElement>,
-  ) => void;
-  onValidationChange?: (hasError: boolean) => void;
+  onChange: (rule: Record<string, unknown>) => void;
 }) {
   const theme = useTheme();
   const rule = getQueryCostWarning(extra);
@@ -96,13 +93,18 @@ export default function QueryCostWarningSettings({
         )
       : t('Enter a positive, finite warning threshold.')
     : getQueryCostWarningError(rule, metric);
-  useEffect(() => {
-    onValidationChange?.(!!error);
-  }, [error, onValidationChange]);
-
   const setEnabled = (event: CheckboxChangeEvent) => {
     setDraft(undefined);
-    onChange(event);
+    onChange(
+      event.target.checked
+        ? {
+            ...rule,
+            enabled: true,
+            metric,
+            ...(rule.metric !== metric && { threshold: undefined }),
+          }
+        : disableQueryCostWarning(rule),
+    );
   };
   const changeAmount = (event: ChangeEvent<HTMLInputElement>) => {
     const input = event.target.value;
@@ -111,18 +113,17 @@ export default function QueryCostWarningSettings({
       metric === 'bytes_processed'
         ? parseWarningBytes(input, unit)
         : Number(input);
-    onChange({
-      target: {
-        name: 'query_cost_warning_threshold',
-        type: 'number',
-        value:
-          threshold === undefined ||
-          !Number.isFinite(threshold) ||
-          threshold <= 0
-            ? ''
-            : String(threshold),
-      },
-    } as ChangeEvent<HTMLInputElement>);
+    const updatedRule = { ...rule };
+    updatedRule.metric = metric;
+    delete updatedRule.threshold;
+    if (
+      threshold !== undefined &&
+      Number.isFinite(threshold) &&
+      threshold > 0
+    ) {
+      updatedRule.threshold = threshold;
+    }
+    onChange(updatedRule);
   };
   const inactiveReason = !metric
     ? t(
@@ -224,9 +225,7 @@ export default function QueryCostWarningSettings({
             buttonSize="small"
             onClick={() => {
               setDraft(undefined);
-              onChange({
-                target: { name: 'query_cost_warning_enabled', checked: false },
-              } as CheckboxChangeEvent);
+              onChange(disableQueryCostWarning(rule));
             }}
           >
             {t('Disable saved rule')}

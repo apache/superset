@@ -147,14 +147,10 @@ describe('ExtraOptions Component', () => {
       if (estimationEnabled) {
         expect(checkbox).toBeEnabled();
         fireEvent.click(checkbox);
-        expect(onExtraInputChange).toHaveBeenCalledWith(
-          expect.objectContaining({
-            target: expect.objectContaining({
-              name: 'query_cost_warning_enabled',
-              checked: true,
-            }),
-          }),
-        );
+        expect(onExtraEditorChange).toHaveBeenCalledWith({
+          name: 'query_cost_warning',
+          json: JSON.stringify({ enabled: true, metric: 'bytes_processed' }),
+        });
       } else {
         expect(checkbox).toBeDisabled();
       }
@@ -171,7 +167,7 @@ describe('ExtraOptions Component', () => {
       label: 'Warning threshold (bytes processed)',
       threshold: 100000000,
       display: 100,
-      updated: '123500000',
+      updated: 123500000,
     },
     {
       backend: 'postgresql',
@@ -179,7 +175,7 @@ describe('ExtraOptions Component', () => {
       label: 'Warning threshold (planner cost)',
       threshold: 12.5,
       display: 12.5,
-      updated: '123.5',
+      updated: 123.5,
     },
   ])(
     'warning thresholds retain native units for $backend',
@@ -200,14 +196,10 @@ describe('ExtraOptions Component', () => {
       const amount = screen.getByLabelText(label);
       expect(amount).toHaveValue(display);
       fireEvent.change(amount, { target: { value: '123.5' } });
-      expect(onExtraInputChange).toHaveBeenCalledWith(
-        expect.objectContaining({
-          target: expect.objectContaining({
-            name: 'query_cost_warning_threshold',
-            value: updated,
-          }),
-        }),
-      );
+      expect(onExtraEditorChange).toHaveBeenCalledWith({
+        name: 'query_cost_warning',
+        json: JSON.stringify({ enabled: true, metric, threshold: updated }),
+      });
     },
   );
 
@@ -235,7 +227,14 @@ describe('ExtraOptions Component', () => {
       screen.getByLabelText('Warning threshold (planner cost)'),
     ).toBeDisabled();
     fireEvent.click(checkbox);
-    expect(onExtraInputChange).toHaveBeenCalled();
+    expect(onExtraEditorChange).toHaveBeenCalledWith({
+      name: 'query_cost_warning',
+      json: JSON.stringify({
+        enabled: false,
+        metric: 'total_cost',
+        threshold: 12.5,
+      }),
+    });
   });
 
   test('warning settings explain when the warning flag is off', () => {
@@ -288,7 +287,14 @@ describe('ExtraOptions Component', () => {
     expect(checkbox).toBeChecked();
     expect(checkbox).toBeEnabled();
     fireEvent.click(checkbox);
-    expect(onExtraInputChange).toHaveBeenCalled();
+    expect(onExtraEditorChange).toHaveBeenCalledWith({
+      name: 'query_cost_warning',
+      json: JSON.stringify({
+        enabled: false,
+        metric: 'bytes_processed',
+        threshold: 100,
+      }),
+    });
   });
 
   test('calls onExtraEditorChange when metadata_params json editor changes', async () => {

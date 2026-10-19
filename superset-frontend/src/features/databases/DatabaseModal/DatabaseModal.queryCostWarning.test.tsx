@@ -139,6 +139,11 @@ test('the modal blocks an invalid byte amount and allows correcting it', async (
       }),
     },
   });
+  fetchMock.put(
+    databaseEndpoint,
+    { id: 10, result: {} },
+    { name: 'database-update' },
+  );
   render(<DatabaseModal show databaseId={10} onHide={jest.fn()} />, {
     useRedux: true,
   });
@@ -154,4 +159,56 @@ test('the modal blocks an invalid byte amount and allows correcting it', async (
   ).toBeInTheDocument();
   fireEvent.change(amount, { target: { value: '1.000001' } });
   expect(screen.getByRole('button', { name: 'Finish' })).toBeEnabled();
+  await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('database-update')).toHaveLength(1),
+  );
+  const request = JSON.parse(
+    fetchMock.callHistory.calls('database-update')[0].options.body as string,
+  ) as DatabaseObject;
+  expect(JSON.parse(request.extra || '{}').query_cost_warning).toEqual({
+    enabled: true,
+    metric: 'bytes_processed',
+    threshold: 1000001,
+  });
+});
+
+test('saving untouched settings leaves an absent warning rule absent', async () => {
+  const extra = {
+    cost_estimate_enabled: true,
+    allows_virtual_table_explore: true,
+  };
+  fetchMock.get(connectionEndpoint, {
+    result: {
+      id: 10,
+      database_name: 'No warning rule',
+      backend: 'bigquery',
+      expose_in_sqllab: true,
+      configuration_method: 'sqlalchemy_form',
+      sqlalchemy_uri: 'bigquery://project',
+      engine_information: { query_cost_warning_metric: 'bytes_processed' },
+      extra: JSON.stringify(extra),
+    },
+  });
+  fetchMock.put(
+    databaseEndpoint,
+    { id: 10, result: {} },
+    { name: 'database-update' },
+  );
+  render(<DatabaseModal show databaseId={10} onHide={jest.fn()} />, {
+    useRedux: true,
+  });
+  await userEvent.click(await screen.findByRole('tab', { name: 'Advanced' }));
+  await userEvent.click(await screen.findByText('SQL Lab'));
+  expect(
+    screen.getByLabelText('Enable pre-run cost warnings'),
+  ).not.toBeChecked();
+  await userEvent.click(screen.getByRole('button', { name: 'Finish' }));
+  await waitFor(() =>
+    expect(fetchMock.callHistory.calls('database-update')).toHaveLength(1),
+  );
+  const request = JSON.parse(
+    fetchMock.callHistory.calls('database-update')[0].options.body as string,
+  ) as DatabaseObject;
+  expect(JSON.parse(request.extra || '{}')).toEqual(extra);
 });

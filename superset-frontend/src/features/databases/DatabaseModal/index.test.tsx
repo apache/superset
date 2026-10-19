@@ -2121,80 +2121,6 @@ describe('dbReducer', () => {
     });
   });
 
-  test('enabling warnings sets the metric without inventing a threshold', () => {
-    const state = dbReducer(
-      {
-        ...databaseFixture,
-        engine_information: { query_cost_warning_metric: 'total_cost' },
-      },
-      {
-        type: ActionType.ExtraInputChange,
-        payload: { name: 'query_cost_warning_enabled', checked: true },
-      },
-    );
-    expect(JSON.parse(state?.extra || '{}')).toEqual({
-      query_cost_warning: { enabled: true, metric: 'total_cost' },
-    });
-  });
-
-  test.each([100, 'invalid'])(
-    'disabling a warning preserves valid values and removes invalid ones (%s)',
-    threshold => {
-      const extra = {
-        unrelated: { keep: true },
-        query_cost_warning: {
-          enabled: true,
-          metric: 'bytes_processed',
-          threshold,
-        },
-      };
-      const state = dbReducer(
-        { ...databaseFixture, extra: JSON.stringify(extra) },
-        {
-          type: ActionType.ExtraInputChange,
-          payload: { name: 'query_cost_warning_enabled', checked: false },
-        },
-      );
-      expect(JSON.parse(state?.extra || '{}')).toEqual({
-        ...extra,
-        query_cost_warning: {
-          enabled: false,
-          metric: 'bytes_processed',
-          ...(typeof threshold === 'number' && { threshold }),
-        },
-      });
-    },
-  );
-
-  test('editing a PostgreSQL threshold keeps decimals and unrelated settings', () => {
-    const state = dbReducer(
-      {
-        ...databaseFixture,
-        engine_information: { query_cost_warning_metric: 'total_cost' },
-        extra: JSON.stringify({
-          unrelated: true,
-          query_cost_warning: {
-            enabled: true,
-            metric: 'total_cost',
-            threshold: 10,
-          },
-        }),
-      },
-      {
-        type: ActionType.ExtraInputChange,
-        payload: { name: 'query_cost_warning_threshold', value: '12.5' },
-      },
-    );
-    expect(JSON.parse(state?.extra || '{}')).toEqual({
-      unrelated: true,
-      query_cost_warning: {
-        enabled: true,
-        metric: 'total_cost',
-        threshold: 12.5,
-      },
-    });
-  });
-
   test('turning estimation off retains the warning rule', () => {
     const extra = {
       query_cost_warning: {
@@ -2895,28 +2821,5 @@ describe('dbReducer', () => {
       ...databaseFixture,
       ssh_tunnel: undefined,
     });
-  });
-});
-
-test('changing a warning metric does not reinterpret an old threshold', () => {
-  const state = dbReducer(
-    {
-      ...databaseFixture,
-      engine_information: { query_cost_warning_metric: 'total_cost' },
-      extra: JSON.stringify({
-        query_cost_warning: {
-          enabled: false,
-          metric: 'bytes_processed',
-          threshold: 100,
-        },
-      }),
-    },
-    {
-      type: ActionType.ExtraInputChange,
-      payload: { name: 'query_cost_warning_enabled', checked: true },
-    },
-  );
-  expect(JSON.parse(state?.extra || '{}')).toEqual({
-    query_cost_warning: { enabled: true, metric: 'total_cost' },
   });
 });

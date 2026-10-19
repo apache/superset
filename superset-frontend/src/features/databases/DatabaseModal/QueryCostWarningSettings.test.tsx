@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useReducer, useState } from 'react';
+import { useReducer } from 'react';
 import { FeatureFlag } from '@superset-ui/core';
 import {
   fireEvent,
@@ -27,6 +27,10 @@ import {
 } from 'spec/helpers/testing-library';
 import QueryCostWarningSettings from './QueryCostWarningSettings';
 import { ActionType, dbReducer } from './index';
+import {
+  getQueryCostWarning,
+  getQueryCostWarningError,
+} from './queryCostWarning';
 import { ExtraJson, QueryCostWarningMetric } from '../types';
 
 /** Exercise the settings with the actual database modal reducer. */
@@ -44,26 +48,22 @@ function SettingsHarness({
     engine_information: { query_cost_warning_metric: metric },
     extra: JSON.stringify(extra),
   });
-  const [hasError, setHasError] = useState(false);
+  const currentExtra: ExtraJson = JSON.parse(db?.extra || '{}');
+  const hasError = !!getQueryCostWarningError(
+    getQueryCostWarning(currentExtra),
+    metric,
+  );
   return (
     <>
       <QueryCostWarningSettings
-        extra={JSON.parse(db?.extra || '{}') as ExtraJson}
+        extra={currentExtra}
         metric={metric}
-        onValidationChange={setHasError}
-        onChange={({ target }) => {
-          if (typeof target.name !== 'string')
-            throw new Error('Expected a named setting');
+        onChange={rule =>
           dispatch({
-            type: ActionType.ExtraInputChange,
-            payload: {
-              name: target.name,
-              type: target.type,
-              value: target.value,
-              checked: 'checked' in target ? target.checked : false,
-            },
-          });
-        }}
+            type: ActionType.ExtraEditorChange,
+            payload: { name: 'query_cost_warning', json: JSON.stringify(rule) },
+          })
+        }
       />
       <button type="button" disabled={hasError}>
         Save
@@ -167,7 +167,7 @@ test('fractional bytes show validation and cannot be saved or silently rounded',
     screen.getByText(/amount that equals positive whole bytes/),
   ).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-  expect(savedExtra().query_cost_warning?.threshold).toBeUndefined();
+  expect(savedExtra().query_cost_warning).not.toHaveProperty('threshold');
   fireEvent.change(amount, { target: { value: '1.000001' } });
   expect(savedExtra().query_cost_warning?.threshold).toBe(1000001);
   expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
@@ -250,11 +250,16 @@ test.each([
   null,
   { enabled: 'invalid', metric: 'bytes_processed', threshold: 10 },
   { enabled: false, metric: 'bytes_processed', threshold: -1 },
+  { enabled: true, metric: 'bytes_processed', threshold: 'invalid' },
 ])('broken saved rules remain disableable (%j)', rule => {
   window.featureFlags = {};
   render(<SettingsHarness extra={{ query_cost_warning: rule } as ExtraJson} />);
   expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-  fireEvent.click(screen.getByRole('button', { name: 'Disable saved rule' }));
+  fireEvent.click(
+    rule?.enabled === true
+      ? screen.getByLabelText('Enable pre-run cost warnings')
+      : screen.getByRole('button', { name: 'Disable saved rule' }),
+  );
   expect(savedExtra().query_cost_warning?.enabled).toBe(false);
   expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
@@ -282,3 +287,28 @@ test('a no-longer-supported saved rule can be disabled while preserving its valu
   });
   expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
+
+test.each([
+  undefined,
+  { enabled: false, metric: 'bytes_processed' as const, threshold: 100 },
+])(
+  'enabling warnings sets the metric without reusing an incompatible threshold (%j)',
+  rule => {
+    render(
+      <SettingsHarness
+        engine="postgresql"
+        metric="total_cost"
+        extra={{
+          cost_estimate_enabled: true,
+          ...(rule && { query_cost_warning: rule }),
+        }}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText('Enable pre-run cost warnings'));
+    expect(savedExtra().query_cost_warning).toEqual({
+      enabled: true,
+      metric: 'total_cost',
+    });
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  },
+);

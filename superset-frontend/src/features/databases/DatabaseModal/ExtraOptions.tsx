@@ -51,7 +51,6 @@ const ExtraOptions = ({
   onExtraInputChange,
   onExtraEditorChange,
   extraExtension,
-  onQueryCostWarningValidationChange,
 }: {
   db: DatabaseObject | null;
   onInputChange: (
@@ -64,7 +63,6 @@ const ExtraOptions = ({
   ) => void;
   onExtraEditorChange: Function;
   extraExtension: DatabaseConnectionExtension | undefined;
-  onQueryCostWarningValidationChange?: (hasError: boolean) => void;
 }) => {
   const onExtraInputChangeNonNegative = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -294,8 +292,12 @@ const ExtraOptions = ({
                     key={`${db?.id}-${db?.backend || db?.engine}`}
                     extra={extraJson}
                     metric={db?.engine_information?.query_cost_warning_metric}
-                    onChange={onExtraInputChange}
-                    onValidationChange={onQueryCostWarningValidationChange}
+                    onChange={rule =>
+                      onExtraEditorChange({
+                        name: 'query_cost_warning',
+                        json: JSON.stringify(rule),
+                      })
+                    }
                   />
                   <StyledInputContainer css={no_margin_bottom}>
                     <div className="input-container">
