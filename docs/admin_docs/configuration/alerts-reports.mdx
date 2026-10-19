@@ -897,8 +897,9 @@ Airflow, additional fields can be easily added to the configuration file above.
 The optional `apache-superset[teams]` extra installs Microsoft Teams SDK 2.1.1.
 The SDK handles callback JWT authentication; SDK-specific code lives in
 `superset.integrations.teams.adapter`.
-`FEATURE_FLAGS["ALERT_REPORT_TEAMS"]` defaults to `False`. The integration
-does not register a recipient type or send messages yet.
+`FEATURE_FLAGS["ALERT_REPORT_TEAMS"]` defaults to `False`. The `Teams` notification
+recipient sends attachment-free alerts to configured standard channels; scheduled
+reports are rejected.
 
 Set `ALERT_REPORTS_TEAMS` in `superset_config.py` with `tenant_id` (UUID),
 `application_id` (bot application UUID), `credential` (client secret from your
@@ -917,6 +918,29 @@ Only one tenant and bot identity are accepted per deployment. Operators must
 approve standard channels in that tenant; the parser cannot verify channel type
 or tenant membership without Teams metadata. Private/shared channels, DMs,
 scheduled reports, and attachments are outside the integration scope.
+
+Set the recipient type to `Teams` and `recipient_config_json` to
+`{"target": "ops"}`, where `ops` is a destination key from the deployment
+allowlist. The recipient's configuration must contain only `target`; channel IDs and credentials stay on the
+server. Delivery requires an active installation matching the configured tenant,
+application, and destination team.
+
+Each alert creates a new root channel post with an Adaptive Card containing its
+name and optional description. The optional **Open in Superset** action follows
+the existing `include_cta` setting. Cards use normal JSON serialization; execution
+diagnostics are replaced by a generic failure message. File uploads and embedded
+tabular results are rejected. The Adaptive Card's protocol attachment envelope
+contains only the card, with no attached files.
+
+Transport runs in the Teams adapter with a replaceable operation-scoped interface.
+It allows at most four attempts within a 60-second retry window, bounds individual
+HTTP requests to 10 seconds or the remaining window, and honors `Retry-After`
+(seconds or HTTP date) and `x-ms-retry-after-ms`. A delay exceeding the remaining
+window ends delivery without retrying early. One 401 response can invalidate the
+MSAL token cache and retry with fresh authentication; a second 401 or any 403
+fails authorization. Transient exhaustion uses the existing notification transient
+exception. A failed or lost response can make delivery ambiguous, so transport
+retries can produce duplicate root posts; no conversation IDs are reused.
 
 Set the bot's messaging endpoint to `POST /api/v1/teams/events/`. The callback
 is enabled only by `ALERT_REPORT_TEAMS` and a valid `ALERT_REPORTS_TEAMS` mapping.
