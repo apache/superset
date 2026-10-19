@@ -25,6 +25,8 @@ for input parameters, making MCP tools more flexible for different clients.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any, Callable, List, Type, TypeVar
 
 from pydantic import BaseModel, GetJsonSchemaHandler, ValidationError
@@ -32,6 +34,22 @@ from pydantic import BaseModel, GetJsonSchemaHandler, ValidationError
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
+
+
+@contextmanager
+def field_validation_error(field_name: str) -> Iterator[None]:
+    """Attach a declared field location to checks in a model-level validator.
+
+    Keep the original ValueError for Pydantic consumers; the MCP diagnostic
+    formatter exposes only the schema-backed location and a static reason.
+    """
+    try:
+        yield
+    except ValueError as ex:
+        raise ValidationError.from_exception_data(
+            "Field validation",
+            [{"type": "value_error", "loc": (field_name,), "ctx": {"error": ex}}],
+        ) from ex
 
 
 class OmittedMeansUnchanged(BaseModel):

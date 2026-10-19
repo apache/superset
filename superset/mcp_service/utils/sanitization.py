@@ -76,7 +76,14 @@ def _strip_html_tags(value: str) -> str:
     return cleaned.replace("&amp;", "&")
 
 
-_DANGEROUS_URL_SCHEME_RE = re.compile(r"\b(javascript|vbscript|data):", re.IGNORECASE)
+# Script schemes remain forbidden regardless of payload whitespace. A data URL
+# starts a value or has an adjacent or comma-delimited payload, even after spaces;
+# a prose label such as "substitute data: support tickets" is not a URL.
+_DANGEROUS_URL_SCHEME_RE = re.compile(
+    r"\b(javascript|vbscript):|^\s*data:|\bdata:(?=\S|$)"
+    r"|\bdata:\s+[^,]*,",
+    re.IGNORECASE,
+)
 
 
 def _check_dangerous_url_scheme(value: str, field_name: str) -> None:

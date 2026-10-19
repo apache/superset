@@ -740,3 +740,46 @@ def test_escape_like_empty_string():
     from superset.mcp_service.utils.sanitization import escape_like
 
     assert escape_like("") == ""
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "javascript:alert(1)",
+        "vbscript:msgbox(1)",
+        "See javascript: alert(1)",
+        "See vbscript: msgbox(1)",
+        "data:text/html,payload",
+        "data:,payload",
+        "data:;base64,cGF5bG9hZA==",
+        "data: text/html,payload",
+        "data: ,payload",
+        "data: payload",
+        "See data:text/html,payload",
+        '"data:text/html,payload"',
+        "(data:text/html,payload)",
+        "See data: text/html,payload",
+        "See data: %74ext%2fhtml,payload",
+        "See data: te\txt/html,payload",
+        "See data: text/html ;base64,cGF5bG9hZA==",
+        "JaVaScRiPt:alert(1)",
+        "d&#97;ta:text/html,payload",
+        "da\u200bta:text/html,payload",
+        "java&#8203;script:alert(1)",
+    ],
+)
+def test_url_scheme_payloads_remain_rejected(value: str) -> None:
+    """Keep URL payloads blocked at token boundaries and after decoding."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_user_input(value, "Title")
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_filter_value(value)
+
+
+def test_sanitizer_accepts_data_in_prose() -> None:
+    """Whitespace after a prose colon must not look like a data URL."""
+    value = (
+        "[DEMO] Service Desk - Executive Summary "
+        "(substitute data: Jira support tickets)"
+    )
+    assert sanitize_user_input(value, "Title") == value

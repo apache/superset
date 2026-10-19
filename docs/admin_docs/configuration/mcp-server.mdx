@@ -758,6 +758,14 @@ curl -X POST http://localhost:5008/mcp \
 
 ---
 
+## Text input validation
+
+Dashboard titles and chart names may contain punctuation and prose labels such
+as `substitute data: support tickets`. URL payloads using `javascript:`,
+`vbscript:`, or `data:` remain rejected. When title or name sanitization fails,
+MCP validation errors identify the field, such as `request.dashboard_title`,
+without echoing the supplied value.
+
 ## Deployment
 
 ### Single Process

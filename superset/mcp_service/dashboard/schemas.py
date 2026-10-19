@@ -135,7 +135,10 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
@@ -861,16 +864,17 @@ class GenerateDashboardRequest(BaseModel):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text, "
-                "or omit it to auto-generate one from chart names."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text, "
+                    "or omit it to auto-generate one from chart names."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1025,15 +1029,16 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1499,15 +1504,16 @@ class DuplicateDashboardRequest(BaseModel):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "

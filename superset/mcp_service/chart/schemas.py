@@ -84,7 +84,10 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import (
     ExactJsonSafeMapping,
     ExactJsonSafeRows,
@@ -6343,16 +6346,17 @@ class GenerateChartRequest(
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Chart name", max_length=255, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "chart_name contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a chart_name with plain text, or "
-                "omit it to auto-generate one."
+        with field_validation_error("chart_name"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Chart name", max_length=255, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "chart_name contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a chart_name with plain text, or "
+                    "omit it to auto-generate one."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "chart_name was modified during sanitization to remove "
@@ -6411,7 +6415,7 @@ class GenerateExploreLinkRequest(
 class UpdateChartRequest(
     ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
 ):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     identifier: int | str = Field(
         ...,
