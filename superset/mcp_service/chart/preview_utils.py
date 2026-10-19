@@ -1114,9 +1114,16 @@ def _prepare_gauge_preview(  # noqa: C901
         interval_bounds = _parse_gauge_number_list(
             form_data.get("intervals", ""), "intervals"
         )
-        color_indices = _parse_gauge_number_list(
-            form_data.get("interval_color_indices", ""),
-            "interval_color_indices",
+        # Explicit interval_colors make the renderer ignore the legacy indices,
+        # so stale or malformed indices must not reject the preview then.
+        explicit_interval_colors = form_data.get("interval_colors")
+        color_indices = (
+            []
+            if isinstance(explicit_interval_colors, list) and explicit_interval_colors
+            else _parse_gauge_number_list(
+                form_data.get("interval_color_indices", ""),
+                "interval_color_indices",
+            )
         )
     except ValueError as ex:
         return ChartError(error=str(ex), error_type="InvalidGaugeFormData")
