@@ -333,6 +333,7 @@ def test_database_connection(
             "database_name": "my_database",
             "driver": "gsheets",
             "engine_information": {
+                "query_cost_warning_metric": None,
                 "disable_ssh_tunneling": True,
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
@@ -429,6 +430,7 @@ def test_database_connection(
             "database_name": "my_database",
             "driver": "gsheets",
             "engine_information": {
+                "query_cost_warning_metric": None,
                 "disable_ssh_tunneling": True,
                 "supports_dynamic_catalog": False,
                 "supports_file_upload": True,
