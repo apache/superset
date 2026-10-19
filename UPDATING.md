@@ -2021,6 +2021,8 @@ you later downgrade past this migration and then re-upgrade, a chart where
 you deliberately chose both an `aggregateFunction` and a percent "Show values
 as" *after* the control was restored looks identical to the original
 pre-restoration orphan, and the migration drops that deliberate choice again.
+Charts arriving through import are neither dropped nor tagged, so they render
+with the restored aggregation and no notice.
 A one-time migration tags every other such chart with a `legacy-pivot-aggregation-restored`
 custom tag; opening a tagged chart in Explore shows a notice that its totals
 may now look different, which clears once you review and accept it (or save
