@@ -1329,6 +1329,7 @@ class PivotData {
     const fractionType = resultAggregation
       ? undefined
       : FRACTION_TYPE_BY_SHOW_VALUES_AS[this.props.showValuesAs as string];
+    const defaultFormat = this.props.defaultFormatter as Formatter;
     const resultFactory = resultAggregation
       ? (...args: unknown[]): Aggregator => {
           const build = aggregators[resultAggregation] as (
@@ -1341,6 +1342,11 @@ class PivotData {
           let mixed = false;
           return {
             ...inner,
+            // The summary templates bake in a fixed US formatter; use the
+            // chart's own format so leaves and summaries match.
+            ...(isFractionResultAggregation(resultAggregation)
+              ? {}
+              : { format: fmtNonString(defaultFormat) }),
             push(record: PivotRecord) {
               mixed = tracker.sawMixedMetric(record);
               innerPush(record);
