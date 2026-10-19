@@ -953,6 +953,23 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
         return super().is_safe_attribute(obj, attr, value)
 
 
+# Names taken by ``BaseTemplateProcessor.__init__`` as structural arguments
+# rather than passed through ``set_context``, so they are never exposed as
+# Jinja variables in the render context. A define/repoint access check renders
+# the SQL with the submitted ``template_params``; dropping these first keeps
+# that render matching execution (see ``template_params_for_access_check``).
+RESERVED_TEMPLATE_PARAM_NAMES: frozenset[str] = frozenset(
+    {
+        "database",
+        "query",
+        "table",
+        "extra_cache_keys",
+        "removed_filters",
+        "applied_filters",
+    }
+)
+
+
 class BaseTemplateProcessor:
     """
     Base class for database-specific jinja context
