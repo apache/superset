@@ -88,11 +88,16 @@ def test_column_metadata_default_is_order_independent(
     )
     implementation: MagicMock = MagicMock()
     view: SemanticView = SemanticView()
-    view.implementation = implementation
-    for ordering in permutations(dimensions):
-        implementation.get_dimensions.return_value = ordering
-        assert len(view._unique_dimensions) == 1
-        assert view._unique_dimensions[0].grain == expected
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    ):
+        for ordering in permutations(dimensions):
+            implementation.get_dimensions.return_value = ordering
+            assert len(view._unique_dimensions) == 1
+            assert view._unique_dimensions[0].grain == expected
 
 
 def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
@@ -104,8 +109,15 @@ def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
         Dimension("raw", "event_time", pa.timestamp("us")),
     }
     view: SemanticView = SemanticView()
-    view.implementation = implementation
-    with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+    with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=implementation,
+        ),
+        pytest.raises(QueryObjectValidationError, match="ambiguous"),
+    ):
         _columns: list[ColumnMetadata] = view.columns
 
 
@@ -2806,16 +2818,21 @@ def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> 
     provider_method: MagicMock = getattr(implementation, method)
     provider_method.return_value = set()
     view: SemanticView = SemanticView()
-    view.implementation = implementation
-    for ordering in permutations(catalog):
-        implementation.get_dimensions.return_value = ordering
-        if ambiguous:
-            with pytest.raises(QueryObjectValidationError, match="ambiguous"):
-                getattr(view, method)([], ["event_time"])
-            provider_method.assert_not_called()
-        else:
-            assert getattr(view, method)([], ["event_time"]) == []
-            assert provider_method.call_args.args[1] == {raw}
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=implementation,
+    ):
+        for ordering in permutations(catalog):
+            implementation.get_dimensions.return_value = ordering
+            if ambiguous:
+                with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+                    getattr(view, method)([], ["event_time"])
+                provider_method.assert_not_called()
+            else:
+                assert getattr(view, method)([], ["event_time"]) == []
+                assert provider_method.call_args.args[1] == {raw}
 
 
 def test_semantic_view_data_row_offset_capability(
