@@ -17,7 +17,9 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { Button, Modal } from '@superset-ui/core/components';
+import { useTheme } from '@apache-superset/core/theme';
+import { Button, Modal, Space } from '@superset-ui/core/components';
+import { Icons } from '@superset-ui/core/components/Icons';
 import { queryCostWarningMetrics } from 'src/features/databases/queryCostWarning';
 import type { WarningEstimate } from './useQueryCostWarning';
 
@@ -31,6 +33,7 @@ export default function QueryCostWarningDialog({
   onCancel: () => void;
   onContinue: () => void;
 }) {
+  const theme = useTheme();
   const format = (value: number | bigint) =>
     typeof value === 'bigint'
       ? value.toLocaleString()
@@ -38,7 +41,19 @@ export default function QueryCostWarningDialog({
   return (
     <Modal
       show={!!estimate}
-      title={t('Query cost warning')}
+      title={
+        <Space size="small">
+          <Icons.WarningOutlined
+            iconColor={theme.colorWarning}
+            aria-hidden="true"
+          />
+          {t('Query cost warning')}
+        </Space>
+      }
+      styles={{
+        header: { paddingBottom: 0, marginBottom: 0 },
+        body: { paddingTop: theme.sizeUnit * 2 },
+      }}
       onHide={onCancel}
       footer={
         <>
