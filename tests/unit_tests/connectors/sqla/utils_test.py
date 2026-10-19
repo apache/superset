@@ -538,3 +538,26 @@ def test_get_virtual_table_metadata_renders_jinja(mocker: MockerFixture) -> None
     assert passed_query == rendered_sql, (
         f"get_columns_description received unrendered SQL: {passed_query!r}"
     )
+
+
+def test_get_columns_description_rejects_multi_statement_after_mutation(
+    mocker: MockerFixture,
+) -> None:
+    """A mutator that turns the validated single-statement probe into multiple
+    statements must be rejected before execution: the single-statement check in
+    the caller runs on the pre-mutation SQL, so the mutated text is re-checked."""
+    database = mocker.MagicMock()
+    cursor = mocker.MagicMock()
+    db_engine_spec = mocker.MagicMock()
+    db_engine_spec.engine = "postgresql"
+
+    database.get_raw_connection.return_value.__enter__.return_value.cursor.return_value = cursor  # noqa: E501
+    database.db_engine_spec = db_engine_spec
+    database.apply_limit_to_sql.return_value = "SELECT 1"
+    # the mutator injects a second statement that the pre-mutation check never saw
+    database.mutate_sql_based_on_config.return_value = "SELECT 1; SELECT 2"
+
+    with pytest.raises(SupersetSecurityException):
+        get_columns_description(database, None, None, "SELECT 1")
+
+    db_engine_spec.execute.assert_not_called()
