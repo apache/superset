@@ -442,6 +442,15 @@ export default function transformProps(
     ) {
       derivedComparisonSeries.add(entry[0]);
       entry[1].shift();
+    } else if (
+      entry[1].length > groupBy.length &&
+      Array.isArray(timeCompare) &&
+      timeCompare.some(offset => entry[1][0].endsWith(`, ${offset}`))
+    ) {
+      // `renameOperator` emits `<metric>, <offset>` as the leading part when more
+      // than one metric is pivoted (including a hidden sort-only metric), so the
+      // offset trails the metric instead of leading the entry.
+      derivedComparisonSeries.add(entry[0]);
     }
     return { ...acc, [entry[0]]: entry[1] };
   }, {});
@@ -559,7 +568,7 @@ export default function transformProps(
       xAxisSort === xAxisLabel ||
       xAxisSort === getXAxisLabel(chartProps.rawFormData)
     ) {
-      return SortSeriesType.Name;
+      return { axisValue: true };
     }
     const dataColumns = new Set(Object.keys(rebasedData[0] ?? {}));
     // `truncate_metric` drops the metric label from its own pivoted columns

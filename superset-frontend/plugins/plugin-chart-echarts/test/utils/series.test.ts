@@ -2509,3 +2509,20 @@ describe('measureTextInkWidth', () => {
     expect(capturedFont).toBe(`${theme.fontSizeSM}px ${theme.fontFamily}`);
   });
 });
+
+test('sortRows by axis value is case-sensitive', () => {
+  const rows = [
+    { my_x_axis: 'a', y: 1 },
+    { my_x_axis: 'B', y: 2 },
+  ];
+  expect(
+    sortRows(rows, [1, 2], 'my_x_axis', { axisValue: true }, true).map(
+      ({ row }) => row.my_x_axis,
+    ),
+  ).toEqual(['B', 'a']);
+  expect(
+    sortRows(rows, [1, 2], 'my_x_axis', SortSeriesType.Name, true).map(
+      ({ row }) => row.my_x_axis,
+    ),
+  ).toEqual(['a', 'B']);
+});
