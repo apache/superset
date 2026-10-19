@@ -13650,6 +13650,9 @@ msgstr ""
 msgid "Template parameters"
 msgstr ""
 
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
+
 #, python-format
 msgid "Template processing error: %(error)s"
 msgstr ""
