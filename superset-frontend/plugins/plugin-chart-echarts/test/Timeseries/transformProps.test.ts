@@ -3240,7 +3240,7 @@ test('honors the snake_case flag the compare-chart migration stores in params', 
 });
 describe('EchartsTimeseries tooltip truncation', () => {
   const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
-  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const color = '#1f77b4';
 
   const buildTooltip = (
     tooltipTruncation?: TooltipTruncationMode,
@@ -3279,7 +3279,7 @@ describe('EchartsTimeseries tooltip truncation', () => {
         seriesId: longSeriesName,
         seriesName: longSeriesName,
         value: [xValue, 1],
-        marker,
+        color,
       },
     ]);
   };
@@ -3311,9 +3311,9 @@ describe('EchartsTimeseries tooltip truncation', () => {
     expect(html).not.toContain(longSeriesName);
   });
 
-  test('preserves the echarts marker in every mode', () => {
+  test('keeps the series color marker in every mode', () => {
     (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
-      expect(buildTooltip(mode)).toContain('background-color:#1f77b4');
+      expect(buildTooltip(mode).replace(/\s/g, '')).toContain('color:#1f77b4');
     });
   });
 

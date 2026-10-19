@@ -19,6 +19,7 @@
 import {
   sanitizeHtml,
   tooltipHtml,
+  tooltipMarker,
   truncateLabel,
   TRUNCATION_MAX_CHARS,
 } from '@superset-ui/core';
@@ -270,5 +271,22 @@ describe('tooltipHtml truncation modes', () => {
         longCell,
       );
     });
+  });
+});
+
+describe('tooltipMarker', () => {
+  test('keeps its color through sanitizeHtml', () => {
+    const html = sanitizeHtml(tooltipMarker('#1f77b4', 'rect'));
+    expect(removeWhitespaces(html)).toContain('color:#1f77b4');
+    expect(html).toContain('■');
+  });
+
+  test('falls back to a circle for unknown symbols', () => {
+    expect(tooltipMarker('red', 'arrow')).toContain('●');
+  });
+
+  test('returns nothing without a color string', () => {
+    expect(tooltipMarker(undefined)).toBe('');
+    expect(tooltipMarker({ type: 'linear' })).toBe('');
   });
 });

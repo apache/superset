@@ -31,6 +31,7 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   tooltipHtml,
+  tooltipMarker,
   truncateLabel,
   getCustomFormatter,
   getMetricLabel,
@@ -230,45 +231,6 @@ const visibleSymbols = [
   'roundRect',
   'pin',
 ] as const;
-
-function getSymbolMarker(symbol: string, color: string) {
-  const size = 10;
-  switch (symbol) {
-    case 'circle':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        border-radius:50%;background:${color};margin-right:5px"></span>`;
-    case 'rect':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        background:${color};margin-right:5px"></span>`;
-    case 'roundRect':
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;border-radius:2px;
-        background:${color};margin-right:5px"></span>`;
-    case 'triangle':
-      return `<span style="
-        display:inline-block;width:0;height:0;
-        border-left:${size / 2}px solid transparent;
-        border-right:${size / 2}px solid transparent;
-        border-bottom:${size}px solid ${color};
-        margin-right:5px"></span>`;
-    case 'diamond':
-      return `<span style="
-        display:inline-block;width:${size - 2}px;height:${size - 2}px;
-        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
-        margin-right:5px"></span>`;
-    case 'pin':
-      return `<span style="
-        display:inline-block;width:${size - 2}px;height:${size - 2}px;
-        background:${color};transform: rotate(45deg) translateX(1px) translateY(-1px);
-        border-radius:50%;border-bottom-right-radius:0;margin-right:5px"></span>`;
-    default:
-      return `<span style="
-        display:inline-block;width:${size}px;height:${size}px;
-        border-radius:50%;background:${color};margin-right:5px"></span>`;
-  }
-}
 
 /**
  * Given the fully-built ECharts series (each already carrying its resolved
@@ -1767,14 +1729,11 @@ export default function transformProps(
             }
             const seriesForKey = series.find(s => s.name === key);
             const symbolForSeries = (seriesForKey as any)?.symbol || 'circle';
-            const marker = value.color
-              ? getSymbolMarker(symbolForSeries, value.color)
-              : value.marker;
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
               formatter: getSeriesFormatter(key),
-              marker,
+              marker: tooltipMarker(value.color, symbolForSeries),
               truncation: tooltipTruncation,
             });
 

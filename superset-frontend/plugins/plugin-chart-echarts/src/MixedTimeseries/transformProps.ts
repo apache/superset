@@ -41,6 +41,7 @@ import {
   TimeseriesChartDataResponseResult,
   TimeseriesDataRecord,
   tooltipHtml,
+  tooltipMarker,
   truncateLabel,
   ValueFormatter,
 } from '@superset-ui/core';
@@ -1057,6 +1058,7 @@ export default function transformProps(
             );
             const row = formatForecastTooltipSeries({
               ...value,
+              marker: tooltipMarker(value.color),
               seriesName: key,
               formatter: primarySeries.has(key)
                 ? tooltipFormatter

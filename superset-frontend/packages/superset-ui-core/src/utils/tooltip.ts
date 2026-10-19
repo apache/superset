@@ -75,6 +75,28 @@ function getTruncationStyle(mode: TooltipTruncationMode): string {
   return NOWRAP_STYLE;
 }
 
+const MARKER_GLYPHS: Record<string, string> = {
+  circle: '●',
+  rect: '■',
+  roundRect: '■',
+  triangle: '▲',
+  diamond: '◆',
+  pin: '●',
+};
+
+/**
+ * Series marker for tooltip rows. A colored glyph rather than a sized box:
+ * sanitizeHtml strips display/width/height, so a box would render as nothing.
+ * The glyphs are outside Unicode's Emoji set, so browsers honor the CSS color.
+ */
+export function tooltipMarker(color: unknown, symbol = 'circle'): string {
+  if (typeof color !== 'string' || !color) {
+    return '';
+  }
+  const glyph = MARKER_GLYPHS[symbol] ?? MARKER_GLYPHS.circle;
+  return `<span style="color:${color};margin-right:5px">${glyph}</span>`;
+}
+
 export function tooltipHtml(
   data: string[][],
   title?: string,
