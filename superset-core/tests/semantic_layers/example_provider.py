@@ -51,6 +51,7 @@ class ExampleView(SemanticView):
     """An in-memory dimension-only view with no optional capabilities or cache."""
 
     def __init__(self, cache_token: str | None = None) -> None:
+        """Capture the discovery generation for this view."""
         self._cache_token: str | None = cache_token
 
     @property
@@ -116,6 +117,7 @@ class ExampleLayer(SemanticLayer[ExampleConfig, ExampleView]):
         cache_token: str,
         context: SemanticExecutionContext,
     ) -> None:
+        """Store parsed settings and the host-supplied binding identity."""
         self.configuration: ExampleConfig = configuration
         self.cache_token: str = cache_token
         self.context: SemanticExecutionContext = context

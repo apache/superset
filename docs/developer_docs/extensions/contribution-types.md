@@ -334,7 +334,7 @@ partition **actual lookups**, before
 discovery, by the token and the existing endpoint/credential/role/view scope.
 Merely assigning `self.cache_token` is not invalidation. The
 [cache guide](../semantic-layer-cache-clear.md#provider-sdk-contract) describes
-the required factory and provider cache behavior. Factory/context and schema transport
+the required factory and provider cache behavior. Schema transport
 evolution is separate from these obligations; use the signatures supplied by the
 SDK version your provider supports.
 
