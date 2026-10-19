@@ -992,10 +992,15 @@ class TestCore(SupersetTestCase):
     def test_extension_view_authenticated_returns_spa_shell(self):
         self.login(ADMIN_USERNAME)
 
-        resp = self.client.get("/extensions/view/my-ext.settings")
+        for url in (
+            "/extensions/view/my-ext.settings",
+            "/extensions/view/my-ext/settings",
+            "/extensions/view/my-ext%2Fsettings",
+        ):
+            resp = self.client.get(url)
 
-        assert resp.status_code == 200
-        assert b'id="app"' in resp.data
+            assert resp.status_code == 200, url
+            assert b'id="app"' in resp.data
 
     def test_extension_view_custom_role_without_extension_permission_returns_spa_shell(
         self,
