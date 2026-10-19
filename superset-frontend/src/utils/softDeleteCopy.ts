@@ -16,11 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createElement, Fragment, ReactNode } from 'react';
+import { createElement, Fragment, ReactElement } from 'react';
 import { escape } from 'lodash-es';
 import { t, tn } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { ensureAppRoot } from 'src/utils/pathUtils';
 
 export interface ToastContent {
   text: string;
@@ -166,39 +167,82 @@ export function recoveredToast(
   };
 }
 
-
 type ArchivedObjectType = 'chart' | 'dashboard' | 'dataset';
+
+/** Build a collection URL beneath the configured application root. */
+function archiveHref(type: ArchivedObjectType): string {
+  return ensureAppRoot(`/archived/?type=${type}`);
+}
 
 /** Confirmation text with a direct route to the permitted archive collection. */
 export function archiveConfirmContent(
   type: ArchivedObjectType,
   typeLabel: string,
   plural = false,
-): ReactNode {
+): ReactElement {
   return createElement(
     Fragment,
     null,
     archiveConfirmDescription(typeLabel, plural),
     ' ',
-    createElement('a', { href: `/archived/?type=${type}` }, t('Recently Archived')),
+    createElement('a', { href: archiveHref(type) }, t('Recently Archived')),
   );
 }
 
 /** An escaped archive toast with a collection link; hard-delete copy stays plain. */
-export function deletedToastContent(name: string, type: ArchivedObjectType): ToastContent {
+export function deletedToastContent(
+  name: string,
+  type: ArchivedObjectType,
+): ToastContent {
   const text = deletedToast(name);
   return isFeatureEnabled(FeatureFlag.SoftDelete)
     ? {
-        text: `${escape(text)} <a href="/archived/?type=${type}">${escape(t('Recently Archived'))}</a>`,
+        text: `${escape(text)} <a href="${escape(archiveHref(type))}">${escape(t('Recently Archived'))}</a>`,
         options: { allowHtml: true },
       }
     : { text };
 }
 
-
 /** Isolate the asset name so its direction cannot move translated punctuation. */
-export function archiveTitle(name: string): ReactNode {
+export function archiveTitle(name: string): ReactElement {
   const marker = '\uFFF0';
-  const [before, after] = t('Archive %(name)s?', { name: marker }).split(marker);
-  return createElement(Fragment, null, before, createElement('bdi', { dir: 'auto' }, name), after);
+  const [before, after] = t('Archive %(name)s?', { name: marker }).split(
+    marker,
+  );
+  return createElement(
+    Fragment,
+    null,
+    before,
+    createElement('bdi', { dir: 'auto' }, name),
+    after,
+  );
+}
+
+/** Explain dataset dependencies only when some dependent objects exist. */
+export function datasetArchiveImpact(
+  typeLabel: string,
+  chartCount: number,
+  dashboardCount: number,
+  plural = false,
+): string | null {
+  if (chartCount === 0 && dashboardCount === 0) return null;
+  const values = {
+    type: typeLabel,
+    charts: tn('%s chart', '%s charts', chartCount, chartCount),
+    dashboards: tn(
+      '%s dashboard',
+      '%s dashboards',
+      dashboardCount,
+      dashboardCount,
+    ),
+  };
+  return plural
+    ? t(
+        'The selected %(type)s are linked to %(charts)s on %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered.',
+        values,
+      )
+    : t(
+        'This %(type)s is linked to %(charts)s on %(dashboards)s. Archiving it will make dependent charts unavailable until it is recovered.',
+        values,
+      );
 }

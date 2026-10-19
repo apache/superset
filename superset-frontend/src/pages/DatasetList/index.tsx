@@ -78,8 +78,10 @@ import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
   archiveConfirmContent,
   archiveTitle,
+  datasetArchiveImpact,
   deleteActionLabel,
   deletedToastContent,
+  ToastContent,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
@@ -192,7 +194,7 @@ const isSemanticView = (d: Pick<Dataset, 'kind'>): boolean =>
 
 interface DatasetListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -1556,15 +1558,28 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {softDelete && (
                 <p>{archiveConfirmContent('dataset', datasetLabelLower())}</p>
               )}
-              <p>
-                {t('The %s', datasetLabelLower())}
-                <b> {datasetCurrentlyDeleting.table_name} </b>
-                {t(
-                  'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
-                  datasetCurrentlyDeleting.charts.count,
-                  datasetCurrentlyDeleting.dashboards.count,
-                )}
-              </p>
+              {softDelete ? (
+                (datasetCurrentlyDeleting.charts.count > 0 ||
+                  datasetCurrentlyDeleting.dashboards.count > 0) && (
+                  <p>
+                    {datasetArchiveImpact(
+                      datasetLabelLower(),
+                      datasetCurrentlyDeleting.charts.count,
+                      datasetCurrentlyDeleting.dashboards.count,
+                    )}
+                  </p>
+                )
+              ) : (
+                <p>
+                  {t('The %s', datasetLabelLower())}
+                  <b> {datasetCurrentlyDeleting.table_name} </b>
+                  {t(
+                    'is linked to %s charts that appear on %s dashboards. Are you sure you want to continue? Deleting the dataset will break those objects.',
+                    datasetCurrentlyDeleting.charts.count,
+                    datasetCurrentlyDeleting.dashboards.count,
+                  )}
+                </p>
+              )}
               <AffectedObjectsList
                 charts={datasetCurrentlyDeleting.charts}
                 dashboards={datasetCurrentlyDeleting.dashboards}
@@ -1673,10 +1688,15 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             )}
             {bulkRelatedLookup.status === 'failed' && (
               <p>
-                {t(
-                  'Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards.',
-                  datasetsLabelLower(),
-                )}
+                {bulkIsRecoverable
+                  ? t(
+                      'Could not check which charts and dashboards depend on the selected %s. Archiving them may make charts unavailable.',
+                      datasetsLabelLower(),
+                    )
+                  : t(
+                      'Could not check which charts and dashboards depend on the selected %s. Deleting them may break charts and dashboards.',
+                      datasetsLabelLower(),
+                    )}
               </p>
             )}
             {bulkRelatedLookup.status === 'done' &&
@@ -1684,22 +1704,29 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               bulkRelatedLookup.related.dashboards.count > 0 ? (
                 <>
                   <p>
-                    {t(
-                      'The selected %s are linked to %s on %s. Deleting them will break those objects.',
-                      datasetsLabelLower(),
-                      tn(
-                        '%s chart',
-                        '%s charts',
-                        bulkRelatedLookup.related.charts.count,
-                        bulkRelatedLookup.related.charts.count,
-                      ),
-                      tn(
-                        '%s dashboard',
-                        '%s dashboards',
-                        bulkRelatedLookup.related.dashboards.count,
-                        bulkRelatedLookup.related.dashboards.count,
-                      ),
-                    )}
+                    {bulkIsRecoverable
+                      ? datasetArchiveImpact(
+                          datasetsLabelLower(),
+                          bulkRelatedLookup.related.charts.count,
+                          bulkRelatedLookup.related.dashboards.count,
+                          true,
+                        )
+                      : t(
+                          'The selected %s are linked to %s on %s. Deleting them will break those objects.',
+                          datasetsLabelLower(),
+                          tn(
+                            '%s chart',
+                            '%s charts',
+                            bulkRelatedLookup.related.charts.count,
+                            bulkRelatedLookup.related.charts.count,
+                          ),
+                          tn(
+                            '%s dashboard',
+                            '%s dashboards',
+                            bulkRelatedLookup.related.dashboards.count,
+                            bulkRelatedLookup.related.dashboards.count,
+                          ),
+                        )}
                   </p>
                   <AffectedObjectsList
                     charts={bulkRelatedLookup.related.charts}

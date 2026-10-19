@@ -25,12 +25,16 @@ import {
 } from './softDeleteCopy';
 import { isFeatureEnabled } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
-import getBootstrapData from 'src/utils/getBootstrapData';
+import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 
-jest.mock('@superset-ui/core', () => ({ ...jest.requireActual('@superset-ui/core'), isFeatureEnabled: jest.fn() }));
+jest.mock('@superset-ui/core', () => ({
+  ...jest.requireActual('@superset-ui/core'),
+  isFeatureEnabled: jest.fn(),
+}));
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
+  applicationRoot: jest.fn(() => ''),
   default: jest.fn(() => ({ common: { conf: {} } })),
 }));
 
@@ -42,6 +46,7 @@ const withConf = (conf: Record<string, unknown>) =>
 
 beforeEach(() => {
   withConf({});
+  (applicationRoot as jest.Mock).mockReturnValue('');
 });
 
 test('recoveredToast links to the asset and enables HTML when a url is present', () => {
@@ -140,10 +145,11 @@ test('the confirm copy omits the clause when there is no window', () => {
   );
 });
 
-
 test('archive confirmation links directly to the matching collection', () => {
   render(archiveConfirmContent('dashboard', 'dashboard'));
-  expect(screen.getByRole('link', { name: 'Recently Archived' })).toHaveAttribute('href', '/archived/?type=dashboard');
+  expect(
+    screen.getByRole('link', { name: 'Recently Archived' }),
+  ).toHaveAttribute('href', '/archived/?type=dashboard');
 });
 
 test('archive toast escapes names and links to its collection', () => {
@@ -155,6 +161,24 @@ test('archive toast escapes names and links to its collection', () => {
   expect(toast.text).toContain('href="/archived/?type=dataset"');
   expect(toast.options).toEqual({ allowHtml: true });
   spy.mockReturnValue(false);
-  expect(deletedToastContent('name', 'chart')).toEqual({ text: 'Deleted: name' });
+  expect(deletedToastContent('name', 'chart')).toEqual({
+    text: 'Deleted: name',
+  });
   spy.mockReset();
+});
+
+test('archive confirmation preserves the application root', () => {
+  (applicationRoot as jest.Mock).mockReturnValue('/superset');
+  render(archiveConfirmContent('dashboard', 'dashboard'));
+  expect(
+    screen.getByRole('link', { name: 'Recently Archived' }),
+  ).toHaveAttribute('href', '/superset/archived/?type=dashboard');
+});
+
+test('archive toast preserves and escapes the application root', () => {
+  (applicationRoot as jest.Mock).mockReturnValue('/superset&qa');
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  expect(deletedToastContent('name', 'dataset').text).toContain(
+    'href="/superset&amp;qa/archived/?type=dataset"',
+  );
 });

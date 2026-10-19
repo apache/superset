@@ -128,7 +128,7 @@ export default function ChartCard({
         >
           <MenuItemButton
             type="button"
-            
+
             data-test="chart-list-edit-option"
             onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
           >
@@ -152,7 +152,7 @@ export default function ChartCard({
       label: (
         <MenuItemButton
           type="button"
-          
+
           data-test="chart-list-export-option"
           onClick={() => handleBulkChartExport([chart])}
         >
@@ -179,9 +179,7 @@ export default function ChartCard({
         <ConfirmStatusChange
           recoverable={softDelete}
           title={
-            softDelete
-              ? archiveTitle(chart.slice_name )
-              : t('Please confirm')
+            softDelete ? archiveTitle(chart.slice_name) : t('Please confirm')
           }
           description={
             softDelete ? (
@@ -207,7 +205,7 @@ export default function ChartCard({
         >
           {confirmDelete => (
             <Tooltip
-          placement="right"
+              placement="right"
               title={
                 allowEdit
                   ? null
@@ -220,23 +218,25 @@ export default function ChartCard({
                       )
               }
             >
-              <span><MenuItemButton
-                type="button"
-                
-                disabled={!allowEdit}
-                aria-disabled={!allowEdit}
-                data-test="chart-list-delete-option"
-                className="action-button"
-                onClick={allowEdit ? confirmDelete : undefined}
-              >
-                <Icons.DeleteOutlined
-                  iconSize="l"
-                  css={css`
-                    vertical-align: text-top;
-                  `}
-                />{' '}
-                {deleteActionLabel()}
-              </MenuItemButton></span>
+              <span>
+                <MenuItemButton
+                  type="button"
+
+                  disabled={!allowEdit}
+                  aria-disabled={!allowEdit}
+                  data-test="chart-list-delete-option"
+                  className="action-button"
+                  onClick={allowEdit ? confirmDelete : undefined}
+                >
+                  <Icons.DeleteOutlined
+                    iconSize="l"
+                    css={css`
+                      vertical-align: text-top;
+                    `}
+                  />{' '}
+                  {deleteActionLabel()}
+                </MenuItemButton>
+              </span>
             </Tooltip>
           )}
         </ConfirmStatusChange>

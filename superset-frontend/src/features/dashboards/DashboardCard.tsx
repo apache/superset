@@ -118,7 +118,7 @@ function DashboardCard({
         >
           <MenuItemButton
             type="button"
-            
+
             className="action-button"
             onClick={
               allowEdit ? () => openDashboardEditModal(dashboard) : undefined
@@ -139,7 +139,7 @@ function DashboardCard({
       label: (
         <MenuItemButton
           type="button"
-          
+
           onClick={() => handleBulkDashboardExport([dashboard])}
           className="action-button"
           data-test="dashboard-card-option-export-button"
@@ -168,17 +168,19 @@ function DashboardCard({
                   )
           }
         >
-          <span><MenuItemButton
-            type="button"
-            
-            className="action-button"
-            onClick={allowEdit ? () => onDelete(dashboard) : undefined}
-            disabled={!allowEdit}
-                aria-disabled={!allowEdit}
-                data-test="dashboard-card-option-delete-button"
-          >
-            <Icons.DeleteOutlined iconSize="l" /> {deleteActionLabel()}
-          </MenuItemButton></span>
+          <span>
+            <MenuItemButton
+              type="button"
+
+              className="action-button"
+              onClick={allowEdit ? () => onDelete(dashboard) : undefined}
+              disabled={!allowEdit}
+              aria-disabled={!allowEdit}
+              data-test="dashboard-card-option-delete-button"
+            >
+              <Icons.DeleteOutlined iconSize="l" /> {deleteActionLabel()}
+            </MenuItemButton>
+          </span>
         </Tooltip>
       ),
       disabled: !allowEdit,

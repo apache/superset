@@ -28,7 +28,11 @@ import {
 import { styled } from '@apache-superset/core/theme';
 import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import Chart from 'src/types/Chart';
-import { deletedToastContent, ToastContent, deleteFailedToast } from 'src/utils/softDeleteCopy';
+import {
+  deletedToastContent,
+  ToastContent,
+  deleteFailedToast,
+} from 'src/utils/softDeleteCopy';
 import { intersection } from 'lodash-es';
 import rison from 'rison';
 import type {

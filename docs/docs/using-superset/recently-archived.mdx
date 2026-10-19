@@ -38,6 +38,15 @@ the Type selector. The view shows one type at a time; each
 type is read from its own list endpoint, so the same row-level access rules that
 govern the normal lists apply here.
 
+Archive confirmations and single-item success messages include a direct link to the relevant
+object type. Bookmarks can select a type with `/archived/?type=chart`,
+`/archived/?type=dashboard`, or `/archived/?type=dataset`. If that type is not
+available to you, the page selects the first type you can read.
+
+Archiving an unused dataset does not show a dependency warning. When a dataset
+has dependent charts, the confirmation lists the affected objects and explains
+that those charts become unavailable until the dataset is recovered.
+
 Each row shows:
 
 - **Name** — the object's name. Archived objects cannot be opened from here;

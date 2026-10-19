@@ -654,7 +654,9 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   // SET_USER action exists precisely because that is not guaranteed). A
   // once-only useState initializer would leave a Select showing a value its
   // options no longer contain, fetching an API that answers 403.
-  const chosenType = new URLSearchParams(location.search).get('type') as ArchivedType | null;
+  const chosenType = new URLSearchParams(location.search).get(
+    'type',
+  ) as ArchivedType | null;
   const type =
     chosenType && availableTypes.includes(chosenType)
       ? chosenType
@@ -679,7 +681,6 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
       params.delete('sortOrder');
       params.delete('pageIndex');
       history.replace({ search: params.toString() });
-
     },
     [history],
   );

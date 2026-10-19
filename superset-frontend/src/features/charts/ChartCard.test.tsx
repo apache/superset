@@ -127,7 +127,9 @@ test.each([
     expect(archiveButton).toBeDisabled();
     expect(archiveButton).toHaveAttribute('aria-disabled', 'true');
     expect(archiveButton).toHaveStyleRule('color', 'inherit');
-    expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', { target: ':disabled' });
+    expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
     fireEvent.click(archiveButton);
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
@@ -205,16 +207,23 @@ test('with soft delete off, the card delete dialog is the permanent-delete one',
   expect(within(dialog).getByTestId('delete-modal-input')).toBeInTheDocument();
 });
 
-
-test.each(['تقرير المبيعات حسب المنطقة', 'Sales overview'])('archive title isolates the object name %s', async name => {
-  (isFeatureEnabled as jest.Mock).mockImplementation(flag => flag === FeatureFlag.SoftDelete);
-  renderCard(createMemoryHistory(), { user: adminUser, chart: { ...mockChart, slice_name: name } });
-  fireEvent.click(screen.getByTestId('chart-card-menu'));
-  fireEvent.click(await screen.findByText('Archive'));
-  const dialog = await screen.findByRole('dialog');
-  const isolatedName = within(dialog).getByText(name);
-  expect(isolatedName.tagName).toBe('BDI');
-  expect(isolatedName).toHaveAttribute('dir', 'auto');
-  expect(dialog).toHaveAccessibleName(`Archive ${name} ?`)
-  expect(isolatedName.parentElement).toHaveTextContent(`Archive ${name}?`);
-});
+test.each(['تقرير المبيعات حسب المنطقة', 'Sales overview'])(
+  'archive title isolates the object name %s',
+  async name => {
+    (isFeatureEnabled as jest.Mock).mockImplementation(
+      flag => flag === FeatureFlag.SoftDelete,
+    );
+    renderCard(createMemoryHistory(), {
+      user: adminUser,
+      chart: { ...mockChart, slice_name: name },
+    });
+    fireEvent.click(screen.getByTestId('chart-card-menu'));
+    fireEvent.click(await screen.findByText('Archive'));
+    const dialog = await screen.findByRole('dialog');
+    const isolatedName = within(dialog).getByText(name);
+    expect(isolatedName.tagName).toBe('BDI');
+    expect(isolatedName).toHaveAttribute('dir', 'auto');
+    expect(dialog).toHaveAccessibleName(`Archive ${name} ?`);
+    expect(isolatedName.parentElement).toHaveTextContent(`Archive ${name}?`);
+  },
+);
