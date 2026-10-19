@@ -36,6 +36,10 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel, ConfigDict
+from superset_core.semantic_layers.context import (
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
@@ -236,7 +240,14 @@ class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
         self.configuration: StubConfiguration = configuration
 
     @classmethod
-    def from_configuration(cls, configuration: dict[str, Any]) -> StubSemanticLayer:
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+        *,
+        cache_token: str | None = None,
+        context: SemanticExecutionContext | None = None,
+        credentials: SemanticCredentials | None = None,
+    ) -> StubSemanticLayer:
         return cls(StubConfiguration.model_validate(configuration))
 
     @classmethod

@@ -379,7 +379,7 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     implementation.get_metrics.return_value = []
     implementation.features = frozenset()
     implementation.uid.return_value = "provider-ambiguous"
-    ambiguous.__dict__["implementation"] = implementation
+    healthy: Any = vars(SemanticView)["implementation"]
     broken_chart: Slice = Slice(datasource_id=2, datasource_type="semantic_view")
     broken_chart.semantic_view = ambiguous
     healthy_chart: Slice = Slice(
@@ -388,6 +388,15 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     healthy_chart.semantic_view = semantic_view
     dashboard: Dashboard = Dashboard(id=17, slices=[broken_chart, healthy_chart])
     with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            property(
+                lambda self: implementation
+                if self is ambiguous
+                else healthy.__get__(self, SemanticView)
+            ),
+        ),
         patch(
             "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
             return_value=dashboard,
