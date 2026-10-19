@@ -162,6 +162,10 @@ class ChartDataQueryFailedError(CommandException):
     pass
 
 
+class ChartDataQueryValidationError(ChartDataQueryFailedError):
+    """A chart-data query that failed because the query itself is invalid."""
+
+
 class ChartDataCacheLoadError(CommandException):
     pass
 

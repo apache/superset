@@ -19,6 +19,10 @@ from typing import get_type_hints
 
 import pyarrow as pa
 import pytest
+from superset_core.semantic_layers.context import (
+    ExecutionOrigin,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
@@ -38,7 +42,20 @@ def test_sdk_only_provider(semantic_layer_registration: None) -> None:
     """Import the decorated provider only after the registration fixture starts."""
     from example_provider import ExampleLayer, ExampleView
 
-    layer: ExampleLayer = ExampleLayer.from_configuration({"label": "Example"})
+    context: SemanticExecutionContext = SemanticExecutionContext(
+        principal_id="example-user",
+        role_ids=(),
+        origin=ExecutionOrigin.REQUEST,
+        is_guest=False,
+        namespace="example-workspace",
+        identity_digest="example-identity",
+    )
+    generation: str = "example-generation"
+    layer: ExampleLayer = ExampleLayer.from_configuration(
+        {"label": "Example"}, cache_token=generation, context=context
+    )
+    assert layer.context is context
+    assert layer.cache_token == generation
     assert layer.configuration.label == "Example"
     assert layer.get_configuration_schema()["properties"]["label"]["type"] == "string"
     assert layer.get_runtime_schema(layer.configuration) == {
@@ -50,7 +67,7 @@ def test_sdk_only_provider(semantic_layer_registration: None) -> None:
     assert view.get_values(next(iter(view.get_dimensions()))).results.to_pydict() == {
         "category": ["A", "B"]
     }
-    assert view.metadata_cache_token is None
+    assert view.metadata_cache_token == generation
 
 
 def test_registration_restores_original_decorator(pytester: pytest.Pytester) -> None:

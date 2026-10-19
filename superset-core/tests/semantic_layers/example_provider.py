@@ -21,6 +21,10 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel
+from superset_core.semantic_layers.context import (
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
@@ -45,6 +49,14 @@ class ExampleConfig(BaseModel):
 
 class ExampleView(SemanticView):
     """An in-memory dimension-only view with no optional capabilities or cache."""
+
+    def __init__(self, cache_token: str | None = None) -> None:
+        self._cache_token: str | None = cache_token
+
+    @property
+    def metadata_cache_token(self) -> str | None:
+        """Echo the captured generation without retaining a shared cache."""
+        return self._cache_token
 
     def uid(self) -> str:
         """Return stable identity independently of display labels."""
@@ -97,13 +109,32 @@ class ExampleLayer(SemanticLayer[ExampleConfig, ExampleView]):
 
     configuration_class: type[BaseModel] = ExampleConfig
 
-    def __init__(self, configuration: ExampleConfig) -> None:
+    def __init__(
+        self,
+        configuration: ExampleConfig,
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+    ) -> None:
         self.configuration: ExampleConfig = configuration
+        self.cache_token: str = cache_token
+        self.context: SemanticExecutionContext = context
 
     @classmethod
-    def from_configuration(cls, configuration: dict[str, Any]) -> "ExampleLayer":
-        """Parse settings; no cache or transport is created."""
-        return cls(ExampleConfig.model_validate(configuration))
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
+    ) -> "ExampleLayer":
+        """Bind settings and execution identity without a cache or transport."""
+        return cls(
+            ExampleConfig.model_validate(configuration),
+            cache_token=cache_token,
+            context=context,
+        )
 
     @classmethod
     def get_configuration_schema(
@@ -131,4 +162,4 @@ class ExampleLayer(SemanticLayer[ExampleConfig, ExampleView]):
         """Find the named view."""
         if name != "example":
             raise KeyError(name)
-        return ExampleView()
+        return ExampleView(self.cache_token)
