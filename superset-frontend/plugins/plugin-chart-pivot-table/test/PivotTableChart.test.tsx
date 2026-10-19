@@ -416,5 +416,5 @@ test('forwards the result aggregation so a Median grand total is computed from t
 
   const grandTotal = container.querySelector('.pvtGrandTotal');
   expect(grandTotal).not.toBeNull();
-  expect(grandTotal?.textContent).toMatch(/^20(\.0+)?$/);
+  expect(grandTotal?.textContent).toMatch(/^\$\s?20(\.0+)?$/);
 });
