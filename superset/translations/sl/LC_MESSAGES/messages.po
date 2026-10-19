@@ -13145,6 +13145,9 @@ msgstr "Ponastavi geslo"
 msgid "Reset state"
 msgstr "Ponastavi stanje"
 
+msgid "Reset to default datetime column"
+msgstr ""
+
 msgid "Reset to default folders?"
 msgstr "Ponastaviti na privzete mape?"
 
@@ -16617,6 +16620,10 @@ msgstr ""
 
 msgid "The lower limit of the threshold range of the Isoband"
 msgstr "Spodnji prag za površinske plastnice"
+
+#, python-format
+msgid "The mapping returns to the default datetime column (%(column)s)."
+msgstr ""
 
 msgid ""
 "The maximum number of subdivisions of each group; lower values are pruned"
