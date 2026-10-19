@@ -59,6 +59,11 @@ jobs:
         # that matters. Keep this list's length and the `--splits` value below
         # in sync.
         shard: [1, 2, 3]
+      # Let every shard finish even when another one fails. The default would
+      # cancel the siblings on the first failure, and a cancelled shard never
+      # writes its JUnit XML -- so "Python Unit Test Results" would annotate
+      # the PR with only the failures from whichever shard broke first.
+      fail-fast: false
     env:
       PYTHONPATH: ${{ github.workspace }}
     steps:
@@ -88,15 +93,15 @@ jobs:
       # filters an enabled report) so the slow-file critical path under
       # loadfile stays visible. `--maxfail` is a controller-level stop: tests
       # already dispatched to workers finish, so the final failure count can
-      # slightly exceed it, and it now applies per shard rather than to the
-      # suite as a whole.
+      # slightly exceed it, and it applies per shard rather than to the suite
+      # as a whole.
       #
       # `--splits`/`--group` (pytest-split) shard the suite across the matrix,
       # cutting the per-process state that scales with test count -- the
       # per-test reports, `--durations` timings and JUnit nodes pytest holds
       # until the session ends, plus whatever each xdist worker accumulates
       # over its own tests -- to roughly a third. Runners were being reclaimed
-      # with a shutdown signal in the last seconds of the unsharded ~27k-test
+      # with a shutdown signal in the final percent of the unsharded ~27k-test
       # session, when that state is at its peak. The coverage data is not what
       # shrinks: without `dynamic_context`/`--cov-context` it is one line and
       # branch set per source file, bounded by the size of `superset` rather
