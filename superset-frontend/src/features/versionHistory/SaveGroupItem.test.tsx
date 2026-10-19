@@ -45,6 +45,7 @@ const renderItem = (props: Partial<SaveGroupItemProps> = {}) =>
       isCurrent={false}
       canRestore
       isHighlighted={false}
+      marksCurrentState={false}
       onPreview={jest.fn()}
       onExitPreview={jest.fn()}
       onRestore={jest.fn()}
@@ -67,23 +68,32 @@ test('a highlighted group carries the active treatment; a resting one does not',
   expect(groupBackground(highlighted)).not.toBe(groupBackground(resting));
 });
 
-test('group icons are semantic: check-circle for current, save for history', () => {
+test('every dated save uses the save icon and no Current tag, the live one included', () => {
   const { container: current } = renderItem({ isCurrent: true });
   const { container: historical } = renderItem();
 
-  expect(
-    within(current).getByRole('img', { name: 'check-circle' }),
-  ).toBeInTheDocument();
-  expect(
-    within(current).queryByRole('img', { name: 'save' }),
-  ).not.toBeInTheDocument();
+  for (const container of [current, historical]) {
+    expect(within(container).getByRole('img', { name: 'save' })).toBeVisible();
+    expect(
+      within(container).queryByRole('img', { name: 'check-circle' }),
+    ).not.toBeInTheDocument();
+    expect(within(container).queryByText('Current')).not.toBeInTheDocument();
+  }
+});
+
+test('the row marking the current state is exposed to assistive technology', () => {
+  const { container: marked } = renderItem({
+    isCurrent: true,
+    marksCurrentState: true,
+  });
+  const { container: unmarked } = renderItem({ isCurrent: true });
 
   expect(
-    within(historical).getByRole('img', { name: 'save' }),
-  ).toBeInTheDocument();
+    within(marked).getByTestId('version-history-save-group'),
+  ).toHaveAttribute('aria-current', 'true');
   expect(
-    within(historical).queryByRole('img', { name: 'check-circle' }),
-  ).not.toBeInTheDocument();
+    within(unmarked).getByTestId('version-history-save-group'),
+  ).not.toHaveAttribute('aria-current');
 });
 
 test('rows of the highlighted group show the active timeline dot', () => {

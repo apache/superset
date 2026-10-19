@@ -251,9 +251,9 @@ test('previewing a change row in an older dashboard group calls onPreview', asyn
   expect(props.onPreview).toHaveBeenCalledWith(older);
 });
 
-test('an active search never mis-tags the newest match as Current', () => {
+test('an active search never treats the newest match as the live version', async () => {
   // The search filtered out the true newest save; the visible newest match
-  // is an older version and must not be treated as Current.
+  // is an older version and keeps the actions of a historical save.
   const trueNewest = group({ transactionId: 99, versionUuid: 'v-99' });
   const olderMatch = group({ transactionId: 5, versionUuid: 'v-5' });
   const props = defaultProps([olderMatch]);
@@ -261,18 +261,73 @@ test('an active search never mis-tags the newest match as Current', () => {
   props.activity = activity([olderMatch], { newestGroup: trueNewest });
   render(<VersionHistoryPanel {...props} />);
 
-  expect(screen.queryByText('Current')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+  expect(await screen.findByText('Restore this version')).toBeInTheDocument();
 });
 
-test('the newest save shows a Current tag and older saves do not', () => {
+test('the live save is a dated row without a Current tag, still not restorable', async () => {
+  // The design marks the current state only in the "Current version"
+  // section; a "Current" tag on the newest dated row duplicated it. The
+  // newest save is still the live state: no restore, only Open as new.
   const { newest, older } = dashboardPair();
   const props = defaultProps([newest, older], 'dashboard');
   render(<VersionHistoryPanel {...props} />);
 
-  expect(screen.getAllByText('Current')).toHaveLength(1);
+  expect(screen.queryByText('Current')).not.toBeInTheDocument();
   const groups = screen.getAllByTestId('version-history-save-group');
-  expect(groups[0]).toHaveTextContent('Current');
-  expect(groups[1]).not.toHaveTextContent('Current');
+  expect(groups).toHaveLength(2);
+  await userEvent.click(
+    screen.getAllByRole('button', { name: 'More actions' })[0],
+  );
+  expect(await screen.findByText('Open as new dashboard')).toBeInTheDocument();
+  expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+});
+
+test('with a Current version section, it alone marks the current state', async () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  const groupBackgrounds = () =>
+    screen
+      .getAllByTestId('version-history-save-group')
+      .map(el => getComputedStyle(el).backgroundColor);
+
+  const { rerender } = render(<VersionHistoryPanel {...props} />);
+  const [activeBg, restingBg] = groupBackgrounds();
+  expect(activeBg).not.toBe(restingBg);
+  expect(
+    screen.getAllByTestId('version-history-save-group')[0],
+  ).toHaveAttribute('aria-current', 'true');
+
+  // Unsaved edits show the section; the live dated row is no longer lit.
+  const sessionEntries = [
+    {
+      label: 'Unsaved dashboard edits',
+      controlName: 'dashboard',
+      ts: 0,
+      user: null,
+    },
+  ];
+  rerender(<VersionHistoryPanel {...props} sessionEntries={sessionEntries} />);
+  expect(
+    screen.getByRole('button', { name: 'Current version' }),
+  ).toBeInTheDocument();
+  expect(groupBackgrounds()).toEqual([restingBg, restingBg]);
+  expect(screen.queryByText('Current')).not.toBeInTheDocument();
+  expect(
+    screen
+      .getAllByTestId('version-history-save-group')
+      .filter(el => el.hasAttribute('aria-current')),
+  ).toHaveLength(0);
+
+  // A preview still moves the single highlight to the previewed save.
+  rerender(
+    <VersionHistoryPanel
+      {...props}
+      sessionEntries={sessionEntries}
+      previewedTransactionId={older.transactionId}
+    />,
+  );
+  expect(groupBackgrounds()).toEqual([restingBg, activeBg]);
 });
 
 test('previewing a change row in the current version exits an active preview', async () => {
