@@ -126,6 +126,28 @@ const StickyPanel = styled.div<{ width: number }>`
   flex: 0 0 ${({ width }) => width}px;
 `;
 
+// Gates the horizontal filter bar while a historical version is previewed.
+// The bar sits in the sticky header, which has no background of its own, so
+// fading the gate itself would let content scrolled beneath the header show
+// through the bar. The gate stays opaque and only the bar inside it fades.
+const HorizontalFilterBarGate = styled.div<{ gated: boolean }>`
+  ${({ theme, gated }) =>
+    gated &&
+    css`
+      pointer-events: none;
+      background-color: ${theme.colorBgBase};
+      & > * {
+        opacity: 0.5;
+      }
+    `}
+`;
+
+// The sticky header has no background of its own; this keeps content
+// scrolled beneath it from showing through the banner's rounded corners.
+const PreviewBannerSlot = styled.div`
+  background-color: ${({ theme }) => theme.colorBgBase};
+`;
+
 // @z-index-above-dashboard-popovers (99) + 1 = 100
 const StyledHeader = styled.div`
   ${({ theme }) => css`
@@ -755,19 +777,10 @@ const DashboardBuilder = () => {
         {hideDashboardHeader && !isReport && <HeadlessAutoRefresh />}
         {showFilterBar &&
           filterBarOrientation === FilterBarOrientation.Horizontal && (
-            <div
+            <HorizontalFilterBarGate
               data-test="dashboard-filter-bar-gate"
               aria-disabled={isVersionPreviewActive}
-              css={css`
-                ${
-                  isVersionPreviewActive
-                    ? `
-                    pointer-events: none;
-                    opacity: 0.5;
-                  `
-                    : ''
-                }
-              `}
+              gated={isVersionPreviewActive}
               // inert blocks keyboard focus too; React 18 needs the spread form
               {...(isVersionPreviewActive ? { inert: '' } : {})}
             >
@@ -775,7 +788,7 @@ const DashboardBuilder = () => {
                 orientation={FilterBarOrientation.Horizontal}
                 hidden={hideFilterBar}
               />
-            </div>
+            </HorizontalFilterBarGate>
           )}
       </>
     ),
@@ -942,16 +955,22 @@ const DashboardBuilder = () => {
         >
           {renderDraggableContent}
         </Droppable>
+        {/* Part of the sticky header, below the horizontal filter bar and the
+            tabs: the preview's controls stay reachable while scrolling, and
+            the measured header height (the offset for the history panel and
+            nested tab bars) includes the banner. */}
+        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
+          <PreviewBannerSlot data-test="dashboard-preview-banner-slot">
+            <Suspense fallback={null}>
+              <PreviewBanner
+                entityType="dashboard"
+                canRestore={canRestoreVersion}
+              />
+            </Suspense>
+          </PreviewBannerSlot>
+        )}
       </StyledHeader>
       <StyledContent fullSizeChartId={fullSizeChartId}>
-        {isFeatureEnabled(FeatureFlag.VersionHistory) && (
-          <Suspense fallback={null}>
-            <PreviewBanner
-              entityType="dashboard"
-              canRestore={canRestoreVersion}
-            />
-          </Suspense>
-        )}
         <DashboardContentWrapper
           data-test="dashboard-content-wrapper"
           className={cx('dashboard', editMode && 'dashboard--editing')}

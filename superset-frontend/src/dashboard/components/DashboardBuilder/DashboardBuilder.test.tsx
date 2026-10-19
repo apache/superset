@@ -56,6 +56,7 @@ import {
   DASHBOARD_ROOT_TYPE,
 } from 'src/dashboard/util/componentTypes';
 import { isEmbedded } from 'src/dashboard/util/isEmbedded';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import * as useNativeFiltersModule from './state';
 
 fetchMock.get('glob:*/csstemplateasyncmodelview/api/read', {});
@@ -1317,4 +1318,92 @@ test('filters panel carries the column separator in an embed', () => {
   );
   nativeFiltersSpy.mockRestore();
   (isEmbedded as jest.Mock).mockReturnValue(false);
+});
+
+// Renders a dashboard previewing a historical version with a horizontal
+// filter bar. Callers must call `restore()` once done.
+const renderHorizontalFilterBarPreview = () => {
+  window.featureFlags = { [FeatureFlag.VersionHistory]: true };
+  const nativeFiltersSpy = jest
+    .spyOn(useNativeFiltersModule, 'useNativeFilters')
+    .mockReturnValue({
+      showDashboard: true,
+      missingInitialFilters: [],
+      dashboardFiltersOpen: true,
+      toggleDashboardFiltersOpen: jest.fn(),
+      nativeFiltersEnabled: true,
+      hasFilters: true,
+    });
+  (useStoredSidebarWidth as jest.Mock).mockImplementation(() => [
+    100,
+    jest.fn(),
+  ]);
+  (fetchFaveStar as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  (setActiveTab as jest.Mock).mockReturnValue({ type: 'mock-action' });
+  const view = render(<DashboardBuilder />, {
+    useRedux: true,
+    store: storeWithState({
+      ...mockState,
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        filterBarOrientation: FilterBarOrientation.Horizontal,
+      },
+      dashboardLayout: undoableDashboardLayout,
+      versionHistory: dashboardPreviewState,
+    }),
+    useDnd: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  const restore = () => {
+    nativeFiltersSpy.mockRestore();
+    window.featureFlags = {};
+  };
+  return { ...view, restore };
+};
+
+test('renders the preview banner in the sticky header, after the horizontal filter bar', async () => {
+  // In the sticky header, the banner never meets the filter bar, and the
+  // measured header height (and every offset derived from it) includes it.
+  const { findByTestId, getByTestId, restore } =
+    renderHorizontalFilterBarPreview();
+  try {
+    const banner = await findByTestId('version-preview-banner');
+    const header = getByTestId('dashboard-header-wrapper');
+    const gate = within(header).getByTestId('dashboard-filter-bar-gate');
+
+    expect(header).toContainElement(banner);
+    expect(
+      gate.compareDocumentPosition(banner) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  } finally {
+    restore();
+  }
+});
+
+test('backs the preview banner with an opaque slot', async () => {
+  // The sticky header is transparent; the slot keeps content scrolled
+  // beneath it from showing through the banner's rounded corners.
+  const { findByTestId, restore } = renderHorizontalFilterBarPreview();
+  try {
+    const slot = await findByTestId('dashboard-preview-banner-slot');
+
+    expect(slot).toContainElement(await findByTestId('version-preview-banner'));
+    expect(slot).toHaveStyleRule('background-color', supersetTheme.colorBgBase);
+  } finally {
+    restore();
+  }
+});
+
+test('dims the horizontal filter bar during a preview without making the gate see-through', async () => {
+  const { findByTestId, restore } = renderHorizontalFilterBarPreview();
+  try {
+    const gate = await findByTestId('dashboard-filter-bar-gate');
+
+    expect(gate).not.toHaveStyleRule('opacity', '0.5');
+    expect(gate).toHaveStyleRule('background-color', supersetTheme.colorBgBase);
+    expect(gate).toHaveStyleRule('opacity', '0.5', { target: '>*' });
+  } finally {
+    restore();
+  }
 });
