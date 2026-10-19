@@ -38,6 +38,7 @@ export interface RunQueryActionButtonProps {
   queryState?: string;
   runQuery: () => void;
   stopQuery: () => void;
+  runTooltipText?: string;
   overlayCreateAsMenu: ReactElement | null;
   checkingCost?: boolean;
   cancelCostCheck?: () => void;
@@ -100,6 +101,7 @@ const RunQueryActionButton = ({
   overlayCreateAsMenu,
   runQuery,
   stopQuery,
+  runTooltipText,
   checkingCost = false,
   cancelCostCheck,
   awaitingConfirmation = false,
@@ -156,7 +158,7 @@ const RunQueryActionButton = ({
           (!isDisabled &&
             (shouldShowStopBtn
               ? stopButtonTooltipText
-              : t('Run query (Ctrl + Return)'))) as string
+              : (runTooltipText ?? t('Run query (Ctrl + Return)')))) as string
         }
         cta
         {...(showMenu

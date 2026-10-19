@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-19 02:18-0400\n"
+"POT-Creation-Date: 2026-10-19 13:00-0400\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -13636,6 +13636,10 @@ msgstr "运行查询"
 
 msgid "Run query (Ctrl + Return)"
 msgstr "运行查询 (Ctrl + Return)"
+
+#, python-format
+msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
+msgstr ""
 
 msgid "Run query in a new tab"
 msgstr "在新选项卡中运行查询"

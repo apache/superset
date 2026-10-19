@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 02:18-0400\n"
+"POT-Creation-Date: 2026-10-19 13:00-0400\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -13430,6 +13430,10 @@ msgstr "Spustiť dotaz"
 
 msgid "Run query (Ctrl + Return)"
 msgstr "Spustiť dotaz (Ctrl + Enter)"
+
+#, python-format
+msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
+msgstr ""
 
 msgid "Run query in a new tab"
 msgstr "Spustiť dotaz v nové karte"

@@ -50,6 +50,11 @@ import type {
   CursorPosition,
 } from 'src/SqlLab/types';
 import type { DatabaseObject } from 'src/features/databases/types';
+import {
+  getQueryCostWarningError,
+  isQueryCostWarningMetric,
+  queryCostWarningMetrics,
+} from 'src/features/databases/queryCostWarning';
 import { debounce, isEmpty } from 'lodash-es';
 import Mousetrap from 'mousetrap';
 import {
@@ -300,6 +305,24 @@ const SqlEditor: FC<Props> = ({
   const resultColumns = latestQuery?.results?.columns || [];
 
   const costWarning = useQueryCostWarning(queryEditor, defaultQueryLimit);
+  const warningRule = database?.query_cost_warning;
+  const warningMetric = database?.engine_information?.query_cost_warning_metric;
+  const runTooltipText =
+    isFeatureEnabled(FeatureFlag.EstimateQueryCost) &&
+    isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings) &&
+    database?.allows_cost_estimate &&
+    warningRule?.enabled === true &&
+    isQueryCostWarningMetric(warningMetric) &&
+    !getQueryCostWarningError(warningRule, warningMetric) &&
+    warningRule.threshold !== undefined
+      ? t(
+          'Run query (Ctrl + Return). Cost warnings enabled. %s: %s.',
+          queryCostWarningMetrics[warningMetric].thresholdLabel(),
+          warningRule.threshold.toLocaleString(undefined, {
+            maximumSignificantDigits: 21,
+          }),
+        )
+      : undefined;
   const startQuery = useCallback(
     (
       ctasArg = false,
@@ -847,6 +870,7 @@ const SqlEditor: FC<Props> = ({
         <RunQueryActionButton
           queryEditorId={queryEditor.id}
           queryState={latestQuery?.state}
+          runTooltipText={runTooltipText}
           checkingCost={costWarning.checking}
           cancelCostCheck={costWarning.cancel}
           awaitingConfirmation={!!costWarning.confirmation}

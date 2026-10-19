@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version:  \n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 02:18-0400\n"
+"POT-Creation-Date: 2026-10-19 13:00-0400\n"
 "PO-Revision-Date: 2024-07-14 15:10+0300\n"
 "Last-Translator: Abdalrahim G. Fakhouri <abdilra7eem@yahoo.com>\n"
 "Language: ar\n"
@@ -14346,6 +14346,10 @@ msgstr "تشغيل الاستعلام"
 
 msgid "Run query (Ctrl + Return)"
 msgstr "تشغيل الاستعلام (Ctrl + العودة)"
+
+#, python-format
+msgid "Run query (Ctrl + Return). Cost warnings enabled. %s: %s."
+msgstr ""
 
 msgid "Run query in a new tab"
 msgstr "تشغيل الاستعلام في علامة تبويب جديدة"
