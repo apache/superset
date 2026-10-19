@@ -40,6 +40,7 @@ import {
 import { assetUrl } from 'src/utils/assetUrl';
 import {
   archiveConfirmContent,
+  archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
@@ -179,7 +180,7 @@ export default function ChartCard({
           recoverable={softDelete}
           title={
             softDelete
-              ? t('Archive %(name)s?', { name: chart.slice_name })
+              ? archiveTitle(chart.slice_name )
               : t('Please confirm')
           }
           description={

@@ -26,7 +26,7 @@ import {
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
-import { archiveConfirmContent } from 'src/utils/softDeleteCopy';
+import { archiveConfirmContent, archiveTitle } from 'src/utils/softDeleteCopy';
 import { useHistory } from 'react-router-dom';
 import {
   getItem,
@@ -273,9 +273,7 @@ function DashboardTable({
           open={!!dashboardToDelete}
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: dashboardToDelete.dashboard_title,
-                })
+              ? archiveTitle(dashboardToDelete.dashboard_title)
               : t('Please confirm')
           }
         />

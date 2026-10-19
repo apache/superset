@@ -65,6 +65,7 @@ import {
 import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmContent,
+  archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
@@ -564,9 +565,7 @@ function DashboardList(props: DashboardListProps) {
                   recoverable={softDelete}
                   title={
                     softDelete
-                      ? t('Archive %(name)s?', {
-                          name: original.dashboard_title,
-                        })
+                      ? archiveTitle(original.dashboard_title)
                       : t('Please confirm')
                   }
                   description={
@@ -961,9 +960,7 @@ function DashboardList(props: DashboardListProps) {
                   open={!!dashboardToDelete}
                   title={
                     softDelete
-                      ? t('Archive %(name)s?', {
-                          name: dashboardToDelete.dashboard_title,
-                        })
+                      ? archiveTitle(dashboardToDelete.dashboard_title)
                       : t('Please confirm')
                   }
                 />

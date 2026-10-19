@@ -47,6 +47,7 @@ import {
 import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmContent,
+  archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import {
@@ -1064,9 +1065,7 @@ function ChartList(props: ChartListProps) {
           recoverable={softDelete}
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: chartCurrentlyDeleting.chart.slice_name,
-                })
+              ? archiveTitle(chartCurrentlyDeleting.chart.slice_name)
               : t('Please confirm')
           }
           name={chartCurrentlyDeleting.chart.slice_name}

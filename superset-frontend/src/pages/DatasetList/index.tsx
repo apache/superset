@@ -77,6 +77,7 @@ import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
   archiveConfirmContent,
+  archiveTitle,
   deleteActionLabel,
   deletedToastContent,
   deleteFailedToast,
@@ -1584,9 +1585,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           open
           title={
             softDelete
-              ? t('Archive %(name)s?', {
-                  name: datasetCurrentlyDeleting.table_name,
-                })
+              ? archiveTitle(datasetCurrentlyDeleting.table_name)
               : t('Delete %s?', datasetLabel())
           }
         />

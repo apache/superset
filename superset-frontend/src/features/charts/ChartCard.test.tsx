@@ -174,7 +174,7 @@ test('with soft delete on, the card delete flow shows the archive dialog', async
   fireEvent.click(await screen.findByText('Archive'));
 
   const dialog = await screen.findByRole('dialog');
-  expect(within(dialog).getByText('Archive Sample Chart?')).toBeInTheDocument();
+  expect(dialog).toHaveAccessibleName('Archive Sample Chart ?');
   // The body comes from the shared soft-delete copy module; its exact
   // wording evolves there (location hint, retention clause), so pin the
   // stable prefix rather than a full sentence.
@@ -203,4 +203,18 @@ test('with soft delete off, the card delete dialog is the permanent-delete one',
     within(dialog).getByText(/Are you sure you want to delete/),
   ).toBeInTheDocument();
   expect(within(dialog).getByTestId('delete-modal-input')).toBeInTheDocument();
+});
+
+
+test.each(['تقرير المبيعات حسب المنطقة', 'Sales overview'])('archive title isolates the object name %s', async name => {
+  (isFeatureEnabled as jest.Mock).mockImplementation(flag => flag === FeatureFlag.SoftDelete);
+  renderCard(createMemoryHistory(), { user: adminUser, chart: { ...mockChart, slice_name: name } });
+  fireEvent.click(screen.getByTestId('chart-card-menu'));
+  fireEvent.click(await screen.findByText('Archive'));
+  const dialog = await screen.findByRole('dialog');
+  const isolatedName = within(dialog).getByText(name);
+  expect(isolatedName.tagName).toBe('BDI');
+  expect(isolatedName).toHaveAttribute('dir', 'auto');
+  expect(dialog).toHaveAccessibleName(`Archive ${name} ?`)
+  expect(isolatedName.parentElement).toHaveTextContent(`Archive ${name}?`);
 });

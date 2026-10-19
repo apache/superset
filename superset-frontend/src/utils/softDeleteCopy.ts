@@ -194,3 +194,11 @@ export function deletedToastContent(name: string, type: ArchivedObjectType): Toa
       }
     : { text };
 }
+
+
+/** Isolate the asset name so its direction cannot move translated punctuation. */
+export function archiveTitle(name: string): ReactNode {
+  const marker = '\uFFF0';
+  const [before, after] = t('Archive %(name)s?', { name: marker }).split(marker);
+  return createElement(Fragment, null, before, createElement('bdi', { dir: 'auto' }, name), after);
+}
