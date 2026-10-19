@@ -204,9 +204,13 @@ export default function ChartCard({
               title={
                 allowEdit
                   ? null
-                  : t(
-                      'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
-                    )
+                  : softDelete
+                    ? t(
+                        'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
+                      )
+                    : t(
+                        'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                      )
               }
             >
               <button
