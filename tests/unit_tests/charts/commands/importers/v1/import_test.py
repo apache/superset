@@ -200,65 +200,49 @@ def test_filter_chart_annotations_warns_on_dropped_reference(
     assert "integer reference" in dropped[0]
 
 
-def test_drop_orphaned_pivot_aggregate_function_on_import() -> None:
-    """A pre-restoration export importing after the feature shipped must be
-    normalized the same way the ``141b8ada7731`` migration normalizes an
-    existing chart: an orphaned ``aggregateFunction`` alongside a
-    deliberately-chosen percent ``showValuesAs`` is dropped so the restored
-    aggregation doesn't silently override the percent display the user
-    actually chose. Migrations only touch rows already in the database, so
-    import needs its own copy of this normalization.
-    """
-    from superset.commands.chart.importers.v1.utils import (
-        _drop_orphaned_pivot_aggregate_function,
-    )
-
-    config: dict[str, Any] = {
-        "viz_type": "pivot_table_v2",
-        "params": {"aggregateFunction": "Sum", "showValuesAs": "percent_col"},
-        "query_context": json.dumps(
-            {"form_data": {"aggregateFunction": "Sum", "showValuesAs": "percent_col"}}
-        ),
-    }
-
-    _drop_orphaned_pivot_aggregate_function(config)
-
-    assert "aggregateFunction" not in config["params"]
-    assert config["params"]["showValuesAs"] == "percent_col"
-    form_data = json.loads(config["query_context"])["form_data"]
-    assert "aggregateFunction" not in form_data
-    assert form_data["showValuesAs"] == "percent_col"
-
-
-@pytest.mark.parametrize(
-    "viz_type,params",
-    [
-        # Not a pivot table -- never touched.
-        ("table", {"aggregateFunction": "Sum", "showValuesAs": "percent_col"}),
-        # Unrecognized value -- not a result aggregation to the frontend's
-        # own RESULT_AGGREGATIONS membership check, so nothing to drop.
-        (
-            "pivot_table_v2",
-            {"aggregateFunction": "Integer Sum", "showValuesAs": "percent_col"},
-        ),
-        # No percent showValuesAs -- the aggregateFunction is simply active,
-        # not an orphan to clean up.
-        ("pivot_table_v2", {"aggregateFunction": "Sum", "showValuesAs": "actual"}),
-        ("pivot_table_v2", {"aggregateFunction": "Sum"}),
-    ],
-)
-def test_drop_orphaned_pivot_aggregate_function_is_a_noop(
-    viz_type: str, params: dict[str, Any]
+def test_import_pivot_table_keeps_aggregate_function_with_dormant_percent_display(
+    mocker: MockerFixture, session_with_schema: Session
 ) -> None:
-    from superset.commands.chart.importers.v1.utils import (
-        _drop_orphaned_pivot_aggregate_function,
+    """A same-version export/import round-trip must not drop a live
+    ``aggregateFunction`` just because a percent ``showValuesAs`` is also
+    present in ``params``/``query_context``. Selecting a result aggregation
+    (e.g. "Average") only hides the "Show values as" control in Explore --
+    it doesn't clear its stored value -- so that pairing is the normal shape
+    of any chart saved after the restoring control shipped, not evidence of
+    a pre-restoration orphan. ``effective_show_values_as`` in
+    ``client_processing.py`` already treats the percent mode as inert
+    whenever ``aggregateFunction`` is active, consistently across render,
+    export and report paths, so import must preserve both values rather
+    than guess and delete one of them.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    config = copy.deepcopy(chart_config)
+    config["datasource_id"] = 1
+    config["datasource_type"] = "table"
+    config["viz_type"] = "pivot_table_v2"
+    config["params"]["viz_type"] = "pivot_table_v2"
+    config["params"]["aggregateFunction"] = "Average"
+    config["params"]["showValuesAs"] = "percent_col"
+    config["query_context"] = json.dumps(
+        {
+            "form_data": {
+                "viz_type": "pivot_table_v2",
+                "aggregateFunction": "Average",
+                "showValuesAs": "percent_col",
+            }
+        }
     )
 
-    config: dict[str, Any] = {"viz_type": viz_type, "params": dict(params)}
+    chart = import_chart(config)
 
-    _drop_orphaned_pivot_aggregate_function(config)
+    params = json.loads(chart.params)
+    assert params["aggregateFunction"] == "Average"
+    assert params["showValuesAs"] == "percent_col"
 
-    assert config["params"] == params
+    form_data = json.loads(chart.query_context)["form_data"]
+    assert form_data["aggregateFunction"] == "Average"
+    assert form_data["showValuesAs"] == "percent_col"
 
 
 def test_import_existing_chart_without_permission(
