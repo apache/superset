@@ -20,32 +20,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { QueryEditor } from 'src/SqlLab/types';
 import { ViewLocations } from 'src/SqlLab/contributions';
 import { useViews } from 'src/core/views';
-
-/** Per-tab localStorage key storing the active northPane view ID. */
-const NORTH_PANE_VIEW_KEY = (tabId: string) => `sqllab.northPaneView.${tabId}`;
-
-// The northPane keys are dynamic per-tab strings rather than members of the
-// typed LocalStorageKeys enum, so the typed helpers don't apply. Guard the raw
-// access here so a storage-restricted browser can't crash the editor mount.
-const readNorthPaneStorage = (key: string): string | null => {
-  try {
-    return localStorage.getItem(key);
-  } catch {
-    return null;
-  }
-};
-
-const writeNorthPaneStorage = (key: string, value: string | null): void => {
-  try {
-    if (value === null) {
-      localStorage.removeItem(key);
-    } else {
-      localStorage.setItem(key, value);
-    }
-  } catch {
-    // localStorage may be unavailable (blocked/quota/private mode); ignore.
-  }
-};
+import {
+  NORTH_PANE_VIEW_KEY,
+  northPaneStorageId as resolveNorthPaneStorageId,
+  readNorthPaneStorage,
+  writeNorthPaneStorage,
+} from 'src/SqlLab/utils/northPaneStorage';
 
 /**
  * Tracks which view (if any) a tab's north pane should render, keeping it in
@@ -60,10 +40,7 @@ export default function useNorthPaneView(queryEditor: QueryEditor) {
   // Re-renders when an extension registers a northPane view after async load.
   const northPaneViews = useViews(ViewLocations.sqllab.northPane) || [];
 
-  // Resolve the per-tab localStorage key the same way every other SQL Lab
-  // consumer does (`tabViewId ?? id`), so the value written, read back, and
-  // observed via the `storage` event all agree once a tab is backend-persisted.
-  const northPaneStorageId = queryEditor.tabViewId ?? queryEditor.id;
+  const northPaneStorageId = resolveNorthPaneStorageId(queryEditor);
 
   const [northPaneViewId, setNorthPaneViewId] = useState<string | null>(
     () =>
