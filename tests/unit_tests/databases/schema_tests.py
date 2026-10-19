@@ -53,8 +53,22 @@ def test_query_cost_warning_requires_boolean_opt_in(
     enabled: object,
 ) -> None:
     """Warning activation never coerces a truthy value to an opt-in."""
-    with pytest.raises(ValidationError):
-        warning_extra_loader({"query_cost_warning": {"enabled": enabled}})
+    message = (
+        "Field may not be null."
+        if enabled is None
+        else "The query cost warning enabled setting must be a boolean."
+    )
+    with pytest.raises(ValidationError, match=message) as exc_info:
+        warning_extra_loader(
+            {
+                "query_cost_warning": {
+                    "enabled": enabled,
+                    "metric": "total_cost",
+                    "threshold": 10,
+                }
+            }
+        )
+    assert "enabled" in str(exc_info.value.messages)
 
 
 @pytest.mark.parametrize("enabled", [False, True])
@@ -64,11 +78,24 @@ def test_query_cost_warning_requires_boolean_opt_in(
 )
 def test_query_cost_warning_rejects_invalid_thresholds(
     warning_extra_loader: Callable[[dict[str, object]], dict[str, object]],
+    request: pytest.FixtureRequest,
     enabled: bool,
     threshold: object,
 ) -> None:
     """A supplied threshold must be valid even when warnings are disabled."""
-    with pytest.raises(ValidationError):
+    # JSON extras encode non-finite numbers as null; imports validate raw values.
+    loaded_threshold = threshold
+    if (
+        request.node.callspec.params["warning_extra_loader"]
+        != "ImportV1DatabaseExtraSchema"
+    ):
+        loaded_threshold = json.loads(json.dumps(threshold))
+    message = (
+        "Field may not be null."
+        if loaded_threshold is None
+        else "The query cost warning threshold must be a positive finite number."
+    )
+    with pytest.raises(ValidationError, match=message) as exc_info:
         warning_extra_loader(
             {
                 "query_cost_warning": {
@@ -78,6 +105,7 @@ def test_query_cost_warning_rejects_invalid_thresholds(
                 }
             }
         )
+    assert "threshold" in str(exc_info.value.messages)
 
 
 @pytest.mark.parametrize("threshold", [0.5, 1.5, 2**53, 2**53 + 1])

@@ -277,7 +277,7 @@ def query_cost_warning_enabled_validator(value: object) -> None:
     """Require explicit boolean opt-in without coercing strings or numbers."""
     if not isinstance(value, bool):
         raise ValidationError(
-            _("The query cost warning enabled setting must be a boolean.")
+            [_("The query cost warning enabled setting must be a boolean.")]
         )
 
 
@@ -290,7 +290,7 @@ def query_cost_warning_threshold_validator(value: object) -> None:
         or (isinstance(value, float) and not math.isfinite(value))
     ):
         raise ValidationError(
-            _("The query cost warning threshold must be a positive finite number.")
+            [_("The query cost warning threshold must be a positive finite number.")]
         )
 
 
