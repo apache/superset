@@ -76,9 +76,9 @@ import { Typography } from '@superset-ui/core/components/Typography';
 import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
   deleteActionLabel,
-  deletedToast,
+  deletedToastContent,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps, ButtonProps } from 'src/features/home/SubMenu';
@@ -1420,7 +1420,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
-        addSuccessToast(deletedToast(tableName));
+        const toast = deletedToastContent(tableName, 'dataset');
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(deleteFailedToast(tableName, errMsg)),
@@ -1552,7 +1553,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <>
               {softDelete && (
-                <p>{archiveConfirmDescription(datasetLabelLower())}</p>
+                <p>{archiveConfirmContent('dataset', datasetLabelLower())}</p>
               )}
               <p>
                 {t('The %s', datasetLabelLower())}
@@ -1647,7 +1648,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           <>
             {softDelete ? (
               bulkIsRecoverable ? (
-                archiveConfirmDescription(datasetsLabelLower(), true)
+                archiveConfirmContent('dataset', datasetsLabelLower(), true)
               ) : (
                 <>
                   {tn(

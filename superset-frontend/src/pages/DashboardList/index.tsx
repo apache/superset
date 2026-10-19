@@ -64,7 +64,7 @@ import {
 } from 'src/components';
 import handleResourceExport from 'src/utils/export';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
@@ -571,7 +571,7 @@ function DashboardList(props: DashboardListProps) {
                   }
                   description={
                     softDelete ? (
-                      archiveConfirmDescription(t('dashboard'))
+                      archiveConfirmContent('dashboard', t('dashboard'))
                     ) : (
                       <>
                         {t('Are you sure you want to delete')}{' '}
@@ -899,7 +899,7 @@ function DashboardList(props: DashboardListProps) {
         }
         description={
           softDelete
-            ? archiveConfirmDescription(t('dashboards'), true)
+            ? archiveConfirmContent('dashboard', t('dashboards'), true)
             : t('Are you sure you want to delete the selected dashboards?')
         }
         onConfirm={handleBulkDashboardDelete}
@@ -938,7 +938,7 @@ function DashboardList(props: DashboardListProps) {
                   recoverable={softDelete}
                   description={
                     softDelete ? (
-                      archiveConfirmDescription(t('dashboard'))
+                      archiveConfirmContent('dashboard', t('dashboard'))
                     ) : (
                       <>
                         {t('Are you sure you want to delete')}{' '}

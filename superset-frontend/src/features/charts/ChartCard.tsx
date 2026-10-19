@@ -39,7 +39,7 @@ import {
 } from 'src/views/CRUD/utils';
 import { assetUrl } from 'src/utils/assetUrl';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import type { ListViewFetchDataConfig as FetchDataConfig } from 'src/components';
@@ -179,7 +179,7 @@ export default function ChartCard({
           }
           description={
             softDelete ? (
-              <p>{archiveConfirmDescription(t('chart'))}</p>
+              <p>{archiveConfirmContent('chart', t('chart'))}</p>
             ) : (
               <>
                 {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>

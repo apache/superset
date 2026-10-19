@@ -46,7 +46,7 @@ import {
 } from 'src/views/CRUD/hooks';
 import handleResourceExport from 'src/utils/export';
 import {
-  archiveConfirmDescription,
+  archiveConfirmContent,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
 import {
@@ -140,7 +140,7 @@ function ChartArchiveDescription({
   return (
     <>
       {softDelete ? (
-        <p>{archiveConfirmDescription(t('chart'))}</p>
+        <p>{archiveConfirmContent('chart', t('chart'))}</p>
       ) : (
         <p>
           {t('Are you sure you want to delete')} <b>{chart.slice_name}</b>?
@@ -1094,7 +1094,7 @@ function ChartList(props: ChartListProps) {
         title={softDelete ? t('Archive selected charts?') : t('Please confirm')}
         description={
           softDelete
-            ? archiveConfirmDescription(t('charts'), true)
+            ? archiveConfirmContent('chart', t('charts'), true)
             : t('Are you sure you want to delete the selected charts?')
         }
         onConfirm={handleBulkChartDelete}

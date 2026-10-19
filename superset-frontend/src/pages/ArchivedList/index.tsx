@@ -17,7 +17,7 @@
  * under the License.
  */
 import { useCallback, useMemo, useRef, useState } from 'react';
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import { useAppSelector } from 'src/views/store';
 import { getClientErrorObject, SupersetClient } from '@superset-ui/core';
 import { t } from '@apache-superset/core/translation';
@@ -614,6 +614,7 @@ function ArchivedListBody({
  */
 function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   const history = useHistory();
+  const location = useLocation();
   const roles = useAppSelector(
     state =>
       (state.user as UserWithPermissionsAndRoles | undefined)?.roles ??
@@ -653,7 +654,7 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   // SET_USER action exists precisely because that is not guaranteed). A
   // once-only useState initializer would leave a Select showing a value its
   // options no longer contain, fetching an API that answers 403.
-  const [chosenType, setType] = useState<ArchivedType | undefined>(undefined);
+  const chosenType = new URLSearchParams(location.search).get('type') as ArchivedType | null;
   const type =
     chosenType && availableTypes.includes(chosenType)
       ? chosenType
@@ -673,11 +674,12 @@ function ArchivedList({ addDangerToast, addSuccessToast }: ToastProps) {
   const handleTypeChange = useCallback(
     (value: unknown) => {
       const params = new URLSearchParams(history.location.search);
+      params.set('type', String(value));
       params.delete('sortColumn');
       params.delete('sortOrder');
       params.delete('pageIndex');
       history.replace({ search: params.toString() });
-      setType(value as ArchivedType);
+
     },
     [history],
   );

@@ -191,9 +191,9 @@ const mockRoutes = (
   fetchMock.post(datasetPurgeEndpoint, purgeResponse);
 };
 
-const renderArchivedList = (withStore = store) =>
+const renderArchivedList = (withStore = store, entry = "/archived/") =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[entry]}>
       <QueryParamProvider adapter={ReactRouter5Adapter}>
         <ArchivedList />
       </QueryParamProvider>
@@ -986,4 +986,23 @@ test('a 409 replaces impact and re-arms DELETE confirmation', async () => {
   expect(screen.getByText('1 Chart')).toBeInTheDocument();
   expect(screen.getByTestId('delete-modal-input')).toHaveValue('');
   expect(screen.getByRole('button', { name: 'Delete' })).toBeDisabled();
+});
+
+
+test.each([
+  ['dashboard', 'Deleted Dashboard One'],
+  ['dataset', 'deleted_table_one'],
+  ['chart', 'Deleted Chart One'],
+  ['unknown', 'Deleted Chart One'],
+])('archive deep link type %s selects the permitted collection', async (type, name) => {
+  mockRoutes();
+  renderArchivedList(store, `/archived/?type=${type}`);
+  expect(await screen.findByText(name)).toBeInTheDocument();
+});
+
+test('archive deep link cannot select a type the user cannot read', async () => {
+  mockRoutes();
+  renderArchivedList(storeWithReadAccess('Dashboard'), '/archived/?type=chart');
+  expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(listEndpoint)).toHaveLength(0);
 });

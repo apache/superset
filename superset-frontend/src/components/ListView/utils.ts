@@ -347,8 +347,8 @@ export function useListViewState<D extends object = any>({
     const method =
       typeof query.pageIndex !== 'undefined' &&
       queryParams.pageIndex !== query.pageIndex
-        ? 'push'
-        : 'replace';
+        ? 'pushIn'
+        : 'replaceIn';
 
     setQuery(queryParams, method);
 

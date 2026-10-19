@@ -26,7 +26,7 @@ import {
 import { useFavoriteStatus, useListViewResource } from 'src/views/CRUD/hooks';
 import { Dashboard, DashboardTableProps, TableTab } from 'src/views/CRUD/types';
 import handleResourceExport from 'src/utils/export';
-import { archiveConfirmDescription } from 'src/utils/softDeleteCopy';
+import { archiveConfirmContent } from 'src/utils/softDeleteCopy';
 import { useHistory } from 'react-router-dom';
 import {
   getItem,
@@ -249,7 +249,7 @@ function DashboardTable({
           recoverable={softDelete}
           description={
             softDelete ? (
-              archiveConfirmDescription(t('dashboard'))
+              archiveConfirmContent('dashboard', t('dashboard'))
             ) : (
               <>
                 {t('Are you sure you want to delete')}{' '}

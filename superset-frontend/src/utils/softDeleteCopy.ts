@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { createElement, Fragment, ReactNode } from 'react';
 import { escape } from 'lodash-es';
 import { t, tn } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
@@ -163,4 +164,33 @@ export function recoveredToast(
     text: `${escape(message)} <a href="${escape(url)}">${escape(linkText)} →</a>`,
     options: { allowHtml: true },
   };
+}
+
+
+type ArchivedObjectType = 'chart' | 'dashboard' | 'dataset';
+
+/** Confirmation text with a direct route to the permitted archive collection. */
+export function archiveConfirmContent(
+  type: ArchivedObjectType,
+  typeLabel: string,
+  plural = false,
+): ReactNode {
+  return createElement(
+    Fragment,
+    null,
+    archiveConfirmDescription(typeLabel, plural),
+    ' ',
+    createElement('a', { href: `/archived/?type=${type}` }, t('Recently Archived')),
+  );
+}
+
+/** An escaped archive toast with a collection link; hard-delete copy stays plain. */
+export function deletedToastContent(name: string, type: ArchivedObjectType): ToastContent {
+  const text = deletedToast(name);
+  return isFeatureEnabled(FeatureFlag.SoftDelete)
+    ? {
+        text: `${escape(text)} <a href="/archived/?type=${type}">${escape(t('Recently Archived'))}</a>`,
+        options: { allowHtml: true },
+      }
+    : { text };
 }

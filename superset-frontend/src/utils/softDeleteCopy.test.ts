@@ -18,10 +18,16 @@
  */
 import {
   archiveConfirmDescription,
+  archiveConfirmContent,
+  deletedToastContent,
   getSoftDeleteRetentionDays,
   recoveredToast,
 } from './softDeleteCopy';
+import { isFeatureEnabled } from '@superset-ui/core';
+import { render, screen } from 'spec/helpers/testing-library';
 import getBootstrapData from 'src/utils/getBootstrapData';
+
+jest.mock('@superset-ui/core', () => ({ ...jest.requireActual('@superset-ui/core'), isFeatureEnabled: jest.fn() }));
 
 jest.mock('src/utils/getBootstrapData', () => ({
   __esModule: true,
@@ -132,4 +138,23 @@ test('the confirm copy omits the clause when there is no window', () => {
   expect(archiveConfirmDescription('dashboards', true)).toBe(
     'These dashboards will be moved to Recently Archived. You can recover them there.',
   );
+});
+
+
+test('archive confirmation links directly to the matching collection', () => {
+  render(archiveConfirmContent('dashboard', 'dashboard'));
+  expect(screen.getByRole('link', { name: 'Recently Archived' })).toHaveAttribute('href', '/archived/?type=dashboard');
+});
+
+test('archive toast escapes names and links to its collection', () => {
+  const spy = isFeatureEnabled as jest.Mock;
+  spy.mockReturnValue(true);
+  const toast = deletedToastContent('<img src=x onerror=alert(1)>', 'dataset');
+  expect(toast.text).not.toContain('<img');
+  expect(toast.text).toContain('&lt;img');
+  expect(toast.text).toContain('href="/archived/?type=dataset"');
+  expect(toast.options).toEqual({ allowHtml: true });
+  spy.mockReturnValue(false);
+  expect(deletedToastContent('name', 'chart')).toEqual({ text: 'Deleted: name' });
+  spy.mockReset();
 });
