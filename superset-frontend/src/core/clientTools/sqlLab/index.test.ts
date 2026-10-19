@@ -118,12 +118,38 @@ test('lists unvisited persisted tabs with an unknown database', async () => {
   });
 });
 
-test('reads SQL and selection from the live editor', async () => {
-  expect(await invoke('get_editor_sql')).toMatchObject({
+test('reads SQL and selection from the requested editor without requiring it to be active', async () => {
+  mockSqlLab.getCurrentTab.mockReturnValue(undefined);
+  expect(await invoke('get_editor_sql', { editor_id: tab.id })).toMatchObject({
     success: true,
-    editor: { editor_id: tab.id, sql: 'SELECT 1', selectedText: '1' },
+    editor: {
+      editor_id: tab.id,
+      sql: 'SELECT 1',
+      selectedText: '1',
+    },
   });
+  expect(mockSqlLab.getCurrentTab).not.toHaveBeenCalled();
 });
+
+test('reading SQL reports errors from getEditor', async () => {
+  const message = `SQL editor "${tab.id}" is not loaded. Switch to this tab to load it, then retry.`;
+  jest.mocked(tab.getEditor).mockRejectedValueOnce(new Error(message));
+  expect(await invoke('get_editor_sql', { editor_id: tab.id })).toEqual({
+    success: false,
+    message,
+  });
+  expect(tab.getEditor).toHaveBeenCalledTimes(1);
+});
+
+test.each([{}, { editor_id: '' }, { editor_id: 1 }])(
+  'reading SQL requires a valid editor_id: %p',
+  async input => {
+    expect(await invoke('get_editor_sql', input)).toMatchObject({
+      success: false,
+    });
+    expect(tab.getEditor).not.toHaveBeenCalled();
+  },
+);
 
 test('lists only databases loaded in the frontend', async () => {
   expect(await invoke('get_databases')).toEqual({
@@ -154,21 +180,28 @@ test.each([null, [], {}, { sql: 1 }])(
   },
 );
 
-test.each([
-  'get_current_editor_id',
-  'get_editor_sql',
-  'update_editor_sql',
-  'run_current_query',
-])('%s fails when there is no active editor', async name => {
-  mockSqlLab.getCurrentTab.mockReturnValue(undefined);
-  expect(await invoke(name, { sql: 'SELECT 2' })).toEqual({
-    success: false,
-    message: 'No active SQL editor tab',
+test('updating with the existing SQL preserves the editor buffer', async () => {
+  expect(await invoke('update_editor_sql', { sql: 'SELECT 1' })).toEqual({
+    success: true,
+    editor_id: tab.id,
   });
-  expect(mockSqlLab.executeQuery).not.toHaveBeenCalled();
+  expect(editor.getValue).toHaveBeenCalled();
+  expect(editor.setValue).not.toHaveBeenCalled();
 });
 
-test.each(['switch_editor_tab', 'close_editor_tab'])(
+test.each(['get_current_editor_id', 'update_editor_sql', 'run_current_query'])(
+  '%s fails when there is no active editor',
+  async name => {
+    mockSqlLab.getCurrentTab.mockReturnValue(undefined);
+    expect(await invoke(name, { sql: 'SELECT 2' })).toEqual({
+      success: false,
+      message: 'No active SQL editor tab',
+    });
+    expect(mockSqlLab.executeQuery).not.toHaveBeenCalled();
+  },
+);
+
+test.each(['get_editor_sql', 'switch_editor_tab', 'close_editor_tab'])(
   '%s validates the target tab before changing UI state',
   async name => {
     expect(await invoke(name, { editor_id: 'missing' })).toEqual({

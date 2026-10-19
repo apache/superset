@@ -89,7 +89,8 @@ export interface Tab {
 
   /**
    * Gets the code editor instance for this tab.
-   * Returns a Promise that resolves when the editor is ready, or rejects if the tab closes.
+   * Rejects if the tab's state is not loaded; activate the tab before retrying.
+   * Otherwise waits for the editor to be ready, rejecting if the tab closes.
    * The returned editor is a proxy that always delegates to the current
    * editor implementation, even if the editor is swapped (e.g., Ace to Monaco).
    *

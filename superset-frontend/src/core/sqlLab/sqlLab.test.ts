@@ -35,6 +35,7 @@ import {
   REMOVE_QUERY_EDITOR,
   SET_ACTIVE_QUERY_EDITOR,
   ADD_QUERY_EDITOR,
+  LOAD_QUERY_EDITOR,
 } from 'src/SqlLab/actions/sqlLab';
 
 // ---------------------------------------------------------------------------
@@ -558,6 +559,8 @@ test.each(['switch_editor_tab', 'close_editor_tab'])(
   async name => {
     const persisted = { ...makeSecondEditor(), dbId: undefined, loaded: false };
     mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: persisted });
+    await sqlLab.setActiveTab(EDITOR_ID);
+    expect(sqlLab.getCurrentTab()?.id).toBe(EDITOR_ID);
     expect(sqlLab.getTabs().find(tab => tab.id === persisted.id)).toMatchObject(
       {
         id: persisted.id,
@@ -578,12 +581,109 @@ test.each(['switch_editor_tab', 'close_editor_tab'])(
   },
 );
 
+test('run_current_query rejects an unvisited tab while its saved state is loading', async () => {
+  const persisted = {
+    ...makeSecondEditor(),
+    dbId: undefined,
+    sql: '',
+    loaded: false,
+  };
+  mockStore.dispatch({ type: ADD_QUERY_EDITOR, queryEditor: persisted });
+  await sqlLab.setActiveTab(EDITOR_ID);
+  notifyLocationChanged('/sqllab/');
+  const switchTool = sqlLabTools.find(
+    item => item.name === 'sqlLab__switch_editor_tab',
+  )!;
+  expect(await switchTool.handler({ editor_id: persisted.id })).toMatchObject({
+    success: true,
+  });
+  const runTool = sqlLabTools.find(
+    item => item.name === 'sqlLab__run_current_query',
+  )!;
+  expect(await runTool.handler({})).toEqual({
+    success: false,
+    message: 'SQL editor is still loading. Retry once the tab has loaded.',
+  });
+  expect(mockStore.getState().sqlLab.queries).toEqual({});
+});
+
+test.each(['get_editor_sql', 'update_editor_sql'])(
+  '%s returns a loading error from getEditor and succeeds after the tab state loads',
+  async name => {
+    const hydrated = makeSecondEditor();
+    mockStore.dispatch({
+      type: ADD_QUERY_EDITOR,
+      queryEditor: { ...hydrated, dbId: undefined, sql: '', loaded: false },
+    });
+    const tab = sqlLab.getCurrentTab()!;
+    await expect(tab.getEditor()).rejects.toThrow('is not loaded');
+    notifyLocationChanged('/sqllab/');
+    const tool = sqlLabTools.find(item => item.name === `sqlLab__${name}`)!;
+    const input = { editor_id: hydrated.id, sql: 'SELECT 3' };
+    expect(await tool.handler(input)).toEqual({
+      success: false,
+      message: `SQL editor "${hydrated.id}" is not loaded. Switch to this tab to load it, then retry.`,
+    });
+    mockStore.dispatch({ type: LOAD_QUERY_EDITOR, queryEditor: hydrated });
+    registerEditorHandle(hydrated.id, {
+      getValue: () => hydrated.sql,
+      getSelectedText: () => '',
+      setValue: jest.fn(),
+    } as unknown as sqlLabApi.Editor);
+    try {
+      await expect(tab.getEditor()).resolves.toBeDefined();
+      expect(await tool.handler(input)).toMatchObject({ success: true });
+    } finally {
+      unregisterEditorHandle(hydrated.id);
+    }
+  },
+);
+
+test('get_editor_sql returns refreshed metadata for its target after waiting for the editor', async () => {
+  const hydrated = makeSecondEditor();
+  mockStore.dispatch({
+    type: ADD_QUERY_EDITOR,
+    queryEditor: {
+      ...hydrated,
+      dbId: undefined,
+      catalog: null,
+      schema: undefined,
+      sql: '',
+      loaded: true,
+    },
+  });
+  notifyLocationChanged('/sqllab/');
+  const tool = sqlLabTools.find(
+    item => item.name === 'sqlLab__get_editor_sql',
+  )!;
+  const result = tool.handler({ editor_id: hydrated.id });
+  mockStore.dispatch({ type: LOAD_QUERY_EDITOR, queryEditor: hydrated });
+  await sqlLab.setActiveTab(EDITOR_ID);
+  registerEditorHandle(hydrated.id, {
+    getValue: () => hydrated.sql,
+    getSelectedText: () => '',
+  } as sqlLabApi.Editor);
+  expect(await result).toEqual({
+    success: true,
+    editor: {
+      editor_id: hydrated.id,
+      title: hydrated.name,
+      databaseId: hydrated.dbId,
+      catalog: hydrated.catalog,
+      schema: hydrated.schema,
+      sql: hydrated.sql,
+      selectedText: '',
+    },
+  });
+  unregisterEditorHandle(hydrated.id);
+});
+
 test.each(['get_editor_sql', 'update_editor_sql'])(
   '%s returns an error if the tab closes before the editor mounts',
   async name => {
     notifyLocationChanged('/sqllab/');
     const tool = sqlLabTools.find(item => item.name === `sqlLab__${name}`)!;
-    const result = tool.handler({ sql: 'SELECT 2' });
+    const result = tool.handler({ editor_id: EDITOR_ID, sql: 'SELECT 2' });
     await sqlLab.closeTab(EDITOR_ID);
     expect(await result).toEqual({
       success: false,

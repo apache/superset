@@ -158,15 +158,16 @@ while handling a tool call. Query execution failures are reported separately.
 | `core.sqlLab__get_current_editor_id` | `{}` | Active `editor_id` |
 | `core.sqlLab__get_editor_tabs` | `{}` | `editors`: IDs, titles, database IDs, catalogs, schemas |
 | `core.sqlLab__get_databases` | `{}` | `databases`: IDs and names already loaded in SQL Lab |
-| `core.sqlLab__get_editor_sql` | `{}` | Active `editor`: metadata, SQL, and selected text |
+| `core.sqlLab__get_editor_sql` | `{ editor_id: string }` | Target `editor`: metadata, SQL, and selected text; fails if the tab state is not loaded |
 | `core.sqlLab__update_editor_sql` | `{ sql: string }` | Replace active editor SQL; empty SQL clears the buffer |
 | `core.sqlLab__create_editor_tab` | `{ title: string, databaseId: number, sql?: string, catalog?: string, schema?: string }` | Open a tab and return its metadata; omitted options use SQL Lab defaults |
 | `core.sqlLab__switch_editor_tab` | `{ editor_id: string }` | Activate an existing tab |
 | `core.sqlLab__close_editor_tab` | `{ editor_id: string }` | Close a tab and discard its editor buffer |
 | `core.sqlLab__run_current_query` | `{}` | Trigger the existing SQL Lab Run action; return `editor_id` and client `query_id` |
 
-Successful results include `success: true`. Read and update tools use the active
-editor; switch tabs explicitly before working with another editor. Listing tabs
+Successful results include `success: true`. SQL reads target the supplied
+`editor_id`; SQL updates use the active editor, so switch tabs before updating
+another editor. Listing tabs
 reads metadata only, so it does not wait for inactive editors to mount.
 Persisted tabs remain listed before they are visited; their `databaseId` is
 `null` until their state is loaded. SQL reads and updates return an error if
@@ -174,9 +175,16 @@ their tab closes while waiting for its editor to mount. Creating a tab for a
 different database clears omitted catalog and schema values; explicit values
 are preserved, and tabs using the same database inherit omitted values.
 
+`get_editor_sql` requires an `editor_id` and reads that tab rather than the active
+tab. If the tab's state has not loaded, `Tab.getEditor()` rejects, and the tool
+returns `success: false` with a message to use
+`switch_editor_tab` to load the target tab before retrying.
+
 `run_current_query` follows SQL Lab's existing selection, database, catalog,
 schema, template parameter, and row limit behavior. It starts execution through
 the SQL Lab API and returns a client query ID; it does not wait for results.
+If a persisted tab is still loading after a switch, execution returns an error;
+retry once the tab has loaded.
 Its `success: true` confirms only that execution was initiated, not that the
 query succeeded. Backend execution errors (including invalid SQL) are delivered
 through SQL Lab's query lifecycle. Subscribe to `sqlLab.onDidQuerySuccess` and

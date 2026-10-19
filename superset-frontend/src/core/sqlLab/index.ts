@@ -136,12 +136,21 @@ const createEditorProxy = (tabId: string): sqlLabApi.Editor =>
   });
 
 /**
- * Gets the editor for a tab, waiting for it to be registered if necessary.
+ * Gets the editor for a loaded tab, waiting for it to be registered if necessary.
+ * Rejects if the tab's saved state has not loaded.
  * Returns a Proxy that always delegates to the current handle.
  */
 const getEditorAsync = (tabId: string): Promise<sqlLabApi.Editor> => {
-  if (!findQueryEditor(tabId)) {
+  const queryEditor = findQueryEditor(tabId);
+  if (!queryEditor) {
     return Promise.reject(new Error(`Tab ${tabId} has been closed`));
+  }
+  if (!queryEditor.loaded) {
+    return Promise.reject(
+      new Error(
+        `SQL editor "${tabId}" is not loaded. Switch to this tab to load it, then retry.`,
+      ),
+    );
   }
   const existingHandle = editorHandleRegistry.get(tabId);
   if (existingHandle) {
@@ -620,6 +629,11 @@ const executeQuery: typeof sqlLabApi.executeQuery = async options => {
 
   if (!queryEditor) {
     throw new Error('No active query editor');
+  }
+  if (queryEditor.loaded === false) {
+    throw new Error(
+      'SQL editor is still loading. Retry once the tab has loaded.',
+    );
   }
 
   const { databases, unsavedQueryEditor } = state.sqlLab;
