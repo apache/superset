@@ -2573,6 +2573,31 @@ def test_pivot_table_v2_show_values_as_formats_as_percent() -> None:
     assert result.loc[("US",), ("SUM(num)", "girl")] == "37.5%"
 
 
+def test_pivot_table_v2_unrecognized_aggregate_function_keeps_show_values_as() -> None:
+    """An unrecognized `aggregateFunction` isn't a result aggregation to the
+    frontend's own `getResultAggregation` lookup -- `RESULT_AGGREGATIONS`
+    doesn't contain it, so it falls back to the metric definition and still
+    renders the stored percent mode. A stale or otherwise unrecognized value
+    (e.g. a legacy spelling this map doesn't know, or an empty string) must
+    not suppress `showValuesAs` here either, or the export disagrees with
+    what the chart actually shows.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_total",
+        "aggregateFunction": "Integer Sum",
+        "valueFormat": "$,.2f",
+        "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+    }
+
+    result = pivot_table_v2(show_values_as_df(), form_data)
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "12.5%"
+    assert result.loc[("US",), ("SUM(num)", "girl")] == "37.5%"
+
+
 def test_pivot_table_v2_show_values_as_actual_keeps_raw_values() -> None:
     result = pivot_table_v2(
         show_values_as_df(),

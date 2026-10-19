@@ -938,6 +938,58 @@ test('value sorting in a percent mode keeps a sort key for rows whose mixed-metr
   expect(pivotData.getRowKeys()).toEqual([['red'], ['blue']]);
 });
 
+test('value sorting with the default "Metric" aggregation and a percent-of-total showValuesAs keeps a sort key for a row whose mixed-metric total renders blank', () => {
+  // Unlike the two tests above, this exercises the actual `fractionOf`
+  // wrapper around the DB-passthrough `cellValue()` aggregator (the
+  // `aggregateFunction: 'Metric'`/`undefined` path), not a result
+  // aggregation's own reducer -- deleting `fractionOf`'s `sortValue()`
+  // wouldn't be caught by either of those.
+  const leaves = [
+    { color: 'blue', Metric: 'm1', value: 100, __metricKey: 'Metric' },
+    { color: 'blue', Metric: 'm2', value: 250, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm1', value: 10, __metricKey: 'Metric' },
+    { color: 'red', Metric: 'm2', value: 50, __metricKey: 'Metric' },
+    // Per-metric database totals (110 = 100 + 10, 300 = 250 + 50), the same
+    // "Metric-collapse totals" shape `processRecord` builds for a real
+    // GROUPING SETS response -- `fractionOf`'s percent-of-total denominator
+    // for a cell with multiple metrics on an axis is looked up per metric,
+    // never across them (see `fraction()`'s metric substitution).
+    {
+      Metric: 'm1',
+      value: 110,
+      __metricKey: 'Metric',
+      __rows: [],
+      __columns: ['Metric'],
+    },
+    {
+      Metric: 'm2',
+      value: 300,
+      __metricKey: 'Metric',
+      __rows: [],
+      __columns: ['Metric'],
+    },
+  ] as unknown as PivotRecord[];
+  const pivotData = new PivotData(
+    {
+      data: leaves,
+      rows: ['color'],
+      cols: ['Metric'],
+      vals: ['value'],
+      aggregateFunction: 'Metric',
+      showValuesAs: ShowValuesAsEnum.PERCENT_OF_TOTAL,
+      rowOrder: 'value_a_to_z',
+    },
+    {},
+  );
+
+  // The row total mixes m1 and m2 -- no single percentage means anything.
+  expect(pivotData.getAggregator(['blue'], []).value()).toBeNull();
+  // But each row still sorts by the value it would carry if displayed
+  // (blue's own last-pushed metric, 250/300, outranks red's 50/300), so a
+  // blank total doesn't collapse rows to an arbitrary order.
+  expect(pivotData.getRowKeys()).toEqual([['red'], ['blue']]);
+});
+
 test('single-metric "% of Columns" and "% of Rows" still fill the Total column and Total row', () => {
   const leaves = [
     { color: 'blue', Metric: 'm1', value: 10, __metricKey: 'Metric' },

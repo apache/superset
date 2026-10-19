@@ -134,6 +134,49 @@ test('Accept falls back to the chart tag list when the tag route is forbidden', 
   );
 });
 
+test('Accept keeps the notice and button when the tag-removal DELETE fails', async () => {
+  // Any failure other than 403 (forbidden, which falls back to the chart
+  // PUT), 404, or 422 (both "nothing to remove") is a genuine failure --
+  // removeLegacyAggregationTag resolves `false`, and the notice must stay
+  // up rather than disappear while the chart is still tagged.
+  fetchMock.get('glob:*/api/v1/chart/123', {
+    result: {
+      tags: [{ id: 7, name: LEGACY_AGGREGATION_TAG, type: 1 }],
+    },
+  });
+  fetchMock.delete(`glob:*/api/v1/tag/2/123/${LEGACY_AGGREGATION_TAG}`, {
+    status: 500,
+    body: { message: 'Internal error' },
+  });
+
+  render(<LegacyAggregationAlert sliceId={123} />, { useRedux: true });
+
+  expect(
+    await screen.findByText(
+      'This chart was updated to use the restored aggregation',
+    ),
+  ).toBeInTheDocument();
+
+  await userEvent.click(screen.getByRole('button', { name: 'Accept' }));
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.calls(
+        `glob:*/api/v1/tag/2/123/${LEGACY_AGGREGATION_TAG}`,
+      ).length,
+    ).toBe(1),
+  );
+
+  // No fallback chart PUT -- a 500 isn't the `can_tag`-fallback case.
+  expect(
+    fetchMock.callHistory.calls('glob:*/api/v1/chart/123', { method: 'PUT' }),
+  ).toHaveLength(0);
+  expect(
+    screen.getByText('This chart was updated to use the restored aggregation'),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Accept' })).toBeInTheDocument();
+});
+
 test('a delayed tag-removal response does not clear a newer tag after switching charts', async () => {
   // Chart 1's Accept button fires a DELETE that is still in flight when the
   // user switches to chart 2, which has its own (different) legacy tag.

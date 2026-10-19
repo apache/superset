@@ -38,6 +38,7 @@ from superset.connectors.sqla.models import Database, SqlaTable
 from superset.extensions import feature_flag_manager
 from superset.models.slice import Slice
 from superset.tags.models import TaggedObject
+from superset.utils import json
 from superset.utils.core import override_user
 from tests.integration_tests.fixtures.importexport import chart_config
 
@@ -197,6 +198,67 @@ def test_filter_chart_annotations_warns_on_dropped_reference(
     assert len(dropped) == 1
     assert str(config["uuid"]) in dropped[0]
     assert "integer reference" in dropped[0]
+
+
+def test_drop_orphaned_pivot_aggregate_function_on_import() -> None:
+    """A pre-restoration export importing after the feature shipped must be
+    normalized the same way the ``141b8ada7731`` migration normalizes an
+    existing chart: an orphaned ``aggregateFunction`` alongside a
+    deliberately-chosen percent ``showValuesAs`` is dropped so the restored
+    aggregation doesn't silently override the percent display the user
+    actually chose. Migrations only touch rows already in the database, so
+    import needs its own copy of this normalization.
+    """
+    from superset.commands.chart.importers.v1.utils import (
+        _drop_orphaned_pivot_aggregate_function,
+    )
+
+    config: dict[str, Any] = {
+        "viz_type": "pivot_table_v2",
+        "params": {"aggregateFunction": "Sum", "showValuesAs": "percent_col"},
+        "query_context": json.dumps(
+            {"form_data": {"aggregateFunction": "Sum", "showValuesAs": "percent_col"}}
+        ),
+    }
+
+    _drop_orphaned_pivot_aggregate_function(config)
+
+    assert "aggregateFunction" not in config["params"]
+    assert config["params"]["showValuesAs"] == "percent_col"
+    form_data = json.loads(config["query_context"])["form_data"]
+    assert "aggregateFunction" not in form_data
+    assert form_data["showValuesAs"] == "percent_col"
+
+
+@pytest.mark.parametrize(
+    "viz_type,params",
+    [
+        # Not a pivot table -- never touched.
+        ("table", {"aggregateFunction": "Sum", "showValuesAs": "percent_col"}),
+        # Unrecognized value -- not a result aggregation to the frontend's
+        # own RESULT_AGGREGATIONS membership check, so nothing to drop.
+        (
+            "pivot_table_v2",
+            {"aggregateFunction": "Integer Sum", "showValuesAs": "percent_col"},
+        ),
+        # No percent showValuesAs -- the aggregateFunction is simply active,
+        # not an orphan to clean up.
+        ("pivot_table_v2", {"aggregateFunction": "Sum", "showValuesAs": "actual"}),
+        ("pivot_table_v2", {"aggregateFunction": "Sum"}),
+    ],
+)
+def test_drop_orphaned_pivot_aggregate_function_is_a_noop(
+    viz_type: str, params: dict[str, Any]
+) -> None:
+    from superset.commands.chart.importers.v1.utils import (
+        _drop_orphaned_pivot_aggregate_function,
+    )
+
+    config: dict[str, Any] = {"viz_type": viz_type, "params": dict(params)}
+
+    _drop_orphaned_pivot_aggregate_function(config)
+
+    assert config["params"] == params
 
 
 def test_import_existing_chart_without_permission(

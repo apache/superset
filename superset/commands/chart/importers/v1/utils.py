@@ -24,11 +24,13 @@ from uuid import UUID
 import yaml
 
 from superset import db, security_manager
+from superset.charts.client_processing import pivot_v2_aggfunc_map
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.v1.utils import (
     apply_extra_import_fields,
     find_existing_for_import,
 )
+from superset.constants import SHOW_VALUES_AS_PERCENT_MODES
 from superset.extensions import feature_flag_manager
 from superset.migrations.shared.migrate_viz import processors
 from superset.migrations.shared.migrate_viz.base import MigrateViz
@@ -48,6 +50,51 @@ from superset.utils.dict_import_export import (
 )
 
 logger = logging.getLogger(__name__)
+
+_PIVOT_TABLE_VIZ_TYPE = "pivot_table_v2"
+_AGGREGATE_FUNCTION_FIELD = "aggregateFunction"
+
+
+def _drop_orphaned_pivot_aggregate_function(config: dict[str, Any]) -> None:
+    """Mirror, for a chart arriving through import, the same orphan cleanup
+    the ``141b8ada7731`` migration does for charts already in the database.
+
+    That migration runs once, forward, against whatever ``pivot_table_v2``
+    charts exist in this instance's database at the time -- it never touches
+    a chart arriving afterward through import. An export taken before the
+    restoring aggregateFunction control shipped, carrying an orphaned
+    pre-SIP-216 value alongside a deliberately-chosen percent
+    ``showValuesAs``, would otherwise import unchanged: the restored
+    aggregation silently wins over the percent display the user actually
+    chose, with no tag or notice, since importing doesn't run migrations.
+    The migration treats this same combination as "no tag needed, just drop
+    the orphan" (see its module docstring, item 2) for the same reason: the
+    percent choice is the later, explicit intent, made on top of
+    database-computed totals.
+
+    Recognizing the value through ``pivot_v2_aggfunc_map`` (rather than a
+    separate hardcoded list) keeps this in sync with the frontend's own
+    ``RESULT_AGGREGATIONS`` membership check without a third copy of the
+    same literal set.
+    """
+    if config.get("viz_type") != _PIVOT_TABLE_VIZ_TYPE:
+        return
+    params = config.get("params")
+    if not isinstance(params, dict):
+        return
+    if params.get(_AGGREGATE_FUNCTION_FIELD) not in pivot_v2_aggfunc_map:
+        return
+    if params.get("showValuesAs") not in SHOW_VALUES_AS_PERCENT_MODES:
+        return
+
+    del params[_AGGREGATE_FUNCTION_FIELD]
+
+    query_context = _load_query_context(config.get("query_context"))
+    if isinstance(query_context, dict):
+        form_data = query_context.get("form_data")
+        if isinstance(form_data, dict) and _AGGREGATE_FUNCTION_FIELD in form_data:
+            del form_data[_AGGREGATE_FUNCTION_FIELD]
+            config["query_context"] = json.dumps(query_context)
 
 
 def filter_chart_annotations(
@@ -236,6 +283,8 @@ def import_chart(
     _resolve_query_context_annotations(
         config, annotation_layer_ids, chart_ids, pending_chart_uuids
     )
+
+    _drop_orphaned_pivot_aggregate_function(config)
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config["params"] = json.dumps(config["params"])

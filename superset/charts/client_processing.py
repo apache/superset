@@ -1119,21 +1119,32 @@ def merge_currency_formats(
 def effective_show_values_as(form_data: dict[str, Any]) -> Optional[str]:
     """Return the ``showValuesAs`` percent mode the live chart actually renders.
 
-    A result aggregation (any ``aggregateFunction`` but the default "Metric")
-    takes over the cell/summary computation on the frontend and hides the
-    "Show values as" control in Explore (see ``aggregateFunction``'s
-    ``visibility`` in controlPanel.tsx and ``resultFactory ?? fractionType``
-    in utilities.ts, where the result aggregation always wins). Hiding the
-    control doesn't reset its stored value, so a percent choice made before
-    switching to e.g. "Average" stays persisted; every export/report path has
-    to ignore it the same way the chart does -- both when pivoting the data
-    and when picking a cell format -- rather than apply a percent transform
-    (or a percent number format) the live chart no longer shows.
+    A result aggregation (any ``aggregateFunction`` recognized by
+    ``RESULT_AGGREGATIONS`` on the frontend -- mirrored here by
+    ``pivot_v2_aggfunc_map``'s keys) takes over the cell/summary computation
+    on the frontend and hides the "Show values as" control in Explore (see
+    ``aggregateFunction``'s ``visibility`` in controlPanel.tsx and
+    ``resultFactory ?? fractionType`` in utilities.ts, where the result
+    aggregation always wins). Hiding the control doesn't reset its stored
+    value, so a percent choice made before switching to e.g. "Average" stays
+    persisted; every export/report path has to ignore it the same way the
+    chart does -- both when pivoting the data and when picking a cell format
+    -- rather than apply a percent transform (or a percent number format)
+    the live chart no longer shows.
+
+    An unrecognized ``aggregateFunction`` (absent, the "Metric" sentinel, a
+    stale pre-SIP-216 value this map doesn't know, or any other garbage) is
+    *not* an active result aggregation to the frontend's own
+    ``getResultAggregation`` lookup, which falls back to the metric
+    definition -- and the stored percent mode -- for anything it doesn't
+    recognize. Checking membership here instead of excluding only ``None``
+    and ``"Metric"`` keeps this in sync with that fallback, rather than
+    wrongly suppressing a percent mode the chart is still showing.
     """
     show_values_as = form_data.get("showValuesAs")
     if show_values_as not in SHOW_VALUES_AS_PERCENT_MODES:
         return None
-    if form_data.get("aggregateFunction") not in (None, "Metric"):
+    if form_data.get("aggregateFunction") in pivot_v2_aggfunc_map:
         return None
     return show_values_as
 
