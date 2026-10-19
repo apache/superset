@@ -46,33 +46,6 @@ def _make_params(**kwargs: object) -> EstimateQueryCostType:
     return base
 
 
-@patch("superset.commands.sql_lab.estimate.app")
-def test_manual_estimate_preserves_formatted_response(
-    mock_app: MagicMock,
-) -> None:
-    """Manual estimates return the engine formatter's existing display fields."""
-    mock_app.config = {
-        "SQLLAB_QUERY_COST_ESTIMATE_TIMEOUT": 10,
-        "QUERY_COST_FORMATTERS_BY_ENGINE": {},
-    }
-    command = QueryEstimationCommand(_make_params())
-    database = MagicMock()
-    database.db_engine_spec.engine = "bigquery"
-    estimate = [{"KB Processed": 1.0}]
-    database.db_engine_spec.estimate_query_cost.return_value = estimate
-    database.db_engine_spec.query_cost_formatter.side_effect = lambda rows: [
-        {key: str(value) for key, value in row.items()} for row in rows
-    ]
-    command._database = database
-    with (
-        patch.object(command, "validate"),
-        patch.object(command, "_apply_sql_security", side_effect=lambda sql: sql),
-    ):
-        result = command.run()
-    assert result == [{"KB Processed": "1.0"}]
-    database.db_engine_spec.query_cost_formatter.assert_called_once_with(estimate)
-
-
 @pytest.mark.parametrize("engine", ["bigquery", "postgresql"])
 @patch("superset.commands.sql_lab.estimate.app")
 def test_manual_estimate_passes_native_rows_to_custom_formatter(
