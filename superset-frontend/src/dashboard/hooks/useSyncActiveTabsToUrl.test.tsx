@@ -18,16 +18,23 @@
  */
 import { ReactNode } from 'react';
 import { Provider } from 'react-redux';
-import { BrowserRouter } from 'react-router-dom';
+import { BrowserRouter, useHistory } from 'react-router-dom';
 import { configureStore } from '@reduxjs/toolkit';
-import { act, renderHook } from '@testing-library/react-hooks';
+import { act, render } from '@testing-library/react';
+import { applicationRoot } from 'src/utils/getBootstrapData';
 import useSyncActiveTabsToUrl, {
   parseActiveTabsParam,
 } from './useSyncActiveTabsToUrl';
 
+jest.mock('src/utils/getBootstrapData', () => ({
+  ...jest.requireActual('src/utils/getBootstrapData'),
+  applicationRoot: jest.fn(),
+}));
+
 type TabsState = { activeTabs: string[]; editMode: boolean };
 
 const setup = (initial: Partial<TabsState> = {}, enabled = true) => {
+  let history!: ReturnType<typeof useHistory>;
   const store = configureStore({
     reducer: (
       state: { dashboardState: TabsState } = {
@@ -41,11 +48,17 @@ const setup = (initial: Partial<TabsState> = {}, enabled = true) => {
   });
   const wrapper = ({ children }: { children?: ReactNode }) => (
     <Provider store={store}>
-      <BrowserRouter>{children}</BrowserRouter>
+      <BrowserRouter basename={applicationRoot()}>{children}</BrowserRouter>
     </Provider>
   );
-  renderHook(() => useSyncActiveTabsToUrl(enabled), { wrapper });
+  const TestComponent = () => {
+    history = useHistory();
+    useSyncActiveTabsToUrl(enabled);
+    return null;
+  };
+  render(<TestComponent />, { wrapper });
   return {
+    navigate: (path: string) => act(() => history.push(path)),
     update: (payload: Partial<TabsState>) =>
       act(() => {
         store.dispatch({ type: 'SET', payload });
@@ -54,6 +67,7 @@ const setup = (initial: Partial<TabsState> = {}, enabled = true) => {
 };
 
 beforeEach(() => {
+  jest.mocked(applicationRoot).mockReturnValue('/superset');
   window.history.replaceState({}, '', '/superset/dashboard/7/');
 });
 
@@ -102,9 +116,46 @@ test('does not touch the URL in edit mode or before hydration', () => {
   expect(window.location.search).toBe('');
 });
 
-test('does not touch the URL outside a dashboard', () => {
-  window.history.replaceState({}, '', '/explore/');
+test.each([
+  '/explore/',
+  '/dashboard/list/',
+  '/dashboard/',
+  '/dashboard/7/extra/',
+  '/dashboard-other/7/',
+])('does not touch the URL outside a dashboard detail route: %s', path => {
+  window.history.replaceState({}, '', `/superset${path}?custom=keep`);
   setup({ activeTabs: ['TAB-a'] });
 
-  expect(window.location.search).toBe('');
+  expect(window.location.search).toBe('?custom=keep');
+});
+
+test.each([
+  ['', '7'],
+  ['/analytics', '7'],
+  ['/superset', '7'],
+  ['/analytics', 'my-dashboard'],
+])(
+  'syncs tabs under application root %s for dashboard %s',
+  (appRoot, dashboardId) => {
+    jest.mocked(applicationRoot).mockReturnValue(appRoot);
+    window.history.replaceState({}, '', `${appRoot}/dashboard/${dashboardId}/`);
+    const { update } = setup({ activeTabs: ['TAB-first'] });
+
+    update({ activeTabs: ['TAB-second'] });
+
+    expect(window.location.pathname).toBe(
+      `${appRoot}/dashboard/${dashboardId}/`,
+    );
+    expect(window.location.search).toBe('?active_tabs=TAB-second');
+  },
+);
+
+test('does not sync stale tabs after navigating away from a dashboard', () => {
+  const { navigate, update } = setup({ activeTabs: ['TAB-a'] });
+
+  navigate('/explore/?custom=keep');
+  update({ activeTabs: ['TAB-b'] });
+
+  expect(window.location.pathname).toBe('/superset/explore/');
+  expect(window.location.search).toBe('?custom=keep');
 });
