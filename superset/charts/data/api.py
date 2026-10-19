@@ -68,7 +68,7 @@ from superset.utils.core import (
 )
 from superset.utils.decorators import logs_context
 from superset.utils.error_sanitization import (
-    is_sanitization_required,
+    redact_sensitive_query_fields,
     sanitize_error_message,
 )
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
@@ -553,28 +553,11 @@ class ChartDataRestApi(ChartRestApi):
                 ):
                     query["timing"] = query_result.timing.as_public_dict()
 
-            # Resolve the redaction decision once so the stacktrace pop and the
-            # error-message sanitization below stay consistent: the guarded
-            # ``is_sanitization_required`` fails closed for a guest whose
-            # principal can't be resolved, so the block never half-redacts
-            # (popping ``stacktrace`` while leaking the raw ``error``).
-            if sanitize_required := is_sanitization_required():
-                # Guests may see the generated SQL only when the role attached to
-                # their guest token has been granted "can view query on Dashboard",
-                # mirroring the permission the frontend uses to expose the
-                # "View query" action. Stacktraces and driver errors stay redacted
-                # regardless, as those leak details of the deployment itself.
-                can_view_query = security_manager.can_access(
-                    "can_view_query", "Dashboard"
-                )
-                for query in queries:
-                    if not can_view_query:
-                        query.pop("query", None)
-                    query.pop("stacktrace", None)
-                    if query.get("error"):
-                        query["error"] = sanitize_error_message(
-                            query["error"], required=sanitize_required
-                        )
+            # Guest (embedded) responses drop the generated SQL unless the guest
+            # role has "can view query on Dashboard", and always drop stacktraces
+            # and raw driver errors; a no-op for other principals. See
+            # ``redact_sensitive_query_fields``.
+            redact_sensitive_query_fields(queries)
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:

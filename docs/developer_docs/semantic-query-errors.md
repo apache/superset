@@ -52,6 +52,20 @@ must adopt the new core contract to receive actionable validation messages.
 Deploy compatible core/host versions before adapters that import the new exception.
 Discovery and compatibility methods are outside this execution contract.
 
+The host mapper converts invalid query selections and filter values rejected during
+its validation and translation steps into `QueryObjectValidationError`, so
+chart-data requests receive HTTP 400 instead of HTTP 500. This conversion does
+not surround provider metadata discovery or query execution. Malformed timezone
+metadata remains a server error rather than a query validation refusal.
+This mapper boundary does not govern earlier schema loading: dimension discovery
+can fail there with HTTP 400, while metric discovery failures in the mapper remain
+HTTP 500.
+
+An asynchronous totals-prerequisite query whose payload is marked FAILED fails
+its task with that payload's error. It does not publish a cache key for dependent
+contribution queries to read as if totals had been successfully cached. Other
+asynchronous chart queries retain their structured-error readback behavior.
+
 Host-classified client errors (`QueryObjectValidationError` and subclasses) keep
 their status. The shared SDK module also defines `SemanticResultCompletenessError`
 with `incomplete` and `unverified` reasons; the host translates these into its
