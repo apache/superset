@@ -123,6 +123,13 @@ test.each([
     });
     fireEvent.click(screen.getByTestId('chart-card-menu'));
     await userEvent.hover(screen.getByTestId('chart-list-delete-option'));
+    const archiveButton = screen.getByTestId('chart-list-delete-option');
+    expect(archiveButton).toBeDisabled();
+    expect(archiveButton).toHaveAttribute('aria-disabled', 'true');
+    expect(archiveButton).toHaveStyleRule('color', 'inherit');
+    expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', { target: ':disabled' });
+    fireEvent.click(archiveButton);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       `You must be a chart editor in order to ${verb}.`,
     );

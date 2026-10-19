@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
-import { css } from '@apache-superset/core/theme';
+import { css, styled } from '@apache-superset/core/theme';
 import { Link, useHistory } from 'react-router-dom';
 import {
   ConfirmStatusChange,
@@ -47,7 +47,7 @@ import { TableTab } from 'src/views/CRUD/types';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
 import type { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 
-const menuItemButtonCss = css`
+const MenuItemButton = styled.button`
   appearance: none;
   border: none;
   background: none;
@@ -56,7 +56,11 @@ const menuItemButtonCss = css`
   width: 100%;
   font: inherit;
   text-align: left;
+  color: inherit;
   cursor: pointer;
+  &:disabled {
+    cursor: not-allowed;
+  }
 `;
 
 interface ChartCardProps {
@@ -112,6 +116,7 @@ export default function ChartCard({
       key: 'edit',
       label: (
         <Tooltip
+          placement="right"
           title={
             allowEdit
               ? null
@@ -120,9 +125,9 @@ export default function ChartCard({
                 )
           }
         >
-          <button
+          <MenuItemButton
             type="button"
-            css={menuItemButtonCss}
+            
             data-test="chart-list-edit-option"
             onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
           >
@@ -133,7 +138,7 @@ export default function ChartCard({
               `}
             />{' '}
             {t('Edit')}
-          </button>
+          </MenuItemButton>
         </Tooltip>
       ),
       disabled: !allowEdit,
@@ -144,9 +149,9 @@ export default function ChartCard({
     menuItems.push({
       key: 'export',
       label: (
-        <button
+        <MenuItemButton
           type="button"
-          css={menuItemButtonCss}
+          
           data-test="chart-list-export-option"
           onClick={() => handleBulkChartExport([chart])}
         >
@@ -157,7 +162,7 @@ export default function ChartCard({
             `}
           />{' '}
           {t('Export')}
-        </button>
+        </MenuItemButton>
       ),
     });
   }
@@ -201,6 +206,7 @@ export default function ChartCard({
         >
           {confirmDelete => (
             <Tooltip
+          placement="right"
               title={
                 allowEdit
                   ? null
@@ -213,9 +219,11 @@ export default function ChartCard({
                       )
               }
             >
-              <button
+              <span><MenuItemButton
                 type="button"
-                css={menuItemButtonCss}
+                
+                disabled={!allowEdit}
+                aria-disabled={!allowEdit}
                 data-test="chart-list-delete-option"
                 className="action-button"
                 onClick={allowEdit ? confirmDelete : undefined}
@@ -227,7 +235,7 @@ export default function ChartCard({
                   `}
                 />{' '}
                 {deleteActionLabel()}
-              </button>
+              </MenuItemButton></span>
             </Tooltip>
           )}
         </ConfirmStatusChange>

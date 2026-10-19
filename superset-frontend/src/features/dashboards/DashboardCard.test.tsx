@@ -135,6 +135,13 @@ test.each([
     await userEvent.hover(
       screen.getByTestId('dashboard-card-option-delete-button'),
     );
+    const archiveButton = screen.getByTestId('dashboard-card-option-delete-button');
+    expect(archiveButton).toBeDisabled();
+    expect(archiveButton).toHaveAttribute('aria-disabled', 'true');
+    expect(archiveButton).toHaveStyleRule('color', 'inherit');
+    expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', { target: ':disabled' });
+    fireEvent.click(archiveButton);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(await screen.findByRole('tooltip')).toHaveTextContent(
       `You must be a dashboard editor in order to ${verb}.`,
     );
