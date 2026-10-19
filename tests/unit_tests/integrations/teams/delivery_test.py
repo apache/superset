@@ -35,6 +35,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
+from superset.integrations.teams import validation as teams_validation
 from superset.integrations.teams.config import (
     parse_teams_config,
     TeamsConfig,
@@ -126,7 +127,7 @@ def notification_context(
         session.commit()
     monkeypatch.setattr(notifications, "db", SimpleNamespace(engine=engine))
     monkeypatch.setattr(
-        notifications.feature_flag_manager,
+        teams_validation.feature_flag_manager,
         "is_feature_enabled",
         lambda name: current_app.config["FEATURE_FLAGS"].get(name, False),
     )
@@ -298,6 +299,19 @@ def test_out_of_scope_delivery_is_rejected(
     else:
         setattr(content, mode, [b"file"] if mode == "screenshots" else b"file")
     with pytest.raises(NotificationParamException):
+        notifications.TeamsNotification(recipient(), content).send()
+    notification_context.send.assert_not_called()
+
+
+@pytest.mark.parametrize("report_format", ["PNG", "PDF", "CSV", "XLSX", "TEXT"])
+def test_delivery_revalidates_format_even_without_generated_attachments(
+    notification_context: SimpleNamespace,
+    content: NotificationContent,
+    report_format: str,
+) -> None:
+    content.header_data["notification_format"] = report_format
+    assert not content.has_attachments
+    with pytest.raises(NotificationParamException, match="disabled attachments"):
         notifications.TeamsNotification(recipient(), content).send()
     notification_context.send.assert_not_called()
 

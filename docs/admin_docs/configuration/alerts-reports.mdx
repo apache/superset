@@ -925,6 +925,17 @@ allowlist. The recipient's configuration must contain only `target`; channel IDs
 server. Delivery requires an active installation matching the configured tenant,
 application, and destination team.
 
+Schedule creation and updates share Teams recipient validation with delivery.
+Teams recipients require the enabled, configured integration, an `Alert` schedule,
+explicit `report_format="NONE"`, and a known destination key. The global attachment
+setting does not override this requirement. PUT validates the merged saved
+configuration, including existing recipients when omitted from the request;
+changing only schedule type, format, or metadata cannot retain an invalid Teams
+recipient. Explicitly replacing/removing Teams recipients validates the replacement
+list. An active bot installation is required at delivery time, not when saving.
+Attachment-free alerts use the existing scheduler and execution logs and skip
+screenshot, PDF, and file generation.
+
 Each alert creates a new root channel post with an Adaptive Card containing its
 name and optional description. The optional **Open in Superset** action follows
 the existing `include_cta` setting. Cards use normal JSON serialization; execution

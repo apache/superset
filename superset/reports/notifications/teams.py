@@ -19,18 +19,20 @@
 from typing import Any
 from urllib.parse import urlsplit
 
-from flask import current_app
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from superset.extensions import db, feature_flag_manager
+from superset.extensions import db
 from superset.integrations.teams.config import (
-    parse_teams_config,
     TeamsConfig,
     TeamsDestination,
 )
 from superset.integrations.teams.store import TeamsInstallationStore
-from superset.reports.models import ReportRecipientType, ReportScheduleType
+from superset.integrations.teams.validation import (
+    TeamsRecipientValidationError,
+    validate_teams_recipient,
+)
+from superset.reports.models import ReportRecipientType
 from superset.reports.notifications.base import BaseNotification, NotificationContent
 from superset.reports.notifications.exceptions import (
     NotificationAuthorizationException,
@@ -38,7 +40,6 @@ from superset.reports.notifications.exceptions import (
     NotificationParamException,
     NotificationTransientError,
 )
-from superset.utils import json
 
 
 def build_teams_card(content: NotificationContent) -> dict[str, Any]:
@@ -117,37 +118,18 @@ class TeamsNotification(BaseNotification):
 
     def send(self) -> None:
         """Send an alert as a new root post, without attachments or SQL diagnostics."""
-        if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_TEAMS"):
-            raise NotificationParamException("Teams alert delivery is disabled")
-        if (
-            self._content.header_data.get("notification_type")
-            != ReportScheduleType.ALERT
-            or self._content.is_editor_error
-        ):
+        try:
+            config, destination = validate_teams_recipient(
+                self._recipient.recipient_config_json,
+                self._content.header_data.get("notification_type"),
+                self._content.header_data.get("notification_format"),
+            )
+        except TeamsRecipientValidationError as ex:
+            raise NotificationParamException(str(ex)) from None
+        if self._content.is_editor_error:
             raise NotificationParamException("Teams supports alert notifications only")
         if self._content.has_attachments or self._content.embedded_data is not None:
             raise NotificationParamException("Teams alerts do not support attachments")
-        try:
-            recipient = json.loads(self._recipient.recipient_config_json)
-            if (
-                not isinstance(recipient, dict)
-                or set(recipient) != {"target"}
-                or not isinstance(recipient["target"], str)
-                or not recipient["target"]
-            ):
-                raise NotificationParamException(
-                    "A configured Teams destination key is required"
-                )
-            config = parse_teams_config(
-                current_app.config.get("ALERT_REPORTS_TEAMS", {})
-            )
-            if config is None:
-                raise NotificationParamException("Teams deployment is not configured")
-            destination = config.get_destination(recipient["target"])
-        except (ValueError, TypeError):
-            raise NotificationParamException(
-                "Invalid Teams destination configuration"
-            ) from None
         try:
             with Session(db.engine) as session:
                 installation = TeamsInstallationStore(session).get_active(
