@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useStore } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -102,7 +108,6 @@ export default function useQueryCostWarning(
   const current = useRef<Attempt>();
   const mounted = useRef(false);
   const inputs = useRef({ queryEditor, defaultQueryLimit });
-  inputs.current = { queryEditor, defaultQueryLimit };
   const [pending, setPending] = useState<Attempt>();
 
   const readInputs = useCallback(() => {
@@ -155,6 +160,9 @@ export default function useQueryCostWarning(
       readInputs().key === attempt.key,
     [readInputs],
   );
+  useLayoutEffect(() => {
+    inputs.current = { queryEditor, defaultQueryLimit };
+  }, [queryEditor, defaultQueryLimit]);
   useEffect(() => {
     mounted.current = true;
     const unsubscribe = store.subscribe(() => {
