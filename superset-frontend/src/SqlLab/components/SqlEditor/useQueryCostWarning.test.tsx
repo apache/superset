@@ -524,7 +524,7 @@ test('byte results preserve values beyond JavaScript safe integers', () => {
       metric: 'bytes_processed',
       value: 9007199254740992,
     }),
-  ).toThrow();
+  ).toThrow('The query cost warning response was invalid.');
 });
 
 test('planner results preserve large finite integer values and thresholds', () => {
@@ -541,7 +541,7 @@ test('planner results preserve large finite integer values and thresholds', () =
       threshold,
       value,
     }),
-  ).toThrow();
+  ).toThrow('The query cost warning response was invalid.');
 });
 
 test.each([null, undefined])(

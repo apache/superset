@@ -127,38 +127,52 @@ describe('ExtraOptions Component', () => {
     expect(onExtraInputChange).toHaveBeenCalled();
   });
 
-  test.each([false, true])(
-    'pre-run warnings require connection estimation (%s)',
-    estimationEnabled => {
-      renderComponent({
-        ...defaultDb,
-        backend: 'bigquery',
-        engine_information: {
-          ...defaultDb.engine_information,
-          query_cost_warning_metric: 'bytes_processed',
-        },
-        extra: JSON.stringify({ cost_estimate_enabled: estimationEnabled }),
-      });
-      fireEvent.click(screen.getByText('SQL Lab'));
-      const checkbox = screen.getByRole('checkbox', {
-        name: 'Enable pre-run cost warnings',
-      });
-      expect(checkbox).not.toBeChecked();
-      if (estimationEnabled) {
-        expect(checkbox).toBeEnabled();
-        fireEvent.click(checkbox);
-        expect(onExtraEditorChange).toHaveBeenCalledWith({
-          name: 'query_cost_warning',
-          json: JSON.stringify({ enabled: true, metric: 'bytes_processed' }),
-        });
-      } else {
-        expect(checkbox).toBeDisabled();
-      }
-      expect(
-        screen.queryByLabelText('Warning threshold (bytes processed)'),
-      ).not.toBeInTheDocument();
-    },
-  );
+  test('pre-run warnings are disabled without connection estimation', () => {
+    renderComponent({
+      ...defaultDb,
+      backend: 'bigquery',
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'bytes_processed',
+      },
+      extra: JSON.stringify({ cost_estimate_enabled: false }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Enable pre-run cost warnings',
+    });
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toBeDisabled();
+    expect(
+      screen.queryByLabelText('Warning threshold (bytes processed)'),
+    ).not.toBeInTheDocument();
+  });
+
+  test('pre-run warnings emit an enabled rule with connection estimation', () => {
+    renderComponent({
+      ...defaultDb,
+      backend: 'bigquery',
+      engine_information: {
+        ...defaultDb.engine_information,
+        query_cost_warning_metric: 'bytes_processed',
+      },
+      extra: JSON.stringify({ cost_estimate_enabled: true }),
+    });
+    fireEvent.click(screen.getByText('SQL Lab'));
+    const checkbox = screen.getByRole('checkbox', {
+      name: 'Enable pre-run cost warnings',
+    });
+    expect(checkbox).not.toBeChecked();
+    expect(checkbox).toBeEnabled();
+    fireEvent.click(checkbox);
+    expect(onExtraEditorChange).toHaveBeenCalledWith({
+      name: 'query_cost_warning',
+      json: JSON.stringify({ enabled: true, metric: 'bytes_processed' }),
+    });
+    expect(
+      screen.queryByLabelText('Warning threshold (bytes processed)'),
+    ).not.toBeInTheDocument();
+  });
 
   test('enabled warnings remain disableable after estimation is turned off', () => {
     renderComponent({
