@@ -182,10 +182,16 @@ export function GridTable<RecordType extends object>({
         'pre' is a deliberate trade-off over 'pre-wrap': it keeps values on a
         single line so row heights and column sizing stay unchanged. CSS has no
         value that preserves spaces while collapsing newlines, so an embedded
-        newline renders on multiple lines and is clipped by the fixed row
-        height; truncating such values to the visible row is acceptable here.
+        newline renders on multiple lines; truncating such values to the
+        visible row is acceptable here. The value element grows to fit its
+        lines, so the clip is applied on .ag-cell, which has the fixed row
+        height; otherwise the extra lines paint over the rows below.
         overflow/text-overflow keep over-long single-line values clipped with
         an ellipsis rather than overflowing the cell. */
+        .ag-cell {
+          overflow: hidden;
+        }
+
         .ag-cell-value {
           white-space: pre;
           overflow: hidden;
