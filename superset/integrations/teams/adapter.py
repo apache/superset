@@ -14,29 +14,43 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-"""Microsoft Teams SDK boundary for synchronous Flask installation callbacks."""
+"""Microsoft Teams SDK boundary for Flask callbacks and root channel delivery."""
 
 from __future__ import annotations
 
 import asyncio
+import math
+from collections.abc import AsyncIterator, Callable
+from contextlib import AbstractAsyncContextManager, asynccontextmanager
 from dataclasses import dataclass
-from typing import Any, Literal
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
+from time import monotonic
+from typing import Any, Literal, Protocol
 from uuid import UUID
 
+import httpx
+import requests
 from microsoft_teams.api import (
+    ApiClient,
+    Attachment,
     ClientCredentials,
     InstalledActivity,
     InvokeResponse,
     JsonWebToken,
+    MessageActivityInput,
     UninstalledActivity,
 )
 from microsoft_teams.api.auth.cloud_environment import PUBLIC
+from microsoft_teams.api.clients.conversation import CreateConversationParams
 from microsoft_teams.apps import HttpServer, HttpServerAdapter
 from microsoft_teams.apps.events import ActivityEvent
 from microsoft_teams.apps.http import HttpRequest, HttpResponse, HttpRouteHandler
+from microsoft_teams.common import Client, ClientOptions
+from msal import ConfidentialClientApplication
 from pydantic import ValidationError
 
-from superset.integrations.teams.config import TeamsConfig
+from superset.integrations.teams.config import TeamsConfig, TeamsDestination
 
 EVENTS_PATH = "/api/v1/teams/events/"
 
@@ -210,3 +224,289 @@ def process_teams_event(
             await adapter.stop()
 
     return asyncio.run(process())
+
+
+# Count every send, including the single 401 replay, against the same retry bound.
+_DELIVERY_ATTEMPTS = 4
+_DELIVERY_RETRY_WINDOW = 60.0
+_DELIVERY_REQUEST_TIMEOUT = 10.0
+
+
+class TeamsDeliveryError(Exception):
+    """Sanitized delivery outcome for mapping to existing notification exceptions."""
+
+    def __init__(
+        self, category: Literal["authorization", "transient", "parameter"]
+    ) -> None:
+        """Expose a stable message without response bodies, SQL, tokens, or URLs."""
+        self.category = category
+        messages = {
+            "authorization": "Teams bot authorization failed",
+            "transient": "Teams alert delivery temporarily unavailable",
+            "parameter": "Teams alert delivery was rejected",
+        }
+        super().__init__(messages[category])
+
+
+class TeamsTransportError(Exception):
+    """An HTTP failure carrying only the status and Microsoft's retry metadata."""
+
+    def __init__(
+        self,
+        status: int | None = None,
+        headers: httpx.Headers
+        | requests.structures.CaseInsensitiveDict[str]
+        | None = None,
+    ) -> None:
+        """Retain only retry headers; never retain a response body or request token."""
+        super().__init__("Teams transport request failed")
+        self.status = status
+        self.retry_after = headers.get("Retry-After") if headers is not None else None
+        self.retry_after_ms = (
+            headers.get("x-ms-retry-after-ms") if headers is not None else None
+        )
+
+
+class TeamsTransport(Protocol):
+    """Replaceable operation-scoped transport; retries live outside SDK calls."""
+
+    async def post_root(
+        self, destination: TeamsDestination, card: dict[str, Any]
+    ) -> None:
+        """Create a new channel root post containing the card."""
+        ...
+
+    async def refresh_auth(self) -> None:
+        """Invalidate cached authentication before a single 401 replay."""
+        ...
+
+
+def _remaining(deadline: float) -> float:
+    """Bound each request by both its timeout and remaining retry window."""
+    remaining = deadline - monotonic()
+    if remaining <= 0:
+        raise TeamsTransportError()
+    return min(_DELIVERY_REQUEST_TIMEOUT, remaining)
+
+
+class _AuthHttpClient:
+    """MSAL HTTP interface backed by a caller-owned, timeout-bounded session."""
+
+    def __init__(self, session: requests.Session, deadline: float) -> None:
+        """Keep OAuth traffic within the same operation as the channel post."""
+        self.session = session
+        self.deadline = deadline
+
+    def get(self, url: str, **kwargs: Any) -> requests.Response:
+        """Fetch MSAL metadata without leaving a response open."""
+        return self._request("GET", url, **kwargs)
+
+    def post(self, url: str, **kwargs: Any) -> requests.Response:
+        """Acquire tokens without leaving a response open."""
+        return self._request("POST", url, **kwargs)
+
+    def _request(self, method: str, url: str, **kwargs: Any) -> requests.Response:
+        """Use normal serialization, explicit timeouts, and sanitized retry errors."""
+        kwargs["timeout"] = _remaining(self.deadline)
+        response = self.session.request(method, url, **kwargs)
+        try:
+            # requests eagerly reads responses; MSAL can still read cached JSON
+            # after close. Closing here also covers retryable OAuth errors.
+            if response.status_code in (408, 429) or response.status_code >= 500:
+                raise TeamsTransportError(response.status_code, response.headers)
+            return response
+        finally:
+            response.close()
+
+
+class _ChannelConversationParams(CreateConversationParams):
+    """Include the connector's group flag, absent from the SDK base parameter model."""
+
+    is_group: Literal[True] = True
+
+
+class _SDKTeamsTransport:
+    """Use the SDK create-conversation API with shared, explicitly owned resources."""
+
+    def __init__(
+        self,
+        config: TeamsConfig,
+        service_url: str,
+        http: Client,
+        auth_http: _AuthHttpClient,
+        deadline: float,
+    ) -> None:
+        """Prepare the SDK without constructing a full App or starting a server."""
+        self.config = config
+        self.http = http
+        self.auth_http = auth_http
+        self.deadline = deadline
+        self.auth: ConfidentialClientApplication | None = None
+        self.api = ApiClient(service_url, http)
+
+    def _authenticate(self) -> None:
+        """Acquire a bot token without exposing identity-provider errors."""
+        if self.http.token:
+            return
+        if self.auth is None:
+            self.auth = ConfidentialClientApplication(
+                self.config.application_id,
+                client_credential=self.config.credential,
+                authority=f"{PUBLIC.login_endpoint}/{self.config.tenant_id}",
+                http_client=self.auth_http,
+                instance_discovery=False,
+            )
+        result = self.auth.acquire_token_for_client([PUBLIC.bot_scope])
+        token = result.get("access_token")
+        if not isinstance(token, str) or not token:
+            status = (
+                503
+                if result.get("error") in {"temporarily_unavailable", "server_error"}
+                else 401
+            )
+            raise TeamsTransportError(status)
+        self.http.token = token
+
+    async def refresh_auth(self) -> None:
+        """Invalidate MSAL app tokens so the next request acquires a fresh token."""
+        if self.auth is not None:
+            self.auth.remove_tokens_for_client()
+        self.http.token = None
+
+    async def post_root(
+        self, destination: TeamsDestination, card: dict[str, Any]
+    ) -> None:
+        """Create a new conversation with an initial card, never reply to a thread."""
+        try:
+            self._authenticate()
+            self.http.http.timeout = httpx.Timeout(_remaining(self.deadline))
+            await self.api.conversations.create(
+                _ChannelConversationParams(
+                    tenant_id=self.config.tenant_id,
+                    channel_data={
+                        "tenant": {"id": self.config.tenant_id},
+                        "team": {"id": destination.team_id},
+                        "channel": {"id": destination.channel_id},
+                    },
+                    activity=MessageActivityInput(
+                        attachments=[
+                            Attachment(
+                                content_type="application/vnd.microsoft.card.adaptive",
+                                content=card,
+                            )
+                        ]
+                    ),
+                )
+            )
+        except httpx.HTTPStatusError as ex:
+            error = TeamsTransportError(ex.response.status_code, ex.response.headers)
+            await ex.response.aclose()
+            raise error from None
+        except (httpx.RequestError, requests.RequestException):
+            raise TeamsTransportError() from None
+        except ValueError:
+            # Includes invalid SDK models/response JSON. Replaying a successful
+            # POST whose response could not be decoded could duplicate delivery.
+            raise TeamsDeliveryError("parameter") from None
+
+
+@asynccontextmanager
+async def _create_transport(
+    config: TeamsConfig, service_url: str, deadline: float
+) -> AsyncIterator[TeamsTransport]:
+    """Close the SDK's shared async client and MSAL's session in the same operation."""
+    http = Client(ClientOptions(timeout=_DELIVERY_REQUEST_TIMEOUT))
+    try:
+        with requests.Session() as session:
+            yield _SDKTeamsTransport(
+                config, service_url, http, _AuthHttpClient(session, deadline), deadline
+            )
+    finally:
+        await http.http.aclose()
+
+
+def _retry_delay(error: TeamsTransportError, attempt: int) -> float:
+    """Honor Microsoft's retry headers, falling back to bounded exponential delays."""
+    delays: list[float] = []
+    for value, divisor in [(error.retry_after_ms, 1000), (error.retry_after, 1)]:
+        if value is None:
+            continue
+        try:
+            delay = float(value) / divisor
+        except ValueError:
+            if divisor != 1:
+                continue
+            try:
+                retry_at = parsedate_to_datetime(value)
+                if retry_at.tzinfo is None:
+                    retry_at = retry_at.replace(tzinfo=timezone.utc)
+                delay = (retry_at - datetime.now(timezone.utc)).total_seconds()
+            except (ValueError, TypeError, OverflowError):
+                continue
+        if math.isfinite(delay):
+            delays.append(max(0.0, delay))
+    return max(delays) if delays else min(2.0**attempt, 8.0)
+
+
+async def _deliver_with_retries(
+    transport: TeamsTransport,
+    destination: TeamsDestination,
+    card: dict[str, Any],
+    deadline: float,
+) -> None:
+    """Bound transient retries and allow exactly one authentication refresh."""
+    refreshed = False
+    for attempt in range(_DELIVERY_ATTEMPTS):
+        if monotonic() >= deadline:
+            raise TeamsDeliveryError("transient")
+        try:
+            await transport.post_root(destination, card)
+            return
+        except TeamsTransportError as error:
+            if error.status in (401, 403):
+                if (
+                    error.status == 403
+                    or refreshed
+                    or attempt == _DELIVERY_ATTEMPTS - 1
+                ):
+                    raise TeamsDeliveryError("authorization") from None
+                refreshed = True
+                await transport.refresh_auth()
+                continue
+            if (
+                error.status is not None
+                and error.status not in (408, 429)
+                and not 500 <= error.status < 600
+            ):
+                raise TeamsDeliveryError("parameter") from None
+            delay = _retry_delay(error, attempt)
+            if attempt == _DELIVERY_ATTEMPTS - 1 or delay >= deadline - monotonic():
+                # Never shorten a server-specified delay to squeeze in a retry.
+                raise TeamsDeliveryError("transient") from None
+            await asyncio.sleep(delay)
+    raise TeamsDeliveryError("transient")
+
+
+TransportFactory = Callable[
+    [TeamsConfig, str, float], AbstractAsyncContextManager[TeamsTransport]
+]
+
+
+def deliver_teams_alert(
+    config: TeamsConfig,
+    destination: TeamsDestination,
+    service_url: str,
+    card: dict[str, Any],
+    *,
+    transport_factory: TransportFactory | None = None,
+) -> None:
+    """Send one card as a root channel post using an operation-scoped transport."""
+
+    async def deliver() -> None:
+        """Construct, retry, and close the transport before closing the event loop."""
+        deadline = monotonic() + _DELIVERY_RETRY_WINDOW
+        factory = transport_factory or _create_transport
+        async with factory(config, service_url, deadline) as transport:
+            await _deliver_with_retries(transport, destination, card, deadline)
+
+    asyncio.run(deliver())
