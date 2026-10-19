@@ -15,7 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
-
+from csv import reader
+from io import StringIO
 from typing import Any
 from unittest import mock
 
@@ -276,6 +277,75 @@ def test_df_to_escaped_csv_non_default_index():
     # The index labels are preserved and the dangerous cell is escaped in place.
     assert rows[1] == ["boy Edward", "'=SUM(1+1)"]
     assert rows[2] == ["girl Mary", "safe"]
+
+
+@pytest.mark.parametrize("copy_on_write", [False, True])
+@pytest.mark.parametrize(
+    ("index", "columns"),
+    [
+        pytest.param(pd.Index([7, 7]), pd.Index(["left", "right"]), id="rows"),
+        pytest.param(pd.Index([7, 8]), pd.Index(["value", "value"]), id="columns"),
+        pytest.param(pd.Index([7, 7]), pd.Index(["value", "value"]), id="both"),
+        pytest.param(
+            pd.MultiIndex.from_tuples([("group", 1), ("group", 1)]),
+            pd.Index(["left", "right"]),
+            id="multiindex-rows",
+        ),
+        pytest.param(
+            pd.Index([7, 8]),
+            pd.MultiIndex.from_tuples([("metric", "value"), ("metric", "value")]),
+            id="multiindex-columns",
+        ),
+        pytest.param(
+            pd.Index([7, 8]),
+            pd.Index(["=value", "'=value"]),
+            id="escaped-column-collision",
+        ),
+    ],
+)
+def test_df_to_escaped_csv_duplicate_labels(
+    index: pd.Index, columns: pd.Index, copy_on_write: bool
+) -> None:
+    """Escaping one cell must not overwrite other cells with the same label."""
+    df = pd.DataFrame(
+        [["first", "=left()"], ["=right()", "last"]],
+        index=index,
+        columns=columns,
+    )
+    original = df.copy(deep=True)
+
+    with pd.option_context("mode.copy_on_write", copy_on_write):
+        result = df_to_escaped_csv(df, index=False, header=False)
+
+    assert list(reader(StringIO(result))) == [
+        ["first", "'=left()"],
+        ["'=right()", "last"],
+    ]
+    pd.testing.assert_frame_equal(df, original)
+
+
+@pytest.mark.parametrize("copy_on_write", [False, True])
+def test_df_to_escaped_csv_duplicate_labels_preserves_dtypes(
+    copy_on_write: bool,
+) -> None:
+    """Duplicate labels must not coerce nullable integers or mixed object values."""
+    df = pd.concat(
+        [
+            pd.Series(["=1+1", None], dtype="string"),
+            pd.Series([10, None], dtype="Int64"),
+            pd.Series(["other", 7], dtype="object"),
+        ],
+        axis=1,
+    )
+    df.index = pd.Index([7, 7])
+    df.columns = pd.Index(["value", "value", "value"])
+    original = df.copy(deep=True)
+
+    with pd.option_context("mode.copy_on_write", copy_on_write):
+        result = df_to_escaped_csv(df, index=False, header=False)
+
+    assert list(reader(StringIO(result))) == [["'=1+1", "10", "other"], ["", "", "7"]]
+    pd.testing.assert_frame_equal(df, original)
 
 
 def test_get_chart_dataframe_returns_none_when_no_content(

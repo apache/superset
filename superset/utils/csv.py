@@ -102,18 +102,14 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # Escape csv headers
     df = df.rename(columns=escape_values)
 
-    # Escape csv values. Iterate by index label (via ``items``) rather than by
-    # positional offset so the escaped value is written back to the correct row
-    # even when the DataFrame has a non-default index (e.g. the flattened
-    # MultiIndex produced by pivot_table_v2 post-processing). Pairing positional
-    # indices with the label-based ``.at`` accessor would otherwise create
-    # phantom rows and corrupt the output. Only string cells are reassigned, so
-    # the dtype of mixed object columns (e.g. nullable integers) is preserved.
-    for name, column in df.items():
+    # Address cells by position: row and column labels need not be unique, and
+    # escaping column names can turn distinct labels into duplicates. Only
+    # string cells are reassigned to preserve numeric and nullable dtypes.
+    for column_index, (_, column) in enumerate(df.items()):
         if pd.api.types.is_string_dtype(column.dtype):
-            for label, value in column.items():
+            for row_index, value in enumerate(column):
                 if isinstance(value, str):
-                    df.at[label, name] = escape_value(value)
+                    df.iat[row_index, column_index] = escape_value(value)
 
     return df.to_csv(escapechar="\\", **kwargs)
 
