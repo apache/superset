@@ -894,9 +894,11 @@ Airflow, additional fields can be easily added to the configuration file above.
 
 ## Microsoft Teams configuration (development)
 
-The optional `apache-superset[teams]` extra provides MSAL for bot authentication.
-`FEATURE_FLAGS["ALERT_REPORT_TEAMS"]` defaults to `False`. This configuration
-foundation does not register a recipient type or send messages yet.
+The optional `apache-superset[teams]` extra installs Microsoft Teams SDK 2.1.1.
+The SDK handles callback JWT authentication; SDK-specific code lives in
+`superset.integrations.teams.adapter`.
+`FEATURE_FLAGS["ALERT_REPORT_TEAMS"]` defaults to `False`. The integration
+does not register a recipient type or send messages yet.
 
 Set `ALERT_REPORTS_TEAMS` in `superset_config.py` with `tenant_id` (UUID),
 `application_id` (bot application UUID), `credential` (client secret from your
@@ -915,6 +917,22 @@ Only one tenant and bot identity are accepted per deployment. Operators must
 approve standard channels in that tenant; the parser cannot verify channel type
 or tenant membership without Teams metadata. Private/shared channels, DMs,
 scheduled reports, and attachments are outside the integration scope.
+
+Set the bot's messaging endpoint to `POST /api/v1/teams/events/`. The callback
+is enabled only by `ALERT_REPORT_TEAMS` and a valid `ALERT_REPORTS_TEAMS` mapping.
+It authenticates installation `add` and `remove` events using the SDK's public
+`HttpServer` with a custom `HttpServerAdapter` inside Flask. It never starts the
+SDK's standalone server or creates a full SDK `App`. Each invocation closes its
+event loop and database session on success or failure.
+
+Events must be Bot Framework connector activities with a valid token for the
+configured application and a signed `serviceurl` claim matching the event URL.
+The callback also requires the configured tenant, bot recipient, and an approved
+team from `destinations`. Personal/group chats, explicit private/shared channel
+contexts, other activity types, and attachments are rejected. Installation events
+cannot add channels to configuration. Browser sessions do not authenticate the
+callback. Only this independently authenticated route is exempt from CSRF checks.
+Agent 365/Entra activity tokens are outside this notification-only bot's scope.
 
 Bot installations are stored separately in `teams_installations`, uniquely keyed
 by tenant, application, and team. Installation events refresh the service URL
