@@ -206,10 +206,6 @@ const FilterBar: FC<FiltersBarProps> = ({
     ({ dashboardInfo }) => dashboardInfo?.id,
   );
   const previousDashboardId = usePrevious(dashboardId);
-  const crossFiltersEnabled = useSelector<RootState, boolean>(
-    ({ dashboardInfo }) => dashboardInfo.crossFiltersEnabled,
-  );
-  const previousCrossFiltersEnabled = usePrevious(crossFiltersEnabled);
   const canEdit = useSelector<RootState, boolean>(
     ({ dashboardInfo }) => dashboardInfo.dash_edit_perm,
   );
@@ -373,12 +369,8 @@ const FilterBar: FC<FiltersBarProps> = ({
 
   useEffect(() => {
     const dashboardChanged = dashboardId !== previousDashboardId;
-    const crossFiltersDisabled =
-      previousCrossFiltersEnabled === true && crossFiltersEnabled === false;
 
     if (dashboardChanged) {
-      setDataMaskSelected(() => dataMaskApplied);
-    } else if (crossFiltersDisabled) {
       setDataMaskSelected(() => dataMaskApplied);
     } else {
       const prevApplied = prevDataMaskAppliedRef.current;
@@ -399,9 +391,12 @@ const FilterBar: FC<FiltersBarProps> = ({
           }
         });
 
-        // Remove stale entries that no longer exist in the configured filters
+        // Remove stale entries that no longer exist in dataMaskApplied
         Object.keys(updated).forEach(filterId => {
-          if (!isChartCustomization(filterId) && !(filterId in filters)) {
+          if (
+            !isChartCustomization(filterId) &&
+            !(filterId in dataMaskApplied)
+          ) {
             delete updated[filterId];
             hasChanges = true;
           }
@@ -412,15 +407,7 @@ const FilterBar: FC<FiltersBarProps> = ({
     }
 
     prevDataMaskAppliedRef.current = dataMaskApplied;
-  }, [
-    dataMaskApplied,
-    setDataMaskSelected,
-    dashboardId,
-    previousDashboardId,
-    filters,
-    crossFiltersEnabled,
-    previousCrossFiltersEnabled,
-  ]);
+  }, [dataMaskApplied, setDataMaskSelected, dashboardId, previousDashboardId]);
 
   useEffect(() => {
     // embedded users can't persist filter combinations
