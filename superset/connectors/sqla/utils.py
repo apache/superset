@@ -108,21 +108,18 @@ def _has_jinja_markers(sql: str) -> bool:
 def _raise_for_unsafe_script(script: SQLScript) -> None:
     """Reject a script that is not a single read-only statement."""
     if script.has_mutation():
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only `SELECT` statements are allowed"),
-                level=ErrorLevel.ERROR,
-            )
+        message = _("Only `SELECT` statements are allowed")
+    elif len(script.statements) > 1:
+        message = _("Only single queries supported")
+    else:
+        return
+    raise SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message=message,
+            level=ErrorLevel.ERROR,
         )
-    if len(script.statements) > 1:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only single queries supported"),
-                level=ErrorLevel.ERROR,
-            )
-        )
+    )
 
 
 def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
