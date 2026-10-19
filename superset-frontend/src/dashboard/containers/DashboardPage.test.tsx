@@ -45,7 +45,7 @@ import {
   UPDATE_COMPONENTS,
 } from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
-import { getUrlParam } from 'src/utils/urlUtils';
+import { getUrlParam, type UrlParam } from 'src/utils/urlUtils';
 import { getPermalinkValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardPage from './DashboardPage';
 
@@ -783,15 +783,15 @@ test('clears undo history after hydrating the dashboard', async () => {
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
 });
 
-test.each([null, 'TAB-explicit'])(
+test.each([null, '', '   ', 'TAB-explicit'])(
   'preserves permalink tabs during SPA navigation with explicit tabs %s',
   async explicitTab => {
     const search = new URLSearchParams({ permalink_key: 'saved-dashboard' });
-    if (explicitTab) search.set('active_tabs', explicitTab);
+    if (explicitTab !== null) search.set('active_tabs', explicitTab);
     window.history.replaceState({}, '', `/superset/dashboard/1/?${search}`);
     jest
       .mocked(getUrlParam)
-      .mockImplementation(param =>
+      .mockImplementation((param: UrlParam) =>
         new URLSearchParams(window.location.search).get(param.name),
       );
     type PermalinkValue = Awaited<ReturnType<typeof getPermalinkValue>>;
@@ -830,7 +830,9 @@ test.each([null, 'TAB-explicit'])(
       resolvePermalink(permalinkValue);
       await waitFor(() =>
         expect(hydrateDashboard).toHaveBeenCalledWith(
-          expect.objectContaining({ activeTabs: [explicitTab ?? 'TAB-saved'] }),
+          expect.objectContaining({
+            activeTabs: [explicitTab?.trim() || 'TAB-saved'],
+          }),
         ),
       );
     } finally {

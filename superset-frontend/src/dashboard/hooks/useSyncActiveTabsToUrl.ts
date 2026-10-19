@@ -17,9 +17,10 @@
  * under the License.
  */
 import { useEffect } from 'react';
-import { useHistory } from 'react-router-dom';
+import { matchPath, useHistory } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { URL_PARAMS } from 'src/constants';
+import { RoutePaths } from 'src/views/routePaths';
 import type { RootState } from 'src/dashboard/types';
 
 const TAB_ID_SEPARATOR = ',';
@@ -56,7 +57,10 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     if (
       !enabled ||
       editMode ||
-      !window.location.pathname.includes('/superset/dashboard')
+      matchPath(history.location.pathname, {
+        path: [RoutePaths.DASHBOARD_LIST, RoutePaths.DASHBOARD],
+        exact: true,
+      })?.path !== RoutePaths.DASHBOARD
     ) {
       return;
     }

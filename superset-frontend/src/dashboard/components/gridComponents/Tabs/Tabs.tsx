@@ -130,20 +130,16 @@ const Tabs = (props: TabsProps): ReactElement => {
   );
 
   const { tabIndex: initTabIndex, activeKey: initActiveKey } = useMemo(() => {
-    let tabIndex = Math.max(
-      0,
-      findTabIndexByComponentId({
-        currentComponent: props.component,
-        directPathToChild,
-      }),
-    );
-    if (tabIndex === 0 && activeTabs?.length) {
-      props.component.children.forEach((tabId, index) => {
-        if (tabIndex === 0 && activeTabs?.includes(tabId)) {
-          tabIndex = index;
-        }
-      });
+    let tabIndex = findTabIndexByComponentId({
+      currentComponent: props.component,
+      directPathToChild,
+    });
+    if (tabIndex === -1) {
+      tabIndex = props.component.children.findIndex(tabId =>
+        activeTabs?.includes(tabId),
+      );
     }
+    tabIndex = Math.max(0, tabIndex);
     const { children: tabIds } = props.component;
     const activeKey = tabIds[tabIndex];
 

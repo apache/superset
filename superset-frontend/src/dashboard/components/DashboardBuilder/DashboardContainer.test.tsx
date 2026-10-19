@@ -165,7 +165,7 @@ test.each([
     jest
       .mocked(DashboardGrid)
       .mockImplementation(({ gridComponent }) => (
-        <div data-test="mock-dashboard-grid">{gridComponent.id}</div>
+        <div data-test="mock-dashboard-grid">{gridComponent?.id}</div>
       ));
     const topLevelTabs: LayoutItem = {
       id: 'TABS-root',
