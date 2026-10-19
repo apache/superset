@@ -24,6 +24,17 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
+  Lab stop on Impala is delivered to the worker that is polling the query, which
+  cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
+  cancel invalidated the handle the worker was still polling, so the run failed
+  instead of ending as stopped. When no worker is polling, the query is marked
+  stopped but Impala keeps running it and holds its admission slot until it
+  finishes or Impala closes it: for example when the worker has died or
+  restarted, or when the stop arrives while results are being fetched.
+  Operators who relied on the HTTP cancel to free admission slots in those cases
+  should rely on Impala's own query and session timeouts. Chart and MCP
+  cancellation still use the HTTP cancel.
 - `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
   has already finished or its worker has committed the target transaction.
   The response contains `message: "Could not cancel query"` and the recorded
@@ -43,6 +54,22 @@ assists people when migrating to a new version.
   target commit can also leave transactional changes committed. Target and
   metadata commits are not atomic: a metadata commit failure after the target
   commit can likewise leave database changes without the committed marker.
+- **Semantic dimension variant resolution.** With `SEMANTIC_LAYERS` enabled,
+  same-name dimension variants use one default
+  preference for metadata, filters and grouping fallbacks: raw (no grain), then
+  second/minute/hour/day/week/month/quarter/year, then other grain representations
+  in lexical order. Explicit supported grouping grains remain honored; filters
+  and time bounds use the default independently of grouping. Sorting and series
+  limits use the selected grouping grain. This can change
+  results that depended on arbitrary catalog ordering. Providers exposing
+  different IDs or conflicting types, definitions or descriptions for the same
+  name and grain must disambiguate their catalog; such catalogs are rejected
+  instead of silently selecting a variant. On dashboards,
+  only the affected dataset reports the ambiguity; other datasets still load.
+  Independent temporal predicates are retained unless replaced by the query's
+  time-axis bounds; time-series offsets and separate inner-bound queries replace
+  ranges on their selected axis. Retained predicates can narrow results where
+  earlier releases discarded them.
 
 - **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
   UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
@@ -357,6 +384,17 @@ Connector/C this also verifies the server hostname, so the switch needs
 `ssl_ca=<path>` in Additional parameters and a Doris FE certificate matching the
 host. A Doris FE on its default self-signed certificate fails to connect once
 the switch is on.
+
+### MCP get_chart_data error categories
+
+`get_chart_data` returns `AccessDenied` when a query is refused for access, and
+`ValidationError` when a semantic layer provider rejects the query or Superset's
+query validation rejects it while it runs (for example, a semantic view refusing
+an empty `IN` filter), matching the chart-data API's 403 and 400. These were previously
+reported as `DataError`.
+Clients that matched on `DataError` for these cases should handle the new types.
+On the saved-chart path these errors also no longer emit an error-level MCP log
+notification; the category is carried by the response envelope alone.
 
 ### Empty MCP chart previews
 

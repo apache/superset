@@ -26,7 +26,7 @@
 # `ibm-db` ships no Linux arm64 wheel, breaking the multi-platform
 # (amd64+arm64) dev Docker image build; `oceanbase_py` pins
 # `sqlalchemy-utils>=0.38.3,<0.39`, which conflicts outright with Superset's
-# own `sqlalchemy-utils==0.42.1` pin -- there's no version of both that can
+# own `sqlalchemy-utils==0.43.0` pin -- there's no version of both that can
 # coexist in one resolved environment. Both testcontainers CI jobs install
 # their driver on demand instead, only for their own matrix leg -- see
 # .github/workflows/testcontainers.yml.
