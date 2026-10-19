@@ -25,7 +25,15 @@ import {
   isFeatureEnabled,
   SupersetClient,
 } from '@superset-ui/core';
-import type { DatabaseObject } from 'src/features/databases/types';
+import type {
+  DatabaseObject,
+  QueryCostWarningMetric,
+} from 'src/features/databases/types';
+import {
+  isQueryCostWarningEstimate,
+  isQueryCostWarningMetric,
+  isQueryCostWarningThreshold,
+} from 'src/features/databases/queryCostWarning';
 import { addDangerToast } from 'src/components/MessageToasts/actions';
 import {
   CtasEnum,
@@ -40,7 +48,7 @@ import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 
 export type WarningEstimate = {
   status: 'exceeded' | 'unavailable' | 'within_threshold';
-  metric: 'bytes_processed' | 'total_cost';
+  metric: QueryCostWarningMetric;
   label: string;
   unit: string;
   value: number | bigint | null;
@@ -64,34 +72,19 @@ export function parseWarningResult(result: unknown): CheckResult {
     !['exceeded', 'within_threshold', 'unavailable'].includes(
       String(value.status),
     ) ||
-    !['bytes_processed', 'total_cost'].includes(String(value.metric)) ||
+    !isQueryCostWarningMetric(value.metric) ||
     typeof value.label !== 'string' ||
     !value.label.trim() ||
     typeof value.unit !== 'string' ||
     !value.unit.trim() ||
-    (typeof value.threshold !== 'number' &&
-      typeof value.threshold !== 'bigint') ||
-    (typeof value.threshold === 'number' &&
-      !Number.isFinite(value.threshold)) ||
-    value.threshold <= 0 ||
+    !isQueryCostWarningThreshold(value.threshold, value.metric) ||
     (value.message !== undefined && typeof value.message !== 'string') ||
     (value.accuracy != null && typeof value.accuracy !== 'string')
   )
     throw invalid();
-  const usable =
-    value.metric === 'bytes_processed'
-      ? (typeof value.value === 'bigint' && value.value >= BigInt(0)) ||
-        (typeof value.value === 'number' &&
-          Number.isSafeInteger(value.value) &&
-          value.value >= 0)
-      : (typeof value.value === 'bigint' && value.value >= BigInt(0)) ||
-        (typeof value.value === 'number' &&
-          Number.isFinite(value.value) &&
-          value.value >= 0);
+  const usable = isQueryCostWarningEstimate(value.value, value.metric);
   if (
     (!usable && !(value.status === 'unavailable' && value.value === null)) ||
-    (value.metric === 'bytes_processed' &&
-      !Number.isSafeInteger(value.threshold)) ||
     (value.status === 'unavailable' &&
       (typeof value.message !== 'string' || !value.message.trim()))
   )

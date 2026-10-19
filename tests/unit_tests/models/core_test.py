@@ -124,6 +124,7 @@ def test_minimal_disabled_cost_warning_is_preserved() -> None:
         {"enabled": True},
         {"enabled": True, "metric": "bytes_processed", "threshold": -1},
         {"enabled": True, "metric": "total_cost", "threshold": 100},
+        {"enabled": True, "metric": "unknown", "threshold": 100},
     ],
 )
 def test_invalid_saved_cost_warning_is_null(rule: object) -> None:

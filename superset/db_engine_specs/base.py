@@ -389,6 +389,24 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     advanced_features: dict[str, str]
 
 
+class QueryCostWarningMetric(NamedTuple):
+    """Native units and threshold requirements for a supported warning metric."""
+
+    label: str
+    unit: str
+    requires_whole_bytes: bool
+
+
+QUERY_COST_WARNING_METRICS: dict[str, QueryCostWarningMetric] = {
+    "bytes_processed": QueryCostWarningMetric(
+        _("Estimated bytes processed"), _("bytes"), True
+    ),
+    "total_cost": QueryCostWarningMetric(
+        _("Estimated planner cost"), _("planner cost units"), False
+    ),
+}
+
+
 class QueryCostEstimate(NamedTuple):
     """An unrounded estimate and the information needed to interpret its bounds."""
 

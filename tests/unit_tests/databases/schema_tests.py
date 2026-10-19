@@ -103,6 +103,7 @@ def test_query_cost_warning_requires_safe_whole_bytes(
     [
         {"enabled": False},
         {"enabled": False, "metric": "total_cost", "threshold": 12.5},
+        {"enabled": False, "metric": "unknown", "threshold": 12.5},
         {"enabled": True, "metric": "total_cost", "threshold": 0.125},
         {"enabled": True, "metric": "bytes_processed", "threshold": 1},
         {"enabled": True, "metric": "bytes_processed", "threshold": 2**53 - 1},
@@ -131,6 +132,7 @@ def test_query_cost_warning_preserves_valid_rules_and_unrelated_settings(
         {"enabled": True},
         {"enabled": True, "metric": "total_cost"},
         {"enabled": True, "threshold": 100},
+        {"enabled": True, "metric": "unknown", "threshold": 12.5},
     ],
 )
 def test_invalid_query_cost_warning_is_rejected(

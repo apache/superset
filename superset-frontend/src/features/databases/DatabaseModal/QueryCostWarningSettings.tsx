@@ -38,8 +38,11 @@ import {
   getCostWarningUnit,
   getQueryCostWarning,
   getQueryCostWarningError,
+  isQueryCostWarningMetric,
+  isQueryCostWarningThreshold,
+  queryCostWarningMetrics,
   parseWarningBytes,
-} from './queryCostWarning';
+} from '../queryCostWarning';
 import { no_margin_bottom, StyledInputContainer } from './styles';
 
 /** Edit a native warning threshold while keeping display units out of saved extras. */
@@ -55,18 +58,22 @@ export default function QueryCostWarningSettings({
   const theme = useTheme();
   const rule = getQueryCostWarning(extra);
   const enabled = rule.enabled === true;
+  const definition = isQueryCostWarningMetric(metric)
+    ? queryCostWarningMetrics[metric]
+    : undefined;
   const flagsEnabled = isFeatureEnabled(FeatureFlag.SqlLabQueryCostWarnings);
   const estimationFlag = isFeatureEnabled(FeatureFlag.EstimateQueryCost);
   const active =
     flagsEnabled &&
     estimationFlag &&
     extra.cost_estimate_enabled === true &&
-    !!metric;
+    !!definition;
   const [unit, setUnit] = useState<CostWarningUnit>(() =>
     getCostWarningUnit(rule.threshold),
   );
   const [draft, setDraft] = useState<string>();
   const matchingThreshold =
+    definition &&
     rule.metric === metric &&
     typeof rule.threshold === 'number' &&
     Number.isFinite(rule.threshold)
@@ -76,18 +83,18 @@ export default function QueryCostWarningSettings({
     draft ??
     (matchingThreshold === undefined
       ? ''
-      : metric === 'bytes_processed'
+      : definition?.usesByteUnits
         ? formatWarningBytes(matchingThreshold, unit)
         : String(matchingThreshold));
   const draftInvalid =
     draft !== undefined &&
-    (metric === 'bytes_processed'
+    (definition?.usesByteUnits
       ? parseWarningBytes(draft, unit) === undefined
       : draft.trim() === '' ||
         !Number.isFinite(Number(draft)) ||
         Number(draft) <= 0);
   const error = draftInvalid
-    ? metric === 'bytes_processed'
+    ? definition?.usesByteUnits
       ? t(
           'Enter an amount that equals positive whole bytes, no greater than 9,007,199,254,740,991.',
         )
@@ -107,28 +114,22 @@ export default function QueryCostWarningSettings({
     );
   };
   const changeAmount = (event: ChangeEvent<HTMLInputElement>) => {
+    if (!isQueryCostWarningMetric(metric)) return;
     const input = event.target.value;
     setDraft(input);
-    const threshold =
-      metric === 'bytes_processed'
-        ? parseWarningBytes(input, unit)
-        : Number(input);
+    const threshold = definition?.usesByteUnits
+      ? parseWarningBytes(input, unit)
+      : Number(input);
     const updatedRule = { ...rule };
     updatedRule.metric = metric;
     delete updatedRule.threshold;
-    if (
-      threshold !== undefined &&
-      Number.isFinite(threshold) &&
-      threshold > 0
-    ) {
+    if (isQueryCostWarningThreshold(threshold, metric)) {
       updatedRule.threshold = threshold;
     }
     onChange(updatedRule);
   };
-  const inactiveReason = !metric
-    ? t(
-        'This engine does not support pre-run warnings. BigQuery and PostgreSQL are supported.',
-      )
+  const inactiveReason = !definition
+    ? t('This engine does not support pre-run warnings.')
     : !flagsEnabled
       ? t('Warnings are inactive because SQLLAB_QUERY_COST_WARNINGS is off.')
       : !estimationFlag
@@ -158,16 +159,14 @@ export default function QueryCostWarningSettings({
         css={{ marginInlineStart: theme.sizeUnit * 8 }}
       >
         {inactiveReason && <small>{inactiveReason}</small>}
-        {metric && (enabled || matchingThreshold !== undefined) && (
+        {definition && (enabled || matchingThreshold !== undefined) && (
           <Form.Item
             css={no_margin_bottom}
             validateStatus={error ? 'error' : undefined}
             help={error}
           >
             <label htmlFor="query_cost_warning_threshold">
-              {metric === 'bytes_processed'
-                ? t('Warning threshold (bytes processed)')
-                : t('Warning threshold (planner cost)')}
+              {definition.thresholdLabel()}
             </label>
             <Flex gap="small">
               <Input
@@ -181,7 +180,7 @@ export default function QueryCostWarningSettings({
                 aria-invalid={!!error}
                 onChange={changeAmount}
               />
-              {metric === 'bytes_processed' && (
+              {definition?.usesByteUnits && (
                 <Select
                   ariaLabel={t('Threshold size unit')}
                   value={unit}
@@ -204,19 +203,11 @@ export default function QueryCostWarningSettings({
                 />
               )}
             </Flex>
-            <small>
-              {metric === 'bytes_processed'
-                ? t(
-                    'Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = 1,000,000,000 bytes.',
-                  )
-                : t(
-                    "PostgreSQL's planner cost is relative, not dollars or memory.",
-                  )}
-            </small>
+            <small>{definition.settingsExplanation()}</small>
           </Form.Item>
         )}
         {error &&
-          (!metric || (!enabled && matchingThreshold === undefined)) && (
+          (!definition || (!enabled && matchingThreshold === undefined)) && (
             <small role="alert">{error}</small>
           )}
         {error && !enabled && (

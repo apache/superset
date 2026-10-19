@@ -383,6 +383,10 @@ test.each([
   { ...warning, value: '12' },
   { ...warning, value: NaN },
   { ...warning, threshold: 0 },
+  { ...warning, metric: 'unknown' },
+  { ...warning, metric: 'constructor' },
+  { ...warning, metric: '__proto__' },
+  { ...warning, metric: 'bytes_processed', threshold: 1.5 },
 ])('malformed response %j never executes', async result => {
   const h = setup();
   h.start();

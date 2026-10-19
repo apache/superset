@@ -30,7 +30,7 @@ import { ActionType, dbReducer } from './index';
 import {
   getQueryCostWarning,
   getQueryCostWarningError,
-} from './queryCostWarning';
+} from '../queryCostWarning';
 import { ExtraJson, QueryCostWarningMetric } from '../types';
 
 /** Exercise the settings with the actual database modal reducer. */

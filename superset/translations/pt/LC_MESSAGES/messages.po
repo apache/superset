@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 01:19-0400\n"
+"POT-Creation-Date: 2026-10-19 02:18-0400\n"
 "PO-Revision-Date: 2026-07-17 14:21+0000\n"
 "Last-Translator: José Teixeira <jose.teixeira@douroeci.com>\n"
 "Language: pt\n"
@@ -15334,6 +15334,9 @@ msgstr "Pixels"
 msgid "Plain"
 msgstr "Simples"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -15665,9 +15668,6 @@ msgid "Position of row level subtotal"
 msgstr "Posição do subtotal ao nível da linha"
 
 msgid "Position of the data label relative to the data point"
-msgstr ""
-
-msgid "PostgreSQL's planner cost is relative, not dollars or memory."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -22674,9 +22674,7 @@ msgid ""
 "one."
 msgstr "Este e-mail já está associado a uma conta. Por favor escolha outro."
 
-msgid ""
-"This engine does not support pre-run warnings. BigQuery and PostgreSQL "
-"are supported."
+msgid "This engine does not support pre-run warnings."
 msgstr ""
 
 #, python-format

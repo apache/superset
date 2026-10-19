@@ -29,7 +29,7 @@ from superset.commands.sql_lab.estimate import (
     QueryEstimationCommand,
 )
 from superset.commands.sql_lab.execute import ExecuteSqlCommand
-from superset.db_engine_specs.base import QueryCostEstimate
+from superset.db_engine_specs.base import BaseEngineSpec, QueryCostEstimate
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -47,6 +47,29 @@ from superset.sql.parse import SQLScript
 from superset.sql_lab import apply_limit
 from superset.sqllab.sqllab_execution_context import SqlJsonExecutionContext
 from superset.utils import json
+
+
+class WarningTestEngineSpec(BaseEngineSpec):
+    """Exercise a verified metric independently of its production engine adapters."""
+
+    engine = "sqlite"
+
+    @classmethod
+    def get_allow_cost_estimate(cls, extra: dict[str, Any]) -> bool:
+        """Allow estimates when the connection has also opted in."""
+        return True
+
+    @classmethod
+    def get_query_cost_warning_metric(cls) -> str | None:
+        """Opt this test engine into the existing planner-cost metric."""
+        return "total_cost"
+
+    @classmethod
+    def estimate_query_cost_for_warning(
+        cls, database: Database, catalog: str | None, schema: str, sql: str
+    ) -> QueryCostEstimate:
+        """Return an unrounded decimal estimate without contacting a database."""
+        return QueryCostEstimate.from_value(10.25)
 
 
 def _make_command(
@@ -167,6 +190,37 @@ def test_warning_compares_postgres_decimals_before_display(
     result = _run_warning(command)
     assert result["status"] == "exceeded"
     assert result["value"] == 10.12501
+
+
+@pytest.mark.parametrize("metric", ["total_cost", "unknown", ""])
+def test_warning_command_uses_metric_contract_for_test_engine(
+    mocker: MockerFixture, metric: str
+) -> None:
+    """Known metrics work without engine-name branches; unknown ones never estimate."""
+    command = _make_command(mocker, "sqlite")
+    mocker.patch.object(
+        Database,
+        "db_engine_spec",
+        new_callable=mocker.PropertyMock,
+        return_value=WarningTestEngineSpec,
+    )
+    if metric != "total_cost":
+        mocker.patch.object(
+            WarningTestEngineSpec, "get_query_cost_warning_metric", return_value=metric
+        )
+    estimator = mocker.spy(WarningTestEngineSpec, "estimate_query_cost_for_warning")
+    result = _run_warning(command)
+    if metric != "total_cost":
+        assert result == {"status": "unsupported"}
+        estimator.assert_not_called()
+    else:
+        assert result["status"] == "exceeded"
+        assert result["value"] == 10.25
+        assert result["threshold"] == 10
+        assert result["metric"] == "total_cost"
+        assert result["label"] == "Estimated planner cost"
+        assert result["unit"] == "planner cost units"
+        estimator.assert_called_once()
 
 
 @pytest.mark.parametrize(
@@ -303,6 +357,7 @@ def test_warning_unsupported_engine(mocker: MockerFixture) -> None:
         {"enabled": True},
         {"enabled": True, "metric": "bytes_processed", "threshold": 10},
         {"enabled": True, "metric": "total_cost", "threshold": "10"},
+        {"enabled": True, "metric": "unknown", "threshold": 10},
         {"enabled": False, "threshold": -1},
     ],
 )

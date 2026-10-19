@@ -80,7 +80,7 @@ import ExtraOptions from './ExtraOptions';
 import {
   getQueryCostWarning,
   getQueryCostWarningError,
-} from './queryCostWarning';
+} from '../queryCostWarning';
 import SqlAlchemyForm from './SqlAlchemyForm';
 import DatabaseConnectionForm from './DatabaseConnectionForm';
 import {

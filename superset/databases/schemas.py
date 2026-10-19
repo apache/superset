@@ -55,6 +55,7 @@ from superset.databases.types import (  # pylint:disable=unused-import
 )
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs import get_engine_spec
+from superset.db_engine_specs.base import QUERY_COST_WARNING_METRICS
 from superset.exceptions import CertificateException, SupersetSecurityException
 from superset.models.core import ConfigurationMethod, Database
 from superset.security.analytics_db_safety import check_sqlalchemy_uri
@@ -310,6 +311,7 @@ class QueryCostWarningSchema(Schema):
     @validates_schema
     def validate_rule(self, data: dict[str, Any], **kwargs: Any) -> None:
         """Require enabled rules to be complete and byte thresholds to be exact."""
+        definition = QUERY_COST_WARNING_METRICS.get(data.get("metric", ""))
         if data["enabled"]:
             missing = {
                 key: [_("An enabled query cost warning requires this field.")]
@@ -318,8 +320,19 @@ class QueryCostWarningSchema(Schema):
             }
             if missing:
                 raise ValidationError(missing)
+            if definition is None:
+                raise ValidationError(
+                    {
+                        "metric": [
+                            _(
+                                "The query cost warning metric is not supported "
+                                "by this engine."
+                            )
+                        ]
+                    }
+                )
         threshold = data.get("threshold")
-        if data.get("metric") == "bytes_processed" and threshold is not None:
+        if definition and definition.requires_whole_bytes and threshold is not None:
             if threshold > 2**53 - 1 or threshold != int(threshold):
                 raise ValidationError(
                     {

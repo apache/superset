@@ -68,7 +68,7 @@ test('unavailable planner cost shows its reason and Run without estimate', () =>
   );
   expect(getByText('Templates cannot be estimated')).toBeInTheDocument();
   expect(
-    getByText("PostgreSQL's planner cost is relative, not dollars or memory."),
+    getByText('Planner cost is relative, not dollars or memory.'),
   ).toBeInTheDocument();
   expect(
     getByRole('button', { name: 'Run without estimate' }),

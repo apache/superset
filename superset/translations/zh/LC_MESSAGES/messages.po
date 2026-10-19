@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-19 01:19-0400\n"
+"POT-Creation-Date: 2026-10-19 02:18-0400\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -12241,6 +12241,9 @@ msgstr "像素"
 msgid "Plain"
 msgstr "平铺"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -12481,9 +12484,6 @@ msgid "Position of row level subtotal"
 msgstr "行级小计的位置"
 
 msgid "Position of the data label relative to the data point"
-msgstr ""
-
-msgid "PostgreSQL's planner cost is relative, not dollars or memory."
 msgstr ""
 
 msgid "Powered by Apache Superset"
@@ -18049,9 +18049,7 @@ msgid ""
 "one."
 msgstr "此邮箱已关联到一个账户。请选择其他邮箱。"
 
-msgid ""
-"This engine does not support pre-run warnings. BigQuery and PostgreSQL "
-"are supported."
+msgid "This engine does not support pre-run warnings."
 msgstr ""
 
 #, python-format

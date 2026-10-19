@@ -24,8 +24,11 @@ import {
   formatWarningBytes,
   parseWarningBytes,
   CostWarningUnit,
+  isQueryCostWarningEstimate,
+  isQueryCostWarningMetric,
+  isQueryCostWarningThreshold,
 } from './queryCostWarning';
-import { ExtraJson } from '../types';
+import { ExtraJson } from './types';
 
 test.each([
   ['1.000001', 'MB', 1000001],
@@ -126,5 +129,49 @@ test.each([NaN, Infinity, 0, -1, '100', true, 0.5])(
         threshold,
       }),
     ).toEqual({ enabled: false, metric: 'bytes_processed' });
+  },
+);
+
+test.each(['unknown', 'constructor', '__proto__', '', null, 1])(
+  'unknown metric %s has no numeric or planner-cost default',
+  metric => {
+    expect(isQueryCostWarningMetric(metric)).toBe(false);
+    expect(
+      getQueryCostWarningError(
+        { enabled: true, metric, threshold: 12.5 },
+        'total_cost',
+      ),
+    ).toBeDefined();
+  },
+);
+
+test('valid disabled unknown metrics remain distinct from invalid enabled rules', () => {
+  expect(
+    getQueryCostWarningError(
+      { enabled: false, metric: 'unknown', threshold: 12.5 },
+      'total_cost',
+    ),
+  ).toBeUndefined();
+});
+
+test.each([
+  ['bytes_processed', 0, true, false],
+  ['bytes_processed', 0.5, false, false],
+  ['bytes_processed', Number.MAX_SAFE_INTEGER, true, true],
+  ['bytes_processed', Number.MAX_SAFE_INTEGER + 1, false, false],
+  ['bytes_processed', BigInt('9007199254740993123'), true, false],
+  ['total_cost', 0, true, false],
+  ['total_cost', 0.125, true, true],
+  ['total_cost', BigInt('9007199254740993123'), true, true],
+  ['total_cost', Infinity, false, false],
+  ['total_cost', NaN, false, false],
+  ['total_cost', true, false, false],
+  ['total_cost', '12.5', false, false],
+  ['bytes_processed', -1, false, false],
+] as const)(
+  '%s value %s has distinct estimate and threshold validation',
+  (metric, value, estimateValid, thresholdValid) => {
+    expect(isQueryCostWarningEstimate(value, metric)).toBe(estimateValid);
+    expect(isQueryCostWarningThreshold(value, metric)).toBe(thresholdValid);
   },
 );

@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 01:19-0400\n"
+"POT-Creation-Date: 2026-10-19 02:18-0400\n"
 "PO-Revision-Date: 2026-07-17 09:44+0100\n"
 "Last-Translator: Daniel Checheta\n"
 "Language: ru\n"
@@ -11675,6 +11675,9 @@ msgstr "Пиксели"
 msgid "Plain"
 msgstr "Простой"
 
+msgid "Planner cost is relative, not dollars or memory."
+msgstr ""
+
 msgid ""
 "Please check your query and confirm that all template parameters are "
 "surround by double braces, for example, \"{{ ds }}\". Then, try running "
@@ -11893,9 +11896,6 @@ msgid "Position of row level subtotal"
 msgstr "Расположение подытога на уровне строки"
 
 msgid "Position of the data label relative to the data point"
-msgstr ""
-
-msgid "PostgreSQL's planner cost is relative, not dollars or memory."
 msgstr ""
 
 msgid "Powered by Apache Superset"
@@ -17307,9 +17307,7 @@ msgid ""
 "one."
 msgstr "Этот email уже привязан к учетной записи. Пожалуйста, укажите другой."
 
-msgid ""
-"This engine does not support pre-run warnings. BigQuery and PostgreSQL "
-"are supported."
+msgid "This engine does not support pre-run warnings."
 msgstr ""
 
 #, python-format

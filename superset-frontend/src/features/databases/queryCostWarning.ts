@@ -17,7 +17,68 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { ExtraJson, QueryCostWarning, QueryCostWarningMetric } from '../types';
+import type {
+  ExtraJson,
+  QueryCostWarning,
+  QueryCostWarningMetric,
+} from './types';
+
+const plannerCostExplanation = () =>
+  t('Planner cost is relative, not dollars or memory.');
+
+export const queryCostWarningMetrics = {
+  bytes_processed: {
+    thresholdLabel: () => t('Warning threshold (bytes processed)'),
+    explanation: () => t('Estimated usage, not a guaranteed bill.'),
+    settingsExplanation: () =>
+      t(
+        'Estimated usage, not a guaranteed bill. 1 MB = 1,000,000 bytes; 1 GB = 1,000,000,000 bytes.',
+      ),
+    usesByteUnits: true,
+  },
+  total_cost: {
+    thresholdLabel: () => t('Warning threshold (planner cost)'),
+    explanation: plannerCostExplanation,
+    settingsExplanation: plannerCostExplanation,
+    usesByteUnits: false,
+  },
+};
+
+/** Recognize only explicitly defined native metrics, including for API responses. */
+export function isQueryCostWarningMetric(
+  metric: unknown,
+): metric is QueryCostWarningMetric {
+  return (
+    typeof metric === 'string' &&
+    Object.prototype.hasOwnProperty.call(queryCostWarningMetrics, metric)
+  );
+}
+
+/** Accept unrounded nonnegative estimates, including exact large JSON integers. */
+export function isQueryCostWarningEstimate(
+  value: unknown,
+  metric: QueryCostWarningMetric,
+): value is number | bigint {
+  return (
+    (typeof value === 'bigint' && value >= BigInt(0)) ||
+    (typeof value === 'number' &&
+      value >= 0 &&
+      (queryCostWarningMetrics[metric].usesByteUnits
+        ? Number.isSafeInteger(value)
+        : Number.isFinite(value)))
+  );
+}
+
+/** Require positive thresholds and safe whole bytes, unlike potentially large estimates. */
+export function isQueryCostWarningThreshold(
+  value: unknown,
+  metric: QueryCostWarningMetric,
+): value is number | bigint {
+  return queryCostWarningMetrics[metric].usesByteUnits
+    ? typeof value === 'number' && Number.isSafeInteger(value) && value > 0
+    : (typeof value === 'bigint' && value > BigInt(0)) ||
+        (typeof value === 'number' && Number.isFinite(value) && value > 0);
+}
 
 export const costWarningUnits = { Bytes: 1, MB: 1000000, GB: 1000000000 };
 export type CostWarningUnit = keyof typeof costWarningUnits;
@@ -92,14 +153,15 @@ export function getQueryCostWarningError(
     return t('Enter a positive, finite warning threshold.');
   }
   if (
-    rule.metric === 'bytes_processed' &&
+    isQueryCostWarningMetric(rule.metric) &&
+    queryCostWarningMetrics[rule.metric].usesByteUnits &&
     'threshold' in rule &&
-    !Number.isSafeInteger(rule.threshold)
+    !isQueryCostWarningThreshold(rule.threshold, rule.metric)
   ) {
     return t('Enter whole bytes, no greater than 9,007,199,254,740,991.');
   }
   if (rule.enabled) {
-    if (!metric || rule.metric !== metric) {
+    if (!isQueryCostWarningMetric(metric) || rule.metric !== metric) {
       return t(
         'The saved warning metric is not supported by this engine. Turn warnings off or enter a new threshold.',
       );
@@ -124,15 +186,14 @@ export function getQueryCostWarning(extra: ExtraJson): Record<string, unknown> {
 export function disableQueryCostWarning(
   rule: Record<string, unknown>,
 ): QueryCostWarning {
-  const metric =
-    rule.metric === 'bytes_processed' || rule.metric === 'total_cost'
-      ? rule.metric
-      : undefined;
+  const metric = isQueryCostWarningMetric(rule.metric)
+    ? rule.metric
+    : undefined;
   const threshold =
     typeof rule.threshold === 'number' &&
     Number.isFinite(rule.threshold) &&
     rule.threshold > 0 &&
-    (metric !== 'bytes_processed' || Number.isSafeInteger(rule.threshold))
+    (!metric || isQueryCostWarningThreshold(rule.threshold, metric))
       ? rule.threshold
       : undefined;
   return {

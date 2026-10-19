@@ -29,6 +29,7 @@ from superset import config, db, is_feature_enabled, security_manager
 from superset.commands.base import BaseCommand
 from superset.daos.database import DatabaseDAO
 from superset.databases.schemas import get_query_cost_warning
+from superset.db_engine_specs.base import QUERY_COST_WARNING_METRICS
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     OAuth2RedirectError,
@@ -243,7 +244,7 @@ class QueryEstimationCommand(BaseCommand):
             return {"status": "disabled"}
         spec = self._database.db_engine_spec
         metric = spec.get_query_cost_warning_metric()
-        if metric is None:
+        if metric is None or metric not in QUERY_COST_WARNING_METRICS:
             return {"status": "unsupported"}
         if self._database.allows_cost_estimate is not True:
             return {"status": "disabled"}
@@ -251,16 +252,12 @@ class QueryEstimationCommand(BaseCommand):
         if rule["enabled"] is False:
             return {"status": "disabled"}
 
-        label, unit = (
-            (__("Estimated bytes processed"), __("bytes"))
-            if metric == "bytes_processed"
-            else (__("Estimated planner cost"), __("planner cost units"))
-        )
+        definition = QUERY_COST_WARNING_METRICS[metric]
         result: dict[str, Any] = {
             "status": "unavailable",
             "metric": metric,
-            "label": label,
-            "unit": unit,
+            "label": str(definition.label),
+            "unit": str(definition.unit),
             "value": None,
             "threshold": rule["threshold"],
         }

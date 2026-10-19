@@ -18,6 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Button, Modal } from '@superset-ui/core/components';
+import { queryCostWarningMetrics } from 'src/features/databases/queryCostWarning';
 import type { WarningEstimate } from './useQueryCostWarning';
 
 /** Confirm a server-side comparison without rounding or converting native units. */
@@ -75,13 +76,7 @@ export default function QueryCostWarningDialog({
               {format(estimate.threshold)} {estimate.unit}
             </strong>
           </p>
-          <p>
-            {estimate.metric === 'total_cost'
-              ? t(
-                  "PostgreSQL's planner cost is relative, not dollars or memory.",
-                )
-              : t('Estimated usage, not a guaranteed bill.')}
-          </p>
+          <p>{queryCostWarningMetrics[estimate.metric].explanation()}</p>
         </>
       )}
     </Modal>

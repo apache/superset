@@ -20,6 +20,8 @@ import { ChangeEvent, EventHandler, FormEvent } from 'react';
  * specific language governing permissions and limitations
  * under the License.
  */
+import type { queryCostWarningMetrics } from './queryCostWarning';
+
 type DatabaseUser = {
   first_name: string;
   last_name: string;
@@ -64,7 +66,7 @@ export type DatabaseParameters = {
   project_id?: string;
 };
 
-export type QueryCostWarningMetric = 'bytes_processed' | 'total_cost';
+export type QueryCostWarningMetric = keyof typeof queryCostWarningMetrics;
 
 export type QueryCostWarning = {
   enabled: boolean;
