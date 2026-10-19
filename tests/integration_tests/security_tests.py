@@ -1758,6 +1758,14 @@ class TestRolePermission(SupersetTestCase):
             # reachable with no session at all, since it is clicked from a
             # plain email link.
             ["DashboardRestApi", "download_xlsx"],
+            # Self-service AUTH_DB password recovery: used by people who cannot
+            # sign in, so it has to be anonymous. Answers 404 unless recovery
+            # is enabled; the API is CSRF-protected and rate limited, and the
+            # reset only proceeds with a single-use emailed token.
+            ["PasswordRecoveryRestApi", "request_recovery"],
+            ["PasswordRecoveryRestApi", "reset"],
+            ["SupersetAuthView", "forgot_password"],
+            ["SupersetAuthView", "reset_password"],
             # Language pack endpoint serves JS bundle translations, no auth
             # needed; embedded dashboards fetch this without a guest-token
             # header, so it must be reachable unauthenticated.

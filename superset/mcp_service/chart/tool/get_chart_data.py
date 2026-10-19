@@ -34,12 +34,14 @@ from sqlalchemy.orm import subqueryload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.charts.data.form_data import set_query_context_form_data
+from superset.commands.chart.exceptions import ChartDataQueryValidationError
 from superset.commands.exceptions import CommandException
 from superset.exceptions import (
     OAuth2Error,
     OAuth2RedirectError,
     QueryObjectValidationError,
     SupersetException,
+    SupersetSecurityException,
 )
 from superset.extensions import event_logger
 from superset.mcp_service import guest_scope
@@ -57,11 +59,16 @@ from superset.mcp_service.chart.chart_helpers import (
     rejected_requested_filter_columns,
     resolve_form_data_datasource,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+    validate_chart_semantic_view,
+)
 from superset.mcp_service.chart.query_result import (
     normalize_chart_query_result,
     null_data_is_empty,
     query_result_failure,
+    temporal_json_numbers,
     validate_query_result_envelope,
 )
 from superset.mcp_service.chart.response_preflight import (
@@ -86,7 +93,12 @@ from superset.mcp_service.utils.response_utils import (
     format_data_columns,
     format_data_quality,
 )
-from superset.utils.core import GenericDataType
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
+from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+from superset.utils.core import DatasourceType, GenericDataType
 from superset.utils.json import JSONDecodeError
 
 logger = logging.getLogger(__name__)
@@ -115,12 +127,54 @@ def _is_expected_json_load_error(exc: Exception) -> bool:
     return type(exc) in {TypeError, ValueError, JSONDecodeError}
 
 
+def _access_denied_error(exc: SupersetSecurityException) -> ChartError:
+    """Report a query-time refusal in the category of the chart-data API's 403."""
+    return ChartError(error=bounded_exception_message(exc), error_type="AccessDenied")
+
+
+# Errors the chart-data API answers with 400, whether raised before or while
+# the query runs.
+_VALIDATION_ERRORS = (
+    ChartDataQueryValidationError,
+    QueryObjectValidationError,
+    SemanticLayerQueryRejectedError,
+)
+
+
+def _validation_error(
+    exc: ChartDataQueryValidationError
+    | QueryObjectValidationError
+    | SemanticLayerQueryRejectedError,
+) -> ChartError:
+    """Report an invalid query in the category of the chart-data API's 400."""
+    if isinstance(exc, SemanticLayerQueryRejectedError):
+        # Fixed host guidance; the provider's own text is never carried.
+        return ChartError(error=str(exc), error_type="ValidationError")
+    # A run-time failure carries its validation error as the cause, so both
+    # stages report the same text.
+    cause: BaseException = (
+        exc.__cause__
+        if isinstance(exc, ChartDataQueryValidationError) and exc.__cause__
+        else exc
+    )
+    return ChartError(
+        error=bounded_exception_message(cause), error_type="ValidationError"
+    )
+
+
 _GENERIC_TYPE_MAP: dict[int, str] = {
     GenericDataType.NUMERIC: "numeric",
     GenericDataType.STRING: "string",
     GenericDataType.TEMPORAL: "temporal",
     GenericDataType.BOOLEAN: "boolean",
 }
+
+
+def _data_plugin(viz_type: str | None) -> Any:
+    """Return the plugin that owns chart-data rows for ``viz_type``."""
+    from superset.mcp_service.chart.registry import plugin_for_viz_type
+
+    return plugin_for_viz_type(viz_type)
 
 
 def _normalizes_data_results(form_data: dict[str, Any]) -> bool:
@@ -154,6 +208,7 @@ _VIZ_CATEGORY: dict[str, str] = {
     "scatter": "scatter",
     "bubble": "bubble",
     "bubble_v2": "bubble",
+    "bullet": "bullet",
     "treemap_v2": "treemap",
     "sunburst_v2": "sunburst",
     "heatmap_v2": "heatmap",
@@ -162,7 +217,9 @@ _VIZ_CATEGORY: dict[str, str] = {
     "histogram": "histogram",
     "histogram_v2": "histogram",
     "box_plot": "box_plot",
-    "world_map": "map",
+    "world_map": "world_map",
+    "country_map": "country_map",
+    "deck_scatter": "deck_scatter",
     "pivot_table_v2": "table",
     "ag-grid-pivot-table": "table",
     # Own category: cumulative-flow semantics differ from a plain bar, like
@@ -241,8 +298,30 @@ def _build_candidates(
     numeric = [c for c in columns if c.data_type == "numeric"]
     categorical = [c for c in columns if c.data_type in ("string", "boolean")]
 
+    numeric_names = {c.name.lower() for c in numeric}
+    categorical_names = {
+        c.name.lower()
+        for c in categorical
+        if c.data_type == "string" and 1 < c.unique_count <= 250
+    }
+    has_coordinates = {"latitude", "longitude"} <= numeric_names
     if temporal and numeric:
-        return _candidates_temporal_numeric(numeric, row_count)
+        candidates = _candidates_temporal_numeric(numeric, row_count)
+        # Time-spatial data plots on a map as readily as on a time series,
+        # so the coordinates stay on offer instead of being shadowed. When the
+        # row count is high enough to offer lines and the chart is not already
+        # a line chart, the recommendation cap pays for the map by dropping the
+        # trailing "multi-line chart", the closest variant of the "line chart"
+        # that survives, so the suggestions still span every distinct shape the
+        # dataset supports. Below that row threshold, and on a chart whose line
+        # category is already filtered out, nothing is displaced.
+        return ["geographic points", *candidates] if has_coordinates else candidates
+    if has_coordinates:
+        return ["geographic points", "table"]
+    if numeric and categorical_names & {"country", "country_code"}:
+        return ["world map", "bar chart", "table"]
+    if numeric and categorical_names & {"state", "province"}:
+        return ["country map", "bar chart", "table"]
     if categorical and numeric:
         return _candidates_categorical_numeric(numeric, categorical)
     if len(numeric) >= 2:
@@ -283,7 +362,7 @@ def _candidates_categorical_numeric(
 
 
 def _candidates_single_numeric(col: DataColumn, row_count: int) -> list[str]:
-    candidates = ["big number / KPI", "gauge chart"]
+    candidates = ["big number / KPI", "bullet chart", "gauge chart"]
     if row_count > 20 and col.unique_count > 10:
         candidates.insert(0, "histogram")
     return candidates
@@ -310,6 +389,7 @@ _CANDIDATE_CATEGORY: dict[str, str] = {
     "bar chart": "bar",
     "scatter plot": "scatter",
     "bubble chart": "bubble",
+    "bullet chart": "bullet",
     "pie chart": "pie",
     "treemap": "treemap",
     "sunburst chart": "sunburst",
@@ -318,6 +398,9 @@ _CANDIDATE_CATEGORY: dict[str, str] = {
     "gauge chart": "gauge",
     "histogram": "histogram",
     "table": "table",
+    "geographic points": "deck_scatter",
+    "country map": "country_map",
+    "world map": "world_map",
 }
 
 
@@ -551,11 +634,23 @@ async def _get_chart_data(  # noqa: C901
         )
         logger.info("Getting data for chart %s: %s", chart_id, chart_name)
 
+        if (
+            chart_datasource_type == "semantic_view"
+            and not is_semantic_layers_enabled()
+        ):
+            return ChartError(
+                error=SemanticLayersDisabledError.message,
+                error_type="SemanticLayersDisabledError",
+            )
+
         # Guests skip the RBAC check (authorize_query covers it) but keep the
-        # existence check, so a deleted dataset still returns
+        # existence check, so a deleted dataset or semantic view still returns
         # DatasetNotAccessible.
-        validation_result = validate_chart_dataset(
-            chart_datasource_id, check_access=not guest_scope.is_guest_read()
+        check_access: bool = not guest_scope.is_guest_read()
+        validation_result: DatasetValidationResult = (
+            validate_chart_semantic_view(chart_datasource_id, check_access=check_access)
+            if chart_datasource_type == DatasourceType.SEMANTIC_VIEW.value
+            else validate_chart_dataset(chart_datasource_id, check_access=check_access)
         )
         if not validation_result.is_valid:
             await ctx.warning(
@@ -902,6 +997,9 @@ async def _get_chart_data(  # noqa: C901
             if result_error := validate_query_result_envelope(
                 result,
                 none_as_empty=null_data_is_empty(effective_form_data.get("viz_type")),
+                temporal_json_numbers=temporal_json_numbers(
+                    effective_form_data.get("viz_type")
+                ),
             ):
                 return result_error
             if _normalizes_data_results(effective_form_data):
@@ -946,6 +1044,13 @@ async def _get_chart_data(  # noqa: C901
             query_result = result["queries"][0]
             data = query_result.get("data", [])
             raw_columns = query_result.get("colnames", [])
+            data_plugin = _data_plugin(effective_form_data.get("viz_type"))
+            if data_plugin is not None:
+                data, rows_error = data_plugin.sanitize_data_rows(
+                    data, effective_form_data
+                )
+                if rows_error is not None:
+                    return rows_error
 
             await ctx.debug(
                 "Query results received: row_count=%s, column_count=%s, "
@@ -958,7 +1063,9 @@ async def _get_chart_data(  # noqa: C901
             )
 
             # Check if we have data to work with
-            if not any(query.get("data") for query in result["queries"]):
+            if not (data_plugin and data_plugin.allows_empty_data_result) and not any(
+                query.get("data") for query in result["queries"]
+            ):
                 await ctx.warning("No data in query results: chart_id=%s" % (chart_id,))
                 logger.warning(
                     "get_chart_data: no data in query results for chart_id=%s",
@@ -1133,11 +1240,15 @@ async def _get_chart_data(  # noqa: C901
             # dedicated outer handlers return the OAuth redirect message
             # instead of a generic DataError.
             raise
-        except QueryObjectValidationError as ex:
+        except _VALIDATION_ERRORS as ex:
             logger.warning(
                 "Chart data validation failed for chart %s: %s", chart_id, ex
             )
-            return ChartError(error=str(ex), error_type="ValidationError")
+            return _validation_error(ex)
+        except SupersetSecurityException as ex:
+            # The chart-data API answers 403; keep refusals out of DataError.
+            logger.warning("Chart data access refused for chart %s", chart_id)
+            return _access_denied_error(ex)
         except (CommandException, SupersetException, ValueError) as data_error:
             error_text = bounded_exception_message(data_error)
             await ctx.error(
@@ -1257,7 +1368,9 @@ async def _query_from_form_data(  # noqa: C901
             result = command.run()
 
         if result_error := validate_query_result_envelope(
-            result, none_as_empty=null_data_is_empty(viz_type)
+            result,
+            none_as_empty=null_data_is_empty(viz_type),
+            temporal_json_numbers=temporal_json_numbers(viz_type),
         ):
             return result_error
         if _normalizes_data_results(form_data):
@@ -1294,8 +1407,15 @@ async def _query_from_form_data(  # noqa: C901
         query_result = result["queries"][0]
         data = query_result.get("data", [])
         raw_columns = query_result.get("colnames", [])
+        data_plugin = _data_plugin(viz_type)
+        if data_plugin is not None:
+            data, rows_error = data_plugin.sanitize_data_rows(data, form_data)
+            if rows_error is not None:
+                return rows_error
 
-        if not any(query.get("data") for query in result["queries"]):
+        if not (data_plugin and data_plugin.allows_empty_data_result) and not any(
+            query.get("data") for query in result["queries"]
+        ):
             logger.warning(
                 "get_chart_data: no data for unsaved chart (form_data_key=%s)",
                 request.form_data_key,
@@ -1367,9 +1487,12 @@ async def _query_from_form_data(  # noqa: C901
         # outer OAuth handlers return the redirect instead of a generic
         # DataError.
         raise
-    except QueryObjectValidationError as ex:
+    except _VALIDATION_ERRORS as ex:
         logger.warning("Unsaved chart data validation failed: %s", ex)
-        return ChartError(error=str(ex), error_type="ValidationError")
+        return _validation_error(ex)
+    except SupersetSecurityException as ex:
+        logger.warning("Unsaved chart data access refused")
+        return _access_denied_error(ex)
     except (CommandException, SupersetException, ValueError) as e:
         error_text = bounded_exception_message(e)
         logger.error("Domain error querying unsaved chart data")
@@ -1393,7 +1516,9 @@ def _export_data_as_csv(
     # Create CSV content
     output = io.StringIO()
 
-    if data and columns:
+    # An empty result still exports its header row (for example a Bullet
+    # chart, whose empty result is valid).
+    if columns:
         writer = csv.DictWriter(output, fieldnames=columns)
         writer.writeheader()
 
@@ -1472,7 +1597,9 @@ def _create_excel_with_openpyxl(
     ws = wb.active
     ws.title = chart.slice_name[:31] if chart.slice_name else "Chart Data"
 
-    if data and columns:
+    # An empty result still exports its header row (for example a Bullet
+    # chart, whose empty result is valid).
+    if columns:
         _write_excel_headers(ws, columns)
         _write_excel_data(ws, data, columns, temporal_columns)
 
@@ -1505,6 +1632,7 @@ _EXCEL_MIN_DATETIME = dt.datetime.combine(_EXCEL_MIN_DATE, dt.time.min)
 # supported day or time cannot roll over past Excel's range.
 _EXCEL_MAX_TIME = dt.time(23, 59, 59, 999000)
 _EXCEL_MAX_DATETIME = dt.datetime.combine(dt.date.max, _EXCEL_MAX_TIME)
+_EXCEL_EPOCH = dt.datetime(1970, 1, 1)
 
 
 def _temporal_result_columns(query_result: Any) -> frozenset[str]:
@@ -1525,10 +1653,14 @@ def _excel_temporal_value(value: Any) -> Any:
     projection. Excel stores dates as typed serial values, so temporal columns
     are restored here. Excel cannot store offsets; like the Superset Excel
     export, aware values keep their wall-clock time and drop the offset.
-    Unparseable text, and values outside Excel's 1900 date system (before
-    1900-01-01, or rounding past its final supported day or time), are
+    Plugins that read temporals as Chart Data numbers (for example Bullet)
+    carry epoch milliseconds instead; those are restored as naive UTC
+    datetimes. Unparseable text, and values outside Excel's 1900 date system
+    (before 1900-01-01, or rounding past its final supported day or time), are
     written unchanged.
     """
+    if type(value) is int or type(value) is float:
+        return _excel_epoch_ms_value(value)
     if type(value) is not str:
         return value
     try:
@@ -1546,6 +1678,19 @@ def _excel_temporal_value(value: Any) -> Any:
     if timestamp.tzinfo is not None:
         timestamp = timestamp.tz_localize(None)
     moment = timestamp.to_pydatetime(warn=False)
+    if not _EXCEL_MIN_DATETIME <= moment <= _EXCEL_MAX_DATETIME:
+        return value
+    return moment
+
+
+def _excel_epoch_ms_value(value: int | float) -> Any:
+    """Restore an epoch-millisecond temporal cell as an Excel datetime."""
+    if not math.isfinite(value):
+        return value
+    try:
+        moment = _EXCEL_EPOCH + dt.timedelta(milliseconds=value)
+    except OverflowError:
+        return value
     if not _EXCEL_MIN_DATETIME <= moment <= _EXCEL_MAX_DATETIME:
         return value
     return moment
@@ -1620,7 +1765,9 @@ def _create_excel_with_xlsxwriter(
     sheet_name = chart.slice_name[:31] if chart.slice_name else "Chart Data"
     worksheet = workbook.add_worksheet(sheet_name)
 
-    if data and columns:
+    # An empty result still exports its header row (for example a Bullet
+    # chart, whose empty result is valid).
+    if columns:
         # xlsxwriter writes unformatted serial numbers for temporal values, so
         # give each Python temporal type the date format openpyxl applies.
         temporal_formats = {

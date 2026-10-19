@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-16 15:10-0400\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1159,6 +1159,12 @@ msgstr "یک نمودار جدید ایجاد خواهد شد."
 msgid "A new dashboard will be created."
 msgstr "یک داشبورد جدید ایجاد خواهد شد."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1180,6 +1186,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "یک مجموعه داده قابل استفاده مجدد با چارت شما ذخیره خواهد شد."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -1618,10 +1629,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "1 ستون جدید به مجموعه داده مجازی اضافه شد"
-msgstr[1] "%s ستون جدید به مجموعه داده مجازی اضافه شد"
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "1 ستون جدید به مجموعه داده اضافه شد"
+msgstr[1] "%s ستون جدید به مجموعه داده اضافه شد"
 
 #, python-format
 msgid "Added a %s"
@@ -2038,6 +2049,12 @@ msgstr ""
 msgid "Always filter main datetime column"
 msgstr "همیشه ستون اصلی تاریخ و زمان را فیلتر کنید"
 
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 msgid "An Error Occurred"
 msgstr "یک خطا رخ داد"
 
@@ -2310,9 +2327,6 @@ msgstr "یک خطا در حین تجزیه کلید رخ داد."
 
 msgid "An error occurred while pruning logs "
 msgstr "در حین قطع کردن گزارش‌ها خطایی رخ داد"
-
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
 
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
@@ -2952,6 +2966,11 @@ msgstr "بازگشت"
 msgid "Back to all"
 msgstr "بازگشت به همه"
 
+msgid "Back to sign in"
+msgstr ""
+
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "پشتیبان"
 
@@ -3203,6 +3222,9 @@ msgstr "اندازه حباب"
 msgid "Bubble size number format"
 msgstr "فرمت عدد اندازه حباب"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "نقاط شکسته سطل"
 
@@ -3338,6 +3360,9 @@ msgstr "کوئری CVAS (ایجاد نما به عنوان انتخاب) یک ع
 
 msgid "Cache Timeout (seconds)"
 msgstr "زمان انقضای کش (ثانیه)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ro, ru, sk, sr, sr_Latn, tr, uk]
@@ -3926,6 +3951,9 @@ msgstr "این داشبورد را بررسی کنید:"
 msgid "Check to force date partitions to have the same height"
 msgstr "بررسی برای اجباری کردن پارتیشن‌های تاریخ تا ارتفاع یکسانی داشته باشند"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3954,6 +3982,9 @@ msgstr "یک جداکننده را انتخاب کنید"
 
 msgid "Choose a metric for right axis"
 msgstr "یک معیار برای محور راست انتخاب کنید"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "فرمت شماره را انتخاب کنید"
@@ -4294,6 +4325,9 @@ msgstr "جمع کردن پنل داده"
 
 msgid "Collapse row"
 msgstr "جمع کردن ردیف"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "جمع کردن تنظیمات"
@@ -4978,6 +5012,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "نمی‌توان به پایگاه داده متصل شد: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "نتوانستیم همه نمودارهای ذخیره شده را بارگذاری کنیم"
 
@@ -5007,6 +5045,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "نتوانستم نام میزبان را شناسایی کنم: \"%(host)s\"."
@@ -5033,6 +5076,12 @@ msgstr "شمارش"
 
 msgid "Country"
 msgstr "کشور"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "طرح رنگ کشور"
@@ -7357,6 +7406,11 @@ msgstr "مقادیر حداقل و حداکثر را برای فیلتر باز�
 msgid "Enter report name"
 msgstr "نام گزارش را وارد کنید"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 #, fuzzy
 msgid "Enter the group's description"
 msgstr "توضیحات نمودار را پنهان کن"
@@ -7688,6 +7742,9 @@ msgstr "گسترش ردیف"
 msgid "Expand settings"
 msgstr "گسترش تنظیمات"
 
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
+
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
 "        in milliseconds since epoch. mathjs is used to evaluate the "
@@ -7705,6 +7762,12 @@ msgstr "آزمایشی"
 #, fuzzy
 msgid "Expired"
 msgstr "کاوش کنید"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "کاوش کنید"
@@ -7992,6 +8055,9 @@ msgstr "بارگذاری داده‌های نمودار ناموفق بود."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8238,6 +8304,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "فیلتر چارت‌ها"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "فیلتر دارای مقدار پیش‌فرض است"
 
@@ -8268,6 +8340,10 @@ msgstr "مقدار فیلتر (حساس به حروف بزرگ و کوچک)"
 msgid "Filter value is required"
 msgstr "مقدار فیلتر ضروری است"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "لیست مقادیر فیلتر نمی‌تواند خالی باشد"
 
@@ -8279,6 +8355,10 @@ msgstr "چارت‌های خود را فیلتر کنید"
 
 msgid "Filters"
 msgstr "فیلترها"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 #, fuzzy
 msgid "Filters and controls"
@@ -8522,6 +8602,12 @@ msgstr "کلید خارجی"
 msgid "Forest Green"
 msgstr "سبز جنگلی"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "داده‌های فرم در کش پیدا نشد، به متادیتای چارت بازمی‌گردیم."
 
@@ -8679,6 +8765,13 @@ msgstr "ستون GeoJson"
 msgid "GeoJson Settings"
 msgstr "تنظیمات GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "ژئوهش"
 
@@ -8689,7 +8782,7 @@ msgstr "ستون خالی"
 msgid "Get the last date by the date unit."
 msgstr "آخرین تاریخ را بر اساس واحد تاریخ بگیرید."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "تاریخ مشخص تعطیلات را دریافت کنید."
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8907,6 +9000,8 @@ msgstr "تراز افقی"
 msgid "Horizontal alignment of the metric value and supporting text"
 msgstr ""
 
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "میزبان"
 
@@ -8950,11 +9045,17 @@ msgstr ""
 msgid "Huge"
 msgstr "بسیار بزرگ"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "کدهای ISO ۳۱۶۶-۲"
 
 msgid "ISO 8601"
 msgstr "استاندارد ISO ۸۶۰۱"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 #, fuzzy
 msgid "Icon URL"
@@ -8990,6 +9091,15 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "اگر یک معیار مشخص شده باشد، مرتب‌سازی بر اساس ارزش معیار انجام خواهد شد."
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -9011,6 +9121,11 @@ msgid "If table already exists"
 msgstr "برچسب قبلاً وجود دارد"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -9141,11 +9256,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "توضیحاتی را که باید با %s ارسال شود، شامل کنید."
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "نام سری را به عنوان محور شامل کنید"
 
 msgid "Include time"
 msgstr "زمان را شامل کنید"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "افزایش"
@@ -9433,6 +9555,9 @@ msgstr "نوع نتیجه نامعتبر است: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "نوع rolling_type نامعتبر است: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "وضعیت نامعتبر."
@@ -9827,6 +9952,9 @@ msgstr "نوع چیدمان درخت"
 msgid "Least recently modified"
 msgstr "آخرین تغییرات کمتر شده"
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
 msgid "Leave blank to keep the current password"
 msgstr ""
 
@@ -9871,6 +9999,9 @@ msgstr "مقدار سمت چپ"
 
 msgid "Legacy"
 msgstr "میراث"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "افسانه"
@@ -10111,6 +10242,9 @@ msgstr "داده‌های بارگذاری‌شده در کش ذخیره شد"
 msgid "Loaded from cache"
 msgstr "از کش بارگذاری شد"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "در حال بارگذاری..."
@@ -10227,6 +10361,10 @@ msgstr "آستانه پایین"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10371,6 +10509,11 @@ msgstr "اندازه نشانگر"
 
 msgid "Markers"
 msgstr "نشانگرها"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "نوع نشانه‌گذاری"
@@ -10806,6 +10949,9 @@ msgstr "پارامترهای URL گم شده‌اند"
 msgid "Mixed Chart"
 msgstr "نمودار ترکیبی"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "ویرایش شده"
 
@@ -10820,10 +10966,10 @@ msgstr "ویرایش شده %s"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "۱ ستون در مجموعه داده مجازی تغییر یافت"
-msgstr[1] "%s ستون در مجموعه داده مجازی تغییر یافت"
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "۱ ستون در مجموعه داده تغییر یافت"
+msgstr[1] "%s ستون در مجموعه داده تغییر یافت"
 
 msgid "Modified by"
 msgstr "ویرایش شده توسط"
@@ -10913,6 +11059,12 @@ msgid ""
 msgstr ""
 "فرمت‌های متنوعی پذیرفته می‌شوند، به کتابخانه پایتون geopy.points برای "
 "جزئیات بیشتر مراجعه کنید."
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "ضریب"
@@ -11636,6 +11788,9 @@ msgstr "یک یا چند متریک برای نمایش"
 msgid "One or more annotation layers failed loading."
 msgstr "یک یا چند لایه الحاقی در بارگذاری شکست خوردند."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "یک یا چند ستون قبلاً وجود دارد"
 
@@ -11713,6 +11868,12 @@ msgstr "کاتالوگ پیش‌فرضی که باید برای اتصال اس�
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -12597,6 +12758,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "پیش‌نمایش"
 
@@ -12963,6 +13129,12 @@ msgstr "به‌روزرسانی نمودارها"
 msgid "Refreshing columns"
 msgstr "بارگذاری مجدد ستون‌ها"
 
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
+
 #, fuzzy
 msgid "Register"
 msgstr "پیش‌فیلتر"
@@ -13012,6 +13184,9 @@ msgstr "بارگذاری مجدد"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "بارگذاری مجدد SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13079,10 +13254,10 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "1 ستون از مجموعه داده مجازی حذف شد"
-msgstr[1] "%s ستون از مجموعه داده مجازی حذف شد"
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "1 ستون از مجموعه داده حذف شد"
+msgstr[1] "%s ستون از مجموعه داده حذف شد"
 
 #, python-format
 msgid "Removed a %s"
@@ -13278,6 +13453,12 @@ msgstr "قدرت دفع بین گره‌ها"
 msgid "Request Access"
 msgstr "درخواست دسترسی"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -13363,6 +13544,10 @@ msgstr "تنظیم مجدد وضعیت"
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "مقادیر پیش‌فرض را به‌روز کنيد"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 #, fuzzy
 msgid "Resize"
@@ -13747,6 +13932,11 @@ msgstr ""
 
 msgid "SQL Query"
 msgstr "کوئری SQL"
+
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
 
 msgid "SQL expression"
 msgstr "عبارت SQL"
@@ -14667,6 +14857,7 @@ msgstr "مالکین را انتخاب کنید"
 msgid "Select values"
 msgstr "مالکین را انتخاب کنید"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14718,6 +14909,9 @@ msgstr "نمای معنایی"
 msgid "Semantic Views"
 msgstr "نماهای معنایی"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "لایه توضیحی"
@@ -14753,6 +14947,16 @@ msgstr "نوع لایه‌ی حاشیه‌نویسی"
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "قالب یادداشت به‌روز شد"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -14806,6 +15010,9 @@ msgstr "به‌صورت PNG ارسال کنید"
 
 msgid "Send as text"
 msgstr "متن را ارسال کنید"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -15264,6 +15471,9 @@ msgstr "نمایش خلاصه"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 #, fuzzy
 msgid "Show total"
 msgstr "نمایش مجموع"
@@ -15345,6 +15555,9 @@ msgstr "نه در"
 msgid "Sign in with"
 msgstr "ورود با"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "سطح معناداری"
 
@@ -15420,6 +15633,7 @@ msgstr "سخت"
 msgid "Slider and range input"
 msgstr "لغزنده و ورودی محدوده"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "اسلاگ"
 
@@ -15524,6 +15738,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "چیزی اشتباه پیش رفت."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -15791,6 +16008,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16523,6 +16745,10 @@ msgstr ""
 "زمانی در داشبوردها جلوگیری می‌کند. آیا مایل هستید آن را به لیست فیلترها "
 "اضافه کنید؟"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -17097,6 +17323,9 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "پارامتر %(parameters)s در پرسش شما تعریف نشده است."
 msgstr[1] "پارامترهای زیر در پرسش شما تعریف نشده‌اند: %(parameters)s."
 
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "رمز عبور ارائه شده برای نام کاربری \"%(username)s\" نادرست است."
@@ -17390,6 +17619,26 @@ msgstr "تصویر صفحه در حال تولید است. لطفاً صفحه �
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 #, fuzzy
@@ -18083,6 +18332,18 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18377,6 +18638,10 @@ msgstr ""
 "پویا هنگام تنظیم اندازه و موقعیت ویدجت‌ها با استفاده از drag & drop در "
 "نمای داشبورد生成 می‌شود."
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -18449,6 +18714,12 @@ msgstr ""
 msgid "This password is too common; please choose a less guessable one."
 msgstr "این رمز عبور بسیار رایج است؛ لطفاً رمز عبور کمتر قابل حدسی انتخاب کنید."
 
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -18477,6 +18748,19 @@ msgid "This section contains validation errors"
 msgstr "این بخش شامل خطاهای اعتبارسنجی است"
 
 msgid "This semantic layer has no dependent semantic views."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
 msgstr ""
 
 msgid ""
@@ -18858,6 +19142,9 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "URI درخواست توکن"
 
+msgid "Too many requests. Please wait and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -19054,6 +19341,9 @@ msgstr "سه‌شنبه"
 msgid "Tukey"
 msgstr "توکی"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -19161,6 +19451,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "قادر به محاسبه چنین تفاضل تاریخی نیستم"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
@@ -19412,6 +19705,17 @@ msgstr "جداکردن از پنل نتایج"
 msgid "Unpin from top"
 msgstr "جداکردن از بالا"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19431,6 +19735,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "نوع بند پشتیبانی نشده: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -19787,6 +20094,9 @@ msgstr "قالب ارزش"
 
 msgid "Value and Percentage"
 msgstr "مقدار و درصد"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "محدودیت‌های مقدار"
@@ -21038,6 +21348,11 @@ msgstr ""
 "ویرایش، با ویرایشگر %s تماس بگیرید."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -21048,6 +21363,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -21055,6 +21375,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -21185,6 +21510,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"

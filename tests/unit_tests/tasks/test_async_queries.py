@@ -25,6 +25,7 @@ import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
 
+from superset.common.db_query_status import QueryStatus
 from superset.common.query_serialization import SerializedQuery
 
 if TYPE_CHECKING:
@@ -121,11 +122,15 @@ def test_contribution_query_depends_on_totals(mocker: MockerFixture) -> None:
     totals_call = scheduled[0]
     assert totals_call["kwargs"]["options"].depends_on is None
     assert totals_call["args"][3] is False  # requires_totals
+    assert totals_call["kwargs"]["is_totals_prerequisite"] is True
+    assert totals_call["kwargs"]["options"].task_key != "key-0"
 
     # The contribution query depends on the totals task and reads its payload.
     dep_call = next(c for c in scheduled if c["args"][0] == {"query": 1})
     assert dep_call["kwargs"]["options"].depends_on == [totals_call["task"]]
     assert dep_call["args"][3] is True  # requires_totals
+    assert "is_totals_prerequisite" not in dep_call["kwargs"]
+    assert dep_call["kwargs"]["options"].task_key == "key-1"
 
 
 def test_contribution_query_without_totals_runs_locally(
@@ -141,6 +146,45 @@ def test_contribution_query_without_totals_runs_locally(
     assert len(scheduled) == 1
     assert scheduled[0]["kwargs"]["options"].depends_on is None
     assert scheduled[0]["args"][3] is False  # requires_totals
+
+
+def test_failed_non_totals_sql_query_preserves_readback(
+    mocker: MockerFixture,
+) -> None:
+    """Ordinary SQL failures retain the base task's structured-error readback path."""
+    from superset.tasks.async_queries import execute_chart_query
+
+    query_context: mock.MagicMock = mocker.MagicMock()
+    query_context.datasource.type = "table"
+    query_context.queries = [mocker.MagicMock()]
+    query_context.get_df_payload_result.return_value.payload = {
+        "status": QueryStatus.FAILED,
+        "error": "driver failure",
+        "errors": [
+            {
+                "message": "Friendly engine error",
+                "error_type": "GENERIC_DB_ENGINE_ERROR",
+            }
+        ],
+        "cache_key": "failed-sql-key",
+    }
+    task_context: mock.MagicMock = mocker.MagicMock()
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=query_context
+    )
+    mocker.patch("superset.tasks.async_queries.get_context", return_value=task_context)
+
+    execute_chart_query.func(_serialized_query(), user_id=7)
+
+    task_context.update_task.assert_called_once_with(
+        payload={"cache_key": "failed-sql-key"}, immediate=True
+    )
+    assert (
+        query_context.get_df_payload_result.return_value.payload["errors"][0]["message"]
+        == "Friendly engine error"
+    )
 
 
 def test_execute_chart_query_publishes_cache_key_payload(
@@ -527,6 +571,37 @@ def test_inject_contribution_totals_includes_decimal_metrics(
     totals = query_obj.post_processing[0]["options"]["contribution_totals"]
     assert totals == {"decimal_metric": Decimal("40.0"), "float_metric": 10.0}
     assert "label" not in totals
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_execute_semantic_query_refuses_disabled_worker(
+    mocker: MockerFixture, enabled: bool
+) -> None:
+    """The worker reconstructs through the real datasource gate before cache/query."""
+    from superset.semantic_layers.access import SemanticLayersDisabledError
+    from superset.tasks.async_queries import execute_chart_query
+
+    payload: SerializedQuery = _serialized_query()
+    payload["datasource"] = {"id": 17, "type": "semantic_view"}
+    mocker.patch(
+        "superset.feature_flag_manager.is_feature_enabled", return_value=enabled
+    )
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch("superset.tasks.async_queries.get_context")
+    mocker.patch("superset.common.query_context.QueryContext.get_df_payload_result")
+    lookup: mock.MagicMock = mocker.patch("superset.daos.datasource.db.session.query")
+    execute: mock.MagicMock = mocker.patch(
+        "superset.semantic_layers.models.SemanticView.get_query_result"
+    )
+    if enabled:
+        execute_chart_query.func(payload, user_id=7)
+        lookup.assert_called_once()
+    else:
+        with pytest.raises(SemanticLayersDisabledError):
+            execute_chart_query.func(payload, user_id=7)
+        lookup.assert_not_called()
+    execute.assert_not_called()
 
 
 @pytest.mark.parametrize("reason", ["incomplete", "unverified", None])

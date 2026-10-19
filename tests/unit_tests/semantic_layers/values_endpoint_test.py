@@ -27,14 +27,16 @@ from unittest.mock import MagicMock
 
 import pyarrow as pa
 import pytest
+from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
 from superset_core.semantic_layers.types import (
     Dimension,
     SemanticRequest,
     SemanticResult,
 )
+from werkzeug.test import TestResponse
 
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 
 @pytest.fixture
@@ -50,8 +52,6 @@ def semantic_view_datasource(mocker: MockerFixture) -> SemanticView:
         results=pa.table({"category": pa.array(["Books", "Clothing"])}),
     )
     from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
-
-    from superset.semantic_layers.models import SemanticLayer
 
     mocker.patch.dict(
         "superset.semantic_layers.models.registry", {"fixture": ProviderLayer}
@@ -227,8 +227,6 @@ def test_values_cache_excludes_legacy_generation(
 ) -> None:
     from unittest.mock import PropertyMock
 
-    from superset.semantic_layers.models import SemanticLayer
-
     semantic_view_datasource.semantic_layer = SemanticLayer(type="fixture")
     version: PropertyMock = mocker.patch.object(
         SemanticView,
@@ -341,7 +339,7 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
     mocker: MockerFixture,
     provider_type: str,
 ) -> None:
-    """An SDK-default provider adds no field to the pre-guard cache identity."""
+    """An SDK-default provider adds no producer field to metadata-versioned keys."""
     import hashlib
 
     from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
@@ -374,6 +372,8 @@ def test_default_provider_value_cache_key_matches_legacy_bytes(
         "rls": ["scope-a"],
         "changed_on": "None",
     }
+    if isinstance(datasource, SemanticView):
+        legacy["metadata_version"] = datasource.metadata_generation
     expected: str = (
         "col_values:"
         + hashlib.sha256(json.dumps(legacy, sort_keys=True).encode()).hexdigest()
@@ -399,3 +399,209 @@ def test_versioned_suggestions_are_unavailable_before_cache(
     }
     cache.get.assert_not_called()
     implementation.get_values.assert_not_called()
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("search", [False, True])
+@pytest.mark.parametrize(
+    "code",
+    [
+        "UNSUPPORTED_QUERY",
+        "UNSUPPORTED_OFFSET",
+        "INVALID_FILTER",
+        "INVALID_QUERY",
+        "unknown-private-code",
+    ],
+)
+def test_values_provider_rejection_matches_chart_error(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    guest: bool,
+    search: bool,
+    code: str,
+) -> None:
+    """Use sync-chart guidance without an unfiltered retry or cache write."""
+    from superset_core.semantic_layers.errors import SemanticQueryRejectedError
+
+    from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    rejection: SemanticQueryRejectedError = SemanticQueryRejectedError(code)
+    implementation.get_values.side_effect = rejection
+    expected: SemanticLayerQueryRejectedError = SemanticLayerQueryRejectedError(
+        rejection.code
+    )
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: Any = _get(
+        client, "category/values/?q=oo" if search else "category/values/"
+    )
+
+    assert response.status_code == expected.status == 400
+    assert response.json == {"message": expected.message}
+    assert "private" not in response.get_data(as_text=True)
+    implementation.get_values.assert_called_once()
+    cache.set.assert_not_called()
+
+
+@pytest.mark.parametrize("guest", [False, True])
+@pytest.mark.parametrize("search", [False, True])
+@pytest.mark.parametrize("fault", [ValueError, RuntimeError, TimeoutError])
+def test_values_provider_fault_stays_server_error(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    guest: bool,
+    search: bool,
+    fault: type[Exception],
+) -> None:
+    """Provider bugs are not caller errors and must not trigger an unfiltered retry."""
+    from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+
+    mocker.patch("superset.security_manager.is_guest_user", return_value=guest)
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.get_values.side_effect = fault("private-provider-diagnostic")
+    expected: SemanticLayerExecutionError = SemanticLayerExecutionError()
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: Any = _get(
+        client, "category/values/?q=oo" if search else "category/values/"
+    )
+
+    assert response.status_code == expected.status == 500
+    assert response.json == {"message": expected.message}
+    assert "private" not in response.get_data(as_text=True)
+    implementation.get_values.assert_called_once()
+    cache.set.assert_not_called()
+
+
+@pytest.mark.parametrize("version", [None, "old-title-version", "cube-member-id-v1"])
+@pytest.mark.parametrize("cached", [False, True])
+def test_versioned_suggestions_require_selection_provenance(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+    version: str | None,
+    cached: bool,
+) -> None:
+    """A legacy title equal to an ID must not borrow metadata's version."""
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.selection_identity_version = "cube-member-id-v1"
+    implementation.get_dimensions.return_value = [
+        Dimension(
+            id="old-member", name="old-member", verbose_name="category", type=pa.utf8()
+        ),
+        Dimension(
+            id="category",
+            name="category",
+            verbose_name="Different member",
+            type=pa.utf8(),
+        ),
+    ]
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = ["Cached"] if cached else None
+    query: str = f"?semantic_selection_version={version}" if version else ""
+    response: Any = _get(client, f"category/values/{query}")
+    assert response.status_code == 200
+    if version == "cube-member-id-v1":
+        assert response.json["result"] == (
+            ["Cached"] if cached else ["Books", "Clothing"]
+        )
+        cache.get.assert_called_once()
+        assert implementation.get_values.call_count == (0 if cached else 1)
+        if not cached:
+            assert implementation.get_values.call_args.args[0].id == "category"
+    else:
+        assert response.json == {
+            "result": [],
+            "suggestions_status": "unavailable_versioned_view",
+        }
+        cache.get.assert_not_called()
+        implementation.get_values.assert_not_called()
+
+
+def test_suggestion_cache_separates_selection_versions(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+    keys: list[str] = []
+    version: str
+    for version in ("cube-member-id-v1", "cube-member-id-v2"):
+        implementation.selection_identity_version = version
+        response: Any = _get(
+            client, f"category/values/?semantic_selection_version={version}"
+        )
+        assert response.json["result"] == ["Books", "Clothing"]
+        keys.append(cache.get.call_args.args[0])
+    assert keys[0] != keys[1]
+
+
+def test_unversioned_suggestion_cache_material_is_unchanged(
+    client: Any,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    """Unversioned views keep their pre-marker cache identity, even if sent one."""
+    from superset.datasource.api import _column_values_cache_key
+
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+    key_fn: MagicMock = mocker.patch(
+        "superset.datasource.api._column_values_cache_key",
+        wraps=_column_values_cache_key,
+    )
+    keys: list[str] = []
+    path: str
+    for path in (
+        "category/values/",
+        "category/values/?semantic_selection_version=cube-member-id-v1",
+    ):
+        assert _get(client, path).json["result"] == ["Books", "Clothing"]
+        assert set(key_fn.call_args.args[1]) == {
+            "col",
+            "limit",
+            "denorm",
+            "elements",
+            "q",
+        }
+        keys.append(cache.get.call_args.args[0])
+    assert keys[0] == keys[1]
+
+
+def test_ambiguous_values_are_a_400_without_query_or_cache_write(
+    client: FlaskClient,
+    full_api_access: None,
+    semantic_view_datasource: SemanticView,
+    mocker: MockerFixture,
+) -> None:
+    """Report catalog ambiguity before executing or caching a values query."""
+    implementation: MagicMock = cast(MagicMock, semantic_view_datasource.implementation)
+    implementation.get_dimensions.return_value = [
+        Dimension("first", "category", pa.utf8()),
+        Dimension("second", "category", pa.utf8()),
+    ]
+    cache: MagicMock = mocker.patch("superset.datasource.api.cache_manager").data_cache
+    cache.get.return_value = None
+
+    response: TestResponse = client.get(
+        "/api/v1/datasource/semantic_view/1/column/category/values/"
+    )
+
+    assert response.status_code == 400
+    assert response.json is not None
+    assert "ambiguous" in response.json["message"]
+    implementation.get_values.assert_not_called()
+    cache.set.assert_not_called()

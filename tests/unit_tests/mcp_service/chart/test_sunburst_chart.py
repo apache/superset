@@ -64,9 +64,12 @@ from superset.mcp_service.chart.schemas import (
     BigNumberChartConfig,
     BoxPlotChartConfig,
     BubbleChartConfig,
+    BulletChartConfig,
     ChartConfig,
     ChartError,
     ColumnRef,
+    CountryMapChartConfig,
+    DeckScatterChartConfig,
     GanttChartConfig,
     GanttSortByConfig,
     GaugeChartConfig,
@@ -88,6 +91,7 @@ from superset.mcp_service.chart.schemas import (
     UpdateChartPreviewRequest,
     UpdateChartRequest,
     WaterfallChartConfig,
+    WorldMapChartConfig,
     XYChartConfig,
 )
 from superset.mcp_service.chart.sunburst import (
@@ -378,6 +382,10 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
         for query_mode in ("raw", "aggregate")
     ] + [
         PieChartConfig(dimension=ColumnRef(name="region"), metric=metric),
+        # Bullet inherits omitted ordering; a replacement states it explicitly.
+        BulletChartConfig(
+            metric=metric, dimensions=[ColumnRef(name="region")], order_by=[]
+        ),
         GaugeChartConfig(metric=metric, groupby=[ColumnRef(name="region")]),
         TreemapChartConfig(
             groupby=[ColumnRef(name="region")],
@@ -448,6 +456,35 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
             tooltip_metrics=["SavedSales"],
             order_by=[GanttSortByConfig(column="order_date", ascending=True)],
             row_limit=1000,
+        ),
+        CountryMapChartConfig.model_validate(
+            {
+                "chart_type": "country_map",
+                "country": "usa",
+                "region_format": "abbreviation",
+                "entity": {"name": "region"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+            }
+        ),
+        WorldMapChartConfig.model_validate(
+            {
+                "chart_type": "world_map",
+                "country_format": "cca2",
+                "entity": {"name": "country"},
+                "metric": {"name": "sales", "aggregate": "SUM"},
+                # Maps preserve omitted optional roles by contract, so the
+                # adversarial matrix supplies each one explicitly.
+                "secondary_metric": {"name": "profit", "aggregate": "SUM"},
+            }
+        ),
+        DeckScatterChartConfig.model_validate(
+            {
+                "chart_type": "deck_scatter",
+                "latitude": {"name": "latitude"},
+                "longitude": {"name": "longitude"},
+                "dimension": {"name": "region"},
+                "radius_metric": {"name": "sales", "aggregate": "SUM"},
+            }
         ),
         _config(),
     ]

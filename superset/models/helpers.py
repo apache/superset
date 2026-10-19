@@ -738,9 +738,20 @@ def convert_uuids(obj: Any) -> Any:
 
 
 class UUIDMixin:  # pylint: disable=too-few-public-methods
-    uuid = sa.Column(
-        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
-    )
+    # A plain `uuid = sa.Column(...)` class attribute resolves to `Any` (or
+    # the raw `Column[Any]` descriptor) under mypy unless the whole class
+    # hierarchy happens to be loaded together in the same run -- so a
+    # scoped, per-PR mypy check silently lets an unnarrowed `.uuid` read
+    # through even though the column is nullable, and only a full-repo
+    # sweep catches the mismatch later (see #44789 and its predecessors
+    # #44394/#44424/#44648). The `@declared_attr` + explicit `Mapped[...]`
+    # return annotation used by `created_by_fk`/`changed_by_fk` above makes
+    # the type deterministic regardless of what else mypy is checking.
+    @declared_attr
+    def uuid(self) -> Mapped[Optional[uuid.UUID]]:  # pylint: disable=arguments-renamed
+        return sa.Column(
+            UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
+        )
 
     @validates("uuid")
     def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
@@ -1609,6 +1620,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
         sql_shifted_temporal_labels: set[str] | None = None,
+        semantic_cache_status: Optional[str] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1622,6 +1634,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
         self.sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
+        # A ``SemanticCacheStatus`` value, or None for non-semantic sources.
+        self.semantic_cache_status: Optional[str] = semantic_cache_status
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
@@ -4114,15 +4128,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif value is not None:
                 value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
-                return utils.cast_to_boolean(value)
+                boolean_value = utils.cast_to_boolean(value)
+                if db_engine_spec is not None:
+                    return db_engine_spec.coerce_boolean_for_sql(boolean_value)
+                return boolean_value
             return value
 
         if isinstance(values, (list, tuple)):
-            values = [handle_single_value(v) for v in values]  # type: ignore
+            values = [handle_single_value(v) for v in values]
         else:
             values = handle_single_value(values)
         if is_list_target and not isinstance(values, (tuple, list)):
-            values = [values]  # type: ignore
+            values = [values]
         elif not is_list_target and isinstance(values, (tuple, list)):
             values = values[0] if values else None
         return values
@@ -5360,6 +5377,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_engine_spec=db_engine_spec,
                     db_extra=self.db_extra,
                 )
+                if op in {
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                } and not isinstance(eq, (tuple, list)):
+                    # A missing or null value (``val`` absent or ``None``)
+                    # leaves ``eq`` as ``None``. Reject it before any branch
+                    # (advanced data types, array columns, plain IN) uses it,
+                    # rather than dropping the filter, which would widen the
+                    # results.
+                    raise QueryObjectValidationError(
+                        _(
+                            "Filter value is required for the IN / NOT IN "
+                            "operator on column %(column)s",
+                            column=get_column_name(flt_col),
+                        )
+                    )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5440,6 +5473,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
                     # are in ``is_list_target``), but are element-level array ops
                     # handled by their own branch below — not IN.
+                    # Non-list values were rejected right after
+                    # ``filter_values_handler`` above.
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(

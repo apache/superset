@@ -39,9 +39,17 @@ from superset.mcp_service.chart.chart_helpers import (
     canonicalize_operation_form_data,
     find_chart_by_identifier,
 )
-from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+from superset.mcp_service.chart.chart_utils import (
+    DatasetValidationResult,
+    validate_chart_dataset,
+)
+from superset.mcp_service.chart.datasource_resolver import (
+    resolve_semantic_view,
+    view_not_found_error,
+)
 from superset.mcp_service.chart.preview_utils import (
     fallback_vega_lite_preview,
+    fit_ascii_frame,
     plugin_ascii_preview,
     plugin_table_preview,
     plugin_unsupported_preview,
@@ -72,6 +80,7 @@ from superset.mcp_service.utils.oauth2_utils import (
 )
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.superset_typing import Column, Metric
+from superset.utils.core import DatasourceType
 
 logger = logging.getLogger(__name__)
 
@@ -335,6 +344,14 @@ class ASCIIPreviewStrategy(PreviewFormatStrategy):
                 self.request.ascii_width or 80,
                 self.request.ascii_height or 20,
             )
+            if isinstance(ascii_chart, str):
+                # Plugin renderers may ignore the frame; clip like the unsaved
+                # path so the reported width/height describe the content.
+                ascii_chart = fit_ascii_frame(
+                    ascii_chart,
+                    self.request.ascii_width or 80,
+                    self.request.ascii_height or 20,
+                )
             if ascii_chart is None:
                 ascii_chart = generate_ascii_chart(
                     data,
@@ -370,6 +387,10 @@ class TablePreviewStrategy(PreviewFormatStrategy):
     """Generate table preview of chart data."""
 
     def generate(self) -> TablePreview | ChartError:
+        if (
+            unsupported := plugin_unsupported_preview(self.chart.viz_type, "table")
+        ) is not None:
+            return unsupported
         try:
             from superset.commands.chart.data.get_data_command import ChartDataCommand
             from superset.utils import json as utils_json
@@ -1364,24 +1385,33 @@ async def _get_chart_preview_internal(  # noqa: C901
         logger.info("Chart datasource_id: %s", getattr(chart, "datasource_id", "NONE"))
 
         # Transient charts have a falsy id of 0, so skip the pre-check for them.
-        # Guests keep the existence check but skip RBAC (dashboard-authorized).
+        # Table guests keep the existence check but skip RBAC (dashboard-authorized).
         if getattr(chart, "id", None):
-            validation_result = validate_chart_dataset(
-                chart.datasource_id, check_access=not guest_scope.is_guest_read()
-            )
-            if not validation_result.is_valid:
-                await ctx.warning(
-                    "Chart found but dataset is not accessible: %s"
-                    % (validation_result.error,)
+            if chart.datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+                # Semantic IDs must not inherit a colliding table's access result.
+                if resolve_semantic_view(chart.datasource_id) is None:
+                    return ChartError(
+                        error=view_not_found_error(chart.datasource_id).message,
+                        error_type="DatasetNotAccessible",
+                    )
+            else:
+                validation_result: DatasetValidationResult = validate_chart_dataset(
+                    chart.datasource_id, check_access=not guest_scope.is_guest_read()
                 )
-                return ChartError(
-                    error=validation_result.error
-                    or "Chart's dataset is not accessible. Dataset may be deleted.",
-                    error_type="DatasetNotAccessible",
-                )
-            # Log any warnings (e.g., virtual dataset warnings)
-            for warning in validation_result.warnings:
-                await ctx.warning("Dataset warning: %s" % (warning,))
+                if not validation_result.is_valid:
+                    await ctx.warning(
+                        "Chart found but dataset is not accessible: %s"
+                        % (validation_result.error,)
+                    )
+                    return ChartError(
+                        error=validation_result.error
+                        or "Chart's dataset is not accessible. Dataset may be deleted.",
+                        error_type="DatasetNotAccessible",
+                    )
+                # Log any warnings (e.g., virtual dataset warnings)
+                warning: str
+                for warning in validation_result.warnings:
+                    await ctx.warning("Dataset warning: %s" % (warning,))
 
         # If form_data_key is provided, override chart.params with cached
         # form_data so the preview reflects what the user actually sees

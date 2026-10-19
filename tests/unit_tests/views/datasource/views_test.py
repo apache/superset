@@ -21,18 +21,27 @@ bypassing the Flask-AppBuilder permission decorator machinery.
 """
 
 import inspect
-from unittest.mock import MagicMock, patch
+from typing import Any
+from unittest.mock import ANY, call, MagicMock, patch
 
 import pytest
+from flask import Flask
 
+from superset.commands.dataset.exceptions import DatasetForbiddenError
+from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
+from superset.sql.parse import Table
 from superset.utils import json as superset_json
 
 
-def _identity_gettext(message: str) -> str:
-    """Typed stand-in for flask-babel's ``_`` in request-less unit tests."""
-    return message
+def _identity_gettext(message: str, **variables: Any) -> str:
+    """Typed stand-in for flask-babel's ``_`` in request-less unit tests.
+
+    Interpolates like the real one so a caller passing variables is exercised
+    rather than raising on the extra arguments.
+    """
+    return message % variables if variables else message
 
 
 def _security_exception() -> SupersetSecurityException:
@@ -57,6 +66,56 @@ def _view_self() -> MagicMock:
     self = MagicMock()
     self.json_response = MagicMock(return_value="ok")
     return self
+
+
+def _save_orm_dataset(**overrides: Any) -> MagicMock:
+    """Stand-in for the dataset ``save`` loads, defaulting to a physical one.
+
+    Specced on ``SqlaTable`` so it satisfies the dataset check in ``save``.
+    """
+    return MagicMock(
+        spec=SqlaTable,
+        **{
+            "database_id": 1,
+            "table_name": "my_table",
+            "schema": "public",
+            "catalog": None,
+            "sql": None,
+            "is_virtual": False,
+            "data": {"id": 1},
+            **overrides,
+        },
+    )
+
+
+def _assert_checked_target(table: Table, payload: dict[str, Any]) -> None:
+    """Assert the check ran against the target ``update_from_object`` applies.
+
+    An omitted key lands as ``None``, so the payload alone describes the
+    target -- the dataset's stored values never feed into it.
+    """
+    assert (table.table, table.schema, table.catalog) == (
+        payload.get("table_name"),
+        payload.get("schema"),
+        payload.get("catalog"),
+    )
+
+
+_SAVE_APP = Flask(__name__)
+
+
+def _run_save(**payload: Any) -> Any:
+    """Call the unwrapped ``save`` view with ``payload`` as the request body."""
+    with _SAVE_APP.test_request_context(
+        "/datasource/save/",
+        method="POST",
+        data={
+            "data": superset_json.dumps(
+                {"id": 1, "type": "table", "columns": [], **payload}
+            )
+        },
+    ):
+        return _get_view_func("save")(_view_self())
 
 
 # ---------------------------------------------------------------------------
@@ -246,29 +305,9 @@ def test_save_always_checks_editorship_even_without_editors_field(
         )
     )
 
-    from flask import Flask
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},
-                    "columns": [],
-                    # 'editors' intentionally omitted
-                }
-            )
-        },
-    ):
-        with pytest.raises(DatasetForbiddenError):
-            raw_save(_view_self())
+    with pytest.raises(DatasetForbiddenError):
+        # 'editors' intentionally omitted
+        _run_save(database={"id": 1})
 
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
@@ -290,29 +329,9 @@ def test_save_non_editor_with_editors_field_is_rejected(
         )
     )
 
-    from flask import Flask
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 1},
-                    "columns": [],
-                    "editors": [99],  # attacker-supplied editors list
-                }
-            )
-        },
-    ):
-        with pytest.raises(DatasetForbiddenError):
-            raw_save(_view_self())
+    with pytest.raises(DatasetForbiddenError):
+        # editors list supplied by the caller
+        _run_save(database={"id": 1}, editors=[99])
 
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
 
@@ -334,45 +353,19 @@ def test_save_rejects_repoint_to_database_without_access(
     database -- the caller must also be authorised for the *new* database,
     checked via ``raise_for_access`` before ``database_id`` is reassigned.
     """
-    mock_orm = MagicMock()
-    mock_orm.database_id = 1
-    mock_orm.table_name = "my_table"
-    mock_orm.schema = "public"
-    mock_orm.catalog = None
-    mock_orm.data = {"id": 1}
+    mock_orm = _save_orm_dataset()
     mock_get_datasource.return_value = mock_orm
-    # Caller owns the dataset, so that check passes...
-    mock_security_manager.raise_for_editorship.return_value = None
 
     mock_new_database = MagicMock()
     mock_get_database_by_id.return_value = mock_new_database
-    # ...but the caller is not authorised for the new database.
+    # The caller owns the dataset but is not authorised for the new database.
     mock_security_manager.raise_for_access.side_effect = _security_exception()
 
-    from flask import Flask
-
-    from superset.commands.dataset.exceptions import DatasetForbiddenError
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    # database id 999 stands in for a database the caller
-                    # has no explicit grant on.
-                    "database": {"id": 999},
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        with pytest.raises(DatasetForbiddenError):
-            raw_save(_view_self())
+    payload = {"table_name": "my_table", "schema": "public"}
+    with pytest.raises(DatasetForbiddenError):
+        # database id 999 stands in for a database the caller has no explicit
+        # grant on.
+        _run_save(database={"id": 999}, **payload)
 
     # Ownership of the dataset was checked...
     mock_security_manager.raise_for_editorship.assert_called_once_with(mock_orm)
@@ -380,8 +373,7 @@ def test_save_rejects_repoint_to_database_without_access(
     mock_security_manager.raise_for_access.assert_called_once()
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is mock_new_database
-    assert call_kwargs["table"].table == "my_table"
-    assert call_kwargs["table"].schema == "public"
+    _assert_checked_target(call_kwargs["table"], payload)
     # The ORM object was NOT repointed since access was denied.
     assert mock_orm.database_id == 1
 
@@ -390,53 +382,48 @@ def test_save_rejects_repoint_to_database_without_access(
 @patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "orm_overrides,payload",
+    [
+        # The same table carried across the repoint.
+        pytest.param(
+            {},
+            {"table_name": "my_table", "schema": "public"},
+            id="table_preserved",
+        ),
+        # A cross-database repoint can change the table in the same payload,
+        # so the check must run against the requested table, not the stale one.
+        pytest.param(
+            {"table_name": "authorised_table"},
+            {"table_name": "secret_table", "schema": "finance"},
+            id="table_changed_too",
+        ),
+    ],
+)
 def test_save_allows_repoint_to_database_with_access(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
     mock_get_database_by_id: MagicMock,
     mock_db: MagicMock,
+    orm_overrides: dict[str, Any],
+    payload: dict[str, Any],
 ) -> None:
     """
-    When the caller is authorised for the new database, ``save`` proceeds
-    to repoint ``database_id``.
+    When the caller is authorised for the new database, ``save`` proceeds to
+    repoint ``database_id``, having checked the target the request applies.
     """
-    mock_orm = MagicMock()
-    mock_orm.database_id = 1
-    mock_orm.table_name = "my_table"
-    mock_orm.schema = "public"
-    mock_orm.catalog = None
-    mock_orm.data = {"id": 1}
+    mock_orm = _save_orm_dataset(**orm_overrides)
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
 
     mock_new_database = MagicMock()
     mock_get_database_by_id.return_value = mock_new_database
-    mock_security_manager.raise_for_access.return_value = None
 
-    from flask import Flask
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 999},
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        raw_save(_view_self())
+    _run_save(database={"id": 999}, **payload)
 
     mock_security_manager.raise_for_access.assert_called_once()
     call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
     assert call_kwargs["database"] is mock_new_database
-    assert call_kwargs["table"].table == "my_table"
+    _assert_checked_target(call_kwargs["table"], payload)
     assert mock_orm.database_id == 999
 
 
@@ -444,61 +431,305 @@ def test_save_allows_repoint_to_database_with_access(
 @patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
-def test_save_checks_access_against_requested_table_not_stale_one(
+@pytest.mark.parametrize(
+    "orm_overrides,payload",
+    [
+        # Keeping the same ``database.id`` while changing
+        # ``table_name``/``schema``/``catalog`` still repoints the dataset via
+        # ``update_from_object``: editorship of the dataset alone must not let
+        # a caller point it at an unauthorised table in the same database.
+        pytest.param(
+            {"table_name": "authorised_table"},
+            {"table_name": "secret_table", "schema": "finance"},
+            id="same_database_repoint",
+        ),
+        # Dropping ``sql`` binds the label to a real table, so the conversion
+        # is a repoint even when the label itself is unchanged.
+        pytest.param(
+            {
+                "table_name": "secret_table",
+                "schema": "finance",
+                "sql": "SELECT 1",
+                "is_virtual": True,
+            },
+            {"table_name": "secret_table", "schema": "finance"},
+            id="virtual_becomes_physical",
+        ),
+        # An omitted key is applied as ``None`` rather than left alone, so it
+        # must read as a change and be checked against the target that lands.
+        pytest.param(
+            {"table_name": "authorised_table"},
+            {},
+            id="table_key_omitted",
+        ),
+    ],
+)
+def test_save_rejects_same_database_repoint_without_access(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    orm_overrides: dict[str, Any],
+    payload: dict[str, Any],
+) -> None:
+    """
+    A save that repoints the dataset within its current database must be
+    authorised against the target table the request will actually apply.
+    """
+    mock_orm = _save_orm_dataset(**orm_overrides)
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(database={"id": 1}, **payload)
+
+    mock_security_manager.raise_for_access.assert_called_once()
+    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
+    assert call_kwargs["database"] is mock_orm.database
+    _assert_checked_target(call_kwargs["table"], payload)
+    # No cross-database lookup for a same-database repoint.
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize("field", ["sql", "table_name", "schema", "catalog"])
+@pytest.mark.parametrize("value", [1, {"a": 1}, ["SELECT 1"], True])
+def test_save_rejects_non_string_target_field(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_db: MagicMock,
+    field: str,
+    value: Any,
+) -> None:
+    """
+    The target fields arrive as free-form JSON. A non-string is refused up
+    front rather than reaching the access check, which parses ``sql`` and
+    renders ``Table`` and so would fail on the type.
+    """
+    mock_orm = _save_orm_dataset()
+    mock_get_datasource.return_value = mock_orm
+
+    response = _run_save(database={"id": 1}, **{field: value})
+
+    assert response.status_code == 422
+    assert field in response.get_data(as_text=True)
+    mock_security_manager.raise_for_access.assert_not_called()
+    mock_orm.update_from_object.assert_not_called()
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_repoint_to_unknown_database_is_rejected(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,
     mock_get_database_by_id: MagicMock,
     mock_db: MagicMock,
 ) -> None:
     """
-    A request that repoints ``database.id`` can also change
-    ``table_name``/``schema``/``catalog`` in the same payload --
-    ``update_from_object`` applies those requested values afterwards.
-    The access check must therefore be evaluated against the *requested*
-    table, not the dataset's current (stale) one, or a caller could pass
-    the check using a table they're authorised for while actually
-    repointing to one they are not.
+    A repoint naming a database that does not exist is refused before any
+    access check, rather than resolving to ``None`` and skipping one.
     """
-    mock_orm = MagicMock()
+    mock_orm = _save_orm_dataset()
+    mock_get_datasource.return_value = mock_orm
+    mock_get_database_by_id.return_value = None
+
+    response = _run_save(database={"id": 999}, table_name="my_table")
+
+    assert response.status_code == 422
+    mock_security_manager.raise_for_access.assert_not_called()
+    assert mock_orm.database_id == 1
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "orm_overrides,payload",
+    [
+        # A dataset that stays virtual keeps ``table_name`` as a label, so
+        # renaming it is not a repoint.
+        pytest.param(
+            {
+                "table_name": "my_virtual_dataset",
+                "sql": "SELECT 1",
+                "is_virtual": True,
+            },
+            {
+                "table_name": "renamed_virtual_dataset",
+                "schema": "public",
+                "sql": "SELECT 1",
+            },
+            id="virtual_dataset_renamed",
+        ),
+        # ``BaseDatasource.data`` emits an empty schema as ``None``, so a
+        # dataset stored with ``schema = ""`` round-trips through the editor as
+        # ``None``. That is not a repoint.
+        pytest.param(
+            {"schema": "", "catalog": ""},
+            {"table_name": "my_table", "schema": None, "catalog": None},
+            id="empty_schema_round_trip",
+        ),
+        # A plain save that changes neither the database nor the table (e.g. a
+        # column/metric edit); editorship already gates it, and re-checking
+        # would be a behavior change.
+        pytest.param(
+            {},
+            {"table_name": "my_table", "schema": "public"},
+            id="unchanged_datasource",
+        ),
+    ],
+)
+def test_save_skips_table_check_when_not_repointed(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    orm_overrides: dict[str, Any],
+    payload: dict[str, Any],
+) -> None:
+    """
+    A save that does not repoint the dataset at a new physical table must not
+    trigger a fresh datasource-access check.
+    """
+    mock_get_datasource.return_value = _save_orm_dataset(**orm_overrides)
+
+    _run_save(database={"id": 1}, **payload)
+
+    mock_security_manager.raise_for_access.assert_not_called()
+    # No cross-database lookup for a same-database save.
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize(
+    "orm_overrides,payload",
+    [
+        # Giving a physical dataset SQL converts it to a virtual one, since
+        # ``is_virtual`` derives from whether ``sql`` is set.
+        pytest.param(
+            {},
+            {"sql": "SELECT * FROM secret_table", "schema": "public"},
+            id="physical_becomes_virtual",
+        ),
+        # Aiming an already-virtual dataset at different SQL is the same
+        # repoint, minus the conversion.
+        pytest.param(
+            {"sql": "SELECT 1", "is_virtual": True},
+            {"sql": "SELECT * FROM secret_table", "schema": "public"},
+            id="virtual_sql_replaced",
+        ),
+        # Unchanged SQL still reads elsewhere when the schema it resolves
+        # unqualified names against moves.
+        pytest.param(
+            {"sql": "SELECT * FROM t", "is_virtual": True},
+            {"sql": "SELECT * FROM t", "schema": "finance"},
+            id="virtual_schema_moved",
+        ),
+    ],
+)
+def test_save_rejects_sql_repoint_without_access(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    orm_overrides: dict[str, Any],
+    payload: dict[str, Any],
+) -> None:
+    """
+    A save that aims the dataset's SQL somewhere new repoints it at whatever
+    that SQL reads, so it must be authorised against the SQL rather than
+    skipped because the table pointer is unchanged.
+    """
+    mock_orm = _save_orm_dataset(**orm_overrides)
+    mock_get_datasource.return_value = mock_orm
+    mock_security_manager.raise_for_access.side_effect = _security_exception()
+
+    with pytest.raises(DatasetForbiddenError):
+        _run_save(database={"id": 1}, table_name="my_table", **payload)
+
+    mock_security_manager.raise_for_access.assert_called_once_with(
+        database=mock_orm.database,
+        sql=payload["sql"],
+        catalog=None,
+        schema=payload["schema"],
+    )
+    mock_get_database_by_id.assert_not_called()
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_checks_both_table_and_sql_on_cross_database_repoint(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    The table and SQL checks are independent, as in ``UpdateDatasetCommand``:
+    a save can move the dataset to another database and give it SQL at once,
+    and both have to be authorised against the new connection.
+    """
+    mock_get_datasource.return_value = _save_orm_dataset()
+    new_database = mock_get_database_by_id.return_value
+
+    _run_save(
+        database={"id": 2},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT * FROM secret_table",
+    )
+
+    assert mock_security_manager.raise_for_access.call_args_list == [
+        call(database=new_database, table=ANY),
+        call(
+            database=new_database,
+            sql="SELECT * FROM secret_table",
+            catalog=None,
+            schema="public",
+        ),
+    ]
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+def test_save_of_non_dataset_datasource_skips_table_check(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+) -> None:
+    """
+    ``save`` also accepts queries, saved queries and semantic views. Those
+    models have no ``table_name``/``is_virtual`` (a query carries a
+    ``tmp_table_name`` instead), so the repoint check must not read them.
+    """
+    # Specced to a query's attribute surface: touching table_name or
+    # is_virtual on this mock raises AttributeError.
+    mock_orm = MagicMock(
+        spec=["database_id", "database", "data", "tmp_table_name", "update_from_object"]
+    )
     mock_orm.database_id = 1
-    mock_orm.table_name = "authorised_table"
-    mock_orm.schema = "public"
-    mock_orm.catalog = None
     mock_orm.data = {"id": 1}
     mock_get_datasource.return_value = mock_orm
-    mock_security_manager.raise_for_editorship.return_value = None
 
-    mock_new_database = MagicMock()
-    mock_get_database_by_id.return_value = mock_new_database
-    mock_security_manager.raise_for_access.return_value = None
+    _run_save(type="query", database={"id": 1})
 
-    from flask import Flask
-
-    raw_save = _get_view_func("save")
-    app = Flask(__name__)
-    with app.test_request_context(
-        "/datasource/save/",
-        method="POST",
-        data={
-            "data": superset_json.dumps(
-                {
-                    "id": 1,
-                    "type": "table",
-                    "database": {"id": 999},
-                    "table_name": "secret_table",
-                    "schema": "finance",
-                    "columns": [],
-                }
-            )
-        },
-    ):
-        raw_save(_view_self())
-
-    call_kwargs = mock_security_manager.raise_for_access.call_args.kwargs
-    assert call_kwargs["database"] is mock_new_database
-    # The check ran against the requested table, not the dataset's old one.
-    assert call_kwargs["table"].table == "secret_table"
-    assert call_kwargs["table"].schema == "finance"
+    mock_security_manager.raise_for_access.assert_not_called()
+    mock_get_database_by_id.assert_not_called()
 
 
 # ---------------------------------------------------------------------------
@@ -516,8 +747,6 @@ def test_samples_returns_400_for_unsupported_datasource_type(
     mock_get_samples: MagicMock,
 ) -> None:
     """Semantic views can't return raw samples — endpoint should refuse with 400."""
-    from flask import Flask
-
     mock_security_manager.is_guest_user.return_value = False
     mock_json_error_response.return_value = "error-response"
 
@@ -547,8 +776,6 @@ def test_samples_checks_guest_access_before_datasource_capability(
     mock_get_samples: MagicMock,
 ) -> None:
     """An unauthorized guest gets 403 before semantic-view capability errors."""
-    from flask import Flask
-
     mock_security_manager.is_guest_user.return_value = True
     mock_json_error_response.return_value = "forbidden-response"
 
@@ -583,8 +810,6 @@ def test_samples_guest_with_dashboard_gets_404_for_non_dataset_type(
     unrelated id spaces, so ``DatasetDAO.find_by_id`` would validate whichever
     unrelated table shares the integer id.
     """
-    from flask import Flask
-
     mock_security_manager.is_guest_user.return_value = True
 
     view = _view_self()
@@ -618,8 +843,6 @@ def test_samples_guest_drill_denial_returns_403(
     mock_get_samples: MagicMock,
 ) -> None:
     """A guest failing the drill-access check gets 403 from that gate."""
-    from flask import Flask
-
     mock_security_manager.is_guest_user.return_value = True
     mock_security_manager.can_drill_dataset_via_dashboard_access.return_value = False
     mock_json_error_response.return_value = "forbidden-response"
@@ -648,8 +871,6 @@ def test_samples_proceeds_for_supported_datasource_type(
     mock_get_samples: MagicMock,
 ) -> None:
     """A `query` datasource (supports_samples=True) bypasses the 400 short-circuit."""
-    from flask import Flask
-
     mock_security_manager.is_guest_user.return_value = False
     mock_get_samples.return_value = {"rows": []}
 
@@ -684,8 +905,6 @@ def test_samples_authenticated_dataset_access_denied_returns_403_before_fetch(
     authenticated per-object check only runs for dataset-backed types, which
     always support samples, so this pins authorization-before-fetch rather than
     a race against the ``supports_samples`` gate.)"""
-    from flask import Flask
-
     mock_security_manager.is_guest_user.return_value = False
     mock_dataset = MagicMock()
     mock_get_datasource.return_value = mock_dataset

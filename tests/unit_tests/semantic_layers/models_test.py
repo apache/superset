@@ -21,7 +21,9 @@ from __future__ import annotations
 
 import os
 import uuid
-from datetime import datetime, timezone
+from collections.abc import Hashable
+from datetime import date, datetime, timezone
+from itertools import permutations
 from pathlib import Path
 from typing import Any, cast
 from unittest.mock import MagicMock, patch, PropertyMock
@@ -36,6 +38,8 @@ from sqlalchemy.orm import Session
 from superset_core.semantic_layers.errors import SemanticResultCompletenessReason
 from superset_core.semantic_layers.types import (
     Dimension,
+    Filter,
+    Grain,
     Grains,
     Metric,
     Operator,
@@ -63,6 +67,45 @@ from superset.utils.core import GenericDataType
 # =============================================================================
 # get_column_type tests
 # =============================================================================
+
+
+@pytest.mark.parametrize(
+    "grains, expected",
+    [
+        ((None, Grains.DAY, Grains.HOUR), None),
+        ((Grains.DAY, Grains.HOUR, Grains.MONTH), Grains.HOUR),
+        ((Grain("Custom B", "P5D"), Grain("Custom A", "P2D")), Grain("A", "P2D")),
+    ],
+)
+def test_column_metadata_default_is_order_independent(
+    grains: tuple[Grain | None, ...], expected: Grain | None
+) -> None:
+    """Metadata keeps the same raw/finest/custom choice across extraction."""
+    dimensions: tuple[Dimension, ...] = tuple(
+        Dimension(str(index), "event_time", pa.timestamp("us"), grain=grain)
+        for index, grain in enumerate(grains)
+    )
+    implementation: MagicMock = MagicMock()
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    for ordering in permutations(dimensions):
+        implementation.get_dimensions.return_value = ordering
+        assert len(view._unique_dimensions) == 1
+        assert view._unique_dimensions[0].grain == expected
+
+
+def test_column_metadata_rejects_ambiguous_grain_ids() -> None:
+    """Metadata must not hide an ambiguity that prevents query mapping."""
+    implementation: MagicMock = MagicMock()
+    implementation.get_dimensions.return_value = {
+        Dimension("a", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("b", "event_time", pa.timestamp("us"), grain=Grains.MONTH),
+        Dimension("raw", "event_time", pa.timestamp("us")),
+    }
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+        _columns: list[ColumnMetadata] = view.columns
 
 
 def test_get_column_type_temporal_date() -> None:
@@ -260,7 +303,7 @@ def test_semantic_layer_implementation() -> None:
 
     mock_class = MagicMock()
     mock_impl = MagicMock()
-    mock_class.from_configuration.return_value = mock_impl
+    mock_class.from_configuration_with_cache_token.return_value = mock_impl
 
     with patch.dict(
         "superset.semantic_layers.models.registry",
@@ -272,7 +315,9 @@ def test_semantic_layer_implementation() -> None:
 
         result = layer.implementation
 
-    mock_class.from_configuration.assert_called_once_with({"key": "value"})
+    mock_class.from_configuration_with_cache_token.assert_called_once_with(
+        {"key": "value"}, cache_token=layer.metadata_generation
+    )
     assert result == mock_impl
 
 
@@ -491,16 +536,45 @@ def test_semantic_view_query_endpoint_returns_error(
     assert "query" not in response.json["result"][0]
 
 
-def test_semantic_view_get_extra_cache_keys() -> None:
-    """Test SemanticView get_extra_cache_keys method."""
-    from superset_core.semantic_layers.layer import SemanticLayer as ProviderLayer
+@pytest.mark.parametrize("version", [None, "producer-v1", "producer-v2"])
+def test_semantic_view_get_extra_cache_keys(version: str | None) -> None:
+    """Keep NULL normalization and producer guarantees in the result identity."""
+    from superset.common.query_object import QueryObject
 
+    provider: MagicMock = MagicMock()
+    provider.result_cache_version = version
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
-    with patch.dict(
-        "superset.semantic_layers.models.registry", {"fixture": ProviderLayer}
-    ):
-        result: list[Any] = view.get_extra_cache_keys({})
-    assert result == []
+    query: QueryObject = QueryObject(
+        columns=["category"],
+        filters=[{"col": "category", "op": "IN", "val": ["a", "<NULL>"]}],
+    )
+    with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
+        composed_key: str = query.cache_key(
+            extra_cache_keys=view.get_extra_cache_keys({})
+        )
+        expected: list[Hashable] = [
+            view.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
+        if version is not None:
+            expected.append(("semantic-result-version", "fixture", version))
+        assert view.get_extra_cache_keys({}) == expected
+        assert composed_key != query.cache_key(extra_cache_keys=expected[1:])
+        assert composed_key != query.cache_key(
+            extra_cache_keys=[expected[0], *expected[2:]]
+        )
+        assert composed_key != query.cache_key(extra_cache_keys=[])
+        if version is not None:
+            assert composed_key != query.cache_key(
+                extra_cache_keys=[("semantic-result-version", "fixture", version)]
+            )
+            assert composed_key != query.cache_key(
+                extra_cache_keys=["semantic-null-filters-v1"]
+            )
+        assert composed_key == query.cache_key(
+            extra_cache_keys=view.get_extra_cache_keys({})
+        )
+    provider.assert_not_called()
 
 
 def test_semantic_view_perm() -> None:
@@ -2605,39 +2679,96 @@ def test_values_for_column_search_narrows_at_the_provider(
     assert narrowing.value == "%oo%k_%"
 
 
-def test_values_for_column_search_rejection_falls_back_unfiltered(
+@pytest.mark.parametrize("rejected", [False, True])
+def test_values_search_failure_never_retries_without_filter(
     mock_implementation: MagicMock,
-    caplog: pytest.LogCaptureFixture,
+    rejected: bool,
 ) -> None:
-    """A provider that rejects the narrowing filter degrades to the bounded
-    unfiltered page — logged, never an error and never silent."""
-    view = SemanticView()
-    mock_implementation.get_values.side_effect = [
-        RuntimeError("LIKE unsupported on this dimension"),
-        _values_result(["Books", "Clothing"]),
-    ]
+    """Both deliberate rejections and operational faults keep the search constraint."""
+    from superset_core.semantic_layers.errors import SemanticQueryRejectedError
 
+    from superset.semantic_layers.exceptions import (
+        SemanticLayerExecutionError,
+        SemanticLayerQueryRejectedError,
+    )
+
+    view: SemanticView = SemanticView()
+    failure: Exception = (
+        SemanticQueryRejectedError("INVALID_FILTER")
+        if rejected
+        else RuntimeError("private-provider-fault")
+    )
+    expected: type[Exception] = (
+        SemanticLayerQueryRejectedError if rejected else SemanticLayerExecutionError
+    )
+    mock_implementation.get_values.side_effect = [failure, _values_result(["Books"])]
     with patch.object(
         SemanticView,
         "implementation",
         new_callable=lambda: property(lambda s: mock_implementation),
     ):
-        with caplog.at_level("WARNING"):
-            values = view.values_for_column("category", search="oo")
+        with pytest.raises(expected):
+            view.values_for_column("category", search="oo")
 
-    assert values == ["Books", "Clothing"]
-    assert mock_implementation.get_values.call_count == 2
-    assert mock_implementation.get_values.call_args.args[1] is None
-    assert "rejected the value-search filter" in caplog.text
-    assert "category" in caplog.text
+    mock_implementation.get_values.assert_called_once()
+    assert mock_implementation.get_values.call_args.args[1] is not None
+
+
+@pytest.mark.parametrize(
+    "method", ["get_compatible_metrics", "get_compatible_dimensions"]
+)
+@pytest.mark.parametrize("ambiguous", [False, True])
+def test_compatibility_resolves_grain_variants(method: str, ambiguous: bool) -> None:
+    """Both compatibility projections use default identities and reject collisions."""
+    raw: Dimension = Dimension("raw", "event_time", pa.timestamp("us"))
+    month: Dimension = Dimension(
+        "month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    duplicate: Dimension = Dimension(
+        "other-month", "event_time", pa.timestamp("us"), grain=Grains.MONTH
+    )
+    catalog: tuple[Dimension, ...] = (
+        (raw, month, duplicate) if ambiguous else (raw, month)
+    )
+    implementation: MagicMock = MagicMock()
+    implementation.get_metrics.return_value = set()
+    provider_method: MagicMock = getattr(implementation, method)
+    provider_method.return_value = set()
+    view: SemanticView = SemanticView()
+    view.implementation = implementation
+    for ordering in permutations(catalog):
+        implementation.get_dimensions.return_value = ordering
+        if ambiguous:
+            with pytest.raises(QueryObjectValidationError, match="ambiguous"):
+                getattr(view, method)([], ["event_time"])
+            provider_method.assert_not_called()
+        else:
+            assert getattr(view, method)([], ["event_time"]) == []
+            assert provider_method.call_args.args[1] == {raw}
+
+
+def test_semantic_view_data_row_offset_capability(
+    mock_implementation: MagicMock,
+    semantic_view: SemanticView,
+) -> None:
+    """Expose the optional bounded-offset contract through existing metadata."""
+    declared: frozenset[SemanticViewFeature] = frozenset(
+        {SemanticViewFeature.ROW_OFFSET, SemanticViewFeature.GROUP_LIMIT}
+    )
+    mock_implementation.features = declared
+
+    data: ExplorableData = semantic_view.data
+
+    assert data["semantic_view_features"] == ["GROUP_LIMIT", "ROW_OFFSET"]
+    assert SemanticViewFeature.ROW_OFFSET.value == "ROW_OFFSET"
 
 
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])
-def test_values_fallback_translates_provider_completeness_error(
+def test_values_search_translates_provider_completeness_error(
     mock_implementation: MagicMock,
     reason: SemanticResultCompletenessReason,
 ) -> None:
-    """An unfiltered retry must retain the provider's fail-closed error."""
+    """A search failure retains the provider's fail-closed completeness error."""
     from superset_core.semantic_layers import errors as core_errors
 
     from superset.exceptions import SemanticResultCompletenessError
@@ -2646,22 +2777,20 @@ def test_values_fallback_translates_provider_completeness_error(
     failure: core_errors.SemanticResultCompletenessError = (
         core_errors.SemanticResultCompletenessError(reason)
     )
-    mock_implementation.get_values.side_effect = [
-        RuntimeError("LIKE unsupported on this dimension"),
-        failure,
-    ]
+    mock_implementation.get_values.side_effect = failure
+    captured: pytest.ExceptionInfo[SemanticResultCompletenessError]
     with patch.object(
         SemanticView,
         "implementation",
         new_callable=lambda: property(lambda s: mock_implementation),
     ):
-        with pytest.raises(SemanticResultCompletenessError) as excinfo:
+        with pytest.raises(SemanticResultCompletenessError) as captured:
             view.values_for_column("category", search="oo")
 
-    assert excinfo.value.reason == reason
-    assert excinfo.value.__cause__ is failure
-    assert mock_implementation.get_values.call_count == 2
-    assert mock_implementation.get_values.call_args.args[1] is None
+    assert captured.value.reason == reason
+    assert captured.value.__cause__ is failure
+    mock_implementation.get_values.assert_called_once()
+    assert mock_implementation.get_values.call_args.args[1] is not None
 
 
 @pytest.mark.parametrize("version", [None, "metricflow-completeness-v1"])
@@ -2673,9 +2802,13 @@ def test_result_generation_reads_class_without_provider_construction(
     view: SemanticView = SemanticView(semantic_layer=SemanticLayer(type="fixture"))
     with patch.dict("superset.semantic_layers.models.registry", {"fixture": provider}):
         assert view.result_cache_version == version
-        assert view.get_extra_cache_keys({}) == (
-            [] if version is None else [("semantic-result-version", "fixture", version)]
-        )
+        expected: list[Hashable] = [
+            view.metadata_generation,
+            "semantic-null-filters-v1",
+        ]
+        if version is not None:
+            expected.append(("semantic-result-version", "fixture", version))
+        assert view.get_extra_cache_keys({}) == expected
     provider.assert_not_called()
 
 
@@ -3018,3 +3151,95 @@ def test_public_completeness_error_in_values_is_host_error_without_retry(
     assert excinfo.value.reason == reason
     assert excinfo.value.__cause__ is failure
     assert mock_implementation.get_values.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "data_type",
+    [
+        pa.int64(),
+        pa.date32(),
+        pa.string(),
+        pa.large_string(),
+        pa.string_view(),
+        pa.dictionary(pa.int32(), pa.string()),
+        pa.dictionary(pa.int32(), pa.large_string()),
+        pa.dictionary(pa.int32(), pa.string_view()),
+        pa.dictionary(pa.int32(), pa.int64()),
+    ],
+)
+def test_values_search_only_narrows_text_dimensions(
+    mock_implementation: MagicMock,
+    data_type: pa.DataType,
+) -> None:
+    """Non-text pickers receive a bounded page without an invalid LIKE request."""
+    dimension: Dimension = Dimension("category", "category", data_type)
+    view: SemanticView = SemanticView()
+    mock_implementation.get_dimensions.return_value = {dimension}
+    value_type: pa.DataType = (
+        data_type.value_type if pa.types.is_dictionary(data_type) else data_type
+    )
+    values: list[Any] = (
+        [date(2026, 1, 12), date(2026, 1, 2), date(2026, 1, 1)]
+        if pa.types.is_date(value_type)
+        else [12, 2, 1]
+        if pa.types.is_integer(value_type)
+        else ["12", "212", "112"]
+    )
+    mock_implementation.get_values.return_value = SemanticResult(
+        requests=[],
+        results=pa.table(
+            {
+                "category": pa.array(values, type=value_type).dictionary_encode()
+                if pa.types.is_dictionary(data_type)
+                else pa.array(values, type=data_type)
+            }
+        ),
+    )
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        assert (
+            view.values_for_column("category", search="12", limit=2)
+            == sorted(values)[:2]
+        )
+    mock_implementation.get_values.assert_called_once()
+    filters: set[Filter] | None = mock_implementation.get_values.call_args.args[1]
+    if (
+        pa.types.is_string(value_type)
+        or pa.types.is_large_string(value_type)
+        or pa.types.is_string_view(value_type)
+    ):
+        assert filters is not None
+        assert len(filters) == 1
+        assert next(iter(filters)).value == "%12%"
+    else:
+        assert filters is None
+
+
+def test_values_rejection_logs_view_and_dimension(
+    mock_implementation: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Log the host-selected search rejection without provider diagnostics."""
+    from superset_core.semantic_layers.errors import SemanticQueryRejectedError
+
+    from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
+
+    view: SemanticView = SemanticView(uuid=uuid.uuid4())
+    mock_implementation.get_values.side_effect = SemanticQueryRejectedError(
+        "INVALID_FILTER"
+    )
+    with patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=lambda: property(lambda s: mock_implementation),
+    ):
+        with caplog.at_level("WARNING"), pytest.raises(SemanticLayerQueryRejectedError):
+            view.values_for_column("category", search="private-search")
+    assert str(view.uuid) in caplog.text
+    assert "category" in caplog.text
+    assert "INVALID_FILTER" in caplog.text
+    assert "private-search" not in caplog.text
+    mock_implementation.get_values.assert_called_once()

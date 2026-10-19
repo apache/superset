@@ -1337,6 +1337,101 @@ Events | take 100""",
     assert query.get_settings() == {"querytrace": True}
 
 
+@pytest.mark.parametrize("engine", ["base", "sqlite", "postgresql", "mysql"])
+@pytest.mark.parametrize(
+    "comment",
+    [
+        "--",
+        "-- trailing comment",
+        "/* trailing comment */",
+        "/* trailing comment */ ;; -- c",
+        "/* trailing comment */ ; -- c",
+        "",
+    ],
+)
+@pytest.mark.parametrize("sql", ["SELECT 1;;", ";;SELECT 1;;;", "SELECT 2;;SELECT 1;;"])
+def test_sqlscript_trailing_comments_after_empty_statements(
+    engine: str, comment: str, sql: str
+) -> None:
+    """Ignore empty statements and preserve comments on the last real statement."""
+    script = SQLScript(f"{sql}\n{comment}", engine)
+
+    assert len(script.statements) == (2 if "SELECT 2" in sql else 1)
+    assert script.statements[-1].format(comments=False) == "SELECT\n  1"
+    # Bare "--" guards against crashes; only comments with text check preservation.
+    if "trailing comment" in comment:
+        formatted = script.statements[-1].format()
+        assert "trailing comment" in formatted
+        if "-- c" in comment:
+            assert formatted.index("trailing comment") < formatted.index("/* c */")
+        if len(script.statements) == 2:
+            assert "trailing comment" not in script.statements[0].format()
+
+
+@pytest.mark.parametrize("engine", ["base", "sqlite", "postgresql", "mysql"])
+@pytest.mark.parametrize(
+    "sql, expected_sql, expected_comments",
+    [
+        ("SELECT * FROM a;; /* x */ ;; -- c", ["SELECT\n  *\nFROM a"], [["x", "c"]]),
+        ("SELECT 1; /* x */ ; -- c", ["SELECT\n  1"], [["x", "c"]]),
+        (";; -- only comment", [], []),
+        ("-- only", [], []),
+        (";;", [], []),
+        ("", [], []),
+        (
+            "SELECT 1;;; /* x */ ;; SELECT 2",
+            ["SELECT\n  1", "SELECT\n  2"],
+            [["x"], []],
+        ),
+        (
+            ";; /* x */ ; /* y */ ; SELECT 1 /* z */",
+            ["SELECT\n  1"],
+            [["x", "y", "z"]],
+        ),
+        (
+            "SELECT 1; /* x */ ; /* y */ ; SELECT 2; /* z */ ; -- c",
+            ["SELECT\n  1", "SELECT\n  2"],
+            [["x", "y"], ["z", "c"]],
+        ),
+    ],
+)
+def test_sqlscript_comment_only_segments(
+    engine: str,
+    sql: str,
+    expected_sql: list[str],
+    expected_comments: list[list[str]],
+) -> None:
+    """Keep real statements and preserve each comment's statement and order."""
+    statements = SQLScript(sql, engine).statements
+
+    # Some engines/drivers reject comment-only queries (e.g. PostgreSQL/psycopg2).
+    # Semicolon nodes are truthy, so split_script's truthiness check retains them.
+    assert not any(
+        isinstance(statement._parsed, exp.Semicolon) for statement in statements
+    )
+    assert [
+        statement.format(comments=False) for statement in statements
+    ] == expected_sql
+    for statement, comments in zip(statements, expected_comments, strict=True):
+        formatted = statement.format()
+        assert re.findall(r"/\*\s*(.*?)\s*\*/", formatted) == comments
+
+
+@pytest.mark.parametrize("engine", ["base", "unknown-engine"])
+def test_sqlscript_comment_only_segments_with_mysql_fallback(engine: str) -> None:
+    """Normalize comment-only segments after falling back to the MySQL parser."""
+    statements = SQLScript(
+        "SELECT * FROM `a`;; /* x */ ; SELECT 2; -- c", engine
+    ).statements
+
+    assert [statement.format(comments=False) for statement in statements] == [
+        'SELECT\n  *\nFROM "a"',
+        "SELECT\n  2",
+    ]
+    assert re.findall(r"/\*\s*(.*?)\s*\*/", statements[0].format()) == ["x"]
+    assert re.findall(r"/\*\s*(.*?)\s*\*/", statements[1].format()) == ["c"]
+
+
 def test_sqlscript_format_preserves_optimizer_hint_block() -> None:
     """
     Regression for #38189: an inline `--` comment trailing a query with a
@@ -1827,6 +1922,23 @@ def test_postgres_parses_timescaledb_hyperfunctions(sql: str) -> None:
     upgrade reintroduces the strict arity check, this fails immediately.
     """
     SQLScript(sql, "postgresql")  # Must not raise.
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT JSON_VALUE(h, '$.a' RETURNING BIGINT) AS x FROM t",
+        "SELECT JSON_VALUE(h, CONCAT('$[''', d, ''']') RETURNING BIGINT) AS x FROM t",
+    ],
+)
+def test_druid_parses_json_value_returning(sql: str) -> None:
+    """
+    Regression for #36954: Druid's ``JSON_VALUE`` takes a ``RETURNING <type>``
+    clause, and a virtual dataset using it failed with "Unable to parse SQL"
+    even though Druid itself runs the query. sqlglot parses the clause for the
+    Druid dialect since 30.12.0, so this pins it against a future upgrade.
+    """
+    assert "RETURNING BIGINT" in SQLScript(sql, "druid").format()
 
 
 @pytest.mark.parametrize(
