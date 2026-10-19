@@ -2240,6 +2240,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                             - resolution
                             - offset
                             - escaping
+                            - transform_escaping
                             - engine
                             - type
                           sample_input:

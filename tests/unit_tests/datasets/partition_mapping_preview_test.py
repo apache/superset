@@ -1215,6 +1215,43 @@ def test_preview_explains_a_value_the_driver_cannot_write_as_its_own_case(
     probe.assert_not_called()
 
 
+def test_preview_explains_a_transform_whose_answer_cannot_be_written(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The other end of the round trip, and its own case for the same reason: the
+    sample is unremarkable, the transform evaluates, and what cannot be written
+    into a query is the key it answered with.
+
+    Reported as `engine` before this, which told the owner the database would
+    not evaluate a transform it evaluated perfectly -- and the fix is a
+    different one, since no other column or operator makes a backslash
+    spellable here.
+    """
+    dataset.database.sqlalchemy_uri = "postgresql://user@host/db"
+    db.session.flush()
+
+    with patch(PROBE, return_value=["a\\b"]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "country",
+                "partition_column": "region_key",
+                "value_transform": "concat(lower(:value), chr(92), 'b')",
+                "sample_values": ["a"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "transform_escaping"
+    assert "backslash" in result["error"]
+    assert "emitted_predicate" not in result
+    # The transform did reach the engine; this is a verdict on its answer.
+    probe.assert_called_once()
+
+
 def test_preview_explains_an_offset_bearing_sample_as_its_own_case(
     client: Any, full_api_access: None, dataset: Any
 ) -> None:

@@ -39,6 +39,7 @@ from superset.connectors.sqla.partition_mapping import (
     _probe_cache_key,
     _reads_as_temporal,
     _render_literal,
+    _render_predicate,
     BARE_WALL_CLOCK_KEYWORDS,
     build_mirrored_predicates,
     build_probe_sql,
@@ -2439,6 +2440,150 @@ def test_a_type_mismatch_does_not_poison_the_shared_transform_verdict(
             known_mirror_verdict(table.database, None, None, "cast(:value as text)")
             is None
         )
+
+
+def _text_mapped_table(backend: str, transform: str) -> SqlaTable:
+    """
+    A text key mirrored from a text column, on ``backend``.
+
+    The module's own fixture maps a timestamp onto a `BIGINT`, where no probe
+    result can carry a quote or a backslash at all. These tests are about what
+    the probe *answers*, so both ends have to be text.
+    """
+    table = _mapped_table(
+        partition_column="region_key",
+        mapped_column="country",
+        partition_mapped_column="country",
+        transform=transform,
+        monotonic=False,
+    )
+    table.database = Database(database_name="probe_db", sqlalchemy_uri=backend)
+    return table
+
+
+def test_a_probe_result_the_engine_reads_back_differently_is_not_mirrored(
+    app: Flask,
+) -> None:
+    """
+    The other end of the round trip `evaluate_transform` makes on the way in.
+
+    The chart query is compiled with ``literal_binds``, so the probed key is
+    rendered into it by the same renderer and read by the same lexer -- and
+    `concat(:value, chr(92), 'b')` turns the unremarkable input `US` into the key
+    `us\\b`, which Hive reads back as `us` followed by a backspace. Emitted, the
+    mirror asks for a partition no row is in, and because it is ANDed onto the
+    query the chart loses every row the filter keeps rather than losing its
+    pruning.
+
+    No verdict is recorded, for the reason the type mismatch above gives: the
+    probe succeeded, and this is a property of one of its answers.
+    """
+    table = _text_mapped_table(
+        "hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+    )
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    escaping_errors: list[str] = []
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["us\\b"],
+        ):
+            predicates = build_mirrored_predicates(
+                table,
+                mapping,
+                [(FilterOperator.EQUALS, "US")],
+                escaping_errors=escaping_errors,
+            )
+
+    assert predicates == []
+    assert escaping_errors
+    assert (
+        known_mirror_verdict(table.database, None, None, mapping.value_transform)
+        is None
+    )
+
+
+def test_the_same_probe_result_still_mirrors_where_the_engine_agrees(
+    app: Flask,
+) -> None:
+    """
+    Not a blanket refusal of the character: SQLite's renderer and lexer spell a
+    backslash the same way, so the key it answered with is asked for as it
+    stands.
+    """
+    table = _text_mapped_table("sqlite://", "concat(lower(:value), char(92), 'b')")
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["us\\b"],
+        ):
+            predicates = build_mirrored_predicates(
+                table, mapping, [(FilterOperator.EQUALS, "US")]
+            )
+
+    assert len(predicates) == 1
+    assert "us\\b" in _render_predicate(table, predicates[0])
+
+
+def test_one_unspellable_answer_costs_only_its_own_request(app: Flask) -> None:
+    """
+    Per request, not per query. A range arrives as two requests, and keeping
+    only the bound whose key survives the trip leaves a mirror *wider* than the
+    filter, which is all a mirror has to be -- so declining the whole query
+    would cost the other filters their pruning for nothing.
+    """
+    table = _text_mapped_table(
+        "hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+    )
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["us\\b", "ca"],
+        ):
+            predicates = build_mirrored_predicates(
+                table,
+                mapping,
+                [
+                    (FilterOperator.EQUALS, "US"),
+                    (FilterOperator.EQUALS, "CA"),
+                ],
+            )
+
+    assert len(predicates) == 1
+    rendered = _render_predicate(table, predicates[0])
+    assert "'ca'" in rendered
+    assert "\\b" not in rendered
+
+
+def test_one_unspellable_answer_declines_the_whole_in_list(app: Flask) -> None:
+    """
+    As for a `None` answer: mirroring the members that survive would be
+    *narrower* than the `IN` the chart carries, and would drop rows it keeps.
+    """
+    table = _text_mapped_table(
+        "hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+    )
+    mapping = resolve_partition_mapping(table)
+    assert mapping is not None
+
+    with app.app_context():
+        with patch(
+            "superset.connectors.sqla.partition_mapping.evaluate_transform",
+            return_value=["us\\b", "ca"],
+        ):
+            predicates = build_mirrored_predicates(
+                table, mapping, [(FilterOperator.IN, ["US", "CA"])]
+            )
+
+    assert predicates == []
 
 
 def _partition_column(column_type: str, **kwargs: Any) -> TableColumn:

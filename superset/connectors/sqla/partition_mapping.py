@@ -134,6 +134,16 @@ engine's own dialect instead, and a value that does not survive the trip is not
 mirrored -- the usual trade, pruning for correctness. `probe_sql_is_evaluable`
 re-reads the finished statement behind it.
 
+The probe's *answers* make the same trip, in the other direction. The chart
+query is compiled with ``literal_binds``, so a probed partition key is rendered
+into its SQL by the same renderer and read by the same lexer -- and
+``concat(:value, chr(92), 'b')`` turns the unremarkable input ``a`` into the key
+``a\\b``, which Hive reads back as ``a`` followed by a backspace. So
+`_predicates_from_probe` asks `literal_round_trips` about each result too, and
+declines the request rather than emitting a predicate no row can satisfy: the
+mirror is ``AND``-ed onto the query, so a mirror that matches nothing costs the
+chart its rows rather than its pruning.
+
 Negations are never safe because ``T`` need not be injective:
 ``lower(:value)`` with ``country != 'US'`` mirrors to ``region_key != 'us'``,
 which wrongly excludes rows whose ``country`` is already lowercase ``'us'`` --
@@ -2898,12 +2908,14 @@ def _preview_probe(
         }
     errors: list[str] = []
     type_errors: list[str] = []
+    escaping_errors: list[str] = []
     predicates = build_mirrored_predicates(
         datasource,
         mapping,
         [(operator, value)],
         errors=errors,
         type_errors=type_errors,
+        escaping_errors=escaping_errors,
     )
     if type_errors:
         # Its own reason, because "the database would not evaluate this" and
@@ -2915,6 +2927,18 @@ def _preview_probe(
             "reason": "type",
             "sample_input": sample_input,
             "error": type_errors[0],
+        }
+    if escaping_errors:
+        # Its own reason, and distinct from the `escaping` one above: that is
+        # about the value the chart author typed, this is about what the
+        # transform made of it. Falling through to `engine` below told the owner
+        # the database would not evaluate the transform, when it evaluated it
+        # perfectly and answered with a key that cannot be asked for here.
+        return {
+            "valid": False,
+            "reason": "transform_escaping",
+            "sample_input": sample_input,
+            "error": escaping_errors[0],
         }
     if not predicates:
         return {
@@ -3074,6 +3098,7 @@ def build_mirrored_predicates(
     *,
     errors: list[str] | None = None,
     type_errors: list[str] | None = None,
+    escaping_errors: list[str] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     Turn collected ``(operator, value)`` mirror requests into predicates.
@@ -3095,6 +3120,12 @@ def build_mirrored_predicates(
         because the two say different things to an owner: that one is "the
         database would not evaluate this", and this one is "it evaluated, and
         answered with the wrong kind of thing".
+    :param escaping_errors: optional sink for a probe result the driver and the
+        engine would spell differently -- see `_predicates_from_probe`. Its own
+        sink for the same reason: "it evaluated, and answered with something
+        this database cannot be asked about" is a third problem, and the only
+        one of the three whose fix is to stop the transform producing the
+        character.
     """
     if not requests:
         return []
@@ -3159,7 +3190,11 @@ def build_mirrored_predicates(
 
     sqla_col = datasource.convert_tbl_column_to_sqla_col(partition_column)
     predicates = _predicates_from_probe(
-        sqla_col, datasource.db_engine_spec, evaluated, spans
+        sqla_col,
+        datasource.database,
+        evaluated,
+        spans,
+        escaping_errors=escaping_errors,
     )
     if not predicates:
         return []
@@ -3175,9 +3210,11 @@ def build_mirrored_predicates(
 
 def _predicates_from_probe(
     sqla_col: ColumnElement[Any],
-    db_engine_spec: type[BaseEngineSpec],
+    database: Database,
     evaluated: list[Any],
     spans: list[tuple[FilterOperator, int, int]],
+    *,
+    escaping_errors: list[str] | None = None,
 ) -> list[ColumnElement[Any]]:
     """
     One predicate on the partition column per surviving mirror request.
@@ -3185,11 +3222,54 @@ def _predicates_from_probe(
     A request whose probe answered `None` for any of its values is skipped
     rather than emitted: `col = NULL` is `NULL`, so it would drop every row the
     filter keeps. A strict bound is emitted non-strictly; see `mirror_operator`.
+
+    A request whose probe answered with a value the driver and the engine spell
+    differently is skipped for the same reason -- see `literal_round_trips`.
+    `evaluate_transform` asks that question of the probe's *inputs*; the answers
+    are the other end of the same round trip, because the chart query is
+    compiled with ``literal_binds`` and every one of them is rendered into its
+    SQL as a literal too. A transform of ``concat(:value, chr(92), 'b')`` maps
+    the unremarkable input ``a`` to the partition key ``a\\b``, which Hive reads
+    back as ``a`` followed by a backspace: the mirror then asks for a partition
+    no row is in, and because it is ``AND``-ed onto the query the chart loses
+    every row the filter keeps rather than losing its pruning.
+
+    :param escaping_errors: optional sink; see `build_mirrored_predicates`.
     """
+    # Once for the whole call, not once per value: `_dialect_for` asks the
+    # `Database` for a dialect, and a 200-member `IN` would otherwise ask 200
+    # times. The same reading `evaluate_transform` takes on the way in.
+    dialect = _dialect_for(database)
+
     predicates: list[ColumnElement[Any]] = []
     for operator, start, length in spans:
         chunk = evaluated[start : start + length]
         if any(value is None for value in chunk):
+            continue
+        if not all(
+            literal_round_trips(value, dialect, database.backend) for value in chunk
+        ):
+            # One member is the whole request's problem, as for `None` above:
+            # mirroring the rest of an `IN` list would be narrower than the
+            # filter. Dropping this request alone is not, which is why the
+            # decline is per request rather than per query -- a range arrives as
+            # two of them, and keeping only the bound that survives the trip is
+            # a mirror wider than the filter, which is all the mirror has to be.
+            logger.warning(
+                "The partition transform answered with a value the driver and "
+                "the database do not write down the same way, so this filter "
+                "is not mirrored; the query will not prune for it"
+            )
+            if escaping_errors is not None:
+                escaping_errors.append(
+                    _(
+                        "The transform answered with a value the driver and the "
+                        "database do not agree on how to write into a query, so "
+                        "the mirrored predicate would ask for a partition key no "
+                        "row holds. A transform whose result carries neither a "
+                        "quote nor a backslash still mirrors."
+                    )
+                )
             continue
         if operator == FilterOperator.IN:
             # The probe answers per value, so a transform over a mixed-number
@@ -3200,7 +3280,7 @@ def _predicates_from_probe(
             predicates.append(sqla_col.in_(normalize_mixed_numbers(chunk)))
         else:
             predicates.append(
-                db_engine_spec.handle_comparison_filter(
+                database.db_engine_spec.handle_comparison_filter(
                     sqla_col, mirror_operator(operator), chunk[0]
                 )
             )
