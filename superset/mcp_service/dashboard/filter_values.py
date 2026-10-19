@@ -22,6 +22,8 @@ import logging
 import math
 import re
 import time
+from collections.abc import Iterator
+from contextlib import contextmanager
 from copy import deepcopy
 from dataclasses import dataclass, field
 from decimal import Decimal
@@ -29,11 +31,12 @@ from numbers import Integral, Real
 from typing import Any, cast, Literal, TYPE_CHECKING
 
 from fastmcp.exceptions import ToolError
-from flask import current_app
+from flask import current_app, g
 from marshmallow import ValidationError
 from pandas import DataFrame, NA
 from sqlalchemy.exc import CompileError, UnsupportedCompilationError
 
+from superset.charts.data.form_data import set_query_context_form_data
 from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.commands.chart.data.get_data_command import ChartDataCommand
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, NO_TIME_RANGE
@@ -78,6 +81,8 @@ _MAX_QUERIES = 20
 _SCHEDULING_SECONDS = 10
 _PAGE_SIZE = 20
 _MAX_SAFE_INTEGER = 2**53 - 1
+# Mirrors the dashboard's extractUrlParams('regular') exclusions.
+_RESERVED_URL_PARAMS = frozenset({"standalone", "edit"})
 logger = logging.getLogger(__name__)
 
 
@@ -113,6 +118,7 @@ class _Discovery:
     ] = field(default_factory=dict)
     mask_error_reasons: dict[str, FilterValueReason] = field(default_factory=dict)
     normalized_masks: set[str] = field(default_factory=set)
+    url_params: dict[str, str] = field(default_factory=dict)
 
 
 def _check_budget(context: _Discovery) -> None:
@@ -450,6 +456,35 @@ def _normalize_select_mask(  # noqa: C901
     return mask
 
 
+def _url_params(pairs: Any) -> dict[str, str]:
+    """Rebuild the dashboard's query url_params from snapshot key-value pairs.
+
+    The dashboard sends every non-reserved URL parameter with each dropdown
+    query, so ``url_param`` macros in virtual dataset SQL render against them.
+    """
+    if pairs is None:
+        return {}
+    if not isinstance(pairs, list):
+        raise _DiscoveryUnavailableError("state_invalid")
+    params: dict[str, str] = {}
+    for pair in pairs:
+        if pair is None:
+            # The permalink schema permits null entries; they carry no parameter.
+            continue
+        if (
+            not isinstance(pair, (list, tuple))
+            or len(pair) != 2
+            or any(part is not None and not isinstance(part, str) for part in pair)
+        ):
+            raise _DiscoveryUnavailableError("state_invalid")
+        key, value = pair
+        if key is None or value is None or key in _RESERVED_URL_PARAMS:
+            continue
+        # URLSearchParams keeps the last value for a repeated key.
+        params[key] = value
+    return params
+
+
 def _hydrate_masks(  # noqa: C901
     context: _Discovery,
     snapshot_state: dict[str, Any] | None,
@@ -477,6 +512,7 @@ def _hydrate_masks(  # noqa: C901
             ):
                 # URL-encoded selections are not native dataMask state.
                 raise _DiscoveryUnavailableError("state_invalid")
+        context.url_params = _url_params(snapshot_state.get("urlParams"))
         for filter_id, mask in loaded_masks.items():
             if not isinstance(filter_id, str) or not isinstance(mask, dict):
                 raise _DiscoveryUnavailableError("state_invalid")
@@ -557,6 +593,10 @@ def _selected_extra(  # noqa: C901
     if controls.get("defaultToFirstItem") and "value" not in state:
         raise _DiscoveryUnavailableError("parent_unresolved")
     kind = conf.get("filterType")
+    if kind != "filter_select" and value is None and mask.get("extraFormData"):
+        # As with Select, predicates without a typed value cannot be rebuilt,
+        # and reading them as unfiltered would overstate the child's choices.
+        raise _DiscoveryUnavailableError("parent_unresolved")
     try:
         if kind == "filter_select":
             values = [] if value is None else value
@@ -705,6 +745,7 @@ def _native_query(  # noqa: C901
         "extra_form_data": parents,
         "time_range": conf.get("time_range"),
         "granularity_sqla": conf.get("granularity_sqla"),
+        "url_params": deepcopy(context.url_params),
         "viz_type": "filter_select",
         "type": "NATIVE_FILTER",
         "dashboardId": context.dashboard.id,
@@ -826,6 +867,9 @@ def _native_query(  # noqa: C901
     loaded_query.extras["preserve_literal_values"] = True
     if loaded_query.row_limit != limit:
         raise _DiscoveryUnavailableError("query_budget")
+    # Jinja macros (url_param, get_time_filter, filter_values) read the request
+    # form data, as on the chart data API, during validation and execution.
+    set_query_context_form_data(query_context, target.dataset.id, "table")
     command = ChartDataCommand(query_context)
     _check_budget(context)
     command.validate()
@@ -1103,6 +1147,20 @@ def _validate_proposals(  # noqa: C901
     return validated
 
 
+@contextmanager
+def _isolated_form_data() -> Iterator[None]:
+    """Keep per-dropdown Jinja form data from reaching later queries."""
+    had_form_data = "form_data" in g
+    previous = g.get("form_data")
+    try:
+        yield
+    finally:
+        if had_form_data:
+            g.form_data = previous
+        else:
+            g.pop("form_data", None)
+
+
 def discover_filter_values(
     dashboard: Dashboard,
     request: GetDashboardInfoRequest,
@@ -1141,42 +1199,43 @@ def discover_filter_values(
     discovery = FilterValueDiscovery(
         total_filter_count=len(configured), offset=offset, next_offset=next_offset
     )
-    try:
-        context.masks = (
-            _hydrate_masks(context, snapshot_state) if state_error is None else {}
-        )
-    except _DiscoveryUnavailableError as ex:
-        state_error = cast(Literal["state_missing", "state_invalid"], ex.reason)
-        context.masks = {}
-    if state_error is None:
-        discovery.validated_proposed_filter_values = _validate_proposals(
-            context, request.proposed_filter_values or []
-        )
-    selected: list[NativeFilterValueSummary] = []
-    for item in requests:
-        summary = summaries[item.filter_id]
-        before_queries = context.query_count
+    with _isolated_form_data():
         try:
-            if state_error:
-                raise _DiscoveryUnavailableError(state_error)
-            values, truncated, reason = _run(context, configs[item.filter_id], item)
-            summary.available_values = _result(
-                item, values=values, truncated=truncated, reason=reason
+            context.masks = (
+                _hydrate_masks(context, snapshot_state) if state_error is None else {}
             )
-        except (ToolError, OAuth2RedirectError, OAuth2Error):
-            raise
-        except SupersetSecurityException:
-            summary.available_values = _result(item, reason="permission_denied")
         except _DiscoveryUnavailableError as ex:
-            summary.available_values = _result(item, reason=ex.reason)
-        except Exception:  # pylint: disable=broad-except
-            logger.exception("Native filter choice query failed")
-            summary.available_values = _result(
-                item,
-                reason="query_failed"
-                if context.query_count > before_queries
-                else "query_not_executed",
+            state_error = cast(Literal["state_missing", "state_invalid"], ex.reason)
+            context.masks = {}
+        if state_error is None:
+            discovery.validated_proposed_filter_values = _validate_proposals(
+                context, request.proposed_filter_values or []
             )
-        selected.append(summary)
+        selected: list[NativeFilterValueSummary] = []
+        for item in requests:
+            summary = summaries[item.filter_id]
+            before_queries = context.query_count
+            try:
+                if state_error:
+                    raise _DiscoveryUnavailableError(state_error)
+                values, truncated, reason = _run(context, configs[item.filter_id], item)
+                summary.available_values = _result(
+                    item, values=values, truncated=truncated, reason=reason
+                )
+            except (ToolError, OAuth2RedirectError, OAuth2Error):
+                raise
+            except SupersetSecurityException:
+                summary.available_values = _result(item, reason="permission_denied")
+            except _DiscoveryUnavailableError as ex:
+                summary.available_values = _result(item, reason=ex.reason)
+            except Exception:  # pylint: disable=broad-except
+                logger.exception("Native filter choice query failed")
+                summary.available_values = _result(
+                    item,
+                    reason="query_failed"
+                    if context.query_count > before_queries
+                    else "query_not_executed",
+                )
+            selected.append(summary)
     discovery.query_count = context.query_count
     return selected, discovery

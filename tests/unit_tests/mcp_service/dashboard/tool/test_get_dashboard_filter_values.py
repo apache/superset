@@ -23,7 +23,7 @@ from typing import Any, Literal
 from unittest.mock import Mock
 
 import pytest
-from flask import current_app
+from flask import current_app, g
 from pytest_mock import MockerFixture
 from sqlalchemy import column, create_engine, select, String, text
 from sqlalchemy.dialects import mysql, postgresql, sqlite
@@ -43,6 +43,7 @@ from superset.models.core import Database
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import build_like_predicate
 from superset.utils import json
+from tests.unit_tests.conftest import with_feature_flags
 
 
 @pytest.fixture
@@ -2024,6 +2025,114 @@ def test_typed_parent_controls_execute_real_native_dataframe_query(
         else ["France", "Germany", "Old", "US"]
     )
     assert sqlite_native_execution["database_reads"].call_count == 1
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("url_params", "expected"),
+    [
+        (None, ["US"]),
+        ([["market", "EMEA"]], ["France", "Germany", "Old"]),
+        (
+            [["market", "Americas"], None, ["market", "EMEA"]],
+            ["France", "Germany", "Old"],
+        ),
+    ],
+)
+def test_virtual_dataset_url_param_renders_snapshot_url_params(
+    sqlite_native_execution: dict[str, Any],
+    url_params: list[Any] | None,
+    expected: list[str],
+) -> None:
+    """Dropdown SQL sees the dashboard's URL parameters, as the browser sends them."""
+    sqlite_native_execution[
+        "dataset"
+    ].sql = (
+        'select * from sales where region = \'{{ url_param("market", "Americas") }}\''
+    )
+    snapshot: dict[str, Any] = {"dataMask": {}}
+    if url_params is not None:
+        snapshot["urlParams"] = url_params
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("country")),
+        _request(filter_value_requests=[{"filter_id": "country"}]),
+        snapshot_state=snapshot,
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == expected
+    assert "form_data" not in g
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_virtual_dataset_time_filter_macro_sees_cascading_time_parent(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """A parent time range reaches get_time_filter in the child's virtual SQL."""
+    sqlite_native_execution["dataset"].sql = (
+        "select * from sales where visited >= "
+        '\'{{ get_time_filter(default="1900-01-01 : 2100-01-01", '
+        'strftime="%Y-%m-%d").from_expr }}\''
+    )
+    parent = _filter(
+        "parent",
+        filterType="filter_time",
+        targets=[{"datasetId": 5}],
+        defaultDataMask={
+            "filterState": {"value": "2020-01-01 : 2021-01-01"},
+            "extraFormData": {},
+        },
+    )
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(parent, _filter("country", cascadeParentIds=["parent"])),
+        _request(filter_value_requests=[{"filter_id": "country"}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["France", "Germany", "US"]
+
+
+@pytest.mark.parametrize(
+    ("parent_type", "extra"),
+    [
+        ("filter_time", {"time_range": "Last year"}),
+        (
+            "filter_range",
+            {"filters": [{"col": "amount", "op": ">=", "val": 2}]},
+        ),
+        ("filter_timegrain", {"time_grain_sqla": "P1D"}),
+    ],
+)
+def test_typed_parent_predicates_without_value_are_unresolved(
+    native_query: dict[str, Any], parent_type: str, extra: dict[str, Any]
+) -> None:
+    """Predicates lacking a typed value are not read as an unfiltered parent."""
+    parent = _filter("parent", filterType=parent_type)
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(parent, _filter("country", cascadeParentIds=["parent"])),
+        _request(filter_value_requests=[{"filter_id": "country"}]),
+        snapshot_state={
+            "dataMask": {"parent": {"filterState": {}, "extraFormData": extra}}
+        },
+    )
+    assert _available(summaries[0]).status == "unavailable"
+    assert _available(summaries[0]).reason == "parent_unresolved"
+    native_query["run"].assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "url_params",
+    ["market=EMEA", [["market"]], [["market", 1]], [{"market": "EMEA"}]],
+)
+def test_malformed_url_params_invalidate_the_snapshot(
+    native_query: dict[str, Any], url_params: Any
+) -> None:
+    """Caller-supplied URL parameters must be key-value string pairs."""
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("country")),
+        _request(filter_value_requests=[{"filter_id": "country"}]),
+        snapshot_state={"dataMask": {}, "urlParams": url_params},
+    )
+    assert _available(summaries[0]).reason == "state_invalid"
+    native_query["run"].assert_not_called()
 
 
 @pytest.mark.parametrize("sentinel", [float("inf"), 2**53, "bad\ud800"])
