@@ -386,7 +386,7 @@ class QueryContextProcessor:
             except SemanticResultCompletenessError:
                 raise
             except QueryObjectValidationError as ex:
-                cache.error_message = str(ex)
+                cache.error_message = QueryObjectValidationMessage(ex)
                 cache.status = QueryStatus.FAILED
             finally:
                 # Annotation work is part of data acquisition, summed with the
