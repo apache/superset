@@ -27,12 +27,17 @@ from unittest.mock import ANY, call, MagicMock, patch
 import pytest
 from flask import Flask
 
-from superset.commands.dataset.exceptions import DatasetForbiddenError
+from superset.commands.dataset.exceptions import (
+    DatasetForbiddenError,
+    DatasetSamplesFailedError,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import SupersetSecurityException
 from superset.sql.parse import Table
 from superset.utils import json as superset_json
+from superset.utils.error_sanitization import GENERIC_ERROR_MESSAGE
+from superset.views.error_handling import handle_api_exception
 
 
 def _identity_gettext(message: str, **variables: Any) -> str:
@@ -886,6 +891,144 @@ def test_samples_proceeds_for_supported_datasource_type(
 
     mock_get_samples.assert_called_once()
     view.json_response.assert_called_once_with({"result": {"rows": []}})
+
+
+@patch("superset.views.datasource.views._", _identity_gettext)
+@patch("superset.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.get_samples")
+@patch("superset.views.datasource.views.DashboardDAO")
+@patch("superset.views.datasource.views.DatasetDAO")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+def test_samples_guest_response_is_redacted_by_the_real_helper(
+    mock_view_security_manager: MagicMock,
+    mock_dataset_dao: MagicMock,
+    mock_dashboard_dao: MagicMock,
+    mock_get_samples: MagicMock,
+    mock_global_security_manager: MagicMock,
+) -> None:
+    """An embedded guest without "can view query on Dashboard" gets the generated
+    SQL stripped from the actual samples response.
+
+    Exercises the real ``redact_sensitive_query_fields`` (not a mock) through the
+    guest branch, so a regression that made the redaction a no-op for guests
+    would fail here. ``mock_view_security_manager`` drives the view's guest-access
+    checks; ``mock_global_security_manager`` is the ``from superset import
+    security_manager`` the helper resolves (guest, lacking the permission)."""
+    mock_view_security_manager.is_guest_user.return_value = True
+    mock_view_security_manager.can_drill_dataset_via_dashboard_access.return_value = (
+        True
+    )
+    # The helper's principal: a guest without "can view query on Dashboard".
+    mock_global_security_manager.is_guest_user.return_value = True
+    mock_global_security_manager.can_access.return_value = False
+
+    rv = {
+        "query": "SELECT secret_col FROM private_table",
+        "stacktrace": "Traceback (most recent call last): ...",
+        "data": [{"id": 1}],
+        "colnames": ["id"],
+        "total_count": 1,
+    }
+    mock_get_samples.return_value = rv
+
+    # Serialize what the view hands to ``json_response`` at call time, as the
+    # real ``json_response`` does, so the assertions see what a client receives
+    # and would catch the redaction running only after the response is built.
+    sent: list[dict[str, Any]] = []
+    view = _view_self()
+    view.json_response.side_effect = lambda obj, *args, **kwargs: sent.append(
+        superset_json.loads(superset_json.dumps(obj))
+    )
+    app = Flask(__name__)
+    with app.test_request_context(
+        "/datasource/samples?datasource_type=table&datasource_id=1&dashboard_id=5",
+        method="POST",
+        json={},
+    ):
+        _get_view_func("samples")(view)
+
+    # The serialized response carries no generated SQL or stacktrace, while the
+    # rendering fields were left intact.
+    assert len(sent) == 1
+    result = sent[0]["result"]
+    assert "query" not in result
+    assert "stacktrace" not in result
+    assert result["data"] == [{"id": 1}]
+    mock_global_security_manager.can_access.assert_called_once_with(
+        "can_view_query", "Dashboard"
+    )
+
+
+# A raw driver error can quote the full statement (SQLAlchemy appends
+# ``[SQL: ...]``), so it must not reach a guest on the failure path either.
+_RAW_SAMPLES_ERROR = (
+    '(psycopg2.errors.UndefinedColumn) column "secret_col" does not exist\n'
+    "LINE 1: SELECT secret_col FROM private_table\n"
+    "[SQL: SELECT secret_col FROM private_table]"
+)
+
+
+def _run_failing_samples(app: Flask, *, is_guest: bool, query_string: str) -> Any:
+    """Run the samples view body under its real ``handle_api_exception`` for a
+    query that fails with a raw driver error, as a guest or an authenticated
+    user. On failure ``get_samples`` raises rather than returning the payload,
+    so the error handler -- not ``redact_sensitive_query_fields`` -- decides
+    what the client sees."""
+    with (
+        patch(
+            "superset.views.datasource.views.security_manager",
+            new_callable=MagicMock,
+        ) as view_security_manager,
+        patch("superset.views.datasource.views.DatasetDAO"),
+        patch("superset.views.datasource.views.DashboardDAO"),
+        patch(
+            "superset.views.datasource.views.get_samples",
+            side_effect=DatasetSamplesFailedError(_RAW_SAMPLES_ERROR),
+        ),
+        patch(
+            "superset.security.SupersetSecurityManager.is_guest_user",
+            return_value=is_guest,
+        ),
+        app.test_request_context(
+            f"/datasource/samples?{query_string}", method="POST", json={}
+        ),
+    ):
+        view_security_manager.is_guest_user.return_value = is_guest
+        view_security_manager.can_drill_dataset_via_dashboard_access.return_value = True
+        return handle_api_exception(_get_view_func("samples"))(_view_self())
+
+
+def test_samples_failure_returns_generic_error_to_guests(app: Flask) -> None:
+    """When the Drill to detail query fails for an embedded guest, the response
+    carries the generic message: no SQL, table or column names leak through the
+    driver error, and no ``query``/``stacktrace`` payload is serialized."""
+    response = _run_failing_samples(
+        app,
+        is_guest=True,
+        query_string="datasource_type=table&datasource_id=1&dashboard_id=5",
+    )
+
+    assert response.status_code == 422
+    body = response.get_data(as_text=True)
+    assert superset_json.loads(body) == {"error": str(GENERIC_ERROR_MESSAGE)}
+    for leaked in ("private_table", "secret_col", "SELECT"):
+        assert leaked not in body
+
+
+def test_samples_failure_keeps_driver_error_for_authenticated_users(
+    app: Flask,
+) -> None:
+    """The guest redaction is scoped: an authenticated user still gets the
+    actionable driver error from a failed samples query."""
+    response = _run_failing_samples(
+        app,
+        is_guest=False,
+        query_string="datasource_type=query&datasource_id=1",
+    )
+
+    assert response.status_code == 422
+    body = response.get_data(as_text=True)
+    assert superset_json.loads(body) == {"error": _RAW_SAMPLES_ERROR}
 
 
 @patch("superset.views.datasource.views._", _identity_gettext)
