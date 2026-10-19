@@ -75,6 +75,9 @@ import SyncDashboardState, {
   getDashboardContextLocalStorage,
 } from '../components/SyncDashboardState';
 import { AutoRefreshProvider } from '../contexts/AutoRefreshContext';
+import useSyncActiveTabsToUrl, {
+  parseActiveTabsParam,
+} from '../hooks/useSyncActiveTabsToUrl';
 import { Filter, PartialFilters, SupersetApiError } from '@superset-ui/core';
 import { RoutePaths } from 'src/views/routePaths';
 import {
@@ -247,6 +250,14 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         }
       } else if (nativeFilterKeyValue) {
         dataMask = await getFilterValue(id, nativeFilterKeyValue);
+      }
+      // An explicit active_tabs param holds the latest tab state, so it takes
+      // precedence over the one stored in a permalink
+      const activeTabsFromUrl = parseActiveTabsParam(
+        getUrlParam(URL_PARAMS.activeTabs),
+      );
+      if (activeTabsFromUrl.length > 0) {
+        activeTabs = activeTabsFromUrl;
       }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
@@ -438,6 +449,8 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
 
   const relevantDataMask = useSelector(selectRelevantDatamask);
   const activeFilters = useSelector(selectActiveFilters);
+
+  useSyncActiveTabsToUrl(readyToRender && hasDashboardInfoInitiated);
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 

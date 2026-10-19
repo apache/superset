@@ -160,6 +160,9 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
   const directPathToChild = useSelector<RootState, string[]>(
     state => state.dashboardState.directPathToChild,
   );
+  const activeTabs = useSelector(
+    (state: RootState) => state.dashboardState.activeTabs,
+  );
   const chartIds = useChartIds();
 
   const renderedChartIds = useRenderedChartIds();
@@ -179,11 +182,17 @@ const DashboardContainer: FC<DashboardContainerProps> = ({ topLevelTabs }) => {
     });
 
     if (nextTabIndex === -1) {
+      const activeTabIndex = topLevelTabs?.children.findIndex(tabId =>
+        activeTabs?.includes(tabId),
+      );
+      if (activeTabIndex !== undefined && activeTabIndex !== -1) {
+        return activeTabIndex;
+      }
       return prevTabIndexRef.current ?? 0;
     }
     prevTabIndexRef.current = nextTabIndex;
     return nextTabIndex;
-  }, [dashboardLayout, directPathToChild]);
+  }, [dashboardLayout, directPathToChild, activeTabs, topLevelTabs]);
   // when all charts have rendered, enforce fresh shared labels
   const shouldForceFreshSharedLabelsColors =
     dashboardLabelsColorInitiated &&
