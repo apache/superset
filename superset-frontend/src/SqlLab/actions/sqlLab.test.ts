@@ -1416,6 +1416,16 @@ describe('async actions', () => {
         store.dispatch(actions.removeQueryEditor(queryEditor));
         expect(store.getActions()).toEqual(expectedActions);
       });
+
+      test('clears the closed tab northPane localStorage entry', () => {
+        const key = `sqllab.northPaneView.${queryEditor.id}`;
+        localStorage.setItem(key, 'some-extension.panel');
+
+        const store = mockStore({});
+        store.dispatch(actions.removeQueryEditor(queryEditor));
+
+        expect(localStorage.getItem(key)).toBeNull();
+      });
     });
 
     test('removeQuery removes the deleted query from the editorQueries cache', async () => {

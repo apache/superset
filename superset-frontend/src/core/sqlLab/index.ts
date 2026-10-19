@@ -47,6 +47,7 @@ import { RootState, store } from 'src/views/store';
 import { AnyListenerPredicate } from '@reduxjs/toolkit';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { newQueryTabName } from 'src/SqlLab/utils/newQueryTabName';
+import { clearNorthPaneStorage } from 'src/SqlLab/utils/northPaneStorage';
 import { Database, Disposable } from '../models';
 import { createActionListener } from '../storeUtils';
 import {
@@ -634,6 +635,7 @@ const createTab: typeof sqlLabApi.createTab = async (
 const closeTab: typeof sqlLabApi.closeTab = async (tabId: string) => {
   const queryEditor = findQueryEditor(tabId);
   if (queryEditor) {
+    clearNorthPaneStorage(queryEditor);
     store.dispatch({ type: REMOVE_QUERY_EDITOR, queryEditor });
   }
 };
