@@ -55,6 +55,7 @@ from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
 from superset.extensions import event_logger
+from superset.integrations.teams.destinations import list_teams_destinations
 from superset.reports.filters import ReportScheduleAllTextFilter, ReportScheduleFilter
 from superset.reports.models import ReportCreationMethod, ReportSchedule
 from superset.reports.schemas import (
@@ -105,6 +106,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     include_route_methods = RouteMethod.REST_MODEL_VIEW_CRUD_SET | {
         RouteMethod.RELATED,
         "bulk_delete",
+        "teams_destinations",
         "slack_channels",  # not using RouteMethod since locally defined
         "subscribe",
         "execute",  # not using RouteMethod since locally defined
@@ -115,6 +117,7 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
     method_permission_name = {
         **MODEL_API_RW_METHOD_PERMISSION_MAP,
         "get_configuration": "read",
+        "teams_destinations": "read",
         "put_configuration": "write",
     }
     resource_name = "report"
@@ -823,6 +826,41 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
             return self.response_403()
         except ReportScheduleDeleteFailedError as ex:
             return self.response_422(message=str(ex))
+
+    @expose("/teams_destinations/", methods=("GET",))
+    @protect()
+    @safe
+    @statsd_metrics
+    def teams_destinations(self) -> Response:
+        """List approved Teams destinations using Reports read permissions.
+        ---
+        get:
+          summary: List approved Teams alert destinations
+          responses:
+            200:
+              description: Approved destinations and installation availability
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            key:
+                              type: string
+                            label:
+                              type: string
+                            available:
+                              type: boolean
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+        """
+        return self.response(200, result=list_teams_destinations())
 
     @expose("/slack_channels/", methods=("GET",))
     @protect()

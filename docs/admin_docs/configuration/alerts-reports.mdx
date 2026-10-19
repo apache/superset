@@ -988,3 +988,16 @@ Do not serialize the parsed configuration object, including via `dataclasses.asd
 - [Tutorial: Automated Alerts and Reporting via Slack/Email in Superset](https://dev.to/ngtduc693/apache-superset-topic-5-automated-alerts-and-reporting-via-slackemail-in-superset-2gbe)
 - [Blog: Integrating Slack alerts and Apache Superset for better data observability](https://medium.com/affinityanswers-tech/integrating-slack-alerts-and-apache-superset-for-better-data-observability-fd2f9a12c350)
   :::
+
+The alert editor lists Teams when the integration is enabled and configured and
+attachments are disabled. Choose an approved channel by its display label. To
+notify multiple channels, add another notification method and choose Teams again;
+each entry stores one destination key. Scheduled reports do not offer Teams.
+
+The destination list uses the Reports API read permission and returns only keys,
+labels, and installation availability. Channels without an active bot installation
+remain selectable so alerts can be saved before installation, with a visible
+installation-required notice. Install the notification bot in the approved team
+before delivery. Removed configuration keys remain visible as unavailable when
+editing saved alerts; restore the configuration or select another approved channel.
+Credentials are managed only in deployment configuration.

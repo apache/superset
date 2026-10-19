@@ -28,6 +28,7 @@ import {
 import rison from 'rison';
 
 import { t } from '@apache-superset/core/translation';
+import { Alert } from '@apache-superset/core/components';
 import {
   FeatureFlag,
   JsonResponse,
@@ -49,6 +50,7 @@ import {
   SlackChannel,
 } from '../types';
 import { StyledInputContainer } from '../AlertReportModal';
+import TeamsDestinationSelect from './TeamsDestinationSelect';
 
 const StyledNotificationMethod = styled.div`
   ${({ theme }) => `
@@ -143,6 +145,8 @@ const TRANSLATIONS = {
 };
 
 interface NotificationMethodProps {
+  teamsSupported?: boolean;
+  teamsIntegrationAvailable?: boolean;
   setting?: NotificationSetting | null;
   index: number;
   onUpdate?: (index: number, updatedSetting: NotificationSetting) => void;
@@ -256,6 +260,8 @@ const fetchEmailRecipientOptions = async (
 };
 
 export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
+  teamsSupported = true,
+  teamsIntegrationAvailable = true,
   setting = null,
   index,
   onUpdate,
@@ -480,7 +486,8 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               method === NotificationMethodOption.Slack) ||
             (isFeatureEnabled(FeatureFlag.AlertReportWebhook) &&
               method === NotificationMethodOption.Webhook) ||
-            method === NotificationMethodOption.Email,
+            method === NotificationMethodOption.Email ||
+            method === NotificationMethodOption.Teams,
         )
         .map(method => ({
           label:
@@ -488,8 +495,11 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               ? NotificationMethodOption.Slack
               : method,
           value: method,
+          disabled:
+            method === NotificationMethodOption.Teams &&
+            (!teamsSupported || !teamsIntegrationAvailable),
         })),
-    [options, useSlackV1],
+    [options, useSlackV1, teamsSupported, teamsIntegrationAvailable],
   );
 
   if (!setting) {
@@ -626,6 +636,23 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               </StyledInputContainer>
             </div>
           ) : null}
+          {method === NotificationMethodOption.Teams && !teamsSupported && (
+            <Alert
+              type="warning"
+              message={t(
+                'Teams delivery requires an alert with attachments disabled.',
+              )}
+            />
+          )}
+          {method === NotificationMethodOption.Teams &&
+            !teamsIntegrationAvailable && (
+              <Alert
+                type="warning"
+                message={t(
+                  'Teams delivery is unavailable. Contact your administrator to enable and configure it.',
+                )}
+              />
+            )}
           {method !== NotificationMethodOption.Webhook ? (
             <div className="inline-container">
               <StyledInputContainer>
@@ -639,7 +666,15 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
                   <span className="required">*</span>
                 </div>
                 <div>
-                  {method === NotificationMethodOption.Slack ? (
+                  {method === NotificationMethodOption.Teams ? (
+                    <TeamsDestinationSelect
+                      value={recipients || ''}
+                      disabled={!teamsSupported || !teamsIntegrationAvailable}
+                      onChange={value =>
+                        onUpdate?.(index, { ...setting, recipients: value })
+                      }
+                    />
+                  ) : method === NotificationMethodOption.Slack ? (
                     <>
                       <div className="input-container">
                         <Input.TextArea
