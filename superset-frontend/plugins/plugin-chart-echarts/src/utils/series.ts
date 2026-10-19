@@ -627,12 +627,27 @@ export type XAxisSortBySumOfColumns = {
  * a `SortSeriesType` aggregates every numeric column in the row, while
  * `XAxisSortBySumOfColumns` only sums the named columns.
  */
-export type XAxisSortSeries = SortSeriesType | XAxisSortBySumOfColumns;
+export type XAxisSortSeries =
+  | SortSeriesType
+  | XAxisSortBySumOfColumns
+  | XAxisSortByAxisValue;
+
+/**
+ * Orders rows by the raw x-axis value, case-sensitively, matching the
+ * backend sort used when no series are pivoted.
+ */
+export type XAxisSortByAxisValue = { axisValue: true };
+
+export function isXAxisSortByAxisValue(
+  sort: XAxisSortSeries,
+): sort is XAxisSortByAxisValue {
+  return typeof sort === 'object' && 'axisValue' in sort;
+}
 
 export function isXAxisSortBySumOfColumns(
   sort: XAxisSortSeries,
 ): sort is XAxisSortBySumOfColumns {
-  return typeof sort === 'object';
+  return typeof sort === 'object' && 'sumOfColumns' in sort;
 }
 
 export function sortRows(
@@ -645,10 +660,13 @@ export function sortRows(
   const sumOfColumns = isXAxisSortBySumOfColumns(xAxisSortSeries)
     ? new Set(xAxisSortSeries.sumOfColumns)
     : undefined;
-  const aggregation: SortSeriesType = sumOfColumns
-    ? ((xAxisSortSeries as XAxisSortBySumOfColumns).aggregation ??
-      SortSeriesType.Sum)
-    : (xAxisSortSeries as SortSeriesType);
+  const byAxisValue = isXAxisSortByAxisValue(xAxisSortSeries);
+  const aggregation: SortSeriesType = byAxisValue
+    ? SortSeriesType.Name
+    : sumOfColumns
+      ? ((xAxisSortSeries as XAxisSortBySumOfColumns).aggregation ??
+        SortSeriesType.Sum)
+      : (xAxisSortSeries as SortSeriesType);
   const sortedRows = rows.map((row, idx) => {
     let sortKey: DataRecordValue = '';
     let aggregate: number | undefined;
@@ -705,7 +723,7 @@ export function sortRows(
 
     const value =
       aggregation === SortSeriesType.Name
-        ? typeof sortKey === 'string'
+        ? typeof sortKey === 'string' && !byAxisValue
           ? sortKey.toLowerCase()
           : sortKey
         : aggregate;
