@@ -490,6 +490,32 @@ def test_update_dataset_template_params_type_change_is_rechecked(
     mock_dataset_dao.update.assert_not_called()
 
 
+@pytest.mark.parametrize("legacy_params", ['[["t", "v"]]', "{bad", "   ", "null", "42"])
+def test_update_dataset_metadata_edit_keeps_legacy_template_params(
+    mocker: MockerFixture, legacy_params: str
+) -> None:
+    """
+    A metadata-only edit must not be rejected just because the dataset's stored
+    ``template_params`` predate object validation. The editor echoes the stored
+    value back on every save, so an unchanged (even non-object) value must not
+    count as a repoint and must not trigger the SQL access check.
+    """
+    mock_dataset_dao, *_ = _mock_virtual_dataset_update(
+        mocker, template_params=legacy_params
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.dataset.update.security_manager.raise_for_access",
+        side_effect=_deny_sql_access,
+    )
+
+    UpdateDatasetCommand(
+        1, {"template_params": legacy_params, "description": "notes"}
+    ).run()
+
+    raise_for_access.assert_not_called()
+    mock_dataset_dao.update.assert_called_once()
+
+
 def test_update_dataset_auth_check_drops_reserved_params(
     mocker: MockerFixture,
 ) -> None:

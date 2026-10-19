@@ -316,10 +316,20 @@ def _raise_for_import_binding_access(
     )
     if "template_params" in config:
         requested_params = _readable_template_params(config["template_params"])
-        # Compared type-sensitively (as execution reads them): ``1`` and
-        # ``true`` are a change even though the dicts are Python-equal. An
-        # unreadable value on either side counts as a change (fail closed).
+        # Re-importing the value already stored is not a change, even when it
+        # is a legacy non-object value (``import_from_dict`` stores it as
+        # ``json.dumps(config[...])``), matching UpdateDatasetCommand's echo
+        # handling. Otherwise compared type-sensitively the way execution reads
+        # them: ``1`` and ``true`` differ even though the dicts are
+        # Python-equal; an unreadable value that is a real change fails closed.
+        config_stored_form = (
+            json.dumps(config["template_params"])
+            if config["template_params"] is not None
+            else None
+        )
         params_unchanged = (
+            existing is not None and config_stored_form == existing.template_params
+        ) or (
             requested_params is not None
             and stored_params is not None
             and template_params_equivalent(requested_params, stored_params)

@@ -1059,6 +1059,30 @@ def test_import_dataset_template_params_type_change_runs_binding_check(
     assert binding_checks[0]["template_params"] == {"t": True}
 
 
+def test_import_dataset_reimport_keeps_legacy_nonobject_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Re-importing a bundle whose dataset carries a legacy non-object (but
+    executable) ``template_params`` must be treated as an unchanged binding,
+    not rejected -- the stored value is unchanged, so this is a metadata-only
+    re-import, matching UpdateDatasetCommand's echo handling.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps([["t", "public.ok"]]),
+    )
+    binding_checks = _record_binding_checks(mocker)
+
+    # The export carries the params as their parsed (list) form.
+    import_dataset(
+        _overwrite_config(existing, template_params=[["t", "public.ok"]]),
+        overwrite=True,
+    )
+
+    assert binding_checks == []
+
+
 def test_import_dataset_binding_check_drops_reserved_params(
     mocker: MockerFixture, session: Session
 ) -> None:

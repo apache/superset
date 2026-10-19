@@ -4214,6 +4214,74 @@ def test_raise_for_access_allow_editorship_false_keeps_schema_access(
         sm.raise_for_access(query=query, force_dataset_match=True)
 
 
+def test_raise_for_access_allow_editorship_false_keeps_catalog_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    allow_editorship=False must not drop the catalog_access fallthrough either:
+    a user with catalog_access on the referenced catalog is not over-blocked
+    when defining a dataset over a table in it.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    mocker.patch.object(database.db_engine_spec, "supports_catalog", True)
+    query = mocker.MagicMock(
+        database=database, schema="dbo", catalog="other", sql="SELECT * FROM dbo.foo"
+    )
+    # Only catalog_access holds (the "other" catalog on this connection).
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: perm == "catalog_access"
+        and vm == f"[{MSSQL_CONN_NAME}].[other]",
+    )
+
+    sm.raise_for_access(query=query, allow_editorship=False)
+
+
+def test_raise_for_access_allow_editorship_false_keeps_datasource_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    End-to-end ALLOW guard: a holder of real ``datasource_access`` on a
+    registered dataset for the referenced table passes even with
+    ``allow_editorship=False`` -- the define/repoint paths never over-block a
+    principal with genuine data access (only editorship-as-access is removed).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = [
+        mocker.MagicMock(
+            perm=f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)", sql=None, catalog=None
+        )
+    ]
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database, schema=None, catalog=None, sql="SELECT * FROM dbo.foo"
+    )
+    # Only datasource_access on the registered dataset holds.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: perm == "datasource_access"
+        and vm == f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)",
+    )
+
+    sm.raise_for_access(query=query, allow_editorship=False)
+
+
 def test_raise_for_access_datasource_branch_honors_allow_editorship(
     mocker: MockerFixture,
     app_context: None,

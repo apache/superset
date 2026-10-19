@@ -132,7 +132,7 @@ def _repoints_sql(
     database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
-    requested_template_params: dict[str, Any],
+    raw_template_params: str | None,
 ) -> bool:
     """
     Would the request change what the SQL on ``datasource`` reads?
@@ -142,18 +142,21 @@ def _repoints_sql(
     when the connection, catalog or schema it resolves unqualified names
     against moves, or when the ``template_params`` that render a templated
     ``FROM`` change -- the same triggers as
-    ``UpdateDatasetCommand._validate_sql_access``.
+    ``UpdateDatasetCommand._validate_sql_access``. An identical params value
+    (the editor echoes it back) is never a change, even a legacy non-object
+    one; otherwise they are compared as execution reads them.
     """
     if not isinstance(datasource, SqlaTable) or not requested_sql:
         return False
+    params_changed = raw_template_params != datasource.template_params and (
+        not template_params_equivalent(raw_template_params, datasource.template_params)
+    )
     return (
         database_changed
         or requested_sql != datasource.sql
         or (requested_table.schema, requested_table.catalog)
         != (datasource.schema or None, datasource.catalog or None)
-        or not template_params_equivalent(
-            requested_template_params, datasource.template_params
-        )
+        or params_changed
     )
 
 
@@ -195,7 +198,7 @@ def _authorize_repoint(
     database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
-    requested_template_params: dict[str, Any],
+    raw_template_params: str | None,
 ) -> FlaskResponse | None:
     """Authorise the target a save aims ``datasource`` at.
 
@@ -216,7 +219,7 @@ def _authorize_repoint(
         database_changed,
         requested_sql,
         requested_table,
-        requested_template_params,
+        raw_template_params,
     )
     if not (repoints_table or repoints_sql):
         return None
@@ -236,6 +239,16 @@ def _authorize_repoint(
                 allow_editorship=False,
             )
         if repoints_sql:
+            # Only rendered on an actual repoint, so an unreadable value here
+            # is a genuine change we cannot authorize -- reject it rather than
+            # 500 (a metadata-only echo of a legacy value never reaches this).
+            try:
+                template_params = parse_template_params(raw_template_params)
+            except ValueError:
+                return json_error_response(
+                    _("Template parameters must be a valid JSON object."),
+                    status=422,
+                )
             security_manager.raise_for_access(
                 database=target_database,
                 sql=requested_sql,
@@ -245,9 +258,7 @@ def _authorize_repoint(
                 # authorized as the table it actually resolves to, minus the
                 # names the processor consumes structurally (so the render
                 # matches execution).
-                template_params=template_params_for_access_check(
-                    requested_template_params
-                ),
+                template_params=template_params_for_access_check(template_params),
                 allow_editorship=False,
             )
     except SupersetSecurityException as ex:
@@ -303,17 +314,6 @@ class Datasource(BaseSupersetView):
                 _("The `%(field)s` field must be a string.", field=str(ex)),
                 status=422,
             )
-        # Only SQL renders the params. Read them as execution will, and refuse
-        # params it would read differently rather than authorize a guess.
-        requested_template_params: dict[str, Any] = {}
-        if requested_sql:
-            try:
-                requested_template_params = parse_template_params(raw_template_params)
-            except ValueError:
-                return json_error_response(
-                    _("Template parameters must be a valid JSON object."),
-                    status=422,
-                )
 
         if error := _authorize_repoint(
             orm_datasource,
@@ -321,7 +321,7 @@ class Datasource(BaseSupersetView):
             database_changed,
             requested_sql,
             requested_table,
-            requested_template_params,
+            raw_template_params,
         ):
             return error
 

@@ -772,6 +772,41 @@ def test_save_rejects_template_params_repoint_without_access(
 @patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
 @patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
 @patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
+@pytest.mark.parametrize("legacy_params", ['[["t", "v"]]', "{bad", "   ", "42"])
+def test_save_metadata_edit_keeps_legacy_template_params(
+    mock_get_datasource: MagicMock,
+    mock_security_manager: MagicMock,
+    mock_get_database_by_id: MagicMock,
+    mock_db: MagicMock,
+    legacy_params: str,
+) -> None:
+    """
+    A metadata-only save that echoes a legacy non-object ``template_params``
+    back (unchanged SQL/schema/database) is not a repoint and must not be
+    rejected -- no access check runs and nothing is written is blocked.
+    """
+    mock_orm = _save_orm_dataset(
+        sql="SELECT * FROM {{ t }}", is_virtual=True, template_params=legacy_params
+    )
+    mock_get_datasource.return_value = mock_orm
+
+    response = _run_save(
+        database={"id": 1},
+        table_name="my_table",
+        schema="public",
+        sql="SELECT * FROM {{ t }}",
+        template_params=legacy_params,
+    )
+
+    # Not a repoint -> no access check, and the save proceeds (no 422).
+    mock_security_manager.raise_for_access.assert_not_called()
+    assert not (hasattr(response, "status_code") and response.status_code == 422)
+
+
+@patch("superset.views.datasource.views.db")
+@patch("superset.views.datasource.views.DatasetDAO.get_database_by_id")
+@patch("superset.views.datasource.views.security_manager", new_callable=MagicMock)
+@patch("superset.views.datasource.views.DatasourceDAO.get_datasource")
 def test_save_template_params_type_change_is_rechecked(
     mock_get_datasource: MagicMock,
     mock_security_manager: MagicMock,

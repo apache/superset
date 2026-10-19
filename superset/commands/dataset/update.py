@@ -82,10 +82,16 @@ def _template_params_differ(requested: str | None, stored: str | None) -> bool:
     Could replacing ``stored`` params with ``requested`` change what a
     templated SQL renders?
 
-    Compared the way execution reads them, so re-serialized JSON with the same
-    values is no change while values of different JSON types (e.g. ``1`` vs
-    ``true``, which Jinja distinguishes) are a change.
+    An identical value is never a change -- including a legacy value that is
+    not a JSON object (the editor echoes the stored params back on every save,
+    so a metadata-only edit must not be treated as a repoint just because the
+    stored params predate object validation). Otherwise, compared the way
+    execution reads them, so re-serialized JSON with the same values is no
+    change while values of different JSON types (e.g. ``1`` vs ``true``, which
+    Jinja distinguishes) are a change.
     """
+    if requested == stored:
+        return False
     return not template_params_equivalent(requested, stored)
 
 
