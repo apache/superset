@@ -129,9 +129,12 @@ assists people when migrating to a new version.
 - Semantic-layer configuration Save and Reload metadata increment a database-backed
   cache generation. Apply the `c179af013f48` migration before deploying the updated
   application; existing semantic chart caches become cold once on upgrade.
-  Providers with local metadata caches must adopt the optional cache-token factory
-  hook for complete invalidation. When tenants share a metadata database or web,
-  Celery and MCP use different database host aliases, configure
+  Providers must accept required keyword-only `cache_token` and `context` on
+  `from_configuration`; the optional `from_configuration_with_cache_token` hook
+  is removed. Local metadata caches must include `cache_token` in their keys
+  before lookup or eager discovery for complete invalidation. When tenants share
+  a metadata database or web, Celery and MCP use different database host aliases,
+  configure
   `SEMANTIC_LAYER_CACHE_NAMESPACE` as a globally unique workspace identity that
   resolves identically in all three contexts. A metadata session must not span
   workspaces. Saves handled by old instances during a rolling deployment do not

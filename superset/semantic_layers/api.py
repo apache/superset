@@ -304,6 +304,8 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                     view.implementation.get_metrics(), key=lambda m: m.name
                 )
             ]
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "Error fetching structure for semantic view %d: %s",
@@ -842,6 +844,8 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                 layer.implementation.configuration,  # type: ignore[attr-defined]
                 runtime_data,
             )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
             return self.response_400(message=str(ex))
 
@@ -896,6 +900,8 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
         try:
             views = layer.implementation.get_semantic_views(runtime_data)
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
             logger.error(
                 "Error fetching semantic views for layer %s: %s",
