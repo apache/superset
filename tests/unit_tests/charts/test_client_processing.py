@@ -5107,3 +5107,46 @@ def test_collapsed_metric_preserves_shared_metric_set(metrics: set[str]):
     assert _collapsed_metric(metrics) == expected
     assert _collapsed_metric(metrics) == expected
     assert metrics == original
+
+
+@pytest.mark.parametrize("combine", [False, True])
+@pytest.mark.parametrize("transpose", [False, True])
+def test_pivot_mixed_totals_preserve_integer_xlsx(combine: bool, transpose: bool):
+    """The full XLSX path keeps large integers as exact text and small ones numeric."""
+    from openpyxl import load_workbook
+
+    large = 2**53 + 1
+    source = pd.DataFrame(
+        {
+            "nation": ["US", "UK"],
+            "gender": ["boy", "boy"],
+            "SUM(a)": [str(large), "2"],
+            "SUM(b)": [3, 4],
+        }
+    )
+    result = apply_client_processing(
+        {
+            "queries": [
+                {
+                    "result_format": ChartDataResultFormat.XLSX,
+                    "data": excel.df_to_excel(source, index=False),
+                }
+            ]
+        },
+        {
+            "viz_type": "pivot_table_v2",
+            "groupbyRows": ["nation"],
+            "groupbyColumns": ["gender"],
+            "metrics": ["SUM(a)", "SUM(b)"],
+            "metricsLayout": "ROWS",
+            "combineMetric": combine,
+            "transposePivot": transpose,
+            "rowTotals": True,
+            "colTotals": True,
+        },
+    )
+    sheet = load_workbook(BytesIO(result["queries"][0]["data"])).active
+    cells = [cell for row in sheet for cell in row]
+    assert any(cell.value == str(large) and cell.data_type == "s" for cell in cells)
+    assert any(cell.value == 3 and cell.data_type == "n" for cell in cells)
+    assert not any(str(cell.value).startswith(str(large - 1)) for cell in cells)

@@ -208,7 +208,7 @@ def _reduce(
 ) -> Any:
     """Apply a rollup reducer (``sum``/``min``/``max``), skipping empty cells.
 
-    A percentage-mode rollup with no non-null observations stays blank:
+    A rollup with no non-null observations stays blank:
     ``sum`` otherwise defaults an all-NaN input to 0, treating missing values
     as a measured zero.
     """
@@ -705,6 +705,8 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     )
                     raise
 
+                # These labels were inserted above; no columns are removed
+                # before this point. Keep strict lookup to catch broken invariants.
                 subtotal_values = df.iloc[slice_, :].drop(columns=mixed_metric_totals)
                 if aggfunc != CURRENCY_CONTEXT_AGGREGATION:
                     subtotal_values = subtotal_values.apply(
