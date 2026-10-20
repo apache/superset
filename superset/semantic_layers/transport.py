@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import heapq
 import logging
+import os
 import socket
 import time
 from collections.abc import Callable, Mapping
@@ -28,7 +29,7 @@ from contextvars import Token
 from dataclasses import dataclass, field
 from io import BytesIO
 from threading import Condition, Lock, Thread
-from typing import Any
+from typing import Any, TYPE_CHECKING
 from urllib.parse import SplitResult, urljoin, urlsplit
 
 import requests
@@ -48,6 +49,9 @@ from superset.utils.network import (
     PinnedHTTPAdapter,
     PROVIDER_DEADLINE,
 )
+
+if TYPE_CHECKING:
+    from requests.sessions import _Settings
 
 logger: logging.Logger = logging.getLogger(__name__)
 MAX_REDIRECTS: int = 3
@@ -78,7 +82,7 @@ class HostProviderTransport(ProviderTransport):
             bound.remaining()  # No parsing, resolution or socket work after expiry.
             self._validated_url(url)
             with _DirectSession() as session:
-                session.trust_env = False
+                session.trust_env = self._allow_internal
                 adapter: PinnedHTTPAdapter = PinnedHTTPAdapter(
                     public_only=not self._allow_internal
                 )
@@ -128,9 +132,13 @@ class HostProviderTransport(ProviderTransport):
             OSError,
             ProviderRequestError,
         ) as exc:
-            error: ProviderRequestError = self._failure_for(exc, budget.deadline)
+            failure: ProviderRequestError = self._failure_for(exc, budget.deadline)
+            error: ProviderRequestError = ProviderRequestError(
+                failure.failure, status=failure.status, provider=provider
+            )
             logger.warning(
-                "Provider request failed: category=%s status=%s",
+                "%s request failed: category=%s status=%s",
+                error.provider,
                 error.failure.value,
                 error.status,
             )
@@ -239,6 +247,12 @@ def build_provider_transport() -> ProviderTransport:
 
 
 class _DirectSession(requests.Session):
+    def merge_environment_settings(self, *args: Any, **kwargs: Any) -> _Settings:
+        # Retain internal-mode CA bundles, but the deadline must own the direct socket.
+        settings: _Settings = super().merge_environment_settings(*args, **kwargs)
+        settings["proxies"] = {}
+        return settings
+
     def get_redirect_target(self, resp: requests.Response) -> None:
         # Requests otherwise reads redirect bodies despite allow_redirects=False.
         return None
@@ -297,9 +311,6 @@ class DeadlineScheduler:
             for sock in bound.sockets:
                 sock.close()
             bound.sockets.clear()
-            # Completed long-deadline requests must not accumulate tombstones.
-            self._heap = [item for item in self._heap if item[2] in self._tokens]
-            heapq.heapify(self._heap)
             self._condition.notify()
 
     def drain(self) -> None:
@@ -327,6 +338,9 @@ class DeadlineScheduler:
                 deadline: float
                 bound: _Deadline
                 deadline, _, bound = self._heap[0]
+                if bound.closed:
+                    heapq.heappop(self._heap)
+                    continue
                 remaining: float = deadline - time.monotonic()
                 if remaining > 0:
                     self._condition.wait(remaining)
@@ -345,3 +359,14 @@ def _scheduler() -> DeadlineScheduler:
         if _SCHEDULER is None:
             _SCHEDULER = DeadlineScheduler()
         return _SCHEDULER
+
+
+def _reset_scheduler_after_fork() -> None:
+    """A child cannot reuse the parent's worker or potentially held lock."""
+    global _SCHEDULER, _SCHEDULER_LOCK  # pylint: disable=global-statement
+    _SCHEDULER = None
+    _SCHEDULER_LOCK = Lock()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_scheduler_after_fork)

@@ -20,8 +20,12 @@
 from __future__ import annotations
 
 import ipaddress
+import os
 import socket
 import ssl
+import subprocess
+import sys
+import textwrap
 import time
 from collections.abc import Iterator
 from concurrent.futures import ThreadPoolExecutor
@@ -425,13 +429,13 @@ def test_flag_off_keeps_local_endpoints_refused() -> None:
         with pytest.raises(ProviderRequestError) as raised:
             provider_request("Cube", "GET", f"https://localhost:{port}/m", timeout=2)
     assert seen == []
-    assert str(raised.value) == ("Provider endpoint is not allowed.")
+    assert str(raised.value) == ("Cube endpoint is not allowed.")
 
 
 def test_post_redirects_are_not_followed() -> None:
     routes: dict[str, Route] = {"/graphql": (307, {"Location": "/other"}, b"")}
     with _server(routes) as (port, seen), _internal_hosts(True):
-        with pytest.raises(ProviderRequestError, match=r"^Provider request failed"):
+        with pytest.raises(ProviderRequestError, match=r"^DJ request failed"):
             provider_request(
                 "DJ", "POST", f"http://127.0.0.1:{port}/graphql", json={}, timeout=2
             )
@@ -446,14 +450,14 @@ def test_redirect_chains_are_bounded() -> None:
     assert len(seen) == semantic_layer_http.MAX_REDIRECTS + 1
 
 
-def test_error_message_carries_status_only() -> None:
+def test_error_message_carries_provider_and_status_only() -> None:
     routes: dict[str, Route] = {"/a": (500, {}, b"internal detail")}
     with _server(routes) as (port, _), _internal_hosts(True):
         with pytest.raises(ProviderRequestError) as raised:
             provider_request(
                 "MetricFlow", "GET", f"http://127.0.0.1:{port}/a", timeout=2
             )
-    assert str(raised.value) == "Provider request failed with HTTP 500."
+    assert str(raised.value) == "MetricFlow request failed with HTTP 500."
 
 
 def test_transport_failure_hides_the_destination(
@@ -689,7 +693,7 @@ def test_bounded_error_bodies_are_not_read_or_logged(
     with _server(routes, public_tls[0]) as (port, _), caplog.at_level("WARNING"):
         with pytest.raises(ProviderRequestError) as raised:
             _body(f"https://public.example.test:{port}/q")
-    assert str(raised.value) == "Provider request failed with HTTP 500."
+    assert str(raised.value) == "MetricFlow request failed with HTTP 500."
     assert "internal detail" not in caplog.text
 
 
@@ -828,7 +832,7 @@ def test_bounded_lookup_and_connect_attempts_share_the_deadline(
 
     waits: list[float] = []
 
-    def stalled_connect(address: Any, timeout: Any = None, **kwargs: Any) -> Any:
+    def stalled_connect(address: Any, timeout: Any, options: Any) -> Any:
         waits.append(float(timeout))
         time.sleep(float(timeout))
         raise socket.timeout("timed out")
@@ -930,7 +934,7 @@ def test_dns_failure_is_not_an_address_policy_refusal(
 
     with _internal_hosts(allow_internal), pytest.raises(ProviderRequestError) as raised:
         call()
-    assert str(raised.value) == "Provider endpoint could not be reached."
+    assert str(raised.value) == "MetricFlow endpoint could not be reached."
     assert "unreachable" in caplog.text
     assert "refused" not in caplog.text
     assert "private DNS detail" not in caplog.text
@@ -968,8 +972,18 @@ def test_byte_cap_boundaries_and_chunk_accounting(
     assert max(consumed) <= 65536
 
 
+@pytest.mark.parametrize(
+    "provider,expected",
+    [
+        ("UNTRUSTED_LABEL", "UNTRUSTED_LABEL"),
+        ("Cube\nforged=https://secret.test/", "Provider"),
+    ],
+)
 def test_error_body_is_unread(
-    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+    provider: str,
+    expected: str,
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     from unittest.mock import MagicMock
 
@@ -981,10 +995,11 @@ def test_error_body_is_unread(
         semantic_layer_http._DirectSession, "request", lambda *args, **kwargs: response
     )
     with pytest.raises(ProviderRequestError) as raised:
-        provider_request("UNTRUSTED_LABEL", "GET", response.url, timeout=1)
+        provider_request(provider, "GET", response.url, timeout=1)
     assert raised.value.failure == ProviderRequestFailure.HTTP_STATUS
     response.raw.read1.assert_not_called()
-    assert "UNTRUSTED_LABEL" not in caplog.text
+    assert f"{expected} request failed: category=http_status status=503" in caplog.text
+    assert str(raised.value) == f"{expected} request failed with HTTP 503."
     assert "secret" not in caplog.text
     assert "category=http_status status=503" in caplog.text
 
@@ -1032,6 +1047,9 @@ def test_connect_boundary_stall_uses_real_socket_timeout(
     left, right = socket.socketpair()
 
     class ConnectingSocket:
+        def setsockopt(self, level: int, option: int, value: int | bytes) -> None:
+            assert (level, option, value) == (socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+
         def settimeout(self, seconds: float) -> None:
             left.settimeout(seconds)
 
@@ -1191,14 +1209,14 @@ def test_cross_scheme_redirect_returns_status_without_reading_body(
         headers={"Location": "http://fixture.test/"},
     )
     response.__enter__.return_value = response
-    monkeypatch.setattr(
-        semantic_layer_http._DirectSession, "request", lambda *args, **kwargs: response
-    )
+    send: MagicMock = MagicMock(return_value=response)
+    monkeypatch.setattr(semantic_layer_http._DirectSession, "request", send)
     with pytest.raises(ProviderRequestError) as raised:
         provider_request("fixture", "GET", response.url, timeout=1)
     assert raised.value.failure == ProviderRequestFailure.HTTP_STATUS
     assert raised.value.status == 302
     response.raw.read1.assert_not_called()
+    send.assert_called_once()
 
 
 def test_explicit_zero_port_is_not_the_default_origin(
@@ -1243,3 +1261,129 @@ def test_completed_body_does_not_require_a_second_full_copy() -> None:
         tracemalloc.stop()
     assert len(body) == size
     assert peak < size * 1.25 + len(chunk)
+
+
+@pytest.mark.parametrize("bundle_variable", ["REQUESTS_CA_BUNDLE", "CURL_CA_BUNDLE"])
+def test_internal_tls_honors_environment_ca_without_proxy(
+    bundle_variable: str, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    cert: Path
+    key: Path
+    cert, key = _certificate(tmp_path, "localhost")
+    context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.load_cert_chain(cert, key)
+    monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
+    monkeypatch.delenv("CURL_CA_BUNDLE", raising=False)
+    monkeypatch.setenv(bundle_variable, str(cert))
+    variable: str
+    for variable in ("HTTPS_PROXY", "https_proxy", "ALL_PROXY", "all_proxy"):
+        monkeypatch.setenv(variable, "http://127.0.0.1:1")
+    monkeypatch.setenv("NO_PROXY", "")
+    monkeypatch.setenv("no_proxy", "")
+    # No Session/verify patch: real Requests must load the environment CA.
+    with _server(context=context) as (port, seen), _internal_hosts(True):
+        response: ProviderResponse = provider_request(
+            "Cube", "GET", f"https://localhost:{port}/private-ca", timeout=2
+        )
+    assert response.status == 200
+    assert len(seen) == 1
+
+
+def test_closed_deadline_is_removed_by_worker_without_heap_rebuild() -> None:
+    scheduler: semantic_layer_http.DeadlineScheduler = semantic_layer_http._scheduler()
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() + 3600
+    )
+    left: socket.socket
+    right: socket.socket
+    left, right = socket.socketpair()
+    try:
+        with (
+            scheduler._condition,
+            patch.object(semantic_layer_http.heapq, "heapify") as rebuild,
+        ):
+            scheduler.register(bound, left)
+            scheduler.close(bound)
+            rebuild.assert_not_called()
+            assert not bound.sockets
+        until: float = time.monotonic() + 1
+        while time.monotonic() < until:
+            with scheduler._condition:
+                if not any(item[2] is bound for item in scheduler._heap):
+                    break
+            time.sleep(0.001)
+        with scheduler._condition:
+            assert not any(item[2] is bound for item in scheduler._heap)
+        assert not bound.expired
+        left.sendall(b"still open")
+        assert right.recv(10) == b"still open"
+    finally:
+        scheduler.close(bound)
+        left.close()
+        right.close()
+
+
+@pytest.mark.skipif(not hasattr(os, "fork"), reason="POSIX worker lifecycle")
+def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
+    # Isolate fork from pytest/Flask background threads; kill a stuck child too.
+    script: str = textwrap.dedent("""
+        import os
+        import signal
+        import socket
+        import time
+        from concurrent.futures import ThreadPoolExecutor
+        from superset.semantic_layers import transport
+        from superset.utils import network
+
+        network._resolve_addresses("127.0.0.1", 443, 1, public_only=False)
+        transport._scheduler()
+        resolver: ThreadPoolExecutor | None = network._RESOLVER
+        scheduler: transport.DeadlineScheduler | None = transport._SCHEDULER
+        network._RESOLVER_LOCK.acquire()
+        transport._SCHEDULER_LOCK.acquire()
+        pid: int = os.fork()
+        if pid == 0:
+            signal.alarm(4)
+            try:
+                assert network._RESOLVER is None
+                assert transport._SCHEDULER is None
+                assert network._resolve_addresses(
+                    "127.0.0.1", 443, 1, public_only=False
+                ) == ["127.0.0.1"]
+                left: socket.socket
+                right: socket.socket
+                left, right = socket.socketpair()
+                right.settimeout(1)
+                bound: transport._Deadline = transport._Deadline(
+                    time.monotonic() + 0.05
+                )
+                bound.watch(left)
+                assert right.recv(1) == b""
+                assert bound.expired
+                bound.close()
+                left.close()
+                right.close()
+            except BaseException:
+                import traceback
+                traceback.print_exc()
+                os._exit(1)
+            os._exit(0)
+        network._RESOLVER_LOCK.release()
+        transport._SCHEDULER_LOCK.release()
+        status: int
+        _, status = os.waitpid(pid, 0)
+        assert os.waitstatus_to_exitcode(status) == 0
+        assert network._RESOLVER is resolver
+        assert transport._SCHEDULER is scheduler
+        assert network._resolve_addresses(
+                    "127.0.0.1", 443, 1, public_only=False
+                ) == ["127.0.0.1"]
+    """)
+    result: subprocess.CompletedProcess[str] = subprocess.run(  # noqa: S603 -- fixed local test script, no external input
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=15,
+        check=False,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr

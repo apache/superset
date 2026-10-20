@@ -81,10 +81,14 @@ The host returns only 2xx responses. `ProviderRequestError.failure` identifies
 `UNSUPPORTED_ENCODING`, or `HTTP_STATUS`. For `HTTP_STATUS`, `status` contains the
 status code. These are transport faults, not deliberate query refusals. Never
 log URLs, credentials, query values or response payloads when handling them.
-User-facing errors are generic; the provider label is not echoed into errors or logs.
+Errors and logs include the provider display name. Pass a constant label such as
+`MetricFlow` or `dbt Semantic Layer`, never endpoint or configuration values.
+Labels must start with an ASCII letter or digit and contain only ASCII letters,
+digits, spaces, underscores or hyphens, up to 64 characters. Other labels fall
+back to `Provider`; valid labels have trailing spaces removed.
 
 The transport sends `Accept-Encoding: identity` and refuses other response
-encodings. Non-2xx bodies are not read. Logs contain only status and failure
+encodings. Non-2xx bodies are not read. Logs contain only the sanitized provider name, status and failure
 category. GET may follow at most three redirects within the same scheme, hostname
 and effective port. Other redirects fail with `HTTP_STATUS` without reading their
 bodies. Redirects do not reset the deadline. No automatic retries are made.
@@ -101,6 +105,9 @@ Operators can set `SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS = True` in
 This setting does not change OAuth or webhook policy. It never disables budgets,
 TLS verification or redirect restrictions. Both settings ignore environment proxy
 variables. Configure a reachable provider endpoint rather than relying on a proxy.
+In allow-internal mode, `REQUESTS_CA_BUNDLE` (or `CURL_CA_BUNDLE` as fallback)
+can supply the trusted CA bundle for private TLS endpoints. Certificate and
+hostname verification remain enabled. The default policy ignores both variables.
 There is no per-user opt-out; trusted operators own the setting.
 
 ## Use a fake in provider tests

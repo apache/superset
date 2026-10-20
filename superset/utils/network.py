@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import ipaddress
+import os
 import platform
 import socket
 import subprocess
@@ -316,7 +317,11 @@ def resolve_public_addresses(host: str, port: int, *, timeout: float) -> list[st
     return _resolve_addresses(host, port, timeout, public_only=True)
 
 
-def _connect_address(address: tuple[str, int], timeout: float) -> socket.socket:
+def _connect_address(
+    address: tuple[str, int],
+    timeout: float,
+    socket_options: list[tuple[int, int, int | bytes]] | None,
+) -> socket.socket:
     """Connect to a numeric address without invoking a second resolver."""
     family: socket.AddressFamily = (
         socket.AF_INET6
@@ -326,6 +331,9 @@ def _connect_address(address: tuple[str, int], timeout: float) -> socket.socket:
     sock: socket.socket = socket.socket(family, socket.SOCK_STREAM)
     try:
         sock.settimeout(timeout)
+        option: tuple[int, int, int | bytes]
+        for option in socket_options or []:
+            sock.setsockopt(*option)
         sock.connect(address)
         return sock
     except BaseException:
@@ -349,7 +357,7 @@ class _PinnedHTTPConnection(HTTPConnection):
         for address in addresses:
             try:
                 sock: socket.socket = _connect_address(
-                    (address, self.port), bound.remaining()
+                    (address, self.port), bound.remaining(), self.socket_options
                 )
                 try:
                     bound.watch(sock)  # Duplicate before TLS wrapping.
@@ -404,3 +412,14 @@ class PinnedHTTPAdapter(HTTPAdapter):
             "http": _PinnedHTTPPool if self.public_only else _InternalHTTPPool,
             "https": _PinnedHTTPSPool if self.public_only else _InternalHTTPSPool,
         }
+
+
+def _reset_resolver_after_fork() -> None:
+    """Discard executor state and locks whose owning threads do not survive fork."""
+    global _RESOLVER, _RESOLVER_LOCK  # pylint: disable=global-statement
+    _RESOLVER = None
+    _RESOLVER_LOCK = Lock()
+
+
+if hasattr(os, "register_at_fork"):
+    os.register_at_fork(after_in_child=_reset_resolver_after_fork)

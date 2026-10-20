@@ -21,6 +21,7 @@ from __future__ import annotations
 
 import json  # noqa: TID251 -- SDK cannot depend on the host JSON utility.
 import math
+import re
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterator, Mapping
 from dataclasses import dataclass
@@ -98,33 +99,37 @@ class ProviderRequestError(Exception):
     """A safe failure containing no endpoint, credentials or response text."""
 
     def __init__(
-        self, failure: ProviderRequestFailure, *, status: int | None = None
+        self,
+        failure: ProviderRequestFailure,
+        *,
+        status: int | None = None,
+        provider: str = "Provider",
     ) -> None:
         self.failure: ProviderRequestFailure = failure
         self.status: int | None = status
+        # Reject URL-like, control-bearing or excessive labels rather than echoing them.
+        self.provider: str = (
+            provider.strip()
+            if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,63}", provider)
+            else "Provider"
+        )
         super().__init__(failure)
 
     def __str__(self) -> str:
         messages: dict[ProviderRequestFailure, str] = {
-            ProviderRequestFailure.INVALID_URL: "Provider endpoint is not a valid URL.",
-            ProviderRequestFailure.REFUSED: "Provider endpoint is not allowed.",
-            ProviderRequestFailure.UNREACHABLE: (
-                "Provider endpoint could not be reached."
-            ),
-            ProviderRequestFailure.TIMEOUT: (
-                "Provider request exceeded its time budget."
-            ),
-            ProviderRequestFailure.TOO_LARGE: (
-                "Provider response exceeded its byte budget."
-            ),
+            ProviderRequestFailure.INVALID_URL: "endpoint is not a valid URL.",
+            ProviderRequestFailure.REFUSED: "endpoint is not allowed.",
+            ProviderRequestFailure.UNREACHABLE: ("endpoint could not be reached."),
+            ProviderRequestFailure.TIMEOUT: ("request exceeded its time budget."),
+            ProviderRequestFailure.TOO_LARGE: ("response exceeded its byte budget."),
             ProviderRequestFailure.UNSUPPORTED_ENCODING: (
-                "Provider response encoding is not supported."
+                "response encoding is not supported."
             ),
             ProviderRequestFailure.HTTP_STATUS: (
-                f"Provider request failed with HTTP {self.status}."
+                f"request failed with HTTP {self.status}."
             ),
         }
-        return messages[self.failure]
+        return f"{self.provider} {messages[self.failure]}"
 
 
 class ProviderTransport(ABC):

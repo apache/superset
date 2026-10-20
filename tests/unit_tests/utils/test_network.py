@@ -318,7 +318,7 @@ def test_pinned_connection_does_not_repeat_dns_lookup() -> None:
         finally:
             PROVIDER_DEADLINE.reset(token)
     resolve.assert_called_once()
-    connect.assert_called_once_with(("8.8.8.8", 443), 1)
+    connect.assert_called_once_with(("8.8.8.8", 443), 1, connection.socket_options)
     bound.watch.assert_called_once_with(connect.return_value)
     assert (
         connection.host == "fixture.test"
@@ -363,3 +363,38 @@ def test_empty_resolution_fails_without_connecting() -> None:
         with pytest.raises(OSError, match="No destination address"):
             resolve_public_addresses("fixture.test", 443, timeout=1)
         connect.assert_not_called()
+
+
+@pytest.mark.parametrize("option_fails", [False, True])
+def test_pinned_connect_applies_socket_options_before_connect(
+    option_fails: bool,
+) -> None:
+    import socket
+
+    from superset.utils.network import _connect_address
+
+    with patch("superset.utils.network.socket.socket") as factory:
+        sock: MagicMock = factory.return_value
+        if option_fails:
+            sock.setsockopt.side_effect = OSError("option rejected")
+            with pytest.raises(OSError, match="option rejected"):
+                _connect_address(
+                    ("127.0.0.1", 443), 1, [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)]
+                )
+            sock.connect.assert_not_called()
+            sock.close.assert_called_once()
+        else:
+            assert (
+                _connect_address(
+                    ("127.0.0.1", 443), 1, [(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)]
+                )
+                is sock
+            )
+            assert [call[0] for call in sock.mock_calls] == [
+                "settimeout",
+                "setsockopt",
+                "connect",
+            ]
+            sock.setsockopt.assert_called_once_with(
+                socket.IPPROTO_TCP, socket.TCP_NODELAY, 1
+            )

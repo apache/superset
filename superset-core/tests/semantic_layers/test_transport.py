@@ -130,9 +130,40 @@ def test_transport_failure_round_trip_preserves_category_and_status(
 
     failure: ProviderRequestFailure = ProviderRequestFailure[failure_name]
     error: ProviderRequestError = ProviderRequestError(
-        failure, status=503 if failure == ProviderRequestFailure.HTTP_STATUS else None
+        failure,
+        status=503 if failure == ProviderRequestFailure.HTTP_STATUS else None,
+        provider="MetricFlow",
     )
     restored: ProviderRequestError = pickle.loads(pickle.dumps(error))  # noqa: S301 -- locally constructed exception only
     assert restored.failure is failure
     assert restored.status == error.status
+    assert restored.provider == "MetricFlow"
     assert str(restored) == str(error)
+
+
+@pytest.mark.parametrize(
+    "provider,expected",
+    [
+        ("dbt Semantic Layer", "dbt Semantic Layer"),
+        ("Cube_2-beta", "Cube_2-beta"),
+        ("Cube\r\nforged", "Provider"),
+        ("https://user:secret@example.test/path?token=value", "Provider"),
+        ("x" * 65, "Provider"),
+        ("", "Provider"),
+        ("   ", "Provider"),
+        ("Cube\x1b[31m", "Provider"),
+    ],
+)
+def test_provider_error_uses_only_a_bounded_display_name(
+    provider: str, expected: str
+) -> None:
+    from superset_core.semantic_layers.transport import (
+        ProviderRequestError,
+        ProviderRequestFailure,
+    )
+
+    error: ProviderRequestError = ProviderRequestError(
+        ProviderRequestFailure.HTTP_STATUS, status=503, provider=provider
+    )
+    assert error.provider == expected
+    assert str(error) == f"{expected} request failed with HTTP 503."
