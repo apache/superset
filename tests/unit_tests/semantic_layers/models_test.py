@@ -26,7 +26,7 @@ from datetime import date, datetime, timezone
 from itertools import permutations
 from pathlib import Path
 from typing import Any, cast
-from unittest.mock import MagicMock, patch, PropertyMock
+from unittest.mock import ANY, MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -382,6 +382,7 @@ def test_semantic_layer_implementation(mocker: MockerFixture) -> None:
         cache_token=layer.metadata_generation,
         context=current_host_execution_context(),
         credentials=None,
+        transport=ANY,
     )
 
 

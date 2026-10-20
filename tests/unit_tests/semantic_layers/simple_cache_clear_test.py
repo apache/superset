@@ -156,6 +156,7 @@ def test_generation_binding_precedes_provider_construction(
             cache_token=layer.metadata_generation,
             context=ANY,
             credentials=None,
+            transport=ANY,
         )
         view: SemanticView = SemanticView(name="view", semantic_layer=layer)
         assert view.metadata_generation == layer.metadata_generation

@@ -75,6 +75,7 @@ from superset.semantic_layers.schemas import (
     SemanticViewPostSchema,
     SemanticViewPutSchema,
 )
+from superset.semantic_layers.transport import build_provider_transport
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.views.base_api import (
@@ -763,7 +764,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
         warning: str | None = None
         try:
-            schema = cls.get_configuration_schema(parsed_config)
+            schema: dict[str, Any] = cls.get_configuration_schema(
+                parsed_config, transport=build_provider_transport()
+            )
         except Exception:  # pylint: disable=broad-except
             # Show a stable, user-friendly message in the UI; the exception
             # detail goes to the server log below.
@@ -779,7 +782,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             )
             # Connection or query failures during schema enrichment should not
             # prevent the form from rendering — return the base schema instead.
-            schema = cls.get_configuration_schema(None)
+            schema = cls.get_configuration_schema(
+                None, transport=build_provider_transport()
+            )
 
         payload: dict[str, Any] = {"result": schema}
         if warning:
@@ -840,9 +845,10 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             return self.response_400(message=f"Unknown type: {layer.type}")
 
         try:
-            schema = cls.get_runtime_schema(
+            schema: dict[str, Any] = cls.get_runtime_schema(
                 layer.implementation.configuration,  # type: ignore[attr-defined]
                 runtime_data,
+                transport=build_provider_transport(),
             )
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])

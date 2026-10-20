@@ -100,3 +100,11 @@ the host must add async resolution pinning, effective-identity keys and refusal
 checks at every cache boundary, containment identity migration, namespace startup
 validation, and TTL enforcement. The reserved credentials channel and origin enum
 do not enable those methods by themselves.
+
+## HTTP transport
+
+Provider construction and both schema-discovery entry points also receive a required
+keyword-only `transport: ProviderTransport`. It is a separate host capability, not
+a field of the execution context or a component of binding identity. See the
+[provider transport guide](semantic-provider-transport.md) for budgets, destination
+policy, errors, and a test fake.

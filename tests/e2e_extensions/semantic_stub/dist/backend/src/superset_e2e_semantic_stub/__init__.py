@@ -46,6 +46,7 @@ from superset_core.semantic_layers.errors import (
     SemanticQueryRejectedError,
 )
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 from superset_core.semantic_layers.types import (
     AggregationType,
     Dimension,
@@ -249,6 +250,7 @@ class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
         *,
         cache_token: str,
         context: SemanticExecutionContext,
+        transport: ProviderTransport,
         credentials: SemanticCredentials | None = None,
     ) -> StubSemanticLayer:
         instance: StubSemanticLayer = cls(
@@ -263,6 +265,8 @@ class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
     def get_configuration_schema(
         cls,
         configuration: StubConfiguration | None = None,
+        *,
+        transport: ProviderTransport,
     ) -> dict[str, Any]:
         return StubConfiguration.model_json_schema()
 
@@ -271,6 +275,8 @@ class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
         cls,
         configuration: StubConfiguration,
         runtime_data: dict[str, Any] | None = None,
+        *,
+        transport: ProviderTransport,
     ) -> dict[str, Any]:
         return {"type": "object", "properties": {}}
 

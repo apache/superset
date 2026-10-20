@@ -50,6 +50,7 @@ from superset.key_value.types import (
     SEMANTIC_INSTALL_ID_KEY,
 )
 from superset.semantic_layers.registry import registry
+from superset.semantic_layers.transport import build_provider_transport
 from superset.utils import json
 
 if TYPE_CHECKING:
@@ -280,6 +281,7 @@ class SemanticBindingMemo:
                     cache_token=layer.metadata_generation,
                     context=context,
                     credentials=None,
+                    transport=build_provider_transport(),
                 ),
                 {},
             )

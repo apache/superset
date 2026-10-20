@@ -25,6 +25,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import BaseModel, Field, SecretStr, StringConstraints
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.transport import ProviderTransport
 
 from superset.constants import PASSWORD_MASK
 from superset.semantic_layers import masking
@@ -58,7 +59,9 @@ class DemoConfig(BaseModel):
 
 class DemoLayerType:
     @staticmethod
-    def get_configuration_schema(configuration: Any = None) -> Any:
+    def get_configuration_schema(
+        configuration: Any = None, *, transport: ProviderTransport
+    ) -> Any:
         return DemoConfig.model_json_schema()
 
 
@@ -199,7 +202,9 @@ def test_mask_covers_a_secret_nested_in_only_one_union_variant() -> None:
 
     class DivergentType:
         @staticmethod
-        def get_configuration_schema(configuration: Any = None) -> Any:
+        def get_configuration_schema(
+            configuration: Any = None, *, transport: ProviderTransport
+        ) -> Any:
             return DivergentConfig.model_json_schema()
 
     value: dict[str, Any] = {
@@ -325,7 +330,9 @@ class _FakeProvider:
         self._schema: Any = schema
         self._raises: bool = raises
 
-    def get_configuration_schema(self, configuration: Any = None) -> Any:
+    def get_configuration_schema(
+        self, configuration: Any = None, *, transport: ProviderTransport
+    ) -> Any:
         if self._raises:
             raise RuntimeError("schema generation failed")
         return self._schema
@@ -404,7 +411,9 @@ def test_mask_covers_a_secret_list_in_only_one_union_variant() -> None:
 
     class DivergentListType:
         @staticmethod
-        def get_configuration_schema(configuration: Any = None) -> Any:
+        def get_configuration_schema(
+            configuration: Any = None, *, transport: ProviderTransport
+        ) -> Any:
             return DivergentListConfig.model_json_schema()
 
     value: dict[str, Any] = {"conn": {"kind": "plain", "items": ["x", "y"]}}

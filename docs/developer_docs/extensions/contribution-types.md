@@ -248,7 +248,7 @@ See [MCP Integration](./mcp.md) for implementation details.
 See [cache invalidation](../semantic-layer-cache-clear.md) for the required
 cache-token factory argument and provider cache requirements.
 
-See the [execution context contract](semantic-execution-context.md) for provider construction and connection-mode guarantees.
+See the [execution context contract](semantic-execution-context.md) for provider construction and connection-mode guarantees, and the [provider transport contract](semantic-provider-transport.md) for bounded HTTP requests.
 
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
 
@@ -258,6 +258,7 @@ from typing import Any
 from superset_core.semantic_layers.context import SemanticCredentials, SemanticExecutionContext
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.transport import ProviderTransport
 
 from my_extension.config import MyConfig
 from my_extension.view import MySemanticView
@@ -273,26 +274,33 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 
     def __init__(
         self, configuration: MyConfig, *, cache_token: str,
-        context: SemanticExecutionContext,
+        context: SemanticExecutionContext, transport: ProviderTransport,
     ) -> None:
         self.configuration: MyConfig = configuration
         self.cache_token: str = cache_token
         self.context: SemanticExecutionContext = context
+        self.transport: ProviderTransport = transport
 
     @classmethod
     def from_configuration(
         cls, configuration: dict[str, Any], *, cache_token: str,
-        context: SemanticExecutionContext, credentials: SemanticCredentials | None = None,
+        context: SemanticExecutionContext, transport: ProviderTransport,
+        credentials: SemanticCredentials | None = None,
     ) -> "MySemanticLayer":
         config: MyConfig = MyConfig.model_validate(configuration)
-        return cls(config, cache_token=cache_token, context=context)
+        return cls(config, cache_token=cache_token, context=context, transport=transport)
 
     @classmethod
-    def get_configuration_schema(cls, configuration=None) -> dict:
+    def get_configuration_schema(
+        cls, configuration: MyConfig | None = None, *, transport: ProviderTransport,
+    ) -> dict[str, Any]:
         return MyConfig.model_json_schema()
 
     @classmethod
-    def get_runtime_schema(cls, configuration=None, runtime_data=None) -> dict:
+    def get_runtime_schema(
+        cls, configuration: MyConfig, runtime_data: dict[str, Any] | None = None,
+        *, transport: ProviderTransport,
+    ) -> dict[str, Any]:
         return {"type": "object", "properties": {}}
 
     def get_semantic_views(self, runtime_configuration: dict) -> set[MySemanticView]:

@@ -19,7 +19,7 @@ import inspect
 import logging
 import uuid as uuid_lib
 from typing import Annotated, Any, Literal
-from unittest.mock import MagicMock, patch
+from unittest.mock import ANY, MagicMock, patch
 
 import pytest
 from flask.testing import FlaskClient
@@ -362,7 +362,7 @@ def test_configuration_schema(
 
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
-    mock_cls.get_configuration_schema.assert_called_once_with(None)
+    mock_cls.get_configuration_schema.assert_called_once_with(None, transport=ANY)
 
 
 @SEMANTIC_LAYERS_APP
@@ -401,7 +401,9 @@ def test_configuration_schema_with_partial_config(
     )
 
     assert response.status_code == 200
-    mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        mock_config_obj, transport=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -433,7 +435,7 @@ def test_configuration_schema_read_only_user_gets_static_schema(
     assert response.json["result"] == {"type": "object"}
     can_access.assert_any_call("can_write", "SemanticLayer")
     mock_cls.configuration_class.model_validate.assert_not_called()
-    mock_cls.get_configuration_schema.assert_called_once_with(None)
+    mock_cls.get_configuration_schema.assert_called_once_with(None, transport=ANY)
 
 
 @SEMANTIC_LAYERS_APP
@@ -470,7 +472,9 @@ def test_configuration_schema_writer_gets_enriched_schema(
     assert response.status_code == 200
     assert response.json["result"]["properties"] == {"account": {"enum": ["a1"]}}
     can_access.assert_any_call("can_write", "SemanticLayer")
-    mock_cls.get_configuration_schema.assert_called_once_with(mock_config_obj)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        mock_config_obj, transport=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -507,7 +511,7 @@ def test_configuration_schema_with_invalid_partial_config(
     )
 
     assert response.status_code == 200
-    mock_cls.get_configuration_schema.assert_called_once_with(None)
+    mock_cls.get_configuration_schema.assert_called_once_with(None, transport=ANY)
 
 
 @SEMANTIC_LAYERS_APP
@@ -563,7 +567,7 @@ def test_runtime_schema(
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
     mock_cls.get_runtime_schema.assert_called_once_with(
-        {"account": "test"}, {"database": "mydb"}
+        {"account": "test"}, {"database": "mydb"}, transport=ANY
     )
 
 
@@ -596,7 +600,9 @@ def test_runtime_schema_no_body(
     )
 
     assert response.status_code == 200
-    mock_cls.get_runtime_schema.assert_called_once_with({"account": "test"}, None)
+    mock_cls.get_runtime_schema.assert_called_once_with(
+        {"account": "test"}, None, transport=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -1117,7 +1123,11 @@ def test_get_list_semantic_layers(
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport: {"properties": {}}
+            )
+        },
         clear=True,
     )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -1182,7 +1192,11 @@ def test_get_semantic_layer(
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport: {"properties": {}}
+            )
+        },
         clear=True,
     )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -1272,7 +1286,11 @@ def test_serialize_layer_string_config(
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport: {"properties": {}}
+            )
+        },
         clear=True,
     )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -1302,7 +1320,11 @@ def test_serialize_layer_dict_config(
 
     mocker.patch.dict(
         "superset.semantic_layers.api.registry",
-        {"snowflake": MagicMock(get_configuration_schema=lambda: {"properties": {}})},
+        {
+            "snowflake": MagicMock(
+                get_configuration_schema=lambda *, transport: {"properties": {}}
+            )
+        },
         clear=True,
     )
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")

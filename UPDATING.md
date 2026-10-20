@@ -24,6 +24,17 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Semantic-layer SDK transport argument.** Provider implementations must accept
+  the required keyword-only `transport: ProviderTransport` in `from_configuration`,
+  `get_configuration_schema`, and `get_runtime_schema`. Superset supplies it even
+  for static schema discovery. Store it on the layer and pass it to views and HTTP
+  helpers; do not construct HTTP clients for provider endpoints. Every request now
+  requires an absolute monotonic deadline and a response byte cap. The default
+  host policy allows public HTTPS destinations only; the provider-specific
+  `SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS = True` setting also allows HTTP and internal
+  destinations. Both policies ignore environment proxies and preserve budgets and
+  TLS hostname verification. See the [provider transport guide](docs/developer_docs/extensions/semantic-provider-transport.md).
+
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
   metrics, including two SUM metrics. Metric-specific values and totals remain
