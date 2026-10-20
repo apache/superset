@@ -247,3 +247,49 @@ def test_delivery_still_reports_missing_sdk(
         ):
             teams.TeamsNotification(notification.recipient, notification.content).send()
     notification.session.return_value.__exit__.assert_called_once()
+
+
+@pytest.mark.parametrize(
+    "target", ["unapproved", "https://example.com", "", None, ["ops"]]
+)
+def test_recipient_target_is_a_destination_key(
+    notification: SimpleNamespace,
+    target: object,
+) -> None:
+    entry = notification.recipient
+    entry.recipient_config_json = json.dumps({"target": target})
+    with pytest.raises(NotificationParamException):
+        teams.TeamsNotification(entry, notification.content).send()
+    notification.send.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "raw",
+    [
+        "{",
+        "[]",
+        "{}",
+        '{"target":"ops","credential":"secret"}',
+        '{"target":"ops","channel_id":"override"}',
+    ],
+)
+def test_invalid_recipient_json_is_rejected(
+    notification: SimpleNamespace, raw: str
+) -> None:
+    entry = notification.recipient
+    entry.recipient_config_json = raw
+    with pytest.raises(NotificationParamException):
+        teams.TeamsNotification(entry, notification.content).send()
+    notification.send.assert_not_called()
+
+
+@pytest.mark.parametrize("report_format", ["PNG", "PDF", "CSV", "XLSX", "TEXT"])
+def test_delivery_revalidates_format_even_without_generated_attachments(
+    notification: SimpleNamespace,
+    report_format: str,
+) -> None:
+    notification.content.header_data["notification_format"] = report_format
+    assert not notification.content.has_attachments
+    with pytest.raises(NotificationParamException, match="disabled attachments"):
+        teams.TeamsNotification(notification.recipient, notification.content).send()
+    notification.send.assert_not_called()

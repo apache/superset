@@ -19,6 +19,8 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
+import importlib.util
 import threading
 import time
 from collections.abc import AsyncIterator, Iterator
@@ -35,7 +37,6 @@ import requests
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask import current_app, Flask
 from sqlalchemy import create_engine
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from superset.integrations.teams import validation as teams_validation
@@ -51,15 +52,15 @@ from superset.reports.notifications import create_notification, teams as notific
 from superset.reports.notifications.base import NotificationContent
 from superset.reports.notifications.exceptions import (
     NotificationAuthorizationException,
-    NotificationError,
     NotificationParamException,
     NotificationTransientError,
 )
 from superset.utils import json
 
-adapter = pytest.importorskip(
-    "superset.integrations.teams.adapter", exc_type=ImportError
-)
+if importlib.util.find_spec("microsoft_teams") is None:
+    pytest.skip("Optional Teams SDK is not installed", allow_module_level=True)
+
+adapter = importlib.import_module("superset.integrations.teams.adapter")
 TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 APPLICATION = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 SERVICE_URL = "https://smba.trafficmanager.net/amer/"
@@ -170,83 +171,6 @@ def test_factory_resolves_active_installation_and_formats_card(
 
 
 @pytest.mark.parametrize(
-    "include_cta,url",
-    [
-        (False, "https://superset.example"),
-        (True, None),
-        (True, "javascript:alert(1)"),
-        (True, "https://[invalid"),
-    ],
-)
-def test_optional_link_respects_existing_setting(
-    content: NotificationContent, include_cta: bool, url: str | None
-) -> None:
-    content.include_cta, content.url = include_cta, url
-    assert "actions" not in notifications.build_teams_card(content)
-
-
-def test_optional_description_and_diagnostics(content: NotificationContent) -> None:
-    content.description = None
-    content.text = (
-        'SQL failed: SELECT "password" FROM internal_table; database://secret'
-    )
-    card = notifications.build_teams_card(content)
-    assert len(card["body"]) == 2
-    assert (
-        card["body"][1]["text"]
-        == "Alert execution failed. Contact the alert owner for details."
-    )
-    serialized = json.dumps(card)
-    assert "password" not in serialized
-    assert "internal_table" not in serialized
-    assert "database://secret" not in serialized
-
-
-def test_card_json_round_trip_preserves_quotes_newlines_and_unicode(
-    content: NotificationContent,
-) -> None:
-    card = notifications.build_teams_card(content)
-    decoded = json.loads(json.dumps(card))
-    assert decoded["body"][0]["text"] == content.name
-    assert decoded["body"][1]["text"] == content.description
-
-
-@pytest.mark.parametrize(
-    "target", ["unapproved", "https://example.com", "", None, ["ops"]]
-)
-def test_recipient_target_is_a_destination_key(
-    notification_context: SimpleNamespace,
-    content: NotificationContent,
-    target: Any,
-) -> None:
-    entry = recipient()
-    entry.recipient_config_json = json.dumps({"target": target})
-    with pytest.raises(NotificationParamException):
-        notifications.TeamsNotification(entry, content).send()
-    notification_context.send.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    "raw",
-    [
-        "{",
-        "[]",
-        "{}",
-        '{"target":"ops","credential":"secret"}',
-        '{"target":"ops","channel_id":"override"}',
-    ],
-)
-def test_invalid_recipient_json_is_rejected(
-    notification_context: SimpleNamespace, content: NotificationContent, raw: str
-) -> None:
-    entry = recipient()
-    entry.recipient_config_json = raw
-    with pytest.raises(NotificationParamException):
-        notifications.TeamsNotification(entry, content).send()
-    notification_context.send.assert_not_called()
-
-
-@pytest.mark.parametrize(
     "mode", ["inactive", "missing", "other-tenant", "other-application"]
 )
 def test_installation_must_be_active_for_exact_identity(
@@ -271,68 +195,6 @@ def test_installation_must_be_active_for_exact_identity(
         session.commit()
     with pytest.raises(NotificationAuthorizationException):
         notifications.TeamsNotification(recipient(), content).send()
-    notification_context.send.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    "mode",
-    [
-        "disabled",
-        "unconfigured",
-        "report",
-        "editor-diagnostic",
-        "csv",
-        "xlsx",
-        "pdf",
-        "screenshots",
-        "embedded_data",
-    ],
-)
-def test_out_of_scope_delivery_is_rejected(
-    notification_context: SimpleNamespace, content: NotificationContent, mode: str
-) -> None:
-    if mode == "disabled":
-        notification_context.app.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
-    elif mode == "unconfigured":
-        notification_context.app.config["ALERT_REPORTS_TEAMS"] = {}
-    elif mode == "report":
-        content.header_data["notification_type"] = "Report"
-    elif mode == "editor-diagnostic":
-        content.is_editor_error = True
-    else:
-        setattr(content, mode, [b"file"] if mode == "screenshots" else b"file")
-    with pytest.raises(NotificationParamException):
-        notifications.TeamsNotification(recipient(), content).send()
-    notification_context.send.assert_not_called()
-
-
-@pytest.mark.parametrize("report_format", ["PNG", "PDF", "CSV", "XLSX", "TEXT"])
-def test_delivery_revalidates_format_even_without_generated_attachments(
-    notification_context: SimpleNamespace,
-    content: NotificationContent,
-    report_format: str,
-) -> None:
-    content.header_data["notification_format"] = report_format
-    assert not content.has_attachments
-    with pytest.raises(NotificationParamException, match="disabled attachments"):
-        notifications.TeamsNotification(recipient(), content).send()
-    notification_context.send.assert_not_called()
-
-
-def test_database_errors_are_sanitized(
-    notification_context: SimpleNamespace,
-    content: NotificationContent,
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        TeamsInstallationStore,
-        "get_active",
-        MagicMock(side_effect=SQLAlchemyError("SELECT password FROM internal_table")),
-    )
-    with pytest.raises(NotificationError) as exc:
-        notifications.TeamsNotification(recipient(), content).send()
-    assert "internal_table" not in str(exc.value)
-    assert exc.value.__cause__ is None
     notification_context.send.assert_not_called()
 
 

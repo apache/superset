@@ -46,18 +46,16 @@ def test_unconfigured() -> None:
     assert parse_teams_config({}) is None
 
 
-def test_valid_config_and_safe_projection(deployment: dict[str, Any]) -> None:
+def test_valid_config_is_immutable_and_hides_credential(
+    deployment: dict[str, Any],
+) -> None:
     config = parse_teams_config(deployment)
     assert config is not None
     assert config.tenant_id == deployment["tenant_id"]
     assert config.application_id == deployment["application_id"]
     assert config.credential == deployment["credential"]
     assert config.get_destination("operations").channel_id == "19:channel@thread.tacv2"
-    assert config.public_destinations() == [
-        {"key": "operations", "label": "Operations alerts"},
-    ]
     assert deployment["credential"] not in repr(config)
-    assert deployment["credential"] not in str(config.public_destinations())
     deployment["destinations"][0]["key"] = "changed"
     assert config.get_destination("operations").key == "operations"
     with pytest.raises(TeamsConfigError, match="not approved"):

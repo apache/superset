@@ -894,136 +894,42 @@ Airflow, additional fields can be easily added to the configuration file above.
 
 ## Microsoft Teams configuration
 
-The optional `apache-superset[teams]` extra installs Microsoft Teams SDK 2.1.1.
-The SDK handles callback JWT authentication; SDK-specific code lives in
-`superset.integrations.teams.adapter`.
-`FEATURE_FLAGS["ALERT_REPORT_TEAMS"]` defaults to `False`. The `Teams` notification
-recipient sends attachment-free alerts to configured standard channels; scheduled
-reports are rejected.
+Teams is an optional, disabled-by-default notification destination for
+attachment-free alerts in standard channels. Each deployment supports one
+Microsoft tenant and bot identity. Scheduled reports, private/shared channels,
+direct messages, and file attachments are not supported.
 
-Set `ALERT_REPORTS_TEAMS` in `superset_config.py` with `tenant_id` (UUID),
-`application_id` (bot application UUID), `credential` (client secret from your
-secret store), and a nonempty `destinations` list. Each destination requires:
+Each alert creates a separate channel post containing its name, optional
+description, and an **Open in Superset** link when link inclusion is enabled.
+Execution errors show a generic failure message rather than SQL diagnostics.
 
-- `key`: unique stable identifier, 1–128 letters, digits, underscores or hyphens,
-  starting with a letter or digit. Retain this key when changing channel details.
-- `label`: display name.
-- `team_id`: Teams team identifier.
-- `channel_id`: Teams channel identifier.
+Administrators configure approved destinations on the server. In the alert
+editor, disable attachments and select a destination by label. Add another Teams
+notification method to notify another channel. Credentials are managed only in
+deployment configuration. The protected destination API returns keys, labels,
+and installation availability, without credentials or routing details.
 
-An empty mapping leaves Teams unconfigured. The server-side
-`superset.integrations.teams.config.parse_teams_config` function validates the
-mapping and rejects missing/unknown fields and duplicate keys or channels.
-Only one tenant and bot identity are accepted per deployment. Operators must
-approve standard channels in that tenant; the parser cannot verify channel type
-or tenant membership without Teams metadata. Private/shared channels, DMs,
-scheduled reports, and attachments are outside the integration scope.
+For API clients, use recipient type `Teams`, `recipient_config_json` containing
+only `{"target": "ops"}`, and `report_format="NONE"`. Create, update, and delivery
+validation enforce the same restrictions, including partial updates to saved
+alerts. Alerts can be saved before bot installation, but delivery requires an
+active installation. Unavailable saved destinations remain visible when editing.
 
-Set the recipient type to `Teams` and `recipient_config_json` to
-`{"target": "ops"}`, where `ops` is a destination key from the deployment
-allowlist. The recipient's configuration must contain only `target`; channel IDs and credentials stay on the
-server. Delivery requires an active installation matching the configured tenant,
-application, and destination team.
+Authenticated installation events persist routing information for approved teams.
+Removal disables delivery, and reinstallation refreshes the same record. Events
+are applied in processing order and never create selectable destinations.
 
-Schedule creation and updates share Teams recipient validation with delivery.
-Teams recipients require the enabled, configured integration, an `Alert` schedule,
-explicit `report_format="NONE"`, and a known destination key. The global attachment
-setting does not override this requirement. PUT validates the merged saved
-configuration, including existing recipients when omitted from the request;
-changing only schedule type, format, or metadata cannot retain an invalid Teams
-recipient. Explicitly replacing/removing Teams recipients validates the replacement
-list. An active bot installation is required at delivery time, not when saving.
-Attachment-free alerts use the existing scheduler and execution logs and skip
-screenshot, PDF, and file generation.
+Delivery allows up to four attempts within a cooperative 60-second retry budget,
+limited by the remaining report execution deadline. Requests have socket timeouts
+of at most 10 seconds. Throttling honors Microsoft's retry delay, and expired
+authentication can refresh once. A lost response can cause duplicate posts.
 
-Each alert creates a new root channel post with an Adaptive Card containing its
-name and optional description. The optional **Open in Superset** action follows
-the existing `include_cta` setting. Cards use normal JSON serialization; execution
-diagnostics are replaced by a generic failure message. File uploads and embedded
-tabular results are rejected. The Adaptive Card's protocol attachment envelope
-contains only the card, with no attached files.
-
-Transport runs in the Teams adapter with a replaceable operation-scoped interface.
-It allows at most four attempts within one 60-second retry budget, capped by the
-remaining execution deadline after its cleanup reserve. Individual MSAL metadata,
-token, and channel HTTP requests use a timeout of at most 10 seconds or the
-remaining budget. The adapter honors `Retry-After`
-(seconds or HTTP date) and `x-ms-retry-after-ms`. A delay exceeding the remaining
-window ends delivery without retrying early. One 401 response can invalidate the
-MSAL token cache and retry with fresh authentication; a second 401 or any 403
-fails authorization. Transient exhaustion uses the existing notification transient
-exception. A failed or lost response can make delivery ambiguous, so transport
-retries can produce duplicate root posts; no conversation IDs are reused.
-
-Set the bot's messaging endpoint to `POST /api/v1/teams/events/`. The callback
-is enabled only by `ALERT_REPORT_TEAMS` and a valid `ALERT_REPORTS_TEAMS` mapping.
-It authenticates installation `add` and `remove` events using the SDK's public
-`HttpServer` with a custom `HttpServerAdapter` inside Flask. It never starts the
-SDK's standalone server or creates a full SDK `App`. Each invocation closes its
-event loop and database session on success or failure.
-
-Events must be Bot Framework connector activities with a valid token for the
-configured application and a signed `serviceurl` claim matching the event URL.
-The callback also requires the configured tenant, bot recipient, and an approved
-team from `destinations`. Personal/group chats, explicit private/shared channel
-contexts, other activity types, and attachments are rejected. Installation events
-cannot add channels to configuration. Browser sessions do not authenticate the
-callback. Only this independently authenticated route is exempt from CSRF checks.
-Agent 365/Entra activity tokens are outside this notification-only bot's scope.
-
-Bot installations are stored separately in `teams_installations`, uniquely keyed
-by tenant, application, and team. Installation events refresh the service URL
-and reactivate the same UUID record; removal makes it inactive. Duplicate events
-are safe and events are applied in processing order. The store leaves transaction
-commit/rollback to its caller. Event authentication, deployment identity checks,
-and service URL ownership verification must happen before invoking the store.
-Installation records never add selectable destinations or store channels or
-credentials. The additive migration can be downgraded by dropping only this table.
-
-Keep the entire mapping on the server. Browser destination lists must use
-`TeamsConfig.public_destinations()` (keys and labels only). Recipient JSON must
-store only the selected destination key, never credentials or routing details.
-Do not serialize the parsed configuration object, including via `dataclasses.asdict`.
-
-The alert editor lists Teams when the integration is enabled and configured, the
-optional SDK is installed, and attachments are disabled. Dependency discovery reads
-package metadata without importing the SDK. If the SDK is absent, the destination
-API returns an empty list and saved Teams recipients remain visible as unavailable
-when editing. Delivery retains a lazy import guard for missing or unloadable SDKs.
-Choose an approved channel by its display label. To notify multiple channels, add another notification method and choose Teams again;
-each entry stores one destination key. Scheduled reports do not offer Teams.
-
-The destination list uses the Reports API read permission and returns only keys,
-labels, and installation availability. Channels without an active bot installation
-remain selectable so alerts can be saved before installation, with a visible
-installation-required notice. Install the notification bot in the approved team
-before delivery. Removed configuration keys remain visible as unavailable when
-editing saved alerts; restore the configuration or select another approved channel.
-Credentials are managed only in deployment configuration.
-
-Teams delivery runs inside the existing report task. Authentication, posting,
-retry delays, and resource cleanup consume the same retry budget; an operation
-that finishes after the deadline cannot report success. SDK and MSAL clients are
-closed in the same operation, and Celery soft timeouts propagate to the existing
-execution handler without transport retries.
-
-The retry budget is cooperative, not a separate hard 60-second wall-clock limit.
-[Requests timeouts](https://requests.readthedocs.io/en/latest/user/advanced/#timeouts)
-bound socket operations rather than the entire call; DNS resolution and a response
-that keeps delivering small amounts of data can exceed them. The adapter does not
-introduce a subprocess, signal handler, background thread, or watchdog to interrupt
-such work. Cleanup runs normally on success, failure, and soft task timeouts;
-a hard task kill cannot guarantee Python cleanup.
-
-For an outer bound on blocking work, use a Celery prefork worker on a platform
-that supports [Celery time limits](https://docs.celeryq.dev/en/stable/userguide/workers.html#time-limits),
+Socket timeouts do not bound DNS resolution or an entire streaming response. For
+an outer time limit, use a Celery prefork worker with
+[time-limit support](https://docs.celeryq.dev/en/stable/userguide/workers.html#time-limits),
 keep `ALERT_REPORTS_WORKING_TIME_OUT_KILL=True`, and set a finite schedule
-`working_timeout`. For alerts, the existing defaults apply a soft limit at
-`working_timeout + 1` seconds and a hard limit at `working_timeout + 10` seconds.
-These limits cover the entire task, including query evaluation and notification
-delivery, rather than granting Teams another independent hard timeout. Disabling
-those limits or using a worker pool without time-limit support removes this
-backstop; request timeouts alone do not replace it.
+`working_timeout`. These limits cover the entire alert task, including query
+execution and delivery. Hard task termination cannot guarantee resource cleanup.
 
 ### Deploy the optional integration
 
@@ -1059,6 +965,13 @@ ALERT_REPORTS_TEAMS = {
     ],
 }
 ```
+
+Destination keys must be unique, stable identifiers of 1–128 letters, digits,
+underscores or hyphens, starting with a letter or digit. Keep keys stable when
+changing routing. Each destination requires a label, team ID, and channel ID.
+Approve only standard channels in the configured tenant. Duplicate keys or
+channels and unknown configuration fields are rejected. An empty mapping leaves
+Teams unconfigured.
 
 Merge these feature flags into your existing flags. Restart the web server and
 workers after changing configuration or rotating a secret. Apply the migration

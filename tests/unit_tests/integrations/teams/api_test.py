@@ -19,6 +19,8 @@
 from __future__ import annotations
 
 import asyncio
+import importlib
+import importlib.util
 from collections.abc import Callable, Iterator
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
@@ -42,9 +44,10 @@ from superset.integrations.teams.models import TeamsInstallation
 from superset.integrations.teams.store import TeamsInstallationStore
 from superset.utils import json
 
-teams_adapter = pytest.importorskip(
-    "superset.integrations.teams.adapter", exc_type=ImportError
-)
+if importlib.util.find_spec("microsoft_teams") is None:
+    pytest.skip("Optional Teams SDK is not installed", allow_module_level=True)
+
+teams_adapter = importlib.import_module("superset.integrations.teams.adapter")
 PATH = "/api/v1/teams/events/"
 TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
 APPLICATION = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
