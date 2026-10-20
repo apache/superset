@@ -46,18 +46,19 @@ read failure is separate from a successful Save or clear.
 
 ## Provider SDK contract
 
-Providers may override this optional factory, invoked before eager discovery:
+Providers implement one factory, invoked before eager discovery:
 
 ```python
 @classmethod
-def from_configuration_with_cache_token(
-    cls, configuration: dict[str, Any], *, cache_token: str
+def from_configuration(
+    cls, configuration: dict[str, Any], *, cache_token: str,
+    context: SemanticExecutionContext, credentials: SemanticCredentials | None = None,
 ) -> SemanticLayer:
     ...
 ```
 
-The default delegates to `from_configuration(configuration)`, preserving legacy
-providers. The host captures a database/workspace-scoped layer UUID and version
+The context and reserved credentials channel are described in the
+[execution contract](extensions/semantic-execution-context.md). The host captures a database/workspace-scoped layer UUID and version
 once per metadata session (the ordinary request/task session); this is the layer's
 **metadata generation**, passed to providers as `cache_token`. The namespace is
 an opaque digest of the metadata database backend, host, port and database name;
@@ -81,9 +82,9 @@ Construction without a token must bypass token-bound metadata caches rather than
 serve members discovered under a previous token.
 Providers without local metadata caches may carry the token onward; this does
 not clear vendor or warehouse server caches.
-Until a provider honours this hook in its caches, it cannot promise complete
-metadata reload support. Provider adoption must accompany host deployment for
-complete invalidation.
+Until a provider honours the supplied factory token in its caches, it cannot
+promise complete metadata reload support. Provider adoption must accompany host
+deployment for complete invalidation.
 
 Host result, annotation-source, compatibility and value-suggestion cache keys
 include the captured generation (`SemanticView.metadata_generation` on the host
