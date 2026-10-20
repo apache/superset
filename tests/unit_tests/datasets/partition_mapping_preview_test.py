@@ -1340,3 +1340,39 @@ def test_preview_and_the_chart_path_agree_about_a_coarse_column(
     assert exact["valid"] is True
     assert "region_key = '20260706100811'" in exact["emitted_predicate"]
     assert "region_key = '20260706100811'" in exact_sql
+
+
+def test_preview_refuses_a_templated_partition_column(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    The emitted predicate is built outside the template processor, so preview
+    used to report a templated partition key valid with raw ``{{ ... }}`` in
+    the predicate. It is refused before anything reaches the engine.
+    """
+    from superset.connectors.sqla.models import TableColumn
+
+    dataset.columns.append(
+        TableColumn(
+            column_name="dt_calc", type="BIGINT", expression="{{ 'dt_' ~ 'epoch' }}"
+        )
+    )
+    db.session.flush()
+
+    with patch(PROBE, return_value=[1768435200]) as probe:
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "event_time",
+                "value_transform": "unix_timestamp(:value)",
+                "sample_values": ["2026-01-15 00:00:00"],
+                "partition_column": "dt_calc",
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "validation"
+    assert "Jinja" in result["error"]
+    probe.assert_not_called()

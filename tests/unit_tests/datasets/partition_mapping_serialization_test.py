@@ -667,3 +667,23 @@ def test_the_mapping_summary_is_gated_on_the_feature_flag(app: Flask) -> None:
 
     assert summary is not None
     assert summary["active"] is True
+
+
+def test_the_mapping_summary_is_inactive_for_a_templated_partition_column(
+    app: Flask,
+) -> None:
+    """
+    `resolve_partition_mapping` declines a Jinja-bearing partition key, so the
+    Explore indicator must not promise a mirror the query never carries.
+    """
+    table = _table()
+    next(
+        column for column in table.columns if column.column_name == "dt_epoch"
+    ).expression = "{{ 'dt_' ~ 'epoch' }}"
+
+    with app.app_context():
+        app.config["DEFAULT_FEATURE_FLAGS"]["PARTITION_FILTER_MAPPING"] = True
+        summary = table.partition_filter_mapping_summary
+
+    assert summary is not None
+    assert summary["active"] is False

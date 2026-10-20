@@ -72,6 +72,7 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    contains_jinja,
     equality_mirrors_safely,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
@@ -2057,8 +2058,10 @@ class SqlaTable(
         mapped_column_name = self.partition_mapped_column or self.main_dttm_col
         mapped_column = columns_by_name.get(mapped_column_name or "")
         transform = mapped_column.partition_value_transform if mapped_column else None
+        partition_column = columns_by_name.get(self.partition_column)
         active = bool(
-            self.partition_column in columns_by_name
+            partition_column is not None
+            and not contains_jinja(partition_column.expression)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
             and is_transform_active(transform, self.database.backend)
