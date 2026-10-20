@@ -3613,8 +3613,15 @@ def test_apply_client_processing_formats_an_ag_grid_table() -> None:
 
 def test_apply_client_processing_ag_grid_table_matches_table() -> None:
     """
-    The two table viz types format a payload identically, since the AG Grid
-    plugin's column meta and cell formatting are the Table plugin's.
+    The two table viz types agree on the number and currency formats.
+
+    The AG Grid plugin's column meta block is the Table plugin's, and its
+    ``valueFormatter`` applies the column's own formatter, so a configured
+    format, a saved format and an AUTO currency all land the same way. The
+    agreement is per format rather than wholesale: the plugins read the same
+    ``column_config`` but paint cells through different code, so a key one of
+    them acts on alone belongs in its own test rather than in a blanket
+    comparison.
     """
 
     def payload() -> dict[str, Any]:
