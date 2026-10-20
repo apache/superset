@@ -61,6 +61,7 @@ from superset.extensions import db, event_logger
 from superset.security import password_recovery
 from superset.security.guest_token import (
     build_guest_token_audit_payload,
+    GuestTokenIdentityError,
     GuestTokenResourceType,
     GuestTokenUser,
     validate_guest_token_identity,
@@ -97,7 +98,7 @@ class UserSchema(PermissiveSchema):
     def validate_identity(self, data: dict[str, Any], **kwargs: Any) -> None:
         try:
             validate_guest_token_identity(cast(GuestTokenUser, data))
-        except ValueError as ex:
+        except GuestTokenIdentityError as ex:
             raise ValidationError(str(ex)) from ex
 
 
@@ -303,6 +304,8 @@ class SecurityRestApi(BaseSupersetApi):
             return self.response(403, message=error.message)
         except ValidationError as error:
             return self.response_400(message=error.messages)
+        except GuestTokenIdentityError as error:
+            return self.response_400(message=str(error))
 
 
 class RoleRestAPI(BaseSupersetApi):

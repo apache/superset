@@ -184,6 +184,17 @@ async def test_guest_verifier_rejects_missing_structural_claims() -> None:
 
 
 @pytest.mark.asyncio
+async def test_guest_verifier_rejects_invalid_identity() -> None:
+    verifier, _ = _make_guest_verifier(
+        parsed=_parsed_guest_claims(user={"username": "embed\nguest"})
+    )
+    with patch("superset.is_feature_enabled", return_value=True):
+        token = await verifier.verify_token("raw-guest-token")
+
+    assert token is None
+
+
+@pytest.mark.asyncio
 async def test_guest_verifier_rejects_revoked_token() -> None:
     verifier, _ = _make_guest_verifier(revoked=True)
     with patch("superset.is_feature_enabled", return_value=True):

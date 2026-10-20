@@ -17,15 +17,27 @@
 """Validation of the identity strings carried in a guest token's user claim."""
 
 from typing import Any, cast
+from unittest.mock import patch
 
 import pytest
+from flask import current_app
+from pytest_mock import MockerFixture
 
+from superset.extensions import appbuilder
 from superset.security.guest_token import (
     GUEST_TOKEN_IDENTITY_FIELDS,
     GUEST_TOKEN_IDENTITY_MAX_LENGTH,
+    GuestTokenIdentityError,
+    GuestTokenResources,
+    GuestTokenResourceType,
     GuestTokenUser,
     validate_guest_token_identity,
 )
+from superset.security.manager import SupersetSecurityManager
+
+RESOURCES: GuestTokenResources = [
+    {"type": GuestTokenResourceType.DASHBOARD, "id": "some-uuid"}
+]
 
 
 def _identity(field: str, value: Any) -> GuestTokenUser:
@@ -63,6 +75,8 @@ def test_non_object_user_claim_is_rejected() -> None:
         "tab\tseparated",
         "trailing-newline\n",
         "null\x00byte",
+        "line\u2028separator",
+        "paragraph\u2029separator",
     ],
 )
 def test_control_characters_are_rejected(field: str, value: str) -> None:
@@ -86,3 +100,44 @@ def test_value_at_maximum_length_is_accepted() -> None:
 def test_non_string_value_is_rejected(field: str) -> None:
     with pytest.raises(ValueError, match="must be a string"):
         validate_guest_token_identity(_identity(field, 123))
+
+
+def test_mint_rejects_invalid_identity(app_context: None) -> None:
+    sm = SupersetSecurityManager(appbuilder)
+    with pytest.raises(GuestTokenIdentityError):
+        sm.create_guest_access_token({"username": "bob\nalice"}, RESOURCES, [])
+
+
+def _guest_request(mocker: MockerFixture, raw_token: bytes) -> Any:
+    request = mocker.MagicMock()
+    request.headers = {current_app.config["GUEST_TOKEN_HEADER_NAME"]: raw_token}
+    request.form = {}
+    return request
+
+
+@pytest.mark.parametrize(
+    "username",
+    ["x" * (GUEST_TOKEN_IDENTITY_MAX_LENGTH + 1), "trailing-newline\n"],
+    ids=["overlong", "trailing-newline"],
+)
+def test_invalid_identity_rejected_through_request_flow(
+    mocker: MockerFixture, app_context: None, username: str
+) -> None:
+    """A token minted without identity validation no longer resolves to a guest."""
+    sm = SupersetSecurityManager(appbuilder)
+    # Stand in for a token minted before identity validation existed.
+    with patch("superset.security.manager.validate_guest_token_identity"):
+        raw_token = sm.create_guest_access_token({"username": username}, RESOURCES, [])
+
+    assert sm.get_guest_user_from_request(_guest_request(mocker, raw_token)) is None
+
+
+def test_valid_identity_resolves_through_request_flow(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    sm = SupersetSecurityManager(appbuilder)
+    raw_token = sm.create_guest_access_token({"username": "guest"}, RESOURCES, [])
+
+    guest_user = sm.get_guest_user_from_request(_guest_request(mocker, raw_token))
+    assert guest_user is not None
+    assert guest_user.username == "guest"

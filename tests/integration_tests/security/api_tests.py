@@ -452,6 +452,20 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
         rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
         self.assert200(self._get_guest_token_with_rls(rls_rule))
 
+    @with_config(
+        {
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                x["user"].update(username="bob\nalice") is None
+            )
+        }
+    )
+    def test_guest_token_invalid_identity_after_hook(self):
+        """
+        Security API: an identity made invalid after schema validation is a 400
+        """
+        rls_rule = {"dataset": 1, "clause": "tenant_id=123"}
+        self.assert400(self._get_guest_token_with_rls(rls_rule))
+
     @with_config({"GUEST_TOKEN_VALIDATOR_HOOK": 123})
     def test_guest_validator_hook_not_callable(self):
         """

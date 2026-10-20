@@ -22,7 +22,7 @@ from werkzeug.utils import secure_filename
 # All C0 (U+0000–U+001F) and C1 (U+007F–U+009F) control characters.
 # Stripping every control char (including tab, LF, CR) keeps titles safe for
 # SMTP headers, Content-Disposition filenames, and headless-browser document.title.
-CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
+_CONTROL_CHARS_RE = re.compile(r"[\x00-\x1f\x7f-\x9f]")
 
 # Model names can be up to 500 characters, which produces export entries that exceed
 # both the 255 character filename limit common to most filesystems and, once the
@@ -46,7 +46,7 @@ _HASH_LENGTH = 8
 
 def sanitize_title(title: str) -> str:
     """Remove all C0/C1 control characters from a title string."""
-    return CONTROL_CHARS_RE.sub("", title)
+    return _CONTROL_CHARS_RE.sub("", title)
 
 
 def _name_hash(slug: str) -> str:

@@ -45,6 +45,15 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
+- **Guest token identities are validated.** The `username`, `first_name` and
+  `last_name` in a guest token's `user` claim must be strings of at most 255
+  characters with no control characters (including tab, newline and carriage
+  return) or Unicode line/paragraph separators. `POST /api/v1/security/guest_token/`
+  returns HTTP 400 for such a value, and an already-issued token that carries one
+  is no longer accepted: the request is treated as unauthenticated and
+  `Invalid guest token` is logged. Host applications that pass long display names
+  or names containing those characters should truncate or normalize them before
+  requesting a token.
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP

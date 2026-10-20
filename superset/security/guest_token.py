@@ -16,13 +16,13 @@
 # under the License.
 import hashlib
 import logging
+import re
 from typing import Any, Optional, TypedDict, Union
 
 from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
 
 from superset.utils.backports import StrEnum
-from superset.utils.file import CONTROL_CHARS_RE
 
 logger = logging.getLogger(__name__)
 
@@ -143,38 +143,54 @@ class GuestTokenUser(TypedDict, total=False):
 # claim, a generous bound for a display identity.
 GUEST_TOKEN_IDENTITY_MAX_LENGTH = 255
 GUEST_TOKEN_IDENTITY_FIELDS = ("username", "first_name", "last_name")
+# C0/C1 control characters plus the Unicode line/paragraph separators, i.e.
+# everything ``str.splitlines()`` treats as a line break.
+_INVALID_IDENTITY_CHARS_RE = re.compile(r"[\x00-\x1f\x7f-\x9f\u2028\u2029]")
+
+
+class GuestTokenIdentityError(ValueError):
+    """Raised when a guest token's ``user`` claim carries an invalid identity."""
 
 
 def validate_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
     """Validate the identity strings carried in a guest token's ``user`` claim.
 
     ``username``/``first_name``/``last_name`` are supplied by the host
-    application that mints the token and later surface in logging, request
-    context, and templated query contexts. Constrain them to bounded,
-    single-line strings where they enter the system, consistent with how other
-    request-supplied strings are validated: a display identity has no reason to
-    carry control characters (e.g. an embedded newline) or an unbounded value.
+    application that mints the token and later surface in log lines, cache
+    keys, and request context. Constrain them to bounded, single-line strings
+    where they enter the system, consistent with how other request-supplied
+    strings are validated: a display identity has no reason to carry control
+    characters or line separators (e.g. an embedded newline) or an unbounded
+    value.
+
+    ``attributes`` is not covered: it is free-form, host-defined data whose
+    values are not display strings.
 
     A missing ``user`` claim is not rejected here; that check belongs to the
     point where the token is consumed.
 
     :param user: the ``user`` claim from a guest token
-    :raises ValueError: if a provided identity field is not a valid string
+    :raises GuestTokenIdentityError: if a provided identity field is not a
+        valid string
     """
     if user is None:
         return
     if not isinstance(user, dict):
-        raise ValueError("Guest token user must be an object")
+        raise GuestTokenIdentityError("Guest token user must be an object")
     for field in GUEST_TOKEN_IDENTITY_FIELDS:
         value = user.get(field)
         if value is None:
             continue
         if not isinstance(value, str):
-            raise ValueError(f"Guest token {field} must be a string")
+            raise GuestTokenIdentityError(f"Guest token {field} must be a string")
         if len(value) > GUEST_TOKEN_IDENTITY_MAX_LENGTH:
-            raise ValueError(f"Guest token {field} exceeds the maximum length")
-        if CONTROL_CHARS_RE.search(value):
-            raise ValueError(f"Guest token {field} contains invalid characters")
+            raise GuestTokenIdentityError(
+                f"Guest token {field} exceeds the maximum length"
+            )
+        if _INVALID_IDENTITY_CHARS_RE.search(value):
+            raise GuestTokenIdentityError(
+                f"Guest token {field} contains invalid characters"
+            )
 
 
 class GuestTokenResourceType(StrEnum):

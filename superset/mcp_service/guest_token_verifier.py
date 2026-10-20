@@ -43,6 +43,11 @@ from typing import Any
 from fastmcp.server.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import TokenVerifier
 
+from superset.security.guest_token import (
+    GuestTokenIdentityError,
+    validate_guest_token_identity,
+)
+
 logger = logging.getLogger(__name__)
 
 # Namespaced claim flagging an AccessToken as a verified guest token. The paired
@@ -110,6 +115,12 @@ class GuestTokenVerifier(TokenVerifier):
                     or parsed.get("type") != "guest"
                 ):
                     logger.debug("Guest token failed structural validation; deferring")
+                    return None
+
+                try:
+                    validate_guest_token_identity(parsed["user"])
+                except GuestTokenIdentityError:
+                    logger.debug("Guest token carries an invalid identity; deferring")
                     return None
 
                 if sm._is_guest_token_revoked(parsed):  # noqa: SLF001
