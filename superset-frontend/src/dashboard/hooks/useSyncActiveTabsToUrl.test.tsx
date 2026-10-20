@@ -31,19 +31,36 @@ jest.mock('src/utils/getBootstrapData', () => ({
   applicationRoot: jest.fn(),
 }));
 
-type TabsState = { activeTabs: string[]; editMode: boolean };
+type TabsState = {
+  activeTabs: string[];
+  editMode: boolean;
+  directPathToChild?: string[];
+};
+
+const layout = {
+  'TAB-first': { type: 'TAB' },
+  'TAB-second': { type: 'TAB' },
+  'CHART-1': { type: 'CHART' },
+};
 
 const setup = (initial: Partial<TabsState> = {}, enabled = true) => {
   let history!: ReturnType<typeof useHistory>;
   const store = configureStore({
     reducer: (
-      state: { dashboardState: TabsState } = {
+      state: {
+        dashboardState: TabsState;
+        dashboardLayout: { present: typeof layout };
+      } = {
         dashboardState: { activeTabs: [], editMode: false, ...initial },
+        dashboardLayout: { present: layout },
       },
       action: { type: string; payload?: Partial<TabsState> },
     ) =>
       action.type === 'SET'
-        ? { dashboardState: { ...state.dashboardState, ...action.payload } }
+        ? {
+            ...state,
+            dashboardState: { ...state.dashboardState, ...action.payload },
+          }
         : state,
   });
   const wrapper = ({ children }: { children?: ReactNode }) => (
@@ -158,4 +175,29 @@ test('does not sync stale tabs after navigating away from a dashboard', () => {
 
   expect(window.location.pathname).toBe('/superset/explore/');
   expect(window.location.search).toBe('?custom=keep');
+});
+
+test('drops a deep link hash once the tabs on its path are deselected', () => {
+  window.history.replaceState({}, '', '/superset/dashboard/7/#TAB-first');
+  const { update } = setup({
+    activeTabs: ['TAB-first'],
+    directPathToChild: ['TAB-first'],
+  });
+  expect(window.location.hash).toBe('#TAB-first');
+
+  update({ activeTabs: ['TAB-second'] });
+
+  expect(window.location.search).toBe('?active_tabs=TAB-second');
+  expect(window.location.hash).toBe('');
+});
+
+test('keeps a deep link hash while the tabs on its path stay selected', () => {
+  window.history.replaceState({}, '', '/superset/dashboard/7/#CHART-1');
+  setup({
+    activeTabs: ['TAB-first'],
+    directPathToChild: ['TAB-first', 'CHART-1'],
+  });
+
+  expect(window.location.search).toBe('?active_tabs=TAB-first');
+  expect(window.location.hash).toBe('#CHART-1');
 });
