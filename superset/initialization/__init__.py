@@ -219,7 +219,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
-        from superset.extensions.view import ExtensionsView
+        from superset.extensions.view import ExtensionPagesView, ExtensionsView
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -480,6 +480,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                 "ENABLE_EXTENSIONS"
             ),
         )
+
+        # Registered unconditionally, and answering 404 when the feature flag
+        # is off, so that the URL map does not vary with configuration -- two
+        # workers reading different config would otherwise disagree about
+        # whether a URL exists.
+        appbuilder.add_view_no_menu(ExtensionPagesView)
 
         appbuilder.add_view(
             TaskModelView,
