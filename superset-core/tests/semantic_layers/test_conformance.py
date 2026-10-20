@@ -38,7 +38,7 @@ from superset_core.semantic_layers.types import (
     SemanticQuery,
     SemanticResult,
 )
-from superset_core.semantic_layers.view import SemanticView
+from superset_core.semantic_layers.view import SemanticView, SemanticViewFeature
 
 if TYPE_CHECKING:
     from conformance_provider import Backend, QueryView
@@ -201,11 +201,11 @@ def semantic_error_cases(
 
 
 @pytest.fixture
-def semantic_make_view(backend: "Backend") -> Callable[[str | None], SemanticView]:
+def semantic_make_view(backend: "Backend") -> Callable[[str], SemanticView]:
     """Keep construction in the adapter, independent of pending SDK signatures."""
     from conformance_provider import QueryView
 
-    def make(token: str | None) -> SemanticView:
+    def make(token: str) -> SemanticView:
         return QueryView(backend, token)
 
     return make
@@ -284,8 +284,131 @@ def test_multirow_fixture_requires_explicit_order(
     else:
         operation = partial(
             suite.test_advertised_capabilities,
+            SemanticViewFeature.ROW_OFFSET,
             semantic_view,
             {"ROW_OFFSET": (replace(query, offset=1, limit=2), expected.slice(1))},
         )
     with pytest.raises(AssertionError, match="explicit order"):
         operation()
+
+
+@pytest.mark.parametrize("lane", ["query", "capability"])
+@pytest.mark.parametrize("variant", ["reordered", "nonnullable"])
+def test_query_allows_equivalent_column_layout(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    variant: str,
+    lane: str,
+    semantic_capability_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+) -> None:
+    """Column layout and field nullability are not provider obligations."""
+    original: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def get_table(query: SemanticQuery) -> SemanticResult:
+        result: SemanticResult = original(query)
+        table: pa.Table = result.results
+        if variant == "reordered":
+            table = table.select(list(reversed(table.column_names)))
+        else:
+            table = table.cast(
+                pa.schema(
+                    [
+                        field.with_nullable(table.column(field.name).null_count > 0)
+                        for field in table.schema
+                    ]
+                )
+            )
+        return replace(result, results=table)
+
+    monkeypatch.setattr(semantic_view, "get_table", get_table)
+    suite: SemanticProviderConformance = SemanticProviderConformance()
+    if lane == "query":
+        suite.test_query_outputs("order_limit", semantic_view, semantic_query_cases)
+    else:
+        suite.test_advertised_capabilities(
+            SemanticViewFeature.ROW_OFFSET, semantic_view, semantic_capability_cases
+        )
+
+
+@pytest.mark.parametrize(
+    "error_type", [TypeError, AttributeError, NameError, AssertionError, KeyError]
+)
+def test_fault_lane_rejects_programming_errors(error_type: type[Exception]) -> None:
+    """Broken provider/fixture code is not evidence of backend fault handling."""
+
+    def broken_operation() -> SemanticResult:
+        raise error_type("broken provider")
+
+    with pytest.raises(AssertionError, match="programming error"):
+        SemanticProviderConformance().test_error_categories(
+            "get_table", "fault", {"get_table:fault": broken_operation}
+        )
+
+
+@pytest.mark.parametrize(
+    "feature",
+    [
+        SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
+        SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY,
+    ],
+)
+def test_adhoc_capability_requires_expression(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    feature: SemanticViewFeature,
+) -> None:
+    """A plain query cannot witness an advertised expression capability."""
+    semantic_view.features = frozenset({feature})
+    with pytest.raises(AssertionError, match="AdhocExpression"):
+        SemanticProviderConformance().test_advertised_capabilities(
+            feature, semantic_view, {feature.value: semantic_query_cases["order_limit"]}
+        )
+
+
+def test_generation_lane_uses_required_string_tokens(
+    backend: "Backend", semantic_change_catalog: Callable[[], None]
+) -> None:
+    """Conformance must not invent tokenless construction absent from the SDK."""
+    from conformance_provider import QueryView
+
+    def make(token: str) -> SemanticView:
+        assert isinstance(token, str), "factory requires a string token"
+        return QueryView(backend, token)
+
+    SemanticProviderConformance().test_metadata_generation(
+        make, semantic_change_catalog
+    )
+
+
+@pytest.mark.parametrize("variant", ["type", "value", "order", "duplicate"])
+def test_query_comparison_preserves_typed_ordered_values(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    variant: str,
+) -> None:
+    """Relaxing layout must still catch corrupt answers and duplicate columns."""
+    query: SemanticQuery
+    expected: pa.Table
+    query, expected = semantic_query_cases["identity"]
+    actual: pa.Table = expected
+    if variant == "type":
+        actual = expected.set_column(
+            1, "total", expected.column("total").cast(pa.float64())
+        )
+    elif variant == "value":
+        actual = expected.set_column(1, "total", pa.array([3, 7, 99]))
+    elif variant == "order":
+        actual = expected.take([2, 1, 0])
+    else:
+        actual = expected.append_column("total", expected.column("total"))
+
+    def get_table(query: SemanticQuery) -> SemanticResult:
+        return SemanticResult(requests=[], results=actual)
+
+    monkeypatch.setattr(semantic_view, "get_table", get_table)
+    with pytest.raises(AssertionError):
+        SemanticProviderConformance().test_query_outputs(
+            "identity", semantic_view, {"identity": (query, expected)}
+        )

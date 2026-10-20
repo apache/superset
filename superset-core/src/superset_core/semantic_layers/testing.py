@@ -17,7 +17,7 @@
 
 """Opt-in pytest support for provider tests without a Superset application.
 
-Load with ``pytest_plugins = ["superset_core.semantic_layers.testing"]``.
+Load before test collection with ``pytest -p superset_core.semantic_layers.testing``.
 Install ``apache-superset-core[testing]`` for pytest support; importing the
 provider SDK itself does not require pytest.
 """
@@ -38,6 +38,7 @@ from superset_core.semantic_layers.errors import (
 )
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.types import (
+    AdhocExpression,
     Dimension,
     Filter,
     Metric,
@@ -140,11 +141,11 @@ class SemanticProviderConformance:
                 replace(query, limit=None, offset=None)
             )
             assert full.results.num_rows > query.limit, "seed more rows than the limit"
-            assert full.results.slice(query.offset or 0, query.limit).equals(expected)
+            _assert_result_equal(
+                full.results.slice(query.offset or 0, query.limit), expected
+            )
         result: SemanticResult = semantic_view.get_table(query)
-        assert result.results.equals(expected), (
-            f"{case}: expected {expected.to_pydict()}, got {result.results.to_pydict()}"
-        )
+        _assert_result_equal(result.results, expected)
         assert set(result.results.column_names) == {
             member.name for member in [*query.dimensions, *query.metrics]
         }
@@ -174,44 +175,58 @@ class SemanticProviderConformance:
         else:
             assert not isinstance(
                 error.value,
+                (TypeError, AttributeError, NameError, AssertionError, KeyError),
+            ), f"Fault fixture raised a programming error: {error.value!r}"
+            assert not isinstance(
+                error.value,
                 (SemanticQueryRejectedError, SemanticResultCompletenessError),
             )
 
+    @pytest.mark.parametrize("feature", list(SemanticViewFeature))
     def test_advertised_capabilities(
         self,
+        feature: SemanticViewFeature,
         semantic_view: SemanticView,
         semantic_capability_cases: Mapping[str, tuple[SemanticQuery, pa.Table]],
     ) -> None:
-        """Every advertised feature has a result-level witness in this lane."""
-        feature: SemanticViewFeature | str
-        for feature in semantic_view.features:
-            name: str = (
-                feature.value if isinstance(feature, SemanticViewFeature) else feature
-            )
-            query: SemanticQuery
-            expected: pa.Table
-            query, expected = semantic_capability_cases[name]
-            assert expected.num_rows > 0
-            assert query.order or expected.num_rows == 1, (
-                f"{name}: multi-row fixtures need explicit order"
-            )
-            if name == "ROW_OFFSET":
-                assert query.offset is not None
-                assert query.offset > 0
-                assert query.limit is not None
-                assert query.limit > 0
-            elif name in {"GROUP_LIMIT", "GROUP_OTHERS"}:
-                assert query.group_limit is not None
-                if name == "GROUP_OTHERS":
-                    assert query.group_limit.group_others
-            assert semantic_view.get_table(query).results.equals(expected), name
+        """Every advertised feature has its own result-level witness."""
+        if feature not in semantic_view.features:
+            pytest.skip(f"Provider does not advertise {feature.value}")
+        query: SemanticQuery
+        expected: pa.Table
+        query, expected = semantic_capability_cases[feature.value]
+        assert expected.num_rows > 0
+        assert query.order or expected.num_rows == 1, (
+            f"{feature.value}: multi-row fixtures need explicit order"
+        )
+        if feature == SemanticViewFeature.ROW_OFFSET:
+            assert query.offset is not None
+            assert query.offset > 0
+            assert query.limit is not None
+            assert query.limit > 0
+        elif feature in {
+            SemanticViewFeature.GROUP_LIMIT,
+            SemanticViewFeature.GROUP_OTHERS,
+        }:
+            assert query.group_limit is not None
+            if feature == SemanticViewFeature.GROUP_OTHERS:
+                assert query.group_limit.group_others
+        elif feature == SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS:
+            assert any(
+                isinstance(member, AdhocExpression) for member in query.dimensions
+            ), "ADHOC_COLUMN_EXPRESSIONS requires an AdhocExpression dimension"
+        elif feature == SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY:
+            assert any(
+                isinstance(member, AdhocExpression) for member, _ in query.order or []
+            ), "ADHOC_EXPRESSIONS_IN_ORDERBY requires an AdhocExpression order key"
+        _assert_result_equal(semantic_view.get_table(query).results, expected)
 
-    def test_metadata_generation_and_unbound_bypass(
+    def test_metadata_generation(
         self,
-        semantic_make_view: Callable[[str | None], SemanticView],
+        semantic_make_view: Callable[[str], SemanticView],
         semantic_change_catalog: Callable[[], None],
     ) -> None:
-        """Changed generations and unbound calls cannot reuse a stale catalog.
+        """Changed generations cannot reuse a stale catalog.
 
         The change fixture must add a member on each call. Factories and transport
         stay provider-owned; uncached legacy providers may report a None token.
@@ -226,10 +241,6 @@ class SemanticProviderConformance:
         assert second.metadata_cache_token in {None, "generation-b"}
         # A captured view must never claim a later discovery token.
         assert first.metadata_cache_token in {None, "generation-a"}
-        semantic_change_catalog()
-        unbound: SemanticView = semantic_make_view(None)
-        assert _catalog(unbound) != after
-        assert unbound.metadata_cache_token is None
 
     def test_imports_and_static_schema(
         self, semantic_provider_class: tuple[str, str]
@@ -256,7 +267,22 @@ class SemanticProviderConformance:
         )
         assert completed.returncode == 0, completed.stdout + completed.stderr
 
-    # TODO: add the default chronological-order case after its SDK rule lands.
+
+def _assert_result_equal(actual: pa.Table, expected: pa.Table) -> None:
+    """Compare named typed columns and row order, not field order/nullability."""
+    assert len(actual.column_names) == len(set(actual.column_names)), (
+        "duplicate result columns"
+    )
+    assert set(actual.column_names) == set(expected.column_names), (
+        f"Expected columns {expected.column_names}, got {actual.column_names}"
+    )
+    name: str
+    for name in expected.column_names:
+        assert actual.column(name).equals(expected.column(name)), (
+            f"{name}: expected {expected.column(name).to_pylist()}, "
+            f"got {actual.column(name).to_pylist()}; "
+            f"expected schema {expected.schema}, got {actual.schema}"
+        )
 
 
 def _catalog(view: SemanticView) -> tuple[set[str], set[tuple[str, str | None]]]:
@@ -299,7 +325,9 @@ def _check_isolation(module_name: str, class_name: str) -> None:
         ) -> ModuleSpec | None:
             if fullname.split(".")[0] in {"superset", "flask", "flask_appbuilder"}:
                 attempted.append(fullname)
-                raise ImportError(f"Provider imported host module {fullname}")
+                raise ImportError(
+                    f"Provider import graph reached host/framework module {fullname}"
+                )
             return None
 
     def no_io(*args: object, **kwargs: object) -> NoReturn:

@@ -78,8 +78,6 @@ token they were discovered under through `metadata_cache_token`; never relabel
 previously cached members with a later token. Runtime schema helpers receiving
 the layer's configuration must preserve its operation identity too. Keep
 existing expiries and prune retired dictionary generations to bound memory.
-Construction without a token must bypass token-bound metadata caches rather than
-serve members discovered under a previous token.
 Providers without local metadata caches may carry the token onward; this does
 not clear vendor or warehouse server caches.
 Until a provider honours the supplied factory token in its caches, it cannot
