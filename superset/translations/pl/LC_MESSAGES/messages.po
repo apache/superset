@@ -14787,6 +14787,12 @@ msgstr "Przewiń na dół, aby umożliwić nadpisywanie zmian."
 msgid "Search"
 msgstr "Szukaj"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Przeszukaj %s rekord"
+msgstr[1] "Przeszukaj %s rekordów"
+
 msgid "Search / Filter"
 msgstr "Szukaj / Filtruj"
 
@@ -14849,9 +14855,6 @@ msgstr "Szukaj w filtrach"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Szukaj metryk i kolumn"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

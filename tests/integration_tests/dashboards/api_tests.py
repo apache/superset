@@ -44,6 +44,7 @@ from flask import g
 from freezegun import freeze_time
 from sqlalchemy import and_
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.orm.exc import StaleDataError
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.daos.dashboard import (
@@ -5379,6 +5380,96 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.delete(dashboard)
             db.session.delete(member)
             db.session.delete(other)
+            db.session.commit()
+
+    @parameterized.expand([(True, False), (False, False), (True, True), (False, True)])
+    def test_copy_dashboard_layout_without_current_charts(
+        self, keep_first: bool, duplicate_slices: bool
+    ) -> None:
+        """Copy a layout that omits charts the source has, as a version fork does."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        first: Slice = self.insert_chart("copy-subset-first", [admin.id], dataset_id)
+        second: Slice = self.insert_chart("copy-subset-second", [admin.id], dataset_id)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-subset-source", None, [admin.id], slices=[first, second]
+        )
+        source_members: set[int] = {first.id, second.id}
+        positions: dict[str, Any] = (
+            {
+                "CHART-first": {
+                    "id": "CHART-first",
+                    "type": "CHART",
+                    "meta": {"chartId": first.id, "width": 4, "height": 50},
+                }
+            }
+            if keep_first
+            else {}
+        )
+        self.login(ADMIN_USERNAME)
+        copied_id: int | None = None
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "copy-subset-result",
+                    "duplicate_slices": duplicate_slices,
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert response.status_code == 200, response.data
+            copied_id = response.json["result"]["id"]
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, copied_id)
+            expected: set[str] = {"copy-subset-first"} if keep_first else set()
+            assert {chart.slice_name for chart in copied.slices} == expected
+            assert {chart.id for chart in dashboard.slices} == source_members
+        finally:
+            db.session.rollback()
+            if copied_id is not None:
+                db.session.delete(db.session.get(Dashboard, copied_id))
+            db.session.delete(dashboard)
+            # Clones carry the source names, including ones the layout left out.
+            chart: Slice
+            for chart in db.session.query(Slice).filter(
+                Slice.slice_name.in_(["copy-subset-first", "copy-subset-second"])
+            ):
+                db.session.delete(chart)
+            db.session.commit()
+
+    def test_copy_dashboard_logs_database_error(self) -> None:
+        """A database error behind the generic copy 400 is logged with its cause."""
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-log-source", None, [admin.id]
+        )
+        self.login(ADMIN_USERNAME)
+        logger: MagicMock
+        try:
+            with (
+                patch(
+                    "superset.commands.dashboard.copy.DashboardDAO.copy_dashboard",
+                    side_effect=StaleDataError("dashboard_slices row missing"),
+                ),
+                patch("superset.dashboards.api.logger") as logger,
+            ):
+                response: TestResponse = self.client.post(
+                    f"/api/v1/dashboard/{dashboard.id}/copy/",
+                    json={
+                        "dashboard_title": "copy-log-result",
+                        "json_metadata": json.dumps({"positions": {}}),
+                    },
+                )
+            assert response.status_code == 400
+            assert response.json == {"message": "Arguments are not correct"}
+            logger.error.assert_called_once()
+            assert logger.error.call_args.kwargs == {"exc_info": True}
+        finally:
+            db.session.delete(dashboard)
             db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")

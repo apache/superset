@@ -14142,6 +14142,12 @@ msgstr "Desplaça't cap avall fins al final per habilitar sobreescriure canvis. 
 msgid "Search"
 msgstr "Cercar"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Cercar %s registre"
+msgstr[1] "Cercar %s registres"
+
 msgid "Search / Filter"
 msgstr "Cercar / Filtrar"
 
@@ -14201,9 +14207,6 @@ msgstr "Cercar en filtres"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Cercar Mètriques i Columnes"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
