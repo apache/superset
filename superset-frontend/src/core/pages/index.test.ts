@@ -30,12 +30,16 @@ const disposables: Array<{ dispose: () => void }> = [];
 const Component = () => React.createElement('div', null, 'page');
 
 /** The manifest declaration the loader would have bound for these tests. */
-const DECLARED = ['/review-queue', '/review-queue-archive', '/a/b'];
+const DECLARED = [
+  { path: '/review-queue' },
+  { path: '/review-queue-archive' },
+  { path: '/a/b' },
+];
 
 const register = (
   extensionId: string,
   page: { path: string; name: string },
-  declared: readonly string[] = DECLARED,
+  declared: readonly { path: string; permitted?: boolean }[] = DECLARED,
 ) => registerPageFor(extensionId, declared, page, Component);
 
 afterEach(() => {
@@ -49,7 +53,12 @@ test('a declared page registers at the path it declared', () => {
   );
 
   expect(getPages()).toEqual([
-    { path: '/review-queue', name: 'Queue', extensionId: 'acme.tools' },
+    {
+      path: '/review-queue',
+      name: 'Queue',
+      extensionId: 'acme.tools',
+      permitted: true,
+    },
   ]);
 });
 
@@ -65,7 +74,9 @@ test('a path the manifest does not declare is refused', () => {
 
 test('the refusal names what was declared, so the fix is obvious', () => {
   expect(() =>
-    register('acme.tools', { path: '/welcome', name: 'X' }, ['/review-queue']),
+    register('acme.tools', { path: '/welcome', name: 'X' }, [
+      { path: '/review-queue' },
+    ]),
   ).toThrow(/Declared: \/review-queue/);
 });
 
@@ -87,7 +98,7 @@ test.each([
   // Checked before the manifest list, so a malformed path is reported as
   // malformed even when it somehow appears in the manifest.
   expect(() =>
-    register('acme.tools', { path, name: 'X' }, [path]),
+    register('acme.tools', { path, name: 'X' }, [{ path }]),
   ).toThrow(/must be an absolute path/);
   expect(getPages()).toEqual([]);
 });
@@ -161,4 +172,38 @@ test('a path no extension claims matches nothing', () => {
 
 test('resolvePage falls back to a placeholder for an unknown id', () => {
   expect(resolvePage('acme.tools:/missing')).toBeTruthy();
+});
+
+test('a page the user may not open is still registered, marked unpermitted', () => {
+  // Registered rather than dropped: the extension's bundle calls
+  // registerPage unconditionally, so refusing here would turn a permission
+  // the user lacks into an error in their console. The host renders a
+  // refusal instead, and the server refuses the path independently.
+  disposables.push(
+    register('acme.tools', { path: '/review-queue', name: 'Queue' }, [
+      { path: '/review-queue', permitted: false },
+    ]),
+  );
+
+  expect(getPages()).toEqual([
+    {
+      path: '/review-queue',
+      name: 'Queue',
+      extensionId: 'acme.tools',
+      permitted: false,
+    },
+  ]);
+});
+
+test('a declaration that says nothing about permission is treated as open', () => {
+  // The server omits the flag only for a page with no declared permission,
+  // and an older server omits it entirely. Defaulting to refused would hide
+  // every page from everyone the first time this ships.
+  disposables.push(
+    register('acme.tools', { path: '/review-queue', name: 'Queue' }, [
+      { path: '/review-queue' },
+    ]),
+  );
+
+  expect(getPages()[0].permitted).toBe(true);
 });

@@ -15,11 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+from typing import Callable
 
 from flask import abort, Flask, g, render_template
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, permission_name
-from superset_core.extensions.types import Manifest
+from superset_core.extensions.types import Manifest, Page
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
 
@@ -48,29 +49,71 @@ class ExtensionsView(BaseSupersetView):
         return super().render_app_template()
 
 
-def _render_page(**_kwargs: str) -> FlaskResponse:
-    """Render the application shell for a contributed page.
-
-    ``_kwargs`` absorbs the trailing path of the sub-path rule and is never
-    read. It reaches the server only so the URL resolves; which page it
-    denotes is decided by the React router once the extension's bundle has
-    registered its component. The path is therefore not a value to be trusted
-    or validated here, because nothing here acts on it.
-
-    Guarded by a login check rather than a permission, matching
-    ``Superset.welcome``: the payload is a pure function of the requesting
-    user and is byte-identical to the one ``/welcome/`` serves. It names no
-    extension, carries no page data, and every API the page then calls is
-    separately authorised. A permission here would gate the frame around the
-    data, not the data.
-    """
-    from superset import is_feature_enabled
-
-    if not is_feature_enabled("ENABLE_EXTENSIONS"):
-        abort(404)
-    if not g.user or not get_user_id():
-        return redirect_to_login()
+def _render_shell() -> FlaskResponse:
+    """The application shell, identical to the one ``/welcome/`` serves."""
     return render_template("superset/spa.html", **get_spa_template_context())
+
+
+def may_open(extension_id: str, permission: str | None) -> bool:
+    """Whether the current user may open a page with this permission.
+
+    A page without a declared permission is open to any signed-in user, which
+    is what every contributed page was before permissions existed. Keeping
+    that the default means adding this field cannot lock anyone out of a page
+    that already worked.
+    """
+    if permission is None:
+        return True
+    from superset import security_manager
+
+    return security_manager.can_access(permission, extension_id)
+
+
+def _make_page_view(extension_id: str, page: Page) -> Callable[..., FlaskResponse]:
+    """Build the view for one page, closing over what that page requires.
+
+    A view per page rather than one shared view read from the request: the
+    permission a page requires is part of the route, not something to re-derive
+    from the URL on the way in.
+    """
+
+    def view(**_kwargs: str) -> FlaskResponse:
+        """Render the shell, or refuse.
+
+        ``_kwargs`` absorbs the trailing path of the sub-path rule and is
+        never read. It reaches the server only so the URL resolves; which
+        screen it denotes is decided by the React router once the extension's
+        bundle has registered its component. The path is therefore not a value
+        to be trusted or validated here, because nothing here acts on it.
+
+        A signed-in user without the permission gets 403 rather than FAB's
+        ``has_access`` redirect to the login page. They are already signed in;
+        sending them to log in again says nothing true and leaves them
+        somewhere they cannot act on. 403 goes through Superset's own
+        ``HTTPException`` handler like any other refusal.
+        """
+        # Imported here rather than at module scope: the flag is read per
+        # request, so turning extensions off takes effect without waiting for
+        # the rules to disappear at the next restart.
+        from superset import is_feature_enabled
+
+        if not is_feature_enabled("ENABLE_EXTENSIONS"):
+            abort(404)
+        if not g.user or not get_user_id():
+            return redirect_to_login()
+        if not may_open(extension_id, page.permission):
+            logger.warning(
+                "User %s was refused the page '%s' of extension '%s', which "
+                "requires '%s'",
+                get_user_id(),
+                page.path,
+                extension_id,
+                page.permission,
+            )
+            abort(403)
+        return _render_shell()
+
+    return view
 
 
 def _first_claimant(app: Flask, path: str) -> str | None:
@@ -147,19 +190,25 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
             continue
 
         endpoint = f"{_ENDPOINT_PREFIX}.{manifest.id}{page.path}"
+        view = _make_page_view(manifest.id, page)
         app.add_url_rule(
             page.path,
             endpoint=endpoint,
-            view_func=_render_page,
+            view_func=view,
             methods=["GET"],
         )
         app.add_url_rule(
             f"{page.path}/<path:rest>",
             endpoint=f"{endpoint}/*",
-            view_func=_render_page,
+            view_func=view,
             methods=["GET"],
         )
-        logger.info("Extension '%s' serves a page at '%s'", manifest.id, page.path)
+        logger.info(
+            "Extension '%s' serves a page at '%s'%s",
+            manifest.id,
+            page.path,
+            f", requiring '{page.permission}'" if page.permission else "",
+        )
 
 
 def registered_page_paths(app: Flask, extension_id: str) -> list[str]:
@@ -177,3 +226,66 @@ def registered_page_paths(app: Flask, extension_id: str) -> list[str]:
         for rule in app.url_map.iter_rules()
         if rule.endpoint.startswith(prefix) and not rule.endpoint.endswith("/*")
     ]
+
+
+def ensure_page_permissions(manifest: Manifest) -> None:
+    """Create the permissions this extension's pages require, if missing.
+
+    Created when the extension loads rather than by ``superset init``, because
+    an extension can be installed long after a deployment was initialised and
+    an administrator cannot grant a permission that does not exist yet.
+
+    The permission is attached to a view menu named after the extension, so
+    the Roles screen groups an extension's permissions together and reads as
+    "can_review on preset.asset-approval". Pages of the same extension may
+    share a permission or declare different ones; this registers whatever set
+    they name.
+
+    Failures are logged and swallowed. Every worker runs this at boot, so two
+    starting together can race between the lookup and the insert; the loser
+    would otherwise take the whole worker down over a row the winner has
+    already written. The permission check itself reads the database per
+    request, so a worker that lost the race still enforces correctly.
+    """
+    from superset import security_manager
+
+    required = {
+        page.permission
+        for page in manifest.contributions.pages
+        if page.permission is not None
+    }
+    for permission in sorted(required):
+        try:
+            if security_manager.find_permission_view_menu(permission, manifest.id):
+                continue
+            security_manager.add_permission_view_menu(permission, manifest.id)
+            logger.info(
+                "Created permission '%s' on '%s' for extension pages",
+                permission,
+                manifest.id,
+            )
+        except Exception:  # pylint: disable=broad-except
+            # Most often a concurrent worker inserting the same row.
+            logger.warning(
+                "Could not create permission '%s' on '%s'; an administrator "
+                "may need to run `superset init` before it can be granted",
+                permission,
+                manifest.id,
+                exc_info=True,
+            )
+            security_manager.session.rollback()
+
+
+def permitted_page_paths(app: Flask, manifest: Manifest) -> set[str]:
+    """Paths of this extension's pages the current user may open.
+
+    Used to decide what the frontend is told about. The server refuses an
+    unpermitted page on its own, so this is not the enforcement -- it is what
+    keeps a navigation entry from advertising a page that would answer 403.
+    """
+    registered = set(registered_page_paths(app, manifest.id))
+    return {
+        page.path
+        for page in manifest.contributions.pages
+        if page.path in registered and may_open(manifest.id, page.permission)
+    }

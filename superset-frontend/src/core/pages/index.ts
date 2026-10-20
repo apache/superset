@@ -52,6 +52,15 @@ type Page = pagesApi.Page;
 type ResolvedPage = pagesApi.ResolvedPage;
 
 /**
+ * A page as the server reported it: what the manifest declares, plus whether
+ * this user may open it. Bound per extension by the loader.
+ */
+export interface DeclaredPage {
+  path: string;
+  permitted?: boolean;
+}
+
+/**
  * Mirrors `PAGE_PATH_PATTERN` in `superset_core.extensions.constants`.
  *
  * Checked again here because this is the last point before a path is handed
@@ -90,7 +99,7 @@ const refresh = () => {
  */
 export const registerPageFor = (
   extensionId: string,
-  declaredPaths: readonly string[],
+  declared: readonly DeclaredPage[],
   page: Page,
   component: ComponentType,
 ): Disposable => {
@@ -102,18 +111,26 @@ export const registerPageFor = (
     );
   }
 
-  if (!declaredPaths.includes(page.path)) {
+  const declaration = declared.find(entry => entry.path === page.path);
+  if (!declaration) {
     throw new Error(
       `Extension "${extensionId}" registered a page at "${page.path}", which ` +
         `its manifest does not declare. Add it to contributions.pages and ` +
         `rebuild: the server registers URL rules from the manifest, so this ` +
         `page would work on client navigation and 404 on a cold load. ` +
-        `Declared: ${declaredPaths.join(', ') || '(none)'}.`,
+        `Declared: ${declared.map(entry => entry.path).join(', ') || '(none)'}.`,
     );
   }
 
   const id = `${extensionId}:${page.path}`;
-  const resolved: ResolvedPage = { ...page, extensionId };
+  // Registered whether or not the user may open it, so that the component is
+  // there to render a refusal rather than a blank screen, and so an
+  // extension's own bundle never has to branch on permissions.
+  const resolved: ResolvedPage = {
+    ...page,
+    extensionId,
+    permitted: declaration.permitted !== false,
+  };
 
   const replaced = pageRegistry.get(id);
   if (replaced) {

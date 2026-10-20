@@ -217,9 +217,18 @@ const { useBreakpoint } = Grid;
  */
 function withExtensionPages(
   menu: MenuObjectProps[],
-  pages: { name: string; path: string; nav?: { label?: string } }[],
+  pages: {
+    name: string;
+    path: string;
+    nav?: { label?: string };
+    permitted?: boolean;
+  }[],
 ): MenuObjectProps[] {
-  const contributed = pages.filter(page => page.nav);
+  // A page the user may not open is left out rather than shown and refused:
+  // the server answers 403 for it, so an entry here would only advertise a
+  // dead end. The page stays registered, so a direct link still explains
+  // itself rather than rendering nothing.
+  const contributed = pages.filter(page => page.nav && page.permitted !== false);
   if (!contributed.length) {
     return menu;
   }
