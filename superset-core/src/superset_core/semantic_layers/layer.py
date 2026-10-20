@@ -24,6 +24,11 @@ from typing import Any, ClassVar, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
 
+from superset_core.semantic_layers.context import (
+    ExecutionMethod,
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.view import SemanticView
 
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
@@ -80,6 +85,9 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         SemanticCacheResponsibility.PROVIDER
     )
     semantic_cache_scope: SemanticCacheScope = SemanticCacheScope.EXECUTION_CONTEXT
+    supported_execution_methods: ClassVar[frozenset[ExecutionMethod]] = frozenset(
+        {ExecutionMethod.CONNECTION}
+    )
     semantic_cache_capabilities: SemanticCacheCapabilities = SemanticCacheCapabilities()
 
     def get_semantic_cache_provider_identity(
@@ -100,26 +108,21 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     result_cache_version: ClassVar[str | None] = None
 
     @classmethod
-    def from_configuration_with_cache_token(
-        cls, configuration: dict[str, Any], *, cache_token: str
-    ) -> SemanticLayer[ConfigT, SemanticViewT]:
-        """Construct with the host's metadata generation before any discovery.
-
-        ``cache_token`` is an opaque generation that changes when the layer's
-        metadata is reloaded. Providers with local metadata caches override this
-        factory to include it in their keys before construction or lookup. Legacy
-        providers retain their ordinary construction behavior.
-        """
-        return cls.from_configuration(configuration)
-
-    @classmethod
     @abstractmethod
     def from_configuration(
         cls,
         configuration: dict[str, Any],
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
     ) -> SemanticLayer[ConfigT, SemanticViewT]:
-        """
-        Create a semantic layer from its configuration.
+        """Bind this layer and its views to one host execution identity.
+
+        Under CONNECTION, results and catalogs must not depend on the context.
+        Store the supplied context and cache_token; partition provider caches on
+        cache_token, never secrets. Non-connection credentials arrive exclusively
+        through credentials; never fall back to connection credentials.
         """
         raise NotImplementedError(
             "Semantic layers must implement the from_configuration method"

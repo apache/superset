@@ -17,7 +17,7 @@
 
 """External compatibility selection validation through the public MCP tools."""
 
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -83,12 +83,17 @@ async def test_external_compatibility_selection_names(
     provider.get_compatible_metrics.return_value = {metric}
     provider.get_compatible_dimensions.return_value = {dimension}
     view: SemanticView = SemanticView(id=5, name="production-shaped-view")
-    view.__dict__["implementation"] = provider
     user: MagicMock = MagicMock(id=1, username="admin")
 
     access: MagicMock
     client: Client
     with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=provider,
+        ),
         patch("superset.mcp_service.auth.get_user_from_request", return_value=user),
         patch(
             "superset.mcp_service.semantic_layer.tool.get_compatible_metrics.user_can_view_data_model_metadata",
