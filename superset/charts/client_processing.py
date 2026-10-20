@@ -658,7 +658,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                     source, reducer = collapse(block)
                     subtotal = _reduce(source, reducer, axis=1)
                 else:
-                    subtotal = pivot_v2_aggfunc_map[aggfunc](block, axis=1)
+                    subtotal = summarize_frame(aggfunc, block, axis=1)
                 depth = df.columns.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal_name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
@@ -696,7 +696,7 @@ def pivot_df(  # pylint: disable=too-many-locals, too-many-arguments, too-many-s
                         lambda series: _reduce(series, collapse(series.to_frame())[1])
                     )
                 else:
-                    subtotal = pivot_v2_aggfunc_map[aggfunc](subtotal_values, axis=0)
+                    subtotal = summarize_frame(aggfunc, subtotal_values, axis=0)
                 depth = groups.nlevels - len(subgroup) - 1
                 total = metric_name if level == 0 else __("Subtotal")
                 subtotal.name = tuple([*subgroup, total, *([""] * depth)])  # noqa: C409
@@ -810,6 +810,78 @@ PIVOT_AGGREGATIONS_WITHOUT_CURRENCY_CONTEXT = frozenset(
 )
 
 
+def _sample_dispersion(
+    data: Union[pd.DataFrame, pd.Series],
+    method: str,
+    axis: Optional[int] = None,
+) -> Any:
+    """
+    Sample variance/standard deviation that is 0 for a single observation.
+
+    Accepts a Series (cell aggregation) or a DataFrame reduced along ``axis``
+    (row/column summaries), mirroring how the other reducers are invoked.
+    """
+    if isinstance(data, pd.DataFrame):
+        axis = 0 if axis is None else axis
+        result = getattr(data, method)(axis=axis)
+        # A scope with zero or one non-null observations has a defined spread
+        # of 0 (as for a single-cell aggregation, or an empty one); count
+        # observations per scope so sparse pivots, where physical columns
+        # outnumber observations, agree. `<= 1` (not `== 1`) also covers the
+        # zero-observation case, which `getattr(data, method)` otherwise
+        # leaves as NaN instead of 0, unlike the Series branch below.
+        return result.mask(data.count(axis=axis) <= 1, 0)
+    return getattr(data, method)() if len(data) > 1 else 0
+
+
+def sample_variance(
+    data: Union[pd.DataFrame, pd.Series], axis: Optional[int] = None
+) -> Any:
+    """Sample variance (ddof=1), 0 for fewer than two observations."""
+    return _sample_dispersion(data, "var", axis)
+
+
+def sample_standard_deviation(
+    data: Union[pd.DataFrame, pd.Series], axis: Optional[int] = None
+) -> Any:
+    """Sample standard deviation (ddof=1), 0 for fewer than two observations."""
+    return _sample_dispersion(data, "std", axis)
+
+
+def _first_value(series: pd.Series) -> Any:
+    """First element of a series, NaN when empty."""
+    return series.iloc[0] if len(series) else np.nan
+
+
+def _last_value(series: pd.Series) -> Any:
+    """Last element of a series, NaN when empty."""
+    return series.iloc[-1] if len(series) else np.nan
+
+
+# Series-only reducers need an explicit per-row/column application when
+# summarizing a DataFrame along an axis, since they take no ``axis`` argument.
+_SERIES_ONLY_SUMMARY_REDUCERS: dict[str, Callable[[pd.Series], Any]] = {
+    "Count": pd.Series.count,
+    "Count Unique Values": pd.Series.nunique,
+    "List Unique Values": list_unique_values,
+    "First": _first_value,
+    "Last": _last_value,
+    "Count as Fraction of Total": pd.Series.count,
+    "Count as Fraction of Rows": pd.Series.count,
+    "Count as Fraction of Columns": pd.Series.count,
+}
+
+
+def summarize_frame(aggfunc: str, data: pd.DataFrame, axis: int) -> pd.Series:
+    """Reduce a DataFrame along ``axis`` with the named pivot aggregation."""
+    reducer = _SERIES_ONLY_SUMMARY_REDUCERS.get(aggfunc)
+    if reducer is None:
+        return pivot_v2_aggfunc_map[aggfunc](data, axis=axis)
+    if data.shape[1 - axis] == 0:
+        return pd.Series(dtype=object)
+    return data.apply(reducer, axis=axis)
+
+
 pivot_v2_aggfunc_map = {
     "Count": pd.Series.count,
     "Count Unique Values": pd.Series.nunique,
@@ -817,10 +889,8 @@ pivot_v2_aggfunc_map = {
     "Sum": pd.Series.sum,
     "Average": pd.Series.mean,
     "Median": pd.Series.median,
-    "Sample Variance": lambda series: pd.series.var(series) if len(series) > 1 else 0,
-    "Sample Standard Deviation": (
-        lambda series: pd.series.std(series) if len(series) > 1 else 0,
-    ),
+    "Sample Variance": sample_variance,
+    "Sample Standard Deviation": sample_standard_deviation,
     "Minimum": pd.Series.min,
     "Maximum": pd.Series.max,
     "First": lambda series: series[:1],
@@ -1049,6 +1119,39 @@ def merge_currency_formats(
     return currency_formats
 
 
+def effective_show_values_as(form_data: dict[str, Any]) -> Optional[str]:
+    """Return the ``showValuesAs`` percent mode the live chart actually renders.
+
+    A result aggregation (any ``aggregateFunction`` recognized by
+    ``RESULT_AGGREGATIONS`` on the frontend -- mirrored here by
+    ``pivot_v2_aggfunc_map``'s keys) takes over the cell/summary computation
+    on the frontend and hides the "Show values as" control in Explore (see
+    ``aggregateFunction``'s ``visibility`` in controlPanel.tsx and
+    ``resultFactory ?? fractionType`` in utilities.ts, where the result
+    aggregation always wins). Hiding the control doesn't reset its stored
+    value, so a percent choice made before switching to e.g. "Average" stays
+    persisted; every export/report path has to ignore it the same way the
+    chart does -- both when pivoting the data and when picking a cell format
+    -- rather than apply a percent transform (or a percent number format)
+    the live chart no longer shows.
+
+    An unrecognized ``aggregateFunction`` (absent, the "Metric" sentinel, a
+    stale pre-SIP-216 value this map doesn't know, or any other garbage) is
+    *not* an active result aggregation to the frontend's own
+    ``getResultAggregation`` lookup, which falls back to the metric
+    definition -- and the stored percent mode -- for anything it doesn't
+    recognize. Checking membership here instead of excluding only ``None``
+    and ``"Metric"`` keeps this in sync with that fallback, rather than
+    wrongly suppressing a percent mode the chart is still showing.
+    """
+    show_values_as = form_data.get("showValuesAs")
+    if show_values_as not in SHOW_VALUES_AS_PERCENT_MODES:
+        return None
+    if form_data.get("aggregateFunction") in pivot_v2_aggfunc_map:
+        return None
+    return show_values_as
+
+
 def pivot_table_v2(
     df: pd.DataFrame,
     form_data: dict[str, Any],
@@ -1065,15 +1168,22 @@ def pivot_table_v2(
     # the leaf rows describe the table, the rest are its database-computed
     # totals.
     df, rollup_levels = split_grouping_sets_levels(df)
-    show_values_as = form_data.get("showValuesAs")
-    percent_mode = (
-        show_values_as if show_values_as in SHOW_VALUES_AS_PERCENT_MODES else None
-    )
+    percent_mode = effective_show_values_as(form_data)
+    aggregate_function_raw = form_data.get("aggregateFunction")
+    # "Metric" (the new result-aggregation control's default, meaning "use the
+    # metric's own definition, no second aggregation pass") isn't a key in
+    # pivot_v2_aggfunc_map -- it never needed to be, since this backend path
+    # has no result-aggregation support yet (see #45215). Treat it, and any
+    # other value this map doesn't recognize, the same way an absent field
+    # always has been: fall back to "Sum".
+    aggregate_function = aggregate_function_raw
+    if aggregate_function not in pivot_v2_aggfunc_map:
+        aggregate_function = "Sum"
     pivot_options: dict[str, Any] = {
         "rows": get_column_names(form_data.get("groupbyRows"), verbose_map),
         "columns": get_column_names(form_data.get("groupbyColumns"), verbose_map),
         "metrics": metrics,
-        "aggfunc": form_data.get("aggregateFunction", "Sum"),
+        "aggfunc": aggregate_function,
         "transpose_pivot": bool(form_data.get("transposePivot")),
         "combine_metrics": bool(form_data.get("combineMetric")),
         "show_rows_total": bool(form_data.get("rowTotals")),
@@ -1456,7 +1566,7 @@ def apply_client_processing(  # noqa: C901
                 number_format=(
                     EXCEL_PERCENT_FORMAT
                     if viz_type == "pivot_table_v2"
-                    and form_data.get("showValuesAs") in SHOW_VALUES_AS_PERCENT_MODES
+                    and effective_show_values_as(form_data) is not None
                     else None
                 ),
                 **{

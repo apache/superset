@@ -2090,6 +2090,34 @@ def test_pivot_table_v2_pivots_only_grouping_sets_leaf_rows():
     assert len(pivoted.index) == 2
 
 
+def test_pivot_table_v2_metric_default_does_not_raise_key_error():
+    """`aggregateFunction: "Metric"` (the result-aggregation control's
+    default, meaning "use the metric's own definition") is not a key in
+    pivot_v2_aggfunc_map -- this backend path has no result-aggregation
+    support yet. It must fall back to the same "Sum" behavior an absent
+    field always got, not KeyError.
+
+    Regression test: this frontend default reaching this function used to
+    raise ``KeyError('Metric')`` for any Actual Values pivot with rows or
+    columns, breaking every scheduled report/alert/CSV/Excel export of a
+    pivot_table_v2 chart.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Metric",
+    }
+    without_field = {k: v for k, v in form_data.items() if k != "aggregateFunction"}
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    pivoted_default = pivot_table_v2(
+        grouping_sets_df(), without_field, apply_number_format=False
+    )
+
+    pd.testing.assert_frame_equal(pivoted, pivoted_default)
+
+
 @pytest.mark.parametrize(
     "mode,expected",
     [
@@ -2142,6 +2170,231 @@ def test_pivot_table_v2_actual_values_uses_database_rollups():
     # ...while the leaf cells themselves are untouched
     assert pivoted.loc[("UK",), ("AVG(num)", "boy")] == 20
     assert pivoted.loc[("US",), ("AVG(num)", "boy")] == 10
+
+
+@pytest.mark.parametrize(
+    "aggregate_function,expected",
+    [
+        ("Sample Variance", 50.0),
+        ("Sample Standard Deviation", 50.0**0.5),
+    ],
+)
+def test_pivot_table_v2_sample_statistics_aggregations(
+    aggregate_function: str, expected: float
+):
+    """Sample variance/standard deviation must compute for two values at one
+    pivot address (10 and 20 give variance 50 and standard deviation ~7.071),
+    not raise on a misspelled ``pd.series`` or a non-callable tuple.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US"],
+            "gender": ["boy", "boy"],
+            "SUM(num)": [10, 20],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    assert pivoted.loc[("US",), ("SUM(num)", "boy")] == pytest.approx(expected)
+
+
+@pytest.mark.parametrize(
+    ("aggregate_function", "row_summaries", "column_summaries"),
+    [
+        # Cells hold the per-cell sample variance (US: 50 and 200, FR: 200 and
+        # 450); each summary is the sample variance of those cell values.
+        (
+            "Sample Variance",
+            {"US": 11250.0, "FR": 31250.0},
+            {"boy": 11250.0, "girl": 31250.0},
+        ),
+        # Cells hold the per-cell sample standard deviation (US: ~7.07 and
+        # ~14.14, FR: ~14.14 and ~21.21); each summary is the sample standard
+        # deviation of those cell values, which is 5 in every scope.
+        (
+            "Sample Standard Deviation",
+            {"US": 5.0, "FR": 5.0},
+            {"boy": 5.0, "girl": 5.0},
+        ),
+    ],
+)
+def test_pivot_table_v2_sample_statistics_with_summaries(
+    aggregate_function: str,
+    row_summaries: dict[str, float],
+    column_summaries: dict[str, float],
+):
+    """Row and column summaries invoke the reducer with ``axis``; the sample
+    statistics must handle the DataFrame/axis form, not just a Series. Two
+    observations per (nation, gender) cell keep the summaries non-zero.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US"] * 4 + ["FR"] * 4,
+            "gender": ["boy", "boy", "girl", "girl"] * 2,
+            "SUM(num)": [10, 20, 30, 50, 40, 60, 70, 100],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    for nation, expected in row_summaries.items():
+        assert pivoted.loc[(nation,)].iloc[-1] == pytest.approx(expected)
+    for gender, expected in column_summaries.items():
+        assert pivoted[("SUM(num)", gender)].iloc[-1] == pytest.approx(expected)
+
+
+def _normalize_summary(value: Any) -> Any:
+    """Make ``List Unique Values`` joins order-insensitive (they come from sets)."""
+    if isinstance(value, str):
+        return sorted(value.split(", "))
+    return value
+
+
+@pytest.mark.parametrize(
+    ("aggregate_function", "row_totals", "col_totals"),
+    [
+        ("Count", {"US": 2, "FR": 2}, {"boy": 2, "girl": 2}),
+        ("Count Unique Values", {"US": 1, "FR": 1}, {"boy": 1, "girl": 1}),
+        (
+            "List Unique Values",
+            {"US": "20, 10", "FR": "50, 30"},
+            {"boy": "10, 30", "girl": "50, 20"},
+        ),
+        ("First", {"US": 10, "FR": 30}, {"boy": 30, "girl": 50}),
+        ("Last", {"US": 20, "FR": 50}, {"boy": 10, "girl": 20}),
+    ],
+)
+def test_pivot_table_v2_series_only_reducers_with_summaries(
+    aggregate_function: str,
+    row_totals: dict[str, Any],
+    col_totals: dict[str, Any],
+) -> None:
+    """Series-only reducers must support each row/column summary axis rather
+    than raising ``TypeError`` on the DataFrame/``axis`` invocation, and each
+    must select the right element per summary.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "US", "FR", "FR"],
+            "gender": ["boy", "girl", "boy", "girl"],
+            "SUM(num)": [10, 20, 30, 50],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+    }
+    total_label = f"Total ({aggregate_function})"
+
+    row_pivot = pivot_table_v2(
+        df, {**form_data, "rowTotals": True}, apply_number_format=False
+    )
+    for nation, expected in row_totals.items():
+        assert _normalize_summary(row_pivot.loc[(nation,), (total_label, "")]) == (
+            _normalize_summary(expected)
+        )
+
+    col_pivot = pivot_table_v2(
+        df, {**form_data, "colTotals": True}, apply_number_format=False
+    )
+    for gender, expected in col_totals.items():
+        actual = col_pivot.loc[(total_label,), ("SUM(num)", gender)]
+        assert _normalize_summary(actual) == _normalize_summary(expected)
+
+
+@pytest.mark.parametrize(
+    "aggregate_function",
+    ["Sample Variance", "Sample Standard Deviation"],
+)
+def test_pivot_table_v2_sample_statistics_sparse_summaries(
+    aggregate_function: str,
+) -> None:
+    """With one observation per row but two physical columns, the row summary
+    is the single-observation 0, not NaN.
+    """
+    df = pd.DataFrame(
+        {
+            "nation": ["US", "FR"],
+            "gender": ["boy", "girl"],
+            "SUM(num)": [10, 20],
+        }
+    )
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": aggregate_function,
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(df, form_data, apply_number_format=False)
+
+    summary_columns = [
+        column for column in pivoted.columns if column[1] in ("Subtotal", "")
+    ]
+    assert summary_columns
+    assert (pivoted[summary_columns] == 0).all(axis=None)
+
+
+def test_sample_dispersion_zero_observations_is_zero_not_nan() -> None:
+    """A DataFrame scope with zero non-null observations must render 0, the
+    same as the single-observation case just above, not NaN -- the mask only
+    covered `count(axis=axis) == 1`, silently leaving an all-null scope (e.g.
+    a metric entirely absent for one row of a sparse multi-metric pivot)
+    unmasked and NaN instead.
+    """
+    from superset.charts.client_processing import (  # pylint: disable=import-outside-toplevel
+        _sample_dispersion,
+    )
+
+    df = pd.DataFrame({"a": [float("nan"), float("nan")], "b": [1.0, 2.0]})
+
+    assert _sample_dispersion(df, "var", axis=0)["a"] == 0
+    assert _sample_dispersion(df, "var", axis=0)["b"] == pytest.approx(0.5)
+
+
+def test_pivot_table_v2_ignores_stale_show_values_as_under_result_aggregation():
+    """A result aggregation hides `showValuesAs` in Explore and always wins
+    over it on the chart (`resultFactory ?? fractionType` in utilities.ts);
+    a persisted `showValuesAs` left over from before `aggregateFunction` was
+    set must not silently turn an export/report into a percent table the
+    live chart no longer renders as one.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["AVG(num)"],
+        "aggregateFunction": "Average",
+        "showValuesAs": "percent_row",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+    without_show_values_as = {k: v for k, v in form_data.items() if k != "showValuesAs"}
+
+    pivoted = pivot_table_v2(grouping_sets_df(), form_data, apply_number_format=False)
+    pivoted_without = pivot_table_v2(
+        grouping_sets_df(), without_show_values_as, apply_number_format=False
+    )
+
+    pd.testing.assert_frame_equal(pivoted, pivoted_without)
 
 
 def test_pivot_table_v2_actual_values_falls_back_without_rollups():
@@ -2337,6 +2590,31 @@ def test_pivot_table_v2_show_values_as_formats_as_percent() -> None:
     assert result.loc[("US",), ("SUM(num)", "girl")] == "37.5%"
 
 
+def test_pivot_table_v2_unrecognized_aggregate_function_keeps_show_values_as() -> None:
+    """An unrecognized `aggregateFunction` isn't a result aggregation to the
+    frontend's own `getResultAggregation` lookup -- `RESULT_AGGREGATIONS`
+    doesn't contain it, so it falls back to the metric definition and still
+    renders the stored percent mode. A stale or otherwise unrecognized value
+    (e.g. a legacy spelling this map doesn't know, or an empty string) must
+    not suppress `showValuesAs` here either, or the export disagrees with
+    what the chart actually shows.
+    """
+    form_data = {
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "showValuesAs": "percent_total",
+        "aggregateFunction": "Integer Sum",
+        "valueFormat": "$,.2f",
+        "currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"},
+    }
+
+    result = pivot_table_v2(show_values_as_df(), form_data)
+
+    assert result.loc[("US",), ("SUM(num)", "boy")] == "12.5%"
+    assert result.loc[("US",), ("SUM(num)", "girl")] == "37.5%"
+
+
 def test_pivot_table_v2_show_values_as_actual_keeps_raw_values() -> None:
     result = pivot_table_v2(
         show_values_as_df(),
@@ -2387,6 +2665,44 @@ def test_apply_client_processing_xlsx_formats_percentages_as_cells():
     sheet = workbook.active
     assert sheet.cell(row=2, column=2).value == pytest.approx(0.01)
     assert sheet.cell(row=2, column=2).number_format == "0.0%"
+
+
+def test_apply_client_processing_xlsx_no_percent_format_under_result_aggregation():
+    """A stale percent `showValuesAs` under a result aggregation is ignored
+    when pivoting (the chart no longer renders it, see
+    `effective_show_values_as`), so the workbook must not apply the percent
+    number format either: an actual value of 10 would otherwise display as
+    1000.0%.
+    """
+    import openpyxl  # noqa: PLC0415
+
+    source = pd.DataFrame(
+        {"nation": ["US", "US"], "gender": ["boy", "girl"], "SUM(num)": [1, 99]}
+    )
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    form_data = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["nation"],
+        "groupbyColumns": ["gender"],
+        "metrics": ["SUM(num)"],
+        "aggregateFunction": "Average",
+        "showValuesAs": "percent_row",
+        "metricsLayout": "COLUMNS",
+    }
+
+    processed = apply_client_processing(result, form_data)
+
+    workbook = openpyxl.load_workbook(BytesIO(processed["queries"][0]["data"]))
+    sheet = workbook.active
+    assert sheet.cell(row=2, column=2).value == 1
+    assert sheet.cell(row=2, column=2).number_format != "0.0%"
 
 
 def test_apply_client_processing_csv_format_show_values_as():
