@@ -194,6 +194,7 @@ interface SaveModalProps {
   sliceName?: string;
   slice?: Record<string, any>;
   can_overwrite?: boolean;
+  can_add?: boolean;
   datasource?: Record<string, any>;
   dashboardId: '' | number | null;
   isVisible: boolean;
@@ -216,6 +217,7 @@ const SaveModal = ({
   sliceName = '',
   slice,
   can_overwrite,
+  can_add,
   datasource,
   dashboardId: dashboardIdProp,
   isVisible,
@@ -227,8 +229,9 @@ const SaveModal = ({
 
   const canOverwriteSlice = useCallback(
     (): boolean =>
+      Boolean(can_add) &&
       canOverwriteSliceFor({ slice, user, canOverwrite: can_overwrite }),
-    [can_overwrite, slice, user],
+    [can_add, can_overwrite, slice, user],
   );
 
   const [newSliceName, setNewSliceName] = useState<string | undefined>(
@@ -747,9 +750,11 @@ const SaveModal = ({
                 ? t(
                     "This chart is managed externally and can't be overwritten in Superset.",
                   )
-                : t(
-                    'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
-                  )}
+                : !can_add
+                  ? t('You do not have permission to edit this chart')
+                  : t(
+                      'Must be a chart editor to overwrite this chart. Save as a new chart instead.',
+                    )}
             </Typography.Text>
           </div>
         )}
@@ -918,6 +923,7 @@ interface StateProps {
   datasource: any;
   slice: any;
   can_overwrite: boolean;
+  can_add: boolean;
   user: UserWithPermissionsAndRoles;
   dashboards: any;
   alert: any;
@@ -934,6 +940,7 @@ function mapStateToProps({
     datasource: explore.datasource,
     slice: explore.slice,
     can_overwrite: explore.can_overwrite,
+    can_add: explore.can_add,
     user,
     dashboards: saveModal.dashboards,
     alert: saveModal.saveModalAlert,

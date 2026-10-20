@@ -477,6 +477,31 @@ test('allowRenderHtml is false when allow_render_html is explicitly false', () =
   expect(result.allowRenderHtml).toBe(false);
 });
 
+test('jsonInCell defaults to false', () => {
+  const props = createMockChartProps();
+  const result = transformProps(props);
+  expect(result.jsonInCell).toBe(false);
+});
+
+test('jsonInCell is true when json_in_cell is set', () => {
+  const props = createMockChartProps({
+    rawFormData: {
+      viz_type: 'table',
+      datasource: '1__table',
+      query_mode: QueryMode.Aggregate,
+      metrics: [],
+      percent_metrics: [],
+      column_config: {},
+      table_timestamp_format: '',
+      granularity_sqla: 'day',
+      time_range: 'No filter',
+      json_in_cell: true,
+    } as unknown as TableChartProps['rawFormData'],
+  });
+  const result = transformProps(props);
+  expect(result.jsonInCell).toBe(true);
+});
+
 test('zebraStriping defaults to false when zebra_striping is unset', () => {
   const props = createMockChartProps();
   const result = transformProps(props);

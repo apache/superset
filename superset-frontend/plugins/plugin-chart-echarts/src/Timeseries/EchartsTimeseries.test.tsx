@@ -136,6 +136,7 @@ const defaultFormData: EchartsTimeseriesFormData & {
   minorTicks: false,
   gridlines: true,
   axisTicks: true,
+  valueAxisLabels: true,
   opacity: 1,
   orderDesc: false,
   rowLimit: 0,

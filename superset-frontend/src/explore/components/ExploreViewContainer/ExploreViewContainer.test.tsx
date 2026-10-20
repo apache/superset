@@ -43,6 +43,7 @@ import {
 import { Store } from '@reduxjs/toolkit';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import * as exploreActions from 'src/explore/actions/exploreActions';
+import * as chartActions from 'src/components/Chart/chartAction';
 import ExploreViewContainer from '.';
 
 jest.doMock('@superset-ui/core', () => ({
@@ -273,6 +274,89 @@ const renderWithRouter = ({
   );
   return { ...result, history };
 };
+
+test('fetches datasource metadata when the datasource changes', async () => {
+  const datasourceKey = '2__table';
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+    },
+  };
+  fetchMock.get(
+    `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+    {
+      id: 2,
+      type: 'table',
+      columns: [],
+      metrics: [],
+    },
+  );
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+
+  act(() => {
+    store.dispatch(
+      exploreActions.setControlValue('datasource', datasourceKey, []),
+    );
+  });
+
+  await waitFor(() =>
+    expect(
+      fetchMock.callHistory.called(
+        `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+      ),
+    ).toBe(true),
+  );
+});
+
+test('shows an error when fetching datasource metadata fails', async () => {
+  const datasourceKey = '3__table';
+  const initialState = {
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      form_data: {
+        datasource: '1__table',
+        viz_type: VizType.Table,
+        metrics: [],
+      },
+    },
+  };
+  fetchMock.get(
+    `glob:*/fetch_datasource_metadata?datasourceKey=${datasourceKey}`,
+    500,
+  );
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+
+  act(() => {
+    store.dispatch(
+      exploreActions.setControlValue('datasource', datasourceKey, []),
+    );
+  });
+
+  await waitFor(() =>
+    expect(
+      (
+        store.getState() as unknown as {
+          messageToasts: { text: string }[];
+        }
+      ).messageToasts,
+    ).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          text: 'Failed to load datasource metadata',
+        }),
+      ]),
+    ),
+  );
+});
 
 test('generates a new form_data param when none is available', async () => {
   getChartMetadataRegistry().registerValue(
@@ -852,6 +936,75 @@ test('shows error indicator with function labels', async () => {
   expect(tooltip).toBeInTheDocument();
 
   expect(await screen.findByText(/Metric is required/)).toBeInTheDocument();
+});
+
+const renderAfterInitialQuery = async (initialState: object) => {
+  const triggerQuerySpy = jest.spyOn(chartActions, 'triggerQuery');
+  const store = createStore(initialState, reducerIndex);
+  renderWithRouter({ initialState, store: store as Store });
+  // the mocked chart panel queries on mount; finish it like a real chart would
+  await waitFor(() => expect(triggerQuerySpy).toHaveBeenCalled());
+  act(() => {
+    store.dispatch(chartActions.chartUpdateSucceeded([], 1));
+  });
+  triggerQuerySpy.mockClear();
+  return { store, triggerQuerySpy };
+};
+
+test('Ctrl+Enter runs the query when controls are valid', async () => {
+  const { triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
+
+  await userEvent.keyboard('{Control>}{Enter}{/Control}');
+
+  expect(triggerQuerySpy).toHaveBeenCalledWith(true, 1);
+});
+
+test('Cmd+Enter runs the query when controls are valid', async () => {
+  const { triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
+
+  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+
+  expect(triggerQuerySpy).toHaveBeenCalledWith(true, 1);
+});
+
+test('Ctrl/Cmd+Enter does not run the query when controls have validation errors', async () => {
+  const { triggerQuerySpy } = await renderAfterInitialQuery({
+    ...reduxState,
+    explore: {
+      ...reduxState.explore,
+      controls: {
+        ...reduxState.explore.controls,
+        metric: {
+          value: '',
+          label: 'Metric',
+          validationErrors: ['Metric is required'],
+        },
+      },
+    },
+  });
+
+  await userEvent.keyboard('{Control>}{Enter}{/Control}');
+  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+
+  expect(triggerQuerySpy).not.toHaveBeenCalled();
+});
+
+test('Ctrl/Cmd+Enter does not run the query while the chart is loading', async () => {
+  const { store, triggerQuerySpy } = await renderAfterInitialQuery(reduxState);
+  act(() => {
+    store.dispatch(
+      chartActions.chartUpdateStarted(
+        new AbortController(),
+        reduxState.charts[1].latestQueryFormData,
+        1,
+      ),
+    );
+  });
+
+  await userEvent.keyboard('{Control>}{Enter}{/Control}');
+  await userEvent.keyboard('{Meta>}{Enter}{/Meta}');
+
+  expect(triggerQuerySpy).not.toHaveBeenCalled();
 });
 
 function setupTableChartControlPanel() {

@@ -34,8 +34,9 @@ if (!process.env.CI) {
 export default {
   // [/\\] matches both path separators so the suite also collects on
   // native Windows, where jest hands the regex backslash-separated paths.
+  // Playwright helper unit tests use .test; browser suites use .spec.
   testRegex:
-    '[/\\\\]superset-frontend[/\\\\](spec|src|plugins|packages|tools)[/\\\\].*(_spec|\\.test)\\.[jt]sx?$',
+    '[/\\\\]superset-frontend[/\\\\](spec|src|plugins|packages|tools|playwright)[/\\\\].*(_spec|\\.test)\\.[jt]sx?$',
   moduleNameMapper: {
     '\\.(css|less|geojson)$': '<rootDir>/spec/__mocks__/mockExportObject.js',
     '\\.(gif|ttf|eot|png|jpg)$': '<rootDir>/spec/__mocks__/mockExportString.js',
@@ -105,10 +106,13 @@ export default {
     // spec/scripts/po2json.test.ts exercises directly against the real
     // package, not a mock, to catch a parsing regression) imports it.
     //
+    // geostyler-openlayers-parser >= 5.8 is ESM-only and bundles @turf/* under
+    // its own dist/node_modules, so those nested files must be transformed too.
+    //
     // @deck.gl/maplibre@9.4.0 ships ESM-only (no dist/*.cjs), unlike every
     // other @deck.gl/* package - allowed through so babel-jest can convert
     // its import/export syntax (see the moduleNameMapper entry above).
-    'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format|selection)|internmap|@mapbox/tiny-sdf|@deck.gl/maplibre|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|react-markdown|vfile|web-namespaces|html-void-elements|html-url-attributes|estree-util-is-identifier-name|trim-lines|is-plain-obj|trough|unist-.*|hast-.*|hastscript|refractor|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|character-reference-invalid|is-alphanumerical|is-alphabetical|is-decimal|is-hexadecimal|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge|content-disposition|gettext-parser)',
+    'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format|selection)|internmap|@mapbox/tiny-sdf|@deck.gl/maplibre|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|react-markdown|vfile|web-namespaces|html-void-elements|html-url-attributes|estree-util-is-identifier-name|trim-lines|is-plain-obj|trough|unist-.*|hast-.*|hastscript|refractor|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|character-reference-invalid|is-alphanumerical|is-alphabetical|is-decimal|is-hexadecimal|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|@turf/.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge|content-disposition|gettext-parser|react-resize-detector)',
   ],
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',

@@ -40,6 +40,7 @@ const sidebars = {
         'contributing/code-review',
         'contributing/issue-reporting',
         'contributing/howtos',
+        'contributing/translation-guide',
         'contributing/release-process',
         'contributing/resources',
         'contributing/pkg-resources-migration',
@@ -75,6 +76,7 @@ const sidebars = {
         'extensions/architecture',
         'extensions/dependencies',
         'extensions/contribution-types',
+        'extensions/semantic-filters',
         {
           type: 'category',
           label: 'Extension Points',
