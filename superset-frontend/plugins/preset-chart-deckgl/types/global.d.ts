@@ -1,4 +1,4 @@
-/**
+/*
  * Licensed to the Apache Software Foundation (ASF) under one
  * or more contributor license agreements.  See the NOTICE file
  * distributed with this work for additional information
@@ -16,27 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@apache-superset/core/theme';
-import {
-  colorSchemeDark,
-  colorSchemeLight,
-  themeQuartz,
-} from '@superset-ui/core/components/ThemedAgGridReact';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import tinycolor from 'tinycolor2';
 
-export const useIsDark = () => {
-  const theme = useTheme();
-  return tinycolor(theme.colorBgContainer).isDark();
-};
-
-const useTableTheme = (): ReturnType<typeof themeQuartz.withPart> => {
-  const baseTheme = themeQuartz;
-  const isDarkTheme = useIsDark();
-  const tableTheme = isDarkTheme
-    ? baseTheme.withPart(colorSchemeDark)
-    : baseTheme.withPart(colorSchemeLight);
-  return tableTheme;
-};
-
-export default useTableTheme;
+// webpack's runtime-configurable public path, mirroring src/globals.d.ts.
+// Used to point maplibre-gl at its CopyPlugin-emitted worker asset (see
+// DeckGLContainer.tsx) with the correct app-root / reverse-proxy prefix applied.
+declare var __webpack_public_path__: string;
