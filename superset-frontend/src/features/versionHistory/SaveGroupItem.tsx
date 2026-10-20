@@ -312,7 +312,6 @@ export default function SaveGroupItem({
   return (
     <Container
       isHighlighted={isHighlighted}
-      aria-current={marksCurrentState ? 'true' : undefined}
       data-test="version-history-save-group"
     >
       <Header
@@ -325,6 +324,7 @@ export default function SaveGroupItem({
         onKeyDown={hasRecords ? activate(toggleExpanded) : undefined}
         aria-expanded={hasRecords ? expanded : undefined}
         aria-label={hasRecords ? headline : undefined}
+        aria-current={hasRecords && marksCurrentState ? 'true' : undefined}
         hasRecords={hasRecords}
       >
         <IconWrapper>
@@ -332,7 +332,15 @@ export default function SaveGroupItem({
         </IconWrapper>
         <HeaderText>
           <Headline title={headline}>{headline}</Headline>
-          <Meta>{meta}</Meta>
+          <Meta>
+            {isCurrent && (
+              <>
+                <span>{t('Latest save')}</span>
+                {' · '}
+              </>
+            )}
+            {meta}
+          </Meta>
         </HeaderText>
         {showCreationPreview && (
           <Button

@@ -81,19 +81,17 @@ test('every dated save uses the save icon and no Current tag, the live one inclu
   }
 });
 
-test('the row marking the current state is exposed to assistive technology', () => {
-  const { container: marked } = renderItem({
+test('a latest save with no records has a text label without a focusable no-op header', () => {
+  const { container } = renderItem({
     isCurrent: true,
     marksCurrentState: true,
   });
-  const { container: unmarked } = renderItem({ isCurrent: true });
 
-  expect(
-    within(marked).getByTestId('version-history-save-group'),
-  ).toHaveAttribute('aria-current', 'true');
-  expect(
-    within(unmarked).getByTestId('version-history-save-group'),
-  ).not.toHaveAttribute('aria-current');
+  expect(within(container).getByText('Latest save')).toBeVisible();
+  expect(within(container).getAllByRole('button')).toEqual([
+    within(container).getByRole('button', { name: 'More actions' }),
+  ]);
+  expect(container.querySelector('[aria-current]')).not.toBeInTheDocument();
 });
 
 test('rows of the highlighted group show the active timeline dot', () => {

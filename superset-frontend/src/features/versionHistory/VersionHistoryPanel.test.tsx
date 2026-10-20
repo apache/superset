@@ -276,6 +276,8 @@ test('the live save is a dated row without a Current tag, still not restorable',
   expect(screen.queryByText('Current')).not.toBeInTheDocument();
   const groups = screen.getAllByTestId('version-history-save-group');
   expect(groups).toHaveLength(2);
+  expect(within(groups[0]).getByText('Latest save')).toBeVisible();
+  expect(within(groups[1]).queryByText('Latest save')).not.toBeInTheDocument();
   await userEvent.click(
     screen.getAllByRole('button', { name: 'More actions' })[0],
   );
@@ -294,9 +296,13 @@ test('with a Current version section, it alone marks the current state', async (
   const { rerender } = render(<VersionHistoryPanel {...props} />);
   const [activeBg, restingBg] = groupBackgrounds();
   expect(activeBg).not.toBe(restingBg);
+  const currentHeader = screen.getByRole('button', { current: true });
+  currentHeader.focus();
+  expect(currentHeader).toHaveFocus();
+  expect(currentHeader).toHaveAttribute('tabindex', '0');
   expect(
     screen.getAllByTestId('version-history-save-group')[0],
-  ).toHaveAttribute('aria-current', 'true');
+  ).not.toHaveAttribute('aria-current');
 
   // Unsaved edits show the section; the live dated row is no longer lit.
   const sessionEntries = [
@@ -313,6 +319,10 @@ test('with a Current version section, it alone marks the current state', async (
   ).toBeInTheDocument();
   expect(groupBackgrounds()).toEqual([restingBg, restingBg]);
   expect(screen.queryByText('Current')).not.toBeInTheDocument();
+  expect(screen.getByText('Latest save')).toBeVisible();
+  expect(
+    screen.queryByRole('button', { current: true }),
+  ).not.toBeInTheDocument();
   expect(
     screen
       .getAllByTestId('version-history-save-group')

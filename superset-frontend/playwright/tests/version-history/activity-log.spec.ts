@@ -185,7 +185,10 @@ testWithAssets(
       panel.getByRole('button', { name: 'Current version' }),
     ).toHaveCount(0);
     await expect(panel.locator('[aria-current="true"]')).toHaveCount(1);
-    await expect(groups.first()).toHaveAttribute('aria-current', 'true');
+    await expect(
+      groups.first().locator('[role="button"][aria-current="true"]'),
+    ).toHaveAttribute('tabindex', '0');
+    await expect(groups.first().getByText('Latest save')).toBeVisible();
     await expect(panel.getByText('Current', { exact: true })).toHaveCount(0);
 
     // Expand the newest group and confirm the rename rendered as a descriptive
