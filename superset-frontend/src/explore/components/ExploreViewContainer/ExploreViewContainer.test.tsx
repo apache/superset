@@ -1785,3 +1785,56 @@ test('automatic axis title margin adjustment ignores a transient empty value fro
     jest.restoreAllMocks();
   }
 });
+
+test('automatic axis title margin adjustment yields to a margin picked inside the debounce window', async () => {
+  setupTableChartControlPanel();
+  try {
+    const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+    const initialState = {
+      ...reduxState,
+      explore: {
+        ...reduxState.explore,
+        form_data: {
+          datasource: '1__table',
+          viz_type: VizType.Table,
+          metrics: [],
+        },
+        controls: {
+          ...reduxState.explore.controls,
+          x_axis_title: { value: '' },
+          x_axis_title_margin: { value: 0 },
+        },
+      },
+    };
+
+    const store = createStore(initialState, reducerIndex);
+    renderWithRouter({ initialState, store: store as Store });
+    setControlValueSpy.mockClear();
+
+    act(() => {
+      store.dispatch(
+        exploreActions.setControlValue('x_axis_title', 'X Axis Label'),
+      );
+    });
+    // the user picks a margin before the adjustment timer fires
+    act(() => {
+      store.dispatch(exploreActions.setControlValue('x_axis_title_margin', 15));
+    });
+
+    await new Promise(resolve => setTimeout(resolve, 300));
+
+    expect(setControlValueSpy).not.toHaveBeenCalledWith(
+      'x_axis_title_margin',
+      expect.anything(),
+      undefined,
+      { programmatic: true },
+    );
+    expect(store.getState().explore.controls.x_axis_title_margin.value).toBe(
+      15,
+    );
+  } finally {
+    getChartControlPanelRegistry().remove('table');
+    jest.restoreAllMocks();
+  }
+});

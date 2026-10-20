@@ -140,6 +140,11 @@ test('should not call onChange again when a parent re-render hands down a new on
   rerender(<TextControl {...mockedProps} value="1" onChange={onChangeB} />);
   expect(onChangeA).toHaveBeenCalledTimes(1);
   expect(onChangeB).not.toHaveBeenCalled();
+
+  // the next edit must reach the latest handler, not the stale one
+  await userEvent.type(screen.getByRole('textbox'), '3');
+  await waitFor(() => expect(onChangeB).toHaveBeenCalledWith('123', []));
+  expect(onChangeA).toHaveBeenCalledTimes(1);
 });
 
 test('should report a repeated identical edit after an external reset', async () => {

@@ -821,57 +821,44 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       // Debounced (see xAxisTitleMarginTimeoutRef above): only the value that's
       // still current once the debounce elapses gets applied, so a value that's
       // merely passing through on its way to something else is ignored.
-      if (changedControlKeys.includes('x_axis_title')) {
-        if (xAxisTitleMarginTimeoutRef.current) {
-          clearTimeout(xAxisTitleMarginTimeoutRef.current);
+      (['x', 'y'] as const).forEach(axis => {
+        const titleKey = `${axis}_axis_title`;
+        const marginKey = `${axis}_axis_title_margin`;
+        if (!changedControlKeys.includes(titleKey)) return;
+        const timeoutRef =
+          axis === 'x'
+            ? xAxisTitleMarginTimeoutRef
+            : yAxisTitleMarginTimeoutRef;
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current);
         }
-        xAxisTitleMarginTimeoutRef.current = setTimeout(() => {
-          const xAxisTitle =
-            latestControlsRef.current.x_axis_title?.value || '';
-          const currentMargin = Number(
-            latestControlsRef.current.x_axis_title_margin?.value ?? 0,
-          );
+        // Snapshot the state the adjustment was scheduled against. If the
+        // user picks a margin, a history entry is restored, or the viz type
+        // changes inside the window, the adjustment no longer applies.
+        const scheduledMargin = props.controls[marginKey]?.value;
+        const scheduledVizType = props.controls.viz_type?.value;
+        timeoutRef.current = setTimeout(() => {
+          const latest = latestControlsRef.current;
+          if (
+            latest.viz_type?.value !== scheduledVizType ||
+            !areObjectsEqual(latest[marginKey]?.value, scheduledMargin)
+          ) {
+            return;
+          }
+          const title = latest[titleKey]?.value || '';
+          const currentMargin = Number(latest[marginKey]?.value ?? 0);
 
-          if (xAxisTitle && currentMargin < 30) {
-            props.actions.setControlValue(
-              'x_axis_title_margin',
-              30,
-              undefined,
-              { programmatic: true },
-            );
-          } else if (!xAxisTitle && currentMargin !== 0) {
-            props.actions.setControlValue('x_axis_title_margin', 0, undefined, {
+          if (title && currentMargin < 30) {
+            props.actions.setControlValue(marginKey, 30, undefined, {
+              programmatic: true,
+            });
+          } else if (!title && currentMargin !== 0) {
+            props.actions.setControlValue(marginKey, 0, undefined, {
               programmatic: true,
             });
           }
         }, Constants.FAST_DEBOUNCE);
-      }
-
-      if (changedControlKeys.includes('y_axis_title')) {
-        if (yAxisTitleMarginTimeoutRef.current) {
-          clearTimeout(yAxisTitleMarginTimeoutRef.current);
-        }
-        yAxisTitleMarginTimeoutRef.current = setTimeout(() => {
-          const yAxisTitle =
-            latestControlsRef.current.y_axis_title?.value || '';
-          const currentMargin = Number(
-            latestControlsRef.current.y_axis_title_margin?.value ?? 0,
-          );
-
-          if (yAxisTitle && currentMargin < 30) {
-            props.actions.setControlValue(
-              'y_axis_title_margin',
-              30,
-              undefined,
-              { programmatic: true },
-            );
-          } else if (!yAxisTitle && currentMargin !== 0) {
-            props.actions.setControlValue('y_axis_title_margin', 0, undefined, {
-              programmatic: true,
-            });
-          }
-        }, Constants.FAST_DEBOUNCE);
-      }
+      });
 
       // this should also be handled by the actions that are actually changing the controls
       const displayControlsChanged = changedControlKeys.filter(
