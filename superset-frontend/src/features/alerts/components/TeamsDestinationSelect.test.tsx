@@ -98,3 +98,52 @@ test('keeps Teams destinations disabled for incompatible schedules', async () =>
   );
   expect(screen.getByRole('combobox')).toBeDisabled();
 });
+
+test('explains an empty allowlist without inventing destinations', async () => {
+  fetchMock.get(endpoint, { result: [] });
+  const onChange = jest.fn();
+  render(<TeamsDestinationSelect value="" onChange={onChange} />);
+  expect(
+    await screen.findByText(/No approved Teams destinations are configured/),
+  ).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('allows replacing a removed saved key with an approved destination', async () => {
+  fetchMock.get(endpoint, { result: destinations });
+  const onChange = jest.fn();
+  const { rerender } = render(
+    <TeamsDestinationSelect value="removed" onChange={onChange} />,
+  );
+  expect(await screen.findByText('removed (Unavailable)')).toBeInTheDocument();
+  await userEvent.click(screen.getByRole('combobox'));
+  await userEvent.click(await screen.findByText('Operations'));
+  expect(onChange).toHaveBeenCalledWith('ops', expect.anything());
+  rerender(<TeamsDestinationSelect value="ops" onChange={onChange} />);
+  expect(
+    screen.queryByText(/This saved Teams destination is unavailable/),
+  ).not.toBeInTheDocument();
+  expect(screen.getAllByText('Operations').length).toBeGreaterThan(0);
+});
+
+test('an availability-only refresh preserves the stable saved destination key', async () => {
+  fetchMock.get(endpoint, { result: destinations });
+  const onChange = jest.fn();
+  const { unmount } = render(
+    <TeamsDestinationSelect value="finance" onChange={onChange} />,
+  );
+  expect(
+    await screen.findByText('Finance (Bot installation required)'),
+  ).toBeInTheDocument();
+  unmount();
+  fetchMock.removeRoutes();
+  fetchMock.get(endpoint, {
+    result: destinations.map(item => ({ ...item, available: true })),
+  });
+  render(<TeamsDestinationSelect value="finance" onChange={onChange} />);
+  expect(await screen.findByText('Finance')).toBeInTheDocument();
+  expect(
+    screen.queryByText(/Install the notification bot/),
+  ).not.toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});

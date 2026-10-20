@@ -892,7 +892,7 @@ This information can then be retrieved from the endpoint `/api/v1/saved_query/` 
 schedule the queries that have `schedule_info` in their JSON metadata. For schedulers other than
 Airflow, additional fields can be easily added to the configuration file above.
 
-## Microsoft Teams configuration (development)
+## Microsoft Teams configuration
 
 The optional `apache-superset[teams]` extra installs Microsoft Teams SDK 2.1.1.
 The SDK handles callback JWT authentication; SDK-specific code lives in
@@ -983,12 +983,6 @@ Keep the entire mapping on the server. Browser destination lists must use
 store only the selected destination key, never credentials or routing details.
 Do not serialize the parsed configuration object, including via `dataclasses.asdict`.
 
-:::resources
-
-- [Tutorial: Automated Alerts and Reporting via Slack/Email in Superset](https://dev.to/ngtduc693/apache-superset-topic-5-automated-alerts-and-reporting-via-slackemail-in-superset-2gbe)
-- [Blog: Integrating Slack alerts and Apache Superset for better data observability](https://medium.com/affinityanswers-tech/integrating-slack-alerts-and-apache-superset-for-better-data-observability-fd2f9a12c350)
-  :::
-
 The alert editor lists Teams when the integration is enabled and configured and
 attachments are disabled. Choose an approved channel by its display label. To
 notify multiple channels, add another notification method and choose Teams again;
@@ -1012,6 +1006,172 @@ Bounded delivery requires a Unix main-thread worker, such as Celery's prefork or
 solo worker. Each delivery uses a short-lived child process, without starting an
 SDK HTTP server. Only a sanitized outcome crosses the child's result pipe. The
 parent's alarms and signal handlers remain intact. If SDK teardown stalls, the
-parent terminates and reaps the child within the same operation budget. The child
-also enforces its deadline if the Celery worker exits during delivery. Other
+parent terminates and reaps the child within the same operation budget. Other
 execution contexts fail before opening the transport.
+
+
+### Deploy the optional integration
+
+Install the extra in both the web-server and Celery worker images using the same
+Superset release as the deployment:
+
+```bash
+pip install 'apache-superset[teams]==<your-superset-version>'
+superset db upgrade
+```
+
+Configure both processes with the same server-side settings. Load the secret
+value from a deployment secret store, rather than checking it into source control:
+
+```python
+import os
+
+FEATURE_FLAGS = {
+    "ALERT_REPORTS": True,
+    "ALERT_REPORT_TEAMS": True,
+}
+ALERT_REPORTS_TEAMS = {
+    "tenant_id": os.environ["TEAMS_TENANT_ID"],
+    "application_id": os.environ["TEAMS_APPLICATION_ID"],
+    "credential": os.environ["TEAMS_CLIENT_SECRET"],
+    "destinations": [
+        {
+            "key": "ops",
+            "label": "Operations alerts",
+            "team_id": os.environ["TEAMS_OPS_TEAM_ID"],
+            "channel_id": os.environ["TEAMS_OPS_CHANNEL_ID"],
+        },
+    ],
+}
+```
+
+Merge these feature flags into your existing flags. Restart the web server and
+workers after changing configuration or rotating a secret. Apply the migration
+before accepting installation events. The scheduler, broker, and worker setup
+from the earlier Alerts and Reports instructions still applies; the Teams SDK
+does not run another web server. Attachment-free Teams alerts do not need a
+browser or screenshot worker.
+
+### Register the Microsoft app
+
+Use a Microsoft Entra application restricted to your organization and an Azure
+Bot registration with the same application ID and tenant. Create a client secret
+and put its **value** in `TEAMS_CLIENT_SECRET`. Enable the Microsoft Teams channel
+on the bot registration. Set its messaging endpoint to
+`https://superset.example/api/v1/teams/events/`, using your public HTTPS host and
+any deployment URL prefix. See Microsoft's
+[bot registration guidance](https://learn.microsoft.com/en-us/azure/bot-service/bot-service-quickstart-registration?view=azure-bot-service-4.0).
+
+Package the notification-only app for your organization's Teams app catalog.
+The bot must support team scope only and have `isNotificationOnly` enabled;
+see the [manifest reference](https://learn.microsoft.com/en-us/microsoftteams/platform/resources/schema/manifest-schema#bots).
+This example uses manifest version 1.22, which supports the required fields:
+
+```json
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.22/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.22",
+  "version": "1.0.0",
+  "id": "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+  "developer": {
+    "name": "Your organization",
+    "websiteUrl": "https://superset.example/",
+    "privacyUrl": "https://superset.example/privacy",
+    "termsOfUseUrl": "https://superset.example/terms"
+  },
+  "name": { "short": "Superset Alerts" },
+  "description": {
+    "short": "Superset alert notifications",
+    "full": "Receive configured Superset alerts in approved standard Teams channels."
+  },
+  "icons": { "outline": "outline.png", "color": "color.png" },
+  "accentColor": "#20A7C9",
+  "bots": [
+    {
+      "botId": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+      "scopes": ["team"],
+      "isNotificationOnly": true,
+      "supportsFiles": false
+    }
+  ]
+}
+```
+
+Replace the package `id` with a new UUID and `botId` with your configured application
+ID. Replace the example URLs with your organization's published pages. Include
+`manifest.json`, a 32×32 transparent outline icon, and a 192×192 color icon at the
+root of the app ZIP. Have your Teams administrator approve the package and allow
+installation in the selected teams. Install it in each approved team after the
+callback is reachable. Configure each standard channel's actual team and channel
+identifiers on the server; display labels and Microsoft 365 group names are not
+routing IDs. Do not add personal or group-chat scopes, file support, or
+private/shared channel capabilities.
+
+Installing the app updates the installation record for its team, but does not
+approve any destinations. Configure the allowlist separately. Uninstalling marks
+the installation inactive; reinstalling refreshes its verified service URL and
+reactivates the same record. If an initial installation happened before callback
+routing was ready, remove and reinstall the app to deliver a fresh event.
+
+### Route the callback
+
+Your ingress must forward `POST /api/v1/teams/events/` (including the trailing
+slash) to Flask, preserving the Authorization header and JSON body. Do not send
+this path through a browser login redirect or an ingress SSO challenge. Keep TLS
+termination and the configured public URL consistent. Other Superset routes keep
+their normal authentication and CSRF requirements; do not exempt the whole API.
+The callback validates Microsoft's connector token, application, tenant, approved
+team, and signed service URL before changing installations.
+
+Allow outbound connectivity from the web server for connector signing keys and
+from workers for Entra token acquisition and the verified Bot Framework service
+URL. Use the public Microsoft cloud endpoints supported by this adapter. Changing
+the bot identity requires matching configuration on both web and worker processes
+and a new verified installation for that identity.
+
+### Troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Teams is absent from the editor | Install the extra, enable both feature flags, provide valid configuration, choose an alert, and disable attachments. |
+| Destination says “Bot installation required” | Check the bot is installed in the configured team and the callback received its installation event. Saving is allowed before installation; delivery requires an active record. |
+| Saved destination says “Unavailable” | Restore the original stable key or choose an approved replacement. Configuration changes do not rewrite saved recipients. |
+| Callback returns 404 | Check `ALERT_REPORT_TEAMS`, ingress path/prefix, and that the request reached this deployment. |
+| Callback returns 503 | Check the optional SDK is installed and the deployment configuration is nonempty and passes validation. |
+| Callback returns 401 or 403 | Check connector token authentication, bot application/tenant IDs, approved team, signed service URL, and that ingress preserved Authorization. Browser cookies cannot authenticate this route. |
+| Delivery fails authorization | Check installation status, secret value/expiry, bot registration, and channel access. A second 401 after one refresh or a 403 ends delivery. |
+| Save fails after a configuration change | Restore the integration/key or explicitly remove/replace Teams recipients. Partial updates validate the merged schedule, including format and schedule type. |
+| Delivery times out or exhausts retries | Check Entra and Bot Framework connectivity and worker execution context. The entire synchronous call has one 60-second budget, including token acquisition and cleanup. Unix main-thread prefork/solo workers are supported. |
+| A duplicate channel post appears | A response can be lost after Teams accepted a post. Bounded retries may create another root post; delivery is not exactly-once. |
+
+Use the existing alert execution logs to inspect success and failure. Do not copy
+access tokens, credentials, raw SDK responses, or SQL diagnostics into channel
+messages or issue reports. Rotate credentials through deployment configuration;
+there is no browser credential-management page.
+
+### Test without sending messages
+
+Backend tests under `tests/unit_tests/integrations/teams/` exercise the real SDK
+with fake HTTP transports. Install the `teams` extra to run authentication and
+transport tests rather than skipping them. Notification contract tests at
+`tests/unit_tests/reports/notifications/teams_tests.py` run without the SDK.
+
+The browser regression at `playwright/tests/reports/teams-alerts.spec.ts` requires a
+running Superset instance, an admin test user, Reports and Teams enabled, at least
+one configured destination, and a selectable test database. An unconfigured
+integration skips this optional browser test. Use an isolated test deployment
+with placeholder UUIDs and a dummy secret; no Microsoft app or installation is
+needed for this test. It mocks destination availability, creates only inactive
+alerts, blocks execution requests, verifies saved recipient keys, and deletes its
+schedule afterward. It never clicks **Trigger now**. Run it from
+`superset-frontend`:
+
+```bash
+npx playwright test playwright/tests/reports/teams-alerts.spec.ts --project=chromium
+```
+
+:::resources
+
+- [Tutorial: Automated Alerts and Reporting via Slack/Email in Superset](https://dev.to/ngtduc693/apache-superset-topic-5-automated-alerts-and-reporting-via-slackemail-in-superset-2gbe)
+- [Blog: Integrating Slack alerts and Apache Superset for better data observability](https://medium.com/affinityanswers-tech/integrating-slack-alerts-and-apache-superset-for-better-data-observability-fd2f9a12c350)
+  :::
