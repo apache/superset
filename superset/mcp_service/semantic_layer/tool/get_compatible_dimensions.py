@@ -276,8 +276,9 @@ async def _resolve_compatible_dimensions(
             type(exc).__name__,
             str(exc),
         )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
+        message: str = "Unable to retrieve compatible dimensions."
+        await ctx.error(message)
         return SemanticLayerError.create(
-            error=f"Internal error in get_compatible_dimensions: {exc}",
+            error=message,
             error_type="InternalError",
         )
