@@ -84,3 +84,25 @@ def test_chart_configs_resource_does_not_assume_currency() -> None:
                     assert "$" not in config
                     assert "currency_format" not in config
     assert "currency" in str(resource["best_practices"])
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("chart_type", ["auto", "bar", "table"])
+async def test_guided_chart_prompt_does_not_assume_currency(chart_type: str) -> None:
+    """The prompt entry point keeps unknown-currency axis examples neutral."""
+    from fastmcp import Client
+
+    from superset.mcp_service.app import mcp
+
+    with patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="admin"),
+    ):
+        async with Client(mcp) as client:
+            result = await client.get_prompt(
+                "create_chart_guided", {"chart_type": chart_type}
+            )
+    text = str(result.messages)
+    assert "$,.0f" not in text
+    assert ",.0f" in text
+    assert "user instructions or verified source metadata" in text
