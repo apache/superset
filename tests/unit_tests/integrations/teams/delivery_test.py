@@ -36,7 +36,7 @@ import pytest
 import requests
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask import current_app, Flask
-from sqlalchemy import create_engine
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from superset.integrations.teams import validation as teams_validation
@@ -67,27 +67,9 @@ SERVICE_URL = "https://smba.trafficmanager.net/amer/"
 
 
 @pytest.fixture
-def deployment() -> dict[str, Any]:
-    """Return the server-only identity and destination allowlist."""
-    return {
-        "tenant_id": TENANT,
-        "application_id": APPLICATION,
-        "credential": "server-only-secret",
-        "destinations": [
-            {
-                "key": "ops",
-                "label": "Operations",
-                "team_id": "team-1",
-                "channel_id": "channel-1",
-            }
-        ],
-    }
-
-
-@pytest.fixture
-def configured(deployment: dict[str, Any]) -> TeamsConfig:
+def configured(teams_config: dict[str, Any]) -> TeamsConfig:
     """Parse the same deployment configuration used by real notifications."""
-    config = parse_teams_config(deployment)
+    config = parse_teams_config(teams_config)
     assert config is not None
     return config
 
@@ -114,16 +96,16 @@ def content() -> NotificationContent:
 
 @pytest.fixture
 def notification_context(
-    deployment: dict[str, Any],
+    teams_config: dict[str, Any],
+    teams_engine: Engine,
     monkeypatch: pytest.MonkeyPatch,
 ) -> Iterator[SimpleNamespace]:
     """Use the real installation table and resolve through the notification class."""
     app = Flask(__name__)
     app.config.update(
-        ALERT_REPORTS_TEAMS=deployment, FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True}
+        ALERT_REPORTS_TEAMS=teams_config, FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True}
     )
-    engine = create_engine("sqlite://")
-    TeamsInstallation.__table__.create(engine)
+    engine = teams_engine
     with Session(engine) as session:
         TeamsInstallationStore(session).install(
             TENANT, APPLICATION, "team-1", SERVICE_URL
@@ -137,11 +119,8 @@ def notification_context(
     )
     send = MagicMock()
     monkeypatch.setattr(notifications, "_send_to_teams", send)
-    try:
-        with app.app_context():
-            yield SimpleNamespace(app=app, engine=engine, send=send)
-    finally:
-        engine.dispose()
+    with app.app_context():
+        yield SimpleNamespace(app=app, engine=engine, send=send)
 
 
 def recipient(target: str = "ops") -> ReportRecipients:
@@ -160,14 +139,14 @@ def test_factory_resolves_active_installation_and_formats_card(
     assert isinstance(notification, notifications.TeamsNotification)
     notification.send()
     config, destination, service_url, card = notification_context.send.call_args.args
-    assert config.credential == "server-only-secret"
+    assert config.credential == "deployment-secret"
     assert destination.key == "ops"
     assert destination.channel_id == "channel-1"
     assert service_url == SERVICE_URL
     assert card["body"][0]["text"] == content.name
     assert card["body"][1]["text"] == content.description
     assert card["actions"][0]["url"] == content.url
-    assert "server-only-secret" not in json.dumps(card)
+    assert "deployment-secret" not in json.dumps(card)
 
 
 @pytest.mark.parametrize(
@@ -561,7 +540,7 @@ def test_real_sdk_creates_fresh_channel_root_for_every_notification(
             payload["activity"]["attachments"][0]["content"]["body"][0]["text"]
             == content.name
         )
-        assert "server-only-secret" not in request.content.decode()
+        assert "deployment-secret" not in request.content.decode()
     assert_resources_closed(sdk_network)
 
 
@@ -608,7 +587,7 @@ def test_real_sdk_failures_close_resources_and_sanitize_errors(
         )
     assert exc.value.category == category
     assert "secret SQL diagnostic" not in str(exc.value)
-    assert "server-only-secret" not in str(exc.value)
+    assert "deployment-secret" not in str(exc.value)
     assert len(sdk_network.posts) == posts
     assert_resources_closed(sdk_network)
 
@@ -628,37 +607,6 @@ def test_auth_http_closes_response_and_preserves_retry_delay(
     assert exc.value.retry_after == "7"
     response.close.assert_called_once()
     assert session.request.call_args.kwargs["timeout"] == 10
-
-
-@pytest.mark.parametrize(
-    "mode", ["removed-destination", "disabled", "report", "attachments"]
-)
-def test_saved_notification_rechecks_changes_before_touching_installations(
-    notification_context: SimpleNamespace,
-    content: NotificationContent,
-    monkeypatch: pytest.MonkeyPatch,
-    mode: str,
-) -> None:
-    entry = recipient()
-    saved_json = entry.recipient_config_json
-    notification = notifications.TeamsNotification(entry, content)
-    if mode == "removed-destination":
-        notification_context.app.config["ALERT_REPORTS_TEAMS"]["destinations"][0][
-            "key"
-        ] = "changed"
-    elif mode == "disabled":
-        notification_context.app.config["FEATURE_FLAGS"]["ALERT_REPORT_TEAMS"] = False
-    elif mode == "report":
-        content.header_data["notification_type"] = "Report"
-    else:
-        content.header_data["notification_format"] = "PNG"
-    lookup = MagicMock()
-    monkeypatch.setattr(TeamsInstallationStore, "get_active", lookup)
-    with pytest.raises(NotificationParamException):
-        notification.send()
-    lookup.assert_not_called()
-    notification_context.send.assert_not_called()
-    assert entry.recipient_config_json == saved_json
 
 
 @pytest.mark.parametrize("phase", ["metadata", "token"])

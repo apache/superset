@@ -233,20 +233,11 @@ def test_rejects_invalid_service_url(session: Session, url: str) -> None:
     assert session.query(TeamsInstallation).count() == 0
 
 
-def test_installation_does_not_authorize_destinations(session: Session) -> None:
-    raw_config = {
-        "tenant_id": TENANT,
-        "application_id": APPLICATION,
-        "credential": "test-secret",
-        "destinations": [
-            {
-                "key": "ops",
-                "label": "Operations",
-                "team_id": "approved",
-                "channel_id": "channel-1",
-            }
-        ],
-    }
+def test_installation_does_not_authorize_destinations(
+    session: Session, teams_config: dict[str, Any]
+) -> None:
+    raw_config = teams_config
+    raw_config["destinations"][0]["team_id"] = "approved"
     before = deepcopy(raw_config)
     config = parse_teams_config(raw_config)
     assert config is not None

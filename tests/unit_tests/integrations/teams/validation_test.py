@@ -47,24 +47,14 @@ APPLICATION = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb"
 
 
 @pytest.fixture
-def configured_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[Flask]:
+def configured_app(
+    teams_config: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> Iterator[Flask]:
     """Enable a single approved destination without requiring any installation."""
     app = Flask(__name__)
     app.config.update(
         FEATURE_FLAGS={"ALERT_REPORT_TEAMS": True},
-        ALERT_REPORTS_TEAMS={
-            "tenant_id": TENANT,
-            "application_id": APPLICATION,
-            "credential": "private-credential",
-            "destinations": [
-                {
-                    "key": "ops",
-                    "label": "Operations",
-                    "team_id": "team-1",
-                    "channel_id": "channel-1",
-                }
-            ],
-        },
+        ALERT_REPORTS_TEAMS=teams_config,
     )
     monkeypatch.setattr(
         validation.feature_flag_manager,

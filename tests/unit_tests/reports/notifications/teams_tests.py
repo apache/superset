@@ -150,6 +150,7 @@ def test_saved_recipient_is_revalidated_at_delivery(
     notification: SimpleNamespace, monkeypatch: pytest.MonkeyPatch, change: str
 ) -> None:
     """Previously saved recipients cannot bypass deployment or schedule changes."""
+    saved_json = notification.recipient.recipient_config_json
     handler = teams.TeamsNotification(notification.recipient, notification.content)
     if change == "disabled":
         monkeypatch.setattr(
@@ -169,6 +170,7 @@ def test_saved_recipient_is_revalidated_at_delivery(
         handler.send()
     notification.store.assert_not_called()
     notification.send.assert_not_called()
+    assert notification.recipient.recipient_config_json == saved_json
 
 
 def test_missing_active_installation_prevents_transport(

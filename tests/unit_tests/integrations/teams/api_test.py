@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 import importlib
 import importlib.util
-from collections.abc import Callable, Iterator
+from collections.abc import Callable
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
@@ -33,7 +33,6 @@ import pytest
 from cryptography.hazmat.primitives.asymmetric import rsa
 from flask import current_app, Flask, Response
 from flask.testing import FlaskClient
-from sqlalchemy import create_engine
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
@@ -101,24 +100,6 @@ def auth_headers(signing_key: rsa.RSAPrivateKey) -> Callable[..., dict[str, str]
 
 
 @pytest.fixture
-def teams_config() -> dict[str, Any]:
-    """Configure one tenant, application and explicitly approved destination."""
-    return {
-        "tenant_id": TENANT,
-        "application_id": APPLICATION,
-        "credential": "deployment-secret",
-        "destinations": [
-            {
-                "key": "ops",
-                "label": "Operations",
-                "team_id": "team-1",
-                "channel_id": "channel-1",
-            }
-        ],
-    }
-
-
-@pytest.fixture
 def installation() -> dict[str, Any]:
     """An installationUpdate event from a standard team channel."""
     return {
@@ -140,15 +121,6 @@ def installation() -> dict[str, Any]:
             "channel": {"id": "channel-1", "type": "standard"},
         },
     }
-
-
-@pytest.fixture
-def teams_engine() -> Iterator[Engine]:
-    """Create only the installation model's real database table."""
-    engine = create_engine("sqlite://")
-    TeamsInstallation.__table__.create(engine)
-    yield engine
-    engine.dispose()
 
 
 @pytest.fixture
@@ -579,7 +551,29 @@ def test_sdk_initialization_failure_still_releases_adapter(
     assert loops[0].is_closed()
 
 
+def post_sized_event(
+    client: FlaskClient,
+    installation: dict[str, Any],
+    size: int,
+    content_length: bool,
+    **kwargs: Any,
+) -> Response:
+    """Send padded JSON through either sized or terminated-stream WSGI input."""
+    body = json.dumps(installation).encode()
+    return client.post(
+        PATH,
+        data=body + b" " * (size - len(body)),
+        environ_overrides=(
+            {}
+            if content_length
+            else {"CONTENT_LENGTH": "", "wsgi.input_terminated": True}
+        ),
+        **kwargs,
+    )
+
+
 @pytest.mark.parametrize("content_length", [True, False])
+@pytest.mark.parametrize("limit", [None, 1024])
 @pytest.mark.parametrize("extra_bytes", [1, 4096])
 @pytest.mark.parametrize("content_type", ["application/json", "text/plain"])
 def test_oversized_event_is_rejected_before_json_sdk_or_database(
@@ -588,31 +582,24 @@ def test_oversized_event_is_rejected_before_json_sdk_or_database(
     content_length: bool,
     extra_bytes: int,
     content_type: str,
+    limit: int | None,
 ) -> None:
     """Even valid JSON followed by excess whitespace must not reach the parser."""
-    limit = 256 * 1024
-    body = json.dumps(installation).encode()
-    body += b" " * (limit + extra_bytes - len(body))
-    environ = (
-        {}
-        if content_length
-        else {
-            "CONTENT_LENGTH": "",
-            "wsgi.input_terminated": True,
-        }
-    )
+    teams_client.application.config["MAX_CONTENT_LENGTH"] = limit
     with (
         patch.object(teams_client.application.request_class, "get_json") as parse,
         patch.object(teams_adapter, "process_teams_event") as sdk,
         patch.object(teams_api, "Session") as session,
     ):
-        response = teams_client.post(
-            PATH,
-            data=body,
+        response = post_sized_event(
+            teams_client,
+            installation,
+            (limit or 256 * 1024) + extra_bytes,
+            content_length,
             content_type=content_type,
-            environ_overrides=environ,
         )
     assert response.status_code == 413
+    assert teams_client.application.config["MAX_CONTENT_LENGTH"] == limit
     parse.assert_not_called()
     sdk.assert_not_called()
     session.assert_not_called()
@@ -629,65 +616,19 @@ def test_valid_event_within_body_limit_still_authenticates_and_persists(
     size: int,
 ) -> None:
     """Accept normal and boundary-size JSON bodies, including terminated streams."""
-    body = json.dumps(installation).encode()
-    body += b" " * (size - len(body))
-    assert len(body) == size
-    environ = (
-        {}
-        if content_length
-        else {
-            "CONTENT_LENGTH": "",
-            "wsgi.input_terminated": True,
-        }
-    )
-    response = teams_client.post(
-        PATH,
-        data=body,
+    response = post_sized_event(
+        teams_client,
+        installation,
+        size,
+        content_length,
         content_type="application/json",
         headers=auth_headers(),
-        environ_overrides=environ,
     )
     assert response.status_code == 200
     with Session(teams_engine) as session:
         installation_record = session.query(TeamsInstallation).one()
         assert installation_record.team_id == "team-1"
         assert installation_record.active
-
-
-@pytest.mark.parametrize("content_length", [True, False])
-def test_callback_respects_stricter_deployment_body_limit(
-    teams_client: FlaskClient,
-    installation: dict[str, Any],
-    content_length: bool,
-) -> None:
-    """The endpoint cap must not relax a smaller operator-configured limit."""
-    teams_client.application.config["MAX_CONTENT_LENGTH"] = 1024
-    body = json.dumps(installation).encode()
-    body += b" " * (1025 - len(body))
-    environ = (
-        {}
-        if content_length
-        else {
-            "CONTENT_LENGTH": "",
-            "wsgi.input_terminated": True,
-        }
-    )
-    with (
-        patch.object(teams_client.application.request_class, "get_json") as parse,
-        patch.object(teams_adapter, "process_teams_event") as sdk,
-        patch.object(teams_api, "Session") as session,
-    ):
-        response = teams_client.post(
-            PATH,
-            data=body,
-            content_type="application/json",
-            environ_overrides=environ,
-        )
-    assert response.status_code == 413
-    assert teams_client.application.config["MAX_CONTENT_LENGTH"] == 1024
-    parse.assert_not_called()
-    sdk.assert_not_called()
-    session.assert_not_called()
 
 
 def test_body_limit_applies_only_to_teams_callback(teams_client: FlaskClient) -> None:
