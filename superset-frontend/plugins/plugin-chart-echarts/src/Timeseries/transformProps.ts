@@ -1336,7 +1336,12 @@ export default function transformProps(
     for (const s of series) {
       if (s.id) {
         const columnsArr = labelMap[s.id];
-        const dimensionValue = columnsArr?.[idxSelectedDimension];
+        const metricPartCount = Math.max(
+          0,
+          (columnsArr?.length ?? 0) - groupBy.length,
+        );
+        const dimensionValue =
+          columnsArr?.[metricPartCount + idxSelectedDimension];
         if (dimensionValue !== undefined) {
           (s as any).stack = dimensionValue;
         }
