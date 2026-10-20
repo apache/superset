@@ -23,6 +23,7 @@ import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { getUrlParam, isUrlExternal } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
+import { usePages } from 'src/core/pages';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -199,6 +200,43 @@ const StyledImage = styled(Image)`
 
 const { useBreakpoint } = Grid;
 
+/**
+ * Folds pages contributed by extensions into the server-rendered menu.
+ *
+ * The navbar is built on the server from FAB's menu, which an extension
+ * cannot write to: an entry there needs a `menu_access` permission created
+ * at boot, and extensions register in the browser. A page that opted in with
+ * `nav` is therefore added here, client-side, so that a contributed page has
+ * somewhere a user could find it at all.
+ *
+ * Entries sit at the top level. Nesting one under an existing group is the
+ * obvious next want -- an admin screen belongs under Settings > Manage --
+ * but those groups live in the `settings` menu rather than this one, so it
+ * is left out until it can be done properly rather than shipped as an
+ * option that silently does nothing.
+ */
+function withExtensionPages(
+  menu: MenuObjectProps[],
+  pages: { name: string; path: string; nav?: { label?: string } }[],
+): MenuObjectProps[] {
+  const contributed = pages.filter(page => page.nav);
+  if (!contributed.length) {
+    return menu;
+  }
+
+  return [
+    ...menu,
+    ...contributed.map(
+      page =>
+        ({
+          label: page.nav?.label ?? page.name,
+          name: page.nav?.label ?? page.name,
+          url: page.path,
+        }) as unknown as MenuObjectProps,
+    ),
+  ];
+}
+
 export function Menu({
   data: {
     menu,
@@ -211,6 +249,9 @@ export function Menu({
 }: MenuProps) {
   const screens = useBreakpoint();
   const isMobile = useIsMobile();
+  // Subscribed, not read once: extensions register after the menu first
+  // renders, so a contributed entry would otherwise never appear.
+  const contributedPages = usePages();
   const uiConfig = useUiConfig();
   const theme = useTheme();
   // screens.md is undefined on the first render before breakpoints are measured;
@@ -456,7 +497,7 @@ export function Menu({
               className="main-nav"
               selectedKeys={activeTabs}
               disabledOverflow
-              items={menu.map(item => {
+              items={withExtensionPages(menu, contributedPages).map(item => {
                 const props = {
                   ...item,
                   label: t(item.label),
