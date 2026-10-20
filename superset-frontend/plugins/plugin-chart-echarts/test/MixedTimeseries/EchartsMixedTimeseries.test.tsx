@@ -60,6 +60,7 @@ function createQueryData(): ChartDataResponseResult {
     queried_dttm: null,
     data: rows as DataRecord[],
     colnames: ['ds', 'sum__num, boy', 'sum__num, girl'],
+    collabels: ['ds', 'sum__num, boy', 'sum__num, girl'],
     coltypes: [
       GenericDataType.Temporal,
       GenericDataType.Numeric,
