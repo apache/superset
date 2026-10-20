@@ -1830,9 +1830,13 @@ test('automatic axis title margin adjustment yields to a margin picked inside th
       undefined,
       { programmatic: true },
     );
-    expect(store.getState().explore.controls.x_axis_title_margin.value).toBe(
-      15,
-    );
+    expect(
+      (
+        store.getState() as unknown as {
+          explore: { controls: Record<string, { value: unknown }> };
+        }
+      ).explore.controls.x_axis_title_margin.value,
+    ).toBe(15);
   } finally {
     getChartControlPanelRegistry().remove('table');
     jest.restoreAllMocks();
