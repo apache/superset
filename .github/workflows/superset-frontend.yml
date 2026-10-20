@@ -68,7 +68,7 @@ jobs:
 
       - name: Upload Docker Image Artifact
         if: steps.check.outputs.frontend
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: docker-image
           path: docker-image.tar.zst
@@ -103,7 +103,7 @@ jobs:
           "npm run test -- --coverage --shard=${{ matrix.shard }}/8 --coverageReporters=json"
 
       - name: Upload Coverage Artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-artifacts-${{ matrix.shard }}
           path: superset-frontend/coverage
@@ -153,10 +153,11 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
+      # The last weird node command is to run tests fo custom Superset lint rules
       - name: lint
         run: |
           docker run --rm $TAG bash -c \
-          "npm i && npm run lint"
+          "npm i && npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
 
       - name: tsc
         run: |
@@ -201,7 +202,7 @@ jobs:
       - name: Build Storybook and Run Tests
         run: |
           docker run --rm $TAG bash -c \
-          "npm run build-storybook && npx playwright install-deps && npx playwright install chromium && npm run test-storybook:ci"
+          "npx playwright install-deps && npx playwright install chromium && npm run test-storybook"
 
   actions-timeline:
     needs: [report-coverage, lint-frontend, validate-frontend, test-storybook]

@@ -2926,6 +2926,7 @@ class PivotTableChartConfig(BaseChartConfig):
         "or set saved_metric=True for saved dataset metrics)",
     )
     aggregate_function: Literal[
+        "Metric",
         "Sum",
         "Average",
         "Median",
@@ -2935,9 +2936,21 @@ class PivotTableChartConfig(BaseChartConfig):
         "Maximum",
         "Count",
         "Count Unique Values",
+        "List Unique Values",
         "First",
         "Last",
-    ] = "Sum"
+        "Sum as Fraction of Total",
+        "Sum as Fraction of Rows",
+        "Sum as Fraction of Columns",
+        "Count as Fraction of Total",
+        "Count as Fraction of Rows",
+        "Count as Fraction of Columns",
+    ] = Field(
+        "Metric",
+        description="Totals aggregation. 'Metric' keeps the database-computed "
+        "totals (correct for non-additive metrics such as COUNT_DISTINCT); the "
+        "other values re-aggregate the displayed cells.",
+    )
     show_row_totals: bool = True
     show_column_totals: bool = True
     transpose: bool = False

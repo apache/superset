@@ -453,6 +453,27 @@ FAB_PASSWORD_COMPLEXITY_VALIDATOR = _validate_password_complexity
 AUTH_PASSWORD_MIN_LENGTH = 8
 AUTH_PASSWORD_COMMON_BLOCKLIST: list[str] = []
 
+# Self-service "Forgot password?" recovery for AUTH_TYPE = AUTH_DB. Users request
+# a reset link by email from the login page; the link carries a single-use token
+# that expires after ``token_ttl_minutes``. Off by default: it needs working SMTP
+# settings, and links are built from ``base_url`` (falling back to
+# WEBDRIVER_BASEURL_USER_FRIENDLY), never from the request, so set it to the
+# public HTTPS address users reach Superset at before enabling.
+# - token_ttl_minutes: capped at 24 hours (1440); a value that is not a
+#   positive whole number falls back to the default.
+# - rate_limit: Flask-Limiter limit for both endpoints, per client address
+#   (enforced only when RATELIMIT_ENABLED is on).
+# - resend_cooldown_seconds: minimum time between two emails to one address.
+# Keys left out of an override fall back to these defaults; a value that is not
+# a dict at all is logged and treated as unset.
+AUTH_PASSWORD_RECOVERY: dict[str, Any] = {
+    "enabled": False,
+    "token_ttl_minutes": 30,
+    "rate_limit": "5 per 15 minutes",
+    "resend_cooldown_seconds": 120,
+    "base_url": None,
+}
+
 # A storage location conforming to the scheme in storage-scheme. See the limits
 # library for allowed values: https://limits.readthedocs.io/en/stable/storage.html
 # RATELIMIT_STORAGE_URI = "redis://host:port"
@@ -2514,6 +2535,22 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         # Other potentially dangerous functions
         "pg_sleep",
         "pg_terminate_backend",
+        # dblink functions can open separate connections and auto-commit
+        # writes, bypassing the read-only gate entirely
+        "dblink",
+        "dblink_exec",
+        "dblink_connect",
+        "dblink_connect_u",
+        "dblink_send_query",
+        # State-mutating functions callable via SELECT
+        "pg_cancel_backend",
+        "pg_reload_conf",
+        "pg_rotate_logfile",
+        "pg_stat_reset",
+        "pg_switch_wal",
+        "pg_logical_emit_message",
+        "pg_create_restore_point",
+        "pg_drop_replication_slot",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
