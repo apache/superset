@@ -23,6 +23,7 @@ import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { stripAppRoot } from 'src/utils/navigationUtils';
+import { getPages } from 'src/core/pages';
 import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
@@ -361,7 +362,16 @@ export const isFrontendRoute = (path?: string): boolean => {
     // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
     // full-page-reload fallback for those URLs.
     const basePath = stripAppRoot(path.split(/[?#]/)[0]);
-    return !!frontEndRoutes[basePath];
+    if (frontEndRoutes[basePath]) {
+      return true;
+    }
+    // Extension pages are keyed in the table by their parameterised path, so
+    // a concrete URL never matches it. They are client-side routes all the
+    // same, and without this the menu would full-page-reload to reach one.
+    // Read live: extensions register long after this module is evaluated.
+    return getPages().some(
+      page => basePath === page.path || basePath.startsWith(`${page.path}/`),
+    );
   }
   return false;
 };

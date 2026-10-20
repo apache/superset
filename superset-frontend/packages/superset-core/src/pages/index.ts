@@ -57,6 +57,18 @@ export interface Page {
   name: string;
   /** Optional description, for display in contribution manifests. */
   description?: string;
+  /**
+   * Opt the page into Superset's navigation bar.
+   *
+   * Without this a page is reachable only by its URL, which is rarely what
+   * an extension wants: there is otherwise nowhere in Superset a user could
+   * discover it. Omit it for a page reached from somewhere the extension
+   * renders itself, such as a button on one of its own screens.
+   */
+  nav?: {
+    /** Defaults to the page's `name`. */
+    label?: string;
+  };
 }
 
 /**
