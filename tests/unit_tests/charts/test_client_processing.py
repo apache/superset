@@ -4844,6 +4844,30 @@ def test_serialized_export_does_not_rename_display_label_twice(
     assert query["colnames"] == ["total_amount", "Total amount"]
 
 
+@pytest.mark.parametrize(
+    ("column", "values", "columns"),
+    [("Category", ["Books", "Games"], []), (2024, [0, 1], ["2024"])],
+)
+def test_table_xlsx_preserves_unlisted_and_numeric_headers(
+    column: str | int, values: list[str] | list[int], columns: list[str]
+) -> None:
+    """Retain fallback index names and recognize numeric-looking selections."""
+    source: pd.DataFrame = pd.DataFrame({column: values, "Total": [15, 20]})
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result, {"viz_type": "table", "groupby": columns, "metrics": ["Total"]}
+    )["queries"][0]
+    actual: pd.DataFrame = pd.read_excel(BytesIO(query["data"]))
+    pd.testing.assert_frame_equal(actual, source)
+
+
 def test_table_xlsx_preserves_percent_metric_header() -> None:
     """A percent-only selection is a data column, not an unnamed row index."""
     source_df: pd.DataFrame = pd.DataFrame({"%count": [0, 1]})

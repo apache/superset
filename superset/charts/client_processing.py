@@ -1439,7 +1439,7 @@ def _read_excel_for_client_processing(
             verbose_map.get(column, column) for column in expected_columns
         }
 
-    if first_column in expected_columns:
+    if str(first_column) in expected_columns:
         return df
 
     if _is_default_index_column(df.iloc[:, 0]):
@@ -1573,14 +1573,17 @@ def apply_client_processing(  # noqa: C901
                 name if name is not None else "" for name in processed_df.index.names
             ]
         else:
-            processed_df.index = [
-                (
-                    " ".join(str(name) for name in index).strip()
-                    if isinstance(index, tuple)
-                    else index
-                )
-                for index in processed_df.index
-            ]
+            processed_df.index = pd.Index(
+                [
+                    (
+                        " ".join(str(name) for name in index).strip()
+                        if isinstance(index, tuple)
+                        else index
+                    )
+                    for index in processed_df.index
+                ],
+                name=processed_df.index.name,
+            )
 
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
