@@ -1492,6 +1492,10 @@ resolve semantic-view sources by type and ID, then check access before
 continuing. `update_chart` then refuses semantic-view charts, which it cannot
 yet edit. SQL-dataset charts retain their existing dataset validation.
 
+Adding charts to a dashboard with `add_chart_to_existing_dashboard` or
+`generate_dashboard` requires access to each chart as well as its datasource.
+A datasource grant alone does not override a chart's explicit viewer restrictions.
+
 `list_charts` filters on `datasource_name` use these same live names before
 pagination and counting. For tables with a schema, filter using
 `schema.table_name`. Data-model metadata permission checks also apply to these

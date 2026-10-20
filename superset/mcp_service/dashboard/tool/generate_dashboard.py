@@ -31,7 +31,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.dashboards.layout import repair_position
-from superset.extensions import db, event_logger
+from superset.extensions import db, event_logger, security_manager
 from superset.mcp_service.dashboard.constants import (
     generate_id,
     GRID_COLUMN_COUNT,
@@ -262,13 +262,19 @@ def generate_dashboard(  # noqa: C901
                     ),
                 )
 
-            # Validate dataset access for each chart.
+            # Validate dataset access as well as chart visibility.
             # check_chart_data_access is the centralized data-level
             # permission check that complements the class-level RBAC
             # enforced by mcp_auth_hook.
             from superset.mcp_service.auth import check_chart_data_access
 
             for chart in chart_objects:
+                if not security_manager.can_access_chart(chart):
+                    return GenerateDashboardResponse(
+                        dashboard=None,
+                        dashboard_url=None,
+                        error=f"You don't have permission to access chart {chart.id}.",
+                    )
                 validation = check_chart_data_access(chart)
                 if not validation.is_valid:
                     return GenerateDashboardResponse(
@@ -363,8 +369,6 @@ def generate_dashboard(  # noqa: C901
                 # before the tool function runs), so the User object
                 # is bound to a dead/different scoped session.
                 # Querying fresh avoids all cross-session errors.
-                from superset.extensions import security_manager
-
                 current_user = (
                     db.session.query(security_manager.user_model)
                     .filter_by(id=g.user.id)
