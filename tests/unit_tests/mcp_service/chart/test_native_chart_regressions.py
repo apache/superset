@@ -171,6 +171,30 @@ def test_pivot_rebind_resolves_grouping_set_logical_labels() -> None:
     assert error is None, error
 
 
+@pytest.mark.parametrize(
+    ("aggregate_function", "has_grouping_sets"),
+    [("Sum", False), ("Median", False), ("Metric", True), (None, True)],
+)
+def test_pivot_result_aggregation_skips_grouping_sets(
+    aggregate_function: str | None, has_grouping_sets: bool
+) -> None:
+    """A result aggregation reduces leaf rows client-side, so the native query
+    for a non-additive metric must not build a GROUPING SETS query.
+    """
+    form: dict[str, Any] = {
+        "viz_type": "pivot_table_v2",
+        "groupbyRows": ["store"],
+        "groupbyColumns": [],
+        "metrics": ["avg_sales"],
+        "rowTotals": True,
+        "colTotals": True,
+    }
+    if aggregate_function is not None:
+        form["aggregateFunction"] = aggregate_function
+    query = build_query_dicts_from_form_data(form, 1, "table")[0]
+    assert ("grouping_sets" in query) is has_grouping_sets
+
+
 def test_bullet_sql_metric_adapter_uses_expression_as_label() -> None:
     """Native SQL metrics without labels survive compatible update validation."""
     native = {

@@ -727,6 +727,34 @@ def _box_plot_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
 _PIVOT_ADDITIVE_AGGREGATES = frozenset({"SUM", "COUNT", "MIN", "MAX"})
 
 
+# Mirrors RESULT_AGGREGATIONS in plugin-chart-pivot-table's resultAggregation.ts.
+# Any of these makes the chart reduce every scope from leaf rows client-side, so
+# no GROUPING SETS query is built. Absence, an unrecognized value, or "Metric"
+# keeps database-computed totals.
+_PIVOT_RESULT_AGGREGATIONS = frozenset(
+    {
+        "Count",
+        "Count Unique Values",
+        "List Unique Values",
+        "Sum",
+        "Average",
+        "Median",
+        "Sample Variance",
+        "Sample Standard Deviation",
+        "Minimum",
+        "Maximum",
+        "First",
+        "Last",
+        "Sum as Fraction of Total",
+        "Sum as Fraction of Rows",
+        "Sum as Fraction of Columns",
+        "Count as Fraction of Total",
+        "Count as Fraction of Rows",
+        "Count as Fraction of Columns",
+    }
+)
+
+
 def _all_metrics_additive(metrics: list[Any]) -> bool:
     """Mirror Pivot's conservative additive-metric fast-path."""
     return bool(metrics) and all(
@@ -815,6 +843,8 @@ def _pivot_query(form_data: dict[str, Any], query: dict[str, Any]) -> None:
         if metric is not None
         else []
     )
+    if form_data.get("aggregateFunction") in _PIVOT_RESULT_AGGREGATIONS:
+        return
     if not _all_metrics_additive(query.get("metrics") or []):
         query["grouping_sets"] = _pivot_grouping_sets(form_data, rows, columns)
 
