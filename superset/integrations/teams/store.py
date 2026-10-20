@@ -23,6 +23,7 @@ from uuid import UUID
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from superset.integrations.teams.config import validate_team_id
 from superset.integrations.teams.models import TeamsInstallation
 
 
@@ -37,11 +38,7 @@ def _identity(
         raise ValueError("Teams tenant and application IDs must be UUIDs") from None
     if not tenant.int or not application.int:
         raise ValueError("Teams tenant and application IDs must be nonzero UUIDs")
-    if not isinstance(team_id, str) or not team_id.strip() or len(team_id) > 255:
-        raise ValueError("Teams team ID must contain 1 to 255 characters")
-    if team_id != team_id.strip():
-        raise ValueError("Teams team ID must not have surrounding whitespace")
-    return tenant, application, team_id
+    return tenant, application, validate_team_id(team_id)
 
 
 def _service_url(value: str) -> str:

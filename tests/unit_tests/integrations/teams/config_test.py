@@ -145,3 +145,28 @@ def test_unknown_fields_do_not_leak_values(
         parse_teams_config(deployment)
     assert deployment["credential"] not in str(exc.value)
     assert "secret-unknown-key" not in str(exc.value)
+
+
+@pytest.mark.parametrize("team_id", ["t" * 256, " team-1", "team-1 ", "\tteam-1\n"])
+def test_rejects_team_ids_incompatible_with_installation_identity(
+    deployment: dict[str, Any],
+    team_id: str,
+) -> None:
+    """Bad deployment identifiers fail at parsing, without leaking their values."""
+    deployment["destinations"][0]["team_id"] = team_id
+    with pytest.raises(TeamsConfigError, match="Teams team ID") as error:
+        parse_teams_config(deployment)
+    assert team_id not in str(error.value)
+    assert deployment["destinations"][0]["team_id"] == team_id
+
+
+@pytest.mark.parametrize("team_id", ["t", "t" * 255])
+def test_accepts_team_id_length_boundaries(
+    deployment: dict[str, Any],
+    team_id: str,
+) -> None:
+    """Identifiers at both supported limits remain intact."""
+    deployment["destinations"][0]["team_id"] = team_id
+    config = parse_teams_config(deployment)
+    assert config is not None
+    assert config.destinations[0].team_id == team_id

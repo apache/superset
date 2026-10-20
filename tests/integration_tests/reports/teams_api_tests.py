@@ -22,6 +22,7 @@ from uuid import uuid4
 from superset import security_manager
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.conftest import with_feature_flags
+from tests.integration_tests.test_app import app
 
 
 class TestTeamsDestinationsApi(SupersetTestCase):
@@ -100,3 +101,34 @@ class TestTeamsDestinationsApi(SupersetTestCase):
             response = self.client.get("/api/v1/report/teams_destinations/")
         assert response.status_code == 404
         discover.assert_not_called()
+
+    @with_feature_flags(ALERT_REPORTS=True, ALERT_REPORT_TEAMS=True)
+    def test_invalid_team_configuration_returns_empty_destinations(self) -> None:
+        """The actual Reports endpoint handles parser failures without querying DB."""
+        self.login("admin")
+        for team_id in ("t" * 256, " team-1", "team-1 ", "\tteam-1\n"):
+            with self.subTest(team_id=team_id):
+                configuration = {
+                    "tenant_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+                    "application_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+                    "credential": "test-secret",
+                    "destinations": [
+                        {
+                            "key": "ops",
+                            "label": "Operations",
+                            "team_id": team_id,
+                            "channel_id": "channel-1",
+                        }
+                    ],
+                }
+                with (
+                    patch.dict(app.config, {"ALERT_REPORTS_TEAMS": configuration}),
+                    patch(
+                        "superset.integrations.teams.destinations.Session",
+                        side_effect=AssertionError("must not query installations"),
+                    ) as session,
+                ):
+                    response = self.client.get("/api/v1/report/teams_destinations/")
+                assert response.status_code == 200
+                assert response.json == {"result": []}
+                session.assert_not_called()

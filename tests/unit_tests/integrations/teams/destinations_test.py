@@ -145,3 +145,18 @@ def test_disabled_integration_does_not_query_installations(
         destinations, "Session", MagicMock(side_effect=AssertionError("must not query"))
     )
     assert destinations.list_teams_destinations() == []
+
+
+@pytest.mark.parametrize("team_id", ["t" * 256, " team-1", "team-1 ", "\tteam-1\n"])
+def test_invalid_team_config_is_hidden_before_installation_lookup(
+    configured_app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    team_id: str,
+) -> None:
+    """Discovery handles invalid deployment IDs instead of raising store ValueError."""
+    configured_app.config["ALERT_REPORTS_TEAMS"]["destinations"][0]["team_id"] = team_id
+    lookup = MagicMock(side_effect=AssertionError("must not query installations"))
+    monkeypatch.setattr(destinations, "Session", lookup)
+    assert destinations.configured_teams() is None
+    assert destinations.list_teams_destinations() == []
+    lookup.assert_not_called()
