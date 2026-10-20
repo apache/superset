@@ -18,7 +18,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
 import pandas as pd
@@ -3070,6 +3070,7 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
 
 def test_semantic_annotation_null_protocol_versions_parent_cache(
     app_context: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
     from superset.common.query_context import QueryContext
@@ -3083,7 +3084,9 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     provider: MagicMock = MagicMock()
     provider.result_cache_version = None
     provider.get_dimensions.return_value = []
-    view.__dict__["implementation"] = provider
+    monkeypatch.setattr(
+        SemanticView, "implementation", PropertyMock(return_value=provider)
+    )
     chart: Slice = Slice(
         id=7,
         datasource_id=17,
