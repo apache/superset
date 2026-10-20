@@ -838,9 +838,12 @@ Reaching the profile page requires `can_read` on `user`, which the built-in
 Admin/Alpha/Gamma roles hold by default but a custom role is not guaranteed
 to. A user whose only role lacks it and who gets redirected there by a forced
 password change is now redirected to logout with an explanatory message
-instead, so they are never trapped in a redirect loop; grant that permission
-to any custom role whose members may have `ENABLE_FORCE_PASSWORD_CHANGE`
-set on their account.
+instead, so they are never trapped in a redirect loop. Clearing the flag also
+needs `can_read` and `can_write` on `CurrentUserRestApi` (for `GET` and `PUT`
+on `/api/v1/me/`), so grant all three permissions to any custom role whose
+members may have `password_must_change` set on their account.
+`ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
+check on; `password_must_change` is the per-user flag it acts on.
 
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 
