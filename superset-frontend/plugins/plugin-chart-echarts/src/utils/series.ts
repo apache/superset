@@ -33,7 +33,6 @@ import {
   TimeFormatter,
   ValueFormatter,
 } from '@superset-ui/core';
-import { t } from '@apache-superset/core/translation';
 import { SupersetTheme } from '@apache-superset/core/theme';
 import { GenericDataType } from '@apache-superset/core/common';
 import { SortSeriesType, LegendPaddingType } from '@superset-ui/chart-controls';
@@ -922,12 +921,8 @@ export function getLegendProps(
       : {}),
     selected: legendState ?? {},
     // `selector: false` omits the All/Inv group from legend layout.
-    selector: showSelectorLegend
-      ? [
-          { type: 'all', title: t('All') },
-          { type: 'inverse', title: t('Inv') },
-        ]
-      : false,
+    // The shorthand lets ECharts fill button titles from the chart locale.
+    selector: showSelectorLegend ? ['all', 'inverse'] : false,
     selectorLabel: {
       fontFamily: theme.fontFamily,
       fontSize: theme.fontSizeSM,

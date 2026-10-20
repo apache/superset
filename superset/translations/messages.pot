@@ -7730,9 +7730,6 @@ msgstr ""
 msgid "Intervals"
 msgstr ""
 
-msgid "Inv"
-msgstr ""
-
 msgid "Invalid Connection String: Expecting String of the form 'ocient://user:pass@host:port/database'."
 msgstr ""
 
