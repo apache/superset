@@ -36,7 +36,7 @@ export class Tab implements sqlLabType.Tab {
 
   title: string;
 
-  databaseId: number;
+  databaseId: number | undefined;
 
   catalog: string | null;
 
@@ -49,7 +49,7 @@ export class Tab implements sqlLabType.Tab {
   constructor(
     id: string,
     title: string,
-    databaseId: number,
+    databaseId: number | undefined,
     catalog: string | null = null,
     schema: string | null = null,
     editorGetter: () => Promise<sqlLabType.Editor>,
