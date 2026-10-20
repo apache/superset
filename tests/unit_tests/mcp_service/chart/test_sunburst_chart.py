@@ -84,6 +84,7 @@ from superset.mcp_service.chart.schemas import (
     MixedTimeseriesChartConfig,
     PieChartConfig,
     PivotTableChartConfig,
+    SankeyChartConfig,
     SunburstChartConfig,
     SunburstNativeMetricColumn,
     TableChartConfig,
@@ -395,6 +396,11 @@ def _registered_query_role_matrix() -> list[ChartConfig]:
         ),
         BubbleChartConfig(
             entity=ColumnRef(name="region"), x=metric, y=metric, size=metric
+        ),
+        SankeyChartConfig(
+            source=ColumnRef(name="region"),
+            target=ColumnRef(name="segment"),
+            metric=metric,
         ),
         *[
             XYChartConfig(
