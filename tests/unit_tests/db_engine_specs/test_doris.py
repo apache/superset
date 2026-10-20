@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Iterator
 from typing import Any, Optional
 from unittest.mock import MagicMock, Mock, patch
 
@@ -22,6 +23,7 @@ import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import JSON, types
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.exc import NoSuchModuleError
 
 from superset.db_engine_specs.doris import (
     AggState,
@@ -282,6 +284,158 @@ def test_get_catalog_names(
     assert catalogs == expected_result
 
 
+def _install_pydoris(mocker: MockerFixture) -> None:
+    """
+    Make ``DorisEngineSpec`` the only engine spec, with the two entry points
+    pydoris ships installed.
+    """
+    from sqlalchemy.dialects.mysql.mysqldb import MySQLDialect_mysqldb
+
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    class PyDorisDialect(MySQLDialect_mysqldb):
+        name = "pydoris"
+
+    def entry_point(name: str) -> Any:
+        ep = mocker.MagicMock()
+        ep.name = name
+        ep.value = "pydoris.sqlalchemy.dialect:DorisDialect"
+        ep.load.return_value = PyDorisDialect
+        return ep
+
+    mocker.patch(
+        "superset.db_engine_specs.load_engine_specs",
+        return_value=iter([DorisEngineSpec]),
+    )
+    mocker.patch(
+        "superset.db_engine_specs.entry_points",
+        side_effect=lambda group: (
+            [entry_point("doris"), entry_point("pydoris")]
+            if group == "sqlalchemy.dialects"
+            else []
+        ),
+    )
+
+
+def test_connection_form_default_driver_is_installed(mocker: MockerFixture) -> None:
+    """
+    The database picker offers the connection form only when ``default_driver``
+    is among the drivers installed for the engine. pydoris registers a
+    ``MySQLDialect_mysqldb`` subclass named ``pydoris`` under both the ``doris``
+    and ``pydoris`` entry points, so its driver is ``mysqldb``.
+    """
+    from superset.db_engine_specs import get_available_engine_specs
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    _install_pydoris(mocker)
+
+    drivers = get_available_engine_specs()[DorisEngineSpec]
+
+    assert drivers == {"mysqldb"}
+    assert DorisEngineSpec.default_driver in drivers
+
+
+@pytest.mark.parametrize(
+    "app,hidden",
+    [
+        ({"DBS_AVAILABLE_DENYLIST": {"pydoris": {"mysqldb"}}}, True),
+        ({"DBS_AVAILABLE_DENYLIST": {"pydoris": {"pydoris"}}}, False),
+    ],
+    indirect=["app"],
+)
+def test_denylist_matches_the_default_driver(
+    mocker: MockerFixture, hidden: bool
+) -> None:
+    """
+    ``DBS_AVAILABLE_DENYLIST`` is matched against ``default_driver``, so Doris is
+    hidden with ``{"pydoris": {"mysqldb"}}``, not ``{"pydoris": {"pydoris"}}``.
+    """
+    from superset.db_engine_specs import get_available_engine_specs
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    _install_pydoris(mocker)
+
+    assert (DorisEngineSpec not in get_available_engine_specs()) is hidden
+
+
+@pytest.fixture
+def pydoris_dialects() -> Iterator[None]:
+    """
+    Register the two entry points pydoris ships, so that a URI can be resolved
+    to a dialect the way :func:`sqlalchemy.create_engine` resolves one.
+    """
+    from sqlalchemy.dialects import registry
+
+    for name in ("doris", "pydoris"):
+        registry.register(
+            name, "sqlalchemy.dialects.mysql.mysqldb", "MySQLDialect_mysqldb"
+        )
+    yield
+    for name in ("doris", "pydoris"):
+        registry.impls.pop(name, None)
+
+
+@pytest.mark.parametrize("encryption", [False, True])
+@pytest.mark.usefixtures("pydoris_dialects")
+def test_build_sqlalchemy_uri_uses_the_pydoris_scheme(encryption: bool) -> None:
+    """
+    A URI built from the connection form must name a registered dialect:
+    ``pydoris+mysqldb`` (``engine+default_driver``) is not one, ``pydoris`` is.
+    Its backend must also equal ``engine``, which the edit modal matches against
+    to find the connection form of a saved database.
+    """
+    from sqlalchemy.dialects.mysql.mysqldb import MySQLDialect_mysqldb
+
+    from superset.db_engine_specs.base import BasicParametersType
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    parameters: BasicParametersType = {
+        "username": "user",
+        "password": "p@ss",
+        "host": "doris.example.com",
+        "port": 9030,
+        "database": "internal.sales",
+        "query": {},
+        "encryption": encryption,
+    }
+
+    uri = DorisEngineSpec.build_sqlalchemy_uri(parameters)
+
+    url = make_url(uri)
+    assert url.drivername == "pydoris"
+    assert url.get_backend_name() == DorisEngineSpec.engine
+    # Resolving the dialect is what ``create_engine`` does first, and is the
+    # step that fails for a scheme no entry point provides.
+    assert url.get_dialect() is MySQLDialect_mysqldb
+    assert (url.username, url.password, url.host, url.port, url.database) == (
+        "user",
+        "p@ss",
+        "doris.example.com",
+        9030,
+        "internal.sales",
+    )
+    assert DorisEngineSpec.get_parameters_from_uri(uri)["encryption"] is encryption
+
+    # The SSL switch must reach mysqlclient as a mode that requires TLS.
+    _, connect_kwargs = MySQLDialect_mysqldb().create_connect_args(url)
+    assert "ssl" not in connect_kwargs
+    assert connect_kwargs.get("ssl_mode") == ("VERIFY_CA" if encryption else None)
+
+
+@pytest.mark.usefixtures("pydoris_dialects")
+def test_engine_plus_default_driver_scheme_has_no_dialect() -> None:
+    """
+    ``engine+default_driver`` is the scheme the connection form would emit
+    without the override; pydoris registers no such entry point.
+    """
+    from superset.db_engine_specs.doris import DorisEngineSpec
+
+    scheme = f"{DorisEngineSpec.engine}+{DorisEngineSpec.default_driver}"
+
+    with pytest.raises(NoSuchModuleError):
+        make_url(f"{scheme}://user:p@ss@doris.example.com:9030/db").get_dialect()
+
+
 @pytest.mark.parametrize(
     "native_type,generic_type",
     [
@@ -387,14 +541,14 @@ def test_build_sqlalchemy_uri() -> None:
     encrypted = make_url(
         DorisEngineSpec.build_sqlalchemy_uri({**parameters, "encryption": True})
     )
-    assert encrypted.drivername == "doris"
+    assert encrypted.drivername == "pydoris"
     assert dict(encrypted.query) == {"ssl_mode": "VERIFY_CA"}
     assert encrypted.password == "p@ss"  # noqa: S105
 
     plain = make_url(
         DorisEngineSpec.build_sqlalchemy_uri({**parameters, "encryption": False})
     )
-    assert plain.drivername == "doris"
+    assert plain.drivername == "pydoris"
     assert dict(plain.query) == {}
 
     round_trip = DorisEngineSpec.get_parameters_from_uri(
@@ -435,7 +589,7 @@ def test_doris_tls_request_uses_verification(source: str, client_info: str) -> N
     oracle_required = source != "toggle" and client_info == "8.4.6"
     expected_mode = "REQUIRED" if oracle_required else "VERIFY_CA"
     assert args.get("ssl_mode", url.query.get("ssl_mode")) == expected_mode
-    assert url.drivername == "doris"
+    assert url.drivername == ("pydoris" if source == "toggle" else "doris")
     assert url.database == "external.other"
 
 

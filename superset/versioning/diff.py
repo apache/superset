@@ -43,9 +43,10 @@ an app context or DB.
 from __future__ import annotations
 
 import logging
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass
-from typing import Any
+from types import MappingProxyType
+from typing import Any, Final
 
 from superset.utils import json as _json
 
@@ -122,6 +123,48 @@ def _strip_opaque_fields(item: Any) -> Any:
     if not isinstance(item, dict):
         return item
     return {k: v for k, v in item.items() if k not in _CHILD_ITEM_OPAQUE_FIELDS}
+
+
+def _normalized_child_extra(extra: Any) -> Any:
+    """Return a dataset column/metric ``extra`` in a comparable form.
+
+    The dataset editor re-sends every column and metric with ``extra``
+    serialized by the browser (``"{}"`` when nothing is set), while rows
+    created by the backend store NULL or differently spaced JSON. NULL,
+    ``""`` and a JSON object that is empty once null-valued keys are dropped
+    (at any depth) all mean unset (``None``); any other JSON compares as
+    canonical text, so
+    spacing and key order don't matter but values and types do. Unparseable
+    strings compare as stored.
+    """
+    if extra is None or extra == "":
+        return None
+    if not isinstance(extra, str):
+        return extra
+    try:
+        parsed = _json.loads(extra)
+    except (TypeError, ValueError):
+        return extra
+    parsed = _without_null_values(parsed)
+    if parsed == {}:
+        return None
+    return _json.dumps(parsed, sort_keys=True)
+
+
+def _without_null_values(value: Any) -> Any:
+    """Return *value* with null-valued object keys dropped at every depth."""
+    if isinstance(value, list):
+        return [_without_null_values(v) for v in value]
+    if not isinstance(value, dict):
+        return value
+    return {k: _without_null_values(v) for k, v in value.items() if v is not None}
+
+
+def _comparable_dataset_child(item: Any) -> Any:
+    """Return a stripped dataset column/metric with ``extra`` normalized."""
+    if not isinstance(item, dict) or "extra" not in item:
+        return item
+    return {**item, "extra": _normalized_child_extra(item["extra"])}
 
 
 # Chart ``params`` sub-keys that are promoted to first-class kinds.
@@ -405,10 +448,13 @@ def _diff_list_by_natural_key(
     from_list: list[Any] | None,
     to_list: list[Any] | None,
     key_fn: Callable[[Any], Key | None],
+    comparable: Callable[[Any], Any] | None = None,
 ) -> list[ChangeRecord]:
     """Diff two lists, matching elements by natural key.
 
-    Emits one record per add / remove / modify. When ``key_fn`` returns
+    Emits one record per add / remove / modify. ``comparable``, when
+    given, maps a stripped item to the form used to decide whether it
+    changed; records still carry the stripped items. When ``key_fn`` returns
     ``None`` for an item (natural key missing or empty), the item falls
     back to its position as a synthetic key — so insertions in the
     middle of a keyless list still produce sensible records, at the
@@ -454,7 +500,12 @@ def _diff_list_by_natural_key(
             )
             continue
         stripped_to = _strip_opaque_fields(to_item)
-        if stripped_from != stripped_to:
+        same = (
+            comparable(stripped_from) == comparable(stripped_to)
+            if comparable
+            else stripped_from == stripped_to
+        )
+        if not same:
             records.append(
                 ChangeRecord(
                     kind=kind,
@@ -647,6 +698,7 @@ def diff_json_field(
     to_value: Any,
     *,
     exclude_keys: frozenset[str] = frozenset(),
+    absent_defaults: Mapping[str, Any] = MappingProxyType({}),
     max_depth: int = _JSON_METADATA_DIFF_DEPTH,
 ) -> list[ChangeRecord]:
     """Diff a TEXT column that stores a JSON dict, emitting one record
@@ -663,6 +715,10 @@ def diff_json_field(
     rationale as the ``audit`` parameter on
     :func:`scalar_fields_for` for the parent-column level.
 
+    *absent_defaults* maps sub-keys to the value the save path writes when
+    the key is missing. A key going from absent to exactly that value is not
+    a user change and emits no record; any other transition still does.
+
     Path is ``[field_name, key, ...]`` for leaf records, mirroring
     :func:`diff_slice_params`'s ``["params", key, ...]`` shape so
     renderers can use a single addressing scheme across the chart
@@ -673,6 +729,8 @@ def diff_json_field(
     records: list[ChangeRecord] = []
     for key in sorted(set(from_p) | set(to_p)):
         if key in exclude_keys:
+            continue
+        if _is_absent_to_default(key, from_p, to_p, absent_defaults):
             continue
         records.extend(
             _recursive_leaf_diff(
@@ -723,6 +781,61 @@ DASHBOARD_JSON_METADATA_AUDIT_KEYS: frozenset[str] = frozenset(
         "color_namespace",
     }
 )
+
+
+# json_metadata sub-keys the dashboard save path fills with a default when
+# they are missing, mapped to that default. A dashboard created elsewhere
+# (e.g. from Explore's Save modal) lacks them until its first full save, which
+# would otherwise record every one as "Set '<key>'". Sources:
+#   ``saveDashboardRequest`` in superset-frontend/src/dashboard/actions/
+#     dashboardState.ts: ``cleanedData.metadata`` (color_scheme_domain,
+#     expanded_slices, expand_all_slices, label_colors, refresh_frequency,
+#     timed_refresh_immune_slices, cross_filters_enabled) and
+#     ``default_filters`` serialized from an empty filter set;
+#   the ``HYDRATE_DASHBOARD`` case in superset-frontend/src/dashboard/
+#     reducers/dashboardInfo.ts: ``preserveScopes`` seeds
+#     native_filter_configuration and chart_customization_config as [],
+#     which the save payload spreads back;
+#   ``DashboardDAO.set_dash_metadata`` in superset/daos/dashboard.py (the
+#     same server defaults).
+# ``color_scheme`` is not listed: its "" default already matches an absent
+# value in :func:`_values_equivalent`.
+DASHBOARD_JSON_METADATA_SAVE_DEFAULTS: Final[Mapping[str, Any]] = MappingProxyType(
+    {
+        "chart_customization_config": [],
+        "color_scheme_domain": [],
+        "cross_filters_enabled": True,
+        "default_filters": "{}",
+        "expand_all_slices": False,
+        "expanded_slices": {},
+        "label_colors": {},
+        "native_filter_configuration": [],
+        "refresh_frequency": 0,
+        "timed_refresh_immune_slices": [],
+    }
+)
+
+
+def _is_absent_to_default(
+    key: str,
+    from_p: Mapping[str, Any],
+    to_p: Mapping[str, Any],
+    absent_defaults: Mapping[str, Any],
+) -> bool:
+    """True when *key* is missing before the save and set to exactly its
+    save-path default after it. A stored ``null`` is not missing: the
+    frontend reads a null ``cross_filters_enabled`` as disabled, so turning
+    it on is a real change. Type-strict, so ``1`` is not the default
+    ``True``."""
+    if key not in absent_defaults:
+        return False
+    was_missing: bool = key not in from_p
+    now_set: bool = key in to_p
+    if not (was_missing and now_set):
+        return False
+    default: Any = absent_defaults[key]
+    value: Any = to_p[key]
+    return type(value) is type(default) and value == default
 
 
 # Layout component types and how they map to record ``kind`` strings.
@@ -950,6 +1063,7 @@ def diff_dashboard(
             pre.get("json_metadata"),
             post.get("json_metadata"),
             exclude_keys=DASHBOARD_JSON_METADATA_AUDIT_KEYS,
+            absent_defaults=DASHBOARD_JSON_METADATA_SAVE_DEFAULTS,
         )
     )
     records.extend(
@@ -1060,6 +1174,7 @@ def diff_dataset_columns(
         from_list=from_columns,
         to_list=to_columns,
         key_fn=lambda c: c.get("column_name") if isinstance(c, dict) else None,
+        comparable=_comparable_dataset_child,
     )
 
 
@@ -1074,6 +1189,7 @@ def diff_dataset_metrics(
         from_list=from_metrics,
         to_list=to_metrics,
         key_fn=lambda m: m.get("metric_name") if isinstance(m, dict) else None,
+        comparable=_comparable_dataset_child,
     )
 
 

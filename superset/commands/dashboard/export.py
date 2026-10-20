@@ -36,6 +36,7 @@ from superset.commands.dataset.export import ExportDatasetsCommand
 from superset.daos.dataset import DatasetDAO
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
+from superset.semantic_layers.import_export import export_dashboard_references
 from superset.tags.models import TagType
 from superset.utils.dict_import_export import EXPORT_VERSION
 from superset.utils.file import get_filename
@@ -331,6 +332,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
                     payload[new_name] = {}
 
         metadata = payload.get("metadata") or {}
+        export_dashboard_references(metadata)
 
         referenced_dataset_ids = {
             dataset_id
@@ -441,7 +443,10 @@ class ExportDashboardsCommand(ExportModelsCommand):
                 command.enable_tag_export()
             if feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM"):
                 yield from ExportTagsCommand(
-                    dashboard_ids=dashboard_ids, chart_ids=chart_ids
+                    dashboard_ids=dashboard_ids,
+                    chart_ids=ExportChartsCommand.chart_ids_with_annotation_sources(
+                        model.slices
+                    ),
                 ).run()
 
             # Export related theme
@@ -470,6 +475,7 @@ class ExportDashboardsCommand(ExportModelsCommand):
 
         if export_related:
             metadata = payload.get("metadata") or {}
+            export_dashboard_references(metadata)
 
             # Extract all native filter datasets and export referenced datasets
             referenced_dataset_ids: set[int] = set()

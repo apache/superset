@@ -448,3 +448,57 @@ def test_restore_endpoint_maps_pruned_history_to_422(app_context: None) -> None:
     assert response == "resp-422"
     api.response_422.assert_called_once_with(message=str(error))
     assert "left unchanged" in str(error)
+
+
+@pytest.mark.parametrize(
+    ("datasource_label", "expected_message"),
+    [
+        (
+            "dataset",
+            "This chart version can't be restored because the dataset it used "
+            "has been permanently deleted. Restore a version that uses an "
+            "existing dataset, or recreate the chart.",
+        ),
+        (
+            "semantic view",
+            "This chart version can't be restored because the semantic view it "
+            "used has been permanently deleted. Restore a version that uses an "
+            "existing semantic view or dataset, or recreate the chart.",
+        ),
+    ],
+)
+def test_restore_endpoint_maps_missing_datasource_to_422(
+    app_context: None, datasource_label: str, expected_message: str
+) -> None:
+    """sc-123446: a chart snapshot whose datasource was permanently deleted
+    surfaces as a 422 whose message says so and what to do instead."""
+    from superset.models.slice import Slice
+    from superset.versioning.api_helpers import restore_version_endpoint
+    from superset.versioning.restore import MissingDatasourceError
+
+    error: MissingDatasourceError = MissingDatasourceError(datasource_label)
+
+    class _Command:
+        not_found_exc: type[Exception] = KeyError
+        forbidden_exc: type[Exception] = PermissionError
+        failed_exc: type[Exception] = RuntimeError
+
+        def __init__(self, *_args: object) -> None:
+            pass
+
+        def run(self) -> None:
+            raise error
+
+    api: MagicMock = MagicMock()
+    api.response_422.return_value = "resp-422"
+
+    response: Any = restore_version_endpoint(
+        api,
+        Slice,
+        _Command,
+        "00000000-0000-0000-0000-000000000001",
+        "00000000-0000-0000-0000-000000000002",
+    )
+
+    assert response == "resp-422"
+    api.response_422.assert_called_once_with(message=expected_message)

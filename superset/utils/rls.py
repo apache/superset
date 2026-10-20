@@ -160,7 +160,7 @@ def _identifiers_match(left: str | None, right: str | None, fold: bool) -> bool:
     return left == right
 
 
-def _find_datasets(
+def find_datasets(
     table: Table,
     database: Database,
     default_catalog: str | None,
@@ -243,7 +243,7 @@ def get_predicates_for_table(
     :param include_global_guest_rls: Also return global (unscoped) guest RLS rules.
         See ``apply_rls``.
     """
-    datasets = _find_datasets(
+    datasets = find_datasets(
         table,
         database,
         default_catalog,

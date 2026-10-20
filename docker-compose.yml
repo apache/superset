@@ -43,7 +43,6 @@ x-common-build: &common-build
   args:
     DEV_MODE: "true"
     INCLUDE_CHROMIUM: ${INCLUDE_CHROMIUM:-false}
-    INCLUDE_FIREFOX: ${INCLUDE_FIREFOX:-false}
     BUILD_TRANSLATIONS: ${BUILD_TRANSLATIONS:-false}
 
 services:
@@ -125,8 +124,6 @@ services:
     restart: unless-stopped
     ports:
       - ${SUPERSET_PORT:-8088}:8088
-      # When in cypress-mode ->
-      - ${CYPRESS_PORT:-8081}:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     user: *superset-user

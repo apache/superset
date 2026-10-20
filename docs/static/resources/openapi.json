@@ -95,6 +95,7 @@
                           "UNKNOWN_DATASOURCE_TYPE_ERROR",
                           "FAILED_FETCHING_DATASOURCE_INFO_ERROR",
                           "TABLE_SECURITY_ACCESS_ERROR",
+                          "SEMANTIC_EXECUTION_REFUSED_ERROR",
                           "DATASOURCE_SECURITY_ACCESS_ERROR",
                           "DATABASE_SECURITY_ACCESS_ERROR",
                           "QUERY_SECURITY_ACCESS_ERROR",
@@ -1245,6 +1246,11 @@
             ],
             "type": "string"
           },
+          "semantic_selection_version": {
+            "description": "Identity encoding used for semantic member selections.",
+            "nullable": true,
+            "type": "string"
+          },
           "time_grain_sqla": {
             "description": "To what level of granularity should the temporal column be aggregated. Supports [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601#Durations) durations.",
             "example": "P1D",
@@ -1985,6 +1991,17 @@
           "rowcount": {
             "description": "Amount of rows in result set",
             "type": "integer"
+          },
+          "semantic_cache_status": {
+            "description": "Semantic containment cache provenance of this query: HIT when every semantic query behind it was served from containment, MISS when none was, MIXED when only some were (for example a time-comparison offset).",
+            "enum": [
+              "HIT",
+              "MISS",
+              "MIXED",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
           },
           "stacktrace": {
             "description": "Stacktrace if there was an error",
@@ -3909,6 +3926,10 @@
             "type": "boolean"
           },
           "main_dttm_col": {
+            "type": "string"
+          },
+          "metadata_error": {
+            "description": "Validation error for this dataset only.",
             "type": "string"
           },
           "metrics": {
@@ -5837,6 +5858,14 @@
             "nullable": true,
             "type": "string"
           },
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "column_name": {
             "maxLength": 255,
             "minLength": 1,
@@ -5873,6 +5902,10 @@
             "nullable": true,
             "type": "boolean"
           },
+          "is_certified": {
+            "nullable": true,
+            "type": "boolean"
+          },
           "is_dttm": {
             "nullable": true,
             "type": "boolean"
@@ -5893,6 +5926,10 @@
             "type": "string"
           },
           "verbose_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "warning_markdown": {
             "nullable": true,
             "type": "string"
           }
@@ -6000,6 +6037,14 @@
       },
       "DatasetMetricsPut": {
         "properties": {
+          "certification_details": {
+            "nullable": true,
+            "type": "string"
+          },
+          "certified_by": {
+            "nullable": true,
+            "type": "string"
+          },
           "currency": {
             "allOf": [
               {
@@ -6028,6 +6073,10 @@
           "id": {
             "type": "integer"
           },
+          "is_certified": {
+            "nullable": true,
+            "type": "boolean"
+          },
           "metric_name": {
             "maxLength": 255,
             "minLength": 1,
@@ -6045,6 +6094,10 @@
             "type": "string"
           },
           "verbose_name": {
+            "nullable": true,
+            "type": "string"
+          },
+          "warning_markdown": {
             "nullable": true,
             "type": "string"
           },
@@ -7087,6 +7140,12 @@
               "arrow"
             ]
           },
+          "semantic_selection_version": {
+            "default": null,
+            "description": "Identity version from datasource metadata, after selecting its current metric and dimension IDs. Never infer legacy IDs.",
+            "nullable": true,
+            "type": "string"
+          },
           "time_column": {
             "default": null,
             "description": "Temporal column the time range applies to. Inferred from the datasource when omitted.",
@@ -7864,6 +7923,38 @@
         },
         "type": "object"
       },
+      "PasswordRecoveryRequestSchema": {
+        "properties": {
+          "email": {
+            "format": "email",
+            "maxLength": 320,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email"
+        ],
+        "type": "object"
+      },
+      "PasswordRecoveryResetSchema": {
+        "properties": {
+          "password": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "token": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "password",
+          "token"
+        ],
+        "type": "object"
+      },
       "PermissionApi.get": {
         "properties": {
           "id": {
@@ -8539,6 +8630,74 @@
         },
         "type": "object"
       },
+      "ReportConfigImpactedSchema": {
+        "properties": {
+          "detail": {
+            "description": "The offending e-mail address or crontab",
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "reason": {
+            "description": "Either 'recipient' or 'frequency'",
+            "type": "string"
+          },
+          "type": {
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "ReportConfigurationSchema": {
+        "properties": {
+          "alert_minimum_interval": {
+            "description": "Minimum interval between alert executions, in seconds. Values below 120 do not restrict schedules. Falls back to ALERT_MINIMUM_INTERVAL only before this setting has been saved.",
+            "example": 3600,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          },
+          "alerts_attach_reports": {
+            "description": "Whether alerts deliver their attachment (screenshot, PDF, CSV or XLSX). When disabled, alerts only send the message and link. Falls back to the FF until a row has first been saved.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "allowed_email_domains": {
+            "description": "E-mail domains accepted as recipients. An empty list allows any domain.",
+            "example": [
+              "example.com",
+              "superset.com"
+            ],
+            "items": {
+              "type": "string"
+            },
+            "nullable": true,
+            "type": "array"
+          },
+          "date_format_in_email_subject": {
+            "description": "Render strftime date placeholders in email subjects. Falls back to the DATE_FORMAT_IN_EMAIL_SUBJECT FF until first saved.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "limit_recipients_to_users": {
+            "description": "When enabled, only e-mail addresses of existing active users are accepted as recipients.",
+            "nullable": true,
+            "type": "boolean"
+          },
+          "report_minimum_interval": {
+            "description": "Minimum interval between report executions, in seconds. Values below 120 do not restrict schedules. Falls back to REPORT_MINIMUM_INTERVAL only before this setting has been saved.",
+            "example": 3600,
+            "minimum": 0,
+            "nullable": true,
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "ReportExecutionLogRestApi.get": {
         "properties": {
           "end_dttm": {
@@ -8798,6 +8957,22 @@
           "retry_on_failure": {
             "type": "boolean"
           },
+          "run_alert_query_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User"
+          },
+          "run_alert_query_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get.User1"
+          },
+          "run_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "send_failed_reports": {
             "type": "boolean"
           },
@@ -8919,6 +9094,46 @@
         ],
         "type": "object"
       },
+      "ReportScheduleRestApi.get.User": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get.User1": {
+        "properties": {
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          }
+        },
+        "required": [
+          "first_name",
+          "last_name"
+        ],
+        "type": "object"
+      },
       "ReportScheduleRestApi.get_list": {
         "properties": {
           "active": {
@@ -9017,6 +9232,14 @@
           "retry_on_failure": {
             "type": "boolean"
           },
+          "run_as": {
+            "$ref": "#/components/schemas/ReportScheduleRestApi.get_list.User2"
+          },
+          "run_as_type": {
+            "maxLength": 50,
+            "nullable": true,
+            "type": "string"
+          },
           "send_failed_reports": {
             "type": "boolean"
           },
@@ -9103,6 +9326,14 @@
           "first_name",
           "last_name"
         ],
+        "type": "object"
+      },
+      "ReportScheduleRestApi.get_list.User2": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
         "type": "object"
       },
       "ReportScheduleRestApi.post": {
@@ -9203,12 +9434,14 @@
             "type": "array"
           },
           "report_format": {
+            "description": "Attachment format. NONE disables attachments for alerts and makes chart/dashboard optional. Omitted attachment settings are preserved on update.",
             "enum": [
               "PDF",
               "PNG",
               "CSV",
               "XLSX",
-              "TEXT"
+              "TEXT",
+              "NONE"
             ],
             "type": "string"
           },
@@ -9234,6 +9467,34 @@
             "default": false,
             "description": "Enable automatic retries on report failure",
             "type": "boolean"
+          },
+          "run_alert_query_as": {
+            "description": "ID of the user whose credentials are used when running the alert condition SQL query, useful when the audience of the alert does not have access to the database. Null inherits the content executor at execution time.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_alert_query_as_type": {
+            "description": "Alert query executor type; null inherits run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "description": "ID of the user whose credentials (RBAC permissions, database OAuth2 tokens) are used when rendering the content (screenshot, PDF, CSV, XLSX or text). Admins can set any active user; non-admins can only set themselves. Onlyhonored when the ALERT_REPORT_DYNAMIC_EXECUTOR feature flag is enabled. Admins can set this and run_as_type to null to use ALERT_REPORTS_EXECUTORS.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_as_type": {
+            "description": "Explicit executor type; fixed_user requires run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
           },
           "send_failed_reports": {
             "default": false,
@@ -9980,12 +10241,14 @@
             "type": "array"
           },
           "report_format": {
+            "description": "Attachment format. NONE disables attachments for alerts and makes chart/dashboard optional. Omitted attachment settings are preserved on update.",
             "enum": [
               "PDF",
               "PNG",
               "CSV",
               "XLSX",
-              "TEXT"
+              "TEXT",
+              "NONE"
             ],
             "type": "string"
           },
@@ -10007,6 +10270,34 @@
           "retry_on_failure": {
             "description": "Enable automatic retries on report failure",
             "type": "boolean"
+          },
+          "run_alert_query_as": {
+            "description": "ID of the user whose credentials are used when running the alert condition SQL query, useful when the audience of the alert does not have access to the database. Null inherits the content executor at execution time.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_alert_query_as_type": {
+            "description": "Alert query executor type; null inherits run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
+          },
+          "run_as": {
+            "description": "ID of the user whose credentials (RBAC permissions, database OAuth2 tokens) are used when rendering the content (screenshot, PDF, CSV, XLSX or text). Admins can set any active user; non-admins can only set themselves. Onlyhonored when the ALERT_REPORT_DYNAMIC_EXECUTOR feature flag is enabled. Admins can set this and run_as_type to null to use ALERT_REPORTS_EXECUTORS.",
+            "nullable": true,
+            "type": "integer"
+          },
+          "run_as_type": {
+            "description": "Explicit executor type; fixed_user requires run_as.",
+            "enum": [
+              "fixed_user",
+              null
+            ],
+            "nullable": true,
+            "type": "string"
           },
           "send_failed_reports": {
             "description": "Send the failed report to all recipients after retries are exhausted",
@@ -11291,6 +11582,43 @@
         "properties": {
           "result": {
             "description": "SQL select star",
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "SemanticViewRestApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SemanticViewRestApi.get_list": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SemanticViewRestApi.post": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "SemanticViewRestApi.put": {
+        "properties": {
+          "cache_timeout": {
+            "nullable": true,
+            "type": "integer"
+          },
+          "description": {
+            "nullable": true,
             "type": "string"
           }
         },
@@ -19004,6 +19332,9 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
           "500": {
             "$ref": "#/components/responses/500"
           }
@@ -19750,7 +20081,7 @@
     },
     "/api/v1/dashboard/{pk}/export_as_example/": {
       "get": {
-        "description": "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files.",
+        "description": "Exports a dashboard with its charts and datasets in the example format used by the Superset example loading system. The export includes Parquet data files and YAML configuration files. Charts and native-filter targets that use semantic views are not supported.",
         "parameters": [
           {
             "description": "The dashboard id",
@@ -19799,6 +20130,9 @@
           },
           "404": {
             "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "description": "The dashboard contains unsupported semantic-view assets"
           },
           "500": {
             "$ref": "#/components/responses/500"
@@ -25317,9 +25651,17 @@
             }
           },
           {
-            "description": "Optional case-insensitive substring; only values containing it are returned. Lets the client search the full column rather than the truncated first page.",
+            "description": "Optional substring search for SQL dataset columns and text semantic dimensions. Semantic non-text dimensions return the bounded page without server-side search. Case sensitivity follows the datasource or semantic provider.",
             "in": "query",
             "name": "q",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Identity version from the saved or explicitly initialized field selections. Required for versioned semantic views; never infer it from current datasource metadata for legacy selections.",
+            "in": "query",
+            "name": "semantic_selection_version",
             "schema": {
               "type": "string"
             }
@@ -25352,6 +25694,13 @@
                         ]
                       },
                       "type": "array"
+                    },
+                    "suggestions_status": {
+                      "description": "Selection provenance is missing or stale for this versioned semantic view; reselect fields or enter values manually.",
+                      "enum": [
+                        "unavailable_versioned_view"
+                      ],
+                      "type": "string"
                     }
                   },
                   "type": "object"
@@ -27057,6 +27406,9 @@
           "404": {
             "$ref": "#/components/responses/404"
           },
+          "422": {
+            "description": "Query already finished or target transaction committed; includes the recorded query\\n"
+          },
           "500": {
             "$ref": "#/components/responses/500"
           }
@@ -27560,6 +27912,125 @@
           }
         ],
         "summary": "Get metadata information about this API resource",
+        "tags": [
+          "Report Schedules"
+        ]
+      }
+    },
+    "/api/v1/report/configuration/": {
+      "get": {
+        "description": "Returns the values in effect for every setting: the stored value when an admin saved one, otherwise the legacy application config or feature flag fallback.",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ReportConfigurationSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Alerts & Reports configuration"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get the global Alerts & Reports configuration",
+        "tags": [
+          "Report Schedules"
+        ]
+      },
+      "put": {
+        "description": "Admin only. Absent fields keep their value and ``null`` clears a field without restoring its legacy fallback. Recipient restrictions and minimum intervals are validated against existing alerts/reports. When any conflicts, the configuration is not saved and the impacted schedules are returned.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReportConfigurationSchema"
+              }
+            }
+          },
+          "description": "Alerts & Reports configuration",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "$ref": "#/components/schemas/ReportConfigurationSchema"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Configuration updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "impacted_schedules": {
+                      "items": {
+                        "$ref": "#/components/schemas/ReportConfigImpactedSchema"
+                      },
+                      "type": "array"
+                    },
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Existing schedules conflict with the configuration"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update the global Alerts & Reports configuration",
         "tags": [
           "Report Schedules"
         ]
@@ -30221,6 +30692,110 @@
             "$ref": "#/components/responses/500"
           }
         },
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/": {
+      "post": {
+        "description": "Emails a single-use password reset link if the address belongs to an active account with a local password. The response is the same whether or not it does.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryRequestSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Request accepted"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [],
+        "summary": "Request a password reset link",
+        "tags": [
+          "Security"
+        ]
+      }
+    },
+    "/api/v1/security/password_recovery/reset/": {
+      "post": {
+        "description": "Consumes the single-use token from a password reset link and sets the account's new password. Every existing browser session for the account is signed out.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRecoveryResetSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Password reset"
+          },
+          "400": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "object"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "The new password was rejected (``message.password``) or the token is invalid, expired or already used (``message.token``)"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "429": {
+            "description": "Too many requests"
+          }
+        },
+        "security": [],
+        "summary": "Reset a password with a recovery token",
         "tags": [
           "Security"
         ]
@@ -33490,6 +34065,959 @@
         ],
         "tags": [
           "Security Users"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "A list of semantic layers"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List all semantic layers",
+        "tags": [
+          "Semantic Layers"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "cache_timeout": {
+                    "type": "integer"
+                  },
+                  "configuration": {
+                    "type": "object"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Semantic layer created"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Create a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/connections/": {
+      "get": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_list_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Combined list of databases and semantic layers"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List databases and semantic layers combined",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/schema/configuration": {
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "configuration": {
+                    "type": "object"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Configuration JSON Schema"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get configuration schema for a semantic layer type",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/types": {
+      "get": {
+        "responses": {
+          "200": {
+            "description": "A list of semantic layer types"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List available semantic layer types",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Semantic layer deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic layer has dependent assets"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A semantic layer"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a semantic layer by UUID",
+        "tags": [
+          "Semantic Layers"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "cache_timeout": {
+                    "type": "integer"
+                  },
+                  "configuration": {
+                    "type": "object"
+                  },
+                  "description": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Semantic layer updated"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}/clear_cache": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": false,
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Cache cleared; reload to fetch metadata"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Clear a semantic layer's cache",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}/schema/runtime": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "runtime_data": {
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Runtime JSON Schema"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get runtime schema for a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_layer/{uuid}/views": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "uuid",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "runtime_data": {
+                    "type": "object"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Available views"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List available views from a semantic layer",
+        "tags": [
+          "Semantic Layers"
+        ]
+      }
+    },
+    "/api/v1/semantic_view/": {
+      "delete": {
+        "parameters": [
+          {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_delete_ids_schema"
+                }
+              }
+            },
+            "in": "query",
+            "name": "q"
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic views deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "A semantic view has dependent assets"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Bulk delete semantic views",
+        "tags": [
+          "SemanticViewRestApi"
+        ]
+      },
+      "post": {
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "views": {
+                    "items": {
+                      "properties": {
+                        "cache_timeout": {
+                          "type": "integer"
+                        },
+                        "configuration": {
+                          "type": "object"
+                        },
+                        "description": {
+                          "type": "string"
+                        },
+                        "name": {
+                          "type": "string"
+                        },
+                        "semantic_layer_uuid": {
+                          "type": "string"
+                        }
+                      },
+                      "type": "object"
+                    },
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Semantic views created"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Create semantic views",
+        "tags": [
+          "SemanticViewRestApi"
+        ]
+      }
+    },
+    "/api/v1/semantic_view/{pk}": {
+      "delete": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Semantic view deleted"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "dependents": {
+                      "items": {
+                        "properties": {
+                          "id": {
+                            "type": "integer"
+                          },
+                          "name": {
+                            "type": "string"
+                          },
+                          "type": {
+                            "enum": [
+                              "chart",
+                              "dashboard",
+                              "alert",
+                              "report"
+                            ],
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "type",
+                          "id",
+                          "name"
+                        ],
+                        "type": "object"
+                      },
+                      "maxItems": 20,
+                      "type": "array"
+                    },
+                    "inaccessible_count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  },
+                  "required": [
+                    "message",
+                    "total",
+                    "dependents",
+                    "inaccessible_count"
+                  ],
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic view has dependent assets"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a semantic view",
+        "tags": [
+          "SemanticViewRestApi"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SemanticViewRestApi.put"
+              }
+            }
+          },
+          "description": "Semantic view schema",
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "id": {
+                      "type": "number"
+                    },
+                    "result": {
+                      "$ref": "#/components/schemas/SemanticViewRestApi.put"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Semantic view changed"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Update a semantic view",
+        "tags": [
+          "SemanticViewRestApi"
+        ]
+      }
+    },
+    "/api/v1/semantic_view/{pk}/structure": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Semantic view structure"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get semantic view structure",
+        "tags": [
+          "SemanticViewRestApi"
         ]
       }
     },

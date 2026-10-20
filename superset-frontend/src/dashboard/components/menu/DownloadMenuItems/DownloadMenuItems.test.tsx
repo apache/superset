@@ -33,8 +33,23 @@ import {
   SupersetClient,
 } from '@superset-ui/core';
 import { requestDownloadReason } from 'src/utils/downloadReason';
+import downloadAsImage from 'src/utils/downloadAsImage';
+import downloadAsPdf from 'src/utils/downloadAsPdf';
 import { useDownloadMenuItems } from '.';
 
+jest.mock('src/utils/downloadAsImage', () => ({
+  __esModule: true,
+  default: jest.fn(() => jest.fn()),
+}));
+jest.mock('src/utils/downloadAsPdf', () => ({
+  __esModule: true,
+  default: jest.fn(() => jest.fn()),
+}));
+
+const mockDownloadAsImage = downloadAsImage as jest.Mock;
+const mockDownloadAsPdf = downloadAsPdf as jest.Mock;
+
+const mockAddWarningToast = jest.fn();
 const mockAddSuccessToast = jest.fn();
 const mockAddDangerToast = jest.fn();
 const mockAddInfoToast = jest.fn(() => ({
@@ -48,6 +63,7 @@ jest.mock('src/components/MessageToasts/withToasts', () => ({
     addSuccessToast: mockAddSuccessToast,
     addDangerToast: mockAddDangerToast,
     addInfoToast: mockAddInfoToast,
+    addWarningToast: mockAddWarningToast,
   }),
 }));
 
@@ -149,7 +165,7 @@ beforeEach(() => {
   (isFeatureEnabled as jest.Mock).mockReturnValue(false);
   // @ts-ignore
   delete window.location;
-  window.location = { href: '' } as Location;
+  window.location = { href: '' } as string & Location;
 });
 
 // "Export Images to Excel" is gated on the webdriver screenshot feature flags.
@@ -172,7 +188,7 @@ afterEach(() => {
   anchorClickSpy.mockRestore();
   window.URL.createObjectURL = originalCreateObjectURL;
   window.URL.revokeObjectURL = originalRevokeObjectURL;
-  window.location = originalLocation;
+  window.location = originalLocation as string & Location;
   jest.useRealTimers();
 });
 
@@ -1166,4 +1182,34 @@ test('unmounting while the export POST is in flight suppresses its follow-up', a
     jest.advanceTimersByTime(30000);
   });
   expect(mockSupersetClient.get).not.toHaveBeenCalled();
+});
+
+test('Export to PDF hands the warning and info toast callbacks to downloadAsPdf', async () => {
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await clickMenuItem('Export to PDF');
+
+  expect(mockDownloadAsPdf).toHaveBeenCalledWith(
+    '.dashboard',
+    'Test Dashboard',
+    true,
+    mockAddWarningToast,
+    mockAddInfoToast,
+  );
+});
+
+test('Download as Image hands the warning and info toast callbacks to downloadAsImage', async () => {
+  render(<MenuWrapper />, { useRedux: true, initialState: loggedInState });
+
+  await clickMenuItem('Download as Image');
+
+  expect(mockDownloadAsImage).toHaveBeenCalledWith(
+    '.dashboard',
+    'Test Dashboard',
+    true,
+    undefined,
+    undefined,
+    mockAddWarningToast,
+    mockAddInfoToast,
+  );
 });

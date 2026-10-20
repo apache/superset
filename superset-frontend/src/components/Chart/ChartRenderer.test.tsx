@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
+import { render, fireEvent, screen } from 'spec/helpers/testing-library';
 import {
   ChartMetadata,
   getChartMetadataRegistry,
@@ -24,6 +24,7 @@ import {
   JsonObject,
   FeatureFlag,
   FeatureFlagMap,
+  DataMask,
 } from '@superset-ui/core';
 import ChartRenderer, {
   ChartRendererProps,
@@ -54,6 +55,22 @@ jest.mock('@superset-ui/core', () => ({
         ]?.(),
       )}
     >
+      <button
+        type="button"
+        onClick={() =>
+          (
+            props.hooks as { setDataMask: (mask: DataMask) => void }
+          ).setDataMask({
+            extraFormData: {
+              semantic_selection_sources: [
+                { datasource: 'foreign__semantic_view', version: null },
+              ],
+            },
+          })
+        }
+      >
+        Emit semantic mask
+      </button>
       {JSON.stringify(postTransformProps(props).formData)}
     </div>
   ),
@@ -482,4 +499,37 @@ test('does not render chart during loading when last data has errors', () => {
 
   const { queryByTestId } = render(<ChartRenderer {...props} />);
   expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+});
+
+test('chart mask updates preserve incoming and query selection provenance', () => {
+  const updateDataMask = jest.fn();
+  render(
+    <ChartRenderer
+      {...requiredProps}
+      latestQueryFormData={{
+        datasource: '7__semantic_view',
+        viz_type: 'table',
+        semantic_selection_version: 'cube-member-id-v1',
+        semantic_selection_sources: [
+          { datasource: 'query__semantic_view', version: null },
+        ],
+      }}
+      actions={
+        { ...mockActions, updateDataMask } as ChartRendererProps['actions']
+      }
+    />,
+  );
+  fireEvent.click(screen.getByRole('button', { name: 'Emit semantic mask' }));
+  expect(updateDataMask).toHaveBeenCalledWith(
+    1,
+    expect.objectContaining({
+      extraFormData: expect.objectContaining({
+        semantic_selection_sources: [
+          { datasource: 'foreign__semantic_view', version: null },
+          { datasource: 'query__semantic_view', version: null },
+          { datasource: '7__semantic_view', version: 'cube-member-id-v1' },
+        ],
+      }),
+    }),
+  );
 });

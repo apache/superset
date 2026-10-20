@@ -237,6 +237,9 @@ class TaskStatusResponseSchema(Schema):
     """Schema for task status response (lightweight for polling)"""
 
     status = fields.String(metadata={"description": status_description})
+    error_message: fields.String = fields.String(
+        metadata={"description": "Sanitized failure detail for a terminal chart query"}
+    )
 
 
 class TaskStatusChangeSchema(Schema):

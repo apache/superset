@@ -446,9 +446,10 @@ export const exploreChart = (
     allowDomainSharding: false,
     requestParams,
   });
-  SupersetClient.postForm(url as string, {
-    form_data: safeStringify(formData),
-  });
+  SupersetClient.postForm(
+    { url: url as string },
+    { form_data: safeStringify(formData) },
+  );
 };
 
 export const useDebouncedEffect = (
