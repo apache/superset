@@ -55,6 +55,10 @@
       "types": "./lib/views/index.d.ts",
       "default": "./lib/views/index.js"
     },
+    "./window": {
+      "types": "./lib/window/index.d.ts",
+      "default": "./lib/window/index.js"
+    },
     "./contributions": {
       "types": "./lib/contributions/index.d.ts",
       "default": "./lib/contributions/index.js"

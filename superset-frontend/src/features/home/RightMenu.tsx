@@ -75,7 +75,7 @@ import UploadDataModal from 'src/features/databases/UploadDataModel';
 import { uploadUserPerms } from 'src/views/CRUD/utils';
 import { useThemeContext } from 'src/theme/ThemeProvider';
 import { useThemeMenuItems } from 'src/hooks/useThemeMenuItems';
-import { commands, useMenu } from 'src/core';
+import { commands, useMenu, window as extensionWindow } from 'src/core';
 import { GlobalLocations } from 'src/core/contributions';
 import { useLanguageMenuItems } from './LanguagePicker';
 import {
@@ -537,7 +537,17 @@ const RightMenu = ({
             key: `extension:${command.id}`,
             label: command.title,
             title: command.description,
-            onClick: () => commands.executeCommand(command.id),
+            onClick: () => {
+              Promise.resolve(commands.executeCommand(command.id)).catch(
+                (error: unknown) => {
+                  extensionWindow.showErrorMessage(
+                    error instanceof Error && error.message
+                      ? error.message
+                      : t('The %s command failed.', command.title),
+                  );
+                },
+              );
+            },
           } as MenuItem;
         })
         .filter((item): item is MenuItem => !!item);
