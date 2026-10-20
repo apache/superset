@@ -266,3 +266,28 @@ def test_concrete_command_bindings(
             delete_failed=getattr(exceptions, f"{entity.title()}DeleteFailedError"),
         )
         assert api_class.purge_binding == expected
+
+
+def test_dataset_purge_binding_threads_skip_base_filter(app_context: None) -> None:
+    """The dataset purge lookup keeps the DAO base filter, as restore does."""
+    from superset.commands.dataset.exceptions import DatasetNotFoundError
+    from superset.commands.dataset.restore import RestoreDatasetCommand
+    from superset.commands.purge import PurgeArchivedCommand
+    from superset.daos.dataset import DatasetDAO
+    from superset.datasets.api import _DATASET_PURGE_BINDING
+
+    assert (
+        _DATASET_PURGE_BINDING.skip_base_filter
+        is RestoreDatasetCommand.skip_base_filter
+    )
+    with (
+        patch.object(DatasetDAO, "find_by_id", return_value=None) as find_by_id,
+        pytest.raises(DatasetNotFoundError),
+    ):
+        PurgeArchivedCommand("dataset-uuid", _DATASET_PURGE_BINDING).validate()
+    find_by_id.assert_called_once_with(
+        "dataset-uuid",
+        id_column="uuid",
+        skip_visibility_filter=True,
+        skip_base_filter=False,
+    )

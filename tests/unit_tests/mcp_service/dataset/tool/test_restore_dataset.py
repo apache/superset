@@ -30,10 +30,17 @@ import pytest
 from fastmcp import Client
 
 from superset.commands.dataset.exceptions import DatasetForbiddenError
+from superset.commands.dataset.restore import RestoreDatasetCommand
 from superset.mcp_service.app import mcp
 
 _FIND = "superset.daos.dataset.DatasetDAO.find_by_id_or_uuid"
 _COMMAND = "superset.commands.dataset.restore.RestoreDatasetCommand"
+
+
+def _command_mock() -> Mock:
+    """Stand-in for ``RestoreDatasetCommand`` that keeps its real lookup flag."""
+    return Mock(skip_base_filter=RestoreDatasetCommand.skip_base_filter)
+
 
 _UUID = UUID("11111111-2222-3333-4444-555555555555")
 
@@ -106,7 +113,7 @@ async def test_restore_dataset_not_in_trash(
     assert "not in trash" in (content["error"] or "").lower()
 
 
-@patch(_COMMAND)
+@patch(_COMMAND, new_callable=_command_mock)
 @patch(_FIND)
 @pytest.mark.asyncio
 async def test_restore_dataset_success_by_numeric_id(
@@ -129,13 +136,13 @@ async def test_restore_dataset_success_by_numeric_id(
     mock_command.return_value.run.assert_called_once()
 
 
-@patch(_COMMAND)
+@patch(_COMMAND, new_callable=_command_mock)
 @patch(_FIND)
 @pytest.mark.asyncio
 async def test_restore_dataset_success_by_uuid(
     mock_find: Mock, mock_command: Mock, mcp_server: object
 ) -> None:
-    """A UUID identifier resolves through the same unfiltered lookup."""
+    """A UUID identifier resolves through the same grant-filtered lookup."""
     mock_find.return_value = _mock_dataset(dataset_id=10, table_name="orders")
 
     async with Client(mcp_server) as client:
@@ -152,7 +159,7 @@ async def test_restore_dataset_success_by_uuid(
     mock_command.assert_called_once_with(str(_UUID))
 
 
-@patch(_COMMAND)
+@patch(_COMMAND, new_callable=_command_mock)
 @patch(_FIND)
 @pytest.mark.asyncio
 async def test_restore_dataset_permission_denied(
@@ -173,7 +180,7 @@ async def test_restore_dataset_permission_denied(
     assert "permission" in (content["error"] or "").lower()
 
 
-@patch(_COMMAND)
+@patch(_COMMAND, new_callable=_command_mock)
 @patch(_FIND)
 @pytest.mark.asyncio
 async def test_restore_dataset_logical_duplicate(
@@ -197,7 +204,7 @@ async def test_restore_dataset_logical_duplicate(
     assert "same physical table" in (content["error"] or "")
 
 
-@patch(_COMMAND)
+@patch(_COMMAND, new_callable=_command_mock)
 @patch(_FIND)
 @pytest.mark.asyncio
 async def test_restore_dataset_restore_failed(
@@ -220,7 +227,7 @@ async def test_restore_dataset_restore_failed(
     assert content["error_type"] == "DatasetRestoreFailedError"
 
 
-@patch(_COMMAND)
+@patch(_COMMAND, new_callable=_command_mock)
 @patch(_FIND)
 @pytest.mark.asyncio
 async def test_restore_dataset_sqlalchemy_error_is_generic(
@@ -298,7 +305,7 @@ async def test_restore_dataset_inaccessible_dataset_reads_as_not_found(
     """A dataset outside the caller's RBAC scope must not leak its existence:
     the restore lookup keeps the RBAC base filter, so it finds nothing and the
     editorship gate is never reached."""
-    command = Mock()
+    command = _command_mock()
     with (
         patch("superset.security_manager.raise_for_editorship") as editorship,
         patch(_COMMAND, command),

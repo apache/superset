@@ -49,12 +49,12 @@ def _find_dataset_for_restore(identifier: int | str) -> Any | None:
     kept, so a dataset the caller holds no grant on reads as not found. The
     restore audience is then enforced via ``raise_for_editorship``.
     """
+    from superset.commands.dataset.restore import RestoreDatasetCommand
     from superset.daos.dataset import DatasetDAO
 
     return DatasetDAO.find_by_id_or_uuid(
         str(identifier),
-        # Matches ``RestoreDatasetCommand.skip_base_filter``.
-        skip_base_filter=False,
+        skip_base_filter=RestoreDatasetCommand.skip_base_filter,
         skip_visibility_filter=True,
     )
 
