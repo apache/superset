@@ -1320,10 +1320,11 @@ export function getMinAndMaxFromBounds(
 /**
  * Computes a bar-width cap (px) sized to a temporal x-axis's own resolved
  * time-grain bucket, instead of a flat constant that ignores how many
- * pixels the grain actually spans on the rendered axis. Returns undefined
- * when there isn't enough information to compute a grain-aware width (a
- * non-temporal axis, no resolved grain outside TIMEGRAIN_TO_TIMESTAMP, or
- * no data), so callers can fall back to their own default in that case.
+ * pixels the grain actually spans on the rendered axis. Applies to sub-daily
+ * grains only. Returns undefined when there isn't enough information to
+ * compute a grain-aware width (a non-temporal axis, no resolved grain outside
+ * TIMEGRAIN_TO_TIMESTAMP, or no data) or when the grain is a day or longer,
+ * so callers can fall back to their own default in that case.
  *
  * Uses getXAxisDomain — the same data-extent estimate the x-axis label
  * spacing formatter already relies on — for the visible axis span. For two
@@ -1358,7 +1359,11 @@ export function getGrainBarMaxWidth(
     TIMEGRAIN_TO_TIMESTAMP[
       resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
     ];
-  if (!grainMs) {
+  // Only sub-daily grains get a grain-derived cap. A day or coarser grain is
+  // often finer than the spacing of pre-aggregated data (the default Day
+  // grain on monthly or yearly rows), where one grain bucket is a sliver of
+  // the axis; those bars keep the default cap and ECharts' own sizing.
+  if (!grainMs || grainMs >= ONE_DAY_MS) {
     return undefined;
   }
   const [domainMin, domainMax] = getXAxisDomain(dataRecordArrays, xAxisCol);
