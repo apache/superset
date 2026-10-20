@@ -22,11 +22,11 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app, Flask
-from sqlalchemy import create_engine, event
+from sqlalchemy import event
+from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session
 
 from superset.integrations.teams import destinations
-from superset.integrations.teams.models import TeamsInstallation
 from superset.integrations.teams.store import TeamsInstallationStore
 
 TENANT = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"
@@ -35,19 +35,12 @@ OTHER = "cccccccc-cccc-4ccc-8ccc-cccccccccccc"
 
 
 @pytest.fixture
-def configured_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[Flask]:
+def configured_app(
+    teams_config: dict[str, Any], teams_engine: Engine, monkeypatch: pytest.MonkeyPatch
+) -> Iterator[Flask]:
     app = Flask(__name__)
-    app.config["ALERT_REPORTS_TEAMS"] = {
-        "tenant_id": TENANT,
-        "application_id": APPLICATION,
-        "credential": "never-return-this-credential",
-        "destinations": [
-            {
-                "key": "ops",
-                "label": "Operations",
-                "team_id": "team-1",
-                "channel_id": "channel-1",
-            },
+    teams_config["destinations"].extend(
+        [
             {
                 "key": "finance",
                 "label": "Finance",
@@ -60,18 +53,17 @@ def configured_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[Flask]:
                 "team_id": "team-2",
                 "channel_id": "channel-3",
             },
-        ],
-    }
+        ]
+    )
+    app.config["ALERT_REPORTS_TEAMS"] = teams_config
     monkeypatch.setattr(
         destinations.feature_flag_manager, "is_feature_enabled", lambda name: True
     )
     monkeypatch.setattr(destinations, "is_teams_sdk_installed", lambda: True)
-    engine = create_engine("sqlite://")
-    TeamsInstallation.__table__.create(engine)
+    engine = teams_engine
     monkeypatch.setattr(destinations, "db", MagicMock(engine=engine))
     with app.app_context():
         yield app
-    engine.dispose()
 
 
 def test_only_approved_public_fields_and_missing_installations(

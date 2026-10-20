@@ -25,21 +25,13 @@ from superset.integrations.teams.config import parse_teams_config, TeamsConfigEr
 
 
 @pytest.fixture
-def deployment() -> dict[str, Any]:
-    """Return a single-tenant configuration with an approved channel."""
-    return {
-        "tenant_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        "application_id": "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-        "credential": "test-secret-never-return",
-        "destinations": [
-            {
-                "key": "operations",
-                "label": "Operations alerts",
-                "team_id": "team-1",
-                "channel_id": "19:channel@thread.tacv2",
-            },
-        ],
-    }
+def deployment(teams_config: dict[str, Any]) -> dict[str, Any]:
+    teams_config["destinations"][0].update(
+        key="operations",
+        label="Operations alerts",
+        channel_id="19:channel@thread.tacv2",
+    )
+    return teams_config
 
 
 def test_unconfigured() -> None:
