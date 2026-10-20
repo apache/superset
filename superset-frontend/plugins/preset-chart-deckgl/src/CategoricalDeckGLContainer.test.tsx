@@ -21,6 +21,12 @@ import { getCategories } from './CategoricalDeckGLContainer';
 import { addColorToFeatures } from './utils/addColor';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
 
+// maplibre-gl 6 is ESM-only, so jest can't resolve it; DeckGLContainer.tsx
+// calls setWorkerUrl() on it at import time.
+jest.mock('maplibre-gl', () => ({ setWorkerUrl: jest.fn() }), {
+  virtual: true,
+});
+
 // Record every (label, sliceId) pair the categorical color scale is asked to
 // resolve, so we can assert the legend and point-color paths key the scale on
 // the same slice id.
