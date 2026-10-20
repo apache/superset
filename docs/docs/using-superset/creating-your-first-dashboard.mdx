@@ -520,8 +520,18 @@ Access it via the **Customize** tab → **ECharts Options** section at the botto
 }
 ```
 
+A `series` object is merged into every series of the chart, including forecast series. Use it to style all series at once, for example with a dashed outline:
+
+```json
+{
+  "series": {
+    "itemStyle": { "borderType": "dashed", "borderWidth": 2, "borderColor": "#333" }
+  }
+}
+```
+
 :::caution
-ECharts option overrides bypass Superset's validation layer. Invalid option keys are silently ignored by ECharts. Overrides that conflict with Superset-generated options (e.g., `series`) may produce unexpected results.
+ECharts option overrides bypass Superset's validation layer. Invalid option keys are silently ignored by ECharts. Overrides that conflict with Superset-generated options (e.g., a `series` array, which replaces the generated series) may produce unexpected results.
 :::
 
 ### Table Chart: Exporting Filtered Data
