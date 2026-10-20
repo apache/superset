@@ -19,11 +19,17 @@
 
 from __future__ import annotations
 
+import sys
+from collections.abc import Iterator
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+from unittest.mock import PropertyMock
 
 import pyarrow as pa
+import pytest
 from pydantic import BaseModel
+from pytest_mock import MockerFixture
 from superset_core.semantic_layers.context import (
     ExecutionOrigin,
     SemanticCredentials,
@@ -39,6 +45,8 @@ from superset_core.semantic_layers.types import (
 )
 from superset_core.semantic_layers.view import SemanticView
 
+from superset.app import SupersetApp
+from superset.initialization import SupersetAppInitializer
 from superset.semantic_layers.cache_identity import (
     SemanticCacheIdentityFactory,
     SemanticCacheProviderIdentity,
@@ -47,6 +55,11 @@ from superset.semantic_layers.cache_identity import (
     SemanticViewIdentity,
 )
 from superset.semantic_layers.cache_repository import ViewMeta
+from superset.semantic_layers.models import (
+    SemanticLayer as SemanticLayerModel,
+    SemanticView as SemanticViewModel,
+)
+from superset.semantic_layers.registry import registry
 
 
 @dataclass(frozen=True)
@@ -197,3 +210,54 @@ def make_execution_context(**overrides: Any) -> SemanticExecutionContext:
             **overrides,
         }
     )
+
+
+STUB_PATH: Path = (
+    Path(__file__).resolve().parents[2] / "e2e_extensions" / "semantic_stub"
+)
+STUB_TYPE: str = "extensions.superset-e2e.semantic-stub.stub"
+
+
+@pytest.fixture
+def stub_layer(app: SupersetApp, mocker: MockerFixture) -> Iterator[type[Any]]:
+    """Load the bundle through the same path ``LOCAL_EXTENSIONS`` uses at startup."""
+    mocker.patch.dict(app.config, {"LOCAL_EXTENSIONS": [str(STUB_PATH)]})
+    # Startup imports the entrypoint once per process; undo the import and its
+    # in-memory finder so each test re-runs the real registration.
+    mocker.patch.dict(sys.modules)
+    mocker.patch.object(sys, "meta_path", list(sys.meta_path))
+    try:
+        with app.app_context():
+            SupersetAppInitializer(app).init_extensions()
+        yield registry[STUB_TYPE]
+    finally:
+        registry.pop(STUB_TYPE, None)
+
+
+@pytest.fixture
+def stub_view(
+    stub_layer: type[SemanticLayer[Any, Any]], mocker: MockerFixture
+) -> SemanticView:
+    """Serve chart-data requests for a semantic view backed by the stub."""
+    view: SemanticView = stub_layer.from_configuration(
+        {},
+        cache_token="test",  # noqa: S106
+        context=make_execution_context(),
+    ).get_semantic_view("orders", {})
+    model: SemanticViewModel = SemanticViewModel(
+        id=91,
+        name="orders",
+        cache_timeout=-1,
+        semantic_layer=SemanticLayerModel(type=STUB_TYPE),
+    )
+    mocker.patch.object(
+        SemanticViewModel,
+        "implementation",
+        new_callable=PropertyMock,
+        return_value=view,
+    )
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource", return_value=model
+    )
+    mocker.patch.object(SemanticViewModel, "raise_for_access")
+    return view
