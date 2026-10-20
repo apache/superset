@@ -207,6 +207,24 @@ const plugins = [
         singleton: true,
         eager: true,
       },
+      // Shared for two reasons. First, the registries in here hold their
+      // state in module-level closures, so a second copy of the module is a
+      // second, unreachable registry: an extension calling
+      // `getExtensionsRegistry().set(...)` would write somewhere the host
+      // never reads, and the call would look like it worked.
+      //
+      // Second, this is where `SupersetClient` lives. Without it an extension
+      // that talks to Superset's API has to hand-roll `fetch`, including
+      // fetching and attaching a CSRF token for every mutation -- which is
+      // most of what `SupersetClient` exists to do.
+      //
+      // The host loads this module on every page already, so providing it
+      // eagerly costs no extra bytes and keeps extensions off an async
+      // boundary to reach it.
+      '@superset-ui/core': {
+        singleton: true,
+        eager: true,
+      },
     },
   }),
 ];

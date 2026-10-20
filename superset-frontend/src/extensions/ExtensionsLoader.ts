@@ -19,6 +19,9 @@
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import type { common as core } from '@apache-superset/core';
+import type { ComponentType } from 'react';
+import type { pages as pagesApi } from '@apache-superset/core';
+import { registerPageFor } from 'src/core/pages';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
 import { createExtensionContext } from './ExtensionContext';
@@ -216,6 +219,17 @@ class ExtensionsLoader {
       extensions: {
         ...window.superset.extensions,
         getContext: () => context,
+      },
+      // `registerPage` is bound to this extension's id here, for the same
+      // reason the backend derives an extension's URL namespace from an
+      // ambient context rather than an argument: an extension states which
+      // page it is contributing, never whose. Because module federation
+      // resolves @apache-superset/core once per container, every import
+      // inside this extension receives this bound instance.
+      pages: {
+        ...window.superset.pages,
+        registerPage: (page: pagesApi.Page, component: ComponentType) =>
+          registerPageFor(extension.id, page, component),
       },
     };
     // Reuse the version key webpack already resolved for the host's own
