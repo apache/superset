@@ -54,6 +54,10 @@ class Page(BaseModel):
         ...,
         description="Absolute path the page is served at, e.g. '/approvals'",
         pattern=PAGE_PATH_PATTERN,
+        # Bounded because the host checks every declared path against every
+        # rule in the URL map, segment by segment. Without a limit a bundle
+        # within the size cap can make that work arbitrarily large at boot.
+        max_length=255,
     )
     name: str = Field(
         ...,
@@ -88,6 +92,10 @@ class Contributions(BaseModel):
     pages: list[Page] = Field(
         default_factory=list,
         description="Pages contributed by this extension",
+        # Same reason as the path limit: this list is checked against the
+        # whole URL map at boot, so it cannot be unbounded. Far above what a
+        # real extension needs.
+        max_length=100,
     )
 
 

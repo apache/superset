@@ -32,6 +32,7 @@ from pydantic import ValidationError
 from superset_core.extensions.types import Contributions, Manifest, Page
 from werkzeug.exceptions import Forbidden, NotFound
 
+from superset.constants import EXTENSION_VIEW_MENU_PREFIX
 from superset.extensions import view
 from superset.extensions.view import (
     _first_claimant,
@@ -40,6 +41,10 @@ from superset.extensions.view import (
     register_extension_pages,
     registered_page_paths,
 )
+
+
+#: The view menu an extension's page permissions hang from.
+VIEW_MENU = f"{EXTENSION_VIEW_MENU_PREFIX}acme.tools"
 
 
 def manifest(
@@ -271,7 +276,7 @@ def render_with(
     import superset
 
     security = FakeSecurityManager(
-        granted={(permission, "acme.tools")} if permission and granted else set()
+        granted={(permission, VIEW_MENU)} if permission and granted else set()
     )
     monkeypatch.setattr(superset, "security_manager", security, raising=False)
     monkeypatch.setattr(
@@ -331,14 +336,14 @@ def test_a_declared_permission_is_checked_against_the_extension(
     assert view.may_open("acme.tools", "can_review") is False
 
     # Granted on the extension, which is what the Roles screen shows.
-    security.granted.add(("can_review", "acme.tools"))
+    security.granted.add(("can_review", VIEW_MENU))
     assert view.may_open("acme.tools", "can_review") is True
 
 
 def test_the_same_permission_on_another_extension_does_not_carry_over(
     security: FakeSecurityManager,
 ) -> None:
-    security.granted.add(("can_review", "acme.tools"))
+    security.granted.add(("can_review", VIEW_MENU))
 
     assert view.may_open("other.ext", "can_review") is False
 
@@ -350,7 +355,7 @@ def test_permissions_are_created_for_every_page_that_names_one(
         ensure_page_permissions(manifest("/a", "/b", permission="can_review"))
 
     # One row, not one per page: pages of an extension may share a permission.
-    assert security.created == [("can_review", "acme.tools")]
+    assert security.created == [("can_review", VIEW_MENU)]
 
 
 def test_a_created_permission_is_granted_to_admin(
@@ -364,20 +369,20 @@ def test_a_created_permission_is_granted_to_admin(
     with app.app_context():
         ensure_page_permissions(manifest("/a", permission="can_review"))
 
-    assert security.admin_role.permissions == [("can_review", "acme.tools")]
+    assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
 
 
 def test_the_admin_grant_is_repaired_on_a_later_boot(
     app: Flask, security: FakeSecurityManager
 ) -> None:
     """The permission already exists, but the role lost it."""
-    security.existing.add(("can_review", "acme.tools"))
+    security.existing.add(("can_review", VIEW_MENU))
 
     with app.app_context():
         ensure_page_permissions(manifest("/a", permission="can_review"))
 
     assert security.created == []
-    assert security.admin_role.permissions == [("can_review", "acme.tools")]
+    assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
 
 
 def test_the_admin_role_is_read_from_configuration(
@@ -392,7 +397,7 @@ def test_the_admin_role_is_read_from_configuration(
     with app.app_context():
         ensure_page_permissions(manifest("/a", permission="can_review"))
 
-    assert superuser.permissions == [("can_review", "acme.tools")]
+    assert superuser.permissions == [("can_review", VIEW_MENU)]
     assert security.admin_role.permissions == []
 
 
@@ -404,7 +409,7 @@ def test_a_missing_admin_role_does_not_stop_the_boot(
     with app.app_context():
         ensure_page_permissions(manifest("/a", permission="can_review"))
 
-    assert security.created == [("can_review", "acme.tools")]
+    assert security.created == [("can_review", VIEW_MENU)]
 
 
 def test_nothing_is_created_for_pages_without_permissions(
@@ -425,8 +430,8 @@ def test_creating_permissions_is_idempotent(
         ensure_page_permissions(manifest("/a", permission="can_review"))
         ensure_page_permissions(manifest("/a", permission="can_review"))
 
-    assert security.created == [("can_review", "acme.tools")]
-    assert security.admin_role.permissions == [("can_review", "acme.tools")]
+    assert security.created == [("can_review", VIEW_MENU)]
+    assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
 
 
 def test_a_failure_to_create_a_permission_does_not_stop_the_boot(
@@ -459,7 +464,7 @@ def test_permitted_page_paths_reports_only_what_the_user_may_open(
         == set()
     )
 
-    security.granted.add(("can_review", "acme.tools"))
+    security.granted.add(("can_review", VIEW_MENU))
     assert permitted_page_paths(
         app, manifest("/restricted", permission="can_review")
     ) == {"/restricted"}
@@ -470,7 +475,7 @@ def test_a_refused_page_is_never_reported_as_permitted(
 ) -> None:
     """A page with no rule cannot be opened however the permissions read."""
     app.add_url_rule("/welcome", endpoint="welcome", view_func=lambda: "")
-    security.granted.add(("can_review", "acme.tools"))
+    security.granted.add(("can_review", VIEW_MENU))
 
     register_extension_pages(app, manifest("/welcome", permission="can_review"))
 
@@ -579,3 +584,130 @@ def test_the_reserved_set_is_superset_s_own(app: Flask) -> None:
 
     assert view._permission_problem("can_review") is None
     assert view._permission_problem(None) is None
+
+
+def test_a_converter_above_the_page_s_depth_claims_the_path(app: Flask) -> None:
+    """The case a template-string comparison misses.
+
+    ``/api/v1/datasource/<datasource_type>/...`` does not start with
+    ``/api/v1/datasource/table/``, so comparing templates as strings accepts a
+    page at ``/api/v1/datasource/table``. Werkzeug then prefers that page's
+    static segment over the converter, and the page answers the app shell with
+    HTTP 200 where a JSON API belongs -- the endpoint native filters use to
+    populate value dropdowns.
+    """
+    app.add_url_rule(
+        "/api/v1/datasource/<datasource_type>/<int:datasource_id>/column/"
+        "<column_name>/values/",
+        endpoint="datasource_values",
+        view_func=lambda **_kwargs: "JSON",
+    )
+
+    register_extension_pages(app, manifest("/api/v1/datasource/table"))
+
+    assert "/api/v1/datasource/table" not in paths_in(app)
+    # And the core endpoint still answers its own URL.
+    adapter = app.url_map.bind("localhost")
+    endpoint, _args = adapter.match(
+        "/api/v1/datasource/table/42/column/name/values/", method="GET"
+    )
+    assert endpoint == "datasource_values"
+
+
+def test_a_page_whose_prefix_a_converter_does_not_match_is_allowed(
+    app: Flask,
+) -> None:
+    """The check stays segment-wise rather than refusing anything that shares
+    a prefix: a static segment that differs is a genuine miss."""
+    app.add_url_rule(
+        "/api/v1/chart/<int:pk>", endpoint="chart", view_func=lambda **_k: ""
+    )
+
+    register_extension_pages(app, manifest("/api/v1/review"))
+
+    assert "/api/v1/review" in paths_in(app)
+
+
+def test_a_path_converter_above_the_page_claims_the_whole_subtree(
+    app: Flask,
+) -> None:
+    app.add_url_rule("/files/<path:rest>", endpoint="files", view_func=lambda **_k: "")
+
+    register_extension_pages(app, manifest("/files/reports"))
+
+    assert "/files/reports" not in paths_in(app)
+
+
+def test_one_extension_cannot_read_back_another_s_pages(app: Flask) -> None:
+    """Ids may contain hyphens, so the endpoint prefix needs a separator.
+
+    Without it `acme.review` reads `acme.review-plus`'s rules as its own,
+    which undoes a refusal: the reader concludes its page is registered, the
+    API reports it as permitted, and the frontend accepts a component for
+    another extension's path.
+    """
+    register_extension_pages(app, manifest("/queue", extension_id="acme.review-plus"))
+
+    assert registered_page_paths(app, "acme.review-plus") == ["/queue"]
+    assert registered_page_paths(app, "acme.review") == []
+
+
+def test_a_page_is_reachable_with_or_without_a_trailing_slash(app: Flask) -> None:
+    # Most Superset screens carry one, so a hard 404 here is a trap.
+    register_extension_pages(app, manifest("/review-queue"))
+
+    adapter = app.url_map.bind("localhost")
+    for probe in ["/review-queue", "/review-queue/"]:
+        endpoint, _args = adapter.match(probe, method="GET")
+        assert endpoint.startswith("extension_page.")
+
+
+def test_extension_page_permissions_are_kept_out_of_alpha_and_gamma() -> None:
+    """`_is_gamma_pvm` is a denylist, so anything unrecognised reaches Gamma.
+
+    Superset hit this with `UserRegistrationsRestAPI` and fixed it by listing
+    the view menu in ADMIN_ONLY_VIEW_MENUS. An extension's view menu carries
+    its id and so can never be listed; the prefix is what makes it
+    recognisable instead. Without this a declared page permission would stop
+    restricting anything the next time `superset init` ran.
+    """
+    from superset.security.manager import SupersetSecurityManager
+
+    pvm = SimpleNamespace(
+        permission=SimpleNamespace(name="can_review"),
+        view_menu=SimpleNamespace(name=view._view_menu("acme.tools")),
+    )
+
+    # Built without __init__: these predicates read only class attributes,
+    # and a real manager would need an initialised app.
+    manager = SupersetSecurityManager.__new__(SupersetSecurityManager)
+
+    assert manager._is_admin_only(pvm)
+    assert not manager._is_gamma_pvm(pvm)
+    assert not manager._is_alpha_pvm(pvm)
+    # Admin still receives it.
+    assert manager._is_admin_pvm(pvm)
+
+
+def test_an_ordinary_permission_still_reaches_gamma() -> None:
+    """Guards the change above against over-reaching."""
+    from superset.security.manager import SupersetSecurityManager
+
+    pvm = SimpleNamespace(
+        permission=SimpleNamespace(name="can_read"),
+        view_menu=SimpleNamespace(name="Dashboard"),
+    )
+
+    manager = SupersetSecurityManager.__new__(SupersetSecurityManager)
+
+    assert manager._is_gamma_pvm(pvm)
+
+
+def test_the_manifest_bounds_what_the_boot_check_has_to_scan() -> None:
+    # Every declared path is compared against every rule in the URL map, so
+    # neither the path nor the list can be unbounded.
+    with pytest.raises(ValidationError):
+        Page(path="/" + "a" * 300, name="x")
+
+    with pytest.raises(ValidationError):
+        Contributions(pages=[Page(path=f"/p{i}", name="x") for i in range(101)])
