@@ -16,7 +16,8 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, waitFor } from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { SupersetClient } from '@superset-ui/core';
 import ExtensionsList from './ExtensionsList';
 import fetchMock from 'fetch-mock';
 
@@ -85,4 +86,38 @@ test('calls toast functions when provided', () => {
   // The component should accept these props without error
   expect(addDangerToast).toBeDefined();
   expect(addSuccessToast).toBeDefined();
+});
+
+const mockExtensionsInfo = (status: 'loaded' | 'not_loaded') =>
+  jest.spyOn(SupersetClient, 'get').mockImplementation(({ endpoint }) =>
+    Promise.resolve({
+      json: endpoint?.startsWith('/api/v1/extensions/_info')
+        ? { permissions: ['can_read'], status }
+        : { result: [], count: 0, status },
+      response: new Response(),
+    } as Awaited<ReturnType<typeof SupersetClient.get>>),
+  );
+
+afterEach(() => jest.restoreAllMocks());
+
+test('explains an empty list when extensions were not loaded at startup', async () => {
+  mockExtensionsInfo('not_loaded');
+  renderWithStore();
+
+  expect(await screen.findByText('Extensions not loaded')).toBeInTheDocument();
+  expect(
+    screen.getByText(/Restart the server to load them/),
+  ).toBeInTheDocument();
+});
+
+test('shows no restart notice when extensions are loaded', async () => {
+  const get = mockExtensionsInfo('loaded');
+  renderWithStore();
+
+  await waitFor(() =>
+    expect(get).toHaveBeenCalledWith({
+      endpoint: '/api/v1/extensions/_info',
+    }),
+  );
+  expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
 });

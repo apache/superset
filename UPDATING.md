@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- The extensions APIs (`/api/v1/extensions/`) are registered regardless of the
+  `ENABLE_EXTENSIONS` flag, and every request evaluates the flag: when it is off
+  the routes return 404, matching the hidden Extensions menu. Extension code
+  still loads only when the flag is on at startup. A request that enables the
+  flag on a server that did not load extensions receives an empty list with
+  `status: "not_loaded"` instead of a 404. Existing permissions are unchanged;
+  run `superset init` during upgrade to register them on deployments where the
+  flag was off.
+
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
   metrics, including two SUM metrics. Metric-specific values and totals remain

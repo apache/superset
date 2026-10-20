@@ -22,13 +22,33 @@ from flask import send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
+from superset.extensions.availability import (
+    are_extensions_loaded,
+    ExtensionsStatus,
+    NOT_LOADED_MESSAGE,
+    RuntimeGuardedExtensionsApiMixin,
+)
 from superset.extensions.utils import (
     build_extension_data,
     get_extensions,
 )
 
 
-class ExtensionsRestApi(BaseApi):
+def _load_state() -> dict[str, str]:
+    """Describe whether this server loaded extensions at startup.
+
+    The runtime guard has already refused requests whose feature decision is
+    off, so only the two enabled states remain.
+    """
+    if are_extensions_loaded():
+        return {"status": ExtensionsStatus.LOADED.value}
+    return {
+        "status": ExtensionsStatus.NOT_LOADED.value,
+        "message": NOT_LOADED_MESSAGE,
+    }
+
+
+class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
     allow_browser_login = True
     resource_name = "extensions"
 
@@ -38,11 +58,11 @@ class ExtensionsRestApi(BaseApi):
 
         return jsonify(kwargs), status_code
 
-    def response_404(self) -> Response:
+    def response_404(self, message: str = "Not found") -> Response:
         """Helper method to create 404 responses."""
         from flask import jsonify
 
-        return jsonify({"message": "Not found"}), 404
+        return jsonify({"message": message}), 404
 
     @expose("/_info", methods=("GET",))
     @protect()
@@ -64,8 +84,16 @@ class ExtensionsRestApi(BaseApi):
                         type: array
                         items:
                           type: string
+                      status:
+                        type: string
+                        enum: [loaded, not_loaded]
+                        description: >-
+                          `not_loaded` when extensions are enabled for this
+                          request but were not loaded at server startup
+                      message:
+                        type: string
         """
-        return self.response(200, permissions=["can_read"])
+        return self.response(200, permissions=["can_read"], **_load_state())
 
     # TODO: Support the q parameter
     @protect()
@@ -93,6 +121,13 @@ class ExtensionsRestApi(BaseApi):
                                   type: string
                                 remoteEntry:
                                   type: string
+                        count:
+                            type: integer
+                        status:
+                            type: string
+                            enum: [loaded, not_loaded]
+                        message:
+                            type: string
             400:
               $ref: '#/components/responses/400'
             401:
@@ -102,6 +137,10 @@ class ExtensionsRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if not are_extensions_loaded():
+            # Bundles are never served from a server that did not initialize
+            # them, so the browser loads no extension code.
+            return self.response(200, result=[], count=0, **_load_state())
         result = []
         extensions = get_extensions()
         for extension in extensions.values():
@@ -111,6 +150,7 @@ class ExtensionsRestApi(BaseApi):
         response = {
             "result": result,
             "count": len(result),
+            **_load_state(),
         }
 
         return self.response(200, **response)
@@ -158,6 +198,8 @@ class ExtensionsRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if not are_extensions_loaded():
+            return self.response_404(NOT_LOADED_MESSAGE)
         # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
         extensions = get_extensions()
@@ -210,6 +252,8 @@ class ExtensionsRestApi(BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
+        if not are_extensions_loaded():
+            return self.response_404(NOT_LOADED_MESSAGE)
         # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
         extensions = get_extensions()

@@ -17,7 +17,9 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { FunctionComponent, useMemo } from 'react';
+import { Alert } from '@apache-superset/core/components';
+import { SupersetClient } from '@superset-ui/core';
+import { FunctionComponent, useEffect, useMemo, useState } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
 import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
@@ -29,6 +31,10 @@ type Extension = {
   id: number;
   name: string;
   enabled: boolean;
+};
+
+type ExtensionsInfo = {
+  status?: 'loaded' | 'not_loaded';
 };
 
 interface ExtensionsListProps {
@@ -49,6 +55,19 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     t('Extensions'),
     addDangerToast,
   );
+  const [notLoaded, setNotLoaded] = useState(false);
+
+  useEffect(() => {
+    // The list is empty on a server that did not load extensions at startup;
+    // say why instead of showing an empty table without explanation.
+    SupersetClient.get({ endpoint: '/api/v1/extensions/_info' })
+      .then(({ json }) => {
+        setNotLoaded((json as ExtensionsInfo).status === 'not_loaded');
+      })
+      .catch(() => {
+        // The list view reports fetch failures through its own toast.
+      });
+  }, []);
 
   const columns = useMemo(
     () => [
@@ -76,6 +95,16 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   return (
     <>
       <SubMenu {...menuData} />
+      {notLoaded && (
+        <Alert
+          type="warning"
+          showIcon
+          message={t('Extensions not loaded')}
+          description={t(
+            'Extensions are enabled but were not loaded when this server started. Restart the server to load them.',
+          )}
+        />
+      )}
       <ListView<Extension>
         columns={columns}
         count={resourceCount}

@@ -82,6 +82,23 @@ wait until every web and worker process has the runtime guards before enabling
 the feature through a host hook. Disable the flag to roll back availability
 without deleting stored semantic layers, views or charts.
 
+## Runtime extensions availability
+
+`ENABLE_EXTENSIONS` combines a startup decision with a per-request one.
+Extension code is loaded only by a server that starts with the flag on; changing
+whether extensions load still requires a restart. The extensions APIs are
+registered at startup regardless, and each request evaluates the active flag
+decision, so `IS_FEATURE_ENABLED_FUNC` can hide extensions per request on a
+server that loaded them.
+
+When the flag is off for a request, every `/api/v1/extensions/` route returns
+404 and the Extensions menu is hidden, so the browser loads no extension code.
+When the flag is on for a request but the server did not load extensions at
+startup, the extensions list is empty and reports `status: "not_loaded"`, the
+Extensions page shows a restart notice, and `/api/v1/semantic_layer/types`
+reports `extensions_status: "not_loaded"`. No extension bundle is served until
+the server restarts with the flag on.
+
 ## Lifecycle
 
 Feature flags progress through lifecycle stages:

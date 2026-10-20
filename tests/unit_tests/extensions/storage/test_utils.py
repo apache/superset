@@ -24,6 +24,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from flask import Flask
 
+from superset.extensions.availability import EXTENSIONS_LOADED_KEY
 from superset.extensions.context import use_context
 from superset.extensions.storage.utils import (
     build_cache_key,
@@ -104,6 +105,17 @@ def test_get_extension_or_404_returns_none_when_missing(
     mock_get_ext.return_value = {}
     result = get_extension_or_404("nonexistent.ext")
     assert result is None
+
+
+@patch("superset.extensions.storage.utils.get_extensions")
+def test_get_extension_or_404_returns_none_when_not_loaded(
+    mock_get_ext: MagicMock, app: Flask
+) -> None:
+    """A server that did not load extensions at startup serves none of them."""
+    mock_get_ext.return_value = {"acme.dashboard": MagicMock()}
+    del app.extensions[EXTENSIONS_LOADED_KEY]
+    assert get_extension_or_404("acme.dashboard") is None
+    mock_get_ext.assert_not_called()
 
 
 # ── parse_ttl ─────────────────────────────────────────────────────────────────

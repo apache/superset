@@ -26581,6 +26581,811 @@
         ]
       }
     },
+    "/api/v1/extensions/": {
+      "get": {
+        "tags": [
+          "ExtensionsRestApi"
+        ]
+      }
+    },
+    "/api/v1/extensions/_info": {
+      "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    },
+                    "permissions": {
+                      "items": {
+                        "type": "string"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "description": "`not_loaded` when extensions are enabled for this request but were not loaded at server startup",
+                      "enum": [
+                        "loaded",
+                        "not_loaded"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "API info"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get API info",
+        "tags": [
+          "ExtensionsRestApi"
+        ]
+      }
+    },
+    "/api/v1/extensions/{publisher}/{name}": {
+      "get": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "result": {
+                      "items": {
+                        "properties": {
+                          "remoteEntry": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Extension details"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get an extension by its publisher and name.",
+        "tags": [
+          "ExtensionsRestApi"
+        ]
+      }
+    },
+    "/api/v1/extensions/{publisher}/{name}/storage/ephemeral/{key}": {
+      "delete": {
+        "parameters": [
+          {
+            "description": "Extension publisher",
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Extension name",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Storage key",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "If true, delete from shared state",
+            "in": "query",
+            "name": "shared",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Value deleted successfully"
+          },
+          "404": {
+            "description": "Extension not found"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a value from ephemeral state",
+        "tags": [
+          "ExtensionStorageRestApi"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "description": "Extension publisher",
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Extension name",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Storage key",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "If true, read from shared state visible to all users",
+            "in": "query",
+            "name": "shared",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "codec": {
+                      "description": "Name of the codec 'result' was encoded with, e.g. `json` (default) or `binary`",
+                      "type": "string"
+                    },
+                    "isBinary": {
+                      "description": "Whether the stored value is binary data",
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "description": "The stored value. When 'isBinary' is true, this is a base64 string that must be decoded to get the actual value."
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Value retrieved successfully"
+          },
+          "400": {
+            "description": "Value was stored with a codec unavailable over the API"
+          },
+          "404": {
+            "description": "Extension not found"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a value from ephemeral state",
+        "tags": [
+          "ExtensionStorageRestApi"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "Extension publisher",
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Extension name",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Storage key",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "If true, store as shared state visible to all users",
+            "in": "query",
+            "name": "shared",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "codec": {
+                    "description": "Name of the codec used to encode 'value', e.g. `json` (default). Must be one of the codecs allowed over the REST API.",
+                    "type": "string"
+                  },
+                  "isBinary": {
+                    "description": "Whether 'value' is binary data",
+                    "type": "boolean"
+                  },
+                  "ttl": {
+                    "description": "Time-to-live in seconds (must be a positive integer not exceeding MAX_TTL)",
+                    "type": "integer"
+                  },
+                  "value": {
+                    "description": "The value to store (must not exceed MAX_VALUE_SIZE bytes once encoded with 'codec'). When 'isBinary' is true, this must be a base64 string, decoded before being handed to 'codec'."
+                  }
+                },
+                "required": [
+                  "value",
+                  "ttl"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Value stored successfully"
+          },
+          "400": {
+            "description": "Invalid request body, or codec not allowed over the API"
+          },
+          "404": {
+            "description": "Extension not found"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Set a value in ephemeral state",
+        "tags": [
+          "ExtensionStorageRestApi"
+        ]
+      }
+    },
+    "/api/v1/extensions/{publisher}/{name}/storage/persistent": {
+      "get": {
+        "parameters": [
+          {
+            "description": "Extension publisher",
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Extension name",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "If true, list shared state visible to all users",
+            "in": "query",
+            "name": "shared",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "description": "Filter by resource type",
+            "in": "query",
+            "name": "resource_type",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Filter by resource UUID (requires resource_type)",
+            "in": "query",
+            "name": "resource_uuid",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Zero-indexed page number. Defaults to 0.",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "description": "Number of entries per page. Defaults to 10. There is no fixed ceiling, but a page whose combined value size exceeds MAX_LIST_PAYLOAD_SIZE is rejected \u2014 reduce page_size and retry if that happens.",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "description": "Total number of entries matching the given scope/filters, across all pages",
+                      "type": "integer"
+                    },
+                    "result": {
+                      "items": {
+                        "properties": {
+                          "codec": {
+                            "type": "string"
+                          },
+                          "isBinary": {
+                            "description": "Whether the stored value is binary data",
+                            "type": "boolean"
+                          },
+                          "key": {
+                            "type": "string"
+                          },
+                          "value": {
+                            "description": "The stored value, or null if its codec cannot be read over the REST API. When 'isBinary' is true, this is a base64 string that must be decoded to get the actual value."
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Entries retrieved successfully"
+          },
+          "400": {
+            "description": "The requested page's combined value size exceeds MAX_LIST_PAYLOAD_SIZE"
+          },
+          "404": {
+            "description": "Extension not found"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List entries in persistent state",
+        "tags": [
+          "ExtensionStorageRestApi"
+        ]
+      }
+    },
+    "/api/v1/extensions/{publisher}/{name}/storage/persistent/{key}": {
+      "delete": {
+        "parameters": [
+          {
+            "description": "Extension publisher",
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Extension name",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Storage key",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "If true, delete from shared state",
+            "in": "query",
+            "name": "shared",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Value deleted successfully"
+          },
+          "404": {
+            "description": "Extension not found"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete a value from persistent state",
+        "tags": [
+          "ExtensionStorageRestApi"
+        ]
+      },
+      "get": {
+        "parameters": [
+          {
+            "description": "Extension publisher",
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Extension name",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Storage key",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "If true, read from shared state visible to all users",
+            "in": "query",
+            "name": "shared",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "codec": {
+                      "description": "Name of the codec 'result' was encoded with, e.g. `json` (default) or `binary`",
+                      "type": "string"
+                    },
+                    "isBinary": {
+                      "description": "Whether the stored value is binary data",
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "description": "The stored value. When 'isBinary' is true, this is a base64 string that must be decoded to get the actual value."
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Value retrieved successfully"
+          },
+          "400": {
+            "description": "Value was stored with a codec unavailable over the API"
+          },
+          "404": {
+            "description": "Extension not found"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a value from persistent state",
+        "tags": [
+          "ExtensionStorageRestApi"
+        ]
+      },
+      "put": {
+        "parameters": [
+          {
+            "description": "Extension publisher",
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Extension name",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Storage key",
+            "in": "path",
+            "name": "key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "If true, store as shared state visible to all users",
+            "in": "query",
+            "name": "shared",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "properties": {
+                  "codec": {
+                    "description": "Name of the codec used to encode 'value', e.g. `json` (default). Must be one of the codecs allowed over the REST API.",
+                    "type": "string"
+                  },
+                  "encrypt": {
+                    "description": "If true, the value is encrypted at rest",
+                    "type": "boolean"
+                  },
+                  "isBinary": {
+                    "description": "Whether 'value' is binary data",
+                    "type": "boolean"
+                  },
+                  "value": {
+                    "description": "The value to store. When 'isBinary' is true, this must be a base64 string, decoded before being handed to 'codec'."
+                  }
+                },
+                "required": [
+                  "value"
+                ],
+                "type": "object"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Value stored successfully"
+          },
+          "400": {
+            "description": "Invalid request body, codec not allowed over the API, or value exceeds MAX_VALUE_SIZE"
+          },
+          "404": {
+            "description": "Extension not found"
+          },
+          "413": {
+            "description": "Extension persistent storage quota exceeded"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Set a value in persistent state",
+        "tags": [
+          "ExtensionStorageRestApi"
+        ]
+      }
+    },
+    "/api/v1/extensions/{publisher}/{name}/{file}": {
+      "get": {
+        "parameters": [
+          {
+            "description": "publisher of the extension",
+            "in": "path",
+            "name": "publisher",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "technical name of the extension",
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "name of the requested chunk",
+            "in": "path",
+            "name": "file",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "message": {
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Extension import result"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Get a frontend chunk of an extension.",
+        "tags": [
+          "ExtensionsRestApi"
+        ]
+      }
+    },
     "/api/v1/log/": {
       "get": {
         "description": "Gets a list of logs, use Rison or JSON query parameters for filtering, sorting, pagination and  for selecting specific columns and metadata.",
@@ -34213,6 +35018,41 @@
       "get": {
         "responses": {
           "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "extensions_status": {
+                      "description": "Types contributed by extensions are missing while this is `not_loaded`; the server must be restarted to load them",
+                      "enum": [
+                        "disabled",
+                        "loaded",
+                        "not_loaded"
+                      ],
+                      "type": "string"
+                    },
+                    "result": {
+                      "items": {
+                        "properties": {
+                          "description": {
+                            "type": "string"
+                          },
+                          "id": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
             "description": "A list of semantic layer types"
           },
           "401": {

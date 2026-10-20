@@ -64,6 +64,7 @@ from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
+from superset.extensions.availability import get_extensions_status
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
 from superset.semantic_layers.masking import mask_configuration
@@ -706,6 +707,29 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
           responses:
             200:
               description: A list of semantic layer types
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            id:
+                              type: string
+                            name:
+                              type: string
+                            description:
+                              type: string
+                      extensions_status:
+                        type: string
+                        enum: [disabled, loaded, not_loaded]
+                        description: >-
+                          Types contributed by extensions are missing while
+                          this is `not_loaded`; the server must be restarted
+                          to load them
             401:
               $ref: '#/components/responses/401'
         """
@@ -713,7 +737,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             {"id": key, "name": cls.name, "description": cls.description}  # type: ignore[attr-defined]
             for key, cls in registry.items()
         ]
-        return self.response(200, result=result)
+        return self.response(
+            200, result=result, extensions_status=get_extensions_status().value
+        )
 
     @expose("/schema/configuration", methods=("POST",))
     @protect()

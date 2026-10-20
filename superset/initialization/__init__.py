@@ -331,12 +331,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SubjectRestApi)
         appbuilder.add_api(LogRestApi)
 
-        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
-            from superset.extensions.api import ExtensionsRestApi
-            from superset.extensions.storage.api import ExtensionStorageRestApi
+        from superset.extensions.api import ExtensionsRestApi
+        from superset.extensions.storage.api import ExtensionStorageRestApi
 
-            appbuilder.add_api(ExtensionsRestApi)
-            appbuilder.add_api(ExtensionStorageRestApi)
+        appbuilder.add_api(ExtensionsRestApi)
+        appbuilder.add_api(ExtensionStorageRestApi)
 
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.api import TaskRestApi
@@ -642,7 +641,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         Core dependencies are always initialized.
         Extensions are only initialized if the ENABLE_EXTENSIONS feature flag
-        is enabled.
+        is enabled at startup. The extensions APIs are always registered and
+        check the flag per request; a request that enables extensions on a
+        server that did not initialize them is told a restart is required.
         """
         # Always initialize core dependencies
         self.init_core_dependencies()
@@ -652,6 +653,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             self.init_extensions()
 
     def init_extensions(self) -> None:
+        from superset.extensions.availability import mark_extensions_loaded
         from superset.extensions.utils import (
             eager_import,
             get_extensions,
@@ -688,6 +690,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         "Failed to initialize extension '%s'",
                         extension.manifest.id,
                     )
+
+        mark_extensions_loaded(self.superset_app)
 
     @staticmethod
     def _remove_continuum_write_listeners() -> None:
