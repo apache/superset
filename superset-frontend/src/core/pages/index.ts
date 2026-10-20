@@ -30,11 +30,19 @@
  * belonging to the host or to another extension.
  */
 
-import React, { ComponentType, useSyncExternalStore } from 'react';
+import React, {
+  ComponentType,
+  createContext,
+  useCallback,
+  useContext,
+  useSyncExternalStore,
+} from 'react';
+import { useHistory, useLocation } from 'react-router-dom';
 import type { pages as pagesApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
+import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { Disposable } from '../models';
 import { createEventEmitter } from '../utils';
 
@@ -132,6 +140,53 @@ export const usePages = (): ResolvedPage[] =>
 export const findPageByPath = (path: string): ResolvedPage | undefined =>
   snapshot.find(page => page.path === path || path.startsWith(`${page.path}/`));
 
+/**
+ * The root path of the page currently rendering.
+ *
+ * Supplied by the host when it mounts a page, so `useSubPath`/`useNavigate`
+ * can work in paths relative to that page without the page knowing its own
+ * URL. Defaults to empty, which makes both hooks inert rather than wrong if
+ * they are somehow called outside a page.
+ */
+export const PageRootContext = createContext<string>('');
+
+/**
+ * The host's own router is read here, inside the host bundle.
+ *
+ * An extension cannot do this for itself: `react-router-dom` is not in the
+ * share scope, so an extension's import resolves to a second module instance
+ * whose context is never populated by the host's `<Router>`. Exposing these
+ * two hooks through `@apache-superset/core`, which *is* shared, is what lets
+ * a page navigate at all.
+ */
+export const useSubPath: typeof pagesApi.useSubPath = () => {
+  const root = useContext(PageRootContext);
+  const { pathname } = useLocation();
+  if (!root) {
+    return '/';
+  }
+  const stripped = stripAppRoot(pathname);
+  const sub = stripped.startsWith(root) ? stripped.slice(root.length) : '';
+  return sub.startsWith('/') ? sub : `/${sub}`;
+};
+
+export const useNavigate: typeof pagesApi.useNavigate = () => {
+  const root = useContext(PageRootContext);
+  const history = useHistory();
+  return useCallback(
+    (subPath: string) => {
+      if (!root) {
+        return;
+      }
+      // Relative by contract: a page states where it is going within itself,
+      // and so cannot navigate out of its own namespace by accident.
+      const suffix = subPath.startsWith('/') ? subPath : `/${subPath}`;
+      history.push(ensureAppRoot(`${root}${suffix === '/' ? '' : suffix}`));
+    },
+    [history, root],
+  );
+};
+
 export const resolvePage = (id: string): React.ReactElement => {
   const entry = pageRegistry.get(id);
   if (!entry) {
@@ -140,7 +195,11 @@ export const resolvePage = (id: string): React.ReactElement => {
   return React.createElement(
     ErrorBoundary,
     null,
-    React.createElement(entry.component),
+    React.createElement(
+      PageRootContext.Provider,
+      { value: entry.page.path },
+      React.createElement(entry.component),
+    ),
   );
 };
 
@@ -157,6 +216,8 @@ export const onDidUnregisterPage = (listener: (e: ResolvedPage) => void) =>
  * host's own `window.superset.pages` is complete and type-compatible.
  */
 export const pages = {
+  useSubPath,
+  useNavigate,
   registerPage: (() => {
     throw new Error(
       'pages.registerPage is bound per extension by the loader and cannot ' +
