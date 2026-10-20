@@ -47,6 +47,7 @@ from superset.commands.chart.exceptions import (
     ChartDataCacheLoadError,
     ChartDataQueryFailedError,
 )
+from superset.commands.streaming_export.base import encode_csv_stream
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
 from superset.connectors.sqla.models import BaseDatasource
@@ -858,7 +859,8 @@ class ChartDataRestApi(ChartRestApi):
 
         # Create response with streaming headers
         response = Response(
-            csv_generator_callable(),  # Call the callable to get generator
+            # Call the callable to get generator
+            encode_csv_stream(csv_generator_callable(), encoding),
             # Use content_type (not mimetype) so the charset is set verbatim;
             # passing a charset via mimetype makes Werkzeug append a second
             # charset, producing a malformed doubled Content-Type header.

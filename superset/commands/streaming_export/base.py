@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+import codecs
 import csv
 import io
 import logging
@@ -26,7 +27,7 @@ from abc import abstractmethod
 from contextlib import contextmanager
 from decimal import Decimal
 from numbers import Real
-from typing import Any, Callable, Generator
+from typing import Any, Callable, Generator, Iterable
 
 from flask import current_app as app, g, has_app_context
 from sqlalchemy import text
@@ -89,6 +90,32 @@ def preserve_g_context(
     for key, value in captured_g.items():
         setattr(g, key, value)
     yield
+
+
+def encode_csv_stream(
+    chunks: Iterable[str], encoding: str
+) -> Generator[bytes, None, None]:
+    """
+    Encode streamed CSV chunks with the configured CSV_EXPORT encoding.
+
+    Werkzeug encodes ``str`` chunks of a response body as plain UTF-8, which
+    ignores the configured encoding. An incremental encoder is used so that
+    codecs with a preamble, such as the default "utf-8-sig", write the byte
+    order mark once at the start of the file rather than once per chunk.
+
+    Args:
+        chunks: CSV data chunks as strings
+        encoding: Name of the codec to encode the chunks with
+
+    Yields:
+        Encoded CSV data chunks
+    """
+    encoder = codecs.getincrementalencoder(encoding)()
+    for chunk in chunks:
+        if data := encoder.encode(chunk):
+            yield data
+    if data := encoder.encode("", final=True):
+        yield data
 
 
 class BaseStreamingCSVExportCommand(BaseCommand):
@@ -276,8 +303,9 @@ class BaseStreamingCSVExportCommand(BaseCommand):
         # superset.charts.client_processing (which builds the whole file with a
         # single DataFrame.to_csv(**CSV_EXPORT) call), this path writes rows
         # incrementally via csv.writer, so the remaining pandas to_csv kwargs
-        # (e.g. quotechar, lineterminator, encoding) do not map onto it and are
-        # intentionally not applied here.
+        # (e.g. quotechar, lineterminator) do not map onto it and are
+        # intentionally not applied here. The `encoding` key is applied by the
+        # API layer when it encodes the streamed chunks (see encode_csv_stream).
         csv_export_config = app.config["CSV_EXPORT"]
         delimiter = csv_export_config.get("sep", ",")
         decimal_separator = csv_export_config.get("decimal", ".")
