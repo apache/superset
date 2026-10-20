@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import Mock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -28,6 +29,7 @@ from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
 from superset.models.slice import Slice
 from superset.utils.cache import generate_cache_key
+from superset.utils.core import QueryObjectFilterClause
 
 
 def test_ordinary_context_rewrites_reach_async_cache_values() -> None:
@@ -1049,3 +1051,36 @@ class TestQueryContextFactory:
         self.factory._add_currency_column(query_object, form_data, datasource)
 
         assert query_object.columns == ["col1"]
+
+
+@pytest.mark.parametrize(
+    "saved", [None, "No filter", "Aucun filtre", "2024-01-01 : 2024-06-01"]
+)
+@pytest.mark.parametrize("dashboard", [False, True])
+@pytest.mark.parametrize("already_extra", [False, True])
+def test_time_override_stamps_only_unbounded_saved_predicates(
+    mocker: MockerFixture,
+    saved: str | None,
+    dashboard: bool,
+    already_extra: bool,
+) -> None:
+    """Rewriting a real chart range never grants it dashboard provenance."""
+    mocker.patch("superset.utils.date_parser._", return_value="Aucun filtre")
+    filter_: QueryObjectFilterClause = {
+        "col": "ds",
+        "op": "TEMPORAL_RANGE",
+        "val": saved,
+    }
+    if already_extra:
+        filter_["isExtra"] = True
+    query: QueryObject = QueryObject(
+        filters=[filter_], time_range="2025-01-01 : 2025-02-01"
+    )
+    form_data: dict[str, object] = (
+        {"extra_form_data": {"time_range": query.time_range}} if dashboard else {}
+    )
+    QueryContextFactory()._apply_filters(query, form_data)
+    assert filter_["val"] == query.time_range
+    assert bool(filter_.get("isExtra")) == (
+        already_extra or (dashboard and saved in (None, "No filter", "Aucun filtre"))
+    )
