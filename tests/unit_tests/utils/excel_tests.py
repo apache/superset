@@ -297,3 +297,16 @@ def test_column_data_types_with_large_numeric_values():
         "1100108628127863",
         "18014398509481984",
     ]
+
+
+def test_numeric_column_with_blanks_preserves_large_integers() -> None:
+    """Blank cells must not round integers before Excel's text conversion."""
+    large = 2**53 + 1
+    df = pd.DataFrame({"value": pd.Series([large, None, 3], dtype=object)})
+    apply_column_types(df, [GenericDataType.NUMERIC])
+    sheet = load_workbook(io.BytesIO(df_to_excel(df, index=False))).active
+    assert sheet["A2"].value == str(large)
+    assert sheet["A2"].data_type == "s"
+    assert sheet["A3"].value is None
+    assert sheet["A4"].value == 3
+    assert sheet["A4"].data_type == "n"
