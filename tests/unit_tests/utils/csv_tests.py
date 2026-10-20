@@ -339,6 +339,94 @@ def test_df_to_escaped_csv_escapes_multiindex_labels_and_axis_names():
     assert rows[2].endswith("safe,2")
 
 
+def test_df_to_escaped_csv_escapes_column_axis_names():
+    """
+    The *column* axis names are escaped too.
+
+    A pivot with grouped columns writes both column axis names out as their own
+    header lines, ahead of the row labels, so a hostile warehouse column name
+    lands in the first cell of the file.
+    """
+    df = pd.DataFrame(
+        data=[[1]],
+        index=pd.Index(["row"], name="dim"),
+        columns=pd.MultiIndex.from_tuples([("outer", "v")], names=["=axis", "+inner"]),
+    )
+
+    rows = df_to_escaped_csv(df, encoding="utf8", index=True).strip().split("\n")
+
+    assert rows[0] == "'=axis,outer"
+    assert rows[1] == "'+inner,v"
+
+
+def test_df_to_escaped_csv_keeps_a_numeric_index_dtype():
+    """
+    Escaping row labels does not widen a numeric row dimension.
+
+    Rebuilding the index promotes ``float32`` to ``float64``, and the wider
+    dtype prints the binary expansion of the stored value, so a label that
+    read ``1.1`` would export as ``1.100000023841858``.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.Index(np.array([1.1, 2.2], dtype="float32"), name="dim"),
+    )
+
+    assert df_to_escaped_csv(df, encoding="utf8", index=True) == "dim,v\n1.1,1\n2.2,2\n"
+
+
+def test_df_to_escaped_csv_keeps_a_temporal_index_dtype():
+    """
+    Escaping row labels leaves ``date_format`` working.
+
+    Rebuilding a ``datetime64`` index turns it into object dtype, and
+    ``to_csv`` only applies ``date_format`` to a datetime index, so the
+    configured ``CSV_EXPORT["date_format"]`` would quietly stop being honored.
+    """
+    df = pd.DataFrame(
+        data={"v": [1]},
+        index=pd.DatetimeIndex(
+            np.array(["1500-01-01"], dtype="datetime64[s]"), name="dim"
+        ),
+    )
+
+    escaped_csv_str = df_to_escaped_csv(
+        df, encoding="utf8", index=True, date_format="%d/%m/%Y"
+    )
+
+    assert escaped_csv_str == "dim,v\n01/01/1500,1\n"
+
+
+def test_df_to_escaped_csv_keeps_a_sibling_level_dtype():
+    """
+    A level that needs escaping is rebuilt without disturbing its siblings.
+
+    A pivot on a dimension and a time grain puts both in the index, and the
+    temporal level has to keep its dtype for ``date_format`` to reach it.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_arrays(
+            [
+                pd.Index(["=cmd()", "safe"]),
+                pd.DatetimeIndex(
+                    np.array(["1500-01-01", "1600-01-01"], dtype="datetime64[s]")
+                ),
+            ],
+            names=["dim", "when"],
+        ),
+    )
+
+    escaped_csv_str = df_to_escaped_csv(
+        df, encoding="utf8", index=True, date_format="%d/%m/%Y"
+    )
+
+    rows = escaped_csv_str.strip().split("\n")
+
+    assert rows[1] == "'=cmd(),01/01/1500,1"
+    assert rows[2] == "safe,01/01/1600,2"
+
+
 def test_df_to_escaped_csv_leaves_safe_index_alone():
     """
     A numeric index and a negative numeric label are not escaped, so ordinary
