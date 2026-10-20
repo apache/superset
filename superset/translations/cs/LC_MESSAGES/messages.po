@@ -4279,6 +4279,9 @@ msgstr "Zavřít editor barevných hranic"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Zavřít kartu"
 
@@ -8802,10 +8805,10 @@ msgstr "Skryje čáru pro časovou řadu"
 msgid "Hierarchy"
 msgstr "Hierarchie"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10115,10 +10118,10 @@ msgstr "Zeměpisná délka a šířka"
 msgid "Longitude of default viewport"
 msgstr "Zeměpisná délka výchozího zobrazení"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11679,9 +11682,6 @@ msgstr "Neprůhlednost bublin, 0 znamená zcela průhledné, 1 znamená neprůhl
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Neprůhlednost, očekává hodnoty mezi 0 a 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Otevřít kartu Zdroje dat"
 
@@ -11717,6 +11717,9 @@ msgstr "Otevřít v SQL Labu"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Otevřít v SQL Labu"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Otevřít dotaz v SQL Labu"
@@ -13985,6 +13988,13 @@ msgstr "Posuňte se dolů pro povolení přepsání změn. "
 msgid "Search"
 msgstr "Hledat"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Hledat %s záznam"
+msgstr[1] "Hledat %s záznamy"
+msgstr[2] "Hledat %s záznamů"
+
 msgid "Search / Filter"
 msgstr "Hledat / Filtrovat"
 
@@ -14044,9 +14054,6 @@ msgstr "Hledat ve filtrech"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Hledat metriky a sloupce"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

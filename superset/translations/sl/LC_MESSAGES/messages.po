@@ -4302,6 +4302,9 @@ msgstr "Zapri urejevalnik barvnih prelomnih točk"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Zapri zavihek"
 
@@ -8779,10 +8782,10 @@ msgstr "Skrije črto časovne serije"
 msgid "Hierarchy"
 msgstr "Hierarhija"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10070,10 +10073,10 @@ msgstr "Dolžina in širina"
 msgid "Longitude of default viewport"
 msgstr "Dolžina privzetega pogleda"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11619,9 +11622,6 @@ msgstr "Vrednost 0 pomeni popolno prosojnost, 1 pa neprosojnost"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Prosojnost, vnesite vrednosti med 0 in 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Odpri zavihek s podatkovnim virom"
 
@@ -11653,6 +11653,9 @@ msgstr "Odpri v SQL laboratoriju"
 
 msgid "Open in SQL lab"
 msgstr "Odpri v SQL Labu"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Odpri poizvedbo v SQL laboratoriju"
@@ -13910,6 +13913,14 @@ msgstr "Pomaknite se do dna, da omogočite prepis sprememb. "
 msgid "Search"
 msgstr "Išči"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Išči %s zapis"
+msgstr[1] "Išči %s zapisa"
+msgstr[2] "Išči %s zapisi"
+msgstr[3] "Išči %s zapisov"
+
 msgid "Search / Filter"
 msgstr "Iskanje / Filter"
 
@@ -13963,9 +13974,6 @@ msgstr "Iskanje v filtrih"
 
 msgid "Search metrics by key or label"
 msgstr "Išči mere po ključu ali oznaki"
-
-msgid "Search records"
-msgstr "Išči zapise"
 
 msgid "Search tags"
 msgstr "Išči oznake"

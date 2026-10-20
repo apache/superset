@@ -4392,6 +4392,9 @@ msgstr "Katia te ētita tūāhanga tae"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Kati ripa"
 
@@ -9049,10 +9052,10 @@ msgstr "Ka hunaia te Rārangi mō te raupapa wā"
 msgid "Hierarchy"
 msgstr "Taumata"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10402,10 +10405,10 @@ msgstr "Longitude me Latitude"
 msgid "Longitude of default viewport"
 msgstr "Longitude o te tirohanga taunoa"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11994,9 +11997,6 @@ msgstr "Ataata o ngā pōro, 0 he ataata katoa, 1 he kino"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Ataata, e tūmanako ana i ngā uara i waenga i te 0 me te 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Huaki ripa Puna Raraunga"
 
@@ -12032,6 +12032,9 @@ msgstr "Huaki i SQL Lab"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Huaki i SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Huaki pātai i SQL Lab"
@@ -14351,6 +14354,12 @@ msgstr ""
 msgid "Search"
 msgstr "Rapu"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Rapu %s rekoata"
+msgstr[1] "Rapu %s rekoata"
+
 msgid "Search / Filter"
 msgstr "Rapu / Tātari"
 
@@ -14410,9 +14419,6 @@ msgstr "Rapu i ngā tātari"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Rapu Ine me ngā Tīwae"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

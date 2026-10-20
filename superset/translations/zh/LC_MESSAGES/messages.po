@@ -4296,6 +4296,9 @@ msgstr "关闭颜色断点编辑器"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "关闭选项卡"
 
@@ -8878,10 +8881,10 @@ msgstr "隐藏时间序列的线"
 msgid "Hierarchy"
 msgstr "层次"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10234,10 +10237,10 @@ msgstr "经度/纬度"
 msgid "Longitude of default viewport"
 msgstr "默认视口经度"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 #, fuzzy
@@ -11858,9 +11861,6 @@ msgstr "气泡的不透明度，0表示完全透明，1表示不透明"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "不透明度，期望值在0到100之间"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "打开数据源选项卡"
 
@@ -11892,6 +11892,9 @@ msgstr "在 SQL Lab 中打开"
 
 msgid "Open in SQL lab"
 msgstr "在 SQL Lab 中打开"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "在 SQL Lab 中打开查询"
@@ -14214,6 +14217,11 @@ msgstr "向下滚动到底部以启用覆盖更改。 "
 msgid "Search"
 msgstr "搜索"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "搜索 %s 条记录"
+
 msgid "Search / Filter"
 msgstr "搜索 / 过滤"
 
@@ -14274,9 +14282,6 @@ msgstr "在筛选器中搜索"
 
 msgid "Search metrics by key or label"
 msgstr "按键或标签搜索指标"
-
-msgid "Search records"
-msgstr "搜索记录"
 
 msgid "Search tags"
 msgstr "搜索标签"
