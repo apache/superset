@@ -49,7 +49,7 @@ export interface LoadedExtension extends Extension {
    * paths the extension is allowed to register a component against.
    */
   contributions?: {
-    pages?: { path: string; permitted?: boolean }[];
+    pages?: { path: string; registered?: boolean; permitted?: boolean }[];
   };
 }
 

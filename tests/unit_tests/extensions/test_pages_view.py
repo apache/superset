@@ -372,17 +372,22 @@ def test_a_created_permission_is_granted_to_admin(
     assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
 
 
-def test_the_admin_grant_is_repaired_on_a_later_boot(
+def test_an_operator_can_withhold_the_grant_from_admin(
     app: Flask, security: FakeSecurityManager
 ) -> None:
-    """The permission already exists, but the role lost it."""
+    """The permission already exists and the role does not hold it.
+
+    That is what an operator who removed it in the Roles screen looks like
+    on the next boot. Re-granting here would overrule them silently, and
+    there would be no way to run Superset with Admin excluded from a page.
+    """
     security.existing.add(("can_review", VIEW_MENU))
 
     with app.app_context():
         ensure_page_permissions(manifest("/a", permission="can_review"))
 
     assert security.created == []
-    assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
+    assert security.admin_role.permissions == []
 
 
 def test_the_admin_role_is_read_from_configuration(
@@ -431,6 +436,7 @@ def test_creating_permissions_is_idempotent(
         ensure_page_permissions(manifest("/a", permission="can_review"))
 
     assert security.created == [("can_review", VIEW_MENU)]
+    # Granted once, by the boot that created it -- not again afterwards.
     assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
 
 

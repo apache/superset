@@ -44,7 +44,7 @@ import type { pages as pagesApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
-import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
+import { stripAppRoot } from 'src/utils/navigationUtils';
 import { Disposable } from '../models';
 import { createEventEmitter } from '../utils';
 
@@ -57,8 +57,13 @@ type ResolvedPage = pagesApi.ResolvedPage;
  */
 export interface DeclaredPage {
   path: string;
+  /** False when the server refused the path and registered no rule for it. */
+  registered?: boolean;
   permitted?: boolean;
 }
+
+/** A registration that did not take, so a caller can dispose it harmlessly. */
+const INERT = new Disposable(() => {});
 
 /**
  * Mirrors `PAGE_PATH_PATTERN` in `superset_core.extensions.constants`.
@@ -103,23 +108,44 @@ export const registerPageFor = (
   page: Page,
   component: ComponentType,
 ): Disposable => {
+  // Nothing here throws. An extension calls `registerPage` at module scope,
+  // so a throw takes down the whole bundle -- its other pages, its views, its
+  // commands -- over one page. Worse, one of these conditions is not the
+  // author's doing at all: the server refuses a path it has already given to
+  // something else, and the author cannot see that from their own source. The
+  // page is dropped, loudly, and the extension carries on.
   if (!page?.path || !PAGE_PATH_PATTERN.test(page.path)) {
-    throw new Error(
-      `Page path "${page?.path ?? '<missing>'}" must be an absolute path of ` +
-        `lowercase segments, such as "/review-queue", with no trailing ` +
-        `slash and no parameters.`,
+    logging.error(
+      `Extension "${extensionId}" registered a page at ` +
+        `"${page?.path ?? '<missing>'}", which is not an absolute path of ` +
+        `lowercase segments such as "/review-queue". The page was ignored.`,
     );
+    return INERT;
   }
 
   const declaration = declared.find(entry => entry.path === page.path);
   if (!declaration) {
-    throw new Error(
+    logging.error(
       `Extension "${extensionId}" registered a page at "${page.path}", which ` +
         `its manifest does not declare. Add it to contributions.pages and ` +
         `rebuild: the server registers URL rules from the manifest, so this ` +
         `page would work on client navigation and 404 on a cold load. ` +
         `Declared: ${declared.map(entry => entry.path).join(', ') || '(none)'}.`,
     );
+    return INERT;
+  }
+
+  if (declaration.registered === false) {
+    // The path was taken by Superset, an operator's blueprint, or another
+    // extension. The author cannot see that from here, so the message says
+    // where to look rather than implying they got it wrong.
+    logging.error(
+      `Extension "${extensionId}" declares a page at "${page.path}", which ` +
+        `this deployment already serves, so no route was registered for it. ` +
+        `The page was ignored; the server log names what holds the path. ` +
+        `Choose a different path in the manifest.`,
+    );
+    return INERT;
   }
 
   const id = `${extensionId}:${page.path}`;
@@ -211,7 +237,12 @@ export const useNavigate: typeof pagesApi.useNavigate = () => {
       // Relative by contract: a page states where it is going within itself,
       // and so cannot navigate out of its own namespace by accident.
       const suffix = subPath.startsWith('/') ? subPath : `/${subPath}`;
-      history.push(ensureAppRoot(`${root}${suffix === '/' ? '' : suffix}`));
+      // No `ensureAppRoot` here. Superset's router is mounted as
+      // `<BrowserRouter basename={applicationRoot()}>`, so it adds the app
+      // root on push and strips it from `location.pathname`. Adding it here
+      // too produced `/root/root/page` under a subdirectory deployment --
+      // invisible wherever the app root is empty, which is most deployments.
+      history.push(`${root}${suffix === '/' ? '' : suffix}`);
     },
     [history, root],
   );
@@ -222,9 +253,13 @@ export const resolvePage = (id: string): React.ReactElement => {
   if (!entry) {
     return React.createElement(ExtensionPlaceholder, { id });
   }
+  // Keyed by page id so switching pages remounts the boundary.
+  // `ErrorBoundary` keeps its caught error in state and offers no way to
+  // clear it, so without a key a page that threw once would keep rendering
+  // its error over every other extension page the user navigated to.
   return React.createElement(
     ErrorBoundary,
-    null,
+    { key: id },
     React.createElement(
       PageRootContext.Provider,
       { value: entry.page.path },
