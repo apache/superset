@@ -909,6 +909,32 @@ def _find_last_token_node(node: exp.Expression) -> exp.Expression:
     return node
 
 
+def _collect_sql_statements(
+    statements: list[exp.Expression | None],
+) -> list[exp.Expression]:
+    """Collect real statements and attach comment-only segments in source order."""
+    parsed_statements: list[exp.Expression] = []
+    leading_comments: list[str] = []
+    for statement in statements:
+        # Empty statements from consecutive semicolons have no AST.
+        if statement is None:
+            continue
+        # sqlglot represents comment-only segments as Semicolon nodes.
+        if isinstance(statement, exp.Semicolon):
+            if parsed_statements:
+                target = _find_last_token_node(parsed_statements[-1])
+                target.add_comments(statement.comments or [])
+            else:
+                leading_comments.extend(statement.comments or [])
+            continue
+        if leading_comments:
+            statement.comments = leading_comments + (statement.comments or [])
+            leading_comments = []
+        parsed_statements.append(statement)
+
+    return parsed_statements
+
+
 # Alternation ordered so a quoted region is consumed whole before either
 # comment form can match inside it, keeping a `--` or `/*` that is merely
 # part of a literal from truncating the text after it. Each of the two
@@ -1029,6 +1055,22 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
             # last value, so it is intentionally not listed.)
             "SETVAL",
             "NEXTVAL",
+            # dblink functions open a separate connection and auto-commit,
+            # so writes persist even when the outer transaction is read-only.
+            "DBLINK",
+            "DBLINK_EXEC",
+            "DBLINK_CONNECT",
+            "DBLINK_CONNECT_U",
+            "DBLINK_SEND_QUERY",
+            # PostgreSQL state-mutating functions callable via SELECT
+            "PG_CANCEL_BACKEND",
+            "PG_RELOAD_CONF",
+            "PG_ROTATE_LOGFILE",
+            "PG_STAT_RESET",
+            "PG_SWITCH_WAL",
+            "PG_LOGICAL_EMIT_MESSAGE",
+            "PG_CREATE_RESTORE_POINT",
+            "PG_DROP_REPLICATION_SLOT",
         }
     )
 
@@ -1229,7 +1271,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                     # If MySQL dialect also fails, raise the original error
                     pass
                 else:
-                    return statements
+                    return _collect_sql_statements(statements)
 
             kwargs = (
                 {
@@ -1248,15 +1290,7 @@ class SQLStatement(BaseSQLStatement[exp.Expression]):
                 message="Unable to parse script",
             ) from ex
 
-        # `sqlglot` will parse comments after the last semicolon as a separate
-        # statement; move them back to the last token in the last real statement
-        if len(statements) > 1 and isinstance(statements[-1], exp.Semicolon):
-            last_statement = statements.pop()
-            target = _find_last_token_node(statements[-1])
-            target.comments = target.comments or []
-            target.comments.extend(last_statement.comments)
-
-        return statements
+        return _collect_sql_statements(statements)
 
     @classmethod
     def split_script(
