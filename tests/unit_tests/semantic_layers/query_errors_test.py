@@ -359,7 +359,7 @@ def test_provider_fault_is_not_validation(
     provider: MagicMock = MagicMock(side_effect=fault("private-provider-diagnostic"))
     captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
     with pytest.raises(SemanticLayerExecutionError) as captured:
-        execute_semantic_query(provider, SemanticQuery(dimensions=set(), metrics=set()))
+        execute_semantic_query(provider, SemanticQuery(dimensions=[], metrics=[]))
     assert captured.value.status == 500
     assert "private" not in str(captured.value.to_dict())
     provider.assert_called_once()
@@ -436,9 +436,7 @@ def test_provider_control_signal_is_preserved(app_context: None, kind: str) -> N
     dispatcher: MagicMock = MagicMock(side_effect=control)
     captured: pytest.ExceptionInfo[Exception]
     with pytest.raises(type(control)) as captured:
-        execute_semantic_query(
-            dispatcher, SemanticQuery(dimensions=set(), metrics=set())
-        )
+        execute_semantic_query(dispatcher, SemanticQuery(dimensions=[], metrics=[]))
     assert captured.value is control
     dispatcher.assert_called_once()
 
@@ -755,9 +753,7 @@ def test_provider_rejection_uses_host_guidance(
     dispatcher: MagicMock = MagicMock(side_effect=SemanticQueryRejectedError(code))
     captured: pytest.ExceptionInfo[SemanticLayerQueryRejectedError]
     with pytest.raises(SemanticLayerQueryRejectedError) as captured:
-        execute_semantic_query(
-            dispatcher, SemanticQuery(dimensions=set(), metrics=set())
-        )
+        execute_semantic_query(dispatcher, SemanticQuery(dimensions=[], metrics=[]))
     assert captured.value.message == expected
     assert captured.value.status == 400
     assert "private" not in str(captured.value.to_dict())
