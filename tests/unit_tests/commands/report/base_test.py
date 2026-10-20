@@ -437,17 +437,13 @@ def test_check_object_access_refuses_an_excluded_report_target(
         "superset.commands.report.base.is_excluded_by_extra_access",
         return_value=True,
     )
-    mocker.patch(
-        "superset.commands.report.base.extra_access_exclusion_reason",
-        return_value="Move it somewhere shared first.",
-    )
     dao = mocker.MagicMock()
     dao.find_by_id.return_value = mocker.MagicMock()
 
     cmd = BaseReportScheduleCommand()
     cmd._properties = {}
 
-    with pytest.raises(ReportScheduleForbiddenError) as caught:
+    with pytest.raises(ReportScheduleForbiddenError):
         cmd._check_object_access(
             42,
             kind="dashboard",
@@ -456,9 +452,7 @@ def test_check_object_access_refuses_an_excluded_report_target(
             exceptions=[],
         )
 
-    # The deployment's wording reaches the caller, not the generic default.
-    assert "Move it somewhere shared first." in str(caught.value)
-    # ...and the key is derived from the kind, which is what a rename would break.
+    # The key is derived from the kind, which is what a rename would break.
     assert excluded.call_args.args[0] == "report_target_dashboards"
 
 

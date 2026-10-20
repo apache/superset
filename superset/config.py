@@ -3513,21 +3513,12 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 #
 # The callable receives the current user ID and returns a subquery of the asset
 # IDs to withhold.
-# A hook may return an ORM ``Query``, a Core ``select()`` or an explicit
-# ``.subquery()``; all three are accepted and normalised, matching what the
-# sibling ``EXTRA_ACCESS_QUERY_FILTERS`` hooks may hand to ``.in_()``.
-ExclusionIds = Callable[[int], Query | Select | Subquery]
-
-
-class ExclusionSpec(TypedDict, total=False):
-    """An exclusion plus the explanation a command surfaces when it refuses."""
-
-    ids: ExclusionIds
-    reason: str
-
-
-# Either the callable on its own, or that callable with a reason beside it.
-ExclusionEntry = ExclusionIds | ExclusionSpec
+# Receives the current user id, or ``None`` for an anonymous request -- a
+# withholding rule is consulted even then, since skipping it would reveal
+# rather than hide. May return an ORM ``Query``, a Core ``select()`` or an
+# explicit ``.subquery()``; all three are accepted and normalised, matching
+# what the sibling ``EXTRA_ACCESS_QUERY_FILTERS`` hooks may hand to ``.in_()``.
+ExclusionEntry = Callable[[int | None], Query | Select | Subquery]
 
 
 class ExtraAccessQueryExclusions(TypedDict, total=False):

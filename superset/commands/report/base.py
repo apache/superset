@@ -62,10 +62,7 @@ from superset.sql.parse import SQLScript
 from superset.tasks.types import ExecutorType
 from superset.utils import json
 from superset.utils.core import get_user
-from superset.utils.filters import (
-    extra_access_exclusion_reason,
-    is_excluded_by_extra_access,
-)
+from superset.utils.filters import is_excluded_by_extra_access
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
@@ -151,12 +148,8 @@ class BaseReportScheduleCommand(BaseCommand):
             # ordinary access filter, so an excluded id posted directly would
             # otherwise be accepted. Ask the report-target question here, where
             # the id is actually resolved.
-            exclusion_kind = f"report_target_{kind}s"
-            if is_excluded_by_extra_access(exclusion_kind, object_id):
-                # An empty reason falls through to the class-level message.
-                raise ReportScheduleForbiddenError(
-                    extra_access_exclusion_reason(exclusion_kind)
-                )
+            if is_excluded_by_extra_access(f"report_target_{kind}s", object_id):
+                raise ReportScheduleForbiddenError()
             try:
                 security_manager.raise_for_access(**{kind: obj})
             except SupersetSecurityException as ex:

@@ -283,6 +283,62 @@ archive is scoped to editors via a SQL query). It does still run once per row on
 dashboard list responses to populate `extra_editors`, so a slow or unavailable external resolver
 affects ordinary list requests, not just direct per-object checks.
 
+#### Widening and Narrowing List Visibility
+
+Two config hooks let a deployment adjust which charts and dashboards a principal sees in list
+queries. They are a pair: one can only widen a result set, the other only narrow it.
+
+`EXTRA_ACCESS_QUERY_FILTERS` grants visibility to assets the role paths would not reach. Its
+conditions are OR'd into `ChartFilter` and `DashboardAccessFilter`, so it can add rows and never
+remove them:
+
+```python
+EXTRA_ACCESS_QUERY_FILTERS = {
+    "charts": lambda user_id: ...,      # ids to additionally make visible
+    "dashboards": lambda user_id: ...,
+}
+```
+
+`EXTRA_ACCESS_QUERY_EXCLUSIONS` is the opposite: the ids it names are withheld, as an
+`AND NOT`:
+
+```python
+EXTRA_ACCESS_QUERY_EXCLUSIONS = {
+    "charts": lambda user_id: ...,                 # ids to withhold
+    "report_target_dashboards": lambda user_id: ...,
+}
+```
+
+Each callable receives the current user id — or `None` on an anonymous request — and returns the
+asset ids as an ORM `Query`, a Core `select()`, or a `.subquery()`; all three are accepted.
+
+Three details govern the behavior:
+
+- Exclusions are applied **before** the `is_admin()` and `can_access_all_datasources()`
+  short-circuits, because those are the principals the role paths stop narrowing. An exclusion
+  therefore withholds an asset from an Admin as well.
+- Embedded guests are **exempt**. A guest token already scopes its holder to the dashboards it
+  names and fails closed, so narrowing further would make an embedded dashboard's contents
+  depend on state the token has no knowledge of.
+- Anonymous requests are **not** exempt. A deployment serving published dashboards through the
+  Public role has callers with no user id, and skipping a withholding rule for them would reveal
+  rather than hide — so the callable is invoked with `None` and decides for itself.
+- Both hooks feed `ChartFilter` and `DashboardAccessFilter`, which are also the DAO base
+  filters. One entry therefore covers list views, `find_by_ids` — and so exports — and
+  related-field lookups together. A withheld dashboard is also absent from a direct read by
+  UUID, which reaches it through a branch that skips the base filter.
+
+The `report_target_charts` and `report_target_dashboards` keys are a narrower variant, consulted
+only where a scheduled report's target is chosen or validated. A report is rendered by whichever
+principal `ALERT_REPORTS_EXECUTORS` names rather than by its author, so "may this user read this
+asset" and "may this user schedule a report on it" are separate questions a deployment may answer
+differently.
+
+A list filter is not an authorization boundary: an id posted directly to an API never passes
+through one. Report creation and update therefore consult the same exclusion where the posted id
+is resolved, and refuse it with a 403. A deployment adding its own command paths should do the
+same rather than relying on the asset being absent from a picker.
+
 ### Dashboard Access Control
 
 Access to dashboards is managed via editors (subjects that have edit permissions to the dashboard).

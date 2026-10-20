@@ -210,39 +210,28 @@ def extra_access_exclusion_clause(
     simply does not match a NULL, so a malformed hook withholds nothing instead
     of everything.
     """
-    hook, _reason = _extra_access_exclusion_entry(asset_kind)
+    hook = _extra_access_exclusion_hook(asset_kind)
     if not hook:
         return None
 
     from superset.utils.core import get_user_id
 
-    user_id = get_user_id()
-    if not user_id:
-        return None
+    # ``None`` for an anonymous request, and the hook is still consulted: a
+    # deployment serving published dashboards through the Public role has
+    # anonymous callers, and skipping a *withholding* rule for them would
+    # reveal rather than hide. A rule about who may see what has to answer for
+    # the principal who is nobody.
+    return ~exists().where(_exclusion_id_column(hook(get_user_id())) == id_column)
 
-    return ~exists().where(_exclusion_id_column(hook(user_id)) == id_column)
 
-
-def _extra_access_exclusion_entry(
+def _extra_access_exclusion_hook(
     asset_kind: str,
-) -> tuple[Optional[Callable[[int], Any]], str]:
-    """Normalise one ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` entry.
-
-    An entry is either the callable on its own, or a mapping carrying that
-    callable under ``ids`` alongside a ``reason`` a command can surface when it
-    refuses the asset. The reason lives with the rule it belongs to rather than
-    in a parallel config key, so a deployment owns the wording without core
-    gaining a second hook to keep in step with the first.
-    """
+) -> Optional[Callable[[Optional[int]], Any]]:
+    """The configured exclusion callable for this kind, or None."""
     from flask import current_app
 
     exclusions = current_app.config.get("EXTRA_ACCESS_QUERY_EXCLUSIONS") or {}
-    entry = exclusions.get(asset_kind)
-    if entry is None:
-        return None, ""
-    if callable(entry):
-        return entry, ""
-    return entry.get("ids"), entry.get("reason", "")
+    return exclusions.get(asset_kind)
 
 
 def _exclusion_id_column(excluded: Any) -> "ColumnElement[Any]":
@@ -261,15 +250,6 @@ def _exclusion_id_column(excluded: Any) -> "ColumnElement[Any]":
     return list(excluded.c)[0]
 
 
-def extra_access_exclusion_reason(asset_kind: str) -> str:
-    """The deployment's explanation for withholding this kind, or "".
-
-    Empty when none is configured, which lets a caller pass it straight to an
-    exception whose class-level message is the fallback.
-    """
-    return _extra_access_exclusion_entry(asset_kind)[1]
-
-
 def is_excluded_by_extra_access(asset_kind: str, id_value: int) -> bool:
     """Whether a single asset id is withheld by an exclusion hook.
 
@@ -280,15 +260,12 @@ def is_excluded_by_extra_access(asset_kind: str, id_value: int) -> bool:
     from superset import db
     from superset.utils.core import get_user_id
 
-    hook, _reason = _extra_access_exclusion_entry(asset_kind)
+    hook = _extra_access_exclusion_hook(asset_kind)
     if not hook:
         return False
 
-    user_id = get_user_id()
-    if not user_id:
-        return False
-
-    excluded_id = _exclusion_id_column(hook(user_id))
+    # Anonymous callers are asked about too; see extra_access_exclusion_clause.
+    excluded_id = _exclusion_id_column(hook(get_user_id()))
     return bool(
         db.session.execute(select(exists().where(excluded_id == id_value))).scalar()
     )
