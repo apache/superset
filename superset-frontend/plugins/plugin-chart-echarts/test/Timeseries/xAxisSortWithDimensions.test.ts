@@ -772,3 +772,33 @@ test('sorts by a displayed metric that a Difference comparison replaced with its
     expect(entry.data.map(([genre]) => genre)).toEqual(['Y', 'X']);
   });
 });
+
+test('sorts the x-axis column case-sensitively, not by series name', () => {
+  const caseRows: DataRecord[] = [
+    {
+      genre: 'a',
+      PS4: 1,
+      XOne: 1,
+      'SUM(na_sales), PS4': 1,
+      'SUM(na_sales), XOne': 1,
+    },
+    {
+      genre: 'B',
+      PS4: 1,
+      XOne: 1,
+      'SUM(na_sales), PS4': 1,
+      'SUM(na_sales), XOne': 1,
+    },
+  ];
+  const { axisOrder } = transform(
+    {
+      x_axis_sort: 'genre',
+      xAxisSort: 'genre',
+      x_axis_sort_asc: true,
+      xAxisSortAsc: true,
+    },
+    {},
+    caseRows,
+  );
+  expect(axisOrder).toEqual(['B', 'a']);
+});

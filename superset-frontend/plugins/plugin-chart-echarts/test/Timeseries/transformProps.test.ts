@@ -4350,6 +4350,7 @@ test('tooltip does not apply a metric currency format to a Percentage comparison
       groupby: ['region'],
       richTooltip: true,
       time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
       comparison_type: ComparisonType.Percentage,
     },
     queriesData: [
