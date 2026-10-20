@@ -7611,3 +7611,59 @@ def test_has_dynamic_table_source(sql: str, engine: str, expected: bool) -> None
     name, so ``tables`` cannot report them.
     """
     assert SQLStatement(sql, engine).has_dynamic_table_source() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT 'a'", "hive", "a"),
+        # An alias is not part of what the projection denotes.
+        ("SELECT 'a' AS v0", "hive", "a"),
+        ("SELECT ''", "hive", ""),
+        # The cases the method exists for. A caller renders a value into SQL
+        # text and needs to know the engine reads it back as that same value,
+        # and whether it does is a property of the engine rather than of the
+        # renderer -- so the same rendered text has to answer differently per
+        # dialect. SQLAlchemy's default renderer doubles the apostrophe, which
+        # Postgres honours...
+        ("SELECT 'O''Brien'", "postgresql", "O'Brien"),
+        # ...and Hive does not: there it is two adjacent literals, which is not
+        # one literal, so the value is reported as not surviving the trip.
+        ("SELECT 'O''Brien'", "hive", None),
+        # The same disagreement about backslashes, in the other direction: the
+        # renderer passes one through, Postgres reads it literally and Hive
+        # reads an escape -- `a\b` comes back as `a` followed by a backspace.
+        ("SELECT 'a\\b'", "postgresql", "a\\b"),
+        ("SELECT 'a\\b'", "hive", "a\x08"),
+        # Anything that is not exactly one string literal. A value that broke
+        # out of its quotes parses as a concatenation...
+        ("SELECT 'a' || 'b'", "postgresql", None),
+        # ...or a function call, and neither is the value the caller rendered.
+        ("SELECT lower('a')", "hive", None),
+        ("SELECT 1", "hive", None),
+        ("SELECT 'a', 'b'", "hive", None),
+        # Not a SELECT at all.
+        ("INSERT INTO t VALUES (1)", "hive", None),
+    ],
+)
+def test_get_select_literal_value(sql: str, engine: str, expected: str | None) -> None:
+    """Check the `get_select_literal_value` method."""
+    assert SQLStatement(sql, engine).get_select_literal_value() == expected
+
+
+@pytest.mark.parametrize(
+    "sql, engine, expected",
+    [
+        ("SELECT 1", "hive", False),
+        ("SELECT 1 -- c", "hive", True),
+        ("SELECT 1 /* c */", "hive", True),
+        ("SELECT 1 AS v0 -- c", "postgresql", True),
+        # Read off the parse rather than the text, which is what makes it
+        # literal-aware for free: a value of `a--b` inside a string literal is
+        # data, not a comment.
+        ("SELECT 'a--b'", "hive", False),
+    ],
+)
+def test_has_comment(sql: str, engine: str, expected: bool) -> None:
+    """Check the `has_comment` method."""
+    assert SQLStatement(sql, engine).has_comment() is expected
