@@ -20,6 +20,7 @@
 import { act, render, waitFor } from 'spec/helpers/testing-library';
 import { stateWithoutNativeFilters } from 'spec/fixtures/mockStore';
 import { BrowserRouter, useHistory } from 'react-router-dom';
+import { FilterBarOrientation } from 'src/dashboard/types';
 import FilterBar from '.';
 import { createFilterKey } from './keyValue';
 
@@ -47,7 +48,7 @@ test.each(['TAB-b', null])(
     let history!: ReturnType<typeof useHistory>;
     const TestFilterBar = () => {
       history = useHistory();
-      return <FilterBar />;
+      return <FilterBar orientation={FilterBarOrientation.Vertical} />;
     };
     let resolveKey!: (key: string | null) => void;
     jest.mocked(createFilterKey).mockReturnValue(
