@@ -291,3 +291,40 @@ export async function getDashboardBySlug(
 ): Promise<DashboardResult | null> {
   return getDashboardByFilter(page, 'slug', slug);
 }
+
+/**
+ * Result of {@link getDashboardsByName}: the total count and matching rows,
+ * mirroring the API's own `{count, result}` envelope for exact-count
+ * assertions (e.g. "exactly one dashboard titled X exists").
+ */
+export interface DashboardsByNameResult {
+  count: number;
+  result: DashboardResult[];
+}
+
+/**
+ * Get every dashboard with an exact `dashboard_title` match.
+ * @param page - Playwright page instance (provides authentication context)
+ * @param title - The dashboard_title to search for
+ * @returns The matching dashboards and their total count
+ */
+export async function getDashboardsByName(
+  page: Page,
+  title: string,
+): Promise<DashboardsByNameResult> {
+  const queryParam = rison.encode({
+    filters: [{ col: 'dashboard_title', opr: 'eq', value: title }],
+  });
+  const response = await apiGet(
+    page,
+    `${ENDPOINTS.DASHBOARD}?q=${queryParam}`,
+    { failOnStatusCode: false },
+  );
+
+  if (!response.ok()) {
+    return { count: 0, result: [] };
+  }
+
+  const body = await response.json();
+  return { count: body.count ?? 0, result: body.result ?? [] };
+}

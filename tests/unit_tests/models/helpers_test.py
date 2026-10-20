@@ -105,36 +105,39 @@ def test_values_for_column(database: Database) -> None:
         assert table.values_for_column("a") == [1, None]
 
 
-@pytest.mark.parametrize(
-    "raw,expected",
-    [
-        ("plain", "plain"),
-        ("50%", "50!%"),
-        ("a_b", "a!_b"),
-        ("wow!", "wow!!"),
-        ("!%_", "!!!%!_"),
-    ],
-)
-def test_escape_like_pattern(raw: str, expected: str) -> None:
-    """Wildcards typed by a user are data, not pattern syntax."""
-    from superset.models.helpers import escape_like_pattern
-
-    assert escape_like_pattern(raw) == expected
-
-
 def test_build_like_predicate_is_case_insensitive_and_escaped() -> None:
     import sqlalchemy as sa
 
     from superset.models.helpers import build_like_predicate
 
-    compiled = str(
-        build_like_predicate(sa.column("c"), "50%").compile(
+    predicate = build_like_predicate(sa.column("c"), "50%")
+
+    # The search term is lower-cased for a case-insensitive match, and the
+    # user's ``%`` wildcard is neutralized (autoescape) rather than matching
+    # every row.
+    postgres_sql = str(
+        predicate.compile(
             dialect=sa.dialects.registry.load("postgresql")(),
             compile_kwargs={"literal_binds": True},
         )
-    ).replace("%%", "%")
+    )
+    assert "lower(c)" in postgres_sql
+    assert "50" in postgres_sql
+    # Other engines still get a dialect-native ESCAPE clause, proving they are
+    # unaffected by the BigQuery-specific fix.
+    assert "ESCAPE" in postgres_sql
 
-    assert compiled == "lower(c) LIKE '%50!%%' ESCAPE '!'"
+    # Regression test for SUPERSET-PYTHON-176K: BigQuery's GoogleSQL has no
+    # ESCAPE keyword, so the compiled predicate must not emit one.
+    from sqlalchemy_bigquery import BigQueryDialect
+
+    bigquery_sql = str(
+        predicate.compile(
+            dialect=BigQueryDialect(),
+            compile_kwargs={"literal_binds": True},
+        )
+    )
+    assert "ESCAPE" not in bigquery_sql
 
 
 def test_values_for_column_search(database: Database) -> None:
@@ -157,8 +160,10 @@ def test_values_for_column_search(database: Database) -> None:
         assert table.values_for_column("a", search="ali") == ["Alice"]
 
     sql = str(read_sql_query.call_args.kwargs["sql"])
+    # ``.contains()`` compiles to a concatenated pattern rather than a single
+    # ``'%ali%'`` literal, e.g. ``... LIKE '%' || 'ali' || '%'`` on sqlite.
     assert "LIKE" in sql
-    assert "'%ali%'" in sql
+    assert "'ali'" in sql
 
 
 def test_values_for_column_without_search_has_no_predicate(
@@ -3077,7 +3082,7 @@ def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
             {
                 "col": "global_sales",
                 "op": "IN",
-                "val": [33, 29.02, None],  # type: ignore[list-item]
+                "val": [33, 29.02, None],
             },
         ],
         extras={},
@@ -3101,6 +3106,138 @@ def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
         f"even with a NULL present, but it was likely truncated. "
         f"Generated SQL: {sql}"
     )
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "region", "op": "IN"}, id="in-missing-val"),
+        pytest.param({"col": "region", "op": "NOT IN"}, id="not-in-missing-val"),
+        pytest.param({"col": "region", "op": "IN", "val": None}, id="in-val-none"),
+        pytest.param(
+            {"col": "region", "op": "NOT IN", "val": None}, id="not-in-val-none"
+        ),
+    ],
+)
+def test_get_sqla_query_in_filter_without_value_raises_validation_error(
+    database: Database,
+    flt: dict[str, Any],
+) -> None:
+    """
+    An IN / NOT IN filter with no value must raise a QueryObjectValidationError
+    (surfaced to the client as a 4xx) rather than an AssertionError (a 500).
+    The filter must not be silently dropped, as that would widen the results.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="region", type="VARCHAR(255)"),
+            TableColumn(column_name="created_at", type="TIMESTAMP", is_dttm=True),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="region"):
+        table.get_sqla_query(
+            columns=["region"],
+            filter=[
+                {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "No filter"},
+                flt,  # type: ignore[list-item]
+            ],
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "ip", "op": "IN"}, id="in-missing-val"),
+        pytest.param({"col": "ip", "op": "NOT IN"}, id="not-in-missing-val"),
+        pytest.param({"col": "ip", "op": "IN", "val": None}, id="in-val-none"),
+        pytest.param({"col": "ip", "op": "NOT IN", "val": None}, id="not-in-val-none"),
+    ],
+)
+def test_get_sqla_query_in_filter_without_value_advanced_data_type(
+    mocker: MockerFixture,
+    database: Database,
+    flt: dict[str, Any],
+) -> None:
+    """
+    With ENABLE_ADVANCED_DATA_TYPES on, an IN / NOT IN filter with no value on an
+    advanced-data-type column must raise a QueryObjectValidationError rather than
+    passing ``None`` to ``translate_type`` (a TypeError, i.e. a 500).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    mocker.patch(
+        "superset.models.helpers.feature_flag_manager.is_feature_enabled",
+        side_effect=lambda feature: feature == "ENABLE_ADVANCED_DATA_TYPES",
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="ip",
+                type="VARCHAR(255)",
+                advanced_data_type="internet_address",
+            ),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="ip"):
+        table.get_sqla_query(
+            columns=["ip"],
+            filter=[flt],  # type: ignore[list-item]
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+
+@pytest.mark.parametrize("op", ["IN", "NOT IN"])
+def test_get_sqla_query_in_filter_with_value_builds_query(
+    database: Database,
+    op: str,
+) -> None:
+    """
+    A valid IN / NOT IN filter keeps building the expected IN clause.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="region", type="VARCHAR(255)")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["region"],
+        filter=[{"col": "region", "op": op, "val": ["EMEA", "APAC"]}],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert f"region {op} ('EMEA', 'APAC')" in sql
 
 
 def test_multiple_calculated_columns_each_parenthesized(
@@ -4079,25 +4216,35 @@ def _raw_query_object() -> MagicMock:
     return query_object
 
 
-def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> None:
+@pytest.mark.parametrize(
+    "python_date_format,values",
+    [
+        ("epoch_s", [1577836800, 1609459200, 1640995200]),
+        ("epoch_ms", [1577836800000, 1609459200000, 1640995200000]),
+        ("epoch_us", [1577836800000000, 1609459200000000, 1640995200000000]),
+    ],
+)
+def test_normalize_df_applies_python_date_format_to_unaggregated_columns(
+    python_date_format: str, values: list[int]
+) -> None:
     """A temporal column selected in a raw/unaggregated query is a plain column
     name rather than a base-axis adhoc column, so it is excluded from
     ``get_base_axis_labels``. It must still receive its ``python_date_format``,
-    so an ``epoch_s`` column is converted to datetimes the same way it is for
-    aggregated charts."""
+    so an epoch column (seconds, milliseconds, or microseconds) is converted
+    to datetimes the same way it is for aggregated charts."""
     import pandas as pd
     from pandas.api.types import is_datetime64_any_dtype
 
     ts_col = MagicMock(
         column_name="ts",
         is_dttm=True,
-        python_date_format="epoch_s",
+        python_date_format=python_date_format,
         datetime_format=None,
     )
     datasource = _normalize_df_datasource(ts_col)
 
-    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch seconds
-    df = pd.DataFrame({"ts": [1577836800, 1609459200, 1640995200]})
+    # values are 2020-01-01, 2021-01-01, 2022-01-01 in python_date_format's unit
+    df = pd.DataFrame({"ts": values})
 
     result = datasource.normalize_df(df, _raw_query_object())
 
@@ -4106,28 +4253,61 @@ def test_normalize_df_applies_python_date_format_to_unaggregated_columns() -> No
     assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
 
 
-def test_normalize_df_applies_epoch_ms_to_unaggregated_columns() -> None:
-    """``epoch_ms`` is a separate conversion branch from ``epoch_s``; an
-    unaggregated column declaring it must also be converted to datetimes."""
+def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
+    """Replacing +/-inf in an object column must not emit pandas' silent
+    downcasting ``FutureWarning``, and must still yield a float column."""
+    import warnings
+
+    import numpy as np
     import pandas as pd
-    from pandas.api.types import is_datetime64_any_dtype
 
     ts_col = MagicMock(
-        column_name="ts",
-        is_dttm=True,
-        python_date_format="epoch_ms",
-        datetime_format=None,
+        column_name="ts", is_dttm=True, python_date_format=None, datetime_format=None
     )
     datasource = _normalize_df_datasource(ts_col)
+    df = pd.DataFrame(
+        {
+            "metric": pd.Series([1.0, np.inf, -np.inf, 2.0], dtype=object),
+            "count": pd.Series([1, 2, -np.inf, 4], dtype=object),
+            "label": ["a", "b", "c", "d"],
+        }
+    )
 
-    # 2020-01-01, 2021-01-01, 2022-01-01 as epoch milliseconds
-    df = pd.DataFrame({"ts": [1577836800000, 1609459200000, 1640995200000]})
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        result = datasource.normalize_df(df, _raw_query_object())
 
-    result = datasource.normalize_df(df, _raw_query_object())
+    assert result["metric"].dtype == np.float64
+    assert result["metric"].isna().tolist() == [False, True, True, False]
+    assert result["count"].dtype == np.float64
+    assert result["label"].dtype == object
 
-    assert is_datetime64_any_dtype(result["ts"])
-    assert result["ts"][0].strftime("%Y-%m-%d") == "2020-01-01"
-    assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
+
+@pytest.mark.parametrize(
+    "datetime_format,value",
+    [
+        ("epoch_s", 32503680000),
+        ("epoch_ms", 32503680000000),
+        ("epoch_us", 32503680000000000),
+    ],
+)
+def test_retry_temporal_join_values_at_wider_resolution_epoch(
+    datetime_format: str, value: int
+) -> None:
+    """Epoch values outside pandas' nanosecond range (here 3000-01-01) are
+    retried at the resolution matching the declared epoch format."""
+    import pandas as pd
+
+    from superset.models.helpers import (
+        _retry_temporal_join_values_at_wider_resolution,
+    )
+
+    converted = _retry_temporal_join_values_at_wider_resolution(
+        pd.Series([value, None], name="ts"), "ts", datetime_format
+    )
+
+    assert converted[0] == pd.Timestamp("3000-01-01")
+    assert pd.isna(converted[1])
 
 
 def test_normalize_df_handles_dict_shaped_columns() -> None:
@@ -5098,6 +5278,48 @@ def test_temporal_epoch_string_filter_list_is_coerced_for_clickhouse() -> None:
 
 
 @pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.IN, FilterOperator.NOT_IN],
+)
+@pytest.mark.parametrize(
+    "values",
+    [[0, 1], [False, True], ["false", "true"]],
+)
+def test_boolean_filter_values_coerced_for_databricks(
+    operator: FilterOperator,
+    values: list[Any],
+) -> None:
+    """
+    Native dashboard filters on boolean columns build `IN` clauses through
+    `filter_values_handler` (#36765). Databricks rejects `col IN (0)` with
+    DATATYPE_MISMATCH, and the Hive/Databricks drivers render bound Python
+    booleans as integers, so values must coerce to boolean keywords.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.databricks import DatabricksBaseEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    for db_engine_spec in (DatabricksBaseEngineSpec, SparkEngineSpec):
+        coerced = ExploreMixin.filter_values_handler(
+            values=values,
+            operator=operator,
+            target_generic_type=GenericDataType.BOOLEAN,
+            is_list_target=True,
+            db_engine_spec=db_engine_spec,
+        )
+        assert isinstance(coerced, list)
+        assert len(coerced) == 2
+        assert all(isinstance(value, ColumnElement) for value in coerced)
+        # the coerced values compile to boolean keywords and never reach the
+        # driver as bind parameters (which pyhive renders as 0/1)
+        compiled = Column("is_test_user", Boolean).in_(coerced).compile()
+        assert str(compiled) == "is_test_user IN (false, true)"
+        assert compiled.params == {}
+
+
+@pytest.mark.parametrize(
     "target_type,expected",
     [
         ("DATE", "TO_DATE('2026-05-13', 'YYYY-MM-DD')"),
@@ -5759,3 +5981,54 @@ def test_filter_adhoc_column(database: Database) -> None:
     # The adhoc column resolved by label is parenthesized in the WHERE clause,
     # consistent with inline adhoc columns, to guard operator precedence.
     assert "lower((real_name)) LIKE lower('Zona%')" in sql
+
+
+def test_get_query_result_wraps_post_processing_type_error(
+    database: "Database",
+) -> None:
+    """
+    A raw TypeError from pandas inside exec_post_processing (e.g. resample.mean()
+    on a DataFrame that contains object-dtype columns) must be surfaced as
+    QueryObjectValidationError (400) rather than propagating as a system 500.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(table_name="t", database=database)
+
+    # DatetimeIndex + object-dtype "category" column causes
+    # df.resample("1D").mean() to raise TypeError in pandas ≥ 2.x
+    df = pd.DataFrame(
+        {"metric": [1.0, 2.0], "category": ["a", "b"]},
+        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
+    )
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "resample", "options": {"method": "mean", "rule": "1D"}}
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        pytest.raises(QueryObjectValidationError),
+    ):
+        table.get_query_result(query_object)

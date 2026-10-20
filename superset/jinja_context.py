@@ -31,10 +31,11 @@ from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedEr
 from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
@@ -294,6 +295,15 @@ class ExtraCache:
             if add_to_cache_keys:
                 self.cache_key_wrapper(json.dumps(user_roles))
             return user_roles
+        except SQLAlchemyError:
+            # `get_user_roles()` lazy-loads roles from db.session, so a caught
+            # DB error can leave it in "pending rollback" state. This runs
+            # during SQL templating, upstream of the engine build that would
+            # otherwise inherit the failed transaction. Narrower than the
+            # blanket handler below so a non-DB failure (e.g. serializing the
+            # roles for the cache key) never discards pending work.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return None
         except Exception:  # pylint: disable=broad-except
             return None
 
@@ -891,6 +901,11 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             for bind in binds
         ]
         joined_values = ", ".join(string_representations)
+        # The macro returns literal SQL, not a DBAPI parameterized statement.
+        # Undo only the compiler's percent escaping, as compile_sqla_query does;
+        # SQL Lab executes the rendered query without a parameters object.
+        if self.dialect.identifier_preparer._double_percents:  # pylint: disable=protected-access
+            joined_values = joined_values.replace("%%", "%")
         result = (
             f"({joined_values})" if (joined_values or not default_to_none) else None
         )
@@ -936,6 +951,23 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
         if isinstance(obj, partial):
             return False
         return super().is_safe_attribute(obj, attr, value)
+
+
+# Names taken by ``BaseTemplateProcessor.__init__`` as structural arguments
+# rather than passed through ``set_context``, so they are never exposed as
+# Jinja variables in the render context. A define/repoint access check renders
+# the SQL with the submitted ``template_params``; dropping these first keeps
+# that render matching execution (see ``template_params_for_access_check``).
+RESERVED_TEMPLATE_PARAM_NAMES: frozenset[str] = frozenset(
+    {
+        "database",
+        "query",
+        "table",
+        "extra_cache_keys",
+        "removed_filters",
+        "applied_filters",
+    }
+)
 
 
 class BaseTemplateProcessor:

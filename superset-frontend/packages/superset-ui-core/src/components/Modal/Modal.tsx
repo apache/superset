@@ -233,6 +233,29 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
   },
 });
 
+/** Merge caller overrides without dropping default resize-handle guards. */
+export function mergeResizableConfig(
+  hideFooter: boolean | undefined,
+  overrides: ModalProps['resizableConfig'] = {},
+): NonNullable<ModalProps['resizableConfig']> {
+  const defaults = defaultResizableConfig(hideFooter);
+  if (!overrides || Object.keys(overrides).length === 0) {
+    return defaults;
+  }
+  const { enable: enableOverride, ...restOverrides } = overrides;
+  return {
+    ...defaults,
+    ...restOverrides,
+    enable:
+      enableOverride === false
+        ? false
+        : {
+            ...defaults.enable,
+            ...(typeof enableOverride === 'object' ? enableOverride : {}),
+          },
+  };
+}
+
 const CustomModal = ({
   children,
   disablePrimaryButton = false,
@@ -330,12 +353,10 @@ const CustomModal = ({
     }
   };
 
-  const getResizableConfig = useMemo(() => {
-    if (Object.keys(resizableConfig).length === 0) {
-      return defaultResizableConfig(hideFooter);
-    }
-    return resizableConfig;
-  }, [hideFooter, resizableConfig]);
+  const getResizableConfig = useMemo(
+    () => mergeResizableConfig(hideFooter, resizableConfig),
+    [hideFooter, resizableConfig],
+  );
 
   const ModalTitle = () =>
     draggable ? <div className="draggable-trigger">{title}</div> : <>{title}</>;

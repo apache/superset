@@ -203,8 +203,7 @@ test('dashboard groups head with the save date and expand to descriptive rows', 
 test('a group without a versionUuid offers no kebab at all', async () => {
   // Restore and open-as-new both name a specific version; the container
   // handlers silently no-op on a null versionUuid, so offering the menu
-  // reads as breakage. No kebab beats a dead menu — and the expanded
-  // action rows hide theirs for the same reason.
+  // reads as breakage. No kebab beats a dead menu.
   const versionless = group({ transactionId: 3, versionUuid: null });
   const props = defaultProps([versionless], 'dashboard');
   render(<VersionHistoryPanel {...props} />);
@@ -414,6 +413,38 @@ test('related rows link to the entity unless it was deleted', () => {
     screen.queryByRole('button', { name: 'Trend' }),
   ).not.toBeInTheDocument();
   expect(screen.getByText(/\(deleted\)/)).toBeInTheDocument();
+});
+
+test('a related row spanning several kinds of change gets a neutral linked headline', () => {
+  // Server order: newest sequence first, so the metric record leads.
+  const sales = {
+    source: 'related' as const,
+    entity_kind: 'dataset' as const,
+    entity_name: 'Sales',
+    entity_uuid: 'ds-1',
+    transaction_id: 40,
+  };
+  const props = defaultProps(
+    buildTimeline([
+      record({
+        ...sales,
+        kind: 'metric',
+        summary: 'Dataset metric changed: Sales',
+      }),
+      record({
+        ...sales,
+        kind: 'column',
+        summary: 'Dataset column changed: Sales',
+      }),
+      record({ ...sales, kind: 'field', summary: 'Dataset updated: Sales' }),
+    ]),
+  );
+  props.onOpenRelated = jest.fn();
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(screen.getByRole('button', { name: 'Sales' })).toBeInTheDocument();
+  expect(screen.getByText(/Dataset updated:/)).toBeInTheDocument();
+  expect(screen.queryByText(/metric changed/)).not.toBeInTheDocument();
 });
 
 test('same-transaction related cascades roll up into one pluralized row', async () => {

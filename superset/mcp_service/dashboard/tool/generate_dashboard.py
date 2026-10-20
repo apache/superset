@@ -22,14 +22,15 @@ This tool creates a new dashboard with specified charts and layout configuration
 """
 
 import logging
-from typing import Any, Dict, List
+from typing import Annotated, Any, Dict, List
 
 from fastmcp import Context
 from flask import g
-from pydantic import ValidationError
+from pydantic import Field, ValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.dashboards.layout import repair_position
 from superset.extensions import db, event_logger
 from superset.mcp_service.dashboard.constants import (
     generate_id,
@@ -197,7 +198,19 @@ def _generate_title_from_charts(chart_objects: List[Any]) -> str:
     ),
 )
 def generate_dashboard(  # noqa: C901
-    request: GenerateDashboardRequest, ctx: Context
+    request: Annotated[
+        GenerateDashboardRequest,
+        Field(
+            description=(
+                'Wrap as {"request": {"chart_ids": [1], "dashboard_title": "New"}}. '
+                "Charts must exist and be accessible. NEW dashboards only; "
+                "use add_chart_to_existing_dashboard for existing ones. "
+                "Never use as a fallback if that fails. "
+                "position_json overrides the default grid."
+            )
+        ),
+    ],
+    ctx: Context,
 ) -> GenerateDashboardResponse:
     """Create a NEW dashboard from chart IDs.
 
@@ -277,7 +290,7 @@ def generate_dashboard(  # noqa: C901
                 # ancestor chains so server-side filter-scope derivation
                 # sees the same tree the frontend would after hydration.
                 # See superset.dashboards.filter_scope.get_chart_ids_in_scope.
-                layout = rebuild_parent_chains(request.position_json)
+                layout = rebuild_parent_chains(repair_position(request.position_json))
             else:
                 layout = _create_dashboard_layout(chart_objects)
 

@@ -396,15 +396,10 @@ export default function SaveGroupItem({
               key={`${record.kind}-${record.operation}-${JSON.stringify(
                 record.path,
               )}-${index}`}
-              entityType={entityType}
               record={record}
-              showRestore={canRestore && !isCurrent}
-              showActions={group.versionUuid != null}
               isHighlighted={isHighlighted}
               isLast={index === visibleRecords.length - 1 && hiddenCount === 0}
               onPreview={previewIntent}
-              onRestore={() => onRestore(group)}
-              onOpenAsNew={() => onOpenAsNew(group)}
             />
           ))}
           {hiddenCount > 0 && (

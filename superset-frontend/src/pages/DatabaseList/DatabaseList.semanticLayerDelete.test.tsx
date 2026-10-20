@@ -29,6 +29,12 @@ import {
 } from 'spec/helpers/testing-library';
 import userEvent from '@testing-library/user-event';
 import DatabaseList from 'src/pages/DatabaseList';
+import { ComponentType } from 'react';
+
+jest.mock('src/components/MessageToasts/withToasts', () => ({
+  __esModule: true,
+  default: <P extends object>(Component: ComponentType<P>) => Component,
+}));
 
 /**
  * Deleting a semantic layer cascade-deletes its semantic views (SC-108418).
@@ -96,9 +102,11 @@ const setupMocks = ({
   rows = [semanticLayerRow],
   permissions = ['can_read', 'can_write', 'can_export'],
   uploadResponse = { result: [], count: 0 },
+  deleteError,
 }: {
   dependents: { id: number; table_name: string }[];
   dependentsError?: boolean;
+  deleteError?: string;
   rows?: (typeof semanticLayerRow)[];
   permissions?: string[];
   uploadResponse?:
@@ -127,10 +135,13 @@ const setupMocks = ({
       { name: DATASOURCE_ROUTE },
     );
   }
-  fetchMock.delete(DELETE_ROUTE, {});
+  fetchMock.delete(
+    DELETE_ROUTE,
+    deleteError ? { status: 409, body: { message: deleteError } } : {},
+  );
 };
 
-const renderDatabaseList = (user = mockUser) => {
+const renderDatabaseList = (user = mockUser, addDangerToast = jest.fn()) => {
   const store = configureStore({
     reducer: {
       user: (state = user) => state,
@@ -150,11 +161,18 @@ const renderDatabaseList = (user = mockUser) => {
       getDefaultMiddleware({ serializableCheck: false, immutableCheck: false }),
   });
 
-  return render(<DatabaseList user={user} />, {
-    store,
-    useQueryParams: true,
-    useRouter: true,
-  });
+  return render(
+    <DatabaseList
+      user={user}
+      addDangerToast={addDangerToast}
+      addSuccessToast={jest.fn()}
+    />,
+    {
+      store,
+      useQueryParams: true,
+      useRouter: true,
+    },
+  );
 };
 
 const openDeleteModal = async () => {
@@ -421,6 +439,25 @@ test("a stale lookup resolving late cannot replace a newer row's modal", async (
     within(screen.getByRole('dialog')).getByText('fresh_view'),
   ).toBeInTheDocument();
   expect(screen.queryByText('stale_view')).not.toBeInTheDocument();
+});
+
+test('layer delete displays the counted dependency conflict', async () => {
+  const reason =
+    'Semantic source is used by 25 dependent assets and cannot be deleted.';
+  setupMocks({ dependents: [], deleteError: reason });
+  const addDangerToast = jest.fn();
+  renderDatabaseList(mockUser, addDangerToast);
+  const dialog = await openDeleteModal();
+  await userEvent.type(
+    within(dialog).getByTestId('delete-modal-input'),
+    'DELETE',
+  );
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+  await waitFor(() =>
+    expect(addDangerToast).toHaveBeenCalledWith(
+      `There was an issue deleting Demo Semantic Layer: ${reason}`,
+    ),
+  );
 });
 
 test('confirming the modal deletes the semantic layer', async () => {
