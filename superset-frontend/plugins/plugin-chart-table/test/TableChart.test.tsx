@@ -2620,7 +2620,7 @@ describe('plugin-chart-table', () => {
 
         await waitFor(() => {
           expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByLabelText('Search records')).toHaveValue(
+          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
             'Michael',
           );
         });
@@ -3067,6 +3067,60 @@ describe('plugin-chart-table', () => {
       expect(filters[0].col).toBe('name');
       expect(filters[0].val).toEqual(['Michael']);
     });
+  });
+
+  test('search box placeholder and label show the record count', () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        include_search: true,
+        server_pagination: false,
+      },
+    });
+    props.includeSearch = true;
+
+    render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    const recordCount = testData.basic.queriesData[0].data.length;
+    const searchInput = screen.getByRole('textbox');
+    expect(searchInput).toHaveAttribute(
+      'placeholder',
+      `${recordCount} records...`,
+    );
+    expect(searchInput).toHaveAccessibleName(`Search ${recordCount} records`);
+  });
+
+  test('search box label uses the singular form for one record', () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        include_search: true,
+        server_pagination: false,
+      },
+      queriesData: [
+        {
+          ...testData.basic.queriesData[0],
+          data: [testData.basic.queriesData[0].data[0]],
+        },
+      ],
+    });
+    props.includeSearch = true;
+
+    render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    const searchInput = screen.getByRole('textbox');
+    expect(searchInput).toHaveAttribute('placeholder', '1 record...');
+    expect(searchInput).toHaveAccessibleName('Search 1 record');
   });
 
   test('does not render "Search by" if there are no search options (server pagination enabled)', () => {

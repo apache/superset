@@ -24,6 +24,40 @@ The following information about each flight is given:
 - Information about the origin and destination.
 - The distance between the origin and destination, in kilometers (km).
 
+### Stopping a SQL Lab query
+
+SQL Lab records Stop before attempting engine cancellation. Once recorded, the
+Stop API returns HTTP 200, the UI shows the query as stopped, and an async query
+handle's `cancel()` returns `True`. Cancellation-related failures, later worker
+timeouts, and failures to save cancellation metadata do not replace that outcome.
+Repeated Stop requests preserve the original stop time and do not retry engine
+cancellation.
+
+Engine cancellation is best-effort: if the engine is unreachable, provides no
+cancellation handle, or rejects cancellation, its statement may run to completion,
+but SQL Lab discards its results. The UI still shows “Query was stopped.”, not a
+stop-failure toast. Stopping cannot undo changes the engine commits during
+execution, including autocommit mutations, implicit-commit DDL, or explicit SQL
+commits.
+
+With PostgreSQL or MySQL metadata databases, Stop and the worker's final target
+transaction commit are serialized using a query-row lock. If Stop wins, the
+worker does not commit its transactional changes. If the worker wins, Stop is
+rejected with HTTP 422 (`cancel()` returns `False`), even while SQL Lab is still
+preparing the results. The response contains the recorded query, which can still
+be running at that point. A query that already finished likewise keeps its
+success, failure, or timeout outcome. SQL Lab refreshes a finished query's outcome
+without a stop-failure toast. If the target commit wins while the query is still
+running, SQL Lab shows “Failed to stop query.” instead: the changes have committed,
+but result preparation has not finished.
+
+SQLite metadata databases do not support this row lock: a Stop accepted between
+the worker's final stop check and its target commit can still leave transactional
+changes committed. Target and metadata commits cannot be atomic across databases;
+if recording the target-committed marker fails after the target commit, changes
+can also persist without that marker. A stopped state is therefore not a general
+promise that database changes were rolled back.
+
 ### Semantic Table time grains
 
 For a Table chart backed by a semantic view, Time Grain applies when grouping by
@@ -409,7 +443,22 @@ to be drawn as zero across the entire day rather than only around the hours that
 Lastly, save your chart as Tutorial Resample and add it to the Tutorial Dashboard. Go to the
 tutorial dashboard to see the four charts side by side and compare the different outputs.
 
+### Stopping chart queries
+
+In Explore, a mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not
+update the chart if the query finishes while the button is held, including when
+the browser delivers the release click without pointer metadata. With multiple touch
+presses, these clicks follow the order in which the pointers were released. Release and press
+**Create chart** or **Update chart** again to intentionally run another query.
+Escape cancels a held Space activation, including its release. Holding Enter
+starts at most one query until you release it and press again. Cancelling a press
+does not block a later independent assistive-technology activation.
+
 ### SQL Lab Tips
+
+**Run/Stop button**: A mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not run the SQL if the query finishes while the button is held. Release and press **Run** again to start another execution. Escape cancels a held Space activation, including its eventual release; moving focus away also cancels keyboard activation. Holding Enter starts at most one execution, even if it finishes before you release the key. Releasing a pointer outside the button cancels that press. An independent assistive-technology or programmatic click still performs the action displayed on the button. This also applies to the CTAS/CVAS main button.
+
+**Stopping queries**: An accepted Stop shows “Query was stopped.” even if engine cancellation fails. A finished query refreshes its completed outcome without a stop-failure toast. A Stop rejected after the target commit, while result preparation is still running, shows the “Failed to stop query.” toast. See [Stopping a SQL Lab query](#stopping-a-sql-lab-query) for transaction guarantees and metadata-database limitations.
 
 **Schema and table browser**: The left-side table browser uses a collapsible treeview — click a schema to expand its tables, and click a table to see its columns and sample data inline. This makes navigating large schemas much faster than the previous flat list.
 

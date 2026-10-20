@@ -251,6 +251,7 @@ export default function PivotTableChart(props: PivotTableProps) {
     currencyFormats,
     metricsLayout,
     showValuesAs,
+    aggregateFunction,
     metricColorFormatters,
     dateFormatters,
     onContextMenu,
@@ -759,6 +760,7 @@ export default function PivotTableChart(props: PivotTableProps) {
           onContextMenu={handleContextMenu}
           allowRenderHtml={allowRenderHtml}
           showValuesAs={showValuesAs}
+          aggregateFunction={aggregateFunction}
         />
       </PivotTableWrapper>
     </Styles>

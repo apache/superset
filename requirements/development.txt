@@ -112,7 +112,7 @@ cachelib==0.17.0
     #   -c requirements/base-constraint.txt
     #   flask-caching
     #   flask-session
-cachetools==7.2.0
+cachetools==7.2.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -176,7 +176,7 @@ click-repl==0.3.0
     # via
     #   -c requirements/base-constraint.txt
     #   celery
-clickhouse-connect==1.9.0
+clickhouse-connect==1.10.1
     # via apache-superset
 cmdstanpy==1.1.0
     # via prophet
@@ -670,7 +670,7 @@ opensearch-py==2.8.0
     # via elasticsearch-dbapi
 opentelemetry-api==1.39.1
     # via fastmcp-slim
-oracledb==4.0.2
+oracledb==26.0.0
     # via
     #   apache-superset
     #   testcontainers
@@ -759,7 +759,7 @@ propcache==0.5.2
     # via
     #   aiohttp
     #   yarl
-prophet==1.4.0
+prophet==1.5.0
     # via apache-superset
 proto-plus==1.25.0
     # via google-api-core
@@ -800,7 +800,7 @@ pycparser==2.22
     # via
     #   -c requirements/base-constraint.txt
     #   cffi
-pydantic==2.13.5
+pydantic==2.14.1
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -809,7 +809,7 @@ pydantic==2.13.5
     #   mcp
     #   openapi-pydantic
     #   pydantic-settings
-pydantic-core==2.46.5
+pydantic-core==2.50.1
     # via
     #   -c requirements/base-constraint.txt
     #   pydantic
@@ -1082,7 +1082,7 @@ sqlalchemy-monetdb==2.1.0
     # via apache-superset
 sqlalchemy-risingwave==2.1.0
     # via apache-superset
-sqlalchemy-utils==0.42.1
+sqlalchemy-utils==0.43.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -1110,7 +1110,7 @@ starrocks==1.3.4
     # via apache-superset
 statsd==4.0.1
     # via apache-superset
-syntaqlite==0.9.0
+syntaqlite==0.12.1
     # via apache-superset
 tabulate==0.10.0
     # via
@@ -1159,7 +1159,7 @@ typing-extensions==4.16.0
     #   starlette
     #   testcontainers
     #   typing-inspection
-typing-inspection==0.4.2
+typing-inspection==0.4.4
     # via
     #   -c requirements/base-constraint.txt
     #   mcp

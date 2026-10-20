@@ -16,23 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { TestRunnerConfig } from '@storybook/test-runner';
+import { ChartProps } from '@superset-ui/core';
+import baseTransformProps from '../transformProps';
 
 /**
- * Test runner configuration for Storybook smoke tests.
- *
- * The test-runner visits each story and verifies it renders without errors.
- * These are basic smoke tests - they don't test interactions or assertions,
- * just that stories can render successfully.
+ * The shared deck.gl props plus `isRefreshing`. ChartRenderer keeps this chart
+ * mounted through a dashboard auto-refresh, and since its layers fetch their
+ * own data, the chart needs the signal to reload them.
  */
-const config: TestRunnerConfig = {
-  async preVisit(page) {
-    // Listen for page errors (JavaScript exceptions) and log them
-    // This helps identify stories that crash during rendering
-    page.on('pageerror', error => {
-      console.error(`[page error] ${error.message}`);
-    });
-  },
-};
-
-export default config;
+export default function transformProps(chartProps: ChartProps) {
+  return {
+    ...baseTransformProps(chartProps),
+    isRefreshing: chartProps.isRefreshing,
+  };
+}
