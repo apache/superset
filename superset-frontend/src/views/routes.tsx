@@ -130,6 +130,11 @@ const Tags = lazyWithRetry(
   () => import(/* webpackChunkName: "Tags" */ 'src/pages/Tags'),
 );
 
+const ExtensionPage = lazyWithRetry(
+  () =>
+    import(/* webpackChunkName: "ExtensionPage" */ 'src/pages/ExtensionPage'),
+);
+
 const Extensions = lazyWithRetry(
   () =>
     import(
@@ -309,6 +314,17 @@ if (isAdmin) {
   if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
     routes.push({ path: RoutePaths.EXTENSIONS, Component: Extensions });
   }
+}
+
+if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+  // One route for every page every extension contributes, mirroring the
+  // single server-side rule. `:extensionId` is matched loosely here and
+  // validated by the server; what actually decides whether a path is served
+  // is whether an extension registered a page for it.
+  routes.push({
+    path: '/extensions/:extensionId/:slug',
+    Component: ExtensionPage,
+  });
 }
 
 if (authRegistrationEnabled) {
