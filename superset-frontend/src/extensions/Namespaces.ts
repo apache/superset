@@ -37,6 +37,7 @@ import type {
   navigation,
   sqlLab,
   views,
+  window as windowNamespace,
 } from 'src/core';
 
 /** The host namespaces exposed to extensions on `window.superset`. */
@@ -51,6 +52,7 @@ export interface Namespaces {
   navigation: typeof navigation;
   sqlLab: typeof sqlLab;
   views: typeof views;
+  window: typeof windowNamespace;
 }
 
 declare global {
