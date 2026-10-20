@@ -163,7 +163,8 @@ function TimeseriesLegend({
 
   const isEmpty = items.length === 0;
   const noSpace =
-    isVertical ? (maxWidth !== undefined && maxWidth <= 0) : maxHeight <= 0;
+    maxHeight <= 0 ||
+    (isVertical ? maxWidth !== undefined && maxWidth <= 0 : false);
 
   if (isEmpty || noSpace) {
     return null;
@@ -172,7 +173,7 @@ function TimeseriesLegend({
   return (
     <LegendViewport
       data-test="timeseries-custom-legend"
-      maxHeight={isVertical ? 0 : maxHeight}
+      maxHeight={maxHeight}
       maxWidth={isVertical ? maxWidth : undefined}
     >
       {showSelectors && (
