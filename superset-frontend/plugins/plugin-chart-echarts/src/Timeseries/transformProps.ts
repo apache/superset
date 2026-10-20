@@ -432,6 +432,18 @@ export default function transformProps(
   // derived comparison row from a base row whose dimension value happens to read like
   // the offset, and it is gone from `labelMap` by the time the formatters run.
   const derivedComparisonSeries = new Set<string>();
+  // The `<metric>, <offset>` labels `renameOperator` generates when more than one
+  // metric (displayed or sort-only) is pivoted with an actual-values comparison.
+  const metricOffsetLabels = new Set(
+    [
+      ...ensureIsArray(metrics),
+      ...extractExtraMetrics(chartProps.rawFormData),
+    ].flatMap(metric =>
+      ensureIsArray(timeCompare).map(
+        offset => `${getMetricLabel(metric)}, ${offset}`,
+      ),
+    ),
+  );
   const labelMap: { [key: string]: string[] } = Object.entries(
     label_map,
   ).reduce((acc, entry) => {
@@ -445,7 +457,7 @@ export default function transformProps(
     } else if (
       entry[1].length > groupBy.length &&
       Array.isArray(timeCompare) &&
-      timeCompare.some(offset => entry[1][0].endsWith(`, ${offset}`))
+      metricOffsetLabels.has(entry[1][0])
     ) {
       // `renameOperator` emits `<metric>, <offset>` as the leading part when more
       // than one metric is pivoted (including a hidden sort-only metric), so the
