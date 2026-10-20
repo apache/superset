@@ -4799,3 +4799,75 @@ test('Teams saved recipients remain visible when deployment configuration is rem
     fetchMock.removeRoute('teams-unavailable');
   }
 });
+
+test('Teams unavailable saved keys can be replaced without losing inactive state', async () => {
+  mockNotificationMethods = ['Email', 'Teams'];
+  fetchMock.get('glob:*/api/v1/report/94', {
+    result: {
+      ...generateMockPayload(true),
+      id: 94,
+      active: false,
+      report_format: 'NONE',
+      recipients: [
+        {
+          id: 1,
+          type: 'Teams',
+          recipient_config_json: { target: 'removed-key' },
+        },
+      ],
+    },
+  });
+  fetchMock.get(
+    'glob:*/api/v1/report/teams_destinations/',
+    {
+      result: [{ key: 'ops', label: 'Operations', available: false }],
+    },
+    { name: 'teams-replacement' },
+  );
+  fetchMock.put(
+    'glob:*/api/v1/report/94',
+    { id: 94, result: {} },
+    { name: 'teams-replacement-save' },
+  );
+  try {
+    render(
+      <AlertReportModal
+        {...generateMockedProps(false, true)}
+        alert={{ ...validAlert, id: 94 }}
+      />,
+      {
+        useRedux: true,
+        initialState: { user: adminUser },
+      },
+    );
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    expect(
+      await screen.findByText('removed-key (Unavailable)'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('combobox', { name: 'Teams destination' }),
+    );
+    await userEvent.click(
+      await screen.findByText('Operations (Bot installation required)'),
+    );
+    expect(
+      screen.queryByText(/This saved Teams destination is unavailable/),
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /save/i }));
+    await waitFor(() =>
+      expect(
+        fetchMock.callHistory.calls('teams-replacement-save'),
+      ).toHaveLength(1),
+    );
+    const [call] = fetchMock.callHistory.calls('teams-replacement-save');
+    const payload = JSON.parse(call.options.body as string);
+    expect(payload.active).toBe(false);
+    expect(payload.report_format).toBe('NONE');
+    expect(payload.recipients).toEqual([
+      { type: 'Teams', recipient_config_json: { target: 'ops' } },
+    ]);
+  } finally {
+    fetchMock.removeRoute('teams-replacement');
+    fetchMock.removeRoute('teams-replacement-save');
+  }
+});
