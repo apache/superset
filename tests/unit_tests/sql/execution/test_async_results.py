@@ -752,6 +752,7 @@ def test_legacy_cache_without_column_metadata_preserves_values(
     )
     assert result.status == QueryStatus.SUCCESS, result.error_message
     assert result.is_cached
+    assert result.statements[0].data is not None
     assert result.statements[0].data["id"].tolist() == [value, None]
     pd.testing.assert_frame_equal(
         result.statements[0].data,
@@ -891,6 +892,7 @@ def test_corrupt_cache_is_a_miss(
         result = executor.execute(sql)
         assert result.status == QueryStatus.SUCCESS, result.error_message
         assert not result.is_cached
+        assert result.statements[0].data is not None
         assert result.statements[0].data["value"].tolist() == [1]
 
 
