@@ -213,9 +213,10 @@ def test_copy_archived_slot_policy_and_restore(
         assert {chart.id for chart in copied.slices} == source_ids
 
 
+@pytest.mark.parametrize("duplicate_slices", [False, True])
 @pytest.mark.parametrize("kept", [["first"], []])
 def test_copy_without_charts_dropped_from_layout(
-    session: Session, kept: list[str]
+    session: Session, kept: list[str], duplicate_slices: bool
 ) -> None:
     """A copy whose layout drops current members only links the layout's charts.
 
@@ -244,6 +245,8 @@ def test_copy_without_charts_dropped_from_layout(
         f"CHART-{name}": {"type": "CHART", "meta": {"chartId": charts[name].id}}
         for name in kept
     }
+    chart_count: int = db.session.query(Slice).count()
+    orphan_count: int = db.session.query(Slice).filter(~Slice.dashboards.any()).count()
     mock_g: MagicMock
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
@@ -254,11 +257,26 @@ def test_copy_without_charts_dropped_from_layout(
             source,
             {
                 "dashboard_title": "copy",
+                "duplicate_slices": duplicate_slices,
                 "json_metadata": json.dumps({"positions": positions}),
             },
         )
     db.session.expire_all()
-    assert {chart.id for chart in copied.slices} == {charts[name].id for name in kept}
+    assert {chart.slice_name for chart in copied.slices} == set(kept)
+    assert db.session.query(Slice).count() == chart_count + (
+        len(kept) if duplicate_slices else 0
+    )
+    assert (
+        db.session.query(Slice).filter(~Slice.dashboards.any()).count() == orphan_count
+    )
+    if duplicate_slices:
+        assert not {chart.id for chart in copied.slices} & {
+            chart.id for chart in charts.values()
+        }
+    else:
+        assert {chart.id for chart in copied.slices} == {
+            charts[name].id for name in kept
+        }
     assert {chart.id for chart in source.slices} == {
         chart.id for chart in charts.values()
     }

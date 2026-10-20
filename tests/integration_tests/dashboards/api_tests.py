@@ -5410,6 +5410,10 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             if keep_first
             else {}
         )
+        chart_count: int = db.session.query(Slice).count()
+        orphan_count: int = (
+            db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+        )
         self.login(ADMIN_USERNAME)
         copied_id: int | None = None
         try:
@@ -5428,6 +5432,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             expected: set[str] = {"copy-subset-first"} if keep_first else set()
             assert {chart.slice_name for chart in copied.slices} == expected
             assert {chart.id for chart in dashboard.slices} == source_members
+            assert db.session.query(Slice).count() == chart_count + (
+                len(expected) if duplicate_slices else 0
+            )
+            assert (
+                db.session.query(Slice).filter(~Slice.dashboards.any()).count()
+                == orphan_count
+            )
         finally:
             db.session.rollback()
             if copied_id is not None:
