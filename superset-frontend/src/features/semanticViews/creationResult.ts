@@ -21,6 +21,7 @@ import { t } from '@apache-superset/core/translation';
 interface CreationResult {
   created: string[];
   errors: { name: string; message: string }[];
+  failedCount: number;
 }
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
@@ -73,6 +74,10 @@ export function parseCreationResult(body: unknown): CreationResult {
           creationErrorMessage(),
       }))
     : [];
+  // Count server-reported failures, not the synthetic malformed-response error.
+  const failedCount = Array.isArray(result.errors)
+    ? result.errors.filter(isRecord).length
+    : 0;
   if (
     (result.errors !== undefined && !Array.isArray(result.errors)) ||
     !Array.isArray(result.created) ||
@@ -81,5 +86,5 @@ export function parseCreationResult(body: unknown): CreationResult {
   ) {
     errors.push({ name: '', message: creationErrorMessage() });
   }
-  return { created, errors };
+  return { created, errors, failedCount };
 }

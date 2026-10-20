@@ -89,6 +89,11 @@ const ModalContent = styled.div`
   padding: ${({ theme }) => theme.sizeUnit * 4}px;
 `;
 
+const FailureDetails = styled.section`
+  max-height: ${({ theme }) => theme.sizeUnit * 60}px;
+  overflow-y: auto;
+`;
+
 const LoadingContainer = styled.div`
   display: flex;
   justify-content: center;
@@ -382,6 +387,9 @@ export default function AddSemanticViewModal({
       errors?: ErrorObject[];
     }) => {
       if (unmountedRef.current) return;
+      if (stableSerialize(data) !== stableSerialize(runtimeData)) {
+        setCreationErrors([]);
+      }
       setRuntimeData(data);
       errorsRef.current = errors ?? [];
 
@@ -515,6 +523,7 @@ export default function AddSemanticViewModal({
       invalidateViews,
       addDangerToast,
       staleSchemaOptions,
+      runtimeData,
     ],
   );
 
@@ -641,8 +650,13 @@ export default function AddSemanticViewModal({
         }
         body = await error.json();
       }
+      const { created, errors, failedCount } = parseCreationResult(body);
+      // Committed creations must refresh the parent even after this modal closes.
+      if (created.length > 0) {
+        addSuccessToast(t('%s semantic view(s) added', created.length));
+        onSuccess();
+      }
       if (gen !== fetchGenRef.current) return;
-      const { created, errors } = parseCreationResult(body);
       setCreationErrors(errors);
 
       if (created.length > 0) {
@@ -656,20 +670,20 @@ export default function AddSemanticViewModal({
         setSelectedViewNames(previous =>
           previous.filter(name => !created.includes(name)),
         );
-        addSuccessToast(t('%s semantic view(s) added', created.length));
-        onSuccess();
       }
 
       if (errors.length > 0) {
         const failedNames = errors.map(error => error.name).filter(Boolean);
         addDangerToast(
-          failedNames.length > 0
+          failedNames.length > 0 && failedCount <= 3
             ? t(
                 '%s semantic view(s) failed to add: %s',
-                failedNames.length,
+                failedCount,
                 failedNames.join(', '),
               )
-            : creationErrorMessage(),
+            : failedCount > 0
+              ? t('%s semantic view(s) failed to add', failedCount)
+              : creationErrorMessage(),
         );
       }
 
@@ -763,16 +777,21 @@ export default function AddSemanticViewModal({
             showIcon
             message={t('Some semantic views could not be added')}
             description={
-              <List
-                dataSource={creationErrors}
-                renderItem={error => (
-                  <List.Item>
-                    {error.name
-                      ? t('Failed to add %s: %s', error.name, error.message)
-                      : error.message}
-                  </List.Item>
-                )}
-              />
+              <FailureDetails
+                aria-label={t('Some semantic views could not be added')}
+                tabIndex={0}
+              >
+                <List
+                  dataSource={creationErrors}
+                  renderItem={error => (
+                    <List.Item>
+                      {error.name
+                        ? t('Failed to add %s: %s', error.name, error.message)
+                        : error.message}
+                    </List.Item>
+                  )}
+                />
+              </FailureDetails>
             }
           />
         )}

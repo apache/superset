@@ -526,6 +526,10 @@ msgid "%s semantic view(s) added"
 msgstr ""
 
 #, python-format
+msgid "%s semantic view(s) failed to add"
+msgstr ""
+
+#, python-format
 msgid "%s semantic view(s) failed to add: %s"
 msgstr ""
 

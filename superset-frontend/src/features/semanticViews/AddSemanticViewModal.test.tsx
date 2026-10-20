@@ -261,8 +261,8 @@ test.each([
       },
     },
     [
-      'orders: Invalid <script>model</script>',
-      'customers: configuration: Missing field',
+      'Failed to add orders: Invalid <script>model</script>',
+      'Failed to add customers: configuration: Missing field',
     ],
   ],
   [
@@ -353,10 +353,114 @@ test('a creation response cannot update a closed and reopened modal', async () =
       json: { result: { created: [{ uuid: 'view-1', name: 'orders' }] } },
     });
   });
-  expect(props.onSuccess).not.toHaveBeenCalled();
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
   expect(props.onHide).not.toHaveBeenCalled();
-  expect(props.addSuccessToast).not.toHaveBeenCalled();
+  expect(props.addSuccessToast).toHaveBeenCalledWith(
+    '1 semantic view(s) added',
+  );
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test.each([1, 2, 100])(
+  'counts %s unnamed failures without a long toast',
+  async count => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: { result: [{ name: 'orders', already_added: false }] },
+        });
+      return Promise.resolve({
+        json: {
+          result: {
+            created: [],
+            errors: Array.from({ length: count }, (_, index) => ({
+              name: count === 2 && index === 0 ? 'orders' : null,
+              error: 'Invalid view',
+            })),
+          },
+        },
+      });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+    );
+    await waitFor(() =>
+      expect(props.addDangerToast).toHaveBeenCalledWith(
+        count === 2
+          ? '2 semantic view(s) failed to add: orders'
+          : `${count} semantic view(s) failed to add`,
+      ),
+    );
+  },
+);
+
+test('clears failures on a configuration change and bounds a large failure list', async () => {
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({
+        json: {
+          result: { properties: { note: { type: 'string', title: 'Note' } } },
+        },
+      });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return Promise.resolve({
+      json: {
+        result: {
+          created: [],
+          errors: Array.from({ length: 100 }, (_, index) => ({
+            name: `view-${index}`,
+            error: 'Invalid view',
+          })),
+        },
+      },
+    });
+  });
+  const props = createProps();
+  render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Note' }), {
+    target: { value: 'schema' },
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: 'Semantic views' }),
+    ).toBeEnabled(),
+  );
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent('view-99');
+  expect(props.addDangerToast).toHaveBeenCalledWith(
+    '100 semantic view(s) failed to add',
+  );
+  const region = screen.getByRole('region', {
+    name: 'Some semantic views could not be added',
+  });
+  expect(region).toHaveStyleRule('overflow-y', 'auto');
+  expect(region).toHaveStyleRule('max-height', '240px');
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'another schema' },
+  });
+  await waitFor(() =>
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+  );
 });
 
 test('shows toast when loading semantic layers fails', async () => {
