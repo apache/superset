@@ -6822,7 +6822,15 @@ msgid "Filter charts"
 msgstr ""
 
 #, python-format
-msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions"
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -18171,4 +18179,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic layer"
+" is unreachable."
+msgstr ""
+
+msgid "The view configuration must be a JSON object."
 msgstr ""
