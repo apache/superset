@@ -1686,6 +1686,13 @@ class BaseReportState:
     ) -> None:
         """Send one notification, upgrading Slack v1 recipients when required."""
         self._assert_rendered_delivery_allowed(notification_content)
+        if self._report_execution_context is not None:
+            context = self._report_execution_context
+            notification_content.delivery_deadline = (
+                context.deadline.started_at
+                + context.deadline.total_seconds
+                - context.cleanup_reserve_seconds
+            )
         notification = create_notification(recipient, notification_content)
         if app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"]:
             logger.info(

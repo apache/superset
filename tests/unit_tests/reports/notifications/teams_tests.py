@@ -100,14 +100,16 @@ def test_factory_delivery_uses_server_config_and_closes_session(
 ) -> None:
     """A destination key resolves on the server and database work ends before send."""
 
-    def check_closed(*_: object) -> None:
+    def check_closed(*_: object, **kwargs: object) -> None:
         notification.session.return_value.__exit__.assert_called_once()
 
+    notification.content.delivery_deadline = 123.0
     notification.send.side_effect = check_closed
     handler = create_notification(notification.recipient, notification.content)
     assert isinstance(handler, teams.TeamsNotification)
     handler.send()
     config, destination, service_url, card = notification.send.call_args.args
+    assert notification.send.call_args.kwargs == {"retry_deadline": 123.0}
     assert config.credential == "server-only-credential"
     assert destination.key == "ops"
     assert service_url == "https://smba.trafficmanager.net/amer/"
