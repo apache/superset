@@ -50,10 +50,6 @@ export default function QueryCostWarningDialog({
           {t('Query cost warning')}
         </Space>
       }
-      styles={{
-        header: { paddingBottom: 0, marginBottom: 0 },
-        body: { paddingTop: theme.sizeUnit * 2 },
-      }}
       onHide={onCancel}
       footer={
         <>
