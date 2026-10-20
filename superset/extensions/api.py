@@ -29,6 +29,7 @@ from superset.extensions.availability import (
     NOT_LOADED_MESSAGE,
     RuntimeGuardedExtensionsApiMixin,
 )
+from superset.extensions.types import LoadedExtension
 from superset.extensions.utils import build_extension_data
 
 
@@ -181,7 +182,7 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
             return self.response_404(NOT_LOADED_MESSAGE)
         # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
-        extension = get_servable_extensions().get(composite_id)
+        extension: LoadedExtension | None = get_servable_extensions().get(composite_id)
         if not extension:
             return self.response_404()
         extension_data = build_extension_data(extension)
@@ -234,7 +235,7 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
             return self.response_404(NOT_LOADED_MESSAGE)
         # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
-        extension = get_servable_extensions().get(composite_id)
+        extension: LoadedExtension | None = get_servable_extensions().get(composite_id)
         if not extension:
             return self.response_404()
 

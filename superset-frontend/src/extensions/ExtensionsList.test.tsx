@@ -116,41 +116,69 @@ test('shows no restart notice when extensions are loaded', async () => {
   renderWithStore();
 
   await waitFor(() =>
-    expect(get).toHaveBeenCalledWith({
-      endpoint: '/api/v1/extensions/_info',
-    }),
+    expect(get).toHaveBeenCalledWith({ endpoint: '/api/v1/extensions/' }),
   );
-  // Let the resolved _info response render before asserting its absence.
+  // Let the resolved list response render before asserting its absence.
   await act(async () => {});
   expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
-  // The list hook no longer issues its own _info request.
+  // The load status rides on the list response; no separate _info request.
   const infoCalls = get.mock.calls.filter(([request]) =>
     request.endpoint?.startsWith('/api/v1/extensions/_info'),
   );
-  expect(infoCalls).toHaveLength(1);
+  expect(infoCalls).toHaveLength(0);
 });
 
-test('reports an _info failure through the danger toast', async () => {
-  jest.spyOn(SupersetClient, 'get').mockImplementation(({ endpoint }) =>
-    endpoint?.startsWith('/api/v1/extensions/_info')
-      ? Promise.reject(
-          new Response('{"message": "Not found"}', { status: 404 }),
-        )
-      : Promise.resolve({
-          json: { result: [], count: 0 },
-          response: new Response(),
-        } as Awaited<ReturnType<typeof SupersetClient.get>>),
-  );
+test('reports a list failure through the danger toast', async () => {
+  jest
+    .spyOn(SupersetClient, 'get')
+    .mockImplementation(() =>
+      Promise.reject(new Response('{"message": "Not found"}', { status: 404 })),
+    );
   // withToasts binds its own action creators over any passed toast props.
   const addDangerToast = jest.spyOn(toasters, 'addDangerToast');
   renderWithStore();
 
   await waitFor(() =>
     expect(addDangerToast).toHaveBeenCalledWith(
-      expect.stringContaining(
-        'An error occurred while fetching Extensions info',
-      ),
+      expect.stringContaining('An error occurred while fetching Extensionss'),
     ),
   );
+  expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
+});
+
+test('takes the restart notice from the list response, not a separate _info call', async () => {
+  // Mixed fleet: _info reaches a pod that loaded extensions while the list
+  // reaches one that did not.
+  jest.spyOn(SupersetClient, 'get').mockImplementation(({ endpoint }) =>
+    Promise.resolve({
+      json: endpoint?.startsWith('/api/v1/extensions/_info')
+        ? { permissions: ['can_read'], status: 'loaded' }
+        : { result: [], count: 0, status: 'not_loaded' },
+      response: new Response(),
+    } as Awaited<ReturnType<typeof SupersetClient.get>>),
+  );
+  renderWithStore();
+
+  expect(await screen.findByText('Extensions not loaded')).toBeInTheDocument();
+});
+
+test('shows no restart notice when the list comes from a loaded server', async () => {
+  // The opposite pairing: _info reaches a pod that did not load extensions
+  // while the list reaches one that did.
+  jest.spyOn(SupersetClient, 'get').mockImplementation(({ endpoint }) =>
+    Promise.resolve({
+      json: endpoint?.startsWith('/api/v1/extensions/_info')
+        ? { permissions: ['can_read'], status: 'not_loaded' }
+        : {
+            result: [{ id: 1, name: 'Loaded Extension', enabled: true }],
+            count: 1,
+            status: 'loaded',
+          },
+      response: new Response(),
+    } as Awaited<ReturnType<typeof SupersetClient.get>>),
+  );
+  renderWithStore();
+
+  expect(await screen.findByText('Loaded Extension')).toBeInTheDocument();
   expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
 });

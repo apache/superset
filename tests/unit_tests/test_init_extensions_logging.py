@@ -34,14 +34,14 @@ def _extension_that_fails_to_init() -> MagicMock:
 
 
 def _initializer() -> SupersetAppInitializer:
-    initializer = object.__new__(SupersetAppInitializer)
+    initializer: SupersetAppInitializer = object.__new__(SupersetAppInitializer)
     initializer.superset_app = Flask(__name__)
     return initializer
 
 
 def test_init_extensions_logs_exception_instead_of_printing() -> None:
     """An extension entrypoint failure is routed through logger.exception."""
-    initializer = _initializer()
+    initializer: SupersetAppInitializer = _initializer()
     extension = _extension_that_fails_to_init()
 
     with (
@@ -69,7 +69,7 @@ def test_init_extensions_logs_exception_instead_of_printing() -> None:
 
 def test_init_extensions_marks_loaded_after_discovery() -> None:
     """A completed initialization is recorded, even with no extensions."""
-    initializer = _initializer()
+    initializer: SupersetAppInitializer = _initializer()
     with patch("superset.extensions.utils.get_extensions", return_value={}):
         initializer.init_extensions()
     assert initializer.superset_app.extensions[EXTENSIONS_LOADED_KEY] is True
@@ -77,7 +77,7 @@ def test_init_extensions_marks_loaded_after_discovery() -> None:
 
 def test_init_extensions_failed_discovery_stays_unloaded() -> None:
     """A discovery failure leaves the server unloaded and says why in the log."""
-    initializer = _initializer()
+    initializer: SupersetAppInitializer = _initializer()
     with (
         patch(
             "superset.extensions.utils.get_extensions",

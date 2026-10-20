@@ -30,6 +30,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import current_app
+from werkzeug.test import TestResponse
 
 from superset.extensions import appbuilder
 from superset.extensions.availability import (
@@ -40,15 +41,15 @@ from superset.extensions.availability import (
     NOT_LOADED_MESSAGE,
 )
 
-BOOT_ON = {"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": True}}
-BOOT_OFF = {"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": False}}
+BOOT_ON: dict[str, Any] = {"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": True}}
+BOOT_OFF: dict[str, Any] = {"FEATURE_FLAGS": {"ENABLE_EXTENSIONS": False}}
 
-INFO = "/api/v1/extensions/_info"
-LIST = "/api/v1/extensions/"
-DETAIL = "/api/v1/extensions/acme/demo"
-CHUNK = "/api/v1/extensions/acme/demo/remoteEntry.js"
-STORAGE = "/api/v1/extensions/acme/demo/storage/persistent/key"
-EXTENSION_ROUTES = [INFO, LIST, DETAIL, CHUNK, STORAGE]
+INFO: str = "/api/v1/extensions/_info"
+LIST: str = "/api/v1/extensions/"
+DETAIL: str = "/api/v1/extensions/acme/demo"
+CHUNK: str = "/api/v1/extensions/acme/demo/remoteEntry.js"
+STORAGE: str = "/api/v1/extensions/acme/demo/storage/persistent/key"
+EXTENSION_ROUTES: list[str] = [INFO, LIST, DETAIL, CHUNK, STORAGE]
 
 
 @contextmanager
@@ -104,10 +105,10 @@ def test_boot_on_request_on_serves_bundles(
     with request_flag(True):
         assert _extensions_menu_visible()
         assert get_extensions_status() is ExtensionsStatus.LOADED
-        info = client.get(INFO)
-        listing = client.get(LIST)
-        detail = client.get(DETAIL)
-        chunk = client.get(CHUNK)
+        info: TestResponse = client.get(INFO)
+        listing: TestResponse = client.get(LIST)
+        detail: TestResponse = client.get(DETAIL)
+        chunk: TestResponse = client.get(CHUNK)
 
     assert info.status_code == 200
     assert info.json == {"permissions": ["can_read"], "status": "loaded"}
@@ -127,7 +128,7 @@ def test_boot_on_request_off_hides_every_route(
     """A workspace without the flag never sees the deployment's extensions."""
     with request_flag(False):
         assert not _extensions_menu_visible()
-        response = client.get(route)
+        response: TestResponse = client.get(route)
     assert response.status_code == 404
     assert response.json == {"message": "Not found"}
     bundles.assert_not_called()
@@ -190,7 +191,7 @@ def test_boot_on_semantic_types_follow_request_flag(
 ) -> None:
     """Extension-contributed types are listed only where extensions are on."""
     with semantic_request(extensions):
-        response = client.get("/api/v1/semantic_layer/types")
+        response: TestResponse = client.get("/api/v1/semantic_layer/types")
     assert response.status_code == 200
     assert [item["id"] for item in response.json["result"]] == expected_ids
     assert response.json["extensions_status"] == expected_status
@@ -202,7 +203,7 @@ def test_boot_on_request_off_refuses_contributed_type_schema(
 ) -> None:
     """A hidden extension type cannot be configured by naming it directly."""
     with semantic_request(False):
-        response = client.post(
+        response: TestResponse = client.post(
             "/api/v1/semantic_layer/schema/configuration",
             json={"type": "extensions.acme.demo.layer"},
         )
@@ -273,11 +274,11 @@ def test_boot_off_request_on_reports_not_loaded(
     with request_flag(True):
         assert _extensions_menu_visible()
         assert get_extensions_status() is ExtensionsStatus.NOT_LOADED
-        info = client.get(INFO)
-        listing = client.get(LIST)
-        detail = client.get(DETAIL)
-        chunk = client.get(CHUNK)
-        storage = client.get(STORAGE)
+        info: TestResponse = client.get(INFO)
+        listing: TestResponse = client.get(LIST)
+        detail: TestResponse = client.get(DETAIL)
+        chunk: TestResponse = client.get(CHUNK)
+        storage: TestResponse = client.get(STORAGE)
 
     assert info.status_code == 200
     assert info.json == {
@@ -307,7 +308,7 @@ def test_boot_off_request_off_hides_every_route(
     """Off at startup and per request: nothing is exposed."""
     with request_flag(False):
         assert not _extensions_menu_visible()
-        response = client.get(route)
+        response: TestResponse = client.get(route)
     assert response.status_code == 404
     bundles.assert_not_called()
 
@@ -320,7 +321,7 @@ def test_boot_off_runtime_flips_never_load(
     for enabled, expected in [(True, 200), (False, 404), (True, 200)]:
         with request_flag(enabled):
             assert _extensions_menu_visible() is enabled
-            response = client.get(LIST)
+            response: TestResponse = client.get(LIST)
         assert response.status_code == expected
         if enabled:
             assert response.json["result"] == []
@@ -337,7 +338,7 @@ def test_semantic_layer_types_surface_not_loaded(
         "superset.feature_flag_manager.is_feature_enabled",
         side_effect=lambda feature: feature in {"ENABLE_EXTENSIONS", "SEMANTIC_LAYERS"},
     ):
-        response = client.get("/api/v1/semantic_layer/types")
+        response: TestResponse = client.get("/api/v1/semantic_layer/types")
     assert response.status_code == 200
     assert response.json["extensions_status"] == "not_loaded"
 
@@ -357,7 +358,7 @@ def test_storage_writes_require_csrf_token(client: Any, full_api_access: None) -
     exempt: set[str] = {blueprint.name for blueprint in csrf._exempt_blueprints}
     assert {"ExtensionsRestApi", "ExtensionStorageRestApi"}.isdisjoint(exempt)
     with request_flag(True):
-        response = client.put(STORAGE, json={"value": 1})
+        response: TestResponse = client.put(STORAGE, json={"value": 1})
     assert response.status_code == 400
 
 
@@ -366,7 +367,7 @@ def test_storage_writes_require_csrf_token(client: Any, full_api_access: None) -
 def test_enabled_routes_still_require_authentication(client: Any, route: str) -> None:
     """The runtime guard sits in front of, not instead of, route protection."""
     with request_flag(True):
-        response = client.get(route)
+        response: TestResponse = client.get(route)
     assert response.status_code == 401
 
 

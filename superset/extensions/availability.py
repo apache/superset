@@ -38,11 +38,11 @@ from superset.superset_typing import FlaskResponse
 if TYPE_CHECKING:
     from superset.extensions.types import LoadedExtension
 
-EXTENSIONS_LOADED_KEY = "superset_extensions_loaded"
+EXTENSIONS_LOADED_KEY: str = "superset_extensions_loaded"
 
-EXTENSION_CONTRIBUTION_PREFIX = "extensions."
+EXTENSION_CONTRIBUTION_PREFIX: str = "extensions."
 
-NOT_LOADED_MESSAGE = (
+NOT_LOADED_MESSAGE: str = (
     "Extensions are enabled but were not loaded when this server started. "
     "Restart the server to load them."
 )
@@ -135,7 +135,7 @@ class RuntimeGuardedExtensionsApiMixin(BaseApi):
     # The extensions APIs accept browser sessions, so their write routes keep
     # CSRF protection like other Superset APIs; FAB's ``BaseApi`` exempts by
     # default.
-    csrf_exempt = False
+    csrf_exempt: bool = False
 
     def create_blueprint(
         self,
