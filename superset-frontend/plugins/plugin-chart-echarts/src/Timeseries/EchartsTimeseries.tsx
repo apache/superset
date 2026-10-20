@@ -39,7 +39,7 @@ import type {
 } from 'echarts/types/src/util/types';
 import type GlobalModel from 'echarts/types/src/model/Global';
 import type ComponentModel from 'echarts/types/src/model/Component';
-import { EchartsHandler, EventHandlers } from '../types';
+import { EchartsHandler, EventHandlers, LegendOrientation } from '../types';
 import Echart from '../components/Echart';
 import {
   getViableTimeseriesEchartOptions,
@@ -55,7 +55,6 @@ import {
   TimeseriesChartTransformedProps,
   TimeseriesCustomLegend,
 } from './types';
-import { LegendOrientation } from '../types';
 import { formatSeriesName } from '../utils/series';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 import { useLegendEventHandlers } from '../utils/legendEventHandlers';
