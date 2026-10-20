@@ -95,6 +95,12 @@ SMART_DATE = "smart_date"
 # ``%s``, ``%Z``, ``%z``).
 SHARED_TIME_DIRECTIVES = frozenset("aAbBdfGHIjmMpSuUVwWyY%")
 
+# ``time-format/TimeFormats.ts::LOCAL_PREFIX``. The browser's registry removes
+# this marker from the format and formats in the viewer's own time zone instead
+# of UTC, which the server has no way to reproduce: its own zone is not the
+# viewer's. A format carrying it is left to the browser.
+LOCAL_TIME_PREFIX = "local!"
+
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -973,6 +979,10 @@ def is_small_number(value: Any) -> bool:
 
 def is_strftime_expressible(d3_time_format: str) -> bool:
     """Whether every directive in a d3 time format means the same to strftime."""
+    if LOCAL_TIME_PREFIX in d3_time_format:
+        # ``TimeFormatterRegistry.get`` strips the marker before building the
+        # formatter, so leaving it in would render it as literal text.
+        return False
     directives = re.findall(r"%(.)", d3_time_format)
     return bool(directives) and all(
         directive in SHARED_TIME_DIRECTIVES for directive in directives
@@ -985,8 +995,16 @@ def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> No
     The caller gates this on ``is_strftime_expressible``, so every directive in
     ``d3_time_format`` means the same thing here as it does in the browser. Null
     values are left as-is rather than rendered as the string ``"NaT"``.
+
+    An aware value is read in UTC. ``createD3TimeFormatter`` builds the
+    formatter with ``utcFormat`` unless the format asks for local time, which
+    ``is_strftime_expressible`` rejects, whereas ``strftime`` would use the
+    value's own offset and put a different instant in the report.
     """
-    df[column] = df[column].apply(
+    values = df[column]
+    if isinstance(values.dtype, pd.DatetimeTZDtype):
+        values = values.dt.tz_convert("UTC")
+    df[column] = values.apply(
         lambda value: value.strftime(d3_time_format) if pd.notna(value) else value
     )
 
