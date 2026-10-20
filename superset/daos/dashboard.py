@@ -297,6 +297,51 @@ def _existing_chart_ids(chart_ids: set[int]) -> set[int]:
     return {row[0] for row in rows}
 
 
+def _member_chart_ids(dashboard_id: int | None) -> set[int]:
+    """IDs of *dashboard_id*'s member charts, archived ones included.
+
+    Read from ``dashboard_slices`` rather than ``Dashboard.slices``, whose load
+    hides archived members.
+    """
+    if dashboard_id is None:
+        return set()
+    return set(
+        db.session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard_id
+            )
+        )
+    )
+
+
+def _raise_for_unreadable_new_charts(
+    charts: list[Slice], allowed_chart_ids: set[int]
+) -> None:
+    """Refuse a layout that links a chart the caller cannot read.
+
+    A chart already allowed (an existing member, or a copy's source member)
+    is accepted as is, so a save never fails over a chart it does not add.
+    Dashboard membership feeds the datasource grant for dashboard viewers, so
+    a layout must not be a way to attach a chart the caller has no access to.
+    """
+    denied: list[int] = sorted(
+        chart.id
+        for chart in charts
+        if chart.id not in allowed_chart_ids
+        and not security_manager.can_access_chart(chart)
+    )
+    if denied:
+        raise DashboardLayoutInvalidError(
+            exceptions=[
+                ValidationError(
+                    "The layout references charts that are not available: "
+                    + ", ".join(str(chart_id) for chart_id in denied),
+                    field_name="json_metadata",
+                )
+            ]
+        )
+
+
 def reconcile_position_json(positions: object, dashboard_id: int | None = None) -> int:
     """Repair dangling ``CHART`` nodes in a raw ``position_json`` layout.
 
@@ -606,7 +651,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
         dashboard: Dashboard,
         data: dict[Any, Any],
         old_to_new_slice_ids: dict[int, int] | None = None,
+        allowed_chart_ids: set[int] | None = None,
     ) -> None:
+        """Merge *data* into *dashboard*'s metadata, rebuilding its chart
+        membership from ``data["positions"]`` when present.
+
+        A chart the layout adds must be readable by the caller unless it is
+        already a member or in *allowed_chart_ids*: a copy passes the source's
+        members, or its new clones when it duplicates charts.
+        """
         new_filter_scopes = {}
         md = dashboard.params_dict
 
@@ -658,6 +711,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
             with skip_visibility_filter(db.session, Slice):
                 current_slices = (
                     db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+                )
+                _raise_for_unreadable_new_charts(
+                    current_slices,
+                    _member_chart_ids(dashboard.id) | (allowed_chart_ids or set()),
                 )
                 dashboard.slices = current_slices
 
@@ -864,7 +921,16 @@ class DashboardDAO(BaseDAO[Dashboard]):
             dash.slices = original_dash.slices
 
         dash.params = original_dash.params
-        cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
+        cls.set_dash_metadata(
+            dash,
+            metadata,
+            old_to_new_slice_ids,
+            allowed_chart_ids=(
+                set(old_to_new_slice_ids.values())
+                if old_to_new_slice_ids
+                else _member_chart_ids(original_dash.id)
+            ),
+        )
         db.session.add(dash)
         # Flush so the returned dashboard always has a real, persisted
         # identity (dash.id populated) regardless of what the caller does

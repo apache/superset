@@ -60,7 +60,7 @@ from superset.exceptions import (
     ReleaseDistributedLockFailedException,
 )
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
@@ -5440,6 +5440,140 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             ):
                 db.session.delete(chart)
             db.session.commit()
+
+    @contextmanager
+    def _layout_access_fixture(self) -> Iterator[dict[str, int]]:
+        """A dashboard Gamma edits, whose member chart Gamma cannot read,
+        plus a chart Gamma owns, an unrelated chart Gamma cannot read, and
+        an archived member."""
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.helpers import skip_visibility_filter
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        gamma: User = self.get_user(GAMMA_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        member: Slice = self.insert_chart(
+            "layout-access-member", [admin.id], dataset_id
+        )
+        archived: Slice = self.insert_chart(
+            "layout-access-archived", [admin.id], dataset_id
+        )
+        own: Slice = self.insert_chart("layout-access-own", [gamma.id], dataset_id)
+        foreign: Slice = self.insert_chart(
+            "layout-access-foreign", [admin.id], dataset_id
+        )
+        dashboard: Dashboard = self.insert_dashboard(
+            "layout-access", None, [gamma.id], slices=[member, archived]
+        )
+        ids: dict[str, int] = {
+            "dashboard": dashboard.id,
+            "member": member.id,
+            "archived": archived.id,
+            "own": own.id,
+            "foreign": foreign.id,
+        }
+        archived.deleted_at = datetime.now()
+        db.session.commit()
+        try:
+            yield ids
+        finally:
+            db.session.rollback()
+            with skip_visibility_filter(db.session, Slice):
+                for dash in db.session.query(Dashboard).filter(
+                    Dashboard.dashboard_title.like("layout-access%")
+                ):
+                    db.session.delete(dash)
+                for chart in db.session.query(Slice).filter(
+                    Slice.slice_name.like("layout-access-%")
+                ):
+                    db.session.delete(chart)
+            db.session.commit()
+
+    @staticmethod
+    def _chart_layout(*chart_ids: int) -> dict[str, Any]:
+        return {
+            f"CHART-{chart_id}": {
+                "id": f"CHART-{chart_id}",
+                "type": "CHART",
+                "children": [],
+                "meta": {"chartId": chart_id, "width": 4, "height": 50},
+            }
+            for chart_id in chart_ids
+        }
+
+    @parameterized.expand(
+        [
+            ("existing_and_readable", ("member", "archived", "own"), 200),
+            ("unreadable_new_chart", ("member", "archived", "foreign"), 422),
+        ]
+    )
+    def test_update_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """PUT links a layout chart only if it is already a member or the
+        caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.put(
+                f"/api/v1/dashboard/{ids['dashboard']}",
+                json={"json_metadata": json.dumps({"positions": positions})},
+            )
+            assert rv.status_code == status, rv.data
+            expected: set[str] = (
+                set(layout) if status == 200 else {"member", "archived"}
+            )
+            assert self._member_names(ids) == expected
+
+    @parameterized.expand(
+        [
+            ("source_members", ("member", "archived"), 200),
+            ("readable_chart", ("own",), 200),
+            ("unreadable_new_chart", ("member", "foreign"), 422),
+        ]
+    )
+    def test_copy_dashboard_layout_chart_access(
+        self, case: str, layout: tuple[str, ...], status: int
+    ) -> None:
+        """A copy links a layout chart only if the source has it or the
+        caller can read it."""
+        with self._layout_access_fixture() as ids:
+            self.login(GAMMA_USERNAME)
+            positions: dict[str, Any] = self._chart_layout(*(ids[k] for k in layout))
+            rv: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{ids['dashboard']}/copy/",
+                json={
+                    "dashboard_title": "layout-access-copy",
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert rv.status_code == status, rv.data
+            copies: int = (
+                db.session.query(Dashboard)
+                .filter(Dashboard.dashboard_title == "layout-access-copy")
+                .count()
+            )
+            assert copies == (1 if status == 200 else 0)
+            if status == 200:
+                copied_ids: dict[str, int] = {
+                    **ids,
+                    "dashboard": rv.json["result"]["id"],
+                }
+                assert self._member_names(copied_ids) == set(layout)
+
+    @staticmethod
+    def _member_names(ids: dict[str, int]) -> set[str]:
+        """Fixture names of *ids*' dashboard's members, archived included."""
+        names: dict[int, str] = {v: k for k, v in ids.items() if k != "dashboard"}
+        db.session.expire_all()
+        return {
+            names[row[0]]
+            for row in db.session.query(dashboard_slices.c.slice_id).filter(
+                dashboard_slices.c.dashboard_id == ids["dashboard"]
+            )
+        }
 
     def test_copy_dashboard_logs_database_error(self) -> None:
         """A database error behind the generic copy 400 is logged with its cause."""
