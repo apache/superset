@@ -112,6 +112,22 @@ value defined in `DATA_CACHE_CONFIG`.
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
 
+The datasource column-values and compatibility endpoints skip cache reads and writes when
+their effective timeout is `-1`. They use the datasource timeout (for SQL datasets, falling
+back to the database timeout), then the **top-level** `CACHE_DEFAULT_TIMEOUT` when that value
+is unset or zero. They do not use `DATA_CACHE_CONFIG["CACHE_DEFAULT_TIMEOUT"]` for this
+fallback, so setting only that nested default to `-1` does not disable these endpoints.
+With caching disabled, each request fetches fresh values or compatibility results from the source.
+
+This bypass does not delete existing entries. Earlier versions could write entries without
+expiry on Redis while the timeout was `-1`; column-value entries can become readable again
+when caching is re-enabled unless the datasource has been edited. Compatibility keys include
+the datasource modification time, matching column-value keys. Adding this key component makes
+older compatibility entries unreachable and causes a one-time cache miss for compatibility lists.
+Before re-enabling, invalidate affected `col_values:` entries through your deployment's
+cache-management tooling. Obsolete `compatible:` entries can also be removed to reclaim space.
+Account for your configured cache-key prefix when managing either kind of entry.
+
 Native filter option queries (the dropdown values for native filters) go through this same
 chart-data cache, but their freshness needs often differ from regular chart queries, especially for
 datasets whose visible values change frequently, including RLS-constrained datasets. Set

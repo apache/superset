@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { Filter, NativeFilterType } from '@superset-ui/core';
+import { DatasourceType, Filter, NativeFilterType } from '@superset-ui/core';
 import { render, screen, userEvent } from 'spec/helpers/testing-library';
 import type { FormInstance } from '@superset-ui/core/components';
 import getControlItemsMap, { ControlItemsProps } from './getControlItemsMap';
@@ -261,5 +261,22 @@ describe('ColumnSelect filterValues behavior', () => {
     expect(screen.queryByText('col1')).not.toBeInTheDocument();
     expect(screen.queryByText('col3')).not.toBeInTheDocument();
     expect(screen.queryByText('col2')).not.toBeInTheDocument();
+  });
+  test('passes the datasource type so semantic range filters can require numeric columns', () => {
+    (doesColumnMatchFilterType as jest.Mock).mockReturnValue(true);
+    const props = {
+      ...createProps(),
+      datasourceType: DatasourceType.SemanticView,
+      formFilter: { filterType: 'filter_range' },
+    };
+    // @ts-expect-error: bypass incomplete formFilter type for test
+    const element = getControlItemsMap(props).mainControlItems.groupby
+      .element as React.ReactElement;
+    render(element);
+    expect(doesColumnMatchFilterType).toHaveBeenCalledWith(
+      'filter_range',
+      expect.objectContaining({ name: 'col1' }),
+      DatasourceType.SemanticView,
+    );
   });
 });
