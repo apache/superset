@@ -21,6 +21,7 @@ import { matchPath, useHistory } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import { URL_PARAMS } from 'src/constants';
 import { RoutePaths } from 'src/views/routePaths';
+import { TAB_TYPE } from 'src/dashboard/util/componentTypes';
 import type { RootState } from 'src/dashboard/types';
 
 const TAB_ID_SEPARATOR = ',';
@@ -47,6 +48,12 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
   const history = useHistory();
   const activeTabs = useSelector(
     (state: RootState) => state.dashboardState.activeTabs,
+  );
+  const directPathToChild = useSelector(
+    (state: RootState) => state.dashboardState.directPathToChild,
+  );
+  const layout = useSelector(
+    (state: RootState) => state.dashboardLayout?.present ?? {},
   );
   const editMode = useSelector(
     (state: RootState) => state.dashboardState.editMode,
@@ -80,6 +87,17 @@ export default function useSyncActiveTabsToUrl(enabled: boolean): void {
     } else {
       params.delete(URL_PARAMS.activeTabs.name);
     }
-    history.replace({ ...history.location, search: params.toString() });
-  }, [activeTabs, editMode, enabled, history]);
+    // A deep link hash outranks `active_tabs` on load, so it is dropped once
+    // the selected tabs no longer include the tabs on its path.
+    const hashIsStale =
+      Boolean(history.location.hash) &&
+      (directPathToChild ?? []).some(
+        id => layout[id]?.type === TAB_TYPE && !activeTabs?.includes(id),
+      );
+    history.replace({
+      ...history.location,
+      search: params.toString(),
+      ...(hashIsStale && { hash: '' }),
+    });
+  }, [activeTabs, directPathToChild, editMode, enabled, history, layout]);
 }

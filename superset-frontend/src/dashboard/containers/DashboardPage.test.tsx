@@ -40,6 +40,7 @@ import type { RootState } from 'src/dashboard/types';
 import { replaceDashboardSemanticDatasets } from 'src/dashboard/actions/dashboardInfo';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import { setActiveTabs } from 'src/dashboard/actions/dashboardState';
 import {
   clearDashboardHistory,
   UPDATE_COMPONENTS,
@@ -842,3 +843,50 @@ test.each([null, '', '   ', 'TAB-explicit'])(
     }
   },
 );
+
+test('syncs active tabs to the URL once the permalink hydration lands', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/?permalink_key=saved');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  jest.mocked(getPermalinkValue).mockResolvedValueOnce({
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  });
+  jest.mocked(hydrateDashboard).mockImplementationOnce(
+    (({ activeTabs }: { activeTabs: string[] }) =>
+      (dispatch: (action: unknown) => void) =>
+        dispatch(
+          setActiveTabs(activeTabs),
+        )) as unknown as typeof hydrateDashboard,
+  );
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+  const activeTabsParam = () =>
+    new URLSearchParams(window.location.search).get('active_tabs');
+
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  try {
+    await waitFor(() => expect(activeTabsParam()).toBe('TAB-saved'));
+
+    store.dispatch(setActiveTabs(['TAB-other']));
+    await waitFor(() => expect(activeTabsParam()).toBe('TAB-other'));
+  } finally {
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
+});

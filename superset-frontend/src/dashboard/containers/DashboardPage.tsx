@@ -57,7 +57,11 @@ import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
-import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
+import {
+  setDatasetsStatus,
+  setDirectPathToChild,
+} from 'src/dashboard/actions/dashboardState';
+import getLocationHash from 'src/dashboard/util/getLocationHash';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
 import {
   getFilterValue,
@@ -269,6 +273,15 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
       );
       if (activeTabsFromUrl.length > 0) {
         activeTabs = activeTabsFromUrl;
+        // A click path left over from a previous visit would otherwise outrank
+        // the tabs requested by the URL. Deep links (hash, focused chart) still
+        // win, as hydration derives their path itself.
+        if (
+          !getLocationHash() &&
+          !getUrlParam(URL_PARAMS.dashboardFocusedChart)
+        ) {
+          dispatch(setDirectPathToChild([]));
+        }
       }
       if (isOldRison) {
         // Normalize legacy `currentState` → `filterState`. Pre-2021 URLs stored
@@ -501,7 +514,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   return (
     <>
       <Global styles={globalStyles} />
-      {readyToRender && hasDashboardInfoInitiated ? (
+      {readyToRender && hasDashboardInfoInitiated && hydratedLoadId === id ? (
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
