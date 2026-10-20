@@ -205,7 +205,7 @@ test('delete confirmation warns about cascade-deleting dependent views by count 
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 3 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -232,7 +232,7 @@ test('a single dependent view is announced in the singular', async () => {
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 1 semantic view. Charts built on that view will stop working.',
+      'This will also permanently delete its 1 semantic view. This cannot be undone.',
     ),
   ).toBeInTheDocument();
 });
@@ -275,7 +275,7 @@ test('a counted response with an empty name page keeps the count but omits the l
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 3 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 3 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -291,7 +291,7 @@ test('a failed dependent lookup still opens the modal with an uncounted warning'
 
   expect(
     within(dialog).getByText(
-      'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+      'Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed.',
     ),
   ).toBeInTheDocument();
 });
@@ -316,7 +316,7 @@ test('the overflow footer reports dependent views beyond the listed page', async
 
   expect(
     within(dialog).getByText(
-      'This will also permanently delete its 12 semantic views. Charts built on those views will stop working.',
+      'This will also permanently delete its 12 semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(within(dialog).getByText('view_10')).toBeInTheDocument();
@@ -443,7 +443,7 @@ test("a stale lookup resolving late cannot replace a newer row's modal", async (
 
 test('layer delete displays the counted dependency conflict', async () => {
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently.';
   setupMocks({ dependents: [], deleteError: reason });
   const addDangerToast = jest.fn();
   renderDatabaseList(mockUser, addDangerToast);

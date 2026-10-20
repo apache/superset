@@ -137,7 +137,7 @@ function SemanticLayerCascadeWarning({
     return (
       <p>
         {t(
-          'Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed.',
+          'Deleting this semantic layer also permanently deletes any semantic views it contains. This cannot be undone. The affected views could not be listed.',
         )}
       </p>
     );
@@ -158,8 +158,8 @@ function SemanticLayerCascadeWarning({
     <>
       <p>
         {tn(
-          'This will also permanently delete its %s semantic view. Charts built on that view will stop working.',
-          'This will also permanently delete its %s semantic views. Charts built on those views will stop working.',
+          'This will also permanently delete its %s semantic view. This cannot be undone.',
+          'This will also permanently delete its %s semantic views. This cannot be undone.',
           preview.dependentViewCount,
           preview.dependentViewCount,
         )}
@@ -1181,6 +1181,11 @@ function DatabaseList({
                 <b>{slDeletePreview.item.database_name}</b>?
               </p>
               <SemanticLayerCascadeWarning preview={slDeletePreview} />
+              <p>
+                {t(
+                  'Deletion is blocked while any assets depend on these views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently.',
+                )}
+              </p>
             </>
           }
           onConfirm={() => {

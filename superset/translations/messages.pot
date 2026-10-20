@@ -3247,12 +3247,6 @@ msgstr ""
 msgid "Charts"
 msgstr ""
 
-#, python-format
-msgid "Charts built on the selected semantic view are not checked and will break if it is deleted."
-msgid_plural "Charts built on the %s selected semantic views are not checked and will break if they are deleted."
-msgstr[0] ""
-msgstr[1] ""
-
 msgid "Charts could not be deleted."
 msgstr ""
 
@@ -5260,9 +5254,6 @@ msgid "Deleting a tab will remove all content within it and will deactivate any 
 msgstr ""
 
 msgid "Deleting this dataset is permanent. The affected charts and dashboards will remain, but they may no longer work."
-msgstr ""
-
-msgid "Deleting this semantic layer also permanently deletes any semantic views it contains, and charts built on those views will stop working. The affected views could not be listed."
 msgstr ""
 
 msgid "Delimited long & lat single column"
@@ -15206,12 +15197,6 @@ msgstr[1] ""
 msgid "This will abort (stop) the task for all %s subscriber(s)."
 msgstr ""
 
-#, python-format
-msgid "This will also permanently delete its %s semantic view. Charts built on that view will stop working."
-msgid_plural "This will also permanently delete its %s semantic views. Charts built on those views will stop working."
-msgstr[0] ""
-msgstr[1] ""
-
 msgid "This will be applied to the whole table. Arrows (↑ and ↓) will be added to main columns for increase and decrease. Basic conditional formatting can be overwritten by conditional formatting below."
 msgstr ""
 
@@ -18261,3 +18246,62 @@ msgstr ""
 
 msgid "The view configuration must be a JSON object."
 msgstr ""
+
+#, python-format
+msgid "%(count)s dependent asset is archived."
+msgid_plural "%(count)s dependent assets are archived."
+msgstr[0] ""
+msgstr[1] ""
+
+
+#, python-format
+msgid "Are you sure you want to delete %s? This cannot be undone."
+msgstr ""
+
+
+msgid ""
+"Deleting this semantic layer also permanently deletes any semantic views it "
+"contains. This cannot be undone. The affected views could not be listed."
+msgstr ""
+
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic views, "
+"including archived assets. Remove or repoint them first. Use Recently "
+"Archived to restore and repoint archived assets, or delete them permanently."
+msgstr ""
+
+
+msgid ""
+"Deletion is blocked while any assets depend on these views, including "
+"archived assets. Remove or repoint them first. Use Recently Archived to "
+"restore and repoint archived assets, or delete them permanently."
+msgstr ""
+
+
+msgid ""
+"Deletion is blocked while any assets depend on this view, including archived"
+" assets. Remove or repoint them first. Use Recently Archived to restore and "
+"repoint archived assets, or delete them permanently."
+msgstr ""
+
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete "
+"them permanently."
+msgstr ""
+
+
+msgid "Remove or repoint these assets before deleting the semantic source."
+msgstr ""
+
+
+#, python-format
+msgid ""
+"This will also permanently delete its %s semantic view. This cannot be "
+"undone."
+msgid_plural ""
+"This will also permanently delete its %s semantic views. This cannot be "
+"undone."
+msgstr[0] ""
+msgstr[1] ""

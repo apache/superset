@@ -1592,10 +1592,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       )}
       {svCurrentlyDeleting && (
         <DeleteModal
-          description={t(
-            'Are you sure you want to delete %s?',
-            svCurrentlyDeleting.table_name,
-          )}
+          description={
+            <>
+              <p>
+                {t(
+                  'Are you sure you want to delete %s? This cannot be undone.',
+                  svCurrentlyDeleting.table_name,
+                )}
+              </p>
+              <p>
+                {t(
+                  'Deletion is blocked while any assets depend on this view, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently.',
+                )}
+              </p>
+            </>
+          }
           onConfirm={handleSemanticViewDeleteConfirm}
           onHide={() => setSvCurrentlyDeleting(null)}
           open
@@ -1718,11 +1729,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               ))}
             {pendingBulkSemanticCount > 0 && (
               <p>
-                {tn(
-                  'Charts built on the selected semantic view are not checked and will break if it is deleted.',
-                  'Charts built on the %s selected semantic views are not checked and will break if they are deleted.',
-                  pendingBulkSemanticCount,
-                  pendingBulkSemanticCount,
+                {t(
+                  'Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently.',
                 )}
               </p>
             )}

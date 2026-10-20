@@ -34263,6 +34263,9 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34306,7 +34309,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34648,6 +34652,9 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34691,7 +34698,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
@@ -34810,6 +34818,9 @@
               "application/json": {
                 "schema": {
                   "properties": {
+                    "archived_count": {
+                      "type": "integer"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {
@@ -34853,7 +34864,8 @@
                     "message",
                     "total",
                     "dependents",
-                    "inaccessible_count"
+                    "inaccessible_count",
+                    "archived_count"
                   ],
                   "type": "object"
                 }
