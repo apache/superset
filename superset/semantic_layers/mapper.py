@@ -84,6 +84,7 @@ from superset.semantic_layers.dimension_resolution import (
 )
 from superset.semantic_layers.exceptions import execute_semantic_query
 from superset.semantic_layers.members import members_by_key
+from superset.semantic_layers.ordering import with_default_order
 from superset.superset_typing import (
     AdhocColumn,
     Column,
@@ -162,15 +163,25 @@ def _dispatch_semantic_query(
     force: bool = False,
     cacheable: bool = True,
     cache_timeout: int | None = None,
+    row_count: bool = False,
 ) -> SemanticCacheOutcome:
     # Normalize before any store or reuse: a provider may return
     # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
-    # table would break every later transformation of that entry.
+    # table would break every later transformation of that entry. Order cannot
+    # change a row count, so count dispatches skip the default order, and they
+    # never reach the cache, whose descriptors assume the default was applied.
     def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
-        result: SemanticResult = execute_semantic_query(dispatcher, dispatched_query)
+        result: SemanticResult = execute_semantic_query(
+            dispatcher,
+            dispatched_query if row_count else with_default_order(dispatched_query),
+        )
         return _coerce_empty_result(result, dispatched_query)
 
-    if not cacheable or not semantic_cache.semantic_cache_service.state.effective:
+    if (
+        row_count
+        or not cacheable
+        or not semantic_cache.semantic_cache_service.state.effective
+    ):
         return semantic_cache.semantic_cache_service.execute_provider(
             query, normalized_dispatcher
         )
@@ -248,6 +259,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         # storing those pages would only evict usable first-page descriptors.
         cacheable=not query_object.is_rowcount and not query_object.row_offset,
         cache_timeout=query_object.cache_timeout,
+        row_count=query_object.is_rowcount,
     )
     main_result: SemanticResult = main_outcome.result
     main_result = _coerce_empty_result(main_result, main_query)
@@ -295,6 +307,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             force=query_object.force_query,
             cacheable=not query_object.is_rowcount and not query_object.row_offset,
             cache_timeout=query_object.cache_timeout,
+            row_count=query_object.is_rowcount,
         )
         cache_hits.append(outcome.cache_hit)
         result: SemanticResult = outcome.result
@@ -690,53 +703,15 @@ def _get_adhoc_filters(
 
 
 def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
-    """
-    Convert SQL extras into ADHOC filters for direct mapper callers.
-
-    The chart-data path rejects non-empty SQL WHERE/HAVING extras for semantic
-    views before reaching this mapper. This conversion is therefore unreachable
-    through that validated path; it does not establish provider support for
-    arbitrary SQL predicates. Exposing it there would require a provider-specific
-    sanitization contract.
-
-    The extras dict can contain various keys that affect query behavior:
-
-    Direct mapper inputs (converted to filters, not chart-data support):
-    - "where": SQL WHERE clause expression (e.g., "customer_id > 100")
-    - "having": SQL HAVING clause expression (e.g., "SUM(sales) > 1000")
-
-    Other keys in extras (handled elsewhere in the mapper):
-    - "time_grain_sqla": Time granularity (e.g., "P1D", "PT1H")
-      Handled in _convert_time_grain() and used for dimension grain matching
-
-    For direct mapper calls, WHERE and HAVING text is passed unchanged into
-    ADHOC Filter objects; this helper does not sanitize it.
-    """
-    filters: set[Filter] = set()
-
-    # Add WHERE clause from extras
-    if where_clause := extras.get("where"):
-        filters.add(
-            Filter(
-                type=PredicateType.WHERE,
-                column=None,
-                operator=Operator.ADHOC,
-                value=where_clause,
+    """Reject SQL extras even when callers bypass QueryObject validation."""
+    if extras.get("where") or extras.get("having"):
+        raise ValueError(
+            _(
+                "SQL WHERE/HAVING expressions are not supported for semantic "
+                "views. Remove the SQL clause or use a semantic dimension filter."
             )
         )
-
-    # Add HAVING clause from extras
-    if having_clause := extras.get("having"):
-        filters.add(
-            Filter(
-                type=PredicateType.HAVING,
-                column=None,
-                operator=Operator.ADHOC,
-                value=having_clause,
-            )
-        )
-
-    return filters
+    return set()
 
 
 def _get_time_axis_column(
@@ -1392,6 +1367,7 @@ def _validation_metadata(query_object: ValidatedQueryObject) -> _ViewMetadata:
 def _validate_query_object(
     query_object: ValidatedQueryObject, metadata: _ViewMetadata
 ) -> None:
+    _get_filters_from_extras(query_object.extras)
     _validate_metrics(query_object, metadata)
     _validate_dimensions(query_object, metadata)
     _validate_filters(query_object, metadata)

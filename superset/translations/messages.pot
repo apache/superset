@@ -3081,6 +3081,12 @@ msgstr ""
 msgid "Changing this semantic view is forbidden"
 msgstr ""
 
+msgid ""
+"Changing this setting may change the casing for all columns in this dataset, "
+"which may break any existing charts and dashboard filters that reference the "
+"current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr ""
 
@@ -3529,6 +3535,9 @@ msgid "Close color breakpoint editor"
 msgstr ""
 
 msgid "Close preview"
+msgstr ""
+
+msgid "Close price"
 msgstr ""
 
 msgid "Close tab"
@@ -7398,10 +7407,10 @@ msgstr ""
 msgid "Hierarchy"
 msgstr ""
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -8557,10 +8566,10 @@ msgstr ""
 msgid "Longitude of default viewport"
 msgstr ""
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -9876,9 +9885,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr ""
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr ""
 
@@ -9907,6 +9913,9 @@ msgid "Open in SQL Lab"
 msgstr ""
 
 msgid "Open in SQL lab"
+msgstr ""
+
+msgid "Open price"
 msgstr ""
 
 msgid "Open query in SQL Lab"
@@ -11867,6 +11876,12 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr ""
 
@@ -11919,9 +11934,6 @@ msgid "Search in filters"
 msgstr ""
 
 msgid "Search metrics by key or label"
-msgstr ""
-
-msgid "Search records"
 msgstr ""
 
 msgid "Search tags"
