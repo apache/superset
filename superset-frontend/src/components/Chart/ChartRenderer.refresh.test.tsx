@@ -37,10 +37,13 @@ const NO_RESULTS = 'No results were returned for this query';
 
 interface TestChartProps {
   queriesData: { data: { value: number }[] }[];
+  label?: string;
 }
 
-const TestChart = ({ queriesData }: TestChartProps) => (
-  <div data-test="refresh-test-chart">value={queriesData[0].data[0].value}</div>
+const TestChart = ({ queriesData, label }: TestChartProps) => (
+  <div data-test="refresh-test-chart">
+    value={queriesData[0].data[0].value} label={label}
+  </div>
 );
 
 const selfFetchingChartMounted = jest.fn();
@@ -58,7 +61,10 @@ beforeAll(() => {
   new ChartPlugin({
     metadata: new ChartMetadata({ name: 'Refresh test chart', thumbnail: '' }),
     Chart: TestChart,
-    transformProps: chartProps => ({ queriesData: chartProps.queriesData }),
+    transformProps: chartProps => ({
+      queriesData: chartProps.queriesData,
+      label: chartProps.formData.label,
+    }),
   })
     .configure({ key: VIZ_TYPE })
     .register();
@@ -164,7 +170,99 @@ test('shows the new data once the auto-refresh query returns', async () => {
     />,
   );
 
-  expect(await screen.findByText('value=2')).toBeInTheDocument();
+  expect(await screen.findByText(/value=2/)).toBeInTheDocument();
+});
+
+test('keeps a dashboard chart on screen while a manual refresh query is in flight', async () => {
+  const { rerender } = render(
+    <ChartRenderer {...props({ chartStatus: 'rendered' })} />,
+  );
+  await screen.findByTestId('refresh-test-chart');
+
+  rerender(<ChartRenderer {...props({ chartStatus: 'loading' })} />);
+
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1',
+  );
+  expect(screen.queryByText(NO_RESULTS)).not.toBeInTheDocument();
+
+  rerender(
+    <ChartRenderer
+      {...props({
+        chartStatus: 'success',
+        queriesResponse: queriesResponse(2),
+      })}
+    />,
+  );
+
+  expect(await screen.findByText(/value=2/)).toBeInTheDocument();
+});
+
+test('draws the previous data with the form data it was queried with', async () => {
+  // A dashboard filter change, such as a Dynamic Group By, updates formData
+  // as soon as the new query starts. The previous rows don't match it.
+  const formData = (label: string) =>
+    ({
+      datasource: '1__table',
+      viz_type: VIZ_TYPE,
+      label,
+    }) as ChartRendererProps['formData'];
+  // The store keeps the same response object until the new one lands.
+  const previous = queriesResponse(1);
+  const { rerender } = render(
+    <ChartRenderer
+      {...props({
+        chartStatus: 'rendered',
+        formData: formData('before'),
+        queriesResponse: previous,
+      })}
+    />,
+  );
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'label=before',
+  );
+
+  rerender(
+    <ChartRenderer
+      {...props({
+        chartStatus: 'loading',
+        formData: formData('after'),
+        queriesResponse: previous,
+      })}
+    />,
+  );
+  expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+    'value=1 label=before',
+  );
+
+  rerender(
+    <ChartRenderer
+      {...props({
+        chartStatus: 'success',
+        formData: formData('after'),
+        queriesResponse: queriesResponse(2),
+      })}
+    />,
+  );
+  expect(await screen.findByText('value=2 label=after')).toBeInTheDocument();
+});
+
+test('hides the chart while its query is in flight in Explore', async () => {
+  const { rerender } = render(
+    <ChartRenderer
+      {...props({ chartStatus: 'rendered', source: ChartSource.Explore })}
+    />,
+  );
+  await screen.findByTestId('refresh-test-chart');
+
+  rerender(
+    <ChartRenderer
+      {...props({ chartStatus: 'loading', source: ChartSource.Explore })}
+    />,
+  );
+  await waitForChartLoad();
+
+  expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
 });
 
 test('still shows the no-results state when a finished query returns no rows', async () => {

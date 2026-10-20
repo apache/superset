@@ -44,7 +44,7 @@ import type { AsyncModeOverride } from 'src/utils/asyncMode';
 import { ChartSource } from 'src/types/ChartSource';
 import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { Dispatch } from 'redux';
-import ChartRenderer from './ChartRenderer';
+import ChartRenderer, { hasValidPreviousData } from './ChartRenderer';
 import { ChartErrorMessage } from './ChartErrorMessage';
 import { getChartRequiredFieldsMissingMessage } from '../../utils/getChartRequiredFieldsMissingMessage';
 
@@ -435,6 +435,12 @@ function Chart({
   const isLoading = chartStatus === 'loading';
   // Suppress spinner during auto-refresh to avoid visual flicker
   const showSpinner = isLoading && !suppressLoadingSpinner;
+  // A dashboard chart with a previous response stays on screen while it
+  // refreshes, and the spinner is drawn over it instead of replacing it.
+  const keepChartOnScreen =
+    isLoading &&
+    !!dashboardId &&
+    hasValidPreviousData(queriesResponse, formData.viz_type || vizType);
 
   if (datasource?.metadata_error) {
     return (
@@ -543,7 +549,10 @@ function Chart({
         height={height}
         width={width}
       >
-        {showSpinner ? renderSpinner(databaseName) : renderChartContainer()}
+        {showSpinner && !keepChartOnScreen
+          ? renderSpinner(databaseName)
+          : renderChartContainer()}
+        {showSpinner && keepChartOnScreen && <Loading size="s" muted />}
       </Styles>
     </ErrorBoundary>
   );

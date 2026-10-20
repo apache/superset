@@ -434,12 +434,28 @@ test('renders chart during loading when suppressLoadingSpinner has valid data', 
   );
 });
 
-test('does not render chart during loading when the spinner is not suppressed', () => {
+test('renders a dashboard chart during loading when the spinner is not suppressed', () => {
   const props = {
     ...requiredProps,
     chartStatus: 'loading' as const,
     chartAlert: undefined,
     suppressLoadingSpinner: false,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { getByTestId } = render(<ChartRenderer {...props} />);
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-is-refreshing',
+    'true',
+  );
+});
+
+test('does not render an Explore chart during loading', () => {
+  const props = {
+    ...requiredProps,
+    source: ChartSource.Explore,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
     queriesResponse: [{ data: [{ value: 1 }] }],
   };
 

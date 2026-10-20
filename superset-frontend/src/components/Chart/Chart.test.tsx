@@ -224,3 +224,60 @@ test('shows the semantic-layer disabled response while dashboard metadata is una
     screen.getByText('Semantic layers are not enabled.'),
   ).toBeInTheDocument();
 });
+
+const previousResponse = [{ data: [{ value: 1 }] }] as Parameters<
+  typeof Chart
+>[0]['queriesResponse'];
+
+test('keeps a dashboard chart on screen under the spinner while it refreshes', () => {
+  render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(screen.getByTestId('slice-container')).toBeInTheDocument();
+  expect(screen.getByRole('status')).toBeInTheDocument();
+  expect(screen.queryByText('Waiting on database...')).not.toBeInTheDocument();
+});
+
+test('shows no spinner over a dashboard chart during an auto-refresh', () => {
+  render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      queriesResponse={previousResponse}
+      suppressLoadingSpinner
+    />,
+  );
+  expect(screen.getByTestId('slice-container')).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});
+
+test('shows only the spinner for a dashboard chart that has no previous data', () => {
+  render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="loading"
+      queriesResponse={null}
+    />,
+  );
+  expect(screen.queryByTestId('slice-container')).not.toBeInTheDocument();
+  expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
+});
+
+test('replaces an Explore chart with the spinner while it refreshes', () => {
+  render(
+    <Chart
+      {...baseProps}
+      chartStatus="loading"
+      queriesResponse={previousResponse}
+    />,
+  );
+  expect(screen.queryByTestId('slice-container')).not.toBeInTheDocument();
+  expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
+});

@@ -177,6 +177,28 @@ interface ChartHooks extends AsyncChartHooks {
   onChartStateChange?: (chartState: AgGridChartState) => void;
 }
 
+/**
+ * Whether a chart has a previous response it can stay on screen with while a
+ * new query is in flight.
+ */
+export function hasValidPreviousData(
+  queriesResponse: QueryData[] | null | undefined,
+  vizType: string,
+): boolean {
+  // A failed load leaves its errored response in the store, and the next
+  // CHART_UPDATE_STARTED clears chartAlert but not queriesResponse. Checking
+  // the response itself keeps that stale error from being drawn as chart data
+  // while the retry is in flight.
+  const hasAnyErrors = queriesResponse?.some(item => item?.error);
+  // The response of a chart that fetches its own data stays empty once it has
+  // loaded, so for those any response that landed counts as previous data.
+  const hasPreviousResponse =
+    (getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true)
+      ? (queriesResponse?.length ?? 0) > 0
+      : Array.isArray(queriesResponse);
+  return hasPreviousResponse && !hasAnyErrors;
+}
+
 const BLANK = {};
 
 const BIG_NO_RESULT_MIN_WIDTH = 300;
@@ -282,25 +304,34 @@ function ChartRendererComponent({
   const chartEnableNoResults =
     getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
 
-  // A failed load leaves its errored response in the store, and the next
-  // CHART_UPDATE_STARTED clears chartAlert but not queriesResponse. Checking
-  // the response itself keeps that stale error from being drawn as chart data
-  // while the retry is in flight.
-  const hasAnyErrors = queriesResponse?.some(item => item?.error);
-  // The response of a chart that fetches its own data stays empty once it has
-  // loaded, so for those any response that landed counts as previous data.
-  const hasPreviousResponse = chartEnableNoResults
-    ? (queriesResponse?.length ?? 0) > 0
-    : Array.isArray(queriesResponse);
-  const hasValidPreviousData = hasPreviousResponse && !hasAnyErrors;
-
-  // An auto-refresh keeps the chart on screen while its query is in flight.
-  // The store holds the previous response until the new one lands, so that
-  // response is what the chart renders in the meantime.
+  // A dashboard keeps the chart on screen while its query is in flight, be it
+  // an auto-refresh, a manual refresh or a filter change. The store holds the
+  // previous response until the new one lands, so that response is what the
+  // chart renders in the meantime.
   const isRefreshing =
-    Boolean(restProps.suppressLoadingSpinner) && chartStatus === 'loading';
+    chartStatus === 'loading' &&
+    (Boolean(restProps.suppressLoadingSpinner) ||
+      source === ChartSource.Dashboard);
   const hasRenderableResults =
-    resultsReady || (isRefreshing && hasValidPreviousData);
+    resultsReady ||
+    (isRefreshing && hasValidPreviousData(queriesResponse, vizType));
+
+  // The form data each response was queried with. A filter change updates
+  // formData as soon as the new query starts, so the previous response is
+  // drawn with its own form data until the new one lands.
+  const responseFormDataRef = useRef({
+    queriesResponse,
+    formData: currentFormData,
+  });
+  if (responseFormDataRef.current.queriesResponse !== queriesResponse) {
+    responseFormDataRef.current = {
+      queriesResponse,
+      formData: currentFormData,
+    };
+  }
+  const renderedFormData = isRefreshing
+    ? responseFormDataRef.current.formData
+    : currentFormData;
 
   // Clone queriesResponse to protect against plugin mutation of Redux state.
   // Gate on `hasRenderableResults` so the deep clone doesn't run for every
@@ -577,11 +608,11 @@ function ChartRendererComponent({
     ownState?.agGridFilterModel &&
     Object.keys(ownState.agGridFilterModel).length > 0;
 
-  const currentFormDataExtended = currentFormData as JsonObject;
+  const renderedFormDataExtended = renderedFormData as JsonObject;
   const bypassNoResult =
     chartEnableNoResults &&
     !(
-      currentFormDataExtended?.server_pagination &&
+      renderedFormDataExtended?.server_pagination &&
       (hasSearchText || hasAgGridFilters)
     );
 
@@ -591,7 +622,7 @@ function ChartRendererComponent({
         <ChartContextMenu
           ref={contextMenuRef}
           id={chartId}
-          formData={currentFormData as QueryFormData}
+          formData={renderedFormData as QueryFormData}
           onSelection={handleContextMenuSelected}
           onClose={handleContextMenuClosed}
         />
@@ -609,7 +640,7 @@ function ChartRendererComponent({
           annotationData={annotationData}
           datasource={datasource}
           initialValues={initialValues}
-          formData={currentFormData}
+          formData={renderedFormData}
           ownState={ownState}
           filterState={filterState}
           hooks={hooks as unknown as Parameters<typeof SuperChart>[0]['hooks']}
