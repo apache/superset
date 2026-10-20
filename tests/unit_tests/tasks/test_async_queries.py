@@ -17,16 +17,19 @@
 """Unit tests for the GTF chart-data fan-out orchestrator."""
 
 from decimal import Decimal
-from typing import Literal, TYPE_CHECKING
+from typing import Any, Literal, TYPE_CHECKING
 from unittest import mock
 from uuid import uuid4
 
 import pandas as pd
 import pytest
 from pytest_mock import MockerFixture
+from superset_core.tasks.types import TaskStatus
 
 from superset.common.db_query_status import QueryStatus
 from superset.common.query_serialization import SerializedQuery
+from superset.exceptions import QueryObjectValidationError, QueryObjectValidationMessage
+from superset.tasks.utils import error_update
 
 if TYPE_CHECKING:
     from superset_core.tasks.types import TaskProperties
@@ -185,6 +188,96 @@ def test_failed_non_totals_sql_query_preserves_readback(
         query_context.get_df_payload_result.return_value.payload["errors"][0]["message"]
         == "Friendly engine error"
     )
+
+
+@pytest.mark.parametrize("validation_failure", [False, True])
+def test_chart_worker_scheduler_records_validation_failure(
+    app_context: None, mocker: MockerFixture, validation_failure: bool
+) -> None:
+    """The real executor records typed worker failures, not a success transition."""
+    # Avoid app-init regression: scheduler imports task models before the app fixture.
+    from superset.tasks.async_queries import execute_chart_query
+    from superset.tasks.scheduler import _execute_task_body
+
+    query_context: mock.MagicMock = mocker.MagicMock()
+    query_context.queries = [mocker.MagicMock()]
+    query_context.get_df_payload_result.return_value.payload = {
+        "status": QueryStatus.FAILED if validation_failure else QueryStatus.SUCCESS,
+        "error": QueryObjectValidationMessage(
+            QueryObjectValidationError("Invalid filter")
+        )
+        if validation_failure
+        else None,
+        "cache_key": "worker-key",
+    }
+    task: mock.MagicMock = mocker.MagicMock()
+    task.uuid = uuid4()
+    task.properties_dict = {}
+    task_context: mock.MagicMock = mocker.MagicMock()
+    task_context.aborting_in_flight = False
+    task_context.fence_triggered = False
+    task_context._abort_detected = False
+    task_context.timeout_triggered = False
+    task_context.error_properties.side_effect = error_update
+
+    def transition_status(**kwargs: Any) -> mock.MagicMock:
+        """Keep the fake DAO row in sync with the executor's actual transitions."""
+        task.status = kwargs["new_status"].value
+        return mock.MagicMock(run=mock.MagicMock(return_value=True))
+
+    transition: mock.MagicMock = mocker.patch(
+        "superset.commands.tasks.internal_update.InternalStatusTransitionCommand",
+        side_effect=transition_status,
+    )
+    mocker.patch("superset.tasks.scheduler.TaskContext", return_value=task_context)
+    mocker.patch("superset.tasks.scheduler.TaskDAO.find_one_or_none", return_value=task)
+    mocker.patch(
+        "superset.tasks.scheduler.TaskRegistry.get_executor",
+        return_value=execute_chart_query.func,
+    )
+    mocker.patch("superset.tasks.scheduler.TaskManager")
+    mocker.patch("superset.tasks.async_queries.get_context", return_value=task_context)
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=query_context
+    )
+
+    result: dict[str, Any] = _execute_task_body(
+        task,
+        task.uuid,
+        "superset.query_object_v1",
+        (_serialized_query(),),
+        {},
+        mocker.MagicMock(),
+    )
+    assert result["status"] == (
+        TaskStatus.FAILURE.value if validation_failure else TaskStatus.SUCCESS.value
+    )
+    statuses: list[TaskStatus] = [
+        call.kwargs["new_status"] for call in transition.call_args_list
+    ]
+    assert statuses == [
+        TaskStatus.IN_PROGRESS,
+        TaskStatus.FAILURE if validation_failure else TaskStatus.SUCCESS,
+    ]
+    query_context.get_df_payload_result.assert_called_once()
+    if validation_failure:
+        assert (
+            transition.call_args.kwargs["properties"]["error_message"]
+            == "Error: Invalid filter"
+        )
+        assert (
+            transition.call_args.kwargs["properties"]["private"]["framework"][
+                "exception_type"
+            ]
+            == "QueryObjectValidationError"
+        )
+        task_context.update_task.assert_not_called()
+    else:
+        task_context.update_task.assert_called_once_with(
+            payload={"cache_key": "worker-key"}, immediate=True
+        )
 
 
 def test_execute_chart_query_publishes_cache_key_payload(
