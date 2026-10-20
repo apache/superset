@@ -102,7 +102,7 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     # which carries the visibility filter into the lazy load of its
     # ``slices`` baseline. Expiring the collection alone is not enough: an
     # object built in Python carries no filter into its lazy loads.
-    dashboard_id = dashboard.id
+    dashboard_id: int = dashboard.id
     db.session.expunge(dashboard)
     dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
 
@@ -142,10 +142,10 @@ def test_install_membership_baseline_skips_transient_dashboard(
 ) -> None:
     """A dashboard with no stored rows keeps its in-memory chart list."""
     Dashboard.metadata.create_all(session.get_bind())
-    chart = Slice(slice_name="transient_chart", datasource_type="table")
+    chart: Slice = Slice(slice_name="transient_chart", datasource_type="table")
     db.session.add(chart)
     db.session.flush()
-    dashboard = Dashboard(dashboard_title="transient_dash", slices=[chart])
+    dashboard: Dashboard = Dashboard(dashboard_title="transient_dash", slices=[chart])
 
     _install_membership_baseline(dashboard)
 
@@ -159,9 +159,9 @@ def test_install_membership_baseline_keeps_unflushed_change(
     """A pending change to the chart list is kept, not replaced by the
     stored baseline, when autoflush cannot flush it first."""
     Dashboard.metadata.create_all(session.get_bind())
-    kept = Slice(slice_name="kept_chart", datasource_type="table")
-    added = Slice(slice_name="added_chart", datasource_type="table")
-    dashboard = Dashboard(dashboard_title="pending_dash", slices=[kept])
+    kept: Slice = Slice(slice_name="kept_chart", datasource_type="table")
+    added: Slice = Slice(slice_name="added_chart", datasource_type="table")
+    dashboard: Dashboard = Dashboard(dashboard_title="pending_dash", slices=[kept])
     db.session.add_all([kept, added, dashboard])
     db.session.flush()
 

@@ -29,6 +29,7 @@ from sqlalchemy import inspect as sa_inspect, or_, select
 from sqlalchemy.engine import Row
 from sqlalchemy.orm import lazyload, Query, selectinload
 from sqlalchemy.orm.attributes import set_committed_value
+from sqlalchemy.orm.state import InstanceState
 
 from superset import security_manager
 from superset.commands.dashboard.exceptions import (
@@ -335,7 +336,7 @@ def _install_membership_baseline(dashboard: Dashboard) -> None:
     A change still pending is kept, by leaving the collection alone, because
     installing the baseline would drop it.
     """
-    state = sa_inspect(dashboard)
+    state: InstanceState[Dashboard] = sa_inspect(dashboard)
     if not state.persistent:
         return
     baseline: list[Slice] = (
