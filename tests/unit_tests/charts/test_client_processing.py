@@ -3084,6 +3084,73 @@ def test_table_report_time_format_survives_the_notification_table() -> None:
     assert notification_table[("ds",)].tolist() == ["02/01/2024", "15/01/2024"]
 
 
+def test_report_payload_keeps_an_unformatted_temporal_column_temporal() -> None:
+    """
+    A temporal column nobody rendered as text keeps its ``TEMPORAL`` type.
+
+    The payload type is what ``chart_data_to_dataframe`` reads to rebuild dates
+    for the notification table, and what the XLSX branch hands to
+    ``excel.apply_column_types`` to get date cells. Reporting a datetime column
+    as text would cost it both.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": pd.Timestamp("2024-01-15"), "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {"viz_type": "table", "metrics": ["cnt"]}
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"][0] == GenericDataType.TEMPORAL
+    assert list(query["data"]["ds"].values()) == [
+        pd.Timestamp("2024-01-02"),
+        pd.Timestamp("2024-01-15"),
+    ]
+
+
+def test_report_payload_types_a_csv_read_temporal_column_as_text() -> None:
+    """
+    The type follows the values, not whether this module wrote them.
+
+    Number and time formatting only runs for the JSON result format, so a CSV
+    payload's temporal column arrives as text from ``read_csv`` and is reported
+    that way. Keying the override on "did a post-processor format this column"
+    instead of on the values would report text as ``TEMPORAL`` here.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.CSV,
+                "data": "ds,cnt\n2024-01-02,1\n2024-01-15,2\n",
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"] == [GenericDataType.STRING, GenericDataType.NUMERIC]
+    # The CSV text itself is handed back untouched, formats included.
+    assert query["data"] == "ds,cnt\n2024-01-02,1\n2024-01-15,2\n"
+
+
 def test_table_applies_si_number_format() -> None:
     """
     Table reports honor d3 formats that Python's str.format cannot express.
