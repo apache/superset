@@ -2187,6 +2187,56 @@ class ResponseSizeGuardMiddleware(Middleware):
             )
         )
 
+    @staticmethod
+    def _discovery_target(response: Any, estimation_target: Any) -> Any:
+        """Select the object that carries dashboard filter value discovery."""
+        if isinstance(response, ToolResult) and isinstance(
+            response.structured_content, dict
+        ):
+            structured = response.structured_content
+            if isinstance(structured.get("filter_value_discovery"), dict):
+                # Structured-only results and inconsistent duplicate payloads
+                # must use the same protected final object on both channels.
+                estimation_target = structured
+        if (
+            not isinstance(estimation_target, ToolResult)
+            and hasattr(estimation_target, "model_dump")
+            and getattr(estimation_target, "filter_value_discovery", None) is not None
+        ):
+            estimation_target = estimation_target.model_dump()
+        return estimation_target
+
+    def _bounded_discovery_response(self, response: Any, target: Any) -> Any | None:
+        """Bound a discovery envelope, or return None for any other payload."""
+        if not (
+            isinstance(target, dict)
+            and isinstance(target.get("native_filters"), list)
+            and isinstance(target.get("filter_value_discovery"), dict)
+        ):
+            return None
+        # This also handles the outer call_tool proxy. Run at every size:
+        # the choice cap is smaller than the ordinary whole-response cap.
+        # Never send this envelope through destructive generic truncation.
+        bounded = finalize_dashboard_filter_values_response(
+            target, self.max_bytes, self.max_list_items
+        )
+        if not isinstance(response, ToolResult):
+            return bounded
+        from mcp.types import TextContent
+
+        from superset.utils.json import dumps as json_dumps
+
+        return ToolResult(
+            content=[
+                TextContent(type="text", text=json_dumps(bounded, ensure_ascii=False))
+            ],
+            structured_content=(
+                bounded if response.structured_content is not None else None
+            ),
+            meta=response.meta,
+            is_error=response.is_error,
+        )
+
     async def on_call_tool(
         self,
         context: MiddlewareContext,
@@ -2213,48 +2263,9 @@ class ResponseSizeGuardMiddleware(Middleware):
         extracted = self._extract_payload_from_tool_result(response)
         estimation_target = extracted if extracted is not None else response
 
-        if isinstance(response, ToolResult) and isinstance(
-            response.structured_content, dict
-        ):
-            structured = response.structured_content
-            if isinstance(structured.get("filter_value_discovery"), dict):
-                # Structured-only results and inconsistent duplicate payloads
-                # must use the same protected final object on both channels.
-                estimation_target = structured
-        if (
-            not isinstance(estimation_target, ToolResult)
-            and hasattr(estimation_target, "model_dump")
-            and getattr(estimation_target, "filter_value_discovery", None) is not None
-        ):
-            estimation_target = estimation_target.model_dump()
-        if (
-            isinstance(estimation_target, dict)
-            and isinstance(estimation_target.get("native_filters"), list)
-            and isinstance(estimation_target.get("filter_value_discovery"), dict)
-        ):
-            # This also handles the outer call_tool proxy. Run at every size:
-            # the choice cap is smaller than the ordinary whole-response cap.
-            # Never send this envelope through destructive generic truncation.
-            bounded = finalize_dashboard_filter_values_response(
-                estimation_target, self.max_bytes, self.max_list_items
-            )
-            if isinstance(response, ToolResult):
-                from mcp.types import TextContent
-
-                from superset.utils.json import dumps as json_dumps
-
-                return ToolResult(
-                    content=[
-                        TextContent(
-                            type="text", text=json_dumps(bounded, ensure_ascii=False)
-                        )
-                    ],
-                    structured_content=(
-                        bounded if response.structured_content is not None else None
-                    ),
-                    meta=response.meta,
-                    is_error=response.is_error,
-                )
+        estimation_target = self._discovery_target(response, estimation_target)
+        bounded = self._bounded_discovery_response(response, estimation_target)
+        if bounded is not None:
             return bounded
 
         # Ordinary excluded tools retain their existing behavior. Discovery's
