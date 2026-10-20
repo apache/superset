@@ -40,12 +40,14 @@ import type { RootState } from 'src/dashboard/types';
 import { replaceDashboardSemanticDatasets } from 'src/dashboard/actions/dashboardInfo';
 import CrudThemeProvider from 'src/components/CrudThemeProvider';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
+import { setActiveTabs } from 'src/dashboard/actions/dashboardState';
 import {
   clearDashboardHistory,
   UPDATE_COMPONENTS,
 } from 'src/dashboard/actions/dashboardLayout';
 import { DASHBOARD_HEADER_ID } from 'src/dashboard/util/constants';
-import { getUrlParam } from 'src/utils/urlUtils';
+import { getUrlParam, type UrlParam } from 'src/utils/urlUtils';
+import { getPermalinkValue } from 'src/dashboard/components/nativeFilters/FilterBar/keyValue';
 import DashboardPage from './DashboardPage';
 
 const mockTheme = {
@@ -780,4 +782,111 @@ test('clears undo history after hydrating the dashboard', async () => {
   const clearOrder = (clearDashboardHistory as jest.Mock).mock
     .invocationCallOrder[0];
   expect(clearOrder).toBeGreaterThan(hydrateOrder);
+});
+
+test.each([null, '', '   ', 'TAB-explicit'])(
+  'preserves permalink tabs during SPA navigation with explicit tabs %s',
+  async explicitTab => {
+    const search = new URLSearchParams({ permalink_key: 'saved-dashboard' });
+    if (explicitTab !== null) search.set('active_tabs', explicitTab);
+    window.history.replaceState({}, '', `/dashboard/1/?${search}`);
+    jest
+      .mocked(getUrlParam)
+      .mockImplementation((param: UrlParam) =>
+        new URLSearchParams(window.location.search).get(param.name),
+      );
+    type PermalinkValue = Awaited<ReturnType<typeof getPermalinkValue>>;
+    let resolvePermalink!: (value: PermalinkValue) => void;
+    const permalinkValue: PermalinkValue = {
+      dashboardId: '1',
+      state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+    };
+    jest.mocked(getPermalinkValue).mockReturnValueOnce(
+      new Promise<PermalinkValue>(resolve => {
+        resolvePermalink = resolve;
+      }),
+    );
+
+    const { unmount } = render(
+      <Suspense fallback="loading">
+        <DashboardPage idOrSlug="1" />
+      </Suspense>,
+      {
+        useRedux: true,
+        useRouter: true,
+        initialState: {
+          dashboardInfo: { id: 1, metadata: {} },
+          dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+          nativeFilters: { filters: {} },
+          dataMask: {},
+        },
+      },
+    );
+
+    try {
+      await waitFor(() => expect(getPermalinkValue).toHaveBeenCalled());
+      expect(
+        new URLSearchParams(window.location.search).get('active_tabs'),
+      ).toBe(explicitTab);
+      resolvePermalink(permalinkValue);
+      await waitFor(() =>
+        expect(hydrateDashboard).toHaveBeenCalledWith(
+          expect.objectContaining({
+            activeTabs: [explicitTab?.trim() || 'TAB-saved'],
+          }),
+        ),
+      );
+    } finally {
+      resolvePermalink(permalinkValue);
+      unmount();
+      window.history.replaceState({}, '', '/');
+    }
+  },
+);
+
+test('syncs active tabs to the URL once the permalink hydration lands', async () => {
+  window.history.replaceState({}, '', '/dashboard/1/?permalink_key=saved');
+  mockGetUrlParam.mockImplementation((param: UrlParam) =>
+    new URLSearchParams(window.location.search).get(param.name),
+  );
+  jest.mocked(getPermalinkValue).mockResolvedValueOnce({
+    dashboardId: '1',
+    state: { activeTabs: ['TAB-saved'], dataMask: {}, anchor: '' },
+  });
+  jest.mocked(hydrateDashboard).mockImplementationOnce(
+    (({ activeTabs }: { activeTabs: string[] }) =>
+      (dispatch: (action: unknown) => void) =>
+        dispatch(
+          setActiveTabs(activeTabs),
+        )) as unknown as typeof hydrateDashboard,
+  );
+  const store = createStore(
+    {
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
+      dashboardLayout: { past: [], future: [], present: {} },
+      nativeFilters: { filters: {} },
+      dataMask: {},
+    },
+    reducerIndex,
+  );
+  const activeTabsParam = () =>
+    new URLSearchParams(window.location.search).get('active_tabs');
+
+  const { unmount } = render(
+    <Suspense fallback="loading">
+      <DashboardPage idOrSlug="1" />
+    </Suspense>,
+    { store, useRouter: true },
+  );
+
+  try {
+    await waitFor(() => expect(activeTabsParam()).toBe('TAB-saved'));
+
+    store.dispatch(setActiveTabs(['TAB-other']));
+    await waitFor(() => expect(activeTabsParam()).toBe('TAB-other'));
+  } finally {
+    unmount();
+    window.history.replaceState({}, '', '/');
+  }
 });
