@@ -788,7 +788,7 @@ test.each([null, '', '   ', 'TAB-explicit'])(
   async explicitTab => {
     const search = new URLSearchParams({ permalink_key: 'saved-dashboard' });
     if (explicitTab !== null) search.set('active_tabs', explicitTab);
-    window.history.replaceState({}, '', `/superset/dashboard/1/?${search}`);
+    window.history.replaceState({}, '', `/dashboard/1/?${search}`);
     jest
       .mocked(getUrlParam)
       .mockImplementation((param: UrlParam) =>
@@ -814,7 +814,7 @@ test.each([null, '', '   ', 'TAB-explicit'])(
         useRedux: true,
         useRouter: true,
         initialState: {
-          dashboardInfo: { id: 2, metadata: {} },
+          dashboardInfo: { id: 1, metadata: {} },
           dashboardState: { sliceIds: [], activeTabs: ['TAB-previous'] },
           nativeFilters: { filters: {} },
           dataMask: {},

@@ -16,7 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { createContext, lazy, FC, useEffect, useMemo, useRef } from 'react';
+import {
+  createContext,
+  lazy,
+  FC,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { Global } from '@emotion/react';
 import { useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
@@ -160,6 +168,10 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
     status,
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
+  // Id of the dashboard whose hydration (including any permalink lookup) has
+  // completed in this page instance. `dashboardInfo.id` alone can still belong
+  // to a previously viewed dashboard.
+  const [hydratedLoadId, setHydratedLoadId] = useState<number>();
 
   const currentDashboardDatasets = useSelector(
     (state: RootState) => state.dashboardInfo.semanticDatasets,
@@ -349,6 +361,7 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           } as unknown as Parameters<typeof hydrateDashboard>[0]),
         );
         dispatch(clearDashboardHistory());
+        setHydratedLoadId(id);
 
         // Scroll to anchor element if specified in permalink state
         if (anchor) {
@@ -449,7 +462,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const relevantDataMask = useSelector(selectRelevantDatamask);
   const activeFilters = useSelector(selectActiveFilters);
 
-  useSyncActiveTabsToUrl(readyToRender && hydratedDashboardId === id);
+  useSyncActiveTabsToUrl(
+    readyToRender && hydratedLoadId === id && hydratedDashboardId === id,
+  );
 
   if (error && !isNotFoundError) throw error; // caught in error boundary
 
