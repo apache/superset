@@ -310,6 +310,33 @@ def test_apply_sql_security_blocks_disallowed_function(mock_app: MagicMock) -> N
         command._apply_sql_security("SELECT pg_sleep(1)")
 
 
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT pg_stat_reset()",
+        "SELECT dblink_exec('host=h dbname=d', 'DELETE FROM t')",
+        "SELECT dblink_connect_u('c', 'host=h dbname=d')",
+        "SELECT dblink_send_query('c', 'DELETE FROM t')",
+        "SELECT pg_cancel_backend(1234)",
+    ],
+)
+@patch("superset.commands.sql_lab.estimate.app")
+def test_apply_sql_security_blocks_shipped_default_functions(
+    mock_app: MagicMock, sql: str
+) -> None:
+    """Shipped DISALLOWED_SQL_FUNCTIONS catches dblink and pg_* state-mutators."""
+    from superset.config import DISALLOWED_SQL_FUNCTIONS
+    from superset.exceptions import SupersetDisallowedSQLFunctionException
+
+    mock_app.config = {
+        "DISALLOWED_SQL_FUNCTIONS": DISALLOWED_SQL_FUNCTIONS,
+        "DISALLOWED_SQL_TABLES": {},
+    }
+    command = _make_command_with_db(sql, allow_dml=True)
+    with pytest.raises(SupersetDisallowedSQLFunctionException):
+        command._apply_sql_security(sql)
+
+
 @patch("superset.commands.sql_lab.estimate.app")
 def test_apply_sql_security_allows_benign_select(mock_app: MagicMock) -> None:
     """A benign statement passes through unchanged (no false positives)."""

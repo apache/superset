@@ -60,7 +60,7 @@ jobs:
 
       - name: Publish test results
         if: steps.download.outcome == 'success' && steps.download-event.outcome == 'success'
-        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
+        uses: EnricoMi/publish-unit-test-result-action@7622c5bf3d112a72ab4fa3951c2aa5723d8ab92d # v2.25.0
         with:
           commit: ${{ github.event.workflow_run.head_sha }}
           event_file: event/event.json
