@@ -49,3 +49,12 @@ test('createExtensionContext creates context with lazy storage', () => {
   expect(ctx.storage.session).toBeDefined();
   expect(ctx.storage.ephemeral).toBeDefined();
 });
+
+test('different extensions get different contexts', () => {
+  const ctx1 = createExtensionContext(createMockExtension('org1.ext1'));
+  const ctx2 = createExtensionContext(createMockExtension('org2.ext2'));
+
+  expect(ctx1.extension.id).toBe('org1.ext1');
+  expect(ctx2.extension.id).toBe('org2.ext2');
+  expect(ctx1).not.toBe(ctx2);
+});
