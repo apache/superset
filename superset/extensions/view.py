@@ -17,7 +17,7 @@
 import logging
 from typing import Callable
 
-from flask import abort, Flask, g, render_template
+from flask import abort, current_app, Flask, g, render_template
 from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, permission_name
 from superset_core.extensions.types import Manifest, Page
@@ -157,6 +157,31 @@ def _first_claimant(app: Flask, path: str) -> str | None:
     return None
 
 
+def _permission_problem(permission: str | None) -> str | None:
+    """Why this permission cannot be used for a page, or None.
+
+    Superset reserves four permission names for object-level access, and
+    decides what the Admin role holds by excluding exactly those. A page
+    naming one would have its Admin grant stripped the next time
+    ``superset init`` ran, leaving a page nobody could open and nothing in
+    the logs to say why.
+
+    Unlike a route, this set is small, fixed and owned by Superset's own
+    security model, so refusing names from it is a rule that stays true.
+    """
+    if permission is None:
+        return None
+
+    from superset.security.manager import SupersetSecurityManager
+
+    if permission in SupersetSecurityManager.OBJECT_SPEC_PERMISSIONS:
+        return (
+            f"'{permission}' is reserved by Superset for object-level access "
+            f"and cannot be used for a page"
+        )
+    return None
+
+
 def register_extension_pages(app: Flask, manifest: Manifest) -> None:
     """Register one URL rule per page an extension declares.
 
@@ -178,6 +203,17 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
     should not stop the server from starting.
     """
     for page in manifest.contributions.pages:
+        if problem := _permission_problem(page.permission):
+            logger.error(
+                "Extension '%s' declares a page at '%s' requiring a "
+                "permission that cannot be used: %s. The page has not been "
+                "registered and will not load.",
+                manifest.id,
+                page.path,
+                problem,
+            )
+            continue
+
         if claimed := _first_claimant(app, page.path):
             logger.error(
                 "Extension '%s' declares a page at '%s', which is already "
@@ -228,8 +264,48 @@ def registered_page_paths(app: Flask, extension_id: str) -> list[str]:
     ]
 
 
+def _grant_to_admin(permission: str, extension_id: str) -> None:
+    """Give the Admin role a page permission, if it does not already hold it.
+
+    Not a policy this invents. ``sync_role_definitions`` builds the Admin
+    role from every permission that is not one of the four object-level ones,
+    so ``superset init`` would hand Admin this permission anyway. Doing it
+    here means an administrator who installs an extension can open its pages
+    without first running init and without granting themselves access to
+    their own deployment.
+
+    Re-checked on every boot rather than only on creation, so an Admin role
+    that lost the grant -- or a deployment that gained an extension before it
+    gained the role -- repairs itself at the next start.
+    """
+    from superset import security_manager
+
+    role_name = current_app.config.get("AUTH_ROLE_ADMIN", "Admin")
+    role = security_manager.find_role(role_name)
+    if role is None:
+        logger.warning(
+            "No '%s' role to grant '%s' on '%s' to", role_name, permission, extension_id
+        )
+        return
+
+    pvm = security_manager.find_permission_view_menu(permission, extension_id)
+    if pvm is None:
+        return
+
+    if pvm not in role.permissions:
+        # Idempotent and self-committing in FAB; called only when absent so
+        # that an ordinary boot does no write at all.
+        security_manager.add_permission_role(role, pvm)
+        logger.info(
+            "Granted '%s' on '%s' to the '%s' role",
+            permission,
+            extension_id,
+            role_name,
+        )
+
+
 def ensure_page_permissions(manifest: Manifest) -> None:
-    """Create the permissions this extension's pages require, if missing.
+    """Create the permissions this extension's pages require, and grant Admin.
 
     Created when the extension loads rather than by ``superset init``, because
     an extension can be installed long after a deployment was initialised and
@@ -239,7 +315,7 @@ def ensure_page_permissions(manifest: Manifest) -> None:
     the Roles screen groups an extension's permissions together and reads as
     "can_review on preset.asset-approval". Pages of the same extension may
     share a permission or declare different ones; this registers whatever set
-    they name.
+    they name, and gives the Admin role each of them.
 
     Failures are logged and swallowed. Every worker runs this at boot, so two
     starting together can race between the lookup and the insert; the loser
@@ -256,14 +332,14 @@ def ensure_page_permissions(manifest: Manifest) -> None:
     }
     for permission in sorted(required):
         try:
-            if security_manager.find_permission_view_menu(permission, manifest.id):
-                continue
-            security_manager.add_permission_view_menu(permission, manifest.id)
-            logger.info(
-                "Created permission '%s' on '%s' for extension pages",
-                permission,
-                manifest.id,
-            )
+            if not security_manager.find_permission_view_menu(permission, manifest.id):
+                security_manager.add_permission_view_menu(permission, manifest.id)
+                logger.info(
+                    "Created permission '%s' on '%s' for extension pages",
+                    permission,
+                    manifest.id,
+                )
+            _grant_to_admin(permission, manifest.id)
         except Exception:  # pylint: disable=broad-except
             # Most often a concurrent worker inserting the same row.
             logger.warning(
