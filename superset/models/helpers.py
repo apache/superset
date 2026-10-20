@@ -653,51 +653,76 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
-# Keyword arguments the template processor consumes itself. Chart execution
-# passes a dataset's ``template_params`` through those same keywords (and
-# overwrites the filter and cache-key lists), so an entry with one of these
-# names never becomes a template variable when the dataset's SQL runs.
-TEMPLATE_PROCESSOR_RESERVED_PARAMS = frozenset(
-    {
-        "applied_filters",
-        "database",
-        "extra_cache_keys",
-        "query",
-        "removed_filters",
-        "table",
-    }
-)
-
-
-def strip_reserved_template_params(params: dict[Any, Any]) -> dict[Any, Any]:
+def parse_template_params(value: str | dict[str, Any] | None) -> dict[str, Any]:
     """
-    Drop the ``template_params`` entries chart execution never exposes to the
-    template, so an access check renders the same SQL execution does.
-    """
-    return {
-        key: value
-        for key, value in params.items()
-        if key not in TEMPLATE_PROCESSOR_RESERVED_PARAMS
-    }
+    Read a dataset's ``template_params`` the way query execution does.
 
+    Execution merges ``json_to_dict(template_params)`` into the Jinja context,
+    so authorizing what a templated SQL reads must parse with that same
+    function to see the same values. Anything other than a JSON object is
+    rejected rather than coerced: execution would read such a value
+    differently (``dict.update`` also accepts a list of key/value pairs), so
+    no access decision based on it could be trusted.
 
-def template_params_for_access_check(template_params: Any) -> dict[Any, Any]:
+    :raises ValueError: if ``value`` is neither empty nor a JSON object
     """
-    Parse a dataset's ``template_params`` for a SQL access check.
-
-    Uses ``json_to_dict`` so the check reads the params exactly as rendering
-    does. Input rendering would reject (malformed JSON, a non-string) or
-    could not use (non-dict JSON) yields an empty dict, so the check still
-    runs against the SQL rendered without params. Names the template
-    processor reserves are dropped, since execution never renders them.
-    """
-    if not isinstance(template_params, str):
+    if isinstance(value, dict):
+        return value
+    if not value:
         return {}
+    if not isinstance(value, str):
+        raise ValueError("Template parameters must be a JSON object")
+    params = json_to_dict(value)
+    if not isinstance(params, dict):
+        raise ValueError("Template parameters must be a JSON object")
+    return params
+
+
+def _canonical_template_params(value: str | dict[str, Any] | None) -> str | None:
+    """Canonical JSON for ``template_params``, or ``None`` if unreadable.
+
+    Serializing the parsed value makes the comparison type-sensitive the way
+    Jinja is -- ``1``, ``true`` and ``1.0`` are distinct even though Python
+    considers the dicts equal -- while ``sort_keys`` keeps it insensitive to
+    key order and whitespace.
+    """
     try:
-        params = json_to_dict(template_params)
-    except json.JSONDecodeError:
-        return {}
-    return strip_reserved_template_params(params) if isinstance(params, dict) else {}
+        return json.dumps(parse_template_params(value), sort_keys=True)
+    except ValueError:
+        return None
+
+
+def template_params_equivalent(
+    left: str | dict[str, Any] | None,
+    right: str | dict[str, Any] | None,
+) -> bool:
+    """Whether two ``template_params`` render the same values.
+
+    Compared as execution reads them (see ``parse_template_params``), so
+    re-serialized JSON with the same values is equivalent, but values of
+    different JSON types are not. An unreadable value on either side is never
+    equivalent, so callers re-authorize rather than skip (fail closed).
+    """
+    left_canonical = _canonical_template_params(left)
+    return left_canonical is not None and left_canonical == _canonical_template_params(
+        right
+    )
+
+
+def template_params_for_access_check(params: dict[str, Any]) -> dict[str, Any]:
+    """Drop names the template processor consumes structurally.
+
+    A define/repoint access check renders the SQL with the submitted
+    ``template_params``; the names in ``RESERVED_TEMPLATE_PARAM_NAMES`` are
+    taken by the processor as constructor arguments rather than exposed as
+    Jinja variables, so execution never sees them in the render context.
+    Dropping them here keeps the authorized render matching the executed one.
+    """
+    from superset.jinja_context import (  # pylint: disable=import-outside-toplevel
+        RESERVED_TEMPLATE_PARAM_NAMES,
+    )
+
+    return {k: v for k, v in params.items() if k not in RESERVED_TEMPLATE_PARAM_NAMES}
 
 
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
@@ -785,9 +810,20 @@ def convert_uuids(obj: Any) -> Any:
 
 
 class UUIDMixin:  # pylint: disable=too-few-public-methods
-    uuid = sa.Column(
-        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
-    )
+    # A plain `uuid = sa.Column(...)` class attribute resolves to `Any` (or
+    # the raw `Column[Any]` descriptor) under mypy unless the whole class
+    # hierarchy happens to be loaded together in the same run -- so a
+    # scoped, per-PR mypy check silently lets an unnarrowed `.uuid` read
+    # through even though the column is nullable, and only a full-repo
+    # sweep catches the mismatch later (see #44789 and its predecessors
+    # #44394/#44424/#44648). The `@declared_attr` + explicit `Mapped[...]`
+    # return annotation used by `created_by_fk`/`changed_by_fk` above makes
+    # the type deterministic regardless of what else mypy is checking.
+    @declared_attr
+    def uuid(self) -> Mapped[Optional[uuid.UUID]]:  # pylint: disable=arguments-renamed
+        return sa.Column(
+            UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
+        )
 
     @validates("uuid")
     def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
@@ -5413,6 +5449,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_engine_spec=db_engine_spec,
                     db_extra=self.db_extra,
                 )
+                if op in {
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                } and not isinstance(eq, (tuple, list)):
+                    # A missing or null value (``val`` absent or ``None``)
+                    # leaves ``eq`` as ``None``. Reject it before any branch
+                    # (advanced data types, array columns, plain IN) uses it,
+                    # rather than dropping the filter, which would widen the
+                    # results.
+                    raise QueryObjectValidationError(
+                        _(
+                            "Filter value is required for the IN / NOT IN "
+                            "operator on column %(column)s",
+                            column=get_column_name(flt_col),
+                        )
+                    )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5493,6 +5545,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
                     # are in ``is_list_target``), but are element-level array ops
                     # handled by their own branch below — not IN.
+                    # Non-list values were rejected right after
+                    # ``filter_values_handler`` above.
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(

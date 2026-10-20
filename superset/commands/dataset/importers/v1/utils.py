@@ -39,7 +39,9 @@ from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
+    get_template_render_error_msg,
     MultiCatalogDisabledValidationError,
+    TEMPLATE_RENDER_ERRORS,
 )
 from superset.commands.exceptions import ImportFailedError
 from superset.commands.importers.exceptions import IncorrectFormatError
@@ -54,6 +56,8 @@ from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.models.helpers import (
     ChildMultipleResultsFound,
+    parse_template_params,
+    template_params_equivalent,
     template_params_for_access_check,
 )
 from superset.sql.parse import Table
@@ -251,95 +255,142 @@ def validate_catalog(config: dict[str, Any]) -> None:
         raise MultiCatalogDisabledValidationError()
 
 
-def _table_binding(
-    dataset: SqlaTable,
-) -> tuple[int | None, str | None, str | None, str, bool]:
+def _readable_template_params(value: Any) -> dict[str, Any] | None:
+    """Template params as execution will read them, or ``None`` if it can't.
+
+    A config's params arrive as a dict, which the import stores as
+    ``json.dumps(value)`` (see ``JSON_KEYS``) and execution reads back with
+    ``json_to_dict``. That round trip can change values (``json_to_dict``
+    rewrites ``", }"`` even inside a string; ``NaN`` and dates serialize
+    differently), so a dict is put through the same round trip before it is
+    compared or rendered.
+
+    ``None`` never equals readable params, so unreadable params always count
+    as a change, and the binding check below refuses to render with them.
     """
-    Return what a dataset reads from: its database, catalog, schema, table
-    name, and whether it is virtual.
+    try:
+        if isinstance(value, dict):
+            value = json.dumps(value)
+        return parse_template_params(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _raise_for_import_binding_access(
+    config: dict[str, Any], existing: SqlaTable | None
+) -> None:
+    """Authorize the table binding a dataset import will apply.
+
+    Runs BEFORE ``import_from_dict`` mutates the row, against the *requested*
+    (``config``) binding rather than the stored dataset: the per-table lookup
+    would otherwise resolve the dataset being imported itself (whose ``perm``
+    is schema-blind), letting a ``datasource_access`` holder repoint it to
+    another schema and read it through chart-data. ``allow_editorship=False``
+    means editorship of a same-named dataset is not accepted -- defining or
+    repointing a dataset over a table requires real data access to that
+    table. Skipped when the binding is unchanged (a metadata-only re-import is
+    not a repoint), matching ``UpdateDatasetCommand``.
     """
-    return (
-        dataset.database_id,
-        dataset.catalog or None,
-        dataset.schema or None,
-        dataset.table_name,
-        bool(dataset.sql),
+    database = db.session.query(Database).filter_by(id=config["database_id"]).first()
+    if database is None:
+        # A missing database is reported downstream by import_from_dict; there
+        # is no table binding to authorize here.
+        return
+
+    # Resolve the requested binding by MERGING the config over the stored row:
+    # an overwrite only applies the keys the upload carries, so an omitted
+    # field keeps its stored value. Resolving in isolation would mis-authorize
+    # (e.g. omitted ``sql`` -> treat a virtual dataset as physical; omitted
+    # ``template_params`` -> render against ``{}`` while the stored params are
+    # kept).
+    requested_sql = (
+        config["sql"] if "sql" in config else (existing.sql if existing else None)
+    ) or None
+    requested_table_name = config.get("table_name") or (
+        existing.table_name if existing else None
     )
-
-
-def _authorize_binding(config: dict[str, Any], existing: SqlaTable | None) -> None:
-    """
-    Authorize the table or SQL an import binds a dataset to.
-
-    Runs on the uploaded config before ``import_from_dict`` changes anything,
-    as the update command does. Once an overwrite has moved a dataset, the
-    lookup that authorizes a table finds that same row under its new binding,
-    and its ``datasource_access`` still matches because the dataset permission
-    name omits the schema. Keys missing from the config keep the stored value,
-    as they do in ``import_from_dict``.
-    """
-
-    def value(key: str) -> Any:
-        return config[key] if key in config else getattr(existing, key, None)
-
-    if "database_id" in config:
-        database = (
-            db.session.query(Database).filter_by(id=config["database_id"]).first()
+    requested_schema = config.get("schema", existing.schema if existing else None)
+    requested_catalog = config.get("catalog", existing.catalog if existing else None)
+    stored_params = (
+        _readable_template_params(existing.template_params) if existing else {}
+    )
+    if "template_params" in config:
+        requested_params = _readable_template_params(config["template_params"])
+        # Re-importing the value already stored is not a change, even when it
+        # is a legacy non-object value (``import_from_dict`` stores it as
+        # ``json.dumps(config[...])``), matching UpdateDatasetCommand's echo
+        # handling. Otherwise compared type-sensitively the way execution reads
+        # them: ``1`` and ``true`` differ even though the dicts are
+        # Python-equal; an unreadable value that is a real change fails closed.
+        config_stored_form = (
+            json.dumps(config["template_params"])
+            if config["template_params"] is not None
+            else None
+        )
+        params_unchanged = (
+            existing is not None and config_stored_form == existing.template_params
+        ) or (
+            requested_params is not None
+            and stored_params is not None
+            and template_params_equivalent(requested_params, stored_params)
         )
     else:
-        database = existing.database if existing else None
-    sql = value("sql")
-    # Empty strings would qualify table names against a nonexistent
-    # catalog/schema, so they are normalized to None to let the check fall
-    # back to the defaults.
-    catalog = value("catalog") or None
-    schema = value("schema") or None
-    table_name = value("table_name")
-    binding = (
-        database.id if database else None,
-        catalog,
-        schema,
-        table_name,
-        bool(sql),
-    )
+        requested_params = stored_params
+        params_unchanged = True
 
-    try:
-        # Editorship of the dataset being overwritten or restored must not
-        # authorize a table, or an editor could re-import a ``SELECT 1`` decoy
-        # as a physical dataset over an arbitrary one. A physical dataset that
-        # is new or bound to a different table is authorized by data access on
-        # that table.
-        if not sql and (existing is None or binding != _table_binding(existing)):
+    if existing is not None and (
+        config["database_id"] == existing.database_id
+        and requested_sql == (existing.sql or None)
+        # A virtual dataset's table_name is only a label -- its SQL is the
+        # binding -- so renaming one is not a repoint, as with PUT and
+        # ``/datasource/save/``.
+        and (bool(requested_sql) or requested_table_name == existing.table_name)
+        and requested_schema == existing.schema
+        and requested_catalog == existing.catalog
+        and params_unchanged
+    ):
+        # Binding unchanged -- a metadata-only re-import, not a repoint.
+        # The database and template_params are part of the binding: an
+        # overwrite that keeps table/schema/catalog/sql but points at a
+        # different database, or changes the params a templated FROM renders
+        # against, still repoints the dataset and must be re-authorized
+        # (matching UpdateDatasetCommand).
+        return
+
+    if requested_sql:
+        if requested_params is None:
+            # Execution would read these params differently than any access
+            # decision made here could, so fail closed as a bad payload.
+            raise IncorrectFormatError("Invalid template_params: must be a JSON object")
+        try:
             security_manager.raise_for_access(
                 database=database,
-                table=Table(table_name, schema, catalog),
-                allow_dataset_editorship=False,
+                sql=requested_sql,
+                # Empty strings would qualify table names against a nonexistent
+                # catalog/schema, so they are normalized to None.
+                catalog=requested_catalog or None,
+                schema=requested_schema or None,
+                template_params=template_params_for_access_check(requested_params),
+                allow_editorship=False,
             )
-        # For virtual datasets, validate access to the tables the SQL
-        # references, matching the create and update commands.
-        if sql:
-            security_manager.raise_for_access(
-                database=database,
-                sql=sql,
-                catalog=catalog,
-                schema=schema,
-                # Jinja-templated SQL only reveals the tables it really
-                # references once the params are applied, so they are
-                # forwarded rather than left to default to empty.
-                template_params=template_params_for_access_check(
-                    value("template_params")
-                ),
-                allow_dataset_editorship=False,
-            )
-    except SupersetSecurityException as ex:
-        raise DatasetAccessDeniedError() from ex
-    # SQL that can't be parsed or rendered can't be access-checked, so fail
-    # closed, but as an invalid payload (422) rather than an access denial or a
-    # server error.
-    except SupersetParseError as ex:
-        raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
-    except TemplateError as ex:
-        raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
+        except TEMPLATE_RENDER_ERRORS as ex:
+            # SQL that can't be rendered with its params can't be
+            # access-checked: fail closed as a bad payload, not a 500.
+            raise IncorrectFormatError(
+                f"Invalid SQL: {get_template_render_error_msg(ex)}"
+            ) from ex
+    elif isinstance(requested_table_name, str):
+        # A physical dataset always carries a table_name (the import schema
+        # requires it); the guard also narrows the type for the check below.
+        security_manager.raise_for_access(
+            database=database,
+            table=Table(
+                requested_table_name,
+                requested_schema or None,
+                requested_catalog or None,
+            ),
+            allow_editorship=False,
+        )
 
 
 def import_dataset(  # noqa: C901
@@ -561,6 +612,19 @@ def import_dataset(  # noqa: C901
     # untrusted user imports validate the catalog, like the access checks below.
     if not ignore_permissions:
         validate_catalog(config)
+        # Authorize the table binding the import will apply BEFORE the row is
+        # mutated, against the requested config values (see
+        # ``_raise_for_import_binding_access``).
+        try:
+            _raise_for_import_binding_access(config, existing)
+        except SupersetSecurityException as ex:
+            raise DatasetAccessDeniedError() from ex
+        # SQL that can't be parsed or rendered can't be access-checked, so fail
+        # closed, but as an invalid payload (422) rather than an access denial.
+        except SupersetParseError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
+        except TemplateError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
@@ -591,9 +655,6 @@ def import_dataset(  # noqa: C901
 
     # should we also load data into the dataset?
     data_uri = config.get("data")
-
-    if not ignore_permissions:
-        _authorize_binding(config, existing)
 
     # import recursively to include columns and metrics
     try:
@@ -661,6 +722,10 @@ def import_dataset(  # noqa: C901
         db.session.flush()
 
     if not ignore_permissions:
+        # Object-level access to the dataset itself (editor/owner, #20382). A
+        # change to the table binding this dataset points at was authorized
+        # before the row was mutated, in ``_raise_for_import_binding_access``
+        # above.
         try:
             security_manager.raise_for_access(datasource=dataset)
         except SupersetSecurityException as ex:

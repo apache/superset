@@ -219,7 +219,12 @@ def apply_column_types(
         series = df.iloc[:, idx]
         if column_type == GenericDataType.NUMERIC:
             try:
-                series = pd.to_numeric(series)
+                # Nullable integers retain exact values alongside blank totals.
+                # Convert to object before apply, which would otherwise coerce
+                # nullable integers through float64 during scalar mapping.
+                series = pd.to_numeric(series, dtype_backend="numpy_nullable").astype(
+                    object
+                )
                 # if the number is too large, convert it to a string
                 # Excel does not support numbers larger than 10^15
                 series = series.apply(

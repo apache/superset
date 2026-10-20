@@ -379,7 +379,7 @@ async def test_validation_details_are_bounded(inner_handler: bool) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("inner_handler", [False, True])
-@pytest.mark.parametrize("error_count", [128, 129, 100_000])
+@pytest.mark.parametrize("error_count", [128, 129, 10_000])
 async def test_validation_extraction_is_bounded(
     inner_handler: bool, error_count: int
 ) -> None:

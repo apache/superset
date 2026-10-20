@@ -33,9 +33,21 @@ from flask_appbuilder.const import (
     AUTH_REMOTE_USER,
     AUTH_SAML,
 )
-from flask_appbuilder.security.sqla.models import Role, User
+from flask_appbuilder.security.sqla.models import (
+    assoc_group_role,
+    assoc_permissionview_role,
+    assoc_user_group,
+    assoc_user_role,
+    Group,
+    Permission,
+    PermissionView,
+    Role,
+    User,
+    ViewMenu,
+)
 from flask_appbuilder.security.views import ResetMyPasswordView, ResetPasswordView
 from pytest_mock import MockerFixture
+from sqlalchemy.orm import Session
 from werkzeug.exceptions import NotFound
 
 from superset.common.chart_data import ChartDataResultType
@@ -4160,49 +4172,138 @@ def test_raise_for_access_editorship_denied_in_strict_mode(
     with pytest.raises(SupersetSecurityException):
         sm.raise_for_access(query=query, force_dataset_match=True)
 
+    # allow_editorship=False (dataset create/update validation): also not enough.
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, allow_editorship=False)
+
     # Non-strict mode: editorship still authorizes access (#20382).
     sm.raise_for_access(query=query)
 
 
-def test_raise_for_access_editorship_opt_out_keeps_schema_access(
+def test_raise_for_access_allow_editorship_false_keeps_schema_access(
     mocker: MockerFixture,
     app_context: None,
 ) -> None:
     """
-    ``allow_dataset_editorship=False`` (virtual dataset create/update,
-    chart-data on a SQL Lab query) must not accept editorship of a
-    same-named dataset, which any dataset-creating principal can set up as a
-    decoy. Unlike ``force_dataset_match`` it must keep the ``schema_access``
-    fallthrough, so a schema grant still authorizes the SQL.
+    allow_editorship=False must not drop the schema_access fallthrough: a
+    user with schema_access can still DEFINE a dataset over the table (unlike
+    force_dataset_match=True, which requires a registered dataset match).
     """
     sm = SupersetSecurityManager(appbuilder)
     mocker.patch.object(sm, "can_access_database", return_value=False)
-    can_access = mocker.patch.object(sm, "can_access", return_value=False)
-    mocker.patch.object(sm, "is_editor", return_value=True)
+    mocker.patch.object(sm, "is_editor", return_value=False)
     mocker.patch.object(sm, "is_guest_user", return_value=False)
     SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
-    # The user edits a decoy dataset named after the table but holds no
-    # datasource_access on it.
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    query = mocker.MagicMock(
+        database=database, schema=None, catalog=None, sql="SELECT * FROM dbo.foo"
+    )
+    # Only schema_access holds (the dbo schema on this connection).
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: vm == f"[{MSSQL_CONN_NAME}].[dbo]",
+    )
+
+    # allow_editorship=False still passes on schema_access ...
+    sm.raise_for_access(query=query, allow_editorship=False)
+    # ... whereas the strict flag would deny it (no registered dataset).
+    with pytest.raises(SupersetSecurityException):
+        sm.raise_for_access(query=query, force_dataset_match=True)
+
+
+def test_raise_for_access_allow_editorship_false_keeps_catalog_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    allow_editorship=False must not drop the catalog_access fallthrough either:
+    a user with catalog_access on the referenced catalog is not over-blocked
+    when defining a dataset over a table in it.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
+    SqlaTable.query_datasources_by_name.return_value = []
+
+    database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
+    mocker.patch.object(database.db_engine_spec, "supports_catalog", True)
+    query = mocker.MagicMock(
+        database=database, schema="dbo", catalog="other", sql="SELECT * FROM dbo.foo"
+    )
+    # Only catalog_access holds (the "other" catalog on this connection).
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: perm == "catalog_access"
+        and vm == f"[{MSSQL_CONN_NAME}].[other]",
+    )
+
+    sm.raise_for_access(query=query, allow_editorship=False)
+
+
+def test_raise_for_access_allow_editorship_false_keeps_datasource_access(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    End-to-end ALLOW guard: a holder of real ``datasource_access`` on a
+    registered dataset for the referenced table passes even with
+    ``allow_editorship=False`` -- the define/repoint paths never over-block a
+    principal with genuine data access (only editorship-as-access is removed).
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_database", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=False)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    SqlaTable = mocker.patch("superset.connectors.sqla.models.SqlaTable")  # noqa: N806
     SqlaTable.query_datasources_by_name.return_value = [
-        mocker.MagicMock(perm=f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)")
+        mocker.MagicMock(
+            perm=f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)", sql=None, catalog=None
+        )
     ]
 
     database = _mssql_database(mocker, "mssql+pymssql://user:pw@host:1433/abcm")
     query = mocker.MagicMock(
-        database=database,
-        schema=None,
-        catalog=None,
-        sql="SELECT * FROM dbo.foo",
+        database=database, schema=None, catalog=None, sql="SELECT * FROM dbo.foo"
     )
+    # Only datasource_access on the registered dataset holds.
+    mocker.patch.object(
+        sm,
+        "can_access",
+        side_effect=lambda perm, vm: perm == "datasource_access"
+        and vm == f"[{MSSQL_CONN_NAME}].[dbo].[foo](id:1)",
+    )
+
+    sm.raise_for_access(query=query, allow_editorship=False)
+
+
+def test_raise_for_access_datasource_branch_honors_allow_editorship(
+    mocker: MockerFixture,
+    app_context: None,
+) -> None:
+    """
+    The ``datasource=`` branch honors ``allow_editorship`` like the per-table
+    branch: an editor holding no schema, datasource or semantic-layer grant is
+    refused when the caller opts out of the editorship accept, and keeps the
+    #20382 accept by default.
+    """
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(sm, "can_access_schema", return_value=False)
+    mocker.patch.object(sm, "can_access", return_value=False)
+    mocker.patch.object(sm, "_semantic_layer_grant_allows", return_value=False)
+    mocker.patch.object(sm, "is_editor", return_value=True)
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    datasource = mocker.MagicMock(perm="[db].[orders](id:1)")
 
     with pytest.raises(SupersetSecurityException):
-        sm.raise_for_access(query=query, allow_dataset_editorship=False)
+        sm.raise_for_access(datasource=datasource, allow_editorship=False)
 
-    # A schema grant still authorizes the table on this path.
-    can_access.side_effect = lambda permission_name, _view_name: (
-        permission_name == "schema_access"
-    )
-    sm.raise_for_access(query=query, allow_dataset_editorship=False)
+    sm.raise_for_access(datasource=datasource)
 
 
 def test_get_datasources_accessible_by_user_schema_access(
@@ -6194,3 +6295,123 @@ def test_semantic_layer_delete_retains_child_grant_on_mysql_repeatable_read(
 
     connection.execute.assert_called_once()
     delete_pvm.assert_not_called()
+
+
+def _create_fab_security_tables(session: Session) -> None:
+    """
+    The shared in-memory SQLite ``session`` fixture only creates Superset's own
+    metadata; FAB's security tables live on a separate declarative base, so
+    they have to be created explicitly before they can be populated.
+    """
+    Permission.metadata.create_all(
+        session.get_bind(),
+        tables=[
+            Permission.__table__,
+            ViewMenu.__table__,
+            PermissionView.__table__,
+            Role.__table__,
+            User.__table__,
+            Group.__table__,
+            assoc_permissionview_role,
+            assoc_user_role,
+            assoc_user_group,
+            assoc_group_role,
+        ],
+        checkfirst=True,
+    )
+
+
+def _build_rbac_graph(session: Session) -> dict[str, int]:
+    """
+    Build a small RBAC graph exercising both ways a user can hold a role:
+    granted directly, and granted via a group.
+
+        direct_user  --role--> role_direct --pvm--> [db].[direct_schema]
+        group_user   --group--> grp --role--> role_group --pvm--> [db].[group_schema]
+        no_access_user holds neither.
+
+    An extra ``schema_access`` pvm attached to no role at all guards against
+    the query returning permissions nobody was granted.
+    """
+    perm = Permission(name="schema_access")
+    session.add(perm)
+
+    vm_direct = ViewMenu(name="[db].[direct_schema]")
+    vm_group = ViewMenu(name="[db].[group_schema]")
+    vm_orphan = ViewMenu(name="[db].[ungranted_schema]")
+    session.add_all([vm_direct, vm_group, vm_orphan])
+    session.flush()
+
+    pvm_direct = PermissionView(permission=perm, view_menu=vm_direct)
+    pvm_group = PermissionView(permission=perm, view_menu=vm_group)
+    pvm_orphan = PermissionView(permission=perm, view_menu=vm_orphan)
+    session.add_all([pvm_direct, pvm_group, pvm_orphan])
+    session.flush()
+
+    role_direct = Role(name="role_direct", permissions=[pvm_direct])
+    role_group = Role(name="role_group", permissions=[pvm_group])
+    session.add_all([role_direct, role_group])
+    session.flush()
+
+    grp = Group(name="grp", roles=[role_group])
+    session.add(grp)
+    session.flush()
+
+    users = {}
+    for name, roles, groups in (
+        ("direct_user", [role_direct], []),
+        ("group_user", [], [grp]),
+        ("both_user", [role_direct], [grp]),
+        ("no_access_user", [], []),
+    ):
+        user = User(
+            first_name=name,
+            last_name="t",
+            username=name,
+            email=f"{name}@example.invalid",
+            roles=roles,
+            groups=groups,
+        )
+        session.add(user)
+        session.flush()
+        users[name] = user.id
+    session.commit()
+    return users
+
+
+@pytest.mark.parametrize(
+    "username,expected",
+    [
+        ("direct_user", {"[db].[direct_schema]"}),
+        ("group_user", {"[db].[group_schema]"}),
+        ("both_user", {"[db].[direct_schema]", "[db].[group_schema]"}),
+        ("no_access_user", set()),
+    ],
+)
+def test_user_view_menu_names_resolves_direct_and_group_roles(
+    mocker: MockerFixture,
+    app_context: None,
+    session: Session,
+    username: str,
+    expected: set[str],
+) -> None:
+    """
+    ``user_view_menu_names`` must resolve permissions from roles held directly
+    *and* from roles inherited through a group, and must never return a
+    permission that no role was granted.
+    """
+    _create_fab_security_tables(session)
+    users = _build_rbac_graph(session)
+
+    sm = SupersetSecurityManager(appbuilder)
+    mocker.patch.object(
+        type(sm), "session", new_callable=mocker.PropertyMock, return_value=session
+    )
+    mocker.patch.object(sm, "is_guest_user", return_value=False)
+    mocker.patch(
+        "superset.security.manager.g",
+        new=SimpleNamespace(user=SimpleNamespace(is_anonymous=False)),
+    )
+    mocker.patch("superset.security.manager.get_user_id", return_value=users[username])
+
+    assert sm.user_view_menu_names("schema_access") == expected

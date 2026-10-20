@@ -19,7 +19,6 @@ from functools import partial
 from typing import Any
 
 from flask_appbuilder.models.sqla import Model
-from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 
 from superset.commands.base import BaseCommand, CreateMixin
@@ -30,7 +29,10 @@ from superset.commands.dataset.exceptions import (
     DatasetExistsValidationError,
     DatasetInvalidError,
     DatasetSoftDeletedTwinExistsError,
+    DatasetSqlRenderValidationError,
     TableNotFoundValidationError,
+    TEMPLATE_RENDER_ERRORS,
+    TemplateParamsInvalidValidationError,
 )
 from superset.commands.utils import populate_subjects
 from superset.daos.dataset import DatasetDAO
@@ -48,8 +50,7 @@ from superset.exceptions import (
 )
 from superset.extensions import security_manager
 from superset.models.helpers import (
-    json_to_dict,
-    strip_reserved_template_params,
+    parse_template_params,
     template_params_for_access_check,
 )
 from superset.sql.parse import process_jinja_sql, Table
@@ -108,6 +109,23 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
         schema = self._properties.get("schema")
         table_name = self._properties["table_name"]
         sql = self._properties.get("sql")
+        # The access check below must render the SQL with the same template
+        # params that will be stored and executed, so a templated table
+        # reference is authorized as the table it actually resolves to rather
+        # than its ``default()``. Only a virtual dataset's SQL renders them, so
+        # a physical dataset's params are left unparsed as before; params that
+        # cannot be read as execution reads them are rejected (fail closed)
+        # rather than authorized against a guess.
+        template_params: dict[str, Any] = {}
+        template_params_valid = True
+        if sql:
+            try:
+                template_params = parse_template_params(
+                    self._properties.get("template_params")
+                )
+            except ValueError:
+                template_params_valid = False
+                exceptions.append(TemplateParamsInvalidValidationError())
 
         # Validate/Populate database
         database = DatasetDAO.get_database_by_id(database_id)
@@ -122,18 +140,12 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
 
             if sql:
                 try:
-                    template_params_raw: str | None = self._properties.get(
-                        "template_params"
-                    )
                     # Render with the params chart execution exposes, so the
                     # derived schema comes from the SQL the access check sees.
-                    template_params = strip_reserved_template_params(
-                        json_to_dict(template_params_raw or "")
-                    )
                     parse_result = process_jinja_sql(
                         sql,
                         database,
-                        template_params,
+                        template_params_for_access_check(template_params),
                     )
                 except Exception:  # pylint: disable=broad-exception-caught
                     logger.debug(
@@ -228,38 +240,37 @@ class CreateDatasetCommand(CreateMixin, BaseCommand):
             exceptions.append(TableNotFoundValidationError(table))
 
         if sql:
-            try:
-                security_manager.raise_for_access(
-                    database=database,
-                    sql=sql,
-                    catalog=catalog,
-                    schema=schema,
-                    # Jinja-templated SQL only reveals the tables it reads
-                    # once rendered with the params the dataset is saved with.
-                    template_params=template_params_for_access_check(
-                        self._properties.get("template_params")
-                    ),
-                    allow_dataset_editorship=False,
-                )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            except SupersetParseError as ex:
-                exceptions.append(
-                    ValidationError(
-                        f"Invalid SQL: {ex.error.message}",
-                        field_name="sql",
+            # Unreadable params already failed validation above; skip the check
+            # rather than report an access decision made against other params.
+            if template_params_valid:
+                try:
+                    security_manager.raise_for_access(
+                        database=database,
+                        sql=sql,
+                        catalog=catalog,
+                        schema=schema,
+                        template_params=template_params_for_access_check(
+                            template_params
+                        ),
+                        allow_editorship=False,
                     )
-                )
-            except TemplateError as ex:
-                exceptions.append(
-                    ValidationError(f"Invalid SQL: {ex}", field_name="sql")
-                )
+                except SupersetSecurityException as ex:
+                    exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+                except SupersetParseError as ex:
+                    exceptions.append(
+                        ValidationError(
+                            f"Invalid SQL: {ex.error.message}",
+                            field_name="sql",
+                        )
+                    )
+                except TEMPLATE_RENDER_ERRORS as ex:
+                    exceptions.append(DatasetSqlRenderValidationError(ex))
         elif database:
             try:
                 security_manager.raise_for_access(
                     database=database,
                     table=table,
-                    allow_dataset_editorship=False,
+                    allow_editorship=False,
                 )
             except SupersetSecurityException as ex:
                 exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))

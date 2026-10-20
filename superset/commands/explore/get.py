@@ -90,7 +90,7 @@ def _authorize_datasource(
             query=datasource,
             datasource=datasource,
             allow_query_authorship_bypass=True,
-            allow_dataset_editorship=False,
+            allow_editorship=False,
         )
     else:
         security_manager.raise_for_access(datasource=datasource)

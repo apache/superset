@@ -29,6 +29,8 @@ from superset import db, event_logger, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
+    get_template_render_error_msg,
+    TEMPLATE_RENDER_ERRORS,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
@@ -38,11 +40,16 @@ from superset.daos.datasource import Datasource as DatasourceModel, DatasourceDA
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import template_params_for_access_check
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_equivalent,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import DatasourceType
+from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView, deprecated, json_error_response
 from superset.views.datasource.schemas import (
     ExternalMetadataParams,
@@ -126,25 +133,31 @@ def _repoints_sql(
     database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
-    requested_template_params: str | None,
+    raw_template_params: str | None,
 ) -> bool:
     """
     Would the request change what the SQL on ``datasource`` reads?
 
     Supplying ``sql`` aims the dataset at whatever that SQL reads, converting
     a physical dataset on the way. Unchanged SQL still lands somewhere new
-    when the connection, the catalog or schema it resolves unqualified names
-    against, or the params its Jinja renders with change, as in
-    ``UpdateDatasetCommand._validate_sql_access``.
+    when the connection, catalog or schema it resolves unqualified names
+    against moves, or when the ``template_params`` that render a templated
+    ``FROM`` change -- the same triggers as
+    ``UpdateDatasetCommand._validate_sql_access``. An identical params value
+    (the editor echoes it back) is never a change, even a legacy non-object
+    one; otherwise they are compared as execution reads them.
     """
     if not isinstance(datasource, SqlaTable) or not requested_sql:
         return False
+    params_changed = raw_template_params != datasource.template_params and (
+        not template_params_equivalent(raw_template_params, datasource.template_params)
+    )
     return (
         database_changed
         or requested_sql != datasource.sql
         or (requested_table.schema, requested_table.catalog)
         != (datasource.schema or None, datasource.catalog or None)
-        or (requested_template_params or None) != (datasource.template_params or None)
+        or params_changed
     )
 
 
@@ -186,7 +199,7 @@ def _authorize_repoint(
     database_changed: bool,
     requested_sql: str | None,
     requested_table: Table,
-    requested_template_params: str | None,
+    raw_template_params: str | None,
 ) -> FlaskResponse | None:
     """Authorise the target a save aims ``datasource`` at.
 
@@ -207,7 +220,7 @@ def _authorize_repoint(
         database_changed,
         requested_sql,
         requested_table,
-        requested_template_params,
+        raw_template_params,
     )
     if not (repoints_table or repoints_sql):
         return None
@@ -224,21 +237,37 @@ def _authorize_repoint(
             security_manager.raise_for_access(
                 database=target_database,
                 table=requested_table,
-                allow_dataset_editorship=False,
+                allow_editorship=False,
             )
         if repoints_sql:
+            # Only rendered on an actual repoint, so an unreadable value here
+            # is a genuine change we cannot authorize -- reject it rather than
+            # 500 (a metadata-only echo of a legacy value never reaches this).
+            try:
+                template_params = parse_template_params(raw_template_params)
+            except ValueError:
+                return json_error_response(
+                    _("Template parameters must be a valid JSON object."),
+                    status=422,
+                )
             security_manager.raise_for_access(
                 database=target_database,
                 sql=requested_sql,
                 catalog=requested_table.catalog,
                 schema=requested_table.schema,
-                template_params=template_params_for_access_check(
-                    requested_template_params
-                ),
-                allow_dataset_editorship=False,
+                # Render with the submitted params so a templated FROM is
+                # authorized as the table it actually resolves to, minus the
+                # names the processor consumes structurally (so the render
+                # matches execution).
+                template_params=template_params_for_access_check(template_params),
+                allow_editorship=False,
             )
     except SupersetSecurityException as ex:
         raise DatasetForbiddenError() from ex
+    except TEMPLATE_RENDER_ERRORS as ex:
+        # SQL that can't be rendered with the submitted params can't be
+        # authorized: refuse it as invalid input rather than a 500.
+        return json_error_response(get_template_render_error_msg(ex), status=422)
     return None
 
 
@@ -278,8 +307,8 @@ class Datasource(BaseSupersetView):
 
         database_changed = database_id != orm_datasource.database_id
         try:
-            requested_sql, requested_table, requested_template_params = (
-                _requested_target(datasource_dict)
+            requested_sql, requested_table, raw_template_params = _requested_target(
+                datasource_dict
             )
         except ValueError as ex:
             return json_error_response(
@@ -293,7 +322,7 @@ class Datasource(BaseSupersetView):
             database_changed,
             requested_sql,
             requested_table,
-            requested_template_params,
+            raw_template_params,
         ):
             return error
 
@@ -466,6 +495,13 @@ class Datasource(BaseSupersetView):
             datasource=dataset,
             dashboard_id=dashboard_id,
         )
+        # Drill to detail is available to embedded guests (see the guest branch
+        # above), and the samples payload carries the generated SQL under
+        # ``query``. Apply the same guest redaction as ``/api/v1/chart/data``
+        # (CVE-2025-55673, gated on "can view query on Dashboard" since #43151)
+        # so the SQL is not disclosed to a guest whose role lacks that
+        # permission.
+        redact_sensitive_query_fields([rv])
         return self.json_response({"result": rv})
 
 

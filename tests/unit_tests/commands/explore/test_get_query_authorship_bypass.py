@@ -49,7 +49,7 @@ def test_query_datasource_uses_authorship_bypass(mocker: MockerFixture) -> None:
         query=query,
         datasource=query,
         allow_query_authorship_bypass=True,
-        allow_dataset_editorship=False,
+        allow_editorship=False,
     )
 
 

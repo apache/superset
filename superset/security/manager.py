@@ -75,7 +75,6 @@ from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
-from sqlalchemy.sql import exists
 from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
 
@@ -2992,22 +2991,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not g.user.is_anonymous:
             user_id = get_user_id()
 
-            user_roles_filter = or_(
-                exists().where(
-                    (assoc_user_role.c.user_id == user_id)
-                    & (assoc_user_role.c.role_id == self.role_model.id)
-                    & (self.permission_model.name == permission_name)
-                ),
-                exists().where(
-                    (assoc_user_group.c.user_id == user_id)
-                    & (assoc_user_group.c.group_id == self.group_model.id)
-                    & (assoc_group_role.c.group_id == self.group_model.id)
-                    & (assoc_group_role.c.role_id == self.role_model.id)
-                    & (self.permission_model.name == permission_name)
-                ),
+            # The user's effective roles: granted directly, or via a group.
+            #
+            # Filtering on this (small) set of role ids rather than on an OR of
+            # two correlated EXISTS lets the planner drive the join from
+            # ab_permission_view_role(role_id). With the EXISTS form the
+            # permission name is trapped inside both branches of the OR, so it
+            # cannot restrict the join, and the whole of
+            # ab_permission_view_role is scanned and filtered on every call.
+            # The cost then scales with the total number of permissions on the
+            # instance instead of with the number of roles the user holds.
+            user_role_ids = (
+                select(assoc_user_role.c.role_id)
+                .where(assoc_user_role.c.user_id == user_id)
+                .union(
+                    select(assoc_group_role.c.role_id)
+                    .select_from(
+                        assoc_user_group.join(
+                            assoc_group_role,
+                            assoc_group_role.c.group_id == assoc_user_group.c.group_id,
+                        )
+                    )
+                    .where(assoc_user_group.c.user_id == user_id)
+                )
             )
 
-            view_menu_names = base_query.filter(user_roles_filter).all()
+            view_menu_names = (
+                base_query.filter(self.permission_model.name == permission_name).filter(
+                    self.role_model.id.in_(user_role_ids)
+                )
+            ).all()
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
@@ -4972,7 +4985,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         template_params: Optional[dict[str, Any]] = None,
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
-        allow_dataset_editorship: bool = True,
+        allow_editorship: bool = True,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -4996,8 +5009,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             data (SQL Lab, MetaDB, MCP ``execute_sql``, alert/report
             queries) set this to True.
             The default (False) preserves the historical semantics for
-            chart-data, dataset CRUD, ``/table_metadata/``, and
-            ``/select_star/``.
+            chart-data, ``/table_metadata/``, and ``/select_star/`` (dataset
+            create/update/import additionally opt out of the editorship accept
+            via ``allow_editorship`` below).
         :param allow_query_authorship_bypass: When True, a SQL Lab query's
             own author is granted access to that exact, already-succeeded
             query without an additional dataset-level ``datasource_access``
@@ -5010,19 +5024,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             access, and a query's SQL may be templated such that the
             tables actually touched depend on parameters supplied at
             request time.
-        :param allow_dataset_editorship: When False, editorship of a dataset
-            registered for a referenced table does not authorize that table
-            in the database+table / query branch; only ``datasource_access``
-            (or the catalog/schema grants) does. Unlike
-            ``force_dataset_match`` it leaves the catalog/schema
-            fallthroughs and parsing rules untouched. Call sites that bind a
-            dataset to a table or SQL the user supplies (dataset create,
-            update, legacy ``/datasource/save/`` and import) or authorize a
-            stored SQL Lab query (chart-data, the Explore GET and the explore
-            form-data step) set this to False, since a
-            dataset named after an arbitrary table is a decoy any
-            dataset-creating principal can make. Ignored when
-            ``force_dataset_match`` is True, which never accepts editorship.
+        :param allow_editorship: When False, editorship/ownership of a
+            registered dataset no longer counts as access to the underlying
+            table (in both the database+table / query branch and the
+            datasource / query_context branch; the ``catalog_access`` /
+            ``schema_access`` / ``datasource_access`` checks still apply).
+            The paths that define or repoint a dataset over a table -- dataset
+            create, update, v1 import, and the legacy ``/datasource/save/``
+            repoint -- and the SQL Lab query paths (query-backed chart-data,
+            the Explore GET and the explore form-data step) set this to False
+            so that binding a dataset to (or reading a stored query against) a
+            table requires real data access to that table, not editorship of a
+            same-named dataset -- otherwise a no-table decoy dataset named
+            after the table would let its editor define a second dataset that
+            reads it. Unlike ``force_dataset_match`` this keeps the
+            catalog/schema fallthroughs, so ``schema_access`` still authorizes
+            defining a dataset. Ignored when ``force_dataset_match`` is True
+            (editorship is already excluded there).
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5382,17 +5400,23 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 for datasource_ in datasources:
                     # ``datasource_access`` on a registered dataset is always
                     # sufficient. Editorship of the dataset is accepted only on
-                    # the non-strict path (``/table_metadata/``,
+                    # the non-strict path (chart-data, ``/table_metadata/``,
                     # ``/select_star/``), where it is the dataset-owner
-                    # "explore your own dataset" grant from #20382. Under
-                    # strict scoping (SQL Lab raw queries, MetaDB, MCP
-                    # ``execute_sql``, alert/report queries) and for callers
-                    # that pass ``allow_dataset_editorship=False`` (binding a
-                    # dataset to a table or SQL, chart-data or Explore on a
-                    # SQL Lab query) editorship is deliberately excluded:
-                    # returning raw rows from the underlying warehouse table
-                    # must follow the user's live data-access grants, not
-                    # editorship of a same-named dataset. Any principal able to
+                    # "explore your own dataset" grant from #20382.
+                    #
+                    # It is excluded on two kinds of call:
+                    #   * strict scoping (``force_dataset_match``) -- SQL Lab
+                    #     raw queries, MetaDB, MCP ``execute_sql`` and
+                    #     alert/report queries -- which return raw rows and
+                    #     also drop the catalog/schema fallthroughs;
+                    #   * ``allow_editorship=False`` -- the paths that define
+                    #     or repoint a dataset over a table (create, update, v1
+                    #     import, and the legacy ``/datasource/save/`` repoint)
+                    #     and the SQL Lab query paths (query-backed
+                    #     chart-data, Explore) -- which keep the catalog/schema
+                    #     fallthroughs but refuse editorship.
+                    # Both must follow the user's live data-access grants, not
+                    # editorship of a same-named dataset: any principal able to
                     # create a dataset can make themselves an editor of one
                     # named after an arbitrary table, so accepting editorship
                     # here would let dataset creation stand in for data access
@@ -5401,8 +5425,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         "datasource_access",
                         datasource_.perm or "",
                     ) or (
-                        allow_dataset_editorship
-                        and not force_dataset_match
+                        not force_dataset_match
+                        and allow_editorship
                         and self.is_editor(datasource_)
                     ):
                         # access to any datasource is sufficient
@@ -5469,7 +5493,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # A grant on a semantic view's parent layer covers the view,
                 # matching SemanticView.raise_for_access (sc-119501).
                 or self._semantic_layer_grant_allows(datasource)
-                or self.is_editor(datasource)
+                # ``allow_editorship`` is honored here too so a caller that opts
+                # out of the editorship accept (e.g. dataset define/repoint
+                # validation) gets consistent behavior across both branches,
+                # rather than the flag silently applying only to the
+                # database+table / query branch above.
+                or (allow_editorship and self.is_editor(datasource))
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
                     # or the user is an embedded guest user with access to the dashboard
