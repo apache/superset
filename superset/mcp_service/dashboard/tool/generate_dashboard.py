@@ -28,6 +28,7 @@ from fastmcp import Context
 from flask import g
 from pydantic import Field, ValidationError
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.orm import selectinload
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.dashboards.layout import repair_position
@@ -244,6 +245,7 @@ def generate_dashboard(  # noqa: C901
         with event_logger.log_context(action="mcp.generate_dashboard.chart_validation"):
             chart_objects = (
                 db.session.query(Slice)
+                .options(selectinload(Slice.editors), selectinload(Slice.viewers))
                 .filter(Slice.id.in_(request.chart_ids))
                 .order_by(Slice.id)
                 .all()

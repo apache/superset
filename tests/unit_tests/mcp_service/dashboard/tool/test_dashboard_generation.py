@@ -169,6 +169,7 @@ def _setup_generate_dashboard_mocks(
 
     mock_query = Mock()
     mock_filter = Mock()
+    mock_query.options.return_value = mock_query
     mock_query.filter.return_value = mock_filter
     mock_query.filter_by.return_value = mock_filter
     mock_filter.order_by.return_value = mock_filter
@@ -354,6 +355,7 @@ class TestGenerateDashboard:
         """Test error handling when some charts don't exist."""
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = [_mock_chart(id=1)]
@@ -383,6 +385,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
         mock_filter.all.return_value = charts
@@ -538,6 +541,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_query.filter_by.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
@@ -585,6 +589,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_query.filter_by.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
@@ -644,6 +649,7 @@ class TestGenerateDashboard:
 
         mock_query = Mock()
         mock_filter = Mock()
+        mock_query.options.return_value = mock_query
         mock_query.filter.return_value = mock_filter
         mock_query.filter_by.return_value = mock_filter
         mock_filter.order_by.return_value = mock_filter
