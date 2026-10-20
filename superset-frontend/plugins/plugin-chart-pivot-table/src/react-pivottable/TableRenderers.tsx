@@ -590,8 +590,15 @@ export function TableRenderer(props: TableRendererProps) {
       const groups: Record<string, HierarchicalNode> = {};
       const rowsData = pivotData.rowKeys;
       rowsData.forEach(rowKey => {
+        const aggregator = pivotData.getAggregator(rowKey, visibleColName);
+        // Prefer `sortValue()`: a blanked mixed-metric slot still orders by
+        // the value it would otherwise carry, instead of every such row
+        // collapsing to the same `?? 0` fallback and sorting arbitrarily
+        // against one another.
         const aggValue =
-          pivotData.getAggregator(rowKey, visibleColName).value() ?? 0;
+          (aggregator.sortValue
+            ? aggregator.sortValue()
+            : aggregator.value()) ?? 0;
 
         if (rowPartialOnTop) {
           const parent = rowKey

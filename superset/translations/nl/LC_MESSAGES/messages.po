@@ -14541,6 +14541,12 @@ msgstr "Scroll naar beneden om overschrijvingen mogelijk te maken. "
 msgid "Search"
 msgstr "Zoek"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr "Zoek / Filter"
 
@@ -14600,9 +14606,6 @@ msgstr "Zoek in filters"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Zoek Metriek & Kolommen"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

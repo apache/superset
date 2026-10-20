@@ -12562,6 +12562,11 @@ msgstr "変更の上書きを有効にするには、一番下までスクロー
 msgid "Search"
 msgstr "検索"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "%s 件のレコードを検索"
+
 msgid "Search / Filter"
 msgstr "検索 / フィルター"
 
@@ -12615,9 +12620,6 @@ msgstr "フィルター内を検索"
 
 msgid "Search metrics by key or label"
 msgstr "メトリックをキーまたはラベルで検索"
-
-msgid "Search records"
-msgstr "記録を検索"
 
 msgid "Search tags"
 msgstr "タグを検索"

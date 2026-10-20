@@ -14024,6 +14024,11 @@ msgstr "Yazma değişikliklerini sağlamak için alta çıkın."
 msgid "Search"
 msgstr "Ara"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Arama   %s kayıtları"
+
 msgid "Search / Filter"
 msgstr "Ara / Filtrele"
 
@@ -14091,9 +14096,6 @@ msgstr "Filtrelerde ara"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Metrikleri anahtara veya etikete göre ara"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
