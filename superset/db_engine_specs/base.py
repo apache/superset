@@ -3016,6 +3016,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cancelation request has been received. For those cases, the db engine spec
         can record the cancelation intent so that the query can either be stopped
         prior to execution, or canceled once the query id is acquired.
+
+        Only stage changes on the query; do not flush or commit here. The caller
+        persists them with a guarded stop so a concurrent terminal result wins.
         """
         return None
 

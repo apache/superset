@@ -18,7 +18,7 @@
 from datetime import datetime, timedelta
 from decimal import Decimal
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, PropertyMock
 
 import numpy as np
 import pandas as pd
@@ -2309,6 +2309,40 @@ def test_raise_for_access_wraps_template_error_for_query_datasource():
     query.validate.assert_not_called()
 
 
+def test_raise_for_access_query_datasource_disallows_editorship():
+    """
+    Query-backed chart-data runs the stored query's raw SQL, so it must
+    authorize with allow_editorship=False (editorship of a same-named dataset
+    must not stand in for data access), and a denial must stop query.validate().
+    """
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+    from superset.utils.core import DatasourceType
+
+    query = MagicMock()
+    query_context = MagicMock()
+    query_context.queries = [query]
+    query_context.datasource.type = DatasourceType.QUERY
+    processor = QueryContextProcessor(query_context)
+
+    denial = SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+            message="no access",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    with patch(
+        "superset.common.query_context_processor.security_manager.raise_for_access",
+        side_effect=denial,
+    ) as raise_for_access:
+        with pytest.raises(SupersetSecurityException):
+            processor.raise_for_access()
+
+    assert raise_for_access.call_args.kwargs.get("allow_editorship") is False
+    query.validate.assert_not_called()
+
+
 def test_grouping_sets_fallback_handles_adhoc_and_physical_columns() -> None:
     """
     The fallback used on engines without native GROUPING SETS support must
@@ -3036,6 +3070,7 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
 
 def test_semantic_annotation_null_protocol_versions_parent_cache(
     app_context: Any,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
     from superset.common.query_context import QueryContext
@@ -3049,7 +3084,9 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
     provider: MagicMock = MagicMock()
     provider.result_cache_version = None
     provider.get_dimensions.return_value = []
-    view.__dict__["implementation"] = provider
+    monkeypatch.setattr(
+        SemanticView, "implementation", PropertyMock(return_value=provider)
+    )
     chart: Slice = Slice(
         id=7,
         datasource_id=17,
@@ -3135,3 +3172,38 @@ def test_semantic_annotation_null_protocol_versions_parent_cache(
         "semantic_filter_protocol": "semantic-null-filters-v1",
         "source_versions": {"7": view.metadata_generation},
     }
+
+
+def test_get_df_payload_keeps_dataset_validation_type() -> None:
+    """A SQL dataset's run-time validation failure keeps its type in the payload."""
+    from superset.common.query_object import QueryObject
+    from superset.exceptions import QueryObjectValidationMessage
+
+    mock_query_context = MagicMock()
+    mock_query_context.force = False
+    mock_datasource = MagicMock()
+    mock_datasource.column_names = ["col1"]
+    processor = QueryContextProcessor(mock_query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["missing"])
+    cache = MagicMock(
+        is_loaded=False,
+        df=pd.DataFrame(),
+        error_message=None,
+        bq_memory_limited=False,
+    )
+
+    with (
+        patch(
+            "superset.common.query_context_processor.QueryCacheManager"
+        ) as cache_manager,
+        patch.object(query_obj, "validate", return_value=None),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "get_cache_timeout", return_value=3600),
+    ):
+        cache_manager.get.return_value = cache
+        payload = processor.get_df_payload(query_obj)
+
+    assert isinstance(payload["error"], QueryObjectValidationMessage)
+    assert payload["error"] == "Columns missing in dataset: ['missing']"
+    cache.set_query_result.assert_not_called()

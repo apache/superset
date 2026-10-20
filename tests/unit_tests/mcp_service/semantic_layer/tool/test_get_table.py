@@ -1125,6 +1125,19 @@ async def test_get_table_normalizes_supported_producer_timezones(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     mock_ds = _make_dataset(42)
+    dublin_fold: datetime = datetime(
+        2024,
+        10,
+        27,
+        1,
+        30,
+        0,
+        123456,
+        tzinfo=dateutil_tz.gettz("Europe/Dublin"),
+        fold=1,
+    )
+    # Capture the producer offset before normalization or hostile hooks.
+    dublin_iso: str = dublin_fold.isoformat()
     query_result = chart_data_command_result(
         [
             {
@@ -1146,17 +1159,7 @@ async def test_get_table_normalizes_supported_producer_timezones(
                 "revenue": 3,
             },
             {
-                "created_at": datetime(
-                    2024,
-                    10,
-                    27,
-                    1,
-                    30,
-                    0,
-                    123456,
-                    tzinfo=dateutil_tz.gettz("Europe/Dublin"),
-                    fold=1,
-                ),
+                "created_at": dublin_fold,
                 "revenue": 4,
             },
             {
@@ -1237,7 +1240,7 @@ async def test_get_table_normalizes_supported_producer_timezones(
         {"created_at": "2024-01-02T03:04:05-04:00", "revenue": 2},
         {"created_at": "2024-01-02T03:04:05-08:00", "revenue": 3},
         {
-            "created_at": "2024-10-27T01:30:00.123456+01:00",
+            "created_at": dublin_iso,
             "revenue": 4,
         },
         {"created_at": "2024-03-10T02:30:00-04:00", "revenue": 5},
