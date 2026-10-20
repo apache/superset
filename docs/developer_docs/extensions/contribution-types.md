@@ -313,9 +313,11 @@ The decorator registers the class in the semantic layers registry, making it ava
 
 #### Provider obligations and isolated tests
 
-Expose the parsed configuration as a `configuration` instance attribute of
-the provider's configuration type. The host reads it to request the runtime
-schema. `get_configuration_schema()` and `get_configuration_schema(None)` must
+Store the parsed configuration instance on the writable `self.configuration`
+attribute, using the provider's configuration type. Assigning a raw dictionary is
+a type error by design; a read-only `@property` is not supported.
+The host reads this attribute to request the runtime schema.
+`get_configuration_schema()` and `get_configuration_schema(None)` must
 return a static schema without I/O or a constructed provider: the host calls
 this form before credentials exist and when identifying secret fields.
 

@@ -78,6 +78,10 @@ class SemanticCacheIdentityMaterial:
 class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
     Abstract base class for semantic layers.
+
+    Providers store the parsed configuration instance on the writable
+    ``self.configuration`` attribute. Assigning a raw dictionary is a type error
+    by design; exposing configuration as a read-only property is not supported.
     """
 
     # Parsed settings read by the host when requesting the runtime schema.
