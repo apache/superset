@@ -18,6 +18,7 @@
 """Trusted readiness and safe failure handling at real host entry points."""
 
 import logging
+from typing import cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -241,3 +242,213 @@ def test_absent_or_non_object_configuration_is_unresolved(
 ) -> None:
     """Invalid raw configuration never attests resolved secrets."""
     assert credential_readiness(configuration) is SemanticCredentialReadiness.UNRESOLVED
+
+
+class OverriddenTransportError(ProviderRequestError):
+    """Represent an extension overriding the exception's public formatter."""
+
+    def __str__(self) -> str:
+        return "private-subclass-text"
+
+
+def _untrusted_transport_error(case: str) -> ProviderRequestError:
+    """Construct malformed or modified SDK errors without bypassing the host."""
+    error: ProviderRequestError = ProviderRequestError(
+        ProviderRequestFailure.HTTP_STATUS, status=403, provider="MetricFlow"
+    )
+    if case == "status_text":
+        error.status = cast(int, "private-response-body")
+    elif case == "status_bool":
+        error.status = True
+    elif case == "status_range":
+        error.status = 600
+    elif case == "status_missing":
+        error.status = None
+    elif case == "failure":
+        error.failure = cast(ProviderRequestFailure, "private-failure")
+    elif case == "failure_string":
+        error.failure = cast(ProviderRequestFailure, "http_status")
+    elif case == "status_on_timeout":
+        error.failure = ProviderRequestFailure.TIMEOUT
+    elif case == "provider":
+        error.provider = "https://private-endpoint/token"
+    elif case == "subclass":
+        error = OverriddenTransportError(
+            ProviderRequestFailure.HTTP_STATUS, status=403, provider="MetricFlow"
+        )
+    error.__cause__ = ValueError("private-cause")
+    return error
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+@pytest.mark.parametrize("endpoint", ["query", "structure", "runtime"])
+@pytest.mark.parametrize(
+    "case",
+    [
+        "status_text",
+        "status_bool",
+        "status_range",
+        "status_missing",
+        "failure",
+        "failure_string",
+        "status_on_timeout",
+        "provider",
+        "subclass",
+    ],
+)
+def test_transport_errors_rebuilt_at_every_public_boundary(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    endpoint: str,
+    case: str,
+) -> None:
+    """Neither mutable SDK fields nor a subclass formatter confer safe text."""
+    error: ProviderRequestError = _untrusted_transport_error(case)
+    valid: bool = case in {"provider", "subclass"}
+    message: str
+    with caplog.at_level(logging.DEBUG, logger="superset.semantic_layers"):
+        if endpoint == "query":
+            captured: pytest.ExceptionInfo[
+                QueryObjectValidationError | SemanticLayerExecutionError
+            ]
+            with pytest.raises(
+                (QueryObjectValidationError, SemanticLayerExecutionError)
+            ) as captured:
+                execute_semantic_query(MagicMock(side_effect=error))
+            assert isinstance(captured.value, QueryObjectValidationError) == valid
+            assert captured.value.__cause__ is None
+            assert captured.value.__suppress_context__
+            message = str(captured.value)
+        else:
+            provider: MagicMock = MagicMock()
+            layer: MagicMock = MagicMock(
+                type="test", configuration='{"account":"fixture"}'
+            )
+            if endpoint == "structure":
+                layer.implementation.get_dimensions.side_effect = error
+                session: MagicMock = mocker.patch(
+                    "superset.semantic_layers.api.db.session"
+                )
+                session.query.return_value.filter_by.return_value.first.return_value = (
+                    layer
+                )
+                response: TestResponse = client.get("/api/v1/semantic_view/1/structure")
+            else:
+                provider.get_runtime_schema.side_effect = error
+                mocker.patch.dict(
+                    "superset.semantic_layers.api.registry", {"test": provider}
+                )
+                mocker.patch(
+                    "superset.semantic_layers.api.SemanticLayerDAO.find_by_uuid",
+                    return_value=layer,
+                )
+                response = client.post(
+                    "/api/v1/semantic_layer/00000000-0000-0000-0000-000000000001/schema/runtime"
+                )
+            assert response.status_code == (
+                (422 if endpoint == "structure" else 400) if valid else 500
+            )
+            message = response.get_data(as_text=True)
+    assert "private" not in message
+    assert "private" not in caplog.text
+    if valid:
+        assert (
+            "Provider" if case == "provider" else "MetricFlow"
+        ) + " request failed with HTTP 403." in message
+
+
+def test_unknown_fault_keeps_debug_traceback_and_chain_server_side(
+    app_context: None,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Unknown faults remain diagnosable without changing their public response."""
+    error: AttributeError = AttributeError("private-unknown-message")
+    error.__cause__ = ValueError("private-original-cause")
+    captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
+    with caplog.at_level(logging.DEBUG, logger="superset.semantic_layers.exceptions"):
+        with pytest.raises(SemanticLayerExecutionError) as captured:
+            execute_semantic_query(MagicMock(side_effect=error))
+    records: list[logging.LogRecord] = [
+        r for r in caplog.records if r.name == "superset.semantic_layers.exceptions"
+    ]
+    assert any(
+        r.levelno == logging.ERROR
+        and "builtins.AttributeError" in r.getMessage()
+        and r.exc_info is None
+        for r in records
+    )
+    assert any(
+        r.levelno == logging.DEBUG
+        and r.exc_info
+        and r.exc_info[1] is error
+        and r.exc_info[2] is not None
+        for r in records
+    )
+    assert "private-original-cause" in caplog.text
+    assert "private-unknown-message" in caplog.text
+    assert "private" not in str(captured.value.to_dict())
+    assert captured.value.status == 500
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+@pytest.mark.parametrize("configuration", [{"account": 123}, ["fixture"], "fixture"])
+def test_failed_partial_preview_downgrades_readiness(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    configuration: object,
+) -> None:
+    """Non-masked input that cannot form a partial config remains unresolved."""
+    provider: MagicMock = MagicMock()
+    provider.configuration_class = PreviewConfiguration
+    provider.get_configuration_schema.return_value = {"type": "object"}
+    mocker.patch.dict("superset.semantic_layers.api.registry", {"test": provider})
+    response: TestResponse = client.post(
+        "/api/v1/semantic_layer/schema/configuration",
+        json={"type": "test", "configuration": configuration},
+    )
+    assert response.status_code == 200
+    assert provider.get_configuration_schema.call_args.args == (None,)
+    assert (
+        provider.get_configuration_schema.call_args.kwargs["readiness"]
+        is SemanticCredentialReadiness.UNRESOLVED
+    )
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"SEMANTIC_LAYERS": True}}], indirect=True
+)
+@pytest.mark.parametrize("transport", [False, True])
+def test_preview_typed_failure_does_not_log_chain(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    transport: bool,
+) -> None:
+    """Metadata fallback never logs typed diagnostics, even with DEBUG enabled."""
+    error: Exception = (
+        ProviderRequestError(ProviderRequestFailure.TIMEOUT)
+        if transport
+        else SemanticBackendError()
+    )
+    error.__cause__ = ValueError("private-provider-cause")
+    provider: MagicMock = MagicMock()
+    provider.configuration_class = PreviewConfiguration
+    provider.get_configuration_schema.side_effect = [error, {"type": "object"}]
+    mocker.patch.dict("superset.semantic_layers.api.registry", {"test": provider})
+    with caplog.at_level(logging.DEBUG, logger="superset.semantic_layers"):
+        response: TestResponse = client.post(
+            "/api/v1/semantic_layer/schema/configuration",
+            json={"type": "test", "configuration": {"account": "fixture"}},
+        )
+    assert response.status_code == 200
+    assert "private" not in response.get_data(as_text=True)
+    assert "private" not in caplog.text
+    assert provider.get_configuration_schema.call_count == 2

@@ -35,7 +35,8 @@ assists people when migrating to a new version.
   host guidance (500); `ProviderRequestError` keeps safe transport detail (400),
   and query refusal/completeness retain their separate meanings. Provider error
   translations should suppress diagnostic chains. The semantic execution boundary
-  logs fixed categories without provider exception tracebacks. See the
+  logs typed failures without diagnostic chains. Unknown failures retain their
+  type at ERROR and their full traceback/chain at DEBUG in server logs only. See the
   [provider boundary guide](docs/developer_docs/extensions/semantic-provider-boundary.md).
 
 - **Semantic-layer SDK transport argument.** Provider implementations must accept

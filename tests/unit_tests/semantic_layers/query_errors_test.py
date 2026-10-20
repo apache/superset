@@ -311,7 +311,9 @@ def test_provider_execution_error_http(
             and record.levelno == logging.ERROR
         ]
         assert len(records) == 1
-        assert records[0].getMessage() == "Semantic provider query execution failed"
+        assert records[0].getMessage() == (
+            "Semantic provider query execution failed (builtins.ValueError)"
+        )
         assert records[0].exc_info is None
         assert "private-provider" not in caplog.text
     date_view.get_table.assert_called_once()

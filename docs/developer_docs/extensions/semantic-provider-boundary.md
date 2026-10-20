@@ -83,9 +83,14 @@ Never retry without a filter or return an empty/partial successful result on fai
 MCP preserves its QueryError envelope with host-safe guidance.
 
 Raise newly translated backend errors/refusals `from None`; never place backend
-responses, credentials or SQL in their public text. The host semantic execution
-boundary does not log exception causes, contexts or tracebacks, even when a plugin
-chains a sensitive cause. It logs fixed event categories. Transport passthrough
-is restricted to the SDK exception type; a message that merely looks safe does
-not qualify. Independent final-tree security review remains required for changes
-that alter these boundaries.
+responses, credentials or SQL in their public text. The host validates transport
+failure/status fields and reconstructs messages with a freshly sanitized provider
+label. Mutated fields and subclass formatters cannot supply public text; malformed
+transport fields become generic backend faults.
+
+Typed SDK failures log fixed event categories without causes or tracebacks.
+Unexpected exceptions log their type at ERROR and retain the full traceback and
+exception chain at DEBUG, server-side only. Keep these diagnostic logs restricted
+to trusted operators: they may contain provider details. Public responses remain
+fixed generic guidance and do not include the exception chain. The same logging
+policy applies to schema enrichment, runtime schemas and structure discovery.

@@ -19,7 +19,7 @@
 
 import logging
 from collections.abc import Callable
-from typing import ParamSpec
+from typing import Any, ParamSpec
 
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as _
@@ -28,7 +28,10 @@ from superset_core.semantic_layers.errors import (
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
 )
-from superset_core.semantic_layers.transport import ProviderRequestError
+from superset_core.semantic_layers.transport import (
+    ProviderRequestError,
+    ProviderRequestFailure,
+)
 from superset_core.semantic_layers.types import SemanticResult
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -102,6 +105,42 @@ class SemanticLayerExecutionError(SupersetErrorException):
         )
 
 
+def provider_request_message(error: ProviderRequestError) -> str:
+    """Rebuild transport text without trusting mutable fields or subclass formatters."""
+    fields: dict[str, Any] = vars(error)
+    failure: Any = fields.get("failure")
+    status: Any = fields.get("status")
+    provider: Any = fields.get("provider")
+    valid_status: bool = (
+        type(status) is int and 100 <= status <= 599
+        if failure is ProviderRequestFailure.HTTP_STATUS
+        else status is None
+    )
+    if type(failure) is not ProviderRequestFailure or not valid_status:
+        logger.error("Semantic provider supplied invalid transport failure fields")
+        raise SemanticLayerExecutionError() from None
+    return str(
+        ProviderRequestError(
+            failure,
+            status=status,
+            provider=provider if type(provider) is str else "Provider",
+        )
+    )
+
+
+def log_provider_failure(message: str, error: Exception) -> None:
+    """Keep typed failures quiet; retain unknown diagnostics in server DEBUG logs."""
+    if isinstance(
+        error, (ProviderRequestError, SemanticBackendError, SemanticQueryRejectedError)
+    ):
+        logger.error("%s", message)
+        return
+    logger.error(
+        "%s (%s.%s)", message, type(error).__module__, type(error).__qualname__
+    )
+    logger.debug(message, exc_info=(type(error), error, error.__traceback__))
+
+
 def execute_semantic_query(
     dispatcher: Callable[ProviderArguments, SemanticResult],
     *args: ProviderArguments.args,
@@ -114,7 +153,7 @@ def execute_semantic_query(
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from None
     except ProviderRequestError as ex:
-        raise QueryObjectValidationError(str(ex)) from None
+        raise QueryObjectValidationError(provider_request_message(ex)) from None
     except SemanticBackendError:
         logger.error("Semantic provider reported an execution failure")
         raise SemanticLayerExecutionError() from None
@@ -129,6 +168,6 @@ def execute_semantic_query(
         SoftTimeLimitExceeded,
     ):
         raise
-    except Exception:  # pylint: disable=broad-except
-        logger.error("Semantic provider query execution failed")
+    except Exception as ex:  # pylint: disable=broad-except
+        log_provider_failure("Semantic provider query execution failed", ex)
         raise SemanticLayerExecutionError() from None

@@ -697,7 +697,8 @@ def test_runtime_schema_exception(
     mocker: MockerFixture,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
-    """Keep provider details in server logs, not the runtime-schema response."""
+    """Keep provider details in DEBUG server logs, not the runtime-schema response."""
+    caplog.set_level("DEBUG", logger="superset.semantic_layers.exceptions")
     test_uuid: str = str(uuid_lib.uuid4())
     mock_layer: MagicMock = MagicMock()
     mock_layer.type = "snowflake"
@@ -2852,7 +2853,8 @@ def test_get_semantic_view_structure_implementation_error(
     caplog: pytest.LogCaptureFixture,
     method: str,
 ) -> None:
-    """Keep provider details in server logs, not the structure response."""
+    """Keep provider details in DEBUG server logs, not the structure response."""
+    caplog.set_level("DEBUG", logger="superset.semantic_layers.exceptions")
     mock_view: MagicMock = MagicMock()
     getattr(mock_view.implementation, method).side_effect = RuntimeError(
         "provider-private-detail"
