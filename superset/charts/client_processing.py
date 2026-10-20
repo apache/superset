@@ -1417,18 +1417,27 @@ def _is_default_index_column(series: pd.Series) -> bool:
 def _read_excel_for_client_processing(
     data: bytes,
     form_data: dict[str, Any],
+    verbose_map: Optional[dict[str, str]] = None,
 ) -> pd.DataFrame:
     df = pd.read_excel(BytesIO(data))
     if len(df.columns) == 0:
         return df
 
     first_column = df.columns[0]
-    expected_columns = {
+    expected_columns: set[str] = {
         *get_column_names(form_data.get("columns")),
+        *get_column_names(form_data.get("all_columns")),
+        *get_column_names(form_data.get("groupby")),
         *get_column_names(form_data.get("groupbyRows")),
         *get_column_names(form_data.get("groupbyColumns")),
         *get_metric_names(form_data.get("metrics")),
+        *(f"%{name}" for name in get_metric_names(form_data.get("percent_metrics"))),
     }
+    # Query exports can already carry display labels rather than selection names.
+    if verbose_map:
+        expected_columns |= {
+            verbose_map.get(column, column) for column in expected_columns
+        }
 
     if first_column in expected_columns:
         return df
@@ -1501,7 +1510,9 @@ def apply_client_processing(  # noqa: C901
                 decimal=decimal,
             )
         elif query["result_format"] == ChartDataResultFormat.XLSX:
-            df = _read_excel_for_client_processing(data, form_data)
+            df = _read_excel_for_client_processing(
+                data, form_data, datasource.data["verbose_map"] if datasource else None
+            )
 
         # convert all columns to verbose (label) name
         if datasource:
