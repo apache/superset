@@ -190,7 +190,12 @@ selection the control cannot render.
 Select values are checked against the target column's distinct values under the
 caller's dataset permissions and row-level security. Exact values are preserved;
 a unique match ignoring case and whitespace uses the stored column value.
-Missing values fail without creating a permalink, with bounded suggestions.
+Missing values fail without creating a permalink. Unless an active dashboard
+scope suppresses them, the error lists bounded candidate values (closest
+matches, or the column's first values), and the tool description directs
+clients to propose the value the user most likely meant and ask before applying
+it. No alias mapping or automatic substitution is applied; select values are
+dataset-specific.
 Ambiguous values and normalized matches whose uniqueness cannot be established
 fail with exact alternatives, preserving their spelling and JSON type.
 Lookups respect `FILTER_SELECT_ROW_LIMIT` and `SQL_MAX_ROW`. On a truncated

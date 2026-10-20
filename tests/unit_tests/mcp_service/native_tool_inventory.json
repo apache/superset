@@ -23,11 +23,11 @@
         "openWorldHint": false,
         "readOnlyHint": false
       },
-      "compact_description_chars": 252,
-      "description_chars": 2235,
+      "compact_description_chars": 284,
+      "description_chars": 2706,
       "entry_bytes": {
-        "structured": 8222,
-        "text_only": 5546
+        "structured": 8702,
+        "text_only": 6026
       },
       "input_schema_bytes": 2951,
       "output_schema_bytes": 2660
@@ -1267,12 +1267,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 524459,
-      "text_only": 214456
+      "structured": 524939,
+      "text_only": 214936
     },
     "compact_catalog_bytes": {
-      "structured": 471762,
-      "text_only": 161759
+      "structured": 471795,
+      "text_only": 161792
     },
     "largest_entry": {
       "structured": {
