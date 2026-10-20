@@ -284,10 +284,16 @@ describe('tooltipMarker', () => {
     expect(html).toContain('border-radius:50%50%050%');
   });
 
-  test('draws the triangle with borders and the diamond as a glyph', () => {
-    expect(tooltipMarker('#1f77b4', 'triangle')).toContain(
-      'border-width:0 5px 10px',
+  test('keeps the triangle borders and lift through sanitizeHtml', () => {
+    const html = removeWhitespaces(
+      sanitizeHtml(tooltipMarker('#1f77b4', 'triangle')),
     );
+    expect(html).toContain('border-width:05px10px');
+    expect(html).toContain('border-color:transparenttransparentcurrentcolor');
+    expect(html).toContain('vertical-align:calc(0.5em+5px)');
+  });
+
+  test('draws the diamond as a glyph', () => {
     expect(tooltipMarker('#1f77b4', 'diamond')).toContain('◆');
   });
 
