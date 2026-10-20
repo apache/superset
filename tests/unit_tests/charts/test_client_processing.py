@@ -33,8 +33,9 @@ from superset.charts.client_processing import (
     table,
 )
 from superset.common.chart_data import ChartDataResultFormat
-from superset.utils import excel
+from superset.utils import excel, json
 from superset.utils.core import GenericDataType
+from superset.utils.csv import chart_data_to_dataframe
 from tests.conftest import with_config
 
 
@@ -2540,6 +2541,104 @@ def test_table_leaves_adaptive_time_format_alone() -> None:
         pd.Timestamp("2024-01-15 13:45:00"),
         pd.Timestamp("2024-06-30 08:00:00"),
     ]
+
+
+def test_table_time_format_keeps_nulls() -> None:
+    """
+    A missing timestamp stays missing rather than being rendered as the string
+    ``"NaT"``, which is what ``strftime`` on a ``NaT`` would produce.
+    """
+    df = pd.DataFrame.from_dict(
+        {"ds": {0: pd.Timestamp("2024-01-15"), 1: pd.NaT}},
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist()[0] == "2024"
+    assert pd.isna(formatted["ds"].tolist()[1])
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%Y Q%q",
+        "%H:%M:%S.%L",
+        "%Q",
+        "%-d %b",
+        "%x",
+    ],
+)
+def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> None:
+    """
+    ``strftime`` copies a directive it does not recognize into its output, so a
+    format carrying a d3-only one would reach the report as literal text. The
+    column is left raw instead, the way an unsupported number format is.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+
+
+def test_table_report_time_format_survives_the_notification_table() -> None:
+    """
+    ``chart_data_to_dataframe`` casts every column the payload types as
+    ``TEMPORAL`` back to a datetime, so the payload has to report a formatted
+    temporal column as text or the notification table re-parses the strings and
+    the configured format never reaches the recipient.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": pd.Timestamp("2024-01-15"), "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    processed = apply_client_processing(result, form_data, datasource)
+    query = processed["queries"][0]
+
+    assert list(query["data"]["ds"].values()) == ["02/01/2024", "15/01/2024"]
+    assert query["coltypes"][0] == GenericDataType.STRING
+
+    payload = json.dumps(
+        {
+            "result": [
+                {
+                    "data": query["data"],
+                    "coltypes": [int(coltype) for coltype in query["coltypes"]],
+                    "colnames": query["colnames"],
+                    "indexnames": query["indexnames"],
+                }
+            ]
+        }
+    ).encode("utf-8")
+
+    notification_table = chart_data_to_dataframe(payload)
+
+    assert notification_table is not None
+    assert notification_table[("ds",)].tolist() == ["02/01/2024", "15/01/2024"]
 
 
 def test_table_applies_si_number_format() -> None:
