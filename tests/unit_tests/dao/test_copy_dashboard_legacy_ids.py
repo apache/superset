@@ -90,6 +90,20 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
                             },
                             "999999": {"id": 999999},
                         },
+                        "chart_customization_config": [
+                            {
+                                "id": "customization",
+                                "scope": {
+                                    "selectedLayers": {
+                                        f"chart-{chart.id}-layer-custom": {
+                                            "enabled": True
+                                        },
+                                        "chart-999999-layer-custom": {"enabled": True},
+                                        "custom-selector": {"enabled": False},
+                                    }
+                                },
+                            }
+                        ],
                         "native_filter_configuration": [
                             {
                                 "id": "filter",
@@ -98,6 +112,8 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
                                     "excluded": [chart.id, 999999],
                                     "selectedLayers": [
                                         f"chart-{chart.id}-layer-0",
+                                        f"chart-{chart.id}-layer-custom",
+                                        "custom-selector",
                                         "chart-999999-layer-1",
                                     ],
                                 },
@@ -135,7 +151,17 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
     ]
     assert copied_metadata["native_filter_configuration"][0]["scope"][
         "selectedLayers"
-    ] == [f"chart-{clone.id}-layer-0"]
+    ] == [
+        f"chart-{clone.id}-layer-0",
+        f"chart-{clone.id}-layer-custom",
+        "custom-selector",
+    ]
+    assert copied_metadata["chart_customization_config"][0]["scope"][
+        "selectedLayers"
+    ] == {
+        f"chart-{clone.id}-layer-custom": {"enabled": True},
+        "custom-selector": {"enabled": False},
+    }
     assert copied_metadata["native_filter_configuration"][0]["chartsInScope"] == [
         clone.id
     ]

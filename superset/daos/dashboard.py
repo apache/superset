@@ -38,7 +38,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.dashboards.filter_scope import derive_metadata_scopes, LAYER_SELECTION_RE
+from superset.dashboards.filter_scope import derive_metadata_scopes
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
@@ -331,16 +331,17 @@ def _remap_copy_chart_ids(values: list[Any], key_map: dict[str, int]) -> list[in
     ]
 
 
-def _remap_copy_layers(values: list[Any], key_map: dict[str, int]) -> list[str]:
-    """Keep selected deck.gl layers on retained charts, including cloned charts."""
-    layers: list[str] = []
+def _prune_copy_layers(values: list[Any], retained_keys: set[str]) -> list[Any]:
+    """Prune chart layer references without discarding opaque layer selectors."""
+    layers: list[Any] = []
     value: Any
     match: re.Match[str] | None
     for value in values:
-        if isinstance(value, str) and (match := LAYER_SELECTION_RE.fullmatch(value)):
-            new_id: int | None = key_map.get(match[1])
-            if new_id is not None:
-                layers.append(f"chart-{new_id}-layer-{match[2]}")
+        match = (
+            re.match(r"^chart-(\d+)(.*)$", value) if isinstance(value, str) else None
+        )
+        if match is None or match[1] in retained_keys:
+            layers.append(value)
     return layers
 
 
@@ -351,8 +352,15 @@ def _remap_copy_scope(config: Any, key_map: dict[str, int]) -> None:
     scope: Any = config.get("scope")
     if isinstance(scope, dict) and isinstance(scope.get("excluded"), list):
         scope["excluded"] = _remap_copy_chart_ids(scope["excluded"], key_map)
-    if isinstance(scope, dict) and isinstance(scope.get("selectedLayers"), list):
-        scope["selectedLayers"] = _remap_copy_layers(scope["selectedLayers"], key_map)
+    if isinstance(scope, dict):
+        selected_layers: Any = scope.get("selectedLayers")
+        if isinstance(selected_layers, list):
+            scope["selectedLayers"] = _prune_copy_layers(selected_layers, set(key_map))
+        elif isinstance(selected_layers, dict):
+            scope["selectedLayers"] = {
+                key: selected_layers[key]
+                for key in _prune_copy_layers(list(selected_layers), set(key_map))
+            }
     if isinstance(config.get("chartsInScope"), list):
         config["chartsInScope"] = _remap_copy_chart_ids(
             config["chartsInScope"], key_map
@@ -363,10 +371,17 @@ def _copy_chart_metadata(
     metadata: dict[str, Any], chart_id_map: dict[int, int]
 ) -> dict[str, Any]:
     """Keep chart-specific copy settings only for charts retained in the copy."""
-    key_map: dict[str, int] = {str(old): new for old, new in chart_id_map.items()}
+    original_key_map: dict[str, int] = {
+        str(old): new for old, new in chart_id_map.items()
+    }
+    copied_key_map: dict[str, int] = {str(new): new for new in chart_id_map.values()}
+    # set_dash_metadata has already remapped filter scopes and chart configuration.
+    # Expanded charts and refresh exemptions still reference the original IDs.
+    key_map: dict[str, int]
     key: str
     values: Any
     for key in ("expanded_slices", "chart_configuration"):
+        key_map = original_key_map if key == "expanded_slices" else copied_key_map
         values = metadata.get(key)
         if isinstance(values, dict):
             metadata[key] = {
@@ -376,7 +391,9 @@ def _copy_chart_metadata(
             }
     values = metadata.get("timed_refresh_immune_slices")
     if isinstance(values, list):
-        metadata["timed_refresh_immune_slices"] = _remap_copy_chart_ids(values, key_map)
+        metadata["timed_refresh_immune_slices"] = _remap_copy_chart_ids(
+            values, original_key_map
+        )
     values = metadata.get("chart_configuration")
     if isinstance(values, dict):
         chart_key: str
@@ -384,13 +401,13 @@ def _copy_chart_metadata(
         for chart_key, config in values.items():
             if isinstance(config, dict):
                 config["id"] = int(chart_key)
-                _remap_copy_scope(config.get("crossFilters"), key_map)
-    _remap_copy_scope(metadata.get("global_chart_configuration"), key_map)
+                _remap_copy_scope(config.get("crossFilters"), copied_key_map)
+    _remap_copy_scope(metadata.get("global_chart_configuration"), copied_key_map)
     for key in ("native_filter_configuration", "chart_customization_config"):
         values = metadata.get(key)
         if isinstance(values, list):
             for config in values:
-                _remap_copy_scope(config, key_map)
+                _remap_copy_scope(config, copied_key_map)
     return metadata
 
 
