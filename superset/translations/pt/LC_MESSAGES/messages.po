@@ -5225,6 +5225,9 @@ msgstr "Fechar editor de ponto de interrupção de cores"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Fechar aba"
 
@@ -10812,10 +10815,10 @@ msgstr "Oculta a linha da série temporal"
 msgid "Hierarchy"
 msgstr "Hierarquia"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -12537,10 +12540,10 @@ msgstr "Longitude e Latitude"
 msgid "Longitude of default viewport"
 msgstr "Longitude da viewport padrão"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -14547,9 +14550,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacidade, espera valores entre 0 e 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Abrir aba fonte de dados"
 
@@ -14581,6 +14581,9 @@ msgstr "Abrir no SQL Lab"
 
 msgid "Open in SQL lab"
 msgstr "Abrir no laboratório SQL"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Abrir consulta no SQL Lab"

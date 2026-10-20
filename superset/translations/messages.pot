@@ -3537,6 +3537,9 @@ msgstr ""
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr ""
 
@@ -7404,10 +7407,10 @@ msgstr ""
 msgid "Hierarchy"
 msgstr ""
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -8563,10 +8566,10 @@ msgstr ""
 msgid "Longitude of default viewport"
 msgstr ""
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -9882,9 +9885,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr ""
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr ""
 
@@ -9913,6 +9913,9 @@ msgid "Open in SQL Lab"
 msgstr ""
 
 msgid "Open in SQL lab"
+msgstr ""
+
+msgid "Open price"
 msgstr ""
 
 msgid "Open query in SQL Lab"
