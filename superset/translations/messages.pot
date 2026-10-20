@@ -18256,7 +18256,10 @@ msgstr ""
 msgid "The view configuration must be a JSON object."
 msgstr ""
 
-msgid "Views must be a list"
+msgid "Views must be a list of objects"
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 #, python-format

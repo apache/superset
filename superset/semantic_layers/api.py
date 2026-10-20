@@ -91,10 +91,12 @@ logger = logging.getLogger(__name__)
 
 def _bulk_create_refusal(views_data: Any) -> str | None:
     """Return why a bulk creation batch is refused before any lookup, if it is."""
-    if not isinstance(views_data, list):
-        return t("Views must be a list")
+    if not isinstance(views_data, list) or not all(
+        isinstance(view, dict) for view in views_data
+    ):
+        return t("Views must be a list of objects")
     if not views_data:
-        return "No views provided"
+        return t("No views provided")
     max_views = current_app.config["SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS"]
     if len(views_data) > max_views:
         return t(
@@ -104,6 +106,18 @@ def _bulk_create_refusal(views_data: Any) -> str | None:
             limit=max_views,
         )
     return None
+
+
+def _log_bulk_create_timeouts(timed_out: int, total: int) -> None:
+    """Tell operators when a bulk creation request ran out of its time budget."""
+    if timed_out:
+        logger.warning(
+            "Semantic view bulk creation ran out of its %ss budget; "
+            "%d of %d views were not checked",
+            current_app.config["SEMANTIC_VIEW_BULK_CREATE_TIMEOUT"],
+            timed_out,
+            total,
+        )
 
 
 def _refuse_disabled_semantic_layers() -> FlaskResponse | None:
@@ -412,8 +426,10 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
         deadline = (
             time.monotonic() + current_app.config["SEMANTIC_VIEW_BULK_CREATE_TIMEOUT"]
         )
+        timed_out = 0
         for view_data in views_data:
             if time.monotonic() >= deadline:
+                timed_out += 1
                 errors.append(
                     {
                         "name": view_data.get("name"),
@@ -446,6 +462,8 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                     exc_info=True,
                 )
                 errors.append({"name": view_data.get("name"), "error": str(ex)})
+
+        _log_bulk_create_timeouts(timed_out, len(views_data))
 
         result: dict[str, Any] = {"created": created}
         if errors:

@@ -2446,21 +2446,30 @@ def test_post_semantic_view_accepts_batch_at_cap(
 
 
 @SEMANTIC_LAYERS_APP
-def test_post_semantic_view_refuses_non_list_views(
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"views": {"name": "orders"}},
+        {"views": ["orders"]},
+        {"views": [{"name": "orders"}, 1]},
+    ],
+)
+def test_post_semantic_view_refuses_malformed_views(
     client: FlaskClient,
     full_api_access: None,
     mocker: MockerFixture,
+    payload: Any,
 ) -> None:
-    """A ``views`` value that is not a list is refused without lookups."""
+    """``views`` must be a list of objects; anything else is refused unlooked-up."""
     mock_command = mocker.patch(
         "superset.semantic_layers.api.CreateSemanticViewCommand",
     )
 
-    response: TestResponse = client.post(
-        "/api/v1/semantic_view/", json={"views": {"name": "orders"}}
-    )
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=payload)
 
     assert response.status_code == 400
+    assert response.json is not None
+    assert response.json["message"] == "Views must be a list of objects"
     mock_command.assert_not_called()
 
 
@@ -2480,16 +2489,22 @@ def test_post_semantic_view_fails_remaining_views_after_deadline(
     mocker: MockerFixture,
 ) -> None:
     """Views not started before the deadline fail with a typed timeout error."""
+    clock = {"now": 0.0}
     mock_time = mocker.patch("superset.semantic_layers.api.time")
-    # start, first view check, then every later check is past the deadline
-    mock_time.monotonic.side_effect = [0.0, 1.0, 11.0, 12.0]
-    mock_command = mocker.patch(
-        "superset.semantic_layers.api.CreateSemanticViewCommand",
-    )
+    mock_time.monotonic.side_effect = lambda: clock["now"]
     new_model = MagicMock()
     new_model.uuid = uuid_lib.uuid4()
     new_model.name = "view_0"
-    mock_command.return_value.run.return_value = new_model
+
+    def slow_lookup() -> MagicMock:
+        clock["now"] += 11.0
+        return new_model
+
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    mock_command.return_value.run.side_effect = slow_lookup
+    log_warning = mocker.patch("superset.semantic_layers.api.logger.warning")
 
     response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(3))
 
@@ -2506,6 +2521,8 @@ def test_post_semantic_view_fails_remaining_views_after_deadline(
         {"name": "view_2", "error": timeout_message, "error_type": "TIMEOUT"},
     ]
     assert mock_command.call_count == 1
+    log_warning.assert_called_once()
+    assert log_warning.call_args.args[1:] == (10, 2, 3)
 
 
 @pytest.mark.parametrize(

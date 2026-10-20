@@ -70,8 +70,9 @@ be added. This check does not guarantee that later queries will succeed.
 
 One request can add at most `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (100 by
 default); larger requests are refused before any lookup. Lookups for one request
-share a time budget, `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` (60 seconds by default).
+share a time budget, `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` (30 seconds by default).
 The budget is checked before each lookup, so a lookup already running is limited
-only by the semantic layer's own timeouts. Views not checked in time are reported
+only by the semantic layer's own timeouts; keep the budget well below the web
+server and proxy timeouts so the response arrives. Views not checked in time are reported
 with the `TIMEOUT` error type and can be retried in another request; views added
 before the budget ran out stay added.
