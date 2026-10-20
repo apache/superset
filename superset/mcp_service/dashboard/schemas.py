@@ -318,6 +318,19 @@ FilterValueScalar = Annotated[
 ]
 
 
+def _omit_mode_default(schema: dict[str, Any]) -> None:
+    """Advertise a presence-sensitive mode without a default to materialize."""
+    schema.pop("default", None)
+
+
+def _omit_mode_default_and_null(schema: dict[str, Any]) -> None:
+    """Advertise a non-null presence-sensitive string without a default."""
+    _omit_mode_default(schema)
+    branches = [b for b in schema.pop("anyOf", []) if b.get("type") != "null"]
+    if len(branches) == 1:
+        schema.update(branches[0])
+
+
 class FilterValueRequest(BaseModel):
     """One bounded dropdown listing, literal search, or exact typed probe."""
 
@@ -327,8 +340,14 @@ class FilterValueRequest(BaseModel):
         min_length=1, description="Configured native filter ID"
     )
     limit: StrictInt = Field(default=25, ge=1, le=100)
-    search: FilterValueText | None = Field(default=None, max_length=200)
-    exact_value: FilterValueScalar = None
+    # Mode is chosen by presence, so neither field advertises a default that a
+    # client could fill in and turn a listing into a search or a null probe.
+    search: FilterValueText | None = Field(
+        default=None, max_length=200, json_schema_extra=_omit_mode_default_and_null
+    )
+    exact_value: FilterValueScalar = Field(
+        default=None, json_schema_extra=_omit_mode_default
+    )
 
     @model_validator(mode="after")
     def _validate_mode(self) -> "FilterValueRequest":

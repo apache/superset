@@ -1518,6 +1518,18 @@ def test_discovery_presence_survives_request_roundtrip() -> None:
     assert "search" not in exact.model_dump()
 
 
+def test_discovery_mode_fields_advertise_no_default() -> None:
+    """Clients that fill in schema defaults cannot switch a listing's mode."""
+    properties = FilterValueRequest.model_json_schema()["properties"]
+    assert "default" not in properties["search"]
+    assert "default" not in properties["exact_value"]
+    assert properties["search"]["type"] == "string"
+    assert properties["search"]["maxLength"] == 200
+    assert {"type": "null"} in properties["exact_value"]["anyOf"]
+    with pytest.raises(ValidationError):
+        FilterValueRequest.model_validate({"filter_id": "a", "search": None})
+
+
 def test_metadata_serialization_omits_choice_enrichment() -> None:
     """Existing dashboard serializers retain their metadata-only response shape."""
     summary = NativeFilterSummary(id="a", name="Region", filter_type="filter_select")

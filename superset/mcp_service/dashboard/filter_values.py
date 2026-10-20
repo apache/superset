@@ -754,24 +754,11 @@ def _native_query(  # noqa: C901
     query = build_query_dicts_from_form_data(
         form_data, target.dataset.id, "table", row_limit=limit
     )[0]
-    # Cross-dataset parents retain native coercion when column families differ.
-    # Compatible strings/numbers use exact scalars, preserving whitespace/sentinels.
+    # Parent selections are dashboard state, so they take the native coercion an
+    # ordinary dashboard query applies (e.g. the <NULL> and <empty string>
+    # sentinels). Only discovery's own target predicates below stay literal.
     for predicate in parent_filters:
-        parent_column = next(
-            (
-                col
-                for col in target.dataset.columns
-                if col.column_name == predicate["col"]
-            ),
-            None,
-        )
-        values = predicate.get("val")
-        values = values if isinstance(values, list) else [values]
-        literal = parent_column is not None and all(
-            _compatible(value, _Target(target.dataset, parent_column))
-            for value in values
-        )
-        query["filters"].append({**predicate, "is_literal": literal})
+        query["filters"].append({**predicate, "is_literal": False})
     query["columns"] = [column]
     query.setdefault("extras", {})["preserve_literal_values"] = True
     query["metrics"] = [metric] if metric else []
@@ -1013,12 +1000,20 @@ def _run(  # noqa: C901
     queries = result.get("queries")
     if not isinstance(queries, list) or len(queries) != 1 or queries[0].get("error"):
         raise _DiscoveryUnavailableError("query_failed")
-    if item.search and target.column.column_name in (
+    probes_target = (
+        bool(item.search)
+        or proposal is not None
+        or "exact_value" in item.model_fields_set
+    )
+    if probes_target and target.column.column_name in (
         queries[0].get("applied_template_filters") or []
     ):
-        # Jinja filter macros receive the raw search text rather than the literal
-        # contains predicate, so the rows cannot prove which options match.
-        raise _DiscoveryUnavailableError("unsupported_search")
+        # Jinja filter macros receive discovery's own probe of the target column
+        # (raw search text, an equality or a proposal list) and may consume it
+        # without applying it, so the rows cannot prove which options match.
+        raise _DiscoveryUnavailableError(
+            "unsupported_search" if item.search else "unsupported_target"
+        )
     rows = queries[0].get("data")
     if isinstance(rows, str):
         rows = json.loads(rows)

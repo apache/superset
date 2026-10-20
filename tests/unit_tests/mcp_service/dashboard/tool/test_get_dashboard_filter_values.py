@@ -340,8 +340,8 @@ def test_saved_predicates_sort_and_transitive_parents(
     query = native_query["contexts"][0].queries[0]
     assert query.filter == [
         {"col": "enabled", "op": "==", "val": True},
-        {"col": "region", "op": "IN", "val": ["Americas"], "is_literal": True},
-        {"col": "country", "op": "IN", "val": ["France"], "is_literal": True},
+        {"col": "region", "op": "IN", "val": ["Americas"]},
+        {"col": "country", "op": "IN", "val": ["France"]},
     ]
     assert query.time_range == "2020-01-01 : 2021-01-01"
     assert query.granularity == "date"
@@ -385,9 +385,7 @@ def test_snapshot_hydration_matches_required_default_restoration(
     )
     assert _available(summaries[0]).status == "complete"
     assert native_query["contexts"][0].queries[0].filter == (
-        [{"col": "region", "op": "IN", "val": expected, "is_literal": True}]
-        if expected
-        else []
+        [{"col": "region", "op": "IN", "val": expected}] if expected else []
     )
 
 
@@ -492,7 +490,7 @@ def test_proposed_parent_preview_is_validated_and_read_only(
     assert snapshot == before
     second_context = native_query["run"].call_args_list[1].args[0].query_context
     assert second_context.queries[0].filter == [
-        {"col": "region", "op": "IN", "val": ["EMEA"], "is_literal": True}
+        {"col": "region", "op": "IN", "val": ["EMEA"]}
     ]
 
 
@@ -818,12 +816,18 @@ def test_structured_literal_search_never_executes_jinja(
 
 
 @pytest.mark.parametrize(
-    "value", ["\nBikes\t", "<NULL>", "<empty string>", "{{ 7 * 7 }}"]
+    ("value", "parent_sql"),
+    [
+        ("\nBikes\t", "region IN ('Bikes')"),
+        ("<NULL>", "region IS NULL"),
+        ("<empty string>", "region IN ('')"),
+        ("{{ 7 * 7 }}", "region IN ('{{ 7 * 7 }}')"),
+    ],
 )
-def test_exact_and_parent_scalar_survive_sql_construction(
-    native_query: dict[str, Any], value: str
+def test_exact_probe_is_literal_and_parent_selection_is_native(
+    native_query: dict[str, Any], value: str, parent_sql: str
 ) -> None:
-    """Exact probes and parent selections bypass legacy whitespace/sentinel coercion."""
+    """Exact probes stay literal; parent selections take dashboard coercion."""
     choices.discover_filter_values(
         _dashboard(_filter(), _filter("country", cascadeParentIds=["region"])),
         _request(
@@ -846,7 +850,8 @@ def test_exact_and_parent_scalar_survive_sql_construction(
             dialect=sqlite.dialect(), compile_kwargs={"literal_binds": True}
         )
     )
-    assert compiled.count("'" + value.replace("'", "''") + "'") == 2
+    assert f"country = '{value}'" in compiled
+    assert parent_sql in compiled
 
 
 def test_proposal_mixed_numbers_and_null_compile_as_typed_membership(
@@ -2087,6 +2092,65 @@ def test_search_consumed_by_jinja_filter_macro_is_unsupported(
     assert _available(summaries[0]).status == "unsupported"
     assert _available(summaries[0]).reason == "unsupported_search"
     assert _available(summaries[0]).values == []
+
+
+_SWALLOWED_COUNTRY_SQL = (
+    "select * from sales where 1 = 1 "
+    "{% for f in get_filters('country', remove_filter=True) %}{% endfor %}"
+)
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_exact_probe_consumed_by_jinja_filter_macro_is_unsupported(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """A swallowed equality probe would otherwise list every country as a match."""
+    sqlite_native_execution["dataset"].sql = _SWALLOWED_COUNTRY_SQL
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("country")),
+        _request(
+            filter_value_requests=[{"filter_id": "country", "exact_value": "Atlantis"}]
+        ),
+    )
+    assert _available(summaries[0]).status == "unsupported"
+    assert _available(summaries[0]).reason == "unsupported_target"
+    assert _available(summaries[0]).values == []
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_proposal_consumed_by_jinja_filter_macro_is_not_validated(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """A swallowed proposal list cannot prove the proposed values exist."""
+    sqlite_native_execution["dataset"].sql = _SWALLOWED_COUNTRY_SQL
+    _, meta = choices.discover_filter_values(
+        _dashboard(_filter("country"), _filter("region", cascadeParentIds=["country"])),
+        _request(
+            filter_value_requests=[{"filter_id": "region"}],
+            proposed_filter_values=[{"filter_id": "country", "values": ["France"]}],
+        ),
+    )
+    assert meta.validated_proposed_filter_values == []
+
+
+def test_parent_sentinel_selection_matches_dashboard_null_coercion(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """A parent's <NULL> selection means SQL NULL, as on the dashboard."""
+    with sqlite_native_execution["engine"].begin() as connection:
+        connection.execute(
+            text(
+                "insert into sales values (NULL, 'Atlantis', 4, 1, '2020-01-01'), "
+                "('<NULL>', 'Literalia', 5, 1, '2020-01-01')"
+            )
+        )
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter(), _filter("country", cascadeParentIds=["region"])),
+        _request(filter_value_requests=[{"filter_id": "country"}]),
+        snapshot_state={"dataMask": {"region": _mask(["<NULL>"])}},
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["Atlantis"]
 
 
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
