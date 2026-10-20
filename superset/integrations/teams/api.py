@@ -24,6 +24,7 @@ from typing import TYPE_CHECKING
 from flask import Blueprint, current_app, Flask, request, Response
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
+from werkzeug.exceptions import RequestEntityTooLarge
 
 from superset.extensions import csrf, db, feature_flag_manager
 from superset.integrations.teams.config import (
@@ -36,8 +37,27 @@ from superset.integrations.teams.store import TeamsInstallationStore
 if TYPE_CHECKING:
     from superset.integrations.teams.adapter import TeamsInstallationEvent
 
+_MAX_EVENT_BYTES = 256 * 1024
+
 logger = logging.getLogger(__name__)
 blueprint = Blueprint("teams", __name__)
+
+
+def _check_event_body_size() -> None:
+    """Bound body reading and reject oversized input before JSON parsing."""
+    configured_limit = request.max_content_length
+    limit = (
+        min(_MAX_EVENT_BYTES, configured_limit)
+        if configured_limit is not None
+        else _MAX_EVENT_BYTES
+    )
+    if request.content_length is not None and request.content_length > limit:
+        raise RequestEntityTooLarge()
+    # Werkzeug can truncate lengthless streams at the limit without raising.
+    # Read one lookahead byte through Flask's bounded stream before parsing JSON.
+    request.max_content_length = limit + 1
+    if len(request.get_data()) > limit:
+        raise RequestEntityTooLarge()
 
 
 @blueprint.post("/api/v1/teams/events/")
@@ -53,6 +73,7 @@ def teams_events() -> Response:
         return Response(status=503)
     if config is None:
         return Response(status=503)
+    _check_event_body_size()
     if not request.is_json:
         return Response(status=415)
     body = request.get_json(silent=True)

@@ -1131,8 +1131,10 @@ routing was ready, remove and reinstall the app to deliver a fresh event.
 ### Route the callback
 
 Your ingress must forward `POST /api/v1/teams/events/` (including the trailing
-slash) to Flask, preserving the Authorization header and JSON body. Do not send
-this path through a browser login redirect or an ingress SSO challenge. Keep TLS
+slash) to Flask, preserving the Authorization header and JSON body. The callback
+accepts bodies up to 256 KiB, or a smaller deployment body limit, and returns 413
+for oversized requests before JSON parsing, SDK authentication, or database access.
+Do not send this path through a browser login redirect or an ingress SSO challenge. Keep TLS
 termination and the configured public URL consistent. Other Superset routes keep
 their normal authentication and CSRF requirements; do not exempt the whole API.
 The callback validates Microsoft's connector token, application, tenant, approved

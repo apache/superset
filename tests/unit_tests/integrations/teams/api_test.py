@@ -40,6 +40,7 @@ from superset.integrations.teams import api as teams_api
 from superset.integrations.teams.config import parse_teams_config
 from superset.integrations.teams.models import TeamsInstallation
 from superset.integrations.teams.store import TeamsInstallationStore
+from superset.utils import json
 
 teams_adapter = pytest.importorskip(
     "superset.integrations.teams.adapter", exc_type=ImportError
@@ -573,3 +574,136 @@ def test_sdk_initialization_failure_still_releases_adapter(
             teams_adapter.process_teams_event(config, installation, {})
     assert len(loops) == 1
     assert loops[0].is_closed()
+
+
+@pytest.mark.parametrize("content_length", [True, False])
+@pytest.mark.parametrize("extra_bytes", [1, 4096])
+@pytest.mark.parametrize("content_type", ["application/json", "text/plain"])
+def test_oversized_event_is_rejected_before_json_sdk_or_database(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    content_length: bool,
+    extra_bytes: int,
+    content_type: str,
+) -> None:
+    """Even valid JSON followed by excess whitespace must not reach the parser."""
+    limit = 256 * 1024
+    body = json.dumps(installation).encode()
+    body += b" " * (limit + extra_bytes - len(body))
+    environ = (
+        {}
+        if content_length
+        else {
+            "CONTENT_LENGTH": "",
+            "wsgi.input_terminated": True,
+        }
+    )
+    with (
+        patch.object(teams_client.application.request_class, "get_json") as parse,
+        patch.object(teams_adapter, "process_teams_event") as sdk,
+        patch.object(teams_api, "Session") as session,
+    ):
+        response = teams_client.post(
+            PATH,
+            data=body,
+            content_type=content_type,
+            environ_overrides=environ,
+        )
+    assert response.status_code == 413
+    parse.assert_not_called()
+    sdk.assert_not_called()
+    session.assert_not_called()
+
+
+@pytest.mark.parametrize("content_length", [True, False])
+@pytest.mark.parametrize("size", [1024, 256 * 1024])
+def test_valid_event_within_body_limit_still_authenticates_and_persists(
+    teams_client: FlaskClient,
+    teams_engine: Engine,
+    installation: dict[str, Any],
+    auth_headers: Callable[..., dict[str, str]],
+    content_length: bool,
+    size: int,
+) -> None:
+    """Accept normal and boundary-size JSON bodies, including terminated streams."""
+    body = json.dumps(installation).encode()
+    body += b" " * (size - len(body))
+    assert len(body) == size
+    environ = (
+        {}
+        if content_length
+        else {
+            "CONTENT_LENGTH": "",
+            "wsgi.input_terminated": True,
+        }
+    )
+    response = teams_client.post(
+        PATH,
+        data=body,
+        content_type="application/json",
+        headers=auth_headers(),
+        environ_overrides=environ,
+    )
+    assert response.status_code == 200
+    with Session(teams_engine) as session:
+        installation_record = session.query(TeamsInstallation).one()
+        assert installation_record.team_id == "team-1"
+        assert installation_record.active
+
+
+@pytest.mark.parametrize("content_length", [True, False])
+def test_callback_respects_stricter_deployment_body_limit(
+    teams_client: FlaskClient,
+    installation: dict[str, Any],
+    content_length: bool,
+) -> None:
+    """The endpoint cap must not relax a smaller operator-configured limit."""
+    teams_client.application.config["MAX_CONTENT_LENGTH"] = 1024
+    body = json.dumps(installation).encode()
+    body += b" " * (1025 - len(body))
+    environ = (
+        {}
+        if content_length
+        else {
+            "CONTENT_LENGTH": "",
+            "wsgi.input_terminated": True,
+        }
+    )
+    with (
+        patch.object(teams_client.application.request_class, "get_json") as parse,
+        patch.object(teams_adapter, "process_teams_event") as sdk,
+        patch.object(teams_api, "Session") as session,
+    ):
+        response = teams_client.post(
+            PATH,
+            data=body,
+            content_type="application/json",
+            environ_overrides=environ,
+        )
+    assert response.status_code == 413
+    assert teams_client.application.config["MAX_CONTENT_LENGTH"] == 1024
+    parse.assert_not_called()
+    sdk.assert_not_called()
+    session.assert_not_called()
+
+
+def test_body_limit_applies_only_to_teams_callback(teams_client: FlaskClient) -> None:
+    """A separate route retains the deployment's existing request-size handling."""
+    app = teams_client.application
+
+    @app.post("/other-body")
+    @teams_api.csrf.exempt
+    def other_body() -> Response:
+        from flask import request
+
+        return Response(str(len(request.get_data())))
+
+    body = b"x" * (256 * 1024 + 1)
+    assert (
+        teams_client.post(PATH, data=body, content_type="application/json").status_code
+        == 413
+    )
+    response = teams_client.post("/other-body", data=body)
+    assert response.status_code == 200
+    assert response.data == str(len(body)).encode()
+    assert app.config["MAX_CONTENT_LENGTH"] is None
