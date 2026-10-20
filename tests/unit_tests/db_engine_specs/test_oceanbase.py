@@ -167,10 +167,23 @@ def test_monkeypatch_has_table_returns_false_for_missing_table(
     dialect = oceanbase_dialect()
     connection = MagicMock()
     connection.exec_driver_sql.side_effect = ProgrammingError(
-        "DESCRIBE `missing_table`", {}, Exception("1146, Table doesn't exist")
+        "DESCRIBE `missing_table`", {}, Exception(1146, "Table doesn't exist")
     )
 
     assert dialect.has_table(connection, "missing_table") is False
+
+
+def test_monkeypatch_has_table_reraises_other_programming_errors(
+    oceanbase_dialect: type,
+) -> None:
+    dialect = oceanbase_dialect()
+    connection = MagicMock()
+    connection.exec_driver_sql.side_effect = ProgrammingError(
+        "DESCRIBE `t`", {}, Exception(1064, "You have an error in your SQL syntax")
+    )
+
+    with pytest.raises(ProgrammingError):
+        dialect.has_table(connection, "t")
 
 
 def test_monkeypatch_get_columns_raises_for_missing_table(
@@ -179,7 +192,7 @@ def test_monkeypatch_get_columns_raises_for_missing_table(
     dialect = oceanbase_dialect()
     connection = MagicMock()
     connection.exec_driver_sql.side_effect = ProgrammingError(
-        "DESCRIBE `missing_table`", {}, Exception("1146, Table doesn't exist")
+        "DESCRIBE `missing_table`", {}, Exception(1146, "Table doesn't exist")
     )
 
     with pytest.raises(NoSuchTableError):

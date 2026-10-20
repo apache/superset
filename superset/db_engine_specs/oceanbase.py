@@ -247,8 +247,12 @@ def monkeypatch_dialect() -> None:
             full_name = f"{quote(schema)}.{full_name}"
         try:
             res = connection.exec_driver_sql(f"DESCRIBE {full_name}")
-        except ProgrammingError:
-            return False
+        except ProgrammingError as ex:
+            # Only "table doesn't exist" (1146) means False; re-raise the rest
+            args = getattr(ex.orig, "args", ())
+            if args and args[0] == 1146:
+                return False
+            raise
         return res.first() is not None
 
     def get_columns(
