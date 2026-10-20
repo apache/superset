@@ -33,7 +33,7 @@ from superset.charts.schemas import ChartDataQueryContextSchema
 from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.common.query_serialization import serialize_query
-from superset.exceptions import SupersetException
+from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.models import SemanticView
 from superset.tasks.async_queries import execute_chart_query
@@ -207,10 +207,14 @@ def test_metadata_discovery_fault_http(
     date_view.get_table.assert_not_called()
 
 
-def test_totals_prerequisite_refusal_does_not_publish_cache_key(
-    app_context: None, date_view: MagicMock, mocker: MockerFixture
+@pytest.mark.parametrize("is_totals_prerequisite", [False, True])
+def test_async_validation_failure_does_not_publish_cache_key(
+    app_context: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    is_totals_prerequisite: bool,
 ) -> None:
-    """A failed totals payload fails its task without advertising a cache entry."""
+    """Snowflake-shaped DATE refusals fail ordinary and totals workers as 400s."""
     context: QueryContext = ChartDataQueryContextSchema().load(
         {
             "datasource": {"id": 7, "type": "semantic_view"},
@@ -234,10 +238,18 @@ def test_totals_prerequisite_refusal_does_not_publish_cache_key(
     mocker.patch(
         "superset.tasks.async_queries.load_serialized_query", return_value=context
     )
-    with pytest.raises(SupersetException, match="Invalid date value 'not-a-date'"):
+    captured: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(QueryObjectValidationError) as captured:
         execute_chart_query.func(
-            serialize_query(context, 0), user_id=7, is_totals_prerequisite=True
+            serialize_query(context, 0),
+            user_id=7,
+            is_totals_prerequisite=is_totals_prerequisite,
         )
+    assert captured.value.status == 400
+    assert str(captured.value) == (
+        "Error: Invalid date value 'not-a-date' for filter column ORDER_DATE"
+    )
+    assert isinstance(captured.value.__cause__, QueryObjectValidationError)
     task_context.update_task.assert_not_called()
     date_view.get_table.assert_not_called()
 
