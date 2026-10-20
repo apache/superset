@@ -2598,6 +2598,73 @@ def test_table_small_number_format_on_a_percent_metric() -> None:
     assert formatted["%cnt"].tolist() == ["0.40%", "250.000%"]
 
 
+def test_table_small_number_format_on_a_percent_metric_keeps_the_row_currency() -> None:
+    """
+    A percent metric's own formatter carries no currency, but the small-number
+    one is built from the column config, so its cells resolve AUTO per row.
+    """
+    form_data = {
+        "viz_type": "table",
+        "metrics": [],
+        "percent_metrics": ["cnt"],
+        "column_config": {
+            "%cnt": {
+                "d3SmallNumberFormat": ",.3f",
+                "currencyFormat": {"symbol": "AUTO", "symbolPosition": "prefix"},
+            }
+        },
+    }
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "%cnt": [0.5, 0.25, 2.5],
+            "currency": ["USD", None, "EUR"],
+        }
+    )
+
+    formatted = table(df, form_data, datasource, detected_currency="GBP")
+
+    assert formatted["%cnt"].tolist() == ["$ 0.500", "0.250", "250.000%"]
+
+
+def test_table_small_number_format_ignores_a_saved_currency() -> None:
+    """
+    The small format is paired with the column config's own currency, so a
+    currency the dataset saved for the metric reaches only the normal format.
+    """
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "metrics": [
+            {
+                "metric_name": "amount",
+                "currency": {"symbol": "USD", "symbolPosition": "prefix"},
+            }
+        ],
+    }
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": ".1%",
+            }
+        },
+    }
+
+    formatted = table(df, form_data, datasource)
+
+    assert formatted["amount"].tolist() == ["50.0%", "$ 12.50"]
+
+
 def test_table_small_number_format_leaves_non_numeric_columns_alone() -> None:
     """
     The plugin only switches formatter for a numeric column, so a string column

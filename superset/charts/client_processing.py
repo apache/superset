@@ -1312,11 +1312,15 @@ def table(
         is_number = pd.api.types.is_numeric_dtype(df[column])
 
         if column in percent_metric_labels:
+            # A percent metric's own formatter never carries a currency, but
+            # ``getSmallNumberFormatter`` still builds one from the column
+            # config, so the small-number cells need the row's context too.
             format_column(
                 df,
                 column,
                 number_format or PERCENT_3_POINT,
                 {},
+                currency_context=row_currency_context,
                 small_d3_format=small_number_format,
                 small_currency=configured_currency,
             )
