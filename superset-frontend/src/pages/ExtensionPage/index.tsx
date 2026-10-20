@@ -29,12 +29,11 @@ import { ErrorAlert } from 'src/components/ErrorMessage/ErrorAlert';
 /**
  * Renders whichever extension page claims the current URL.
  *
- * The server serves the application shell for every path under the extension
- * namespace without knowing which pages exist -- that is what lets one route
- * cover every extension. The consequence is that deciding a URL is genuinely
- * unclaimed happens here, and it can only be decided once extensions have
- * finished loading. Until then this must not say "not found", because the
- * page may be moments away.
+ * Mounted on a catch-all route that every host route outranks, so this is
+ * reached only for a path the host itself does not serve. Whether an
+ * extension serves it can only be decided once extensions have finished
+ * loading, so until then this must not say "not found": the page may be
+ * moments away.
  */
 export default function ExtensionPage() {
   const { pathname } = useLocation();
@@ -63,7 +62,7 @@ export default function ExtensionPage() {
   const page = findPageByPath(stripAppRoot(pathname));
 
   if (page) {
-    return resolvePage(`${page.extensionId}.${page.slug}`);
+    return resolvePage(`${page.extensionId}:${page.path}`);
   }
 
   if (!extensionsSettled) {

@@ -24,10 +24,12 @@
  * subscription so a registration arriving after first render still lands, and
  * an `ExtensionPlaceholder` for a page whose component has not arrived.
  *
- * The one thing this adds is namespacing. An extension registers a bare slug;
- * the host prefixes it with the extension's identity to produce both the id
- * and the URL. The extension never supplies a path, so it cannot claim a URL
- * belonging to the host or to another extension.
+ * The one thing this adds is holding an extension to its manifest. A page's
+ * path is declared there, which is what the server reads when it registers a
+ * URL rule and checks the path against every route the deployment serves. A
+ * component registered against a path the manifest does not declare has no
+ * rule behind it: it would mount on client navigation and 404 on a cold load.
+ * Rejecting it here keeps the two halves from disagreeing.
  */
 
 import React, {
@@ -49,12 +51,14 @@ import { createEventEmitter } from '../utils';
 type Page = pagesApi.Page;
 type ResolvedPage = pagesApi.ResolvedPage;
 
-/** Slugs are a single path segment, in the same shape as an extension name. */
-const SLUG_PATTERN = /^[a-z]([a-z0-9]*(-[a-z0-9]+)*)?$/;
-
-/** The namespace every contributed page is served under. */
-export const pagePath = (extensionId: string, slug: string): string =>
-  `/extensions/${extensionId}/${slug}`;
+/**
+ * Mirrors `PAGE_PATH_PATTERN` in `superset_core.extensions.constants`.
+ *
+ * Checked again here because this is the last point before a path is handed
+ * to the router, and because the message a developer sees for a malformed
+ * path should arrive in the console they are already watching.
+ */
+const PAGE_PATH_PATTERN = /^(\/[a-z]([a-z0-9]*(-[a-z0-9]+)*)?)+$/;
 
 const pageRegistry: Map<string, { page: ResolvedPage; component: ComponentType }> =
   new Map();
@@ -79,35 +83,44 @@ const refresh = () => {
 /**
  * Registers a page on behalf of a specific extension.
  *
- * Not part of the public API: the loader binds `extensionId` per extension
- * before handing the namespace to extension code, so an extension cannot
- * name another extension's id. See `ExtensionsLoader.loadModule`.
+ * Not part of the public API: the loader binds `extensionId` and the paths
+ * that extension's manifest declares before handing the namespace to
+ * extension code, so an extension can neither claim another extension's id
+ * nor register a path it did not declare. See `ExtensionsLoader.loadModule`.
  */
 export const registerPageFor = (
   extensionId: string,
+  declaredPaths: readonly string[],
   page: Page,
   component: ComponentType,
 ): Disposable => {
-  if (!page?.slug || !SLUG_PATTERN.test(page.slug)) {
+  if (!page?.path || !PAGE_PATH_PATTERN.test(page.path)) {
     throw new Error(
-      `Page slug "${page?.slug ?? '<missing>'}" must be lowercase letters, ` +
-        `digits and single hyphens. A slug names a page within an extension; ` +
-        `the host supplies the rest of the URL.`,
+      `Page path "${page?.path ?? '<missing>'}" must be an absolute path of ` +
+        `lowercase segments, such as "/review-queue", with no trailing ` +
+        `slash and no parameters.`,
     );
   }
 
-  const id = `${extensionId}.${page.slug}`;
-  const resolved: ResolvedPage = {
-    ...page,
-    extensionId,
-    path: pagePath(extensionId, page.slug),
-  };
+  if (!declaredPaths.includes(page.path)) {
+    throw new Error(
+      `Extension "${extensionId}" registered a page at "${page.path}", which ` +
+        `its manifest does not declare. Add it to contributions.pages and ` +
+        `rebuild: the server registers URL rules from the manifest, so this ` +
+        `page would work on client navigation and 404 on a cold load. ` +
+        `Declared: ${declaredPaths.join(', ') || '(none)'}.`,
+    );
+  }
+
+  const id = `${extensionId}:${page.path}`;
+  const resolved: ResolvedPage = { ...page, extensionId };
 
   const replaced = pageRegistry.get(id);
   if (replaced) {
-    // Within one extension only -- ids are namespaced, so this can never be
-    // another extension's page. Silent replacement would simply make the
-    // first registration stop rendering with nothing said about it.
+    // Within one extension only -- ids carry the extension, and the server
+    // has already refused a path two extensions both declare. Silent
+    // replacement would make the first registration stop rendering with
+    // nothing said about it.
     logging.warn(
       `Page "${id}" is already registered; it has been replaced and the ` +
         `earlier component no longer renders.`,

@@ -240,7 +240,10 @@ def get_loaded_extension(
 
 
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
+    from superset.extensions.view import registered_page_paths
+
     manifest = extension.manifest
+    registered = set(registered_page_paths(current_app, manifest.id))
     extension_data: dict[str, Any] = {
         "id": manifest.id,
         "publisher": manifest.publisher,
@@ -248,6 +251,18 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         "version": extension.version,
         "description": manifest.description or "",
         "dependencies": manifest.dependencies,
+        # Only the pages that actually got a URL rule. A page whose path was
+        # already taken was refused at boot and is filtered out here, so the
+        # frontend never offers a menu entry -- or accepts a component -- for
+        # a page that would 404 on a cold load.
+        "contributions": {
+            **manifest.contributions.model_dump(exclude_none=True),
+            "pages": [
+                page.model_dump(exclude_none=True)
+                for page in manifest.contributions.pages
+                if page.path in registered
+            ],
+        },
     }
     if manifest.frontend:
         frontend = manifest.frontend

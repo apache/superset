@@ -219,7 +219,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         from superset.explore.api import ExploreRestApi
         from superset.explore.form_data.api import ExploreFormDataRestApi
         from superset.explore.permalink.api import ExplorePermalinkRestApi
-        from superset.extensions.view import ExtensionPagesView, ExtensionsView
+        from superset.extensions.view import ExtensionsView
         from superset.importexport.api import ImportExportRestApi
         from superset.queries.api import QueryRestApi
         from superset.queries.saved_queries.api import SavedQueryRestApi
@@ -481,12 +481,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             ),
         )
 
-        # Registered unconditionally, and answering 404 when the feature flag
-        # is off, so that the URL map does not vary with configuration -- two
-        # workers reading different config would otherwise disagree about
-        # whether a URL exists.
-        appbuilder.add_view_no_menu(ExtensionPagesView)
-
         appbuilder.add_view(
             TaskModelView,
             "Tasks",
@@ -663,6 +657,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             get_extensions,
             install_in_memory_importer,
         )
+        from superset.extensions.view import register_extension_pages
 
         try:
             extensions = get_extensions()
@@ -673,6 +668,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             return
 
         for extension in extensions.values():
+            # Before the backend entrypoint runs: a page is declared in the
+            # manifest, so it does not depend on extension code importing
+            # cleanly, and a frontend-only extension contributes pages too.
+            register_extension_pages(self.superset_app, extension.manifest)
+
             if backend_files := extension.backend:
                 install_in_memory_importer(
                     backend_files,

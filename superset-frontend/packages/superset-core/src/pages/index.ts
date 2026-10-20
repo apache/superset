@@ -23,16 +23,23 @@
  * A page is a screen of the extension's own, at its own URL, as opposed to a
  * view that occupies a slot inside a screen the host already ships.
  *
- * An extension names a page by a bare `slug`; the host derives the URL from
- * the extension's identity, exactly as it does for an extension's REST APIs.
- * An extension cannot choose, prefix or spoof its own URL space.
+ * A page is declared in the extension's manifest and registered at runtime.
+ * Both halves are needed: the manifest declaration is what the server reads
+ * to register a URL rule, so a cold load of the page resolves; the runtime
+ * registration is what supplies the component to render there.
+ *
+ * The path is the extension author's to choose, but it is not theirs to take.
+ * The server checks every declared path against the routes the deployment
+ * actually serves, on every boot, and refuses a page whose path is already
+ * answered by Superset, by an operator's blueprint, or by another extension.
  *
  * @example
  * ```typescript
+ * // extension.json
+ * // "contributions": { "pages": [{ "path": "/review-queue", "name": "Queue" }] }
  * import { pages } from '@apache-superset/core';
  *
- * pages.registerPage({ slug: 'queue', name: 'Review queue' }, ReviewQueue);
- * // served at /extensions/<publisher>.<name>/queue
+ * pages.registerPage({ path: '/review-queue', name: 'Queue' }, ReviewQueue);
  * ```
  */
 
@@ -44,15 +51,19 @@ import { Disposable, Event } from '../common';
  */
 export interface Page {
   /**
-   * Names the page within its extension. Lowercase letters, digits and
-   * hyphens.
+   * The absolute path the page is served at, such as `/review-queue`.
    *
-   * This is a slug, not a path: the host prefixes it with the extension's own
-   * namespace. A slug of `queue` becomes `/extensions/<publisher>.<name>/queue`.
-   * Declaring a full path would let one extension claim another's URL, or the
-   * host's.
+   * Lowercase segments, leading slash, no trailing slash, no parameters: a
+   * page owns a fixed prefix and routes within it on the client. The page
+   * also owns everything beneath that prefix, so pick a path specific enough
+   * that nothing else will want it.
+   *
+   * Must match a path declared in the extension's manifest. The host registers
+   * rules from the manifest, so a component registered against an undeclared
+   * path would mount on client navigation and 404 on a cold load; the host
+   * rejects that registration rather than let the two disagree.
    */
-  slug: string;
+  path: string;
   /** The display name of the page. */
   name: string;
   /** Optional description, for display in contribution manifests. */
@@ -72,13 +83,11 @@ export interface Page {
 }
 
 /**
- * A page together with the URL the host derived for it.
+ * A page together with the extension that contributed it.
  */
 export interface ResolvedPage extends Page {
   /** The extension that contributed the page, as `publisher.name`. */
   extensionId: string;
-  /** The application-root-relative path the page is served at. */
-  path: string;
 }
 
 /**
@@ -87,18 +96,16 @@ export interface ResolvedPage extends Page {
  * The component renders inside the host's own chrome, under an error
  * boundary.
  *
- * It cannot use the host's router or store. `react-router-dom` and
- * `react-redux` are not in the Module Federation share scope, so an
+ * It cannot import the host's router or store directly: `react-router-dom`
+ * and `react-redux` are not in the Module Federation share scope, so an
  * extension importing either gets a second module instance with its own
- * React context, and `useLocation()` throws at runtime. A page is therefore
- * a single screen today: there is no supported way to navigate within it or
- * to read a sub-path, even though the host serves every path beneath the
- * page and resolves it back to this component. Keep sub-screen state in the
- * component until the host offers a navigation primitive.
+ * React context, and `useLocation()` throws at runtime. Use `useSubPath` and
+ * `useNavigate` below, which read the host's router from inside the host
+ * bundle, and `@superset-ui/core` -- which is shared -- for `SupersetClient`.
  *
- * Registering the same slug twice within one extension replaces the first
- * registration and logs a warning; slugs cannot collide across extensions,
- * because each extension's pages live under its own namespace.
+ * Registering the same path twice within one extension replaces the first
+ * registration and logs a warning. Across extensions it cannot happen: the
+ * server refuses a duplicate path at boot, before either page loads.
  *
  * @param page The page descriptor.
  * @param component The React component to render at that route.
@@ -119,8 +126,8 @@ export declare function getPages(): ResolvedPage[];
  *
  * The host serves every path under a page and resolves it back to the same
  * component, so a page can own a sub-path the way a host screen owns one --
- * `/queue/42` and `/queue/42/edit` both reach the `queue` page, and this
- * reports `/42` and `/42/edit`. On the page's own root it reports `/`.
+ * `/review-queue/42` and `/review-queue/42/edit` both reach the page, and
+ * this reports `/42` and `/42/edit`. On the page's own root it reports `/`.
  *
  * This exists because `react-router-dom` is not shared: an extension that
  * imported it would get a second module instance with its own React context
@@ -146,7 +153,7 @@ export declare function useSubPath(): string;
  * @example
  * ```typescript
  * const navigate = pages.useNavigate();
- * navigate(`/${row.id}`);   // -> /extensions/<publisher>.<name>/queue/42
+ * navigate(`/${row.id}`);   // -> /review-queue/42
  * navigate('/');            // back to the page root
  * ```
  */
