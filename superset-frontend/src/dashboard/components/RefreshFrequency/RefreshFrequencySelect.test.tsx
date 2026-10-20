@@ -18,11 +18,18 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { useState } from 'react';
-import { render, screen, userEvent } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+} from 'spec/helpers/testing-library';
 import {
   CUSTOM_REFRESH_FREQUENCY,
+  getCustomValue,
   getRefreshFrequencyOptions,
   getRefreshWarningMessage,
+  isPresetValue,
   RefreshFrequencySelect,
   REFRESH_FREQUENCY_OPTIONS,
   validateRefreshFrequency,
@@ -298,4 +305,94 @@ test('selecting a preset still snaps selection to that preset', async () => {
   expect(screen.getByRole('radio', { name: '1 second' })).toBeChecked();
   expect(screen.getByRole('radio', { name: /Custom/i })).not.toBeChecked();
   expect(screen.getByRole('spinbutton')).toBeDisabled();
+});
+
+test('isPresetValue and getCustomValue work with default and custom options', () => {
+  expect(isPresetValue(10)).toBe(true);
+  expect(isPresetValue(42)).toBe(false);
+  expect(isPresetValue(CUSTOM_REFRESH_FREQUENCY)).toBe(false);
+
+  expect(getCustomValue(10)).toBe('');
+  expect(getCustomValue(0)).toBe('');
+  expect(getCustomValue(42)).toBe('42');
+});
+
+test('uses options prop override when provided', () => {
+  const propOptions: [number, string][] = [
+    [0, "Don't refresh"],
+    [5, '5 seconds'],
+    [25, '25 seconds'],
+  ];
+
+  render(
+    <RefreshFrequencySelect
+      value={0}
+      onChange={jest.fn()}
+      options={propOptions}
+    />,
+    {
+      useRedux: true,
+      initialState: {
+        common: { conf: { DASHBOARD_AUTO_REFRESH_INTERVALS: INTERVALS } },
+      },
+    },
+  );
+
+  expect(screen.getByRole('radio', { name: '5 seconds' })).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: '25 seconds' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('radio', { name: '10 minutes' }),
+  ).not.toBeInTheDocument();
+});
+
+test('preserves previously entered custom value when switching between preset and custom', async () => {
+  render(<ControlledSelect initialValue={0} />, {
+    useRedux: true,
+    initialState: {
+      common: { conf: { DASHBOARD_AUTO_REFRESH_INTERVALS: INTERVALS } },
+    },
+  });
+
+  const customRadio = screen.getByRole('radio', { name: /Custom/i });
+  const presetRadio = screen.getByRole('radio', { name: '10 minutes' });
+  const input = screen.getByRole('spinbutton');
+
+  await userEvent.click(customRadio);
+  fireEvent.change(input, { target: { value: '120' } });
+  expect(input).toHaveValue(120);
+
+  await userEvent.click(presetRadio);
+  expect(presetRadio).toBeChecked();
+  expect(input).toBeDisabled();
+
+  await userEvent.click(customRadio);
+  expect(customRadio).toBeChecked();
+  expect(input).toBeEnabled();
+  expect(input).toHaveValue(120);
+});
+
+test('clamps custom draft below minimum interval when switching preset to custom', async () => {
+  render(<ControlledSelect initialValue={0} />, {
+    useRedux: true,
+    initialState: {
+      common: { conf: { DASHBOARD_AUTO_REFRESH_INTERVALS: INTERVALS } },
+    },
+  });
+
+  const customRadio = screen.getByRole('radio', { name: /Custom/i });
+  const presetRadio = screen.getByRole('radio', { name: '10 minutes' });
+  const input = screen.getByRole('spinbutton');
+
+  await userEvent.click(customRadio);
+  fireEvent.change(input, { target: { value: '-5' } });
+  expect(input).toHaveValue(-5);
+
+  await userEvent.click(presetRadio);
+  expect(presetRadio).toBeChecked();
+  expect(input).toBeDisabled();
+
+  await userEvent.click(customRadio);
+  expect(customRadio).toBeChecked();
+  expect(input).toBeEnabled();
+  expect(input).toHaveValue(1);
 });

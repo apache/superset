@@ -332,7 +332,7 @@ def test_update_semantic_layer_validates_configuration(
     config = {"account": "test"}
     UpdateSemanticLayerCommand("some-uuid", {"configuration": config}).run()
 
-    mock_cls.from_configuration.assert_called_once_with(config)
+    mock_cls.configuration_class.model_validate.assert_called_once_with(config)
 
 
 def test_update_semantic_layer_skips_name_check_when_no_name(
@@ -678,7 +678,7 @@ def test_update_semantic_layer_preserves_masked_secret_end_to_end(
     }
     UpdateSemanticLayerCommand("some-uuid", data).run()
 
-    mock_cls.from_configuration.assert_called_once_with(
+    mock_cls.configuration_class.model_validate.assert_called_once_with(
         {"account": "test", "password": "hunter2"}
     )
     dao.update.assert_called_once_with(
@@ -705,7 +705,9 @@ def test_update_explicit_empty_configuration_is_validated(
         return_value=True,
     )
     provider: MagicMock = MagicMock()
-    provider.from_configuration.side_effect = ValueError("missing required password")
+    provider.configuration_class.model_validate.side_effect = ValueError(
+        "missing required password"
+    )
     mocker.patch.dict(
         "superset.commands.semantic_layer.update.registry",
         {"test_provider": provider} if registered else {},
@@ -714,9 +716,9 @@ def test_update_explicit_empty_configuration_is_validated(
     with pytest.raises(SemanticLayerInvalidError):
         UpdateSemanticLayerCommand("layer", {"configuration": {}}).run()
     if registered:
-        provider.from_configuration.assert_called_once_with({})
+        provider.configuration_class.model_validate.assert_called_once_with({})
     else:
-        provider.from_configuration.assert_not_called()
+        provider.configuration_class.model_validate.assert_not_called()
     dao.update.assert_not_called()
 
 
