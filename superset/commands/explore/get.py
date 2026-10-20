@@ -63,21 +63,8 @@ def _authorize_datasource(
     routing below is testable without a request context.
     """
     if slc:
-        # Chart access, and then the dataset in its own right. Access to a
-        # chart is not access to everything else in its dataset: Explore is a
-        # query builder, so opening it over a dataset the user cannot read
-        # hands them its full column and metric list and a UI for composing
-        # queries the saved chart never ran. Deployments that grant chart
-        # access by other means -- dashboard RBAC, or an
-        # ``EXTRA_RAISE_FOR_ACCESS_BYPASS`` hook -- reach this path with no
-        # dataset grant of their own, and the chart check alone let it pass.
         security_manager.raise_for_access(chart=slc)
-    _raise_for_datasource(datasource)
-
-
-def _raise_for_datasource(datasource: "BaseDatasource | Query") -> None:
-    """Raise if the current user cannot read the explored dataset itself."""
-    if isinstance(datasource, Query):
+    elif isinstance(datasource, Query):
         # A "query" datasource_type resolves to the actual SQL Lab
         # Query row, not a registered dataset -- its .perm is a
         # synthetic string no role is ever granted, so the generic
@@ -101,8 +88,8 @@ def _raise_for_datasource(datasource: "BaseDatasource | Query") -> None:
             datasource=datasource,
             allow_query_authorship_bypass=True,
         )
-        return
-    security_manager.raise_for_access(datasource=datasource)
+    else:
+        security_manager.raise_for_access(datasource=datasource)
 
 
 class GetExploreCommand(BaseCommand, ABC):

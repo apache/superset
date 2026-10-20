@@ -3512,15 +3512,26 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 #
 # The callable receives the current user ID and returns a subquery of the asset
 # IDs to withhold.
+class ExclusionSpec(TypedDict, total=False):
+    """An exclusion plus the explanation a command surfaces when it refuses."""
+
+    ids: Callable[[int], Query]
+    reason: str
+
+
+# Either the callable on its own, or that callable with a reason beside it.
+ExclusionEntry = Callable[[int], Query] | ExclusionSpec
+
+
 class ExtraAccessQueryExclusions(TypedDict, total=False):
-    charts: Callable[[int], Query]
-    dashboards: Callable[[int], Query]
+    charts: ExclusionEntry
+    dashboards: ExclusionEntry
     # Narrower than the two above: assets selectable as the target of a
     # scheduled report, which renders as the configured executor rather than
     # as the user who created it. A deployment may hold assets a user can read
     # but cannot schedule a report on.
-    report_target_charts: Callable[[int], Query]
-    report_target_dashboards: Callable[[int], Query]
+    report_target_charts: ExclusionEntry
+    report_target_dashboards: ExclusionEntry
 
 
 # Extension hooks for deployments to plug in custom access logic.

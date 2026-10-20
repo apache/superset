@@ -14,10 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from typing import Any, Optional, TYPE_CHECKING, Union
+from typing import Any, Callable, Optional, TYPE_CHECKING, Union
 
 from flask_appbuilder import Model
-from sqlalchemy import and_, false, or_, true
+from sqlalchemy import and_, exists, false, or_, select, true
 from sqlalchemy.sql.elements import BooleanClauseList, ColumnElement
 
 if TYPE_CHECKING:
@@ -193,17 +193,89 @@ def apply_extra_access_exclusions(
     Returns ``query`` unchanged when no hook is configured or there is no
     authenticated user, so the default build is unaffected.
     """
-    from flask import current_app
+
+    clause = extra_access_exclusion_clause(asset_kind, id_column)
+    return query if clause is None else query.filter(clause)
+
+
+def extra_access_exclusion_clause(
+    asset_kind: str,
+    id_column: "ColumnElement[Any]",
+) -> Optional["ColumnElement[bool]"]:
+    """The ``NOT EXISTS`` clause for an exclusion hook, or None when inactive.
+
+    Deliberately ``NOT EXISTS`` rather than ``NOT IN``: a hook subquery that
+    yields a single NULL id makes ``NOT IN`` evaluate to NULL for every row,
+    which would silently empty the entire list -- for admins too. ``NOT EXISTS``
+    simply does not match a NULL, so a malformed hook withholds nothing instead
+    of everything.
+    """
+    hook, _reason = _extra_access_exclusion_entry(asset_kind)
+    if not hook:
+        return None
 
     from superset.utils.core import get_user_id
 
+    user_id = get_user_id()
+    if not user_id:
+        return None
+
+    excluded = hook(user_id)
+    excluded_id = list(excluded.c)[0]
+    return ~exists().where(excluded_id == id_column)
+
+
+def _extra_access_exclusion_entry(
+    asset_kind: str,
+) -> tuple[Optional[Callable[[int], Any]], str]:
+    """Normalise one ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` entry.
+
+    An entry is either the callable on its own, or a mapping carrying that
+    callable under ``ids`` alongside a ``reason`` a command can surface when it
+    refuses the asset. The reason lives with the rule it belongs to rather than
+    in a parallel config key, so a deployment owns the wording without core
+    gaining a second hook to keep in step with the first.
+    """
+    from flask import current_app
+
     exclusions = current_app.config.get("EXTRA_ACCESS_QUERY_EXCLUSIONS") or {}
-    hook = exclusions.get(asset_kind)
+    entry = exclusions.get(asset_kind)
+    if entry is None:
+        return None, ""
+    if callable(entry):
+        return entry, ""
+    return entry.get("ids"), entry.get("reason", "")
+
+
+def extra_access_exclusion_reason(asset_kind: str) -> str:
+    """The deployment's explanation for withholding this kind, or "".
+
+    Empty when none is configured, which lets a caller pass it straight to an
+    exception whose class-level message is the fallback.
+    """
+    return _extra_access_exclusion_entry(asset_kind)[1]
+
+
+def is_excluded_by_extra_access(asset_kind: str, id_value: int) -> bool:
+    """Whether a single asset id is withheld by an exclusion hook.
+
+    List filters are not an authorisation boundary -- a command that resolves an
+    id directly has to ask the same question, or the asset is merely hidden from
+    the picker rather than withheld.
+    """
+    from superset import db
+    from superset.utils.core import get_user_id
+
+    hook, _reason = _extra_access_exclusion_entry(asset_kind)
     if not hook:
-        return query
+        return False
 
     user_id = get_user_id()
     if not user_id:
-        return query
+        return False
 
-    return query.filter(id_column.notin_(hook(user_id)))
+    excluded = hook(user_id)
+    excluded_id = list(excluded.c)[0]
+    return bool(
+        db.session.execute(select(exists().where(excluded_id == id_value))).scalar()
+    )

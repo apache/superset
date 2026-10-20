@@ -19,7 +19,7 @@ from types import SimpleNamespace
 from typing import Any
 
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, null as sa_null
 from sqlalchemy.sql.elements import ColumnElement, False_
 
 from superset.extensions import security_manager
@@ -315,3 +315,147 @@ def test_apply_extra_access_exclusions_withholds_ids(
 
     assert excluded.id not in returned
     assert kept.id in returned
+
+
+def test_exclusions_tolerate_a_null_id(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A NULL in the hook's subquery must withhold nothing, not everything.
+
+    ``NOT IN (..., NULL)`` is NULL for every row, which would empty the whole
+    list -- for admins too. ``NOT EXISTS`` simply does not match it.
+    """
+    from flask import current_app
+
+    from superset import db
+    from superset.models.slice import Slice
+
+    kept = Slice(slice_name="kept past null", datasource_id=1, datasource_type="table")
+    db.session.add(kept)
+    db.session.flush()
+
+    def hook(_user_id: int) -> Any:
+        return db.session.query(sa_null().label("id")).subquery()
+
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {"EXTRA_ACCESS_QUERY_EXCLUSIONS": {"charts": hook}},
+    )
+
+    query = apply_extra_access_exclusions(db.session.query(Slice), "charts", Slice.id)
+    assert kept.id in {slc.id for slc in query.all()}
+
+
+def test_is_excluded_by_extra_access_matches_the_filter(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """The single-id check is what a command uses as its boundary.
+
+    A list filter is not an authorisation boundary: a command resolving an id
+    directly has to ask the same question, or the asset is only hidden from a
+    picker rather than withheld.
+    """
+    from flask import current_app
+
+    from superset import db
+    from superset.models.slice import Slice
+    from superset.utils.filters import is_excluded_by_extra_access
+
+    excluded = Slice(slice_name="withheld", datasource_id=1, datasource_type="table")
+    allowed = Slice(slice_name="fine", datasource_id=1, datasource_type="table")
+    db.session.add_all([excluded, allowed])
+    db.session.flush()
+
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "charts": lambda _uid: db.session.query(Slice.id)
+                .filter(Slice.id == excluded.id)
+                .subquery()
+            }
+        },
+    )
+
+    assert is_excluded_by_extra_access("charts", excluded.id) is True
+    assert is_excluded_by_extra_access("charts", allowed.id) is False
+    # No hook for this kind: nothing is withheld.
+    assert is_excluded_by_extra_access("dashboards", excluded.id) is False
+
+
+def test_exclusions_accept_the_mapping_entry_shape(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """An entry may carry its reason beside the callable.
+
+    Widening the existing entry rather than adding a parallel config key keeps
+    the explanation with the rule it belongs to, and keeps core to one hook.
+    """
+    from flask import current_app
+
+    from superset import db
+    from superset.models.slice import Slice
+    from superset.utils.filters import (
+        extra_access_exclusion_reason,
+        is_excluded_by_extra_access,
+    )
+
+    withheld = Slice(slice_name="spec shape", datasource_id=1, datasource_type="table")
+    allowed = Slice(slice_name="spec kept", datasource_id=1, datasource_type="table")
+    db.session.add_all([withheld, allowed])
+    db.session.flush()
+
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "charts": {
+                    "ids": lambda _uid: db.session.query(Slice.id)
+                    .filter(Slice.id == withheld.id)
+                    .subquery(),
+                    "reason": "Move it somewhere shared first.",
+                }
+            }
+        },
+    )
+
+    # The list form honours the mapping...
+    query = apply_extra_access_exclusions(db.session.query(Slice), "charts", Slice.id)
+    returned = {slc.id for slc in query.all()}
+    assert withheld.id not in returned
+    assert allowed.id in returned
+
+    # ...so does the single-id form, and the reason comes back for a command.
+    assert is_excluded_by_extra_access("charts", withheld.id) is True
+    assert extra_access_exclusion_reason("charts") == "Move it somewhere shared first."
+
+
+def test_a_bare_callable_entry_has_no_reason(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """The original shape still works, and reports no reason."""
+    from flask import current_app
+
+    from superset import db
+    from superset.models.slice import Slice
+    from superset.utils.filters import extra_access_exclusion_reason
+
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {
+            "EXTRA_ACCESS_QUERY_EXCLUSIONS": {
+                "charts": lambda _uid: db.session.query(Slice.id).subquery()
+            }
+        },
+    )
+
+    assert extra_access_exclusion_reason("charts") == ""
+    assert extra_access_exclusion_reason("dashboards") == ""
