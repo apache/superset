@@ -802,3 +802,52 @@ test('sorts the x-axis column case-sensitively, not by series name', () => {
   );
   expect(axisOrder).toEqual(['B', 'a']);
 });
+
+test('excludes forecast columns from the truncated-metric sort fallback', () => {
+  // With one displayed metric and `truncate_metric`, the metric's pivoted
+  // columns carry no metric prefix, so the sort falls back to summing every
+  // series column. Forecast trend columns must stay out of that sum.
+  const forecastRows: DataRecord[] = [
+    { genre: 'Action', US: 20, US__yhat: 1 },
+    { genre: 'Puzzle', US: 10, US__yhat: 100 },
+  ];
+  const sortBy = (ascending: boolean) =>
+    transform(
+      {
+        x_axis_sort: 'count',
+        xAxisSort: 'count',
+        x_axis_sort_asc: ascending,
+        xAxisSortAsc: ascending,
+        timeseries_limit_metric: undefined,
+        forecastEnabled: true,
+      },
+      {},
+      forecastRows,
+    ).axisOrder;
+  // Observed values alone: Action 20, Puzzle 10. Including the forecast
+  // column would rank Puzzle (110) above Action (21) when descending.
+  expect(sortBy(false)).toEqual(['Action', 'Puzzle']);
+  expect(sortBy(true)).toEqual(['Puzzle', 'Action']);
+});
+
+test('keeps a NULL x-axis value last when sorting by the x-axis column', () => {
+  const nullRows: DataRecord[] = [
+    { genre: 'A', PS4: 1, XOne: 1 },
+    { genre: null, PS4: 2, XOne: 2 },
+    { genre: 'B', PS4: 3, XOne: 3 },
+  ];
+  const sortBy = (ascending: boolean) =>
+    transform(
+      {
+        x_axis_sort: 'genre',
+        xAxisSort: 'genre',
+        x_axis_sort_asc: ascending,
+        xAxisSortAsc: ascending,
+        timeseries_limit_metric: undefined,
+      },
+      {},
+      nullRows,
+    ).axisOrder;
+  expect(sortBy(true)).toEqual(['A', 'B', '<NULL>']);
+  expect(sortBy(false)).toEqual(['B', 'A', '<NULL>']);
+});
