@@ -270,3 +270,96 @@ def test_public_embedded_address_does_not_allow_6to4() -> None:
     assert address.sixtofour == ipaddress.IPv4Address("8.8.8.8")
     assert is_safe_ip(ipaddress.IPv4Address("8.8.8.8"))
     assert not is_safe_ip(address)
+
+
+def test_public_resolution_deduplicates_and_rejects_any_unsafe_answer() -> None:
+    from superset.utils.network import NonPublicAddressError, resolve_public_addresses
+
+    answers: list[tuple[int, int, int, str, tuple[str, int]]] = [
+        (2, 1, 6, "", ("8.8.8.8", 443))
+    ] * 2
+    with patch("superset.utils.network.socket.getaddrinfo", return_value=answers):
+        assert resolve_public_addresses("fixture.test", 443, timeout=1) == ["8.8.8.8"]
+    answers.append((2, 1, 6, "", ("127.0.0.1", 443)))
+    with (
+        patch("superset.utils.network.socket.getaddrinfo", return_value=answers),
+        pytest.raises(NonPublicAddressError),
+    ):
+        resolve_public_addresses("fixture.test", 443, timeout=1)
+
+
+def test_pinned_connection_does_not_repeat_dns_lookup() -> None:
+    from contextvars import Token
+
+    from superset.utils.network import (
+        _PinnedHTTPSConnection,
+        ConnectionDeadline,
+        PROVIDER_DEADLINE,
+    )
+
+    bound: MagicMock = MagicMock()
+    bound.remaining.return_value = 1
+    connection: _PinnedHTTPSConnection = _PinnedHTTPSConnection("fixture.test", 443)
+    assert connection._dns_host == "fixture.test"
+    assert callable(connection._new_conn)
+    with (
+        patch(
+            "superset.utils.network.socket.getaddrinfo",
+            side_effect=[
+                [(2, 1, 6, "", ("8.8.8.8", 443))],
+                [(2, 1, 6, "", ("127.0.0.1", 443))],
+            ],
+        ) as resolve,
+        patch("superset.utils.network._connect_address") as connect,
+    ):
+        token: Token[ConnectionDeadline | None] = PROVIDER_DEADLINE.set(bound)
+        try:
+            assert connection._new_conn() is connect.return_value
+        finally:
+            PROVIDER_DEADLINE.reset(token)
+    resolve.assert_called_once()
+    connect.assert_called_once_with(("8.8.8.8", 443), 1)
+    bound.watch.assert_called_once_with(connect.return_value)
+    assert (
+        connection.host == "fixture.test"
+    )  # Original hostname remains available to TLS.
+
+
+def test_failed_socket_registration_closes_connected_socket() -> None:
+    from contextvars import Token
+
+    from urllib3.exceptions import NewConnectionError
+
+    from superset.utils.network import (
+        _PinnedHTTPSConnection,
+        ConnectionDeadline,
+        PROVIDER_DEADLINE,
+    )
+
+    bound: MagicMock = MagicMock()
+    bound.remaining.return_value = 1
+    bound.watch.side_effect = OSError("descriptor limit")
+    connection: _PinnedHTTPSConnection = _PinnedHTTPSConnection("fixture.test", 443)
+    with (
+        patch("superset.utils.network._resolve_addresses", return_value=["8.8.8.8"]),
+        patch("superset.utils.network._connect_address") as connect,
+    ):
+        token: Token[ConnectionDeadline | None] = PROVIDER_DEADLINE.set(bound)
+        try:
+            with pytest.raises(NewConnectionError):
+                connection._new_conn()
+        finally:
+            PROVIDER_DEADLINE.reset(token)
+        connect.return_value.close.assert_called_once()
+
+
+def test_empty_resolution_fails_without_connecting() -> None:
+    from superset.utils.network import resolve_public_addresses
+
+    with (
+        patch("superset.utils.network.socket.getaddrinfo", return_value=[]),
+        patch("superset.utils.network._connect_address") as connect,
+    ):
+        with pytest.raises(OSError, match="No destination address"):
+            resolve_public_addresses("fixture.test", 443, timeout=1)
+        connect.assert_not_called()

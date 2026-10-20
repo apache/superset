@@ -18,12 +18,16 @@ import ipaddress
 import platform
 import socket
 import subprocess
-from typing import Any
+from concurrent.futures import Future, ThreadPoolExecutor
+from contextvars import ContextVar
+from threading import Lock
+from typing import Any, Protocol
 
 import requests
 from requests.adapters import HTTPAdapter
 from urllib3.connection import HTTPConnection, HTTPSConnection
 from urllib3.connectionpool import HTTPConnectionPool, HTTPSConnectionPool
+from urllib3.exceptions import NewConnectionError
 
 # Networks that must never be reached via user-supplied hostnames.
 # Includes loopback, RFC-1918 private ranges, link-local (covers cloud
@@ -260,3 +264,143 @@ def is_host_up(host: str) -> bool:
         return False
 
     return output == 0
+
+
+class ConnectionDeadline(Protocol):
+    """A caller-owned deadline; socket code does not choose request policy."""
+
+    def remaining(self) -> float: ...
+    def watch(self, sock: socket.socket) -> None: ...
+
+
+PROVIDER_DEADLINE: ContextVar[ConnectionDeadline | None] = ContextVar(
+    "provider_connection_deadline", default=None
+)
+_RESOLVER: ThreadPoolExecutor | None = None
+_RESOLVER_LOCK: Lock = Lock()
+
+
+class NonPublicAddressError(OSError):
+    """Resolution included an address refused by the shared destination rules."""
+
+
+def _resolve_addresses(
+    host: str, port: int, timeout: float, *, public_only: bool
+) -> list[str]:
+    """Bound waiting and pin the complete answer set before any connection."""
+    global _RESOLVER  # pylint: disable=global-statement
+    if timeout <= 0:
+        raise TimeoutError
+    with _RESOLVER_LOCK:
+        if _RESOLVER is None:
+            _RESOLVER = ThreadPoolExecutor(8, "provider-dns")
+        lookup: Future[Any] = _RESOLVER.submit(
+            socket.getaddrinfo, host, port, socket.AF_UNSPEC, socket.SOCK_STREAM
+        )
+    try:
+        answers: Any = lookup.result(timeout=timeout)
+    finally:
+        lookup.cancel()  # Queued work is disposable; running system DNS cannot stop.
+    addresses: list[str] = list(dict.fromkeys(str(info[4][0]) for info in answers))
+    if not addresses:
+        raise OSError("No destination address")
+    if public_only and not all(
+        is_safe_ip(ipaddress.ip_address(address)) for address in addresses
+    ):
+        raise NonPublicAddressError
+    return addresses
+
+
+def resolve_public_addresses(host: str, port: int, *, timeout: float) -> list[str]:
+    """Resolve once within timeout; reject the entire host if any answer is unsafe."""
+    return _resolve_addresses(host, port, timeout, public_only=True)
+
+
+def _connect_address(address: tuple[str, int], timeout: float) -> socket.socket:
+    """Connect to a numeric address without invoking a second resolver."""
+    family: socket.AddressFamily = (
+        socket.AF_INET6
+        if ipaddress.ip_address(address[0]).version == 6
+        else socket.AF_INET
+    )
+    sock: socket.socket = socket.socket(family, socket.SOCK_STREAM)
+    try:
+        sock.settimeout(timeout)
+        sock.connect(address)
+        return sock
+    except BaseException:
+        sock.close()
+        raise
+
+
+class _PinnedHTTPConnection(HTTPConnection):
+    _dns_host: str  # urllib3 keeps the configured hostname here for resolution.
+    public_only: bool = True
+
+    def _new_conn(self) -> socket.socket:
+        bound: ConnectionDeadline | None = PROVIDER_DEADLINE.get()
+        if bound is None:
+            raise RuntimeError("Pinned connections require a deadline")
+        addresses: list[str] = _resolve_addresses(
+            self._dns_host, self.port, bound.remaining(), public_only=self.public_only
+        )
+        error: OSError = OSError("No reachable address")
+        address: str
+        for address in addresses:
+            try:
+                sock: socket.socket = _connect_address(
+                    (address, self.port), bound.remaining()
+                )
+                try:
+                    bound.watch(sock)  # Duplicate before TLS wrapping.
+                except BaseException:
+                    sock.close()
+                    raise
+                return sock
+            except OSError as exc:
+                error = exc
+        raise NewConnectionError(self, "Destination could not be reached") from error
+
+
+class _PinnedHTTPSConnection(_PinnedHTTPConnection, HTTPSConnection):
+    """HTTPS retains the original host for SNI and certificate verification."""
+
+
+class _InternalHTTPConnection(_PinnedHTTPConnection):
+    public_only: bool = False
+
+
+class _InternalHTTPSConnection(_InternalHTTPConnection, HTTPSConnection):
+    pass
+
+
+class _PinnedHTTPPool(HTTPConnectionPool):
+    ConnectionCls: type[HTTPConnection] = _PinnedHTTPConnection
+
+
+class _PinnedHTTPSPool(HTTPSConnectionPool):
+    ConnectionCls: type[HTTPSConnection] = _PinnedHTTPSConnection
+
+
+class _InternalHTTPPool(HTTPConnectionPool):
+    ConnectionCls: type[HTTPConnection] = _InternalHTTPConnection
+
+
+class _InternalHTTPSPool(HTTPSConnectionPool):
+    ConnectionCls: type[HTTPSConnection] = _InternalHTTPSConnection
+
+
+class PinnedHTTPAdapter(HTTPAdapter):
+    """Direct connections with checked addresses and a caller-owned deadline."""
+
+    def __init__(self, *, public_only: bool) -> None:
+        self.public_only: bool = public_only
+        super().__init__(max_retries=0)
+
+    def init_poolmanager(self, *args: Any, **kwargs: Any) -> None:
+        super().init_poolmanager(*args, **kwargs)
+        # Assign a new mapping; urllib3's original dictionary is shared globally.
+        self.poolmanager.pool_classes_by_scheme = {
+            "http": _PinnedHTTPPool if self.public_only else _InternalHTTPPool,
+            "https": _PinnedHTTPSPool if self.public_only else _InternalHTTPSPool,
+        }
