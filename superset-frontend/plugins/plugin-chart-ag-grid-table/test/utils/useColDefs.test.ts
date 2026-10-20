@@ -24,6 +24,8 @@ import {
   type SupersetTheme,
 } from '@apache-superset/core/theme';
 import { ObjectFormattingEnum } from '@superset-ui/chart-controls';
+import { getNumberFormatter, NumberFormats } from '@superset-ui/core';
+import { ValueGetterParams } from '@superset-ui/core/components/ThemedAgGridReact';
 import tinycolor from 'tinycolor2';
 import { createElement, type ComponentProps, ReactNode } from 'react';
 import { useColDefs } from '../../src/utils/useColDefs';
@@ -253,6 +255,44 @@ test('numeric columns use custom NumericCellRenderer', () => {
   const colDef = result.current[0];
   expect(colDef.cellRenderer).toBeInstanceOf(Function);
   expect(colDef.cellDataType).toBe('number');
+});
+
+test('percent metric filters on the value shown by its format', () => {
+  const percentCol = makeColumn({
+    key: '%share',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isPercentMetric: true,
+    formatter: getNumberFormatter(NumberFormats.PERCENT_3_POINT),
+  });
+  const adaptiveCol = makeColumn({
+    key: '%ratio',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isPercentMetric: true,
+    formatter: getNumberFormatter(NumberFormats.SMART_NUMBER),
+  });
+  const data = { '%share': 0.25, '%ratio': 0.25 };
+
+  const { result } = renderHook(
+    () =>
+      useColDefs({
+        ...defaultProps,
+        columns: [percentCol, adaptiveCol],
+        data: [data],
+      }),
+    { wrapper: defaultThemeWrapper },
+  );
+
+  const filterValue = (index: number) => {
+    const colDef = result.current[index];
+    const getter = colDef.filterValueGetter as (
+      params: ValueGetterParams,
+    ) => unknown;
+    return getter({ data, colDef } as unknown as ValueGetterParams);
+  };
+  expect(filterValue(0)).toBe(25);
+  expect(filterValue(1)).toBe(0.25);
 });
 
 test('temporal columns use custom TextCellRenderer', () => {

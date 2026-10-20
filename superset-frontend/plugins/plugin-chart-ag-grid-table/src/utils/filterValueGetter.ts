@@ -19,16 +19,20 @@
  */
 import { ValueGetterParams } from '@superset-ui/core/components/ThemedAgGridReact';
 
-const filterValueGetter = (params: ValueGetterParams) => {
-  const raw = params.data[params.colDef.field as string];
-  const formatter = params.colDef.valueFormatter as Function;
-  if (!raw || !formatter) return null;
-  const formatted = formatter({
-    value: raw,
-  });
-
-  const numeric = parseFloat(String(formatted).replace('%', '').trim());
-  return Number.isNaN(numeric) ? null : numeric;
+// Reads the raw value rather than parsing the formatted text back, which
+// carries the locale's separators and SI suffixes. A percent format shows the
+// value scaled by 100, so the filter compares against that scaled number,
+// shifted in decimal notation to avoid binary noise (0.07 * 100).
+const filterValueGetter = (params: ValueGetterParams, percent: boolean) => {
+  const raw = params.data?.[params.colDef.field as string];
+  if (typeof raw !== 'number' && (typeof raw !== 'string' || !raw.trim())) {
+    return null;
+  }
+  const numeric = Number(raw);
+  if (!Number.isFinite(numeric)) return null;
+  if (!percent) return numeric;
+  const [coefficient, exponent = '0'] = String(numeric).split('e');
+  return Number(`${coefficient}e${Number(exponent) + 2}`);
 };
 
 export default filterValueGetter;
