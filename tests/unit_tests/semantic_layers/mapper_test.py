@@ -3474,6 +3474,48 @@ def test_get_results_with_is_rowcount(
     pd.testing.assert_frame_equal(result.df, main_df)
 
 
+@pytest.mark.parametrize(
+    "is_rowcount, expected_order",
+    [(False, [("orders.order_date", OrderDirection.ASC)]), (True, None)],
+    ids=["table", "row-count"],
+)
+def test_default_order_applies_to_table_dispatches_only(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    is_rowcount: bool,
+    expected_order: list[tuple[str, OrderDirection]] | None,
+) -> None:
+    """Order cannot change a row count, so a count query is sent unordered."""
+    order_date: Dimension = Dimension(
+        id="orders.order_date",
+        name="order_date",
+        type=pa.date32(),
+        definition="order_date",
+    )
+    view: MockSemanticView = mock_datasource.implementation
+    view._dimensions = {order_date}
+    result: SemanticResult = SemanticResult(
+        requests=[], results=pa.table({"total_sales": [1.0]})
+    )
+    provider: Mock = mocker.Mock(return_value=result)
+    setattr(view, "get_row_count" if is_rowcount else "get_table", provider)
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["order_date"],
+        is_rowcount=is_rowcount,
+    )
+
+    get_results(query_object)
+
+    received: SemanticQuery = provider.call_args.args[0]
+    assert (
+        [(element.id, direction) for element, direction in received.order]
+        if received.order
+        else None
+    ) == expected_order
+
+
 def test_get_filters_from_query_object_with_filter_loop(
     mocker: MockerFixture,
 ) -> None:

@@ -517,9 +517,10 @@ class TestTaskApi(SupersetTestCase):
                 security_manager.del_permission_role(guest_role, read_permission)
 
     @with_feature_flags(EMBEDDED_SUPERSET=True)
-    def test_guest_task_show_and_list_redact_failure_message(self) -> None:
-        """A subscribed guest gets the generic error from the show and list routes."""
+    def test_guest_chart_task_show_and_list_redact_failure_message(self) -> None:
+        """A subscribed guest gets the generic chart error from show and list."""
         from superset.daos.tasks import TaskDAO
+        from superset.tasks.async_queries import CHART_QUERY_TASK
 
         guest_role: Role | None = security_manager.find_role(
             current_app.config["GUEST_ROLE_NAME"]
@@ -536,6 +537,7 @@ class TestTaskApi(SupersetTestCase):
         try:
             with self._create_tasks() as tasks:
                 task: Task = tasks[0]
+                task.task_type = CHART_QUERY_TASK
                 task.set_status(TaskStatus.IN_PROGRESS)
                 task.set_status(TaskStatus.FAILURE)
                 task.update_properties({"error_message": "private engine detail"})

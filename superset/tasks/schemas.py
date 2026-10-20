@@ -23,6 +23,9 @@ from marshmallow import fields, Schema
 from marshmallow.fields import Method
 from superset_core.tasks.types import TaskProperties
 
+from superset.tasks.async_queries import CHART_QUERY_TASK
+from superset.utils.error_sanitization import sanitize_error_message
+
 # RISON/JSON schemas for query parameters
 get_delete_ids_schema = {
     "type": "array",
@@ -144,7 +147,6 @@ class TaskResponseSchema(Schema):
     def get_properties(self, obj: object) -> TaskProperties:
         """Get properties dict, stripping internal state outside debug mode."""
         from superset.tasks.utils import task_internals_visible
-        from superset.utils.error_sanitization import sanitize_error_message
 
         properties = cast(TaskProperties, dict(obj.properties_dict))  # type: ignore[attr-defined]
 
@@ -154,10 +156,11 @@ class TaskResponseSchema(Schema):
         # consumer-facing failure reason.
         if not task_internals_visible():
             properties.pop("private", None)
-        # Embedded guests get the generic failure text, as on the status route
-        # (applied here to every task type).
+
         message: object = properties.get("error_message")
-        if isinstance(message, str):
+        if getattr(obj, "task_type", None) == CHART_QUERY_TASK and isinstance(
+            message, str
+        ):
             properties["error_message"] = sanitize_error_message(message)
 
         return properties
