@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render, screen, waitFor } from 'spec/helpers/testing-library';
+import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
+import { toasters } from 'src/components/MessageToasts/withToasts';
 import ExtensionsList from './ExtensionsList';
 import fetchMock from 'fetch-mock';
 
@@ -118,6 +119,38 @@ test('shows no restart notice when extensions are loaded', async () => {
     expect(get).toHaveBeenCalledWith({
       endpoint: '/api/v1/extensions/_info',
     }),
+  );
+  // Let the resolved _info response render before asserting its absence.
+  await act(async () => {});
+  expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
+  // The list hook no longer issues its own _info request.
+  const infoCalls = get.mock.calls.filter(([request]) =>
+    request.endpoint?.startsWith('/api/v1/extensions/_info'),
+  );
+  expect(infoCalls).toHaveLength(1);
+});
+
+test('reports an _info failure through the danger toast', async () => {
+  jest.spyOn(SupersetClient, 'get').mockImplementation(({ endpoint }) =>
+    endpoint?.startsWith('/api/v1/extensions/_info')
+      ? Promise.reject(
+          new Response('{"message": "Not found"}', { status: 404 }),
+        )
+      : Promise.resolve({
+          json: { result: [], count: 0 },
+          response: new Response(),
+        } as Awaited<ReturnType<typeof SupersetClient.get>>),
+  );
+  // withToasts binds its own action creators over any passed toast props.
+  const addDangerToast = jest.spyOn(toasters, 'addDangerToast');
+  renderWithStore();
+
+  await waitFor(() =>
+    expect(addDangerToast).toHaveBeenCalledWith(
+      expect.stringContaining(
+        'An error occurred while fetching Extensions info',
+      ),
+    ),
   );
   expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
 });

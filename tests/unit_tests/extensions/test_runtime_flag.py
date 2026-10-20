@@ -68,16 +68,12 @@ def bundles() -> Iterator[MagicMock]:
     extension.frontend = {"remoteEntry.js": b"export default 1;"}
     with (
         patch(
-            "superset.extensions.api.get_extensions",
+            "superset.extensions.availability.get_extensions",
             return_value={"acme.demo": extension},
         ) as get_extensions,
         patch(
             "superset.extensions.api.build_extension_data",
             return_value={"id": "acme.demo", "remoteEntry": "remoteEntry.js"},
-        ),
-        patch(
-            "superset.extensions.storage.utils.get_extensions",
-            new=get_extensions,
         ),
     ):
         yield get_extensions
@@ -146,6 +142,96 @@ def test_boot_on_runtime_flips_follow_each_request(
         with request_flag(enabled):
             assert _extensions_menu_visible() is enabled
             assert client.get(LIST).status_code == expected
+
+
+@contextmanager
+def semantic_request(extensions: bool) -> Iterator[None]:
+    """Semantic layers on, with the given per-request extensions decision."""
+    enabled: set[str] = {"SEMANTIC_LAYERS"} | (
+        {"ENABLE_EXTENSIONS"} if extensions else set()
+    )
+    with patch(
+        "superset.feature_flag_manager.is_feature_enabled",
+        side_effect=lambda feature: feature in enabled,
+    ):
+        yield
+
+
+@pytest.fixture
+def semantic_types() -> Iterator[None]:
+    """One host semantic-layer type and one contributed by an extension."""
+    host: MagicMock = MagicMock()
+    host.name, host.description = "Host", "Built in."
+    contributed: MagicMock = MagicMock()
+    contributed.name, contributed.description = "Contributed", "From an extension."
+    with patch.dict(
+        "superset.semantic_layers.api.registry",
+        {"host": host, "extensions.acme.demo.layer": contributed},
+        clear=True,
+    ):
+        yield
+
+
+@pytest.mark.parametrize("app", [BOOT_ON], indirect=True)
+@pytest.mark.parametrize(
+    "extensions,expected_ids,expected_status",
+    [
+        (True, ["host", "extensions.acme.demo.layer"], "loaded"),
+        (False, ["host"], "disabled"),
+    ],
+)
+def test_boot_on_semantic_types_follow_request_flag(
+    client: Any,
+    full_api_access: None,
+    semantic_types: None,
+    extensions: bool,
+    expected_ids: list[str],
+    expected_status: str,
+) -> None:
+    """Extension-contributed types are listed only where extensions are on."""
+    with semantic_request(extensions):
+        response = client.get("/api/v1/semantic_layer/types")
+    assert response.status_code == 200
+    assert [item["id"] for item in response.json["result"]] == expected_ids
+    assert response.json["extensions_status"] == expected_status
+
+
+@pytest.mark.parametrize("app", [BOOT_ON], indirect=True)
+def test_boot_on_request_off_refuses_contributed_type_schema(
+    client: Any, full_api_access: None, semantic_types: None
+) -> None:
+    """A hidden extension type cannot be configured by naming it directly."""
+    with semantic_request(False):
+        response = client.post(
+            "/api/v1/semantic_layer/schema/configuration",
+            json={"type": "extensions.acme.demo.layer"},
+        )
+    assert response.status_code == 400
+    assert response.json["message"] == "Unknown type: extensions.acme.demo.layer"
+
+
+@pytest.mark.parametrize("app", [BOOT_ON], indirect=True)
+def test_boot_on_request_off_refuses_contributed_type_create(
+    semantic_types: None,
+) -> None:
+    """A hidden extension type cannot be created by naming it directly."""
+    from superset.commands.semantic_layer.create import CreateSemanticLayerCommand
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticLayerInvalidError,
+    )
+
+    with (
+        patch.dict(
+            "superset.commands.semantic_layer.create.registry",
+            {"extensions.acme.demo.layer": MagicMock()},
+            clear=True,
+        ),
+        semantic_request(False),
+        pytest.raises(SemanticLayerInvalidError, match="Unknown type"),
+    ):
+        CreateSemanticLayerCommand(
+            {"type": "extensions.acme.demo.layer", "name": "x", "configuration": {}}
+        ).validate()
 
 
 # ── Boot off ─────────────────────────────────────────────────────────────────
@@ -252,3 +338,18 @@ def test_permission_names_are_unchanged() -> None:
     )
     assert storage.class_permission_name == "ExtensionStorageRestApi"
     assert storage.route_base == "/api/v1/extensions"
+    assert set(api.base_permissions) == {
+        "can_content",
+        "can_get",
+        "can_get_list",
+        "can_info",
+    }
+    assert set(storage.base_permissions) == {
+        "can_delete_ephemeral",
+        "can_delete_persistent",
+        "can_get_ephemeral",
+        "can_get_persistent",
+        "can_list_persistent",
+        "can_set_ephemeral",
+        "can_set_persistent",
+    }

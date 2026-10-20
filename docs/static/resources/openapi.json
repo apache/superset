@@ -26583,6 +26583,65 @@
     },
     "/api/v1/extensions/": {
       "get": {
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "properties": {
+                    "count": {
+                      "type": "integer"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "result": {
+                      "items": {
+                        "properties": {
+                          "remoteEntry": {
+                            "type": "string"
+                          }
+                        },
+                        "type": "object"
+                      },
+                      "type": "array"
+                    },
+                    "status": {
+                      "enum": [
+                        "loaded",
+                        "not_loaded"
+                      ],
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                }
+              }
+            },
+            "description": "List of all enabled extensions"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "401": {
+            "$ref": "#/components/responses/401"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          },
+          "500": {
+            "$ref": "#/components/responses/500"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "List all enabled extensions.",
         "tags": [
           "ExtensionsRestApi"
         ]
@@ -35023,7 +35082,7 @@
                 "schema": {
                   "properties": {
                     "extensions_status": {
-                      "description": "Types contributed by extensions are missing while this is `not_loaded`; the server must be restarted to load them",
+                      "description": "Types contributed by extensions are listed only while this is `loaded`; `not_loaded` means the server must be restarted to load them",
                       "enum": [
                         "disabled",
                         "loaded",

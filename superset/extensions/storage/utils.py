@@ -28,10 +28,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from superset.extensions.availability import are_extensions_loaded
+from superset.extensions.availability import get_servable_extensions
 from superset.extensions.context import get_current_extension_context
 from superset.extensions.types import LoadedExtension
-from superset.extensions.utils import get_extensions
 from superset.utils.core import get_user_id
 
 # Key separator
@@ -61,10 +60,7 @@ def get_extension_or_404(extension_id: str) -> LoadedExtension | None:
     A server that did not load extensions at startup has none to serve, even
     when the bundles are present on disk.
     """
-    if not are_extensions_loaded():
-        return None
-    extensions = get_extensions()
-    return extensions.get(extension_id)
+    return get_servable_extensions().get(extension_id)
 
 
 def parse_ttl(body: dict[str, Any]) -> tuple[int | None, str | None]:

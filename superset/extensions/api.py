@@ -24,28 +24,12 @@ from flask_appbuilder.api import BaseApi, expose, protect, safe
 
 from superset.extensions.availability import (
     are_extensions_loaded,
-    ExtensionsStatus,
+    get_extensions_state,
+    get_servable_extensions,
     NOT_LOADED_MESSAGE,
     RuntimeGuardedExtensionsApiMixin,
 )
-from superset.extensions.utils import (
-    build_extension_data,
-    get_extensions,
-)
-
-
-def _load_state() -> dict[str, str]:
-    """Describe whether this server loaded extensions at startup.
-
-    The runtime guard has already refused requests whose feature decision is
-    off, so only the two enabled states remain.
-    """
-    if are_extensions_loaded():
-        return {"status": ExtensionsStatus.LOADED.value}
-    return {
-        "status": ExtensionsStatus.NOT_LOADED.value,
-        "message": NOT_LOADED_MESSAGE,
-    }
+from superset.extensions.utils import build_extension_data
 
 
 class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
@@ -93,7 +77,7 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
                       message:
                         type: string
         """
-        return self.response(200, permissions=["can_read"], **_load_state())
+        return self.response(200, permissions=["can_read"], **get_extensions_state())
 
     # TODO: Support the q parameter
     @protect()
@@ -102,7 +86,7 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
     def get_list(self, **kwargs: Any) -> Response:
         """List all enabled extensions.
         ---
-        get_list:
+        get:
           summary: List all enabled extensions.
           responses:
             200:
@@ -117,8 +101,6 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
                             items:
                               type: object
                               properties:
-                                remoteEntry:
-                                  type: string
                                 remoteEntry:
                                   type: string
                         count:
@@ -137,20 +119,17 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not are_extensions_loaded():
-            # Bundles are never served from a server that did not initialize
-            # them, so the browser loads no extension code.
-            return self.response(200, result=[], count=0, **_load_state())
+        # Empty on a server that did not initialize extensions at startup, so
+        # the browser loads no extension code.
         result = []
-        extensions = get_extensions()
-        for extension in extensions.values():
+        for extension in get_servable_extensions().values():
             extension_data = build_extension_data(extension)
             result.append(extension_data)
 
         response = {
             "result": result,
             "count": len(result),
-            **_load_state(),
+            **get_extensions_state(),
         }
 
         return self.response(200, **response)
@@ -202,8 +181,7 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
             return self.response_404(NOT_LOADED_MESSAGE)
         # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
-        extensions = get_extensions()
-        extension = extensions.get(composite_id)
+        extension = get_servable_extensions().get(composite_id)
         if not extension:
             return self.response_404()
         extension_data = build_extension_data(extension)
@@ -256,8 +234,7 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
             return self.response_404(NOT_LOADED_MESSAGE)
         # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
-        extensions = get_extensions()
-        extension = extensions.get(composite_id)
+        extension = get_servable_extensions().get(composite_id)
         if not extension:
             return self.response_404()
 

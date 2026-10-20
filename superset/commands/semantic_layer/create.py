@@ -38,6 +38,7 @@ from superset.commands.semantic_layer.utils import validate_configuration
 from superset.commands.utils import current_user_can_modify_object
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
 from superset.exceptions import SupersetSecurityException
+from superset.extensions.availability import is_contribution_available
 from superset.semantic_layers.registry import registry
 from superset.utils import json
 from superset.utils.decorators import on_error, transaction
@@ -66,7 +67,7 @@ class CreateSemanticLayerCommand(BaseCommand):
 
     def validate(self) -> None:
         sl_type = self._properties.get("type")
-        if sl_type not in registry:
+        if sl_type not in registry or not is_contribution_available(sl_type):
             raise SemanticLayerInvalidError(f"Unknown type: {sl_type}")
 
         name: str = self._properties.get("name", "")

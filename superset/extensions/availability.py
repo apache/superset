@@ -26,14 +26,21 @@ can still hide them from a request whose feature decision is off.
 from __future__ import annotations
 
 from enum import Enum
+from typing import TYPE_CHECKING
 
-from flask import Blueprint, current_app, Flask
+from flask import Blueprint, current_app, Flask, jsonify
 from flask_appbuilder import AppBuilder
 from flask_appbuilder.api import BaseApi
 
+from superset.extensions.utils import get_extensions
 from superset.superset_typing import FlaskResponse
 
+if TYPE_CHECKING:
+    from superset.extensions.types import LoadedExtension
+
 EXTENSIONS_LOADED_KEY = "superset_extensions_loaded"
+
+EXTENSION_CONTRIBUTION_PREFIX = "extensions."
 
 NOT_LOADED_MESSAGE = (
     "Extensions are enabled but were not loaded when this server started. "
@@ -75,21 +82,60 @@ def get_extensions_status() -> ExtensionsStatus:
     return ExtensionsStatus.NOT_LOADED
 
 
+def is_contribution_available(contribution_id: str) -> bool:
+    """Whether a registry entry is available to the current request.
+
+    Contributions registered by an extension backend carry the
+    ``extensions.<publisher>.<name>.`` prefix (see
+    ``superset.core.api.core_api_injection``) and follow the extension's
+    per-request availability; host contributions are always available.
+    """
+    if not contribution_id.startswith(EXTENSION_CONTRIBUTION_PREFIX):
+        return True
+    return get_extensions_status() is ExtensionsStatus.LOADED
+
+
+def get_extensions_state() -> dict[str, str]:
+    """Serialize the current availability for API responses.
+
+    ``message`` accompanies only the state that needs operator action.
+    """
+    status: ExtensionsStatus = get_extensions_status()
+    if status is ExtensionsStatus.NOT_LOADED:
+        return {"status": status.value, "message": NOT_LOADED_MESSAGE}
+    return {"status": status.value}
+
+
+def get_servable_extensions() -> dict[str, LoadedExtension]:
+    """Extensions this server may serve to the current request.
+
+    ``get_extensions()`` re-reads bundles from disk on every call, so request
+    handlers go through this accessor: a server that did not initialize its
+    extensions at startup serves none of them, even when bundles are present.
+    The per-request feature decision is enforced by the blueprint guard.
+    """
+    if not are_extensions_loaded():
+        return {}
+    return get_extensions()
+
+
 def _refuse_disabled_extensions() -> FlaskResponse | None:
     """Refuse extension API dispatch before authentication or handler side effects.
 
-    The body is the same as for an unknown route, so an unauthenticated caller
-    cannot tell a disabled feature apart from a missing one.
+    The body is constant, so the refusal reveals nothing about the caller.
     """
     if not is_extensions_enabled():
-        from flask import jsonify
-
         return jsonify({"message": "Not found"}), 404
     return None
 
 
 class RuntimeGuardedExtensionsApiMixin(BaseApi):
     """Install the per-request feature guard on an extensions API blueprint."""
+
+    # The extensions APIs accept browser sessions, so their write routes keep
+    # CSRF protection like other Superset APIs; FAB's ``BaseApi`` exempts by
+    # default.
+    csrf_exempt = False
 
     def create_blueprint(
         self,

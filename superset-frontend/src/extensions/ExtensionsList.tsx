@@ -19,8 +19,9 @@
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { SupersetClient } from '@superset-ui/core';
-import { FunctionComponent, useEffect, useMemo, useState } from 'react';
+import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
+import { createErrorHandler } from 'src/views/CRUD/utils';
 import { ListView } from 'src/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
 import withToasts from 'src/components/MessageToasts/withToasts';
@@ -34,7 +35,9 @@ type Extension = {
 };
 
 type ExtensionsInfo = {
+  permissions?: string[];
   status?: 'loaded' | 'not_loaded';
+  message?: string;
 };
 
 interface ExtensionsListProps {
@@ -54,19 +57,30 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
     'extensions',
     t('Extensions'),
     addDangerToast,
+    false, // _info is fetched below, once, for its load status
   );
   const [notLoaded, setNotLoaded] = useState(false);
+  const addDangerToastRef = useRef(addDangerToast);
+  addDangerToastRef.current = addDangerToast;
 
   useEffect(() => {
     // The list is empty on a server that did not load extensions at startup;
     // say why instead of showing an empty table without explanation.
-    SupersetClient.get({ endpoint: '/api/v1/extensions/_info' })
-      .then(({ json }) => {
-        setNotLoaded((json as ExtensionsInfo).status === 'not_loaded');
-      })
-      .catch(() => {
-        // The list view reports fetch failures through its own toast.
-      });
+    SupersetClient.get({ endpoint: '/api/v1/extensions/_info' }).then(
+      ({ json }) => {
+        const info: ExtensionsInfo = json;
+        setNotLoaded(info.status === 'not_loaded');
+      },
+      createErrorHandler(errMsg =>
+        addDangerToastRef.current(
+          t(
+            'An error occurred while fetching %s info: %s',
+            t('Extensions'),
+            errMsg,
+          ),
+        ),
+      ),
+    );
   }, []);
 
   const columns = useMemo(

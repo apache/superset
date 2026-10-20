@@ -19,6 +19,9 @@
 from contextlib import nullcontext
 from unittest.mock import MagicMock, patch
 
+from flask import Flask
+
+from superset.extensions.availability import EXTENSIONS_LOADED_KEY
 from superset.initialization import SupersetAppInitializer
 
 
@@ -30,9 +33,15 @@ def _extension_that_fails_to_init() -> MagicMock:
     return extension
 
 
+def _initializer() -> SupersetAppInitializer:
+    initializer = object.__new__(SupersetAppInitializer)
+    initializer.superset_app = Flask(__name__)
+    return initializer
+
+
 def test_init_extensions_logs_exception_instead_of_printing() -> None:
     """An extension entrypoint failure is routed through logger.exception."""
-    initializer = object.__new__(SupersetAppInitializer)
+    initializer = _initializer()
     extension = _extension_that_fails_to_init()
 
     with (
@@ -53,3 +62,29 @@ def test_init_extensions_logs_exception_instead_of_printing() -> None:
     mock_logger.exception.assert_called_once()
     # The failing extension id is included in the log call args.
     assert "acme.broken_extension" in mock_logger.exception.call_args.args
+    # One failing entrypoint does not stop the server serving the others.
+    assert initializer.superset_app.extensions[EXTENSIONS_LOADED_KEY] is True
+
+
+def test_init_extensions_marks_loaded_after_discovery() -> None:
+    """A completed initialization is recorded, even with no extensions."""
+    initializer = _initializer()
+    with patch("superset.extensions.utils.get_extensions", return_value={}):
+        initializer.init_extensions()
+    assert initializer.superset_app.extensions[EXTENSIONS_LOADED_KEY] is True
+
+
+def test_init_extensions_failed_discovery_stays_unloaded() -> None:
+    """A discovery failure leaves the server unloaded and says why in the log."""
+    initializer = _initializer()
+    with (
+        patch(
+            "superset.extensions.utils.get_extensions",
+            side_effect=RuntimeError("no metadata database"),
+        ),
+        patch("superset.initialization.logger") as mock_logger,
+    ):
+        initializer.init_extensions()
+    assert EXTENSIONS_LOADED_KEY not in initializer.superset_app.extensions
+    mock_logger.warning.assert_called_once()
+    assert "no metadata database" in str(mock_logger.warning.call_args.args)

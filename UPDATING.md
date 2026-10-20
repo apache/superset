@@ -26,12 +26,20 @@ assists people when migrating to a new version.
 
 - The extensions APIs (`/api/v1/extensions/`) are registered regardless of the
   `ENABLE_EXTENSIONS` flag, and every request evaluates the flag: when it is off
-  the routes return 404, matching the hidden Extensions menu. Extension code
-  still loads only when the flag is on at startup. A request that enables the
-  flag on a server that did not load extensions receives an empty list with
-  `status: "not_loaded"` instead of a 404. Existing permissions are unchanged;
-  run `superset init` during upgrade to register them on deployments where the
-  flag was off.
+  the routes return 404 (matching the hidden Extensions menu) and
+  extension-contributed semantic-layer types are hidden. Extension code still
+  loads only when the flag is on at startup; a request that enables the flag on
+  a server that did not load extensions receives an empty list with
+  `status: "not_loaded"` instead of a 404. REST APIs and MCP tools registered by
+  extension backends are not gated per request. Permission names are unchanged,
+  but on deployments where the flag was off at startup, `superset init` now
+  creates the `ExtensionsRestApi` and `ExtensionStorageRestApi` permissions and
+  grants them under the existing role rules (Admin, Alpha and Gamma), as on
+  deployments that already started with the flag on; they have no effect while
+  the flag is off. Upgrade order: deploy, run `superset init`, then enable the
+  flag at runtime. The extension storage write routes (PUT/DELETE) are no
+  longer exempt from CSRF protection; API clients must send a CSRF token, as
+  for other Superset APIs.
 
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different

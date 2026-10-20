@@ -74,6 +74,7 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
+from superset.extensions.availability import is_extensions_enabled
 from superset.extensions.context import extension_context
 from superset.openapi import SupersetOpenApi, SupersetSwaggerView
 from superset.security import SupersetSecurityManager
@@ -475,9 +476,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=_("Extensions"),
             category="Manage",
             category_label=_("Manage"),
-            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
-                "ENABLE_EXTENSIONS"
-            ),
+            menu_cond=is_extensions_enabled,
         )
 
         appbuilder.add_view(
@@ -651,6 +650,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         # Conditionally initialize extensions based on feature flag
         if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
             self.init_extensions()
+        else:
+            logger.info("ENABLE_EXTENSIONS is off at startup; extensions not loaded")
 
     def init_extensions(self) -> None:
         from superset.extensions.availability import mark_extensions_loaded
@@ -662,10 +663,11 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         try:
             extensions = get_extensions()
-        except Exception:  # pylint: disable=broad-except  # noqa: S110
+        except Exception as ex:  # pylint: disable=broad-except
             # If the db hasn't been initialized yet, an exception will be raised.
-            # It's fine to ignore this, as in this case there are no extensions
-            # present yet.
+            # It's fine to continue, as in this case there are no extensions
+            # present yet; the server stays unloaded and says so per request.
+            logger.warning("Extensions not loaded: discovery failed: %s", ex)
             return
 
         for extension in extensions.values():
@@ -692,6 +694,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     )
 
         mark_extensions_loaded(self.superset_app)
+        logger.info("Loaded %d extension(s) at startup", len(extensions))
 
     @staticmethod
     def _remove_continuum_write_listeners() -> None:

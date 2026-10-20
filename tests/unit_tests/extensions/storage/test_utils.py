@@ -88,7 +88,7 @@ def test_build_storage_key_different_users_are_isolated() -> None:
 # ── get_extension_or_404 ─────────────────────────────────────────────────────
 
 
-@patch("superset.extensions.storage.utils.get_extensions")
+@patch("superset.extensions.availability.get_extensions")
 def test_get_extension_or_404_returns_extension(mock_get_ext: MagicMock) -> None:
     """get_extension_or_404 returns the extension when found."""
     mock_ext = MagicMock()
@@ -97,7 +97,7 @@ def test_get_extension_or_404_returns_extension(mock_get_ext: MagicMock) -> None
     assert result is mock_ext
 
 
-@patch("superset.extensions.storage.utils.get_extensions")
+@patch("superset.extensions.availability.get_extensions")
 def test_get_extension_or_404_returns_none_when_missing(
     mock_get_ext: MagicMock,
 ) -> None:
@@ -107,7 +107,7 @@ def test_get_extension_or_404_returns_none_when_missing(
     assert result is None
 
 
-@patch("superset.extensions.storage.utils.get_extensions")
+@patch("superset.extensions.availability.get_extensions")
 def test_get_extension_or_404_returns_none_when_not_loaded(
     mock_get_ext: MagicMock, app: Flask
 ) -> None:
