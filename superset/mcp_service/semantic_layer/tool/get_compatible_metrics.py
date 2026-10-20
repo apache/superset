@@ -45,6 +45,7 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 
 logger = logging.getLogger(__name__)
 
@@ -277,6 +278,8 @@ async def _resolve_compatible_metrics(
             source="external",
         )
 
+    except AmbiguousDimensionError as exc:
+        return SemanticLayerError.create(error=str(exc), error_type="ValidationError")
     except Exception as exc:
         logger.exception(
             "Unexpected error in get_compatible_metrics: %s: %s",
