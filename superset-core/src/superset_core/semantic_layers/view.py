@@ -108,7 +108,7 @@ class SemanticView(ABC):
     def metadata_cache_token(self) -> str | None:
         """Return the ``cache_token`` these members were discovered under.
 
-        Providers echo the token passed to ``from_configuration_with_cache_token``;
+        Providers echo the token passed to ``from_configuration``;
         legacy views return None. Report the token captured with the members, never
         a later one. The host keys its caches on its own metadata generation, not
         on this value.

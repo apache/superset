@@ -27,6 +27,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 import pandas as pd
+import pyarrow as pa
 import pytest
 from flask import current_app
 from pytest_mock import MockerFixture
@@ -116,8 +117,9 @@ def mock_result_set() -> MagicMock:
     result_set = MagicMock()
     result_set.size = 2
     result_set.truncated = False
+    result_set.nested_columns = {}
     result_set.columns = [{"name": "id"}, {"name": "name"}]
-    result_set.pa_table = MagicMock()
+    result_set.pa_table = pa.table({"id": [1, 2], "name": ["Alice", "Bob"]})
     result_set.to_pandas_df = MagicMock(
         return_value=pd.DataFrame({"id": [1, 2], "name": ["Alice", "Bob"]})
     )
@@ -279,6 +281,7 @@ def mock_query_execution(
     # Create a real SupersetResultSet that converts to DataFrame properly
     mock_result_set = MagicMock(spec=SupersetResultSet)
     mock_result_set.truncated = False
+    mock_result_set.nested_columns = {}
     mock_result_set.to_pandas_df.return_value = pd.DataFrame(
         return_data, columns=column_names
     )

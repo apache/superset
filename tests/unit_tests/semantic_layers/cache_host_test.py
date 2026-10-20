@@ -59,12 +59,18 @@ def test_execution_context_fingerprints_all_host_security_inputs(
     first_user: MagicMock = MagicMock(
         id=1,
         username="first",
+        is_anonymous=False,
+        is_authenticated=True,
+        groups=[],
         roles=[role],
         guest_token={"rls": [{"clause": "tenant = 1"}]},
     )
     second_user: MagicMock = MagicMock(
         id=2,
         username="second",
+        is_anonymous=False,
+        is_authenticated=True,
+        groups=[],
         roles=[role],
         guest_token={"rls": [{"clause": "tenant = 1"}]},
     )
