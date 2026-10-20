@@ -97,6 +97,8 @@ export const ComparisonRangeLabel = ({
   );
 
   useEffect(() => {
+    let cancelled = false;
+
     const shiftsArray = ensureIsArray(shifts);
     if (
       isEmpty(currentTimeRangeFilters) ||
@@ -172,10 +174,16 @@ export const ComparisonRangeLabel = ({
         return Promise.resolve({ value: '' });
       });
       Promise.all(promises).then(res => {
-        // access the value property inside the res and set the labels with it in the state
-        setLabels(res.map(r => r.value ?? ''));
+        if (!cancelled) {
+          // access the value property inside the res and set the labels with it in the state
+          setLabels(res.map(r => r.value ?? ''));
+        }
       });
     }
+
+    return () => {
+      cancelled = true;
+    };
   }, [currentTimeRangeFilters, shifts, startDate]);
 
   return labels.length ? (
