@@ -257,6 +257,7 @@ async def test_duplicate_referencing_same_charts(
 @patch("superset.commands.dashboard.copy.CopyDashboardCommand")
 @patch("superset.daos.dashboard.DashboardDAO.get_by_id_or_slug")
 @pytest.mark.parametrize("legacy_id", [10, "10", 10.0])
+@pytest.mark.parametrize("explicit_copy", [False, True])
 @pytest.mark.asyncio
 async def test_duplicate_with_duplicate_slices(
     mock_get_by_id_or_slug: Mock,
@@ -264,8 +265,9 @@ async def test_duplicate_with_duplicate_slices(
     mock_find_by_id: Mock,
     mcp_server: object,
     legacy_id: int | str | float,
+    explicit_copy: bool,
 ) -> None:
-    """duplicate_slices=True is forwarded to the command and reported back."""
+    """Default and explicit copying forward isolation and return independent IDs."""
     positions: dict[str, Any] = json.loads(json.dumps(SOURCE_POSITIONS))
     positions["CHART-10"]["meta"]["chartId"] = legacy_id
     source: Mock = _mock_dashboard(
@@ -285,7 +287,7 @@ async def test_duplicate_with_duplicate_slices(
                 "request": {
                     "dashboard_id": 1,
                     "dashboard_title": "Regional Variant",
-                    "duplicate_slices": True,
+                    **({"duplicate_slices": True} if explicit_copy else {}),
                 }
             },
         )
@@ -294,6 +296,8 @@ async def test_duplicate_with_duplicate_slices(
     assert content["error"] is None
     assert content["duplicated_slices"] is True
     assert content["dashboard"]["id"] == 3
+    assert content["dashboard"]["charts"][0]["id"] == 20
+    assert content["dashboard"]["charts"][0]["id"] != source.slices[0].id
     assert "/dashboard/3/" in content["dashboard_url"]
 
     _, cmd_data = mock_copy_cmd_cls.call_args.args

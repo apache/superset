@@ -524,17 +524,20 @@ def test_completeness(row_count, source_total, limit, expected):
     assert _completeness(row_count, source_total, limit) == expected
 
 
-def test_histogram_sample_exposes_input_fetch_limit() -> None:
+@pytest.mark.parametrize("chart_type", ["histogram", "histogram_v2"])
+def test_histogram_sample_exposes_input_fetch_limit(chart_type: str) -> None:
+    """One output row is not evidence of full histogram input coverage."""
     from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
     from superset.mcp_service.dashboard.tool.get_dashboard_data import (
         _summarize_chart_data,
     )
 
-    result = _chart_data(1, "Experience", viz="histogram_v2", rows=[{"0-10": 100}])
+    result = _chart_data(1, "Experience", viz=chart_type, rows=[{"0-10": 100}])
     request = GetDashboardDataRequest(identifier=1, fetch_row_limit=100, sample_rows=5)
     summary = _summarize_chart_data(result, None, request)
     assert summary.fetch_row_limit == 100
     assert summary.sample_rows_limit == 5
     assert summary.row_count == 1
+    assert summary.truncated is False
     assert summary.completeness_note is not None
     assert "do not establish full-population" in summary.completeness_note

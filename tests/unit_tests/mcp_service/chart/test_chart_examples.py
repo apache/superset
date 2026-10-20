@@ -58,3 +58,29 @@ def test_chart_configs_resource_examples_parse() -> None:
                 count += 1
     assert count > 0
     assert "project_schedule" in resource["gantt_chart_configs"]
+
+
+def test_chart_configs_resource_does_not_assume_currency() -> None:
+    """Unknown-currency metrics use neutral formats in published examples."""
+    from superset.mcp_service.chart.resources.chart_configs import (
+        get_chart_configs_resource,
+    )
+
+    with patch(
+        "superset.mcp_service.auth.get_user_from_request",
+        return_value=Mock(id=1, username="admin"),
+    ):
+        resource = json.loads(asyncio.run(get_chart_configs_resource()))
+
+    assert resource["xy_chart_configs"]["bar_chart"]["config"]["y_axis"] == {
+        "title": "Revenue",
+        "format": ",.0f",
+    }
+    for examples in resource.values():
+        if isinstance(examples, dict):
+            for example in examples.values():
+                if isinstance(example, dict) and "config" in example:
+                    config = json.dumps(example["config"])
+                    assert "$" not in config
+                    assert "currency_format" not in config
+    assert "currency" in str(resource["best_practices"])
