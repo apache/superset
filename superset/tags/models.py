@@ -180,7 +180,8 @@ def get_tag(
             # Such failures are not recoverable tag conflicts.
             if not session.is_active:
                 raise
-            # Locking reads see the winner even under MySQL REPEATABLE READ.
+            # Recovery assumes the default READ COMMITTED isolation.
+            # A locking read does not prevent MySQL REPEATABLE READ deadlocks.
             tag = query.with_for_update(read=True).one_or_none()
             if tag is None:
                 conflicting_tag: Tag | None = (
