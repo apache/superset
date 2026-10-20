@@ -416,3 +416,76 @@ def test_validate_alert_query_rejects_unauthorized_tables(
 
     assert len(exceptions) == 1
     assert isinstance(exceptions[0], AlertQueryDataAccessValidationError)
+
+
+# -- Report target exclusions --
+#
+# The related-field filter narrows the picker, but a list filter is not an
+# authorisation boundary: ``_check_object_access`` resolves the posted id
+# through ``find_by_id``, which applies the ordinary access filter. These go
+# through that method rather than the exclusion helper in isolation, so a
+# regression in the key mapping or the raise is caught.
+
+
+def test_check_object_access_refuses_an_excluded_report_target(
+    mocker: MockerFixture,
+) -> None:
+    """An excluded id posted directly must be refused, not merely hidden."""
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+    mocker.patch(
+        "superset.commands.report.base.extra_access_exclusion_reason",
+        return_value="Move it somewhere shared first.",
+    )
+    dao = mocker.MagicMock()
+    dao.find_by_id.return_value = mocker.MagicMock()
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {}
+
+    with pytest.raises(ReportScheduleForbiddenError) as caught:
+        cmd._check_object_access(
+            42,
+            kind="dashboard",
+            dao=dao,
+            not_found_exc=ValueError,
+            exceptions=[],
+        )
+
+    # The deployment's wording reaches the caller, not the generic default.
+    assert "Move it somewhere shared first." in str(caught.value)
+    # ...and the key is derived from the kind, which is what a rename would break.
+    assert excluded.call_args.args[0] == "report_target_dashboards"
+
+
+def test_check_object_access_allows_a_target_that_is_not_excluded(
+    mocker: MockerFixture,
+) -> None:
+    """With no exclusion configured the ordinary access check decides."""
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=False,
+    )
+    raise_for_access = mocker.patch(
+        "superset.commands.report.base.security_manager"
+    ).raise_for_access
+    dao = mocker.MagicMock()
+    resolved = mocker.MagicMock()
+    dao.find_by_id.return_value = resolved
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {}
+    cmd._check_object_access(
+        42,
+        kind="chart",
+        dao=dao,
+        not_found_exc=ValueError,
+        exceptions=[],
+    )
+
+    raise_for_access.assert_called_once_with(chart=resolved)
+    assert cmd._properties["chart"] is resolved

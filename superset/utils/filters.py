@@ -220,9 +220,7 @@ def extra_access_exclusion_clause(
     if not user_id:
         return None
 
-    excluded = hook(user_id)
-    excluded_id = list(excluded.c)[0]
-    return ~exists().where(excluded_id == id_column)
+    return ~exists().where(_exclusion_id_column(hook(user_id)) == id_column)
 
 
 def _extra_access_exclusion_entry(
@@ -245,6 +243,22 @@ def _extra_access_exclusion_entry(
     if callable(entry):
         return entry, ""
     return entry.get("ids"), entry.get("reason", "")
+
+
+def _exclusion_id_column(excluded: Any) -> "ColumnElement[Any]":
+    """The single id column of whatever shape a hook returned.
+
+    A hook may return an ORM ``Query``, a Core ``select()`` or an explicit
+    ``.subquery()`` -- all three are natural things to write, and the sibling
+    ``EXTRA_ACCESS_QUERY_FILTERS`` hooks are handed straight to ``.in_()``,
+    which accepts any of them. ``Query`` and ``Select`` both offer
+    ``.subquery()`` while a ``Subquery`` does not, so that is what we key on.
+    Reaching for ``.c`` on a ``Select`` would work but is deprecated, and on a
+    ``Query`` it does not exist at all.
+    """
+    if hasattr(excluded, "subquery"):
+        excluded = excluded.subquery()
+    return list(excluded.c)[0]
 
 
 def extra_access_exclusion_reason(asset_kind: str) -> str:
@@ -274,8 +288,7 @@ def is_excluded_by_extra_access(asset_kind: str, id_value: int) -> bool:
     if not user_id:
         return False
 
-    excluded = hook(user_id)
-    excluded_id = list(excluded.c)[0]
+    excluded_id = _exclusion_id_column(hook(user_id))
     return bool(
         db.session.execute(select(exists().where(excluded_id == id_value))).scalar()
     )

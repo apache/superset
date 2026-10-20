@@ -18,6 +18,7 @@
 from types import SimpleNamespace
 from typing import Any
 
+import pytest
 from pytest_mock import MockerFixture
 from sqlalchemy import create_engine, null as sa_null
 from sqlalchemy.sql.elements import ColumnElement, False_
@@ -459,3 +460,49 @@ def test_a_bare_callable_entry_has_no_reason(
 
     assert extra_access_exclusion_reason("charts") == ""
     assert extra_access_exclusion_reason("dashboards") == ""
+
+
+@pytest.mark.parametrize("shape", ["query", "select", "subquery"])
+def test_exclusions_accept_every_natural_return_shape(
+    shape: str,
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A hook may return a Query, a select() or an explicit .subquery().
+
+    All three are natural to write, and the sibling
+    ``EXTRA_ACCESS_QUERY_FILTERS`` hooks are handed straight to ``.in_()``,
+    which accepts any of them. Reading ``.c`` without normalising raised
+    ``AttributeError`` on a ``Query`` -- breaking every chart and dashboard
+    list, for every user.
+    """
+    from flask import current_app
+    from sqlalchemy import select as sa_select
+
+    from superset import db
+    from superset.models.slice import Slice
+
+    withheld = Slice(
+        slice_name=f"shape {shape}", datasource_id=1, datasource_type="table"
+    )
+    kept = Slice(slice_name=f"kept {shape}", datasource_id=1, datasource_type="table")
+    db.session.add_all([withheld, kept])
+    db.session.flush()
+
+    def hook(_user_id: int) -> Any:
+        if shape == "query":
+            return db.session.query(Slice.id).filter(Slice.id == withheld.id)
+        if shape == "select":
+            return sa_select(Slice.id).where(Slice.id == withheld.id)
+        return sa_select(Slice.id).where(Slice.id == withheld.id).subquery()
+
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {"EXTRA_ACCESS_QUERY_EXCLUSIONS": {"charts": hook}},
+    )
+
+    query = apply_extra_access_exclusions(db.session.query(Slice), "charts", Slice.id)
+    returned = {slc.id for slc in query.all()}
+    assert withheld.id not in returned
+    assert kept.id in returned

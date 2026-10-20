@@ -49,6 +49,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.expression import Select, Subquery
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -3512,15 +3513,21 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
 #
 # The callable receives the current user ID and returns a subquery of the asset
 # IDs to withhold.
+# A hook may return an ORM ``Query``, a Core ``select()`` or an explicit
+# ``.subquery()``; all three are accepted and normalised, matching what the
+# sibling ``EXTRA_ACCESS_QUERY_FILTERS`` hooks may hand to ``.in_()``.
+ExclusionIds = Callable[[int], Query | Select | Subquery]
+
+
 class ExclusionSpec(TypedDict, total=False):
     """An exclusion plus the explanation a command surfaces when it refuses."""
 
-    ids: Callable[[int], Query]
+    ids: ExclusionIds
     reason: str
 
 
 # Either the callable on its own, or that callable with a reason beside it.
-ExclusionEntry = Callable[[int], Query] | ExclusionSpec
+ExclusionEntry = ExclusionIds | ExclusionSpec
 
 
 class ExtraAccessQueryExclusions(TypedDict, total=False):
