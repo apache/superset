@@ -123,14 +123,19 @@ def discover_semantic_metadata(
 
     Discovery takes no user input, so a provider exception here is never a
     correctable request; it must not reach generic ``ValueError`` handlers
-    that answer 400, and its text must not reach the response.
+    that answer 400, and its text must not reach the response. This helper
+    logs only the exception type: discovery also runs for dashboards and
+    metadata views, whose logs must not carry provider detail.
     """
     try:
         return discovery()
     except _HOST_SIGNALS:
         raise
     except Exception as ex:  # pylint: disable=broad-except
-        logger.exception("Semantic provider metadata discovery failed")
+        # Provider exception text may contain credentials or provider URLs.
+        logger.error(
+            "Semantic provider metadata discovery failed: %s", type(ex).__name__
+        )
         raise SemanticLayerExecutionError() from ex
 
 

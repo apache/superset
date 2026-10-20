@@ -131,11 +131,11 @@ class SemanticQueryInputError(ValueError):
     """
     A query the semantic view cannot answer as written.
 
-    Mapping helpers raise this for selections, filters and time ranges the
-    caller can correct. ``get_results`` and ``validate_query_object`` convert
-    only this type to a 400; any other exception is a backend fault. It
-    subclasses ``ValueError`` so direct callers that catch ``ValueError``
-    keep working.
+    Raised for selections, filters and time ranges the caller can correct,
+    and reported as a 400 at the host boundary; any other exception from
+    mapping is a backend fault. It subclasses ``ValueError`` so direct
+    callers that catch ``ValueError`` keep working; the base can be dropped
+    once those callers catch this type instead.
     """
 
 
@@ -925,8 +925,10 @@ def _get_time_bounds(
         return None, None
 
     # Apply the offset to both bounds
-    offset_from = _parse_time_input(get_past_or_future, time_offset, outer_from)
-    offset_to = _parse_time_input(get_past_or_future, time_offset, outer_to)
+    offset_from: datetime = _parse_time_input(
+        get_past_or_future, time_offset, outer_from
+    )
+    offset_to: datetime = _parse_time_input(get_past_or_future, time_offset, outer_to)
 
     return offset_from, offset_to
 

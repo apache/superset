@@ -607,6 +607,14 @@ class SemanticView(AuditMixinNullable, Model):
     def type(self) -> str:
         return "semantic_view"
 
+    def _provider_metrics(self) -> set[Metric]:
+        """Read the provider's metrics, classifying faults as backend errors."""
+        return discover_semantic_metadata(self.implementation.get_metrics)
+
+    def _provider_dimensions(self) -> set[Dimension]:
+        """Read the provider's dimensions, classifying faults as backend errors."""
+        return discover_semantic_metadata(self.implementation.get_dimensions)
+
     @property
     def metrics(self) -> list[MetricMetadata]:
         return [
@@ -617,7 +625,7 @@ class SemanticView(AuditMixinNullable, Model):
                 description=metric.description,
                 d3format=metric.d3format,
             )
-            for metric in discover_semantic_metadata(self.implementation.get_metrics)
+            for metric in self._provider_metrics()
         ]
 
     @property
@@ -630,7 +638,7 @@ class SemanticView(AuditMixinNullable, Model):
         # kept uses the same default/ambiguity policy as query mapping.
         return list(
             resolve_dimensions(
-                discover_semantic_metadata(self.implementation.get_dimensions),
+                self._provider_dimensions(),
                 usage=DimensionUsage.METADATA,
             ).values()
         )
@@ -695,7 +703,7 @@ class SemanticView(AuditMixinNullable, Model):
     @property
     def data(self) -> ExplorableData:
         dimensions = self._unique_dimensions
-        metrics = list(self.implementation.get_metrics())
+        metrics = list(self._provider_metrics())
         verbose_map = {
             **{metric.name: metric.verbose_name or metric.name for metric in metrics},
             **{
@@ -919,7 +927,7 @@ class SemanticView(AuditMixinNullable, Model):
         # ISO duration so the explore-time-grain dropdown shows each grain
         # once even when multiple time columns expose the same set.
         seen: dict[str, TimeGrainDict] = {}
-        for dimension in self.implementation.get_dimensions():
+        for dimension in self._provider_dimensions():
             if not dimension.grain:
                 continue
             seen.setdefault(
@@ -933,9 +941,7 @@ class SemanticView(AuditMixinNullable, Model):
         return list(seen.values())
 
     def has_drill_by_columns(self, column_names: list[str]) -> bool:
-        dimension_names = {
-            dimension.name for dimension in self.implementation.get_dimensions()
-        }
+        dimension_names = {dimension.name for dimension in self._provider_dimensions()}
         return all(column_name in dimension_names for column_name in column_names)
 
     @property
@@ -979,10 +985,10 @@ class SemanticView(AuditMixinNullable, Model):
     ) -> tuple[set[Metric], set[Dimension]]:
         """Resolve both compatibility projections through one selection policy."""
         metric_map: dict[str, Metric] = {
-            metric.name: metric for metric in self.implementation.get_metrics()
+            metric.name: metric for metric in self._provider_metrics()
         }
         dim_map: dict[str, Dimension] = resolve_dimensions(
-            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+            self._provider_dimensions(), usage=DimensionUsage.COMPATIBILITY
         )
         return (
             {metric_map[name] for name in selected_metrics if name in metric_map},

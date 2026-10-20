@@ -16,8 +16,9 @@
 # under the License.
 
 import logging
-from datetime import date
-from typing import Any
+from collections.abc import Callable
+from datetime import date, datetime
+from typing import Any, cast
 from unittest.mock import MagicMock, PropertyMock
 
 import pyarrow as pa
@@ -37,9 +38,12 @@ from superset.exceptions import QueryObjectValidationError
 from superset.semantic_layers.exceptions import SemanticLayerExecutionError
 from superset.semantic_layers.mapper import (
     _coerce_scalar_filter_value,
+    _get_adhoc_filters,
+    _get_time_bounds,
     _normalize_column,
     get_results,
     SemanticQueryInputError,
+    ValidatedQueryObject,
 )
 from superset.semantic_layers.models import SemanticView
 from superset.tasks.async_queries import execute_chart_query
@@ -229,8 +233,40 @@ def test_metadata_discovery_fault_http(
         and record.levelno == logging.ERROR
     ]
     assert len(records) == 1
-    assert records[0].getMessage() == "Semantic provider metadata discovery failed"
-    assert records[0].exc_info is not None
+    assert records[0].getMessage() == (
+        "Semantic provider metadata discovery failed: ValueError"
+    )
+    assert records[0].exc_info is None
+
+
+@pytest.mark.parametrize(
+    "method,read",
+    [
+        ("get_metrics", lambda view: view.data),
+        ("get_dimensions", lambda view: view.data),
+        ("get_dimensions", lambda view: view.get_time_grains()),
+        ("get_dimensions", lambda view: view.has_drill_by_columns(["ORDER_DATE"])),
+        ("get_metrics", lambda view: view.get_compatible_metrics([], [])),
+        ("get_dimensions", lambda view: view.get_compatible_dimensions([], [])),
+    ],
+)
+def test_host_metadata_reads_classify_discovery_faults(
+    app_context: None,
+    date_view: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+    method: str,
+    read: Callable[[SemanticView], object],
+) -> None:
+    """Every host read of provider metadata reports faults the same way."""
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    view.__dict__["implementation"] = date_view
+    error: ValueError = ValueError("private-provider-metadata")
+    getattr(date_view, method).side_effect = error
+    captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
+    with pytest.raises(SemanticLayerExecutionError) as captured:
+        read(view)
+    assert captured.value.__cause__ is error
+    assert "private-provider" not in caplog.text
 
 
 @pytest.mark.parametrize(
@@ -325,6 +361,44 @@ def test_mapper_input_error_is_typed(
     assert captured.value.status == 400
     assert isinstance(captured.value.__cause__, SemanticQueryInputError)
     date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "parser,bounds",
+    [
+        ("get_since_until_from_query_object", None),
+        ("get_past_or_future", (datetime(2026, 1, 1), datetime(2026, 2, 1))),
+    ],
+)
+def test_time_offset_parser_error_is_typed(
+    app_context: None,
+    mocker: MockerFixture,
+    parser: str,
+    bounds: tuple[datetime, datetime] | None,
+) -> None:
+    """Time-offset bound parsing reports parser ValueErrors as input errors."""
+    query: QueryObject = QueryObject(time_range="Last week")
+    query.from_dttm, query.to_dttm = bounds or (None, None)
+    mocker.patch(
+        f"superset.semantic_layers.mapper.{parser}",
+        side_effect=ValueError("bad time input"),
+    )
+    with pytest.raises(SemanticQueryInputError, match="bad time input"):
+        _get_time_bounds(cast(ValidatedQueryObject, query), "1 year ago")
+
+
+def test_axis_range_parser_error_is_typed(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """Axis-range replacement reports parser ValueErrors as input errors."""
+    query: QueryObject = QueryObject(time_range="Last week")
+    mocker.patch(
+        "superset.semantic_layers.mapper.get_time_range_from_filters",
+        side_effect=ValueError("bad time input"),
+    )
+    with pytest.raises(SemanticQueryInputError, match="bad time input"):
+        _get_adhoc_filters(cast(ValidatedQueryObject, query), {}, "ORDER_DATE")
 
 
 def test_input_error_contract() -> None:
