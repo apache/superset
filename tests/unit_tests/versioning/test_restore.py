@@ -25,14 +25,22 @@ flush contract.
 
 from __future__ import annotations
 
+import sqlite3
 from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import UUID
 
 import pytest
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import StaleDataError
 
 from superset.versioning.baseline import OPERATION_DELETE, OPERATION_INSERT
-from superset.versioning.restore import _child_state_provable_at, restore_version
+from superset.versioning.restore import (
+    _child_state_provable_at,
+    _raise_for_chart_purge_race,
+    ChartPurgedDuringRestoreError,
+    restore_version,
+)
 from superset.versioning.utils import single_flush_scope
 
 _UUID = UUID("00000000-0000-0000-0000-000000000000")
@@ -502,3 +510,77 @@ def test_restore_endpoint_maps_missing_datasource_to_422(
 
     assert response == "resp-422"
     api.response_422.assert_called_once_with(message=expected_message)
+
+
+def _foreign_key_failure(statement: str) -> IntegrityError:
+    return IntegrityError(
+        statement, None, sqlite3.IntegrityError("FOREIGN KEY constraint failed")
+    )
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(
+            _foreign_key_failure("INSERT INTO dashboard_slices (dashboard_id) ..."),
+            id="link_foreign_key",
+        ),
+        pytest.param(
+            StaleDataError(
+                "DELETE statement on table 'dashboard_slices' expected to delete "
+                "1 row(s); Only 0 were matched."
+            ),
+            id="unlink_stale",
+        ),
+    ],
+)
+def test_chart_purge_race_is_raised_for_dashboard_slices_writes(
+    error: Exception,
+) -> None:
+    with pytest.raises(ChartPurgedDuringRestoreError) as excinfo:
+        _raise_for_chart_purge_race(error, [3, 1])
+    assert excinfo.value.chart_ids == [1, 3]
+    assert excinfo.value.__cause__ is error
+
+
+@pytest.mark.parametrize(
+    ("error", "changed_slice_ids"),
+    [
+        pytest.param(
+            _foreign_key_failure("INSERT INTO dashboard_slices (dashboard_id) ..."),
+            [],
+            id="no_membership_change",
+        ),
+        pytest.param(
+            _foreign_key_failure("UPDATE dashboards SET changed_by_fk=?"),
+            [1],
+            id="foreign_key_on_another_table",
+        ),
+        pytest.param(
+            _foreign_key_failure("INSERT INTO dashboard_slices_version (slice_id)"),
+            [1],
+            id="history_table",
+        ),
+        pytest.param(
+            IntegrityError(
+                "INSERT INTO dashboard_slices (dashboard_id) ...",
+                None,
+                sqlite3.IntegrityError("UNIQUE constraint failed"),
+            ),
+            [1],
+            id="not_a_foreign_key_failure",
+        ),
+        pytest.param(
+            StaleDataError(
+                "UPDATE statement on table 'dashboards' expected to update 1 row(s)"
+            ),
+            [1],
+            id="stale_other_table",
+        ),
+        pytest.param(RuntimeError("boom"), [1], id="other_error"),
+    ],
+)
+def test_chart_purge_race_is_not_raised_for_other_failures(
+    error: Exception, changed_slice_ids: list[int]
+) -> None:
+    _raise_for_chart_purge_race(error, changed_slice_ids)

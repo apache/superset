@@ -25,6 +25,7 @@ documented 404s for unknown entity/version UUIDs.
 from __future__ import annotations
 
 from typing import Any
+from unittest.mock import patch
 from uuid import UUID
 
 import pytest
@@ -853,6 +854,171 @@ class TestDashboardRestoreLayoutMembership(SupersetTestCase, InsertChartMixin):
             chart: Slice
             for chart in charts.values():
                 db.session.delete(db.session.get(Slice, chart.id))
+            table: SqlaTable = db.session.get(SqlaTable, dataset.id)
+            database: Database = table.database
+            db.session.delete(table)
+            db.session.delete(database)
+            db.session.commit()
+
+
+class TestDashboardRestoreConcurrentPurge(SupersetTestCase, InsertChartMixin):
+    """A restore racing a purge of a chart it reattaches fails cleanly.
+
+    The purge commits on its own connection after the restore has read the
+    charts it will reattach and before it writes them, the window a real
+    concurrent purge can land in.
+    """
+
+    @parameterized.expand(
+        [
+            ("reattach_purged", False, True),
+            ("unlink_purged", True, True),
+            ("unrelated_foreign_key_failure", False, False),
+        ]
+    )
+    def test_restore_conflicts_with_concurrent_chart_purge(
+        self, case: str, unlink: bool, purge: bool
+    ) -> None:
+        """Purging a chart the restore links or unlinks makes the restore a
+        retryable 409. A foreign key failure while no such chart is missing
+        stays the ordinary 422, because retrying would not help."""
+        import sqlite3
+
+        from sqlalchemy.exc import IntegrityError
+        from sqlalchemy.orm import Session
+
+        from superset.commands.deletion_retention.purge_cascade import (
+            cascade_hard_delete,
+            suppress_purge_association_versions,
+        )
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.core import Database
+        from superset.models.helpers import skip_visibility_filter
+        from superset.models.slice import Slice
+        from superset.versioning import restore as restore_module
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset: SqlaTable = SqlaTable(
+            table_name="restore_concurrent_purge",
+            database=Database(
+                database_name="restore_concurrent_purge", sqlalchemy_uri="sqlite://"
+            ),
+        )
+        db.session.add(dataset)
+        db.session.commit()
+        kept: Slice = self.insert_chart("restore-purge-kept", [admin.id], dataset.id)
+        purged: Slice = self.insert_chart(
+            "restore-purge-purged", [admin.id], dataset.id
+        )
+        kept_id: int = kept.id
+        purged_id: int = purged.id
+        dashboard_id: int | None = None
+        try:
+            self.login(ADMIN_USERNAME)
+            dashboard_id = self.client.post(
+                "/api/v1/dashboard/", json={"dashboard_title": "restore-purge"}
+            ).json["id"]
+            dashboard: Dashboard = db.session.get(Dashboard, dashboard_id)
+            dashboard_uuid: str = str(dashboard.uuid)
+            # The restore to version 1 reattaches the purged chart, or with
+            # ``unlink`` removes it from the live dashboard.
+            layouts: list[list[int]] = [[kept_id, purged_id], [kept_id]]
+            if unlink:
+                layouts.reverse()
+            chart_ids: list[int]
+            for chart_ids in layouts:
+                rv: TestResponse = self.client.put(
+                    f"/api/v1/dashboard/{dashboard_id}",
+                    json={
+                        "json_metadata": _json.dumps(
+                            {"positions": _chart_layout(chart_ids)}
+                        )
+                    },
+                )
+                assert rv.status_code == 200, rv.data
+            versions: list[dict[str, Any]] = self.client.get(
+                f"/api/v1/dashboard/{dashboard_uuid}/versions/"
+            ).json["result"]
+            version_uuid: str = next(
+                version["version_uuid"]
+                for version in versions
+                if version["version_number"] == 1
+            )
+            # Only an archived chart can be purged.
+            rv = self.client.delete(f"/api/v1/chart/{purged_id}")
+            assert rv.status_code == 200, rv.data
+            db.session.expire_all()
+            position_before: str = db.session.get(Dashboard, dashboard_id).position_json
+            version_rows_before: int = len(
+                _get_version_rows(db.session.get(Dashboard, dashboard_id))
+            )
+
+            stamp_audit_fields: Any = restore_module._stamp_audit_fields_for_restore
+
+            def purge_then_stamp(entity: Any) -> None:
+                if not purge:
+                    raise IntegrityError(
+                        "INSERT INTO dashboard_slices",
+                        None,
+                        sqlite3.IntegrityError("FOREIGN KEY constraint failed"),
+                    )
+                other: Session
+                with Session(bind=db.engine) as other:
+                    with skip_visibility_filter(other, Slice):
+                        chart: Slice = other.get(Slice, purged_id)
+                    with suppress_purge_association_versions(other):
+                        assert cascade_hard_delete(
+                            other, chart, enforce_window=False, require_archived=True
+                        ).purged
+                    other.commit()
+                stamp_audit_fields(entity)
+
+            restore_url: str = (
+                f"/api/v1/dashboard/{dashboard_uuid}/versions/{version_uuid}/restore"
+            )
+            with patch.object(
+                restore_module,
+                "_stamp_audit_fields_for_restore",
+                side_effect=purge_then_stamp,
+            ):
+                rv = self.client.post(restore_url)
+            if purge:
+                assert rv.status_code == 409, rv.data
+                assert "try again" in rv.json["message"], rv.json
+            else:
+                assert rv.status_code == 422, rv.data
+
+            # Nothing was restored.
+            db.session.expire_all()
+            dashboard = db.session.get(Dashboard, dashboard_id)
+            assert dashboard.position_json == position_before
+            assert {s.id for s in dashboard.slices} == {kept_id}
+            assert len(_get_version_rows(dashboard)) == version_rows_before
+
+            # Retrying restores the version: its layout comes back, without
+            # the purged chart as a member. The purge also removed the
+            # chart's history, so the version no longer lists it at all.
+            if purge:
+                rv = self.client.post(restore_url)
+                assert rv.status_code == 200, rv.data
+                db.session.expire_all()
+                dashboard = db.session.get(Dashboard, dashboard_id)
+                assert dashboard.position_json != position_before
+                assert {
+                    node["meta"]["chartId"]
+                    for node in dashboard.position.values()
+                    if isinstance(node, dict) and node.get("type") == "CHART"
+                } == set(layouts[0])
+                assert {s.id for s in dashboard.slices} == {kept_id}
+        finally:
+            db.session.rollback()
+            if dashboard_id is not None:
+                db.session.delete(db.session.get(Dashboard, dashboard_id))
+            chart_id: int
+            with skip_visibility_filter(db.session, Slice):
+                for chart_id in (kept_id, purged_id):
+                    if (leftover := db.session.get(Slice, chart_id)) is not None:
+                        db.session.delete(leftover)
             table: SqlaTable = db.session.get(SqlaTable, dataset.id)
             database: Database = table.database
             db.session.delete(table)
