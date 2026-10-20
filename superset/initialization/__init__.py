@@ -663,12 +663,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         try:
             extensions = get_extensions()
-        except Exception as ex:  # pylint: disable=broad-except
-            # If the db hasn't been initialized yet, an exception will be raised.
-            # It's fine to continue, as in this case there are no extensions
-            # present yet; the server stays unloaded and says so per request.
-            logger.warning("Extensions not loaded: discovery failed: %s", ex)
+        except Exception:  # pylint: disable=broad-except
+            # A discovery failure (for example an unreadable LOCAL_EXTENSIONS
+            # or EXTENSIONS_PATH entry) must not stop the app from starting;
+            # the server stays unloaded and says so per request.
+            logger.warning("Extensions not loaded: discovery failed", exc_info=True)
             return
+
+        failed: int = 0
 
         for extension in extensions.values():
             if backend_files := extension.backend:
@@ -692,9 +694,14 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         "Failed to initialize extension '%s'",
                         extension.manifest.id,
                     )
+                    failed += 1
 
         mark_extensions_loaded(self.superset_app)
-        logger.info("Loaded %d extension(s) at startup", len(extensions))
+        logger.info(
+            "Loaded %d extension(s) at startup; %d failed to initialize",
+            len(extensions) - failed,
+            failed,
+        )
 
     @staticmethod
     def _remove_continuum_write_listeners() -> None:

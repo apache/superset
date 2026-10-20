@@ -64,6 +64,7 @@ def test_init_extensions_logs_exception_instead_of_printing() -> None:
     assert "acme.broken_extension" in mock_logger.exception.call_args.args
     # One failing entrypoint does not stop the server serving the others.
     assert initializer.superset_app.extensions[EXTENSIONS_LOADED_KEY] is True
+    assert mock_logger.info.call_args.args[1:] == (0, 1)
 
 
 def test_init_extensions_marks_loaded_after_discovery() -> None:
@@ -87,4 +88,4 @@ def test_init_extensions_failed_discovery_stays_unloaded() -> None:
         initializer.init_extensions()
     assert EXTENSIONS_LOADED_KEY not in initializer.superset_app.extensions
     mock_logger.warning.assert_called_once()
-    assert "no metadata database" in str(mock_logger.warning.call_args.args)
+    assert mock_logger.warning.call_args.kwargs["exc_info"] is True

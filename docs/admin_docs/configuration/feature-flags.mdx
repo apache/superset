@@ -87,17 +87,19 @@ without deleting stored semantic layers, views or charts.
 `ENABLE_EXTENSIONS` combines a startup decision with a per-request one.
 Extension code is loaded only by a server that starts with the flag on, and
 changing whether extensions load still requires a restart. The startup log
-records the decision: "Loaded N extension(s) at startup", or that the flag was
-off. The extensions APIs are registered at startup regardless, and each request
+records the decision: how many extensions loaded and how many failed to
+initialize, or that the flag was off. "Loaded" is tracked per server, not per
+extension. The extensions APIs are registered at startup regardless, and each request
 evaluates the active flag decision (for example through `IS_FEATURE_ENABLED_FUNC`).
 
 When the flag is off for a request:
 
 - every `/api/v1/extensions/` route returns 404 and the Extensions menu is
   hidden, so the browser receives no extension bundles and runs no extension
-  code;
+  code (a write without a CSRF token is rejected with 400 before this check);
 - semantic-layer types contributed by extensions are omitted from
-  `/api/v1/semantic_layer/types` and cannot be configured or created.
+  `/api/v1/semantic_layer/types`, and layers of those types cannot be created
+  or have their configuration changed.
 
 What an extension backend registered at startup is otherwise not gated per
 request: its own REST APIs, its MCP tools, and queries against semantic layers

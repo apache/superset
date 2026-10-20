@@ -234,6 +234,33 @@ def test_boot_on_request_off_refuses_contributed_type_create(
         ).validate()
 
 
+@pytest.mark.parametrize("app", [BOOT_ON], indirect=True)
+def test_boot_on_request_off_refuses_contributed_type_reconfiguration(
+    semantic_types: None,
+) -> None:
+    """An existing layer of a hidden extension type cannot be reconfigured."""
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticLayerInvalidError,
+    )
+    from superset.commands.semantic_layer.update import UpdateSemanticLayerCommand
+
+    layer: MagicMock = MagicMock(type="extensions.acme.demo.layer", configuration="{}")
+    with (
+        patch.dict(
+            "superset.commands.semantic_layer.update.registry",
+            {"extensions.acme.demo.layer": MagicMock()},
+            clear=True,
+        ),
+        patch(
+            "superset.commands.semantic_layer.update._load_modifiable_layer",
+            return_value=layer,
+        ),
+        semantic_request(False),
+        pytest.raises(SemanticLayerInvalidError, match="Unknown type"),
+    ):
+        UpdateSemanticLayerCommand("uuid", {"configuration": {}}).validate()
+
+
 # ── Boot off ─────────────────────────────────────────────────────────────────
 
 
@@ -316,6 +343,22 @@ def test_semantic_layer_types_surface_not_loaded(
 
 
 # ── Permissions ──────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    "app",
+    [{**BOOT_ON, "WTF_CSRF_ENABLED": True}],
+    indirect=True,
+)
+def test_storage_writes_require_csrf_token(client: Any, full_api_access: None) -> None:
+    """The extensions APIs keep CSRF protection; FAB's BaseApi exempts by default."""
+    from superset.extensions import csrf
+
+    exempt: set[str] = {blueprint.name for blueprint in csrf._exempt_blueprints}
+    assert {"ExtensionsRestApi", "ExtensionStorageRestApi"}.isdisjoint(exempt)
+    with request_flag(True):
+        response = client.put(STORAGE, json={"value": 1})
+    assert response.status_code == 400
 
 
 @pytest.mark.parametrize("app", [BOOT_OFF], indirect=True)
