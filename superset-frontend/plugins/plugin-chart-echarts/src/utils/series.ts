@@ -739,8 +739,9 @@ export function sortRows(
   // Rows with no aggregate (every sorted column is NULL) stay last in both
   // directions, matching the ungrouped sort.
   const isMissing = (value: unknown) =>
-    aggregation !== SortSeriesType.Name &&
-    (value === undefined || value === null);
+    aggregation === SortSeriesType.Name
+      ? byAxisValue && value === NULL_STRING
+      : value === undefined || value === null;
   const measured = sortedRows.filter(({ value }) => !isMissing(value));
   const missing = sortedRows.filter(({ value }) => isMissing(value));
 

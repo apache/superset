@@ -581,7 +581,11 @@ export default function transformProps(
       isSoleValueMetricSort && !pivotedColumnsOf(xAxisSort).length
         ? Object.keys(rebasedData[0] ?? {}).filter(
             column =>
-              column !== xAxisLabel && !extraMetricLabels.includes(column),
+              column !== xAxisLabel &&
+              !extraMetricLabels.includes(column) &&
+              // forecast trend and bounds never drive the sort key
+              extractForecastSeriesContext(column).type ===
+                ForecastSeriesEnum.Observation,
           )
         : [];
     const baseColumn = verboseMap[xAxisSort] ?? xAxisSort;
@@ -860,22 +864,29 @@ export default function transformProps(
   // before calling extractShowValueIndexes so each group's topmost series is
   // tracked independently (fixing the bug where only the last series across
   // all groups was flagged to show the total label).
-  // When metrics.length > 1 the label-map tuple is [metric, dim0, dim1, ...],
-  // so the stackDimension sits at offset 1 + groupby.indexOf(stackDimension).
-  // When there is a single metric the tuple is [dim0, dim1, ...] with no
-  // metric prefix, so the offset is just groupby.indexOf(stackDimension).
+  // The label-map tuple is [metric, dim0, dim1, ...] when it carries a metric
+  // (or offset) prefix and [dim0, dim1, ...] when the metric label was
+  // truncated. The prefix length is derived per series below, so this index
+  // is only the position of the stackDimension within the groupby list.
   const idxSelectedDimension =
     stack === StackControlsValue.Stack &&
     stackDimension &&
     chartProps.rawFormData?.groupby &&
     (chartProps.rawFormData.groupby as string[]).includes(stackDimension)
-      ? ((metrics || []).length > 1 ? 1 : 0) +
-        (chartProps.rawFormData.groupby as string[]).indexOf(stackDimension)
+      ? (chartProps.rawFormData.groupby as string[]).indexOf(stackDimension)
       : -1;
 
   const seriesStackIds: string[] = rawSeries.map(entry => {
     if (idxSelectedDimension >= 0 && entry.id) {
-      const dimensionValue = labelMap[entry.id]?.[idxSelectedDimension];
+      const parts = labelMap[entry.id];
+      // a tuple carries a leading metric (or offset) part whenever it is
+      // longer than the dimension list, which also covers comparison series
+      // that keep their metric prefix for a single displayed metric
+      const metricPartCount = Math.max(
+        0,
+        (parts?.length ?? 0) - groupBy.length,
+      );
+      const dimensionValue = parts?.[metricPartCount + idxSelectedDimension];
       if (dimensionValue !== undefined) {
         return String(dimensionValue);
       }
