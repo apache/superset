@@ -209,18 +209,21 @@ def _partition_mapping_reference_error(
     # The columns the request is about to write, not the ones in storage:
     # `update_from_object` replaces the collection, so a reference has to be
     # checked against what will be there afterwards.
-    column_names = {
-        column.get("column_name")
+    columns_by_name = {
+        column.get("column_name"): column
         for column in datasource_dict.get("columns") or []
         if column.get("column_name")
     }
     for issue in validate_partition_mapping(
-        column_names=column_names,
+        column_names=set(columns_by_name),
         partition_column=partition_column,
         partition_mapped_column=datasource_dict.get("partition_mapped_column"),
         main_dttm_col=datasource_dict.get("main_dttm_col"),
         transform=None,
         engine=database.backend,
+        partition_expression=columns_by_name.get(partition_column, {}).get(
+            "expression"
+        ),
     ):
         if issue.blocking:
             return str(issue.message)
