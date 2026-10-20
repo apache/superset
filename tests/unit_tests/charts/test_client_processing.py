@@ -2582,6 +2582,86 @@ def test_table_small_number_format_uses_the_column_config_currency() -> None:
     assert formatted["amount"].tolist() == ["$ 50.0", "$ 12.50"]
 
 
+def test_table_small_number_format_drops_a_dollar_for_a_cleared_currency() -> None:
+    """
+    ``getSmallNumberFormatter`` builds a ``CurrencyFormatter`` from any
+    ``currencyFormat`` object, and that constructor strips ``$`` from the format
+    before it checks the symbol, so a cleared currency still drops the ``$``.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+                "currencyFormat": {"symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["amount"].tolist() == ["0.50", "12.50"]
+
+
+def test_table_small_number_format_keeps_a_dollar_without_a_currency_config() -> None:
+    """
+    With no ``currencyFormat`` object the browser builds a plain number
+    formatter instead, and d3 renders the ``$`` in the format itself.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+            }
+        },
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["amount"].tolist() == ["$0.50", "12.50"]
+
+
+def test_table_small_number_format_drops_a_dollar_with_a_currency_context() -> None:
+    """
+    The per-row branch builds the same formatter, so a cleared currency drops
+    the ``$`` there too, and no row's currency reaches a symbol-less config.
+    """
+    datasource = MagicMock()
+    datasource.data = {
+        "column_formats": {},
+        "verbose_map": {},
+        "currency_code_column": "currency",
+    }
+    df = pd.DataFrame(
+        {
+            "amount": [0.5, 12.5],
+            "currency": ["USD", "USD"],
+        }
+    )
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$,.2f",
+                "currencyFormat": {"symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    formatted = table(df, form_data, datasource, detected_currency="USD")
+
+    assert formatted["amount"].tolist() == ["0.50", "12.50"]
+
+
 def test_table_small_number_format_on_a_percent_metric() -> None:
     """
     Percent metric columns are numeric too, so they switch formatter the same
@@ -2663,6 +2743,34 @@ def test_table_small_number_format_ignores_a_saved_currency() -> None:
     formatted = table(df, form_data, datasource)
 
     assert formatted["amount"].tolist() == ["50.0%", "$ 12.50"]
+
+
+def test_ag_grid_table_ignores_a_small_number_format() -> None:
+    """
+    The AG Grid table paints its cells through ``valueFormatter``, which never
+    builds the small-number formatter, so a report on one keeps the column's
+    normal format for every cell.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    column_config = {
+        "amount": {"d3NumberFormat": ",.2f", "d3SmallNumberFormat": ".1%"},
+    }
+
+    ag_grid = table(
+        df.copy(),
+        {
+            "viz_type": "ag-grid-table",
+            "metrics": ["amount"],
+            "column_config": column_config,
+        },
+    )
+    plain = table(
+        df.copy(),
+        {"viz_type": "table", "metrics": ["amount"], "column_config": column_config},
+    )
+
+    assert ag_grid["amount"].tolist() == ["0.50", "12.50"]
+    assert plain["amount"].tolist() == ["50.0%", "12.50"]
 
 
 def test_table_small_number_format_leaves_non_numeric_columns_alone() -> None:

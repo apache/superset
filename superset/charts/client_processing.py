@@ -75,6 +75,10 @@ PERCENT_1_POINT = ",.1%"
 # The Excel equivalent, applied as a cell format so the value stays numeric.
 EXCEL_PERCENT_FORMAT = "0.0%"
 
+# ``VizType.TableAgGrid``. The AG Grid table plugin reuses the Table plugin's
+# column meta and formatter selection, so it shares this post-processor.
+AG_GRID_TABLE = "ag-grid-table"
+
 
 def get_column_key(label: tuple[str, ...], metrics: list[str]) -> tuple[Any, ...]:
     """
@@ -877,7 +881,21 @@ def format_column(
     value keeps the column's normal format. An AUTO currency resolves against
     the row's context on both paths, since the browser passes the row data to
     either formatter.
+
+    ``small_currency`` is the column config's ``currencyFormat`` as it stands,
+    an absent one included, because the browser decides whether to build a
+    currency formatter on the object rather than on its symbol.
     """
+    if small_d3_format and small_currency is not None:
+        # ``getSmallNumberFormatter`` builds a ``CurrencyFormatter`` from any
+        # ``currencyFormat`` object, and that constructor strips ``$`` from the
+        # format before the symbol is looked at, so a config whose currency was
+        # cleared still drops the ``$``. Stripping it away entirely leaves an
+        # empty format, which the browser's registry answers with its default
+        # key. Without a ``currencyFormat`` object at all the browser builds a
+        # plain number formatter, which honors the ``$``.
+        small_d3_format = small_d3_format.replace("$", "") or SMART_NUMBER
+
     if d3_format or currency.get("symbol") or small_d3_format:
         if currency_context is None:
             resolved_currency = resolve_auto_currency(currency, detected_currency)
@@ -1260,6 +1278,12 @@ def table(
         df[currency_column].map(currency_context_value) if currency_column else None
     )
     column_config = form_data.get("column_config") or {}
+    # ``ColumnConfigControl`` offers the small-number format for both plugins,
+    # but the AG Grid table's cells are painted through ``valueFormatter``,
+    # which formats with the column's own formatter and never builds the
+    # small-number one the way ``formatColumnValue`` does. A report leaves that
+    # format alone rather than apply one the chart itself ignores.
+    applies_small_number_format = form_data.get("viz_type") != AG_GRID_TABLE
 
     def label_of(name: str) -> str:
         """Return the column label as it appears in ``df`` (verbose-renamed)."""
@@ -1294,6 +1318,10 @@ def table(
     for column in df.columns:
         config = config_by_label.get(column) or {}
         configured_currency = config.get("currencyFormat") or {}
+        # The small-number formatter is built from this object whether or not a
+        # symbol survived in it, so an absent one has to stay distinguishable
+        # from a cleared one.
+        small_currency = config.get("currencyFormat")
         number_format = config.get("d3NumberFormat") or number_format_by_label.get(
             column
         )
@@ -1307,7 +1335,11 @@ def table(
         # the resolved one, so both come straight from ``config``. A cleared
         # Select leaves a blank string behind, which the browser treats as
         # unset.
-        small_number_format = (config.get("d3SmallNumberFormat") or "").strip() or None
+        small_number_format = (
+            (config.get("d3SmallNumberFormat") or "").strip() or None
+            if applies_small_number_format
+            else None
+        )
 
         is_number = pd.api.types.is_numeric_dtype(df[column])
 
@@ -1322,7 +1354,7 @@ def table(
                 {},
                 currency_context=row_currency_context,
                 small_d3_format=small_number_format,
-                small_currency=configured_currency,
+                small_currency=small_currency,
             )
         elif (column in metric_labels and is_number) or (
             is_number
@@ -1347,7 +1379,7 @@ def table(
                 row_currency_context,
                 fallback_to_detected=False,
                 small_d3_format=small_number_format,
-                small_currency=configured_currency,
+                small_currency=small_currency,
             )
 
     return df
