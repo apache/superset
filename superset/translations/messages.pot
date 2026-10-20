@@ -558,6 +558,9 @@ msgstr ""
 msgid "(deleted or invalid type)"
 msgstr ""
 
+msgid "(empty)"
+msgstr ""
+
 msgid "(no description, click to see stack trace)"
 msgstr ""
 
@@ -5617,6 +5620,12 @@ msgstr ""
 msgid "Drill to detail: %s"
 msgstr ""
 
+msgid "Drill-down hierarchy"
+msgstr ""
+
+msgid "Drill-down levels"
+msgstr ""
+
 msgid "Drop a column here or click"
 msgid_plural "Drop columns here or click"
 msgstr[0] ""
@@ -9963,6 +9972,9 @@ msgid "Or choose from a list of other databases we support:"
 msgstr ""
 
 msgid "Order results by selected columns"
+msgstr ""
+
+msgid "Ordered list of columns to drill into when a user clicks a data point. The chart's primary dimension is shown initially. Each click drills to the next level, scoped to the clicked value. Drag rows to reorder levels."
 msgstr ""
 
 msgid "Ordering"
@@ -18244,6 +18256,9 @@ msgid "…and %s more chart"
 msgid_plural "…and %s more charts"
 msgstr[0] ""
 msgstr[1] ""
+
+msgid "›"
+msgstr ""
 
 msgid "№"
 msgstr ""

@@ -25,3 +25,4 @@ export * from './chartTitle';
 export * from './echartsTimeSeriesQuery';
 export * from './timeComparison';
 export * from './matrixify';
+export * from './drilldownHierarchy';

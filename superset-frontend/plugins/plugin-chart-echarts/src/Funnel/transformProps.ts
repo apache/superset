@@ -161,6 +161,7 @@ export default function transformProps(
   const {
     setDataMask = () => {},
     onContextMenu,
+    onDrillDown,
     onLegendStateChanged,
     onLegendScroll,
   } = hooks;
@@ -355,6 +356,7 @@ export default function transformProps(
     groupby,
     selectedValues,
     onContextMenu,
+    onDrillDown,
     onLegendStateChanged,
     onLegendScroll,
     refs,
