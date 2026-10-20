@@ -35,6 +35,10 @@ import { ResourceStatus } from 'src/hooks/apiResources/apiResources';
 import { hydrateDashboard } from 'src/dashboard/actions/hydrate';
 import { clearDashboardHistory } from 'src/dashboard/actions/dashboardLayout';
 import { setDatasources } from 'src/dashboard/actions/datasources';
+import {
+  provenSemanticDatasets,
+  replaceDashboardSemanticDatasets,
+} from 'src/dashboard/actions/dashboardInfo';
 import injectCustomCss from 'src/dashboard/util/injectCustomCss';
 import {
   getAllActiveFilters,
@@ -154,13 +158,17 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   } = useDashboardDatasets(idOrSlug);
   const isDashboardHydrated = useRef(false);
 
-  const currentDashboardDatasets = useMemo(
-    () =>
-      status === ResourceStatus.Complete && datasets && dashboard?.id
-        ? { dashboardId: dashboard.id, datasets }
-        : null,
-    [status, datasets, dashboard?.id],
+  const currentDashboardDatasets = useSelector(
+    (state: RootState) => state.dashboardInfo.semanticDatasets,
   );
+  const semanticDatasetsGeneration = useSelector(
+    (state: RootState) => state.dashboardInfo.semanticDatasetsGeneration ?? 0,
+  );
+  const datasetRequest = useRef<{
+    dashboardId: number;
+    generation: number;
+  } | null>(null);
+  const previousDatasetsStatus = useRef<ResourceStatus | null>(null);
 
   const error = dashboardApiError || chartsApiError;
   // Only 404 gets a graceful not-found state; a 403 (access denied) still
@@ -380,6 +388,41 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   }, [css]);
 
   useEffect(() => {
+    if (dashboard?.id && hydratedDashboardId === dashboard.id) {
+      if (
+        datasetRequest.current?.dashboardId !== dashboard.id ||
+        (status === ResourceStatus.Loading &&
+          previousDatasetsStatus.current !== ResourceStatus.Loading)
+      ) {
+        datasetRequest.current = {
+          dashboardId: dashboard.id,
+          generation: semanticDatasetsGeneration,
+        };
+      }
+      previousDatasetsStatus.current = status;
+      dispatch(
+        replaceDashboardSemanticDatasets(
+          dashboard.id,
+          status === ResourceStatus.Complete && !datasetsApiError
+            ? provenSemanticDatasets(datasets)
+            : null,
+          undefined,
+          false,
+          datasetRequest.current.generation,
+        ),
+      );
+    }
+  }, [
+    dashboard?.id,
+    datasets,
+    datasetsApiError,
+    dispatch,
+    hydratedDashboardId,
+    semanticDatasetsGeneration,
+    status,
+  ]);
+
+  useEffect(() => {
     if (datasetsApiError) {
       // A missing dashboard also 404s its datasets; the not-found state covers it.
       if (!isNotFoundError) {
@@ -434,7 +477,9 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
         <>
           <SyncDashboardState dashboardPageId={dashboardPageId} />
           <DashboardPageIdContext.Provider value={dashboardPageId}>
-            <DashboardDatasetsContext.Provider value={currentDashboardDatasets}>
+            <DashboardDatasetsContext.Provider
+              value={currentDashboardDatasets ?? null}
+            >
               <CrudThemeProvider
                 theme={reduxTheme !== undefined ? reduxTheme : dashboard?.theme}
               >

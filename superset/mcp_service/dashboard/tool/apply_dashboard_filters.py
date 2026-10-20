@@ -25,9 +25,11 @@ changes -- which is what separates this tool from manage_native_filters,
 which DEFINES the filters and writes to the shared dashboard.
 """
 
+import difflib
 import logging
+import re
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from fastmcp import Context
 from flask import current_app
@@ -45,13 +47,20 @@ from superset.mcp_service.dashboard.schemas import (
     ApplyDashboardFiltersRequest,
     ApplyDashboardFiltersResponse,
     ApplyFilterValueSpec,
+    FilterSelectValue,
 )
 from superset.mcp_service.dashboard.tool.manage_native_filters import (
     _FilterValidationError as _FilterApplyError,
     _select_data_mask,
+    _value_label,
     current_native_filter_config,
 )
+from superset.utils import json
+from superset.utils.core import apply_max_row_limit
 from superset.utils.number_format import format_smart_number
+
+if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +77,18 @@ SUPPORTED_FILTER_TYPES: frozenset[str] = frozenset(
 _SINGLE_VALUE_MINIMUM = 0
 _SINGLE_VALUE_EXACT = 1
 _SINGLE_VALUE_MAXIMUM = 2
+
+# Most column values an unknown-value error lists, so a high-cardinality
+# column cannot flood the reply.
+_MAX_VALUE_SUGGESTIONS = 10
+
+# Bound query attempts per filter, including failures, not only rows per query.
+_MAX_VALUE_SEARCHES = 10
+
+# Returned by _match_value when no column value matches; None is a real value.
+_NOT_FOUND = object()
+_AMBIGUOUS = object()
+_UNRESOLVED = object()
 
 
 def _publish_filters_applied(dashboard_id: int, permalink_key: str) -> bool:
@@ -156,6 +177,335 @@ def _filter_target_column(conf: dict[str, Any]) -> str:
             "column, so a value cannot be applied to it."
         )
     return column
+
+
+def _target_dataset(conf: dict[str, Any]) -> "SqlaTable | None":
+    """Return the dataset a filter's first target points at, if it resolves."""
+    from superset.daos.dataset import DatasetDAO
+
+    targets = [target for target in (conf.get("targets") or []) if target]
+    dataset_id = targets[0].get("datasetId") if targets else None
+    return DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
+
+
+def _column_values(
+    dataset: "SqlaTable", column: str, search: str | None = None
+) -> tuple[list[Any], bool]:
+    """Return ``column``'s distinct values and whether that list is complete.
+
+    Uses the same bounded, RLS-aware query that feeds the dashboard's select
+    filter options, so the values checked here are the ones a viewer could
+    pick. ``search`` narrows it to values containing the term,
+    case-insensitively.
+
+    Reads go through the column-values API's ``data_cache`` entries (same key
+    and timeout), so a heavy virtual dataset is not re-queried per filter or
+    per tool call, and the UI and this tool warm each other. The key is
+    partitioned by the effective RLS, so entries are not shared across users
+    with different row-level security; the caller authorizes the dataset
+    before this runs. Searches are cached too, under the API's short
+    search-term timeout.
+    """
+    from superset.datasource.api import get_cached_column_values
+
+    limit = apply_max_row_limit(current_app.config["FILTER_SELECT_ROW_LIMIT"])
+    if limit <= 0:
+        raise ValueError("Column-value validation requires a positive row limit")
+    values, _ = get_cached_column_values(
+        dataset,
+        column_name=column,
+        limit=limit,
+        denormalize_column=not dataset.normalize_columns,
+        search=search or None,
+    )
+    # Match the JSON scalar options the column-values API sends to the UI,
+    # rather than returning driver-specific date/decimal/numpy objects to the
+    # response schema or using their differing Python display labels.
+    candidates = json.loads(json.dumps(values))
+    if any(
+        v is not None and not isinstance(v, (str, int, float, bool)) for v in candidates
+    ):
+        raise NotImplementedError("Structured column values are not scalar selections")
+    return candidates, len(values) < limit
+
+
+def _normalize_value(value: FilterSelectValue) -> str:
+    """Fold a value to the text it is compared by when not matched exactly."""
+    return " ".join(_value_label(value).split()).casefold()
+
+
+def _match_value(value: FilterSelectValue, candidates: Sequence[Any]) -> Any:
+    """Return the column value ``value`` refers to, or ``_NOT_FOUND``.
+
+    An exact match keeps the requested value. Otherwise a single column
+    value whose text matches ignoring case and whitespace (``"emea"`` for
+    ``"EMEA"``, ``"2024"`` for ``2024``) is used instead, since filtering on
+    the requested spelling would match no rows. Several such values return
+    ``_AMBIGUOUS`` instead of being treated as absent.
+    """
+    for candidate in candidates:
+        # bool is an int subclass, so True would otherwise match 1.
+        if candidate == value and isinstance(candidate, bool) == isinstance(
+            value, bool
+        ):
+            return value
+    if value is None:
+        return _NOT_FOUND
+    wanted = _normalize_value(value)
+    matches = {
+        (type(candidate), candidate): candidate
+        for candidate in candidates
+        if candidate is not None and _normalize_value(candidate) == wanted
+    }
+    if len(matches) > 1:
+        return _AMBIGUOUS
+    return next(iter(matches.values())) if matches else _NOT_FOUND
+
+
+def _suggest_values(value: FilterSelectValue, candidates: Sequence[Any]) -> list[Any]:
+    """Return column values that look like what ``value`` was meant to be."""
+    wanted = _normalize_value(value)
+    by_label: dict[str, dict[tuple[type, Any], Any]] = {}
+    for candidate in candidates:
+        if candidate is not None:
+            by_label.setdefault(_normalize_value(candidate), {})[
+                (type(candidate), candidate)
+            ] = candidate
+    suggested = [label for label in by_label if wanted and wanted in label]
+    suggested += difflib.get_close_matches(
+        wanted, list(by_label), n=_MAX_VALUE_SUGGESTIONS, cutoff=0.6
+    )
+    return [
+        candidate
+        for label in dict.fromkeys(suggested)
+        for candidate in by_label[label].values()
+    ][:_MAX_VALUE_SUGGESTIONS]
+
+
+def _quote_values(values: Sequence[Any]) -> str:
+    """Render values as a quoted, comma-separated list."""
+    return ", ".join(
+        repr(value) if isinstance(value, str) else json.dumps(value) for value in values
+    )
+
+
+def _unknown_values_error(
+    conf: dict[str, Any],
+    column: str,
+    unknown: list[tuple[FilterSelectValue, list[Any]]],
+    candidates: list[Any],
+    complete: bool,
+    *,
+    suggest: bool = True,
+) -> _FilterApplyError:
+    """Build the error for requested values that are absent from the data."""
+    name = conf.get("name") or conf.get("id")
+    noun = "value" if len(unknown) == 1 else "values"
+    message = [
+        f"Filter '{name}' has no {noun} {_quote_values([v for v, _ in unknown])} "
+        f"in column '{column}'. Unknown selections can produce empty chart "
+        "results. No filter values were applied."
+    ]
+    if not suggest:
+        message.append(
+            "Tell the user the value was not found instead of reporting the "
+            "filter as applied."
+        )
+        return _FilterApplyError(" ".join(message))
+    for value, suggestions in unknown:
+        if suggestions:
+            message.append(
+                f"Closest matches for '{_value_label(value)}': "
+                f"{_quote_values(suggestions)}."
+            )
+    if not any(suggestions for _, suggestions in unknown):
+        shown = sorted(candidates, key=_value_label)[:_MAX_VALUE_SUGGESTIONS]
+        if not shown:
+            message.append(
+                "The column has no values to filter on. Tell the user the "
+                "value was not found instead of reporting the filter as applied."
+            )
+            return _FilterApplyError(" ".join(message))
+        total = f" ({len(candidates)} in total)" if complete else ""
+        prefix = "Available values" if complete else "Available values include"
+        message.append(f"{prefix}: {_quote_values(shown)}{total}.")
+    message.append(
+        "Tell the user the value was not found and offer these values instead "
+        "of reporting the filter as applied."
+    )
+    return _FilterApplyError(" ".join(message))
+
+
+def _unresolved_value_error(
+    conf: dict[str, Any],
+    value: FilterSelectValue,
+    candidates: Sequence[Any],
+    match: Any,
+    *,
+    suggest: bool = True,
+) -> _FilterApplyError:
+    """Reject unresolved values, optionally offering typed exact alternatives."""
+    alternatives = {
+        (type(candidate), candidate): candidate
+        for candidate in candidates
+        if candidate is not None
+        and _normalize_value(candidate) == _normalize_value(value)
+    }
+    shown = ", ".join(
+        json.dumps(v) for v in list(alternatives.values())[:_MAX_VALUE_SUGGESTIONS]
+    )
+    reason = (
+        "is ambiguous between distinct column values"
+        if match is _AMBIGUOUS
+        else "cannot be resolved uniquely because the value search is truncated"
+    )
+    return _FilterApplyError(
+        f"Filter '{conf.get('name') or conf.get('id')}' value "
+        f"{json.dumps(value)} {reason}. No filter values were applied. "
+        + (f"Exact column values include: {shown}. " if suggest else "")
+        + "Ask the user to choose "
+        "an exact value, preserving its spelling and JSON type; do not "
+        "report the value as absent or the filter as applied."
+    )
+
+
+def _search_value(
+    dataset: "SqlaTable",
+    conf: dict[str, Any],
+    column: str,
+    value: FilterSelectValue,
+    cache: dict[str, tuple[list[Any], bool]],
+) -> tuple[Any, list[Any]]:
+    """Look ``value`` up across the whole column, past a truncated first page.
+
+    Returns the matched value (or ``_NOT_FOUND``) and the values the search
+    returned, for suggestions. A value the search cannot settle (NULL, which
+    a containment search cannot find, native or non-ASCII values whose SQL
+    text representation or lowercasing may differ, a truncated search with no
+    match, or a failed query) is kept as given:
+    absence from a truncated page proves nothing. Normalized matches require
+    a complete search result to establish uniqueness; exact matches do not.
+    """
+    if not isinstance(value, str) or not value.isascii():
+        # NULL cannot be found with LIKE; native numbers and booleans need not
+        # have the same SQL text representation as their Python display label.
+        # SQL lower() also need not implement non-ASCII case folding.
+        return value, []
+    try:
+        target = dataset.get_column(column)
+        if target is not None and target.is_string is False:
+            # Numeric, boolean and date columns can be rendered differently by
+            # SQL casts and the JSON serializer (e.g. datetime's T separator).
+            return value, []
+        # SQL lower() is not Python casefold(). ASCII k/s can be stored as
+        # Kelvin sign/long s, and ff/fi/fl as ligatures. Exclude those pieces
+        # so every casefold-equivalent value contains the searched substring.
+        # Locale-sensitive lower() can map ASCII I to dotless ı as well.
+        # Splitting words also tolerates whitespace differences. If no safe
+        # substring remains, reuse the unfiltered page rather than claiming
+        # that a narrower query can establish absence or uniqueness.
+        pieces = [
+            part
+            for word in value.split()
+            for part in re.split(r"k|s|ffi|ffl|ff|fi|fl|i", word, flags=re.IGNORECASE)
+        ]
+        term = max(pieces, key=len, default="")
+        key = term.lower()
+        if key not in cache:
+            if len(cache) - 1 >= _MAX_VALUE_SEARCHES:
+                return value, []
+            # Count failed attempts too, and reuse their unchecked result.
+            cache[key] = ([], False)
+            cache[key] = _column_values(dataset, column, search=term)
+        searched, complete = cache[key]
+    except Exception:  # noqa: BLE001 pylint: disable=broad-except
+        logger.warning(
+            "Could not search column %s for filter %s",
+            column,
+            conf.get("id"),
+            exc_info=True,
+        )
+        return value, []
+    match = _match_value(value, searched)
+    # Only an exact match is decisive when even the search results are truncated.
+    # A lone normalized match on that page does not establish uniqueness.
+    if not complete and match is _NOT_FOUND:
+        # The literal value may be hidden beyond the narrowed result limit.
+        return value, searched
+    if not complete and match not in (_AMBIGUOUS, _NOT_FOUND) and match != value:
+        match = _UNRESOLVED
+    return match, searched
+
+
+def _verify_select_values(
+    conf: dict[str, Any], column: str, values: list[FilterSelectValue]
+) -> list[FilterSelectValue]:
+    """Check requested select values against the filter column's data.
+
+    Returns the values to apply, with near matches replaced by the column
+    value they match, and raises when a value matches nothing: an ``IN``
+    predicate on unknown values could silently empty chart results. When the
+    values cannot be read (unresolvable or inaccessible dataset, query failure,
+    unsupported datasource) they are applied unchecked, as before, rather than
+    blocking the request. Active dashboard scope suppresses suggestions, not
+    membership validation: a value missing from the whole RLS-visible column
+    cannot occur in the scoped subset. A match does not establish that the
+    scoped subset contains rows for that value.
+    """
+    from superset.exceptions import SupersetSecurityException
+    from superset.mcp_service.dashboard_scope import get_request_dashboard_scope
+
+    scope = get_request_dashboard_scope()
+    suggest = scope is None or not scope.has_constraints
+    try:
+        dataset = _target_dataset(conf)
+        # Absence from the whole RLS-visible column also proves absence from
+        # any dashboard-scoped subset. Validate even with active constraints,
+        # but do not offer unscoped column options as scoped suggestions.
+        if dataset is None:
+            return values
+        # The column-values API gates on the same check before reading values.
+        dataset.raise_for_access()
+        candidates, complete = _column_values(dataset, column)
+    except SupersetSecurityException:
+        return values
+    except Exception:  # noqa: BLE001 pylint: disable=broad-except
+        logger.warning(
+            "Could not read values of column %s for filter %s; applying the "
+            "requested values unchecked",
+            column,
+            conf.get("id"),
+            exc_info=True,
+        )
+        return values
+
+    resolved: list[FilterSelectValue] = []
+    # Keyed by type too: True == 1, but they are different selections.
+    seen: set[tuple[type, FilterSelectValue]] = set()
+    unknown: list[tuple[FilterSelectValue, list[Any]]] = []
+    searches = {"": (candidates, complete)}
+    for _, value in dict.fromkeys((type(v), v) for v in values):
+        match = _match_value(value, candidates)
+        searched: list[Any] = []
+        if not complete and match != value:
+            match, searched = _search_value(dataset, conf, column, value, searches)
+        if match is _AMBIGUOUS or match is _UNRESOLVED:
+            raise _unresolved_value_error(
+                conf, value, [*searched, *candidates], match, suggest=suggest
+            )
+        if match is _NOT_FOUND:
+            suggestions = (
+                _suggest_values(value, [*searched, *candidates]) if suggest else []
+            )
+            unknown.append((value, suggestions))
+        elif (type(match), match) not in seen:
+            seen.add((type(match), match))
+            resolved.append(match)
+    if unknown:
+        raise _unknown_values_error(
+            conf, column, unknown, candidates, complete, suggest=suggest
+        )
+    return resolved
 
 
 def _time_data_mask(conf: dict[str, Any], time_range: str) -> dict[str, Any]:
@@ -271,11 +621,9 @@ def _timegrain_data_mask(
         )
     filter_state: dict[str, Any] = {"value": list(time_grain) if is_set else None}
     if is_set:
-        from superset.daos.dataset import DatasetDAO
-
         targets = [target for target in (conf.get("targets") or []) if target]
         dataset_id = targets[0].get("datasetId") if targets else None
-        dataset = DatasetDAO.find_by_id(dataset_id) if dataset_id is not None else None
+        dataset = _target_dataset(conf)
         if dataset is None:
             raise _FilterApplyError(
                 f"Cannot resolve target dataset (ID {dataset_id}) for filter "
@@ -311,6 +659,23 @@ def _timegrain_data_mask(
     }
 
 
+def _verified_select_data_mask(
+    conf: dict[str, Any], values: list[FilterSelectValue]
+) -> tuple[dict[str, Any], list[FilterSelectValue]]:
+    """Build a filter_select data mask from values checked against the data.
+
+    Returns the mask and the values it selects, which may differ from the
+    requested ones where a near match was resolved to the column's value.
+    """
+    # Built first so configuration errors surface before any data is read.
+    data_mask = _select_data_mask(conf, values)
+    if not values:
+        return data_mask, values
+    column = data_mask["extraFormData"]["filters"][0]["col"]
+    values = _verify_select_values(conf, column, values)
+    return _select_data_mask(conf, values), values
+
+
 def _apply_one(
     spec: ApplyFilterValueSpec, configs: list[dict[str, Any]]
 ) -> tuple[str, dict[str, Any], AppliedFilterSummary]:
@@ -336,12 +701,12 @@ def _apply_one(
                 f"Filter '{spec.filter_name_or_id}' is a filter_select "
                 "filter; provide 'values', not 'time_range'."
             )
-        data_mask = _select_data_mask(conf, spec.values)
+        data_mask, values = _verified_select_data_mask(conf, list(spec.values))
         summary = AppliedFilterSummary(
             id=filter_id,
             name=conf.get("name"),
             filter_type=filter_type,
-            values=list(spec.values),
+            values=values,
         )
     elif filter_type == "filter_time":
         if spec.time_range is None:
@@ -446,11 +811,14 @@ async def apply_dashboard_filters(
     its filter ID; call get_dashboard_info first to see which filters a
     dashboard has. Only exact-match select filters without inverse selection
     are supported. Supply ``values`` for a filter_select filter (an empty
-    list clears it, and a single-select filter accepts at most one value),
-    ``time_range`` for a filter_time filter, ``range`` as a ``[lower, upper]``
-    pair for a filter_range filter (either bound may be null, and
-    ``[null, null]`` clears it), and ``time_grain`` as a list of at most one
-    value for a filter_timegrain filter (an empty list clears it). Filters
+    list clears it, and a single-select filter accepts at most one value;
+    values are checked against readable column options and an unknown value
+    fails with values to offer the user; values that cannot be verified are
+    kept unchanged, not certified as present), ``time_range`` for a filter_time
+    filter, ``range`` as a ``[lower, upper]`` pair for a filter_range filter
+    (either bound may be null, and ``[null, null]`` clears it), and
+    ``time_grain`` as a list of at most one value for a filter_timegrain
+    filter (an empty list clears it). Filters
     left out of the request keep the dashboard's default value unless
     base_permalink_key is supplied. For follow-up turns (e.g. "also filter
     to 2024"), pass the previous response's permalink_key as

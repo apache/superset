@@ -46,6 +46,8 @@ from superset.security.guest_token import GuestToken, GuestTokenRlsRule, GuestUs
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.utils import json
 
+PROVIDER_TYPE: str = "guest-rls-provider"
+
 
 def set_guest(rules: list[GuestTokenRlsRule]) -> None:
     """Install an actual guest principal so rule selection stays unmocked."""
@@ -80,6 +82,14 @@ def provider(mocker: MockerFixture) -> MagicMock:
         "implementation",
         new_callable=PropertyMock,
         return_value=implementation,
+    )
+    # Result cache keys read the registered provider class, so register an
+    # unversioned one; an unregistered provider fails closed before any cache read.
+    provider_class: type = type(
+        "UnversionedProvider", (), {"result_cache_version": None}
+    )
+    mocker.patch.dict(
+        "superset.semantic_layers.models.registry", {PROVIDER_TYPE: provider_class}
     )
     return implementation
 
@@ -165,7 +175,7 @@ def test_semantic_cached_payload_rejected_before_cache_read(
     )
     view: SemanticView = SemanticView(id=7, name="rows")
     query: QueryObject = view_query(view)
-    view.semantic_layer = SemanticLayer(name="rls-layer")
+    view.semantic_layer = SemanticLayer(name="rls-layer", type=PROVIDER_TYPE)
     context: QueryContext = QueryContext(
         datasource=view,
         queries=[query],
@@ -294,7 +304,7 @@ def test_guest_values_endpoint_rejects_rls_before_warm_cache(
     view: SemanticView = SemanticView(
         id=7,
         name="rows",
-        semantic_layer=SemanticLayer(name="rls-layer"),
+        semantic_layer=SemanticLayer(name="rls-layer", type=PROVIDER_TYPE),
     )
     mocker.patch(
         "superset.datasource.api.DatasourceDAO.get_datasource", return_value=view
@@ -338,7 +348,9 @@ def test_embedding_enabled_native_filter_respects_guest_rls(
     )
     assert security_manager.is_guest_user()
     view: SemanticView = SemanticView(
-        id=7, name="rows", semantic_layer=SemanticLayer(name="layer")
+        id=7,
+        name="rows",
+        semantic_layer=SemanticLayer(name="layer", type=PROVIDER_TYPE),
     )
     dashboard: Dashboard = Dashboard(
         id=20,

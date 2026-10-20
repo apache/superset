@@ -14,12 +14,13 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from __future__ import annotations
+
 import logging
 import re
-from typing import Any, Optional
+from typing import Any, TYPE_CHECKING
 
-from croniter import croniter, CroniterBadDateError
-from flask import current_app as app
+from croniter import CroniterBadDateError
 from flask_babel import gettext as _
 from marshmallow import ValidationError
 
@@ -36,21 +37,34 @@ from superset.commands.report.exceptions import (
     ReportScheduleCrontabNotValidError,
     ReportScheduleEitherChartOrDashboardError,
     ReportScheduleForbiddenError,
+    ReportScheduleFormatRequiredError,
     ReportScheduleFrequencyNotAllowed,
     ReportScheduleOnlyChartOrDashboardError,
+    ReportScheduleRecipientNotAllowedError,
+    ReportScheduleRunAsForbiddenError,
+    ReportScheduleRunAsNotFoundError,
 )
 from superset.daos.base import BaseDAO
 from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
+from superset.daos.report import ReportConfigDAO
 from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.reports.models import (
+    ReportConfigKey,
     ReportCreationMethod,
+    ReportDataFormat,
     ReportScheduleType,
 )
 from superset.reports.types import ReportScheduleExtra
+from superset.reports.utils import cron_meets_minimum_interval, get_email_addresses
 from superset.sql.parse import SQLScript
+from superset.tasks.types import ExecutorType
 from superset.utils import json
+from superset.utils.core import get_user
+
+if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
 
 logger = logging.getLogger(__name__)
 
@@ -134,13 +148,31 @@ class BaseReportScheduleCommand(BaseCommand):
                 raise ReportScheduleForbiddenError() from ex
         self._properties[kind] = obj
 
+    def requires_asset(self) -> bool:
+        """Whether the schedule's format requires an asset to be present."""
+        # PUT may omit either field; fallback to the stored schedule values
+        if model := getattr(self, "_model", None):
+            report_type = self._properties.get("type", model.type)
+            report_format = self._properties.get("report_format", model.report_format)
+        # POST requires type. An omitted format uses the model's PNG default
+        else:
+            report_type = self._properties["type"]
+            report_format = self._properties.get("report_format")
+        return (
+            report_type == ReportScheduleType.REPORT
+            or report_format != ReportDataFormat.NONE
+        )
+
     def validate_chart_dashboard(
         self, exceptions: list[ValidationError], update: bool = False
     ) -> None:
-        """Validate chart or dashboard relation"""
+        """Validate supplied assets and require one for an attachment format."""
+        requires_asset = self.requires_asset()
         chart_id = self._properties.get("chart")
         dashboard_id = self._properties.get("dashboard")
         creation_method = self._properties.get("creation_method")
+        if not requires_asset and not (chart_id or dashboard_id):
+            return
 
         if creation_method == ReportCreationMethod.CHARTS and not chart_id:
             # User has not saved chart yet in Explore view
@@ -173,10 +205,23 @@ class BaseReportScheduleCommand(BaseCommand):
         elif not update:
             exceptions.append(ReportScheduleEitherChartOrDashboardError())
 
+        # Update schedule without chart_id / dashboard_id in properties
+        else:
+            # Allow an explicit null to clear the field
+            model = getattr(self, "_model", None)
+            effective_chart = self._properties.get(
+                "chart", getattr(model, "chart_id", None)
+            )
+            effective_dashboard = self._properties.get(
+                "dashboard", getattr(model, "dashboard_id", None)
+            )
+            if not effective_chart and not effective_dashboard:
+                exceptions.append(ReportScheduleEitherChartOrDashboardError())
+
     def _validate_report_extra(  # noqa: C901
         self, exceptions: list[ValidationError]
     ) -> None:
-        extra: Optional[ReportScheduleExtra] = self._properties.get("extra")
+        extra: ReportScheduleExtra | None = self._properties.get("extra")
         dashboard = self._properties.get("dashboard")
 
         # On PUT requests, dashboard may not be in the payload — fall back to the model
@@ -345,45 +390,109 @@ class BaseReportScheduleCommand(BaseCommand):
         report_type: str,
     ) -> None:
         """
-        Validates if the report scheduled frequency doesn't exceed a limit
-        configured in `config.py`.
+        Validates if the report scheduled frequency doesn't exceed the minimum
+        interval in effect.
 
         :param cron_schedule: The cron schedule configured.
         :param report_type: The report type (Alert/Report).
         """
         config_key = (
-            "ALERT_MINIMUM_INTERVAL"
+            ReportConfigKey.ALERT_MINIMUM_INTERVAL
             if report_type == ReportScheduleType.ALERT
-            else "REPORT_MINIMUM_INTERVAL"
+            else ReportConfigKey.REPORT_MINIMUM_INTERVAL
         )
-        minimum_interval = app.config.get(config_key, 0)
-        if callable(minimum_interval):
-            minimum_interval = minimum_interval()
+        minimum_interval = ReportConfigDAO.get_effective_value(config_key)
 
+        if minimum_interval is None:
+            return
         if not isinstance(minimum_interval, int):
             logger.error(
                 "Invalid value for %s: %s", config_key, minimum_interval, exc_info=True
             )
             return
 
-        # Since configuration is in minutes, we only need to validate
-        # in case `minimum_interval` is <= 120 (2min)
-        if minimum_interval < 120:
-            return
-
-        iterations = 60 if minimum_interval <= 3660 else 24
         try:
-            schedule = croniter(cron_schedule)
-            current_exec = next(schedule)
-
-            for _i in range(iterations):
-                next_exec = next(schedule)
-                diff, current_exec = next_exec - current_exec, next_exec
-                if int(diff) < minimum_interval:
-                    raise ReportScheduleFrequencyNotAllowed(
-                        report_type=report_type, minimum_interval=minimum_interval
-                    )
+            if not cron_meets_minimum_interval(cron_schedule, minimum_interval):
+                raise ReportScheduleFrequencyNotAllowed(
+                    report_type=report_type, minimum_interval=minimum_interval
+                )
         except CroniterBadDateError as ex:
             raise ReportScheduleCrontabNotValidError(
                 cron_schedule=cron_schedule
             ) from ex
+
+    def validate_report_format(
+        self,
+        report_type: str,
+        report_format: str | None,
+        exceptions: list[ValidationError],
+    ) -> None:
+        """
+        Reports always deliver content: the "no attachment" format is only
+        allowed on alerts.
+        """
+        if (
+            report_type == ReportScheduleType.REPORT
+            and report_format == ReportDataFormat.NONE
+        ):
+            exceptions.append(ReportScheduleFormatRequiredError())
+
+    def validate_recipients_policy(self, exceptions: list[ValidationError]) -> None:
+        """
+        Validate the e-mail recipients in the payload against the global
+        recipient policy (allowed domains and/or existing users only).
+        """
+        recipients = self._properties.get("recipients")
+        if not recipients:
+            return
+        disallowed = ReportConfigDAO.find_disallowed_addresses(
+            get_email_addresses(recipients)
+        )
+        if disallowed:
+            exceptions.append(ReportScheduleRecipientNotAllowedError(disallowed))
+
+    def validate_run_as(
+        self,
+        field_name: str,
+        user_id: int | None,
+        exceptions: list[ValidationError],
+        *,
+        default_to_current_user: bool,
+    ) -> User | None:
+        """Validate a specific user or an admin-selected application default.
+
+        A blank query executor inherits the content executor. A blank content
+        executor selected by an admin uses the legacy application configuration.
+        """
+        is_admin = security_manager.is_admin()
+        current_user = get_user()
+        type_field = f"{field_name}_type"
+        executor_type = self._properties.pop(type_field, None)
+        if user_id is None and executor_type != ExecutorType.FIXED_USER:
+            if field_name == "run_alert_query_as":
+                self._properties[type_field] = None
+                self._properties[field_name] = None
+                return None
+            if is_admin and not default_to_current_user:
+                self._properties[type_field] = None
+                self._properties[field_name] = None
+                return None
+            if not is_admin and not default_to_current_user:
+                exceptions.append(ReportScheduleRunAsForbiddenError(field_name))
+                return None
+            user = current_user
+        else:
+            user = (
+                security_manager.get_user_by_id(user_id)
+                if user_id is not None
+                else None
+            )
+        if not user or not user.is_active:
+            exceptions.append(ReportScheduleRunAsNotFoundError(field_name))
+            return None
+        if not is_admin and (current_user is None or user.id != current_user.id):
+            exceptions.append(ReportScheduleRunAsForbiddenError(field_name))
+            return None
+        self._properties[type_field] = ExecutorType.FIXED_USER
+        self._properties[field_name] = user
+        return user

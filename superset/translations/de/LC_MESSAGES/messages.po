@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-16 15:10-0400\n"
 "PO-Revision-Date: 2023-04-07 19:45+0200\n"
 "Last-Translator: Holger Bruch <holger.bruch@wattbewerb.de>\n"
 "Language: de\n"
@@ -478,6 +478,12 @@ msgid ""
 msgstr ""
 "%s Elemente konnten nicht getaggt werden, weil Sie nicht über "
 "Bearbeitungsrechte für alle ausgewählten Objekte verfügen."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
 
 #, python-format
 msgid "%s metric"
@@ -1104,6 +1110,12 @@ msgstr "Es wird ein neues Diagramm erstellt."
 msgid "A new dashboard will be created."
 msgstr "Es wird ein neues Dashboard erstellt."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1127,6 +1139,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Ein wiederverwendbarer Datensatz wird mit Ihrem Diagramm gespeichert."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -1355,6 +1372,11 @@ msgstr "Alarm hinzufügen"
 msgid "Add an annotation layer"
 msgstr "Anmerkungsebene hinzufügen"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "Element hinzufügen"
 
@@ -1530,11 +1552,11 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Dem virtuellen Datensatz wurde %s neue Spalte hinzugefügt"
-msgstr[1] "Dem virtuellen Datensatz wurden %s neue Spalten hinzugefügt"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Dem Datensatz wurde %s neue Spalte hinzugefügt"
+msgstr[1] "Dem Datensatz wurden %s neue Spalten hinzugefügt"
 
 #, python-format
 msgid "Added a %s"
@@ -1718,6 +1740,9 @@ msgstr "Alarm ist beim Ausführen einer Abfrage auf einen Fehler gestoßen."
 msgid "Alert is active"
 msgstr "Alarm ist aktiv"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Name des Alarms"
 
@@ -1773,6 +1798,18 @@ msgstr "Alarme"
 msgid "Alerts & Reports"
 msgstr "Alarme und Berichte"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "Alarme und Berichte"
 
@@ -1781,6 +1818,9 @@ msgstr "+/- angleichen"
 
 msgid "Align +/- for all columns"
 msgstr "+/- für alle Spalten angleichen"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Alle"
@@ -1806,6 +1846,9 @@ msgstr "Alle Dimensionen"
 
 msgid "All filters"
 msgstr "Alle Filter"
+
+msgid "All groupable columns"
+msgstr ""
 
 msgid "All panels"
 msgstr "Alle Bereiche"
@@ -1886,6 +1929,9 @@ msgstr "Benutzer*innen die Auswahl mehrerer Werte ermöglichen"
 msgid "Allowed Domains (comma separated)"
 msgstr "Zulässige Domains (durch Kommas getrennt)"
 
+msgid "Allowed e-mail domains"
+msgstr ""
+
 msgid "Alphabetical"
 msgstr "Alphabetisch"
 
@@ -1915,6 +1961,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "Hauptdatums-Spalte immer filtern"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "Ein Fehler ist aufgetreten"
@@ -2193,9 +2245,6 @@ msgstr "Beim Parsen des Schlüssels ist ein Fehler aufgetreten."
 msgid "An error occurred while pruning logs "
 msgstr "Beim Kürzen von Protokollen ist ein Fehler aufgetreten "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "Beim Aktualisieren des Konfigurationsschemas ist ein Fehler aufgetreten"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -2214,6 +2263,9 @@ msgstr ""
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "Bei der Darstellung dieser Visualisierung ist ein Fehler aufgetreten: %s"
+
+msgid "An error occurred while saving the configuration"
+msgstr ""
 
 msgid "An error occurred while saving the semantic view"
 msgstr "Beim Speichern der semantischen Sicht ist ein Fehler aufgetreten"
@@ -2426,6 +2478,9 @@ msgstr ""
 "Alle Datenbanken, die Verbindungen über SQL Alchemy URIs zulassen, können"
 " hinzugefügt werden. Informationen zum Verbinden eines Datenbanktreibers "
 "finden Sie "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -2791,6 +2846,11 @@ msgstr "Zurück"
 msgid "Back to all"
 msgstr "Zurück zu allen"
 
+msgid "Back to sign in"
+msgstr ""
+
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -3035,6 +3095,9 @@ msgstr "Blasengröße"
 msgid "Bubble size number format"
 msgstr "Zahlenformat der Blasengröße"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "Klassen-Schwellwerte"
 
@@ -3166,6 +3229,9 @@ msgstr "CVAS-Abfrage (Create View as Select) ist keine SELECT-Anweisung."
 
 msgid "Cache Timeout (seconds)"
 msgstr "Cache-Timeout (Sekunden)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 msgid ""
 "Cache data separately for each user based on their data access roles and "
@@ -3711,6 +3777,9 @@ msgstr "Schauen Sie sich dieses Dashboard an: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Aktivieren, um zu erzwingen, dass Datumspartitionen die gleiche Höhe haben"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3738,6 +3807,9 @@ msgstr "Wählen Sie ein Trennzeichen"
 
 msgid "Choose a metric for right axis"
 msgstr "Wählen Sie eine Metrik für die rechte Achse"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Wählen Sie ein Zahlenformat"
@@ -4034,10 +4106,17 @@ msgstr "Code kopiert!"
 msgid "Collapse"
 msgstr "Einklappen"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr "Alle einklappen"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4048,6 +4127,9 @@ msgstr "Datenbereich ausblenden"
 
 msgid "Collapse row"
 msgstr "Zeile zusammenklappen"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Einstellungen einklappen"
@@ -4288,6 +4370,9 @@ msgstr "Zu lesende Spalten"
 
 msgid "Columns to show in the tooltip."
 msgstr "Spalten, die im Tooltip angezeigt werden sollen."
+
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
 
 msgid "Combine metrics"
 msgstr "Metriken kombinieren"
@@ -4539,6 +4624,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Enthält Text (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "Inhaltsformat"
 
@@ -4579,6 +4670,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -4681,6 +4775,10 @@ msgstr ""
 "Es konnte keine Verbindung zur Datenbank \"%(database)s\" hergestellt "
 "werden."
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nicht alle gespeicherten Diagramme konnten abgerufen werden"
 
@@ -4710,6 +4808,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Hostname konnte nicht aufgelöst werden: \"%(host)s\"."
@@ -4735,6 +4838,12 @@ msgstr "Anzahl"
 
 msgid "Country"
 msgstr "Land"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Länderfarbschema"
@@ -6761,6 +6870,9 @@ msgstr "Matrixify aktivieren"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -6899,6 +7011,11 @@ msgstr "Mindest- und Höchstwert für den Bereichsfilter eingeben"
 
 msgid "Enter report name"
 msgstr "Name des Berichts"
+
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
 
 msgid "Enter the group's description"
 msgstr "Beschreibung der Gruppe eingeben"
@@ -7138,6 +7255,9 @@ msgstr "Auswahlwerte ausschließen"
 msgid "Excluded subjects"
 msgstr "Ausgeschlossene Subjekte"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "Ausgeführtes SQL"
 
@@ -7153,6 +7273,10 @@ msgstr "Aktionsprotokoll"
 msgid "Existing dataset"
 msgstr "Vorhandener Datensatz"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7162,8 +7286,15 @@ msgstr "Vollbildanzeige beenden"
 msgid "Expand"
 msgstr "Aufklappen"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Alle aufklappen"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Alle aufklappen"
@@ -7179,6 +7310,9 @@ msgstr "Zeile zum Bearbeiten erweitern"
 
 msgid "Expand settings"
 msgstr "Einstellungen aufklappen"
+
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7196,6 +7330,12 @@ msgstr "Experimentell"
 
 msgid "Expired"
 msgstr "Abgelaufen"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Erkunden"
@@ -7454,6 +7594,9 @@ msgstr "Diagrammdaten konnten nicht geladen werden."
 msgid "Failed to load columns for %s %s"
 msgstr "Die Spalte für %s %s konnte nicht geladen werden"
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7674,6 +7817,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Diagramme filtern"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filter hat den Standardwert"
 
@@ -7703,6 +7852,10 @@ msgstr "Filterwert (Groß-/Kleinschreibung beachten)"
 msgid "Filter value is required"
 msgstr "Filterwert ist erforderlich"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "Filterwertliste darf nicht leer sein"
 
@@ -7714,6 +7867,10 @@ msgstr "Filtern Sie Ihre Diagramme"
 
 msgid "Filters"
 msgstr "Filter"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filter und Bedienelemente"
@@ -7931,6 +8088,12 @@ msgstr "Fremdschlüssel"
 msgid "Forest Green"
 msgstr "Waldgrün"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr ""
 "Formulardaten nicht im Cache gefunden, es wird auf Diagramm-Metadaten "
@@ -7963,6 +8126,9 @@ msgstr ""
 "{value}, {percent}. \\n stellt eine neue Zeile dar. ECharts-"
 "Kompatibilität:\n"
 "{a} (Serie), {b} (Name), {c} (Wert), {d} (Prozentsatz)"
+
+msgid "Format dates in email subjects"
+msgstr ""
 
 msgid ""
 "Format metrics or columns with currency symbols as prefixes or suffixes. "
@@ -8078,6 +8244,13 @@ msgstr "GeoJson-Spalte"
 msgid "GeoJson Settings"
 msgstr "GeoJson-Einstellungen"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geo Hashing"
 
@@ -8087,7 +8260,7 @@ msgstr "Geometriespalte"
 msgid "Get the last date by the date unit."
 msgstr "Das letzte Datum anhand der Datumseinheit anfordern."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Abrufen des angegebenen Datums für den Feiertag"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8177,6 +8350,9 @@ msgstr "Gruppenname"
 
 msgid "Group remaining as \"Others\""
 msgstr "Gruppe, die als \"Sonstige\" verbleibt"
+
+msgid "Groupable columns"
+msgstr ""
 
 msgid "Grouping"
 msgstr "Gruppierung"
@@ -8285,6 +8461,11 @@ msgstr "Horizontal (oben)"
 msgid "Horizontal alignment"
 msgstr "Horizontale Ausrichtung"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Host"
 
@@ -8326,11 +8507,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Riesig"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "ISO-3166-2-Codes"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 msgid "Icon URL"
 msgstr "Symbol-URL"
@@ -8365,6 +8552,15 @@ msgstr ""
 " Metrikwert"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -8383,6 +8579,11 @@ msgid "If table already exists"
 msgstr "Wenn die Tabelle bereits existiert"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -8493,15 +8694,25 @@ msgstr "Fügen Sie eine Beschreibung hinzu, die mit Ihrem Bericht gesendet wird"
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Beschreibung beilegen, die mitgeschickt wird %s"
+
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
 
 msgid "Include series name as an axis"
 msgstr "Zeitreihennamen als Achse einschließen"
 
 msgid "Include time"
 msgstr "Zeit einschließen"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Anstieg"
@@ -8697,6 +8908,14 @@ msgstr "Ungültiger Währungscode in gespeicherten Metriken"
 msgid "Invalid date/timestamp format"
 msgstr "Ungültiges Datums-/Zeitstempelformat"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 msgid "Invalid executor type"
 msgstr "Ungültiger Ausführungstyp"
 
@@ -8755,6 +8974,9 @@ msgstr "Ungültiger Ergebnistyp: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Ungültiger rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Ungültiger Zustand."
@@ -8858,6 +9080,9 @@ msgstr "JSON-Konfiguration"
 
 msgid "JSON Metadata"
 msgstr "JSON-Metadaten"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "JSON-Metadaten"
@@ -9112,7 +9337,15 @@ msgstr "Layouttyp des Baums"
 msgid "Least recently modified"
 msgstr "Zuletzt geändert"
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -9149,6 +9382,9 @@ msgstr "Linker Wert"
 
 msgid "Legacy"
 msgstr "Veraltet"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Legende"
@@ -9227,6 +9463,9 @@ msgstr "Like (Groß-/Kleinschreibung wird nicht beachtet)"
 
 msgid "Limit"
 msgstr "Limit"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "Typ einschränken"
@@ -9369,6 +9608,9 @@ msgstr "Geladene Daten zwischengespeichert"
 msgid "Loaded from cache"
 msgstr "Aus Zwischenspeicher geladen"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 msgid "Loading"
 msgstr "Lädt"
 
@@ -9473,6 +9715,10 @@ msgstr "Unterer Schwellenwert"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -9602,6 +9848,11 @@ msgstr "Markergröße"
 
 msgid "Markers"
 msgstr "Marker"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Markup-Typ"
@@ -9987,6 +10238,9 @@ msgstr "Fehlende URL-Parameter"
 msgid "Mixed Chart"
 msgstr "Gemischtes Diagramm"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Geändert"
 
@@ -9998,11 +10252,11 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Geändert %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "%s Spalte im virtuellen Datensatz geändert"
-msgstr[1] "%s Spalten im virtuellen Datensatz geändert"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "%s Spalte im Datensatz geändert"
+msgstr[1] "%s Spalten im Datensatz geändert"
 
 msgid "Modified by"
 msgstr "Geändert durch"
@@ -10092,6 +10346,12 @@ msgid ""
 msgstr ""
 "Mehrere Formate akzeptiert, recherchieren Sie in der geopy.points Python-"
 "Bibliothek nach weiteren Details"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Multiplikator"
@@ -10308,6 +10568,9 @@ msgstr "Keine angewendete Filter"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Keine Filter verfügbar."
 
@@ -10458,6 +10721,9 @@ msgstr "Keine gespeicherten Metriken gefunden"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr ""
 "Keine gespeicherten Ergebnisse gefunden. Sie müssen Ihre Abfrage erneut "
@@ -10578,6 +10844,10 @@ msgstr "Nicht gefunden"
 
 msgid "Not in"
 msgstr "Nicht in"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nicht NULL"
@@ -10781,6 +11051,9 @@ msgstr "Eine oder mehrere anzuzeigende Metriken"
 msgid "One or more annotation layers failed loading."
 msgstr "Eine oder mehrere Anmerkungsebenen konnten nicht geladen werden."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Eine oder mehrere Spalten sind bereits vorhanden"
 
@@ -10818,6 +11091,9 @@ msgstr "Nur Gesamtwert"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Nur 'SELECT'-Anweisungen sind zulässig"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr ""
 "Gilt nur, wenn \"Beschriftungstyp\" nicht auf einen Prozentsatz "
@@ -10827,6 +11103,9 @@ msgid "Only applies when \"Label Type\" is set to show values."
 msgstr ""
 "Gilt nur, wenn \"Beschriftungstyp\" so eingestellt ist, dass Werte "
 "angezeigt werden."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 msgid "Only exact match is available for non-string columns."
 msgstr ""
@@ -10851,6 +11130,12 @@ msgstr "Für diese Verbindung wird nur der Standardkatalog unterstützt"
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -10887,6 +11172,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Datenquellen-Registerkarte öffnen"
+
+msgid "Open JSON"
+msgstr ""
 
 msgid "Open SQL Lab in a new tab"
 msgstr "SQL-Lab in einer neuen Registerkarte öffnen"
@@ -11691,13 +11979,18 @@ msgid "Prefix or suffix"
 msgstr "Präfix oder Suffix"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
 msgstr ""
 
 msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 msgid "Preview"
@@ -12039,6 +12332,12 @@ msgstr "Aktualisieren von Diagrammen"
 msgid "Refreshing columns"
 msgstr "Aktualisieren von Spalten"
 
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
+
 msgid "Register"
 msgstr "Registrieren"
 
@@ -12083,6 +12382,9 @@ msgstr "Neu laden"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "SQL Lab neu laden"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -12141,11 +12443,11 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "%s Spalte aus dem virtuellen Datensatz entfernt"
-msgstr[1] "%s Spalten aus dem virtuellen Datensatz entfernt"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "%s Spalte aus dem Datensatz entfernt"
+msgstr[1] "%s Spalten aus dem Datensatz entfernt"
 
 #, python-format
 msgid "Removed a %s"
@@ -12185,6 +12487,12 @@ msgstr ""
 
 msgid "Replace"
 msgstr "Ersetzen"
+
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
 
 msgid "Report"
 msgstr "Bericht"
@@ -12253,6 +12561,12 @@ msgstr "Geplanter Bericht wird noch erstellt. Derzeit keine Neuerstellung mögli
 msgid "Report Schedule log prune failed."
 msgstr "Fehler beim Beschneiden des Bericht-Ausführungsplan-Logs."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Bericht-Ausführungsplan nicht gefunden."
 
@@ -12278,6 +12592,9 @@ msgstr "Bericht fehlgeschlagen"
 
 msgid "Report is active"
 msgstr "E-Mail-Bericht aktiv"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Berichtsname"
@@ -12314,6 +12631,9 @@ msgstr "Bericht aktualisiert"
 msgid "Reports"
 msgstr "Berichte"
 
+msgid "Reports require a content format"
+msgstr ""
+
 msgid "Repulsion"
 msgstr "Abstoßung"
 
@@ -12322,6 +12642,12 @@ msgstr "Abstoßungsstärke zwischen Knoten"
 
 msgid "Request Access"
 msgstr "Zugriff beantragen"
+
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
 
 msgid "Request access"
 msgstr ""
@@ -12402,6 +12728,10 @@ msgstr "Status zurücksetzen"
 
 msgid "Reset to default folders?"
 msgstr "Auf Standardordner zurücksetzen?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 msgid "Resize"
 msgstr "Größe ändern"
@@ -12679,6 +13009,18 @@ msgstr "Abfrage zum Anzeigen des Abfrageverlaufs ausführen"
 msgid "Run a query to display results"
 msgstr "Abfrage zum Anzeigen der Ergebnisse ausführen"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Aktuelle Abfrage ausführen"
 
@@ -12759,6 +13101,11 @@ msgstr ""
 msgid "SQL Query"
 msgstr "SQL-Abfrage"
 
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr "SQL-Ausdruck"
 
@@ -12816,6 +13163,9 @@ msgstr "TEXT"
 
 msgid "SUN"
 msgstr "SO"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -13602,12 +13952,16 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Wählen Sie die Art des Farbschemas aus, das Sie verwenden möchten."
 
+msgid "Select user"
+msgstr ""
+
 msgid "Select users"
 msgstr "Benutzer*innen auswählen"
 
 msgid "Select values"
 msgstr "Werte auswählen"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -13647,6 +14001,9 @@ msgstr "Semantische Sicht"
 msgid "Semantic Views"
 msgstr "Semantische Sichten"
 
+msgid "Semantic cache"
+msgstr ""
+
 msgid "Semantic layer"
 msgstr "Semantische Schicht"
 
@@ -13674,6 +14031,16 @@ msgstr "Semantischer Schichtentyp"
 msgid "Semantic layer updated"
 msgstr "Semantische Schicht aktualisiert"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Semantic view could not be created."
 msgstr "Semantische Schicht konnte nicht erstellt werden."
 
@@ -13695,6 +14062,9 @@ msgstr "Semantische Sicht aktualisiert"
 msgid "Semantic views"
 msgstr "Semantische Sichten"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -13713,7 +14083,13 @@ msgstr "Als PNG senden"
 msgid "Send as text"
 msgstr "Als Text senden"
 
+msgid "Send reset link"
+msgstr ""
+
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -14123,6 +14499,9 @@ msgstr "Zusammenfassung anzeigen"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Gesamtsumme anzeigen"
 
@@ -14202,6 +14581,9 @@ msgstr "Anmelden"
 msgid "Sign in with"
 msgstr "Anmelden mit"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "Signifikanzniveau"
 
@@ -14268,6 +14650,7 @@ msgstr "Schieberegler"
 msgid "Slider and range input"
 msgstr "Schieberegler und Bereichseingabe"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Kopfzeile"
 
@@ -14303,6 +14686,11 @@ msgid "Solid background"
 msgstr ""
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
 msgstr ""
 
 msgid ""
@@ -14360,6 +14748,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "Etwas ist schief gelaufen."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -14522,6 +14913,9 @@ msgstr "Raumbezug"
 msgid "Specific Date/Time"
 msgstr "Spezifisches Datum/Uhrzeit"
 
+msgid "Specific user"
+msgstr ""
+
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Geben Sie den Namen für das CREATE TABLE AS an im Schema : public"
 
@@ -14611,6 +15005,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15293,9 +15692,16 @@ msgstr ""
 "Zeitbereichsfiltern in Dashboards verwendet werden kann. Möchten Sie sie "
 "zur Filterliste hinzufügen?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
+msgstr ""
+
+msgid "The alert query executor is only allowed on alerts"
 msgstr ""
 
 msgid "The annotation has been saved"
@@ -15408,6 +15814,11 @@ msgstr "Die Spalte, die als Ziel der Kante verwendet werden soll."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Die Spalte wurde in der Datenbank gelöscht oder umbenannt."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Die Konfiguration der Kartenebenen"
@@ -15644,6 +16055,12 @@ msgstr ""
 "Darstellung des Dashboards\n"
 "                    am Rendern hindert: %s"
 
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
+
 msgid "The font size of the point labels"
 msgstr "Die Schriftgröße der Punktbeschriftungen"
 
@@ -15845,6 +16262,9 @@ msgstr[0] "Der Parameter %(parameters)s in ihrer Abfrage ist nicht definiert."
 msgstr[1] ""
 "Die folgenden Parameter in Ihrer Abfrage sind nicht definiert: "
 "%(parameters)s."
+
+msgid "The password could not be reset. Please try again."
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -16143,6 +16563,26 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "Die Service-URL der Ebene"
 
@@ -16293,6 +16733,18 @@ msgstr "Der/Die Benutzer*in wurde erfolgreich aktualisiert."
 
 msgid "The user was updated successfully"
 msgstr "Der/Die Benutzer*in wurde erfolgreich aktualisiert"
+
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
@@ -16688,6 +17140,12 @@ msgstr "Dies sind die Datensätze, auf die dieser Filter angewendet wird."
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -16755,6 +17213,12 @@ msgid "This action will permanently delete the user."
 msgstr "Durch diese Aktion wird der/die Benutzer*in dauerhaft gelöscht."
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr ""
@@ -16794,6 +17258,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -17068,6 +17544,10 @@ msgstr ""
 "Dashboard. Es wird dynamisch generiert, wenn die Größe und Positionen der"
 " Widgets per Drag & Drop in der Dashboard-Ansicht angepasst werden"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -17137,9 +17617,20 @@ msgstr ""
 "Dieses Passwort ist zu gebräuchlich; bitte wählen Sie ein schwerer zu "
 "erratendes."
 
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -17161,6 +17652,19 @@ msgid "This section contains validation errors"
 msgstr "Dieser Abschnitt enthält Validierungsfehler"
 
 msgid "This semantic layer has no dependent semantic views."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
 msgstr ""
 
 msgid ""
@@ -17515,6 +18019,9 @@ msgstr[1] ""
 msgid "Token Request URI"
 msgstr "URI für die Token-Anfrage"
 
+msgid "Too many requests. Please wait and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -17703,6 +18210,9 @@ msgstr "Dienstag"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -17792,6 +18302,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Es ist nicht möglich, ein solches Datumsdelta zu berechnen"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr ""
@@ -17877,6 +18390,9 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "Das Dashboard kann nicht geladen werden"
+
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -18023,6 +18539,17 @@ msgstr "Vom Ergebnisbereich lösen"
 msgid "Unpin from top"
 msgstr "Von oben lösen"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -18042,6 +18569,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Nicht unterstützter Ausdruck-Typ: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 msgid "Unsupported file type. Please use CSV, Excel, or Columnar files."
 msgstr ""
@@ -18167,6 +18697,9 @@ msgstr "Verwendung"
 msgid "Use %s to open in a new tab."
 msgstr "Verwenden Sie %s, um eine neue Registerkarte zu öffnen."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Verwenden von Flächenproportionen"
 
@@ -18209,6 +18742,12 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 "Verwenden Sie die Datumsformatierung, auch wenn der Metrikwert kein "
 "Zeitstempel ist"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 msgid "Use gradient"
 msgstr "Farbverlauf verwenden"
@@ -18265,6 +18804,9 @@ msgstr "Anmeldename"
 
 msgid "User Registrations"
 msgstr "Anmelderegistrierungen"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Benutzer*in verfügt nicht über die richtigen Berechtigungen."
@@ -18372,6 +18914,9 @@ msgstr "Wertformat"
 
 msgid "Value and Percentage"
 msgstr "Wert und Prozentsatz"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Wertgrenzen"
@@ -18849,6 +19394,11 @@ msgid "When checked, the map will zoom to your data after each query"
 msgstr ""
 "Wenn diese Option aktiviert ist, zoomt die Karte nach jeder Abfrage auf "
 "Ihre Daten"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
 
 msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
@@ -19426,6 +19976,19 @@ msgstr ""
 "Sie können ein neues Diagramm erstellen oder vorhandene Diagramme aus dem"
 " Bereich auf der rechten Seite verwenden"
 
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
+
 msgid "You can enter a value that is not listed."
 msgstr ""
 
@@ -19590,6 +20153,11 @@ msgstr ""
 "Bearbeitungszugriff anzufordern."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -19600,6 +20168,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -19607,6 +20180,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -19727,6 +20305,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -20235,6 +20822,9 @@ msgstr "jede Minute"
 msgid "every month"
 msgstr "jeden Monat"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "aufklappen"
 
@@ -20425,6 +21015,9 @@ msgstr "Minute"
 msgid "minute(s)"
 msgstr "Minute(n)"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "Monat"
 
@@ -20582,6 +21175,10 @@ msgstr "Neu starten"
 msgid "recent"
 msgstr "Kürzlich"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "Empfänger"
 
@@ -20606,11 +21203,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "Sicherheit auf Zeilenebene"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "laufend"
 
 msgid "save"
 msgstr "Speichern"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

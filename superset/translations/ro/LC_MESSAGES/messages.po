@@ -22,7 +22,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-02 21:57-0700\n"
+"POT-Creation-Date: 2026-10-16 15:10-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: ro\n"
@@ -536,6 +536,13 @@ msgid ""
 msgstr ""
 "%s elemente nu au putut fi etichetate deoarece nu aveți permisiuni de "
 "editare pentru toate obiectele selectate."
+
+#, python-format
+msgid "%s key"
+msgid_plural "%s keys"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -1203,6 +1210,12 @@ msgstr "Un grafic nou va fi creat."
 msgid "A new dashboard will be created."
 msgstr "Un panou de control va fi creat."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1224,6 +1237,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Un set de date reutilizabil va fi salvat cu graficul dvs."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -1487,6 +1505,11 @@ msgstr "Adaugă alertă"
 msgid "Add an annotation layer"
 msgstr "Adaugă un strat de adnotare"
 
+msgid ""
+"Add an arrow on the left of collapsed JSON. A click on the arrow expands "
+"the value in the row. The icon on the right opens it in a dialog."
+msgstr ""
+
 msgid "Add an item"
 msgstr "Adaugă un element"
 
@@ -1679,12 +1702,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Adăugată %s coloană nouă la setul de date virtual"
-msgstr[1] "Adăugate %s coloane noi la setul de date virtual"
-msgstr[2] "Adăugate %s de coloane noi la setul de date virtual"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Adăugată %s coloană nouă la setul de date"
+msgstr[1] "Adăugate %s coloane noi la setul de date"
+msgstr[2] "Adăugate %s de coloane noi la setul de date"
 
 #, python-format
 msgid "Added a %s"
@@ -1867,6 +1890,9 @@ msgstr "Alerta a găsit o eroare în timpul executării unei interogări."
 msgid "Alert is active"
 msgstr "Alerta este activă"
 
+msgid "Alert minimum interval"
+msgstr ""
+
 msgid "Alert name"
 msgstr "Nume alerte"
 
@@ -1922,6 +1948,18 @@ msgstr "Alerte"
 msgid "Alerts & Reports"
 msgstr "Alerte & Rapoarte"
 
+msgid "Alerts & Reports configuration"
+msgstr ""
+
+msgid "Alerts & Reports configuration could not be updated."
+msgstr ""
+
+msgid "Alerts & Reports configuration parameters are invalid."
+msgstr ""
+
+msgid "Alerts & Reports configuration updated"
+msgstr ""
+
 msgid "Alerts & reports"
 msgstr "Alerte & rapoarte"
 
@@ -1933,6 +1971,9 @@ msgstr "Aliniază +/-"
 #, fuzzy
 msgid "Align +/- for all columns"
 msgstr "Aliniază +/- pentru toate coloanele"
+
+msgid "Alignment"
+msgstr ""
 
 msgid "All"
 msgstr "Toate"
@@ -1961,6 +2002,9 @@ msgstr "Toate dimensiunile"
 
 msgid "All filters"
 msgstr "Toate filtrele"
+
+msgid "All groupable columns"
+msgstr ""
 
 msgid "All panels"
 msgstr "Toate panourile"
@@ -2043,6 +2087,9 @@ msgstr "Permite utilizatorilor să selecteze mai multe valori"
 msgid "Allowed Domains (comma separated)"
 msgstr "Domenii Permise (separate prin virgulă)"
 
+msgid "Allowed e-mail domains"
+msgstr ""
+
 msgid "Alphabetical"
 msgstr "Alfabetic"
 
@@ -2072,6 +2119,12 @@ msgstr ""
 
 msgid "Always filter main datetime column"
 msgstr "Filtrează întotdeauna coloana principală de dată/timp"
+
+#, python-format
+msgid ""
+"Ambiguous region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
 
 msgid "An Error Occurred"
 msgstr "A Apărut o Eroare"
@@ -2380,12 +2433,6 @@ msgstr "A apărut o eroare la analizarea cheii."
 msgid "An error occurred while pruning logs "
 msgstr "A apărut o eroare la curățarea jurnalelor "
 
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
-# sr, sr_Latn]
-#, fuzzy
-msgid "An error occurred while refreshing the configuration schema"
-msgstr "A apărut o eroare la reîmprospătarea schemei de configurare"
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -2404,6 +2451,9 @@ msgstr ""
 #, python-format
 msgid "An error occurred while rendering the visualization: %s"
 msgstr "A apărut o eroare la redarea vizualizării: %s"
+
+msgid "An error occurred while saving the configuration"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
@@ -2617,6 +2667,9 @@ msgid ""
 msgstr ""
 "Orice baze de date care permit conexiuni prin URI-uri SQL Alchemy pot fi "
 "adăugate. Află despre cum să conectezi un driver de bază de date "
+
+msgid "Application default"
+msgstr ""
 
 #, python-format
 msgid "Applied '%s' metric"
@@ -2999,6 +3052,11 @@ msgstr "Înapoi"
 msgid "Back to all"
 msgstr "Înapoi la toate"
 
+msgid "Back to sign in"
+msgstr ""
+
+#. i18n: the kind of system behind a connection: a database engine
+#. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
 msgstr "Backend"
 
@@ -3244,6 +3302,9 @@ msgstr "Dimensiune bulă"
 msgid "Bubble size number format"
 msgstr "Format număr dimensiune bulă"
 
+msgid "Bubble-size metric must be nonnegative"
+msgstr ""
+
 msgid "Bucket break points"
 msgstr "Puncte de întrerupere compartiment"
 
@@ -3381,6 +3442,9 @@ msgstr ""
 
 msgid "Cache Timeout (seconds)"
 msgstr "Expirare Cache (secunde)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 msgid ""
 "Cache data separately for each user based on their data access roles and "
@@ -3954,6 +4018,9 @@ msgstr "Verifică acest panou de control: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Bifează pentru a forța partițiile de dată să aibă aceeași înălțime"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3983,6 +4050,9 @@ msgstr "Alege un delimitator"
 
 msgid "Choose a metric for right axis"
 msgstr "Alege un indicator pentru axa din dreapta"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Alege un format de număr"
@@ -4295,10 +4365,17 @@ msgstr "Cod Copiat!"
 msgid "Collapse"
 msgstr "Restrângeți"
 
+#, python-format
+msgid "Collapse %s"
+msgstr ""
+
 msgid "Collapse All"
 msgstr "Restrânge Tot"
 
 msgid "Collapse Datasource panel"
+msgstr ""
+
+msgid "Collapse JSON"
 msgstr ""
 
 msgid "Collapse all"
@@ -4309,6 +4386,9 @@ msgstr "Restrânge panoul de date"
 
 msgid "Collapse row"
 msgstr "Restrânge rând"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Restrânge setările"
@@ -4587,6 +4667,9 @@ msgstr "Coloane de citit"
 msgid "Columns to show in the tooltip."
 msgstr "Coloane de afișat în tooltip."
 
+msgid "Columns viewers can choose to group charts by."
+msgstr ""
+
 msgid "Combine metrics"
 msgstr "Combină indicatori"
 
@@ -4831,6 +4914,12 @@ msgstr ""
 msgid "Contains text (ILIKE %x%)"
 msgstr "Conține text (ILIKE %x%)"
 
+msgid "Content and permissions"
+msgstr ""
+
+msgid "Content and recipient edits are restricted"
+msgstr ""
+
 msgid "Content format"
 msgstr "Format conținut"
 
@@ -4871,6 +4960,9 @@ msgstr ""
 msgid ""
 "Converted %s @import rule(s) to inline CSS. Review the result before "
 "saving."
+msgstr ""
+
+msgid "Copied"
 msgstr ""
 
 msgid "Copied to clipboard!"
@@ -4973,6 +5065,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nu s-a putut conecta la baza de date: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nu s-au putut prelua toate graficele salvate"
 
@@ -5002,6 +5098,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nu s-a putut rezolva numele de gazdă: \"%(host)s\"."
@@ -5025,6 +5126,12 @@ msgstr "Numără"
 
 msgid "Country"
 msgstr "Țară"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Schemă Culori Țară"
@@ -7236,6 +7343,9 @@ msgstr "Activează Matrixify"
 msgid "Enable Retries"
 msgstr ""
 
+msgid "Enable attachments for alerts"
+msgstr ""
+
 msgid "Enable automatic retries on report failure"
 msgstr ""
 
@@ -7393,6 +7503,11 @@ msgstr "Introduceți valorile minime și maxime pentru filtrul de interval"
 
 msgid "Enter report name"
 msgstr "Introduceți numele raportului"
+
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
 
 msgid "Enter the group's description"
 msgstr "Introduceți descrierea grupului"
@@ -7647,6 +7762,9 @@ msgstr "Exclude valorile selectate"
 msgid "Excluded subjects"
 msgstr "Subiecte excluse"
 
+msgid "Execute using my permissions"
+msgstr ""
+
 msgid "Executed SQL"
 msgstr "SQL Executat"
 
@@ -7662,6 +7780,10 @@ msgstr "Jurnal execuție"
 msgid "Existing dataset"
 msgstr "Set de date existent"
 
+#, python-format
+msgid "Existing minimum: %s seconds. Editing replaces it with whole minutes."
+msgstr ""
+
 msgid "Exit edit mode"
 msgstr ""
 
@@ -7671,8 +7793,15 @@ msgstr "Ieși din ecran complet"
 msgid "Expand"
 msgstr "Extinde"
 
+#, python-format
+msgid "Expand %s"
+msgstr ""
+
 msgid "Expand All"
 msgstr "Extinde Tot"
+
+msgid "Expand JSON"
+msgstr ""
 
 msgid "Expand all"
 msgstr "Extinde tot"
@@ -7691,6 +7820,9 @@ msgstr "Extindeți rândul pentru editare"
 
 msgid "Expand settings"
 msgstr "Extinde setările"
+
+msgid "Expected geographic query data to be a list of records"
+msgstr ""
 
 msgid ""
 "Expects a formula with depending time parameter 'x'\n"
@@ -7711,6 +7843,12 @@ msgstr "Experimental"
 #, fuzzy
 msgid "Expired"
 msgstr "Expirat"
+
+msgid ""
+"Explicit formats validate all values against bundled boundaries. "
+"Supported countries: USA, Canada, Australia, Japan, UK. Unrecognized or "
+"ambiguous values fail rather than displaying blank regions."
+msgstr ""
 
 msgid "Explore"
 msgstr "Explorează"
@@ -8000,6 +8138,9 @@ msgstr "Eșuat la încărcarea datelor graficului."
 msgid "Failed to load columns for %s %s"
 msgstr "Încărcarea coloanelor pentru %s %s a eșuat"
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -8234,6 +8375,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrează grafice"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtrul are valoare implicită"
 
@@ -8266,6 +8413,10 @@ msgstr "Valoare filtru (sensibilă la majuscule)"
 msgid "Filter value is required"
 msgstr "Valoarea filtrului este obligatorie"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "Lista valorilor filtrului nu poate fi goală"
 
@@ -8277,6 +8428,10 @@ msgstr "Filtrează graficele tale"
 
 msgid "Filters"
 msgstr "Filtre"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
@@ -8507,6 +8662,12 @@ msgstr "Cheie străină"
 msgid "Forest Green"
 msgstr "Verde Pădure"
 
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
+
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr "Date formular nu găsite în cache, revenire la metadatele graficului."
 
@@ -8540,6 +8701,9 @@ msgstr ""
 "Formatează etichetele de date. Folosește variabile: {name}, {value}, "
 "{percent}. \\n reprezintă o linie nouă. Compatibilitate ECharts:\n"
 "{a} (serie), {b} (nume), {c} (valoare), {d} (procent)"
+
+msgid "Format dates in email subjects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -8667,6 +8831,13 @@ msgstr "Coloană GeoJson"
 msgid "GeoJson Settings"
 msgstr "Setări GeoJson"
 
+#, python-format
+msgid "Geographic metric %s must be a finite number"
+msgstr ""
+
+msgid "Geographic values must be nonempty strings of at most 500 characters"
+msgstr ""
+
 msgid "Geohash"
 msgstr "Geohash"
 
@@ -8676,7 +8847,7 @@ msgstr "Coloană Geometrie"
 msgid "Get the last date by the date unit."
 msgstr "Obține ultima dată după unitatea de dată."
 
-msgid "Get the specify date for the holiday"
+msgid "Get the specified date for the holiday"
 msgstr "Obține data specificată pentru sărbătoare"
 
 msgid "Give access to multiple catalogs in a single database connection."
@@ -8772,6 +8943,9 @@ msgstr "Numele grupului"
 
 msgid "Group remaining as \"Others\""
 msgstr "Grupează restul ca \"Altele\""
+
+msgid "Groupable columns"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, lv, ru, sr, sr_Latn, uk]
@@ -8892,6 +9066,11 @@ msgstr "Orizontal (Sus)"
 msgid "Horizontal alignment"
 msgstr "Aliniere orizontală"
 
+msgid "Horizontal alignment of the metric value and supporting text"
+msgstr ""
+
+#. i18n: hostname of the database server, as it appears in the user's own
+#. database tooling
 msgid "Host"
 msgstr "Gazdă"
 
@@ -8933,11 +9112,17 @@ msgstr ""
 msgid "Huge"
 msgstr "Uriaș"
 
+msgid "ISO 3166-2"
+msgstr ""
+
 msgid "ISO 3166-2 Codes"
 msgstr "Coduri ISO 3166-2"
 
 msgid "ISO 8601"
 msgstr "ISO 8601"
+
+msgid "ISO suffix / abbreviation"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # it, ja, lv, ru, sk, sr, sr_Latn, uk]
@@ -8981,6 +9166,15 @@ msgstr ""
 "acestuia"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -9001,6 +9195,11 @@ msgid "If table already exists"
 msgstr "Dacă tabelul există deja"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -9117,15 +9316,25 @@ msgstr "Include o descriere care va fi trimisă cu raportul tău"
 msgid "Include a link back to Superset"
 msgstr ""
 
+msgid "Include attachment"
+msgstr ""
+
 #, python-format
 msgid "Include description to be sent with %s"
 msgstr "Include descriere de trimis cu %s"
+
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
 
 msgid "Include series name as an axis"
 msgstr "Include numele seriei ca axă"
 
 msgid "Include time"
 msgstr "Include timpul"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Creștere"
@@ -9351,6 +9560,14 @@ msgstr "Cod valutar nevalid în indicatorii salvați"
 msgid "Invalid date/timestamp format"
 msgstr "Format dată/timestamp invalid"
 
+#, python-format
+msgid "Invalid domain(s): %s"
+msgstr ""
+
+#, python-format
+msgid "Invalid e-mail domain: %(domain)s"
+msgstr ""
+
 msgid "Invalid executor type"
 msgstr "Tip executor invalid"
 
@@ -9412,6 +9629,9 @@ msgstr "Tip rezultat invalid: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "rolling_type invalid: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Stare invalidă."
@@ -9523,6 +9743,9 @@ msgstr "Configurare JSON"
 
 msgid "JSON Metadata"
 msgstr "Metadate JSON"
+
+msgid "JSON in cell"
+msgstr ""
 
 msgid "JSON metadata"
 msgstr "Metadate JSON"
@@ -9799,7 +10022,15 @@ msgstr "Tip aspect de arbore"
 msgid "Least recently modified"
 msgstr "Cel mai puțin modificat recent"
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
 msgid "Leave blank to keep the current password"
+msgstr ""
+
+msgid ""
+"Leave empty, or keep every column selected, to let viewers group by any "
+"groupable column, including columns added to the dataset later."
 msgstr ""
 
 msgid ""
@@ -9838,6 +10069,9 @@ msgstr "Valoare stângă"
 
 msgid "Legacy"
 msgstr "Moștenit"
+
+msgid "Legacy ISO values"
+msgstr ""
 
 msgid "Legend"
 msgstr "Legendă"
@@ -9925,6 +10159,9 @@ msgstr "Ca (insensibil la majuscule)"
 #, fuzzy
 msgid "Limit"
 msgstr "Limită"
+
+msgid "Limit recipients to users"
+msgstr ""
 
 msgid "Limit type"
 msgstr "Tip limită"
@@ -10068,6 +10305,9 @@ msgstr "Date încărcate cache-uite"
 msgid "Loaded from cache"
 msgstr "Încărcat din cache"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn, tr]
 #, fuzzy
@@ -10181,6 +10421,10 @@ msgstr "Prag Inferior"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10331,6 +10575,11 @@ msgstr "Dimensiune marker"
 
 msgid "Markers"
 msgstr "Markeri"
+
+msgid ""
+"Marks charts created through the MCP geographic contract so Explore keeps"
+" their validation guards."
+msgstr ""
 
 msgid "Markup type"
 msgstr "Tip markup"
@@ -10755,6 +11004,9 @@ msgstr "Parametri URL lipsă"
 msgid "Mixed Chart"
 msgstr "Grafic Mixt"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Modificat"
 
@@ -10766,12 +11018,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Modificat %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Modificată %s coloană în setul de date virtual"
-msgstr[1] "Modificate %s coloane în setul de date virtual"
-msgstr[2] "Modificate %s de coloane în setul de date virtual"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Modificată %s coloană în setul de date"
+msgstr[1] "Modificate %s coloane în setul de date"
+msgstr[2] "Modificate %s de coloane în setul de date"
 
 msgid "Modified by"
 msgstr "Modificat de"
@@ -10865,6 +11117,12 @@ msgid ""
 msgstr ""
 "Mai multe formate acceptate, consultă biblioteca Python geopy.points "
 "pentru mai multe detalii"
+
+#, python-format
+msgid ""
+"Multiple result rows resolve to %s; normalize source values before "
+"aggregation."
+msgstr ""
 
 msgid "Multiplier"
 msgstr "Multiplicator"
@@ -11096,6 +11354,9 @@ msgstr "Fără filtre aplicate"
 msgid "No archived items"
 msgstr ""
 
+msgid "No attachment will be generated. Saved attachment settings are retained."
+msgstr ""
+
 msgid "No available filters."
 msgstr "Fără filtre disponibile."
 
@@ -11264,6 +11525,9 @@ msgstr "Nu s-au găsit indicatori salvați"
 msgid "No selection modes are available for this control."
 msgstr ""
 
+msgid "No sort (original order)"
+msgstr ""
+
 msgid "No stored results found, you need to re-run your query"
 msgstr "Niciun rezultat stocat găsit, trebuie să rulezi din nou interogarea"
 
@@ -11388,6 +11652,10 @@ msgstr "Negăsit"
 
 msgid "Not in"
 msgstr "Nu în"
+
+#, python-format
+msgid "Not in this dataset, so viewers will not see: %s"
+msgstr ""
 
 msgid "Not null"
 msgstr "Nu null"
@@ -11589,6 +11857,9 @@ msgstr "Unul sau mai mulți indicatori de afișat"
 msgid "One or more annotation layers failed loading."
 msgstr "Unul sau mai multe straturi de adnotare au eșuat la încărcare."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Una sau mai multe coloane există deja"
 
@@ -11628,11 +11899,17 @@ msgstr "Doar Total"
 msgid "Only `SELECT` statements are allowed"
 msgstr "Doar declarațiile `SELECT` sunt permise"
 
+msgid "Only admins can set this field to a user other than themselves"
+msgstr ""
+
 msgid "Only applies when \"Label Type\" is not set to a percentage."
 msgstr "Se aplică doar când \"Tip Etichetă\" nu este setat la un procent."
 
 msgid "Only applies when \"Label Type\" is set to show values."
 msgstr "Se aplică doar când \"Tip Etichetă\" este setat să afișeze valori."
+
+msgid "Only e-mail addresses of existing active users can be used as recipients."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, sr,
 # sr_Latn]
@@ -11661,6 +11938,12 @@ msgstr "Doar catalogul implicit este suportat pentru această conexiune"
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -11695,6 +11978,9 @@ msgstr ""
 
 msgid "Open Datasource tab"
 msgstr "Deschide fila Sursă de Date"
+
+msgid "Open JSON"
+msgstr ""
 
 msgid "Open SQL Lab in a new tab"
 msgstr "Deschide SQL Lab într-o filă nouă"
@@ -12523,13 +12809,18 @@ msgid "Prefix or suffix"
 msgstr "Prefix sau sufix"
 
 #, python-format
-msgid "Preparing %(count)s charts for export. This may take a moment."
+msgid "Preparing %(count)s rows for export. This may take a moment."
 msgstr ""
 
 msgid "Preparing dashboard Excel export…"
 msgstr ""
 
 msgid "Preparing export…"
+msgstr ""
+
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
 msgstr ""
 
 msgid "Preview"
@@ -12892,6 +13183,12 @@ msgstr "Actualizare grafice"
 msgid "Refreshing columns"
 msgstr "Actualizare coloane"
 
+msgid "Region name"
+msgstr ""
+
+msgid "Region value format"
+msgstr ""
+
 msgid "Register"
 msgstr "Înregistrare"
 
@@ -12939,6 +13236,9 @@ msgstr "Reîncarcă"
 #, fuzzy
 msgid "Reload SQL Lab"
 msgstr "Reîncărcați SQL Lab"
+
+msgid "Reload metadata"
+msgstr ""
 
 msgid "Reload the page and try again to continue."
 msgstr ""
@@ -13003,12 +13303,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Eliminată %s coloană din setul de date virtual"
-msgstr[1] "Eliminate %s coloane din setul de date virtual"
-msgstr[2] "Eliminate %s de coloane din setul de date virtual"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Eliminată %s coloană din setul de date"
+msgstr[1] "Eliminate %s coloane din setul de date"
+msgstr[2] "Eliminate %s de coloane din setul de date"
 
 #, python-format
 msgid "Removed a %s"
@@ -13048,6 +13348,12 @@ msgstr ""
 
 msgid "Replace"
 msgstr "Înlocuiește"
+
+#, python-format
+msgid ""
+"Replace strftime date placeholders such as %Y-%m-%d in alert and report "
+"email subjects with the UTC date when sent."
+msgstr ""
 
 msgid "Report"
 msgstr "Raport"
@@ -13114,6 +13420,12 @@ msgstr "Programarea raportului încă lucrează, refuză să recalculeze."
 msgid "Report Schedule log prune failed."
 msgstr "Curățarea jurnalului programării raportului a eșuat."
 
+#, python-format
+msgid ""
+"Report Schedule not delivered: the following recipients are not allowed "
+"by the Alerts & Reports configuration: %(addresses)s"
+msgstr ""
+
 msgid "Report Schedule not found."
 msgstr "Programarea raportului nu a fost găsită."
 
@@ -13137,6 +13449,9 @@ msgstr "Raportul a eșuat"
 
 msgid "Report is active"
 msgstr "Raportul este activ"
+
+msgid "Report minimum interval"
+msgstr ""
 
 msgid "Report name"
 msgstr "Nume raport"
@@ -13173,6 +13488,9 @@ msgstr "Raport actualizat"
 msgid "Reports"
 msgstr "Rapoarte"
 
+msgid "Reports require a content format"
+msgstr ""
+
 msgid "Repulsion"
 msgstr "Repulsie"
 
@@ -13181,6 +13499,12 @@ msgstr "Intensitate repulsie între noduri"
 
 msgid "Request Access"
 msgstr "Solicită acces"
+
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
 
 msgid "Request access"
 msgstr ""
@@ -13267,6 +13591,10 @@ msgstr "Resetează starea"
 #, fuzzy
 msgid "Reset to default folders?"
 msgstr "Resetați la folderele implicite?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, fr, it,
 # ja, lv, ru, sr, sr_Latn, uk]
@@ -13577,6 +13905,18 @@ msgstr "Rulați o interogare pentru a afișa istoricul interogărilor"
 msgid "Run a query to display results"
 msgstr "Rulați o interogare pentru a afișa rezultatele"
 
+msgid "Run alert query as"
+msgstr ""
+
+msgid "Run alert query as type"
+msgstr ""
+
+msgid "Run as"
+msgstr ""
+
+msgid "Run as type"
+msgstr ""
+
 msgid "Run current query"
 msgstr "Rulează interogarea curentă"
 
@@ -13659,6 +13999,11 @@ msgstr ""
 msgid "SQL Query"
 msgstr "Interogare SQL"
 
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr "Expresie SQL"
 
@@ -13719,6 +14064,9 @@ msgstr "ȘIR"
 
 msgid "SUN"
 msgstr "DUM"
+
+msgid "Same as \"Run as\""
+msgstr ""
 
 msgid "Sample Standard Deviation"
 msgstr ""
@@ -14573,12 +14921,16 @@ msgstr ""
 msgid "Select the type of color scheme to use."
 msgstr "Selectați tipul de schemă de culori de folosit."
 
+msgid "Select user"
+msgstr ""
+
 msgid "Select users"
 msgstr "Selectează utilizatori"
 
 msgid "Select values"
 msgstr "Selectează valori"
 
+#. i18n: "control panel" is Explore's chart-options panel, not a dashboard
 #, python-format
 msgid ""
 "Select values in highlighted field(s) in the control panel. Then run the "
@@ -14636,6 +14988,9 @@ msgstr "Vizualizare semantică"
 msgid "Semantic Views"
 msgstr "Vizualizări semantice"
 
+msgid "Semantic cache"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -14690,6 +15045,17 @@ msgstr "Tipul stratului semantic"
 msgid "Semantic layer updated"
 msgstr "Strat semantic actualizat"
 
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # sr, sr_Latn]
 #, fuzzy
@@ -14732,6 +15098,9 @@ msgstr "Vizualizare semantică actualizată"
 msgid "Semantic views"
 msgstr "Vizualizări semantice"
 
+msgid "Semantic views cannot enforce guest row-level security rules."
+msgstr ""
+
 msgid "Send Failed Reports"
 msgstr ""
 
@@ -14750,7 +15119,13 @@ msgstr "Trimite ca PNG"
 msgid "Send as text"
 msgstr "Trimite ca text"
 
+msgid "Send reset link"
+msgstr ""
+
 msgid "Send the failed report to all recipients after retries are exhausted"
+msgstr ""
+
+msgid "Separate domains with commas. Leave empty to allow any domain."
 msgstr ""
 
 msgid "September"
@@ -15183,6 +15558,9 @@ msgstr "Afișează rezumat"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Afișează total"
 
@@ -15263,6 +15641,9 @@ msgstr "Autentificare"
 msgid "Sign in with"
 msgstr "Autentificare cu"
 
+msgid "Sign in with your new password."
+msgstr ""
+
 msgid "Significance Level"
 msgstr "Nivel de semnificație"
 
@@ -15330,6 +15711,7 @@ msgstr "Glisor"
 msgid "Slider and range input"
 msgstr "Glisor și intrare interval"
 
+#. i18n: the short identifier in a dashboard's URL, not the animal
 msgid "Slug"
 msgstr "Slug"
 
@@ -15366,6 +15748,11 @@ msgid "Solid background"
 msgstr ""
 
 msgid "Some charts did not finish loading. The export may be incomplete."
+msgstr ""
+
+msgid ""
+"Some existing alerts/reports conflict with the new configuration. Please "
+"update them first."
 msgstr ""
 
 msgid ""
@@ -15426,6 +15813,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "Ceva a mers greșit."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -15596,6 +15986,9 @@ msgstr "Spațial"
 msgid "Specific Date/Time"
 msgstr "Dată/Ora specifică"
 
+msgid "Specific user"
+msgstr ""
+
 msgid "Specify name to CREATE TABLE AS schema in: public"
 msgstr "Specifică nume pentru CREATE TABLE AS schema în: public"
 
@@ -15686,6 +16079,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -16437,9 +16835,16 @@ msgstr ""
 "filtrele de interval de timp din panourile de control. Doriți să o "
 "adăugați în lista de filtre?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
+msgstr ""
+
+msgid "The alert query executor is only allowed on alerts"
 msgstr ""
 
 msgid "The annotation has been saved"
@@ -16551,6 +16956,11 @@ msgstr "Coloana de folosit ca țintă a muchiei."
 
 msgid "The column was deleted or renamed in the database."
 msgstr "Coloana a fost ștearsă sau redenumită în baza de date."
+
+msgid ""
+"The columns allowed for this control are no longer in the dataset. Ask "
+"the dashboard owner to update it."
+msgstr ""
 
 msgid "The configuration for the map layers"
 msgstr "Configurația pentru straturile hărții"
@@ -16794,6 +17204,12 @@ msgstr ""
 " panoul de control\n"
 "                    să se încarce: %s"
 
+#, python-format
+msgid ""
+"The following recipients are not allowed by the Alerts & Reports "
+"configuration: %(addresses)s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, it, ja,
 # lv, ru, sr, sr_Latn, uk]
 #, fuzzy
@@ -16993,6 +17409,9 @@ msgid_plural "The following parameters in your query are undefined: %(parameters
 msgstr[0] "Parametrul %(parameters)s din interogarea dvs. este nedefinit."
 msgstr[1] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(parameters)s."
 msgstr[2] "Următorii parametri din interogarea dvs. sunt nedefiniți: %(parameters)s."
+
+msgid "The password could not be reset. Please try again."
+msgstr ""
 
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
@@ -17291,6 +17710,26 @@ msgid ""
 "objects."
 msgstr ""
 
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
+msgstr ""
+
 msgid "The service url of the layer"
 msgstr "URL-ul serviciului stratului"
 
@@ -17453,6 +17892,18 @@ msgstr "Utilizatorul a fost actualizat cu succes."
 
 msgid "The user was updated successfully"
 msgstr "Utilizatorul a fost actualizat cu succes"
+
+msgid ""
+"The user whose database credentials are used to run the alert condition "
+"query. Defaults to the \"Run as\" user."
+msgstr ""
+
+#, python-format
+msgid ""
+"The user whose permissions and database credentials are used to render "
+"this %s. Application default uses ALERT_REPORTS_EXECUTORS. Only admins "
+"can pick another user."
+msgstr ""
 
 msgid "The user/password combination is not valid (Incorrect password for user)."
 msgstr ""
@@ -17861,6 +18312,12 @@ msgstr "Acestea sunt seturile de date la care va fi aplicat acest filtru."
 
 #, python-format
 msgid ""
+"This %(schedule)s executes as another user. Only admins can change its "
+"content; set the Run As field to your own account to make this change."
+msgstr ""
+
+#, python-format
+msgid ""
 "This %(type)s will be moved to Recently Archived and may be permanently "
 "deleted on the next cleanup run."
 msgstr ""
@@ -17929,6 +18386,12 @@ msgid "This action will permanently delete the user."
 msgstr "Această acțiune va șterge permanent utilizatorul."
 
 msgid ""
+"This alert query is not set to execute as your account. Only admins can "
+"change its condition; set \"Run alert query as\" to your own account "
+"first."
+msgstr ""
+
+msgid ""
 "This can be either an IP address (e.g. 127.0.0.1) or a domain name (e.g. "
 "mydatabase.com)."
 msgstr ""
@@ -17967,6 +18430,18 @@ msgid "This chart no longer exists."
 msgstr ""
 
 msgid "This chart only"
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
 msgstr ""
 
 msgid "This chart will be restored to the following version:"
@@ -18261,6 +18736,10 @@ msgstr ""
 "control. Este generat dinamic când se ajustează dimensiunea și pozițiile "
 "widget-urilor folosind drag & drop în vizualizarea panoului de control."
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -18335,9 +18814,20 @@ msgstr ""
 "Această parolă este prea comună; vă rugăm să alegeți una mai greu de "
 "ghicit."
 
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
+msgstr ""
+
+msgid ""
+"This schedule will use your permissions. You need access to its content "
+"and, for alerts, its condition query. Changes take effect when you save."
 msgstr ""
 
 msgid ""
@@ -18359,6 +18849,19 @@ msgid "This section contains validation errors"
 msgstr "Această secțiune conține erori de validare"
 
 msgid "This semantic layer has no dependent semantic views."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
 msgstr ""
 
 msgid ""
@@ -18740,6 +19243,9 @@ msgstr[2] ""
 msgid "Token Request URI"
 msgstr "URI de solicitare a tokenului"
 
+msgid "Too many requests. Please wait and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -18929,6 +19435,9 @@ msgstr "Marți"
 msgid "Tukey"
 msgstr "Tukey"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -19036,6 +19545,9 @@ msgstr ""
 msgid "Unable to calculate such a date delta"
 msgstr "Nu se poate calcula un astfel de delta de dată"
 
+msgid "Unable to clear metadata cache"
+msgstr ""
+
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
 msgstr "Nu se poate conecta la catalogul numit \"%(catalog_name)s\"."
@@ -19128,6 +19640,9 @@ msgstr ""
 
 msgid "Unable to load dashboard"
 msgstr "Nu se poate încărca panoul de control"
+
+msgid "Unable to load the Alerts & Reports configuration."
+msgstr ""
 
 msgid ""
 "Unable to migrate query editor state to backend. Superset will retry "
@@ -19285,6 +19800,17 @@ msgstr "Desprinde din panoul de rezultate"
 msgid "Unpin from top"
 msgstr "Desprinde din vârf"
 
+msgid ""
+"Unrecognized or duplicate country value; choose the matching country "
+"format or normalize source values before aggregation."
+msgstr ""
+
+#, python-format
+msgid ""
+"Unrecognized region %s; choose the matching country/region format or "
+"explicitly filter the dataset."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
 msgid "Unsafe link blocked"
@@ -19304,6 +19830,9 @@ msgstr ""
 #, python-format
 msgid "Unsupported clause type: %(clause)s"
 msgstr "Tip de clauză neacceptat: %(clause)s"
+
+msgid "Unsupported country or region_format for typed geographic chart"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
@@ -19435,6 +19964,9 @@ msgstr "Utilizare"
 msgid "Use %s to open in a new tab."
 msgstr "Folosiți %s pentru a deschide într-un tab nou."
 
+msgid "Use 0 or leave empty to allow any schedule."
+msgstr ""
+
 msgid "Use Area Proportions"
 msgstr "Folosește proporții de arie"
 
@@ -19477,6 +20009,12 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 "Folosește formatarea datei chiar și atunci când valoarea indicatorului nu"
 " este un marcaj temporal"
+
+msgid ""
+"Use example.com for an exact domain, *.example.com for subdomains, or "
+"preset.* for preset.io and preset.ai. A trailing wildcard matches one "
+"segment. Leave empty to allow any domain."
+msgstr ""
 
 msgid "Use gradient"
 msgstr "Folosește gradient"
@@ -19528,6 +20066,9 @@ msgstr "Nume utilizator"
 
 msgid "User Registrations"
 msgstr "Înregistrări utilizatori"
+
+msgid "User does not exist or is inactive"
+msgstr ""
 
 msgid "User doesn't have the proper permissions."
 msgstr "Utilizatorul nu are permisiunile corespunzătoare."
@@ -19649,6 +20190,9 @@ msgstr "Format valoare"
 
 msgid "Value and Percentage"
 msgstr "Valoare și procentaj"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Limite valoare"
@@ -20141,6 +20685,11 @@ msgstr ""
 
 msgid "When checked, the map will zoom to your data after each query"
 msgstr "Când este bifat, harta va face zoom la datele dvs. după fiecare interogare"
+
+msgid ""
+"When disabled, alerts only send the message and link, without screenshots"
+" or data files. Applies to all alerts."
+msgstr ""
 
 msgid ""
 "When enabled, increasing candles use the increase color and decreasing "
@@ -20723,6 +21272,19 @@ msgid ""
 "right"
 msgstr "Puteți crea un grafic nou sau folosi cele existente din panoul din dreapta"
 
+msgid ""
+"You can edit the name and schedule, but changing the delivered content or"
+" recipients requires updating it to execute with your permissions. Only "
+"admins can select other users."
+msgstr ""
+
+msgid ""
+"You can edit the name and schedule. Changing the alert condition requires"
+" its query to execute with your permissions. Changing the attachment "
+"content or recipients requires updating it to execute with your "
+"permissions. Only admins can select other users."
+msgstr ""
+
 msgid "You can enter a value that is not listed."
 msgstr ""
 
@@ -20901,6 +21463,11 @@ msgstr ""
 "pentru %s pentru a solicita modificări sau acces de editare."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -20911,6 +21478,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -20918,6 +21490,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -21043,6 +21620,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"
@@ -21598,6 +22184,9 @@ msgstr "fiecare minut"
 msgid "every month"
 msgstr "fiecare lună"
 
+msgid "example.com, *.example.org"
+msgstr ""
+
 msgid "expand"
 msgstr "extinde"
 
@@ -21811,6 +22400,9 @@ msgstr "minut"
 msgid "minute(s)"
 msgstr "minut(e)"
 
+msgid "minutes"
+msgstr ""
+
 msgid "month"
 msgstr "lună"
 
@@ -21987,6 +22579,10 @@ msgstr "repornire"
 msgid "recent"
 msgstr "recent"
 
+#, python-format
+msgid "recipient %s is not allowed"
+msgstr ""
+
 msgid "recipients"
 msgstr "destinatari"
 
@@ -22011,11 +22607,18 @@ msgstr ""
 msgid "rowlevelsecurity"
 msgstr "securitate_la_nivel_de_rând"
 
+msgid "run as"
+msgstr ""
+
 msgid "running"
 msgstr "rulează"
 
 msgid "save"
 msgstr "salvează"
+
+#, python-format
+msgid "schedule \"%s\" runs more often than the minimum interval"
+msgstr ""
 
 #. do-not-translate
 msgid "schema1,schema2"

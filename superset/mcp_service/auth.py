@@ -88,7 +88,6 @@ if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
     from superset.mcp_service.chart.chart_utils import DatasetValidationResult
     from superset.security.guest_token import GuestToken
-    from superset.semantic_layers.models import SemanticView
 
 # Type variable for decorated functions
 F = TypeVar("F", bound=Callable[..., Any])
@@ -912,7 +911,7 @@ def get_user_from_request() -> MCPUser:
     )
 
 
-def has_dataset_access(dataset: "SqlaTable | SemanticView") -> bool:
+def has_dataset_access(dataset: "SqlaTable") -> bool:
     """
     Validate user has access to the dataset.
 
@@ -920,7 +919,7 @@ def has_dataset_access(dataset: "SqlaTable | SemanticView") -> bool:
     has permission to access the given dataset using Superset's security manager.
 
     Args:
-        dataset: The SqlaTable dataset or semantic view to check access for
+        dataset: The SqlaTable dataset to check access for
 
     Returns:
         True if user has access, False otherwise
@@ -944,48 +943,30 @@ def has_dataset_access(dataset: "SqlaTable | SemanticView") -> bool:
 
 
 def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
-    """Validate that the current user can access a chart's underlying datasource.
+    """Validate that the current user can access a chart's underlying dataset.
 
     This extends the RBAC system: ``mcp_auth_hook`` enforces class-level
     permissions before tool execution; this function enforces data-level
-    permissions inside tools after retrieving specific objects. The datasource
-    is resolved by the chart's ``datasource_type`` and id together.
+    permissions inside tools after retrieving specific objects.
+
+    Semantic views share the numeric id space with datasets, so the source is
+    resolved by ``datasource_type``, never by id alone.
 
     Args:
-        chart: A Slice ORM object with datasource_type and datasource_id
+        chart: A Slice ORM object with datasource_id and datasource_type
 
     Returns:
         DatasetValidationResult with is_valid, error, etc.
     """
     from superset.mcp_service.chart.chart_utils import (
-        DatasetValidationResult,
         validate_chart_dataset,
+        validate_chart_semantic_view,
     )
     from superset.utils.core import DatasourceType
 
-    datasource_type: str | None = chart.datasource_type
-    datasource_id: int | None = chart.datasource_id
-    if datasource_type == DatasourceType.TABLE:
-        return validate_chart_dataset(datasource_id, check_access=True)
-
-    # Other kinds are resolved by their own type, never by a same-id dataset.
-    view: "SemanticView | None" = (
-        chart.semantic_view if datasource_type == DatasourceType.SEMANTIC_VIEW else None
-    )
-    if view is None or not has_dataset_access(view):
-        return DatasetValidationResult(
-            is_valid=False,
-            dataset_id=datasource_id,
-            dataset_name=None,
-            warnings=[],
-            error="Chart's datasource is not accessible",
-        )
-    return DatasetValidationResult(
-        is_valid=True,
-        dataset_id=datasource_id,
-        dataset_name=view.name,
-        warnings=[],
-    )
+    if getattr(chart, "datasource_type", None) == DatasourceType.SEMANTIC_VIEW.value:
+        return validate_chart_semantic_view(chart.datasource_id, check_access=True)
+    return validate_chart_dataset(chart.datasource_id, check_access=True)
 
 
 def _log_user_resolution_failure(exc: ValueError | PermissionError) -> None:

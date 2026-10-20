@@ -49,12 +49,16 @@ from superset.commands.chart.exceptions import (
 )
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import ChartDataExecutionResult
+from superset.common.query_context_factory import QueryContextFactory
 from superset.connectors.sqla.models import BaseDatasource
-from superset.constants import CACHE_DISABLED_TIMEOUT
+from superset.constants import CACHE_DISABLED_TIMEOUT, SemanticCacheStatus
 from superset.daos.exceptions import DatasourceNotFound
+from superset.errors import SupersetErrorType
 from superset.exceptions import QueryObjectValidationError, SupersetSecurityException
 from superset.extensions import cache_manager, event_logger
 from superset.models.sql_lab import Query
+from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.exceptions import SemanticLayerQueryRejectedError
 from superset.tasks.async_queries import submit_chart_data_query_tasks
 from superset.tasks.guest import get_current_guest_subscriber_key
 from superset.utils import json
@@ -64,7 +68,10 @@ from superset.utils.core import (
     get_user_id,
 )
 from superset.utils.decorators import logs_context
-from superset.utils.error_sanitization import sanitize_error_message
+from superset.utils.error_sanitization import (
+    redact_sensitive_query_fields,
+    sanitize_error_message,
+)
 from superset.views.base import CsvResponse, generate_download_headers, XlsxResponse
 from superset.views.base_api import statsd_metrics
 
@@ -220,9 +227,16 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
+        except SemanticLayersDisabledError as error:
+            return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
-        except SupersetSecurityException:
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
             return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -318,9 +332,16 @@ class ChartDataRestApi(ChartRestApi):
             query_context = self._create_query_context_from_form(json_body)
             command = ChartDataCommand(query_context)
             command.validate()
+        except SemanticLayersDisabledError as error:
+            return self.response(404, message=str(error))
         except DatasourceNotFound:
             return self.response_404()
-        except SupersetSecurityException:
+        except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise
             return self.response_403()
         except QueryObjectValidationError as error:
             return self.response_400(message=error.message)
@@ -543,21 +564,11 @@ class ChartDataRestApi(ChartRestApi):
                 ):
                     query["timing"] = query_result.timing.as_public_dict()
 
-            if security_manager.is_guest_user():
-                # Guests may see the generated SQL only when the role attached to
-                # their guest token has been granted "can view query on Dashboard",
-                # mirroring the permission the frontend uses to expose the
-                # "View query" action. Stacktraces and driver errors stay redacted
-                # regardless, as those leak details of the deployment itself.
-                can_view_query = security_manager.can_access(
-                    "can_view_query", "Dashboard"
-                )
-                for query in queries:
-                    if not can_view_query:
-                        query.pop("query", None)
-                    query.pop("stacktrace", None)
-                    if query.get("error"):
-                        query["error"] = sanitize_error_message(query["error"])
+            # Guest (embedded) responses drop the generated SQL unless the guest
+            # role has "can view query on Dashboard", and always drop stacktraces
+            # and raw driver errors; a no-op for other principals. See
+            # ``redact_sensitive_query_fields``.
+            redact_sensitive_query_fields(queries)
 
             payload: dict[str, Any] = {"result": queries}
             if dashboard_filter_context is not None:
@@ -571,6 +582,9 @@ class ChartDataRestApi(ChartRestApi):
                 )
             resp = make_response(response_data, 200)
             resp.headers["Content-Type"] = "application/json; charset=utf-8"
+            resp.headers["X-Superset-Semantic-Cache"] = SemanticCacheStatus.combine(
+                query.get("semantic_cache_status") for query in queries
+            ).value
             return resp
 
         return self.response_400(message=f"Unsupported result_format: {result_format}")
@@ -678,7 +692,11 @@ class ChartDataRestApi(ChartRestApi):
             result = command.execute(force_cached=force_cached)
         except ChartDataCacheLoadError as exc:
             return self.response_422(message=sanitize_error_message(exc.message))
-        except ChartDataQueryFailedError as exc:
+        except (
+            ChartDataQueryFailedError,
+            SemanticLayerQueryRejectedError,
+            QueryObjectValidationError,
+        ) as exc:
             return self.response_400(message=sanitize_error_message(exc.message))
 
             # Log is_cached if extra payload callback is provided
@@ -750,7 +768,11 @@ class ChartDataRestApi(ChartRestApi):
         """
 
         try:
-            return ChartDataQueryContextSchema().load(form_data)
+            schema: ChartDataQueryContextSchema = ChartDataQueryContextSchema()
+            schema.query_context_factory = QueryContextFactory(
+                authorize_semantic_before_metadata=True
+            )
+            return schema.load(form_data)
         except KeyError as ex:
             raise ValidationError("Request is incorrect") from ex
         except ValueError as ex:

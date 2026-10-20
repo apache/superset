@@ -29,6 +29,7 @@ from superset.key_value.exceptions import (
     KeyValueCodecEncodeException,
     KeyValueUpsertFailedError,
 )
+from superset.key_value.types import RowLock
 from superset.key_value.utils import (
     encode_permalink_key,
     get_deterministic_uuid,
@@ -118,9 +119,15 @@ class CreateDashboardPermalinkCommand(BaseDashboardPermalinkCommand):
             # winner's row is committed by now, so re-read it. Use a locking read:
             # under REPEATABLE READ (e.g. MySQL's default) a plain SELECT keeps
             # using the snapshot taken by the lookup above and would not see the
-            # row the winner just committed. If nothing is found, this was not the
-            # expected duplicate, so re-raise.
-            entry = KeyValueDAO.get_entry(self.resource, uuid_key, for_update=True)
+            # row the winner just committed. The lock must be shared, not exclusive:
+            # on InnoDB each loser's failed insert already holds a shared lock on
+            # the duplicate index record, so with 3+ concurrent losers exclusive
+            # (FOR UPDATE) re-reads wait on each other's shared locks and deadlock.
+            # Nothing below writes to the row. If nothing is found, this was not
+            # the expected duplicate, so re-raise.
+            entry = KeyValueDAO.get_entry(
+                self.resource, uuid_key, lock=RowLock(read=True)
+            )
             if entry is None:
                 raise
         assert entry.id  # for type checks

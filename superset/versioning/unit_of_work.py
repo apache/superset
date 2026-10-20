@@ -18,13 +18,39 @@
 
 from copy import copy
 from dataclasses import dataclass
+from itertools import chain
 from typing import Any
 
+from sqlalchemy.engine import Connection
 from sqlalchemy.orm import Session
+from sqlalchemy_continuum import versioning_manager
 from sqlalchemy_continuum.operation import Operation, Operations
 from sqlalchemy_continuum.unit_of_work import UnitOfWork
+from sqlalchemy_continuum.utils import is_versioned
 
 from superset.versioning.utils import capture_enabled
+
+INITIAL_STATES_KEY: str = "_version_changes_initial_states"
+
+
+def _has_versioned_work(session: Session) -> bool:
+    """Recognize pending parents, children, deletes, or retained pre-flush state."""
+    return bool(session.info.get(INITIAL_STATES_KEY)) or any(
+        is_versioned(obj) for obj in chain(session.new, session.dirty, session.deleted)
+    )
+
+
+def capture_for_write(session: Session) -> bool:
+    """Share the unit's frozen decision without evaluating unrelated writes."""
+    connection: Connection | None = versioning_manager.session_connection_map.get(
+        session
+    )
+    unit: CaptureUnitOfWork | None = versioning_manager.units_of_work.get(connection)
+    if unit is None:
+        if not _has_versioned_work(session):
+            return False
+        unit = versioning_manager.unit_of_work(session)
+    return unit.capture_if_needed(session)
 
 
 @dataclass
@@ -57,9 +83,21 @@ class CaptureUnitOfWork(UnitOfWork):
             self._capture_allowed = capture_enabled(session)
         return self._capture_allowed
 
+    def capture_if_needed(self, session: Session) -> bool:
+        """Leave unrelated work undecided until the first versioned flush."""
+        if session is self.version_session:
+            return False
+        if (
+            self._capture_allowed is None
+            and not self.has_changes
+            and not _has_versioned_work(session)
+        ):
+            return False
+        return self._capture_enabled(session)
+
     def process_before_flush(self, session: Session) -> None:
         """Decide before Continuum creates its transaction or version session."""
-        if session is self.version_session or not self._capture_enabled(session):
+        if not self.capture_if_needed(session):
             return
         if self.version_session is None and self.is_modified(session):
             self._ensure_version_session(session)
@@ -112,7 +150,7 @@ class CaptureUnitOfWork(UnitOfWork):
         """Discard denied operations, including relationship-table statements."""
         if session is self.version_session:
             return
-        if not self._capture_enabled(session):
+        if not self.capture_if_needed(session):
             self.operations = Operations()
             self.pending_statements.clear()
             return

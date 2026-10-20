@@ -89,15 +89,17 @@ test('Should render', async () => {
   expect(await screen.findByTestId('CollectionControl')).toBeInTheDocument();
 });
 
-test('Should show the button with the label', async () => {
+test('Should show the noninteractive label as plain text', async () => {
   const props = createProps();
   render(<CollectionControl {...props} />);
+  const label = await screen.findByText(props.label);
+  expect(label).toBeVisible();
+  expect(label).not.toHaveAttribute('role');
+  expect(label).not.toHaveAttribute('tabindex');
+  expect(label).not.toHaveAttribute('aria-disabled');
   expect(
-    await screen.findByRole('button', { name: props.label }),
-  ).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: props.label })).toHaveTextContent(
-    props.label,
-  );
+    screen.queryByRole('button', { name: props.label }),
+  ).not.toBeInTheDocument();
 });
 
 test('Should have add button', async () => {
