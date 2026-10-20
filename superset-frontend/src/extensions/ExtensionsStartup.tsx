@@ -32,6 +32,7 @@ import {
   useNavigationTracker,
   sqlLab,
   views,
+  window as windowNamespace,
 } from 'src/core';
 import { useSelector } from 'react-redux';
 import { RootState } from 'src/views/store';
@@ -65,6 +66,7 @@ const ExtensionsStartup: React.FC<{ children?: React.ReactNode }> = ({
       navigation,
       sqlLab,
       views,
+      window: windowNamespace,
     };
 
     if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
