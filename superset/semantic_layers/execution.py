@@ -28,7 +28,7 @@ from uuid import uuid4
 
 from flask import current_app, g, has_request_context
 from sqlalchemy import select
-from sqlalchemy.engine import Engine
+from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import object_session, Session
 from sqlalchemy.sql import Select
@@ -94,24 +94,60 @@ def semantic_namespace() -> str:
     return namespace
 
 
-def metadata_namespace(engine: Engine) -> str:
+def metadata_namespace(connection: Connection) -> str:
     """Read the active metadata store's identity, not the app's startup bind.
 
-    Dynamic metadata hosts may use one app for multiple stores. Reuse the
-    execution identity's independent transaction and startup-race recovery.
+    Use the caller's connection without ORM autoflush or another pool checkout.
+    Only a missing identity needs an independent, durable bootstrap transaction.
     Callers memoize this value only within their metadata session.
     """
-    return _install_namespace(engine)
+    value: bytes | None = connection.scalar(_namespace_statement())
+    if value is not None:
+        return _decode_namespace(value)
+    if connection.dialect.name == "sqlite" and getattr(
+        connection.connection.driver_connection, "in_transaction", False
+    ):
+        # A separate writer could wait on this caller's SQLite transaction.
+        # Do not commit or roll back caller work to make bootstrap possible.
+        raise ValueError(
+            "Initialize the semantic execution namespace "
+            "before starting a SQLite transaction"
+        )
+    engine: Engine = connection.engine
+    # A separate pool preserves the configured connection creator/on-connect
+    # hooks without waiting for capacity held by this caller in the original pool.
+    bootstrap: Engine = Engine(engine.pool.recreate(), engine.dialect, engine.url)
+    try:
+        return _install_namespace(bootstrap)
+    finally:
+        bootstrap.dispose()
+
+
+def _namespace_statement() -> Select:
+    """Select the existing installation record shared by both identity readers."""
+    return select(KeyValueEntry.value).where(
+        KeyValueEntry.uuid == SEMANTIC_INSTALL_ID_KEY,
+        KeyValueEntry.resource == KeyValueResource.SEMANTIC_EXECUTION.value,
+    )
+
+
+def _decode_namespace(value: bytes | None) -> str:
+    """Validate persisted identity without substituting a process-local value."""
+    namespace: Any = (
+        JsonKeyValueCodec().decode(value).get("namespace")
+        if value is not None
+        else None
+    )
+    if not isinstance(namespace, str) or not namespace.strip():
+        raise ValueError("Semantic execution namespace is unavailable")
+    return namespace
 
 
 def _install_namespace(engine: Engine) -> str:
     """Create a durable UUID independently, including startup races."""
     codec: JsonKeyValueCodec = JsonKeyValueCodec()
     with Session(engine) as session:
-        statement: Select = select(KeyValueEntry.value).where(
-            KeyValueEntry.uuid == SEMANTIC_INSTALL_ID_KEY,
-            KeyValueEntry.resource == KeyValueResource.SEMANTIC_EXECUTION.value,
-        )
+        statement: Select = _namespace_statement()
         value: bytes | None = session.scalar(statement)
         if value is None:
             session.add(
@@ -129,12 +165,7 @@ def _install_namespace(engine: Engine) -> str:
             except IntegrityError:
                 session.rollback()  # pylint: disable=consider-using-transaction
             value = session.scalar(statement)
-        namespace: Any = (
-            codec.decode(value).get("namespace") if value is not None else None
-        )
-        if not isinstance(namespace, str) or not namespace.strip():
-            raise ValueError("Semantic execution namespace is unavailable")
-        return namespace
+        return _decode_namespace(value)
 
 
 def effective_role_ids(user: Any) -> tuple[str, ...]:

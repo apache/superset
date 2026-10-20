@@ -172,7 +172,9 @@ class _MetadataGenerations:
             if not namespace:
                 engine: sa.engine.Engine = session.get_bind(mapper=SemanticLayer).engine
                 if engine not in self.namespaces:
-                    self.namespaces[engine] = metadata_namespace(engine)
+                    self.namespaces[engine] = metadata_namespace(
+                        session.connection(bind_arguments={"mapper": SemanticLayer})
+                    )
                 namespace = self.namespaces[engine]
             identity: list[str] = ["namespace", namespace]
             scope: str = hashlib.sha256(json.dumps(identity).encode()).hexdigest()

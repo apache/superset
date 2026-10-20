@@ -29,9 +29,10 @@ import pytest
 from flask import Flask, Response
 from flask_caching import Cache
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine, event
+from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session
+from sqlalchemy.pool import NullPool, QueuePool
 
 from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
@@ -41,7 +42,12 @@ from superset.common.query_object import QueryObject
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.constants import CacheRegion
 from superset.key_value.models import KeyValueEntry
+from superset.key_value.types import (
+    JsonKeyValueCodec,
+    KeyValueResource,
+)
 from superset.models.helpers import QueryResult
+from superset.semantic_layers.execution import _install_namespace
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from tests.unit_tests.semantic_layers.conftest import LegacyLayer
 
@@ -241,3 +247,101 @@ def test_identity_is_memoized_without_committing_caller(
             assert len(statements) == 1
     finally:
         event.remove(engine, "before_cursor_execute", record)
+
+
+@pytest.mark.parametrize("seed_identity", [True, False])
+def test_single_connection_pool_never_waits_for_itself(
+    namespace_app: Flask, tmp_path: Path, seed_identity: bool
+) -> None:
+    """Both existing identity reads and first-use bootstrap avoid pool self-wait."""
+    engine: Engine = create_engine(
+        f"sqlite:///{tmp_path / 'single.db'}",
+        poolclass=QueuePool,
+        pool_size=1,
+        max_overflow=0,
+        pool_timeout=0.05,
+    )
+    try:
+        KeyValueEntry.__table__.create(engine)
+        expected: str | None = _install_namespace(engine) if seed_identity else None
+        with Session(engine) as session:
+            session.connection()
+            context: QueryContext = context_for_session(session)
+            assert isinstance(context.datasource, SemanticView)
+            generation: str = context.datasource.metadata_generation
+            assert generation
+            assert context.datasource.semantic_layer in session.new
+        durable: str = _install_namespace(engine)
+        if expected is not None:
+            assert durable == expected
+        with Session(engine) as reader:
+            assert (
+                context_for_session(reader).datasource.get_extra_cache_keys({})[0]
+                == generation
+            )
+    finally:
+        engine.dispose()
+
+
+def test_nullpool_identity_read_adds_no_connections(
+    namespace_app: Flask, tmp_path: Path
+) -> None:
+    """Each request's already-open connection suffices for the identity lookup."""
+    engine: Engine = create_engine(
+        f"sqlite:///{tmp_path / 'nullpool.db'}", poolclass=NullPool
+    )
+    connections: list[object] = []
+
+    def connected(dbapi_connection: object, record: object) -> None:
+        connections.append(dbapi_connection)
+
+    try:
+        KeyValueEntry.__table__.create(engine)
+        _install_namespace(engine)
+        event.listen(engine, "connect", connected)
+        for _ in range(3):
+            with Session(engine) as session:
+                session.connection()
+                assert context_for_session(session).datasource.get_extra_cache_keys({})
+        assert len(connections) == 3
+    finally:
+        event.remove(engine, "connect", connected)
+        engine.dispose()
+
+
+def test_missing_identity_with_sqlite_write_fails_without_committing(
+    namespace_app: Flask, tmp_path: Path
+) -> None:
+    """Bootstrap must not wait on, or commit, the caller's SQLite write lock."""
+    engine: Engine = create_engine(
+        f"sqlite:///{tmp_path / 'write-lock.db'}",
+        poolclass=QueuePool,
+        pool_size=1,
+        max_overflow=0,
+        pool_timeout=0.05,
+    )
+    try:
+        KeyValueEntry.__table__.create(engine)
+        with Session(engine) as session:
+            session.connection().execute(
+                KeyValueEntry.__table__.insert().values(
+                    uuid=UUID(int=20),
+                    resource=KeyValueResource.SEMANTIC_EXECUTION.value,
+                    value=JsonKeyValueCodec().encode({"pending": True}),
+                )
+            )
+            context: QueryContext = context_for_session(session)
+            with pytest.raises(
+                ValueError, match="before starting a SQLite transaction"
+            ):
+                context.datasource.get_extra_cache_keys({})
+            session.rollback()
+        with engine.connect() as connection:
+            assert (
+                connection.scalar(select(func.count()).select_from(KeyValueEntry)) == 0
+            )
+        _install_namespace(engine)
+        with Session(engine) as session:
+            assert context_for_session(session).datasource.get_extra_cache_keys({})
+    finally:
+        engine.dispose()
