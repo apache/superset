@@ -147,6 +147,27 @@ def test_default_order_leaves_the_cache_identity_unchanged(
     assert provider.call_args.args[0].order == [(ORDER_DATE, OrderDirection.ASC)]
 
 
+def test_row_count_dispatch_bypasses_the_cache(mocker: MockerFixture) -> None:
+    """Descriptors assume the default order, so an unordered count is never stored."""
+    service: Mock = mocker.patch.object(mapper.semantic_cache, "semantic_cache_service")
+    service.state.effective = True
+    mocker.patch.object(
+        mapper,
+        "build_cache_configuration",
+        return_value=(mocker.Mock(), mocker.Mock()),
+    )
+    service.execute_provider.side_effect = lambda query, dispatch: (
+        SemanticCacheOutcome(dispatch(query), cache_hit=False)
+    )
+    provider: Mock = mocker.Mock(return_value=EMPTY_RESULT)
+    query: SemanticQuery = SemanticQuery(metrics=[SALES], dimensions=[ORDER_DATE])
+
+    mapper._dispatch_semantic_query(mocker.Mock(), provider, query, row_count=True)
+
+    service.execute.assert_not_called()
+    assert provider.call_args.args[0] is query
+
+
 class _MemoryBackend:
     """A dict-backed cache backend that keeps every value it is given."""
 
