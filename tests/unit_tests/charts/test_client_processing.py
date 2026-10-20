@@ -2571,14 +2571,17 @@ def test_table_time_format_keeps_nulls() -> None:
         "%-d %b",
         "%x",
         "local!%Y-%m-%d",
+        "%H:%M:%S.%f",
     ],
 )
 def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> None:
     """
     ``strftime`` copies a directive it does not recognize into its output, so a
     format carrying a d3-only one would reach the report as literal text, and so
-    would the ``local!`` marker that the browser's registry strips. The column is
-    left raw instead, the way an unsupported number format is.
+    would the ``local!`` marker that the browser's registry strips. ``%f`` is
+    recognized by both but means different things: d3 scales the milliseconds it
+    has, so its microseconds always end in ``000``. The column is left raw
+    instead, the way an unsupported number format is.
     """
     df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
     form_data = {
@@ -2589,6 +2592,38 @@ def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> 
     formatted = table(df, form_data)
 
     assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "%B %Y",
+        "%b %d",
+        "%A",
+        "%a",
+        "%I:%M %p",
+    ],
+)
+def test_table_skips_a_time_format_naming_a_month_weekday_or_period(
+    time_format: str,
+) -> None:
+    """
+    The browser reads weekday, month and period names from the d3 locale
+    definition, which ``D3_TIME_FORMAT`` overrides key by key, while ``strftime``
+    reads them from the worker's ``LC_TIME``. With French ``months`` configured
+    the chart renders ``janvier 2024`` where ``strftime`` on an English worker
+    renders ``January 2024``, so the column is left raw rather than formatted
+    with names the chart does not use.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-01-15 14:30:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-01-15 14:30:00")]
 
 
 def test_table_time_format_reads_an_aware_value_in_utc() -> None:
