@@ -3449,6 +3449,8 @@ class DashboardRestApi(
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        # Read before the copy: its rollback expires ``original_dash``.
+        source_id: int = original_dash.id
         try:
             dash = CopyDashboardCommand(original_dash, data).run()
         except DashboardForbiddenError:
@@ -3456,6 +3458,7 @@ class DashboardRestApi(
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardCopyError:
+            logger.error("Error copying dashboard %s", source_id, exc_info=True)
             return self.response_400()
 
         return self.response(
