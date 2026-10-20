@@ -67,6 +67,8 @@ class FakeSecurityManager:
         self.created: list[tuple[str, str]] = []
         self.asked: list[tuple[str, str]] = []
         self.rollbacks = 0
+        self.admin_role = SimpleNamespace(name="Admin", permissions=[])
+        self.roles: dict[str, object] = {"Admin": self.admin_role}
 
     def can_access(self, permission: str, view: str) -> bool:
         self.asked.append((permission, view))
@@ -78,6 +80,13 @@ class FakeSecurityManager:
     def add_permission_view_menu(self, permission: str, view: str) -> None:
         self.existing.add((permission, view))
         self.created.append((permission, view))
+
+    def find_role(self, name: str) -> object | None:
+        return self.roles.get(name)
+
+    def add_permission_role(self, role: object, perm_view: object) -> None:
+        if perm_view not in role.permissions:  # type: ignore[attr-defined]
+            role.permissions.append(perm_view)  # type: ignore[attr-defined]
 
     # Named to match SupersetSecurityManager. A fake that invents its own
     # attribute names lets production code call something that is not there.
@@ -335,32 +344,93 @@ def test_the_same_permission_on_another_extension_does_not_carry_over(
 
 
 def test_permissions_are_created_for_every_page_that_names_one(
-    security: FakeSecurityManager,
+    app: Flask, security: FakeSecurityManager
 ) -> None:
-    ensure_page_permissions(manifest("/a", "/b", permission="can_review"))
+    with app.app_context():
+        ensure_page_permissions(manifest("/a", "/b", permission="can_review"))
 
     # One row, not one per page: pages of an extension may share a permission.
     assert security.created == [("can_review", "acme.tools")]
 
 
-def test_nothing_is_created_for_pages_without_permissions(
-    security: FakeSecurityManager,
+def test_a_created_permission_is_granted_to_admin(
+    app: Flask, security: FakeSecurityManager
 ) -> None:
-    ensure_page_permissions(manifest("/a", "/b"))
+    """`superset init` would hand Admin this permission; this does it sooner.
+
+    Without it an administrator who installs an extension cannot open its
+    pages until they grant themselves access to their own deployment.
+    """
+    with app.app_context():
+        ensure_page_permissions(manifest("/a", permission="can_review"))
+
+    assert security.admin_role.permissions == [("can_review", "acme.tools")]
+
+
+def test_the_admin_grant_is_repaired_on_a_later_boot(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """The permission already exists, but the role lost it."""
+    security.existing.add(("can_review", "acme.tools"))
+
+    with app.app_context():
+        ensure_page_permissions(manifest("/a", permission="can_review"))
 
     assert security.created == []
+    assert security.admin_role.permissions == [("can_review", "acme.tools")]
 
 
-def test_creating_permissions_is_idempotent(security: FakeSecurityManager) -> None:
-    # Every worker runs this at every boot.
-    ensure_page_permissions(manifest("/a", permission="can_review"))
-    ensure_page_permissions(manifest("/a", permission="can_review"))
+def test_the_admin_role_is_read_from_configuration(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    # A deployment may rename it; granting a hardcoded "Admin" would then
+    # write to a role nobody holds.
+    app.config["AUTH_ROLE_ADMIN"] = "Superuser"
+    superuser = SimpleNamespace(name="Superuser", permissions=[])
+    security.roles["Superuser"] = superuser
+
+    with app.app_context():
+        ensure_page_permissions(manifest("/a", permission="can_review"))
+
+    assert superuser.permissions == [("can_review", "acme.tools")]
+    assert security.admin_role.permissions == []
+
+
+def test_a_missing_admin_role_does_not_stop_the_boot(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    security.roles.clear()
+
+    with app.app_context():
+        ensure_page_permissions(manifest("/a", permission="can_review"))
 
     assert security.created == [("can_review", "acme.tools")]
 
 
+def test_nothing_is_created_for_pages_without_permissions(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    with app.app_context():
+        ensure_page_permissions(manifest("/a", "/b"))
+
+    assert security.created == []
+    assert security.admin_role.permissions == []
+
+
+def test_creating_permissions_is_idempotent(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    # Every worker runs this at every boot.
+    with app.app_context():
+        ensure_page_permissions(manifest("/a", permission="can_review"))
+        ensure_page_permissions(manifest("/a", permission="can_review"))
+
+    assert security.created == [("can_review", "acme.tools")]
+    assert security.admin_role.permissions == [("can_review", "acme.tools")]
+
+
 def test_a_failure_to_create_a_permission_does_not_stop_the_boot(
-    monkeypatch: pytest.MonkeyPatch, security: FakeSecurityManager
+    monkeypatch: pytest.MonkeyPatch, app: Flask, security: FakeSecurityManager
 ) -> None:
     """Two workers starting together race between the lookup and the insert."""
 
@@ -369,7 +439,8 @@ def test_a_failure_to_create_a_permission_does_not_stop_the_boot(
 
     monkeypatch.setattr(security, "add_permission_view_menu", explode)
 
-    ensure_page_permissions(manifest("/a", permission="can_review"))
+    with app.app_context():
+        ensure_page_permissions(manifest("/a", permission="can_review"))
 
     # And the session was rolled back, so the next write on this worker is
     # not issued against a session left dirty by the failed insert.
@@ -460,6 +531,8 @@ def test_the_fake_security_manager_only_names_real_attributes() -> None:
         "can_access",
         "find_permission_view_menu",
         "add_permission_view_menu",
+        "find_role",
+        "add_permission_role",
         "session",
     )
     missing = [
@@ -475,3 +548,34 @@ def test_the_fake_security_manager_only_names_real_attributes() -> None:
         name for name in vars(FakeSecurityManager) if not name.startswith("_")
     }
     assert fake_surface <= set(used_by_production_code)
+
+
+@pytest.mark.parametrize(
+    "permission",
+    ["database_access", "catalog_access", "schema_access", "datasource_access"],
+)
+def test_a_page_naming_an_object_level_permission_is_refused(
+    app: Flask, caplog: pytest.LogCaptureFixture, permission: str
+) -> None:
+    """These four decide what Admin holds, by being excluded from it.
+
+    A page naming one would have its Admin grant stripped the next time
+    `superset init` ran, leaving a page nobody could open. Refusing it at
+    registration says so while the author can still act on it.
+    """
+    with caplog.at_level(logging.ERROR):
+        register_extension_pages(app, manifest("/a", permission=permission))
+
+    assert "/a" not in paths_in(app)
+    assert "reserved by Superset" in caplog.text
+
+
+def test_the_reserved_set_is_superset_s_own(app: Flask) -> None:
+    """Pins the guard to the list it defends, rather than a copy of it."""
+    from superset.security.manager import SupersetSecurityManager
+
+    for permission in SupersetSecurityManager.OBJECT_SPEC_PERMISSIONS:
+        assert view._permission_problem(permission) is not None
+
+    assert view._permission_problem("can_review") is None
+    assert view._permission_problem(None) is None
