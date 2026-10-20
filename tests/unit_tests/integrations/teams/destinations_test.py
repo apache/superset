@@ -65,6 +65,7 @@ def configured_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[Flask]:
     monkeypatch.setattr(
         destinations.feature_flag_manager, "is_feature_enabled", lambda name: True
     )
+    monkeypatch.setattr(destinations, "is_teams_sdk_installed", lambda: True)
     engine = create_engine("sqlite://")
     TeamsInstallation.__table__.create(engine)
     monkeypatch.setattr(destinations, "db", MagicMock(engine=engine))
@@ -160,3 +161,60 @@ def test_invalid_team_config_is_hidden_before_installation_lookup(
     assert destinations.configured_teams() is None
     assert destinations.list_teams_destinations() == []
     lookup.assert_not_called()
+
+
+@pytest.mark.parametrize("installed", [False, True])
+def test_optional_sdk_controls_both_discovery_and_notification_methods(
+    configured_app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    installed: bool,
+) -> None:
+    """Bootstrap and destination discovery agree when the optional SDK is missing."""
+    from superset.reports.models import ReportRecipientType
+    from superset.views import base
+
+    monkeypatch.setattr(destinations, "is_teams_sdk_installed", lambda: installed)
+    monkeypatch.setattr(base, "app", configured_app)
+    configured_app.config["SLACK_API_TOKEN"] = None
+    if installed:
+        assert destinations.configured_teams() is not None
+        assert len(destinations.list_teams_destinations()) == 3
+        assert ReportRecipientType.TEAMS in base._notification_methods()
+    else:
+        session = MagicMock(side_effect=AssertionError("must not query installations"))
+        monkeypatch.setattr(destinations, "Session", session)
+        assert destinations.configured_teams() is None
+        assert destinations.list_teams_destinations() == []
+        assert ReportRecipientType.TEAMS not in base._notification_methods()
+        session.assert_not_called()
+
+
+def test_disabled_integration_registers_and_bootstraps_without_sdk(
+    configured_app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The Teams startup paths require neither SDK imports nor a dependency lookup."""
+    import sys
+
+    from superset.integrations.teams.api import register_teams_api
+    from superset.reports.models import ReportRecipientType
+    from superset.views import base
+
+    monkeypatch.setattr(
+        destinations.feature_flag_manager, "is_feature_enabled", lambda _: False
+    )
+    missing_sdk = MagicMock(side_effect=AssertionError("must not check SDK"))
+    monkeypatch.setattr(destinations, "is_teams_sdk_installed", missing_sdk)
+    monkeypatch.setitem(sys.modules, "superset.integrations.teams.adapter", None)
+    monkeypatch.setitem(sys.modules, "microsoft_teams", None)
+    monkeypatch.setitem(sys.modules, "microsoft_teams.apps", None)
+    monkeypatch.setattr(base, "app", configured_app)
+    register_teams_api(configured_app)
+    assert destinations.configured_teams() is None
+    assert destinations.list_teams_destinations() == []
+    assert ReportRecipientType.TEAMS not in base._notification_methods()
+    assert (
+        configured_app.test_client().post("/api/v1/teams/events/", json={}).status_code
+        == 404
+    )
+    missing_sdk.assert_not_called()

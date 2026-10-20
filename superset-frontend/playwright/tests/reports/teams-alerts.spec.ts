@@ -111,9 +111,7 @@ test('creates and edits an inactive Teams alert and preserves unavailable destin
       modal.getByRole('combobox', { name: 'Timezone selector' }),
     ).toBeVisible();
     await modal.getByTestId('notification-method-panel').click();
-    await modal
-      .getByRole('combobox', { name: 'Delivery method', exact: true })
-      .click();
+    await modal.getByRole('combobox', { name: /^Delivery method/ }).click();
     await page.getByRole('option', { name: 'Teams', exact: true }).click();
     await modal.getByRole('combobox', { name: 'Teams destination' }).click();
     await page
