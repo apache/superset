@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: bestlong168@gmail.com\n"
-"POT-Creation-Date: 2026-10-19 18:27+0000\n"
+"POT-Creation-Date: 2026-10-20 09:56+0000\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: Shao Yu-Lung <bestlong168@gmail.com>\n"
 "Language: zh_TW\n"
@@ -18642,6 +18642,13 @@ msgstr "每個块的時間單位。應該是主域域粒度更小的單位。應
 
 msgid "The time unit used for the grouping of blocks"
 msgstr "用於块分組的時間單位"
+
+msgid ""
+"The transform answered with a value the driver and the database do not "
+"agree on how to write into a query, so the mirrored predicate would ask "
+"for a partition key no row holds. A transform whose result carries "
+"neither a quote nor a backslash still mirrors."
+msgstr ""
 
 msgid "The transform could not be evaluated against the database."
 msgstr ""

@@ -25078,6 +25078,7 @@
                             "resolution",
                             "offset",
                             "escaping",
+                            "transform_escaping",
                             "engine",
                             "type"
                           ],

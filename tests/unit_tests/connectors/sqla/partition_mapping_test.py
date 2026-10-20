@@ -2449,6 +2449,17 @@ def _text_mapped_table(backend: str, transform: str) -> SqlaTable:
     The module's own fixture maps a timestamp onto a `BIGINT`, where no probe
     result can carry a quote or a backslash at all. These tests are about what
     the probe *answers*, so both ends have to be text.
+
+    Callers name the driver (``hive+hive://``) rather than leaving it to be
+    discovered. `Database.get_db_engine_spec` asks the URL for its driver name,
+    and SQLAlchemy answers that by importing the dialect entrypoint unless the
+    URL spells the driver out -- so a bare ``hive://`` drags in `pyhive`, which
+    imports `TCLIService`, which imports `thrift`. CI installs the first two and
+    not the third, and `get_db_engine_spec` rescues only `NoSuchModuleError`, so
+    the `ModuleNotFoundError` came out of the fixture. Naming the driver skips
+    the import entirely and leaves `backend` as ``hive``, which is all these
+    tests need: it is the sqlglot dialect `literal_round_trips` parses the
+    rendered literal with.
     """
     table = _mapped_table(
         partition_column="region_key",
@@ -2479,7 +2490,7 @@ def test_a_probe_result_the_engine_reads_back_differently_is_not_mirrored(
     probe succeeded, and this is a property of one of its answers.
     """
     table = _text_mapped_table(
-        "hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+        "hive+hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
     )
     mapping = resolve_partition_mapping(table)
     assert mapping is not None
@@ -2538,7 +2549,7 @@ def test_one_unspellable_answer_costs_only_its_own_request(app: Flask) -> None:
     would cost the other filters their pruning for nothing.
     """
     table = _text_mapped_table(
-        "hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+        "hive+hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
     )
     mapping = resolve_partition_mapping(table)
     assert mapping is not None
@@ -2569,7 +2580,7 @@ def test_one_unspellable_answer_declines_the_whole_in_list(app: Flask) -> None:
     *narrower* than the `IN` the chart carries, and would drop rows it keeps.
     """
     table = _text_mapped_table(
-        "hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
+        "hive+hive://localhost:10000/default", "concat(lower(:value), chr(92), 'b')"
     )
     mapping = resolve_partition_mapping(table)
     assert mapping is not None
@@ -3162,7 +3173,7 @@ def test_a_value_the_dialect_cannot_write_faithfully_is_never_probed(
     for every later value, the way a `NULL` result once did.
     """
     database = Database(
-        database_name="probe_db", sqlalchemy_uri="hive://localhost:10000/default"
+        database_name="probe_db", sqlalchemy_uri="hive+hive://localhost:10000/default"
     )
     database.get_df = MagicMock()  # type: ignore[method-assign]
 
