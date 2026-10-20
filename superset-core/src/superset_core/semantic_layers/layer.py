@@ -24,6 +24,7 @@ from typing import Any, ClassVar, Generic, Mapping, TypeVar
 
 from pydantic import BaseModel
 
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.context import (
     ExecutionMethod,
     SemanticCredentials,
@@ -140,9 +141,15 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         configuration: ConfigT | None = None,
         *,
         transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the configuration needed to add the semantic layer.
+
+        Only ``readiness is SemanticCredentialReadiness.RESOLVED`` permits
+        discovery, and required configuration fields must still be valid.
+        Otherwise return the static schema without I/O. Hosts own secret
+        masking/resolution; providers must not interpret host placeholders.
 
         A partial configuration `configuration` can be sent to improve the schema,
         allowing for progressive validation and better UX. For example, a semantic
@@ -171,9 +178,14 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
         runtime_data: dict[str, Any] | None = None,
         *,
         transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the runtime parameters needed to load semantic views.
+
+        Apply the same identity check and no-I/O static behavior as
+        ``get_configuration_schema``. Readiness never grants access or permits
+        runtime overrides of credentials.
 
         This returns the schema needed to connect to a semantic view given the
         configuration for the semantic layer. For example, a semantic layer might

@@ -17,6 +17,8 @@
 
 """Semantic layer contracts for extension authors."""
 
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
+from superset_core.semantic_layers.errors import SemanticBackendError
 from superset_core.semantic_layers.transport import (
     ProviderRequestError,
     ProviderRequestFailure,
@@ -26,6 +28,8 @@ from superset_core.semantic_layers.transport import (
 )
 
 __all__: list[str] = [
+    "SemanticBackendError",
+    "SemanticCredentialReadiness",
     "ProviderRequestError",
     "ProviderRequestFailure",
     "ProviderResponse",

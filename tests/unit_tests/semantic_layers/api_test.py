@@ -366,7 +366,9 @@ def test_configuration_schema(
 
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
-    mock_cls.get_configuration_schema.assert_called_once_with(None, transport=ANY)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        None, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -406,7 +408,7 @@ def test_configuration_schema_with_partial_config(
 
     assert response.status_code == 200
     mock_cls.get_configuration_schema.assert_called_once_with(
-        mock_config_obj, transport=ANY
+        mock_config_obj, transport=ANY, readiness=ANY
     )
 
 
@@ -439,7 +441,9 @@ def test_configuration_schema_read_only_user_gets_static_schema(
     assert response.json["result"] == {"type": "object"}
     can_access.assert_any_call("can_write", "SemanticLayer")
     mock_cls.configuration_class.model_validate.assert_not_called()
-    mock_cls.get_configuration_schema.assert_called_once_with(None, transport=ANY)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        None, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -477,7 +481,7 @@ def test_configuration_schema_writer_gets_enriched_schema(
     assert response.json["result"]["properties"] == {"account": {"enum": ["a1"]}}
     can_access.assert_any_call("can_write", "SemanticLayer")
     mock_cls.get_configuration_schema.assert_called_once_with(
-        mock_config_obj, transport=ANY
+        mock_config_obj, transport=ANY, readiness=ANY
     )
 
 
@@ -515,7 +519,9 @@ def test_configuration_schema_with_invalid_partial_config(
     )
 
     assert response.status_code == 200
-    mock_cls.get_configuration_schema.assert_called_once_with(None, transport=ANY)
+    mock_cls.get_configuration_schema.assert_called_once_with(
+        None, transport=ANY, readiness=ANY
+    )
 
 
 @SEMANTIC_LAYERS_APP
@@ -549,6 +555,7 @@ def test_runtime_schema(
     test_uuid = str(uuid_lib.uuid4())
     mock_layer = MagicMock()
     mock_layer.type = "snowflake"
+    mock_layer.configuration = '{"account": "test"}'
     mock_layer.implementation.configuration = {"account": "test"}
 
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -571,7 +578,7 @@ def test_runtime_schema(
     assert response.status_code == 200
     assert response.json["result"] == {"type": "object"}
     mock_cls.get_runtime_schema.assert_called_once_with(
-        {"account": "test"}, {"database": "mydb"}, transport=ANY
+        {"account": "test"}, {"database": "mydb"}, transport=ANY, readiness=ANY
     )
 
 
@@ -585,6 +592,7 @@ def test_runtime_schema_no_body(
     test_uuid = str(uuid_lib.uuid4())
     mock_layer = MagicMock()
     mock_layer.type = "snowflake"
+    mock_layer.configuration = '{"account": "test"}'
     mock_layer.implementation.configuration = {"account": "test"}
 
     mock_dao = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -605,7 +613,7 @@ def test_runtime_schema_no_body(
 
     assert response.status_code == 200
     mock_cls.get_runtime_schema.assert_called_once_with(
-        {"account": "test"}, None, transport=ANY
+        {"account": "test"}, None, transport=ANY, readiness=ANY
     )
 
 
@@ -693,6 +701,7 @@ def test_runtime_schema_exception(
     test_uuid: str = str(uuid_lib.uuid4())
     mock_layer: MagicMock = MagicMock()
     mock_layer.type = "snowflake"
+    mock_layer.configuration = '{"account": "test"}'
     mock_layer.implementation.configuration = {"account": "test"}
 
     mock_dao: MagicMock = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
@@ -1132,7 +1141,9 @@ def test_get_list_semantic_layers(
         "superset.semantic_layers.api.registry",
         {
             "snowflake": MagicMock(
-                get_configuration_schema=lambda *, transport: {"properties": {}}
+                get_configuration_schema=lambda *, transport, readiness: {
+                    "properties": {}
+                }
             )
         },
         clear=True,
@@ -1201,7 +1212,9 @@ def test_get_semantic_layer(
         "superset.semantic_layers.api.registry",
         {
             "snowflake": MagicMock(
-                get_configuration_schema=lambda *, transport: {"properties": {}}
+                get_configuration_schema=lambda *, transport, readiness: {
+                    "properties": {}
+                }
             )
         },
         clear=True,
@@ -1295,7 +1308,9 @@ def test_serialize_layer_string_config(
         "superset.semantic_layers.api.registry",
         {
             "snowflake": MagicMock(
-                get_configuration_schema=lambda *, transport: {"properties": {}}
+                get_configuration_schema=lambda *, transport, readiness: {
+                    "properties": {}
+                }
             )
         },
         clear=True,
@@ -1329,7 +1344,9 @@ def test_serialize_layer_dict_config(
         "superset.semantic_layers.api.registry",
         {
             "snowflake": MagicMock(
-                get_configuration_schema=lambda *, transport: {"properties": {}}
+                get_configuration_schema=lambda *, transport, readiness: {
+                    "properties": {}
+                }
             )
         },
         clear=True,
@@ -3453,6 +3470,7 @@ def test_metadata_endpoints_preserve_only_typed_transport_errors(
         layer_uuid: str = str(uuid_lib.uuid4())
         layer: MagicMock = MagicMock()
         layer.type = "fixture"
+        layer.configuration = '{"account": "fixture"}'
         dao: MagicMock = mocker.patch("superset.semantic_layers.api.SemanticLayerDAO")
         dao.find_by_uuid.return_value = layer
         provider: MagicMock = MagicMock()

@@ -28,6 +28,7 @@ from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.transport import ProviderRequestError
 
 from superset import db, event_logger, is_feature_enabled, security_manager
@@ -67,7 +68,7 @@ from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
-from superset.semantic_layers.masking import mask_configuration
+from superset.semantic_layers.masking import credential_readiness, mask_configuration
 from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.semantic_layers.registry import registry
 from superset.semantic_layers.schemas import (
@@ -757,15 +758,19 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         # configuring a layer, so it requires write access; read-only callers
         # get the static schema.
         parsed_config = None
+        readiness: SemanticCredentialReadiness = SemanticCredentialReadiness.UNRESOLVED
         if (config := body.get("configuration")) and security_manager.can_access(
             "can_write", "SemanticLayer"
         ):
+            readiness = credential_readiness(config)
             parsed_config = _parse_partial_config(cls, config)
+            if parsed_config is None:
+                readiness = SemanticCredentialReadiness.UNRESOLVED
 
         warning: str | None = None
         try:
             schema: dict[str, Any] = cls.get_configuration_schema(
-                parsed_config, transport=build_provider_transport()
+                parsed_config, transport=build_provider_transport(), readiness=readiness
             )
         except Exception:  # pylint: disable=broad-except
             # Show a stable, user-friendly message in the UI; the exception
@@ -783,7 +788,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             # Connection or query failures during schema enrichment should not
             # prevent the form from rendering — return the base schema instead.
             schema = cls.get_configuration_schema(
-                None, transport=build_provider_transport()
+                None,
+                transport=build_provider_transport(),
+                readiness=SemanticCredentialReadiness.UNRESOLVED,
             )
 
         payload: dict[str, Any] = {"result": schema}
@@ -849,6 +856,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                 layer.implementation.configuration,  # type: ignore[attr-defined]
                 runtime_data,
                 transport=build_provider_transport(),
+                readiness=credential_readiness(json.loads(layer.configuration)),
             )
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])

@@ -24,6 +24,7 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.context import (
     ExecutionOrigin,
     SemanticCredentials,
@@ -165,7 +166,11 @@ class LegacyLayer(SemanticLayer[LegacyConfiguration, LegacyView]):
 
     @classmethod
     def get_configuration_schema(
-        cls, configuration: BaseModel | None = None, *, transport: ProviderTransport
+        cls,
+        configuration: BaseModel | None = None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         return {"type": "object"}
 
@@ -176,6 +181,7 @@ class LegacyLayer(SemanticLayer[LegacyConfiguration, LegacyView]):
         runtime_data: dict[str, Any] | None = None,
         *,
         transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         return {"type": "object"}
 

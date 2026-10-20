@@ -36,6 +36,7 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel, ConfigDict
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.context import (
     SemanticCredentials,
     SemanticExecutionContext,
@@ -267,6 +268,7 @@ class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
         configuration: StubConfiguration | None = None,
         *,
         transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         return StubConfiguration.model_json_schema()
 
@@ -277,6 +279,7 @@ class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
         runtime_data: dict[str, Any] | None = None,
         *,
         transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         return {"type": "object", "properties": {}}
 

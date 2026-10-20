@@ -24,9 +24,11 @@ from typing import ParamSpec
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as _
 from superset_core.semantic_layers.errors import (
+    SemanticBackendError,
     SemanticQueryErrorCode,
     SemanticQueryRejectedError,
 )
+from superset_core.semantic_layers.transport import ProviderRequestError
 from superset_core.semantic_layers.types import SemanticResult
 
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -110,7 +112,12 @@ def execute_semantic_query(
         with provider_completeness():
             return dispatcher(*args, **kwargs)
     except SemanticQueryRejectedError as ex:
-        raise SemanticLayerQueryRejectedError(ex.code) from ex
+        raise SemanticLayerQueryRejectedError(ex.code) from None
+    except ProviderRequestError as ex:
+        raise QueryObjectValidationError(str(ex)) from None
+    except SemanticBackendError:
+        logger.error("Semantic provider reported an execution failure")
+        raise SemanticLayerExecutionError() from None
     except (
         QueryObjectValidationError,
         SemanticLayerQueryRejectedError,
@@ -122,6 +129,6 @@ def execute_semantic_query(
         SoftTimeLimitExceeded,
     ):
         raise
-    except Exception as ex:  # pylint: disable=broad-except
-        logger.exception("Semantic provider query execution failed")
-        raise SemanticLayerExecutionError() from ex
+    except Exception:  # pylint: disable=broad-except
+        logger.error("Semantic provider query execution failed")
+        raise SemanticLayerExecutionError() from None

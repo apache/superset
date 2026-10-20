@@ -248,7 +248,7 @@ See [MCP Integration](./mcp.md) for implementation details.
 See [cache invalidation](../semantic-layer-cache-clear.md) for the required
 cache-token factory argument and provider cache requirements.
 
-See the [execution context contract](semantic-execution-context.md) for provider construction and connection-mode guarantees, and the [provider transport contract](semantic-provider-transport.md) for bounded HTTP requests.
+See the [execution context contract](semantic-execution-context.md) for provider construction and connection-mode guarantees, and the [provider transport contract](semantic-provider-transport.md) for bounded HTTP requests. See [readiness and failures](semantic-provider-boundary.md) for required schema arguments and safe error signals.
 
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
 
@@ -258,6 +258,7 @@ from typing import Any
 from superset_core.semantic_layers.context import SemanticCredentials, SemanticExecutionContext
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.layer import SemanticLayer
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.transport import ProviderTransport
 
 from my_extension.config import MyConfig
@@ -293,13 +294,14 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
     @classmethod
     def get_configuration_schema(
         cls, configuration: MyConfig | None = None, *, transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         return MyConfig.model_json_schema()
 
     @classmethod
     def get_runtime_schema(
         cls, configuration: MyConfig, runtime_data: dict[str, Any] | None = None,
-        *, transport: ProviderTransport,
+        *, transport: ProviderTransport, readiness: SemanticCredentialReadiness,
     ) -> dict[str, Any]:
         return {"type": "object", "properties": {}}
 

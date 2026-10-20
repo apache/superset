@@ -36,7 +36,13 @@ import pytest
 import pytz
 from dateutil import tz as dateutil_tz
 from fastmcp import Client, FastMCP
+from fastmcp.client.client import CallToolResult
 from flask import current_app
+from superset_core.semantic_layers.errors import SemanticBackendError
+from superset_core.semantic_layers.transport import (
+    ProviderRequestError,
+    ProviderRequestFailure,
+)
 from superset_core.semantic_layers.types import Dimension, Grains
 
 from superset.commands.exceptions import CommandException
@@ -50,6 +56,7 @@ from superset.mcp_service.semantic_layer.schemas import (
     SemanticLayerError,
 )
 from superset.security.guest_token import GuestToken, GuestTokenRlsRule, GuestUser
+from superset.semantic_layers.exceptions import execute_semantic_query
 from superset.semantic_layers.models import SemanticView
 from superset.utils import json
 from superset.utils.core import GenericDataType
@@ -2603,3 +2610,41 @@ async def test_get_table_normalizes_nested_builtin_cells(
     assert data["source"] == "builtin"
     assert data["dataset_id"] == 42
     assert data["dataset_name"] == mock_ds.table_name
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("transport", [False, True])
+async def test_sdk_fault_retains_mcp_query_error_without_cause(
+    mcp_server: FastMCP,
+    monkeypatch: pytest.MonkeyPatch,
+    app_context: None,
+    transport: bool,
+) -> None:
+    """The MCP entry point preserves safe host errors in its QueryError envelope."""
+    error: Exception = (
+        ProviderRequestError(
+            ProviderRequestFailure.HTTP_STATUS, status=403, provider="MetricFlow"
+        )
+        if transport
+        else SemanticBackendError()
+    )
+    error.__cause__ = ValueError("private-provider-cause")
+    dispatcher: Mock = Mock(side_effect=error)
+
+    async def fail_query(*args: Any, **kwargs: Any) -> None:
+        execute_semantic_query(dispatcher)
+
+    monkeypatch.setattr(get_table_module, "_run_get_table_query", fail_query)
+    client: Client
+    async with Client(mcp_server) as client:
+        result: CallToolResult = await client.call_tool(
+            "get_table", {"request": {"dataset_id": 42, "metrics": ["revenue"]}}
+        )
+    returned: SemanticLayerError = SemanticLayerError.model_validate(
+        json.loads(result.content[0].text)
+    )
+    assert returned.error_type == "QueryError"
+    assert "private-provider" not in returned.message
+    if transport:
+        assert str(error) in returned.message
+    dispatcher.assert_called_once()

@@ -63,6 +63,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.layer import SemanticLayer as CoreSemanticLayer
 
 from superset.constants import PASSWORD_MASK
@@ -363,7 +364,8 @@ def mask_configuration(layer_type: str, configuration: Any) -> dict[str, Any]:
         # top-level masker used); this walker extends it to nested/union
         # secrets rather than only top-level ``writeOnly`` properties.
         schema: JsonSchema = cls.get_configuration_schema(
-            transport=build_provider_transport()
+            transport=build_provider_transport(),
+            readiness=SemanticCredentialReadiness.UNRESOLVED,
         )
     except Exception:  # pylint: disable=broad-except
         logger.warning(
@@ -389,6 +391,21 @@ def _contains_mask(value: Any) -> bool:
     if isinstance(value, list):
         return any(_contains_mask(item) for item in value)
     return value == PASSWORD_MASK
+
+
+def credential_readiness(configuration: Any) -> SemanticCredentialReadiness:
+    """Normalize raw host configuration before provider validation loses fields.
+
+    This does not resolve saved secrets or check required provider fields. Only
+    the host interprets its sentinel; client assertions never set this signal.
+    """
+    if (
+        not isinstance(configuration, dict)
+        or not configuration
+        or _contains_mask(configuration)
+    ):
+        return SemanticCredentialReadiness.UNRESOLVED
+    return SemanticCredentialReadiness.RESOLVED
 
 
 def _matches_visible_values(reference: Any, submitted: Any) -> bool:

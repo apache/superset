@@ -32,8 +32,8 @@ Providers import only `superset_core` for this capability, never host HTTP helpe
 The following `SemanticLayer` entry points require keyword-only `transport=`:
 
 - `from_configuration(configuration, *, cache_token, context, transport, credentials=None)`
-- `get_configuration_schema(configuration=None, *, transport)`
-- `get_runtime_schema(configuration, runtime_data=None, *, transport)`
+- `get_configuration_schema(configuration=None, *, transport, readiness)`
+- `get_runtime_schema(configuration, runtime_data=None, *, transport, readiness)`
 
 Keep it on the constructed layer and pass it to views and discovery helpers.
 It is separate from `SemanticExecutionContext` and does not change memo or cache
@@ -152,3 +152,5 @@ class FakeTransport(ProviderTransport):
 
 Add fixture-specific failures by raising `ProviderRequestError`, rather than
 returning a non-2xx `ProviderResponse`. Keep credentials out of recorded calls.
+
+Schema hooks also require the host-normalized [credential readiness signal](semantic-provider-boundary.md). Transport errors retain their safe text at the query boundary; providers must not replace them with a generic backend error.

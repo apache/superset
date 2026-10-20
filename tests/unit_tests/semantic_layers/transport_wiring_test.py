@@ -18,7 +18,7 @@
 """Every host construction/discovery boundary supplies the same SDK capability."""
 
 from typing import Any
-from unittest.mock import MagicMock, PropertyMock
+from unittest.mock import ANY, MagicMock, PropertyMock
 
 import pytest
 from pytest_mock import MockerFixture
@@ -69,7 +69,7 @@ def test_configuration_paths_inject_transport_preserving_static_gate(
     assert response.status_code == 200
     assert provider.get_configuration_schema.call_count == (2 if fallback else 1)
     for call in provider.get_configuration_schema.call_args_list:
-        assert call.kwargs == {"transport": capability}
+        assert call.kwargs == {"transport": capability, "readiness": ANY}
     assert factory.call_count == provider.get_configuration_schema.call_count
     if not writer:
         provider.configuration_class.model_validate.assert_not_called()
@@ -98,7 +98,7 @@ def test_runtime_schema_injects_transport_after_access(
         create=True,
         return_value=capability,
     )
-    layer: MagicMock = MagicMock(type="test")
+    layer: MagicMock = MagicMock(type="test", configuration='{"account": "fixture"}')
     provider: MagicMock = MagicMock()
     provider.get_runtime_schema.return_value = {"type": "object"}
     mocker.patch(
@@ -112,7 +112,7 @@ def test_runtime_schema_injects_transport_after_access(
     assert response.status_code == 200
     layer.raise_for_access.assert_called_once()
     provider.get_runtime_schema.assert_called_once_with(
-        layer.implementation.configuration, {}, transport=capability
+        layer.implementation.configuration, {}, transport=capability, readiness=ANY
     )
     factory.assert_called_once_with()
 
@@ -131,7 +131,9 @@ def test_masking_static_schema_receives_transport(mocker: MockerFixture) -> None
     }
     mocker.patch.dict("superset.semantic_layers.masking.registry", {"test": provider})
     assert mask_configuration("test", {"plain": "value"}) == {"plain": "value"}
-    provider.get_configuration_schema.assert_called_once_with(transport=capability)
+    provider.get_configuration_schema.assert_called_once_with(
+        transport=capability, readiness=ANY
+    )
     factory.assert_called_once_with()
 
 

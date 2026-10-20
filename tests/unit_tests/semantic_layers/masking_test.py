@@ -25,6 +25,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import BaseModel, Field, SecretStr, StringConstraints
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.config import SemanticCredentialReadiness
 from superset_core.semantic_layers.transport import ProviderTransport
 
 from superset.constants import PASSWORD_MASK
@@ -60,7 +61,10 @@ class DemoConfig(BaseModel):
 class DemoLayerType:
     @staticmethod
     def get_configuration_schema(
-        configuration: Any = None, *, transport: ProviderTransport
+        configuration: Any = None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> Any:
         return DemoConfig.model_json_schema()
 
@@ -203,7 +207,10 @@ def test_mask_covers_a_secret_nested_in_only_one_union_variant() -> None:
     class DivergentType:
         @staticmethod
         def get_configuration_schema(
-            configuration: Any = None, *, transport: ProviderTransport
+            configuration: Any = None,
+            *,
+            transport: ProviderTransport,
+            readiness: SemanticCredentialReadiness,
         ) -> Any:
             return DivergentConfig.model_json_schema()
 
@@ -331,7 +338,11 @@ class _FakeProvider:
         self._raises: bool = raises
 
     def get_configuration_schema(
-        self, configuration: Any = None, *, transport: ProviderTransport
+        self,
+        configuration: Any = None,
+        *,
+        transport: ProviderTransport,
+        readiness: SemanticCredentialReadiness,
     ) -> Any:
         if self._raises:
             raise RuntimeError("schema generation failed")
@@ -412,7 +423,10 @@ def test_mask_covers_a_secret_list_in_only_one_union_variant() -> None:
     class DivergentListType:
         @staticmethod
         def get_configuration_schema(
-            configuration: Any = None, *, transport: ProviderTransport
+            configuration: Any = None,
+            *,
+            transport: ProviderTransport,
+            readiness: SemanticCredentialReadiness,
         ) -> Any:
             return DivergentListConfig.model_json_schema()
 

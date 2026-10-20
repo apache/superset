@@ -24,6 +24,20 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Semantic-layer schema readiness and failures.** Both provider schema hooks
+  require keyword-only `readiness: SemanticCredentialReadiness` alongside
+  `transport`. This plain Enum is exported by `superset_core.semantic_layers`.
+  Discover metadata only when `readiness is SemanticCredentialReadiness.RESOLVED`
+  and required configuration fields are valid; otherwise return a static schema
+  without I/O. Do not interpret host masking placeholders. Upgrade host and
+  provider schema implementations together; omitted arguments fail explicitly.
+  `SemanticBackendError` signals execution or invalid-result faults with generic
+  host guidance (500); `ProviderRequestError` keeps safe transport detail (400),
+  and query refusal/completeness retain their separate meanings. Provider error
+  translations should suppress diagnostic chains. The semantic execution boundary
+  logs fixed categories without provider exception tracebacks. See the
+  [provider boundary guide](docs/developer_docs/extensions/semantic-provider-boundary.md).
+
 - **Semantic-layer SDK transport argument.** Provider implementations must accept
   the required keyword-only `transport: ProviderTransport` in `from_configuration`,
   `get_configuration_schema`, and `get_runtime_schema`. Superset supplies it even
