@@ -22,6 +22,7 @@ from typing import Any, Iterable, Optional, TYPE_CHECKING
 import pandas as pd
 from flask import current_app as app
 
+from superset import is_feature_enabled
 from superset.commands.dataset.exceptions import DatasetSamplesFailedError
 from superset.common.chart_data import ChartDataResultType
 from superset.common.query_context_factory import QueryContextFactory
@@ -101,6 +102,27 @@ def replace_verbose_with_column(
             f["col"] = match
 
 
+def skips_count_star(datasource: Datasource) -> bool:
+    """
+    Whether Samples should skip its ``COUNT(*)`` for this datasource.
+
+    A dataset with a declared partition column is a partitioned warehouse table
+    (Impala/Hive in practice), often tens of billions of rows. The samples rows
+    query is bounded by its row limit, but the count is not: unless the request
+    happens to filter the mapped column, it is an unfiltered full-table scan,
+    which on those tables runs until it times out. For these datasets the total
+    is reported as a lower bound instead, derived from one extra probe row on
+    the bounded rows query, so Samples never issues a query that is both
+    unfiltered by partition and unbounded.
+
+    Gated on the feature flag like the rest of partition filter mapping, so a
+    deployment that never turned it on keeps the exact count.
+    """
+    return is_feature_enabled("PARTITION_FILTER_MAPPING") and bool(
+        getattr(datasource, "partition_column", None)
+    )
+
+
 def get_samples(  # pylint: disable=too-many-arguments
     datasource_type: str,
     datasource_id: int,
@@ -119,6 +141,18 @@ def get_samples(  # pylint: disable=too-many-arguments
 
     form_data = {"dashboardId": dashboard_id} if dashboard_id else None
     limit_clause = get_limit_clause(page, per_page)
+    skip_count = skips_count_star(datasource)
+    # Without a count, one row past the page is what tells "there is another
+    # page" apart from "this was the last one".
+    query_limit_clause = (
+        {
+            **limit_clause,
+            "row_limit": (limit_clause["row_limit"] or app.config["SAMPLES_ROW_LIMIT"])
+            + 1,
+        }
+        if skip_count
+        else limit_clause
+    )
 
     # todo(yongjie): Constructing count(*) and samples in the same query_context,
     if payload is None:
@@ -128,7 +162,7 @@ def get_samples(  # pylint: disable=too-many-arguments
                 "type": datasource.type,
                 "id": datasource.id,
             },
-            queries=[limit_clause],
+            queries=[query_limit_clause],
             form_data=form_data,
             result_type=ChartDataResultType.SAMPLES,
             force=force,
@@ -145,31 +179,16 @@ def get_samples(  # pylint: disable=too-many-arguments
                 "type": datasource.type,
                 "id": datasource.id,
             },
-            queries=[{**payload, **limit_clause}],
+            queries=[{**payload, **query_limit_clause}],
             form_data=form_data,
             result_type=ChartDataResultType.DRILL_DETAIL,
             force=force,
         )
 
-    # constructing count(*) query
-    count_star_metric = {
-        "metrics": [
-            {
-                "expressionType": "SQL",
-                "sqlExpression": "COUNT(*)",
-                "label": "COUNT(*)",
-            }
-        ]
-    }
-    count_star_instance = QueryContextFactory().create(
-        datasource={
-            "type": datasource.type,
-            "id": datasource.id,
-        },
-        queries=[{**payload, **count_star_metric} if payload else count_star_metric],
-        form_data=form_data,
-        result_type=ChartDataResultType.FULL,
-        force=force,
+    count_star_instance = (
+        None
+        if skip_count
+        else _count_star_query_context(datasource, payload, form_data, force)
     )
 
     try:
@@ -177,18 +196,14 @@ def get_samples(  # pylint: disable=too-many-arguments
         # This prevents users with "can samples on Datasource" permission from
         # reading samples from datasets they don't have access to.
         samples_instance.raise_for_access()
-        count_star_instance.raise_for_access()
-
-        count_star_data = count_star_instance.get_payload()["queries"][0]
-
-        if count_star_data.get("status") == QueryStatus.FAILED:
-            raise DatasetSamplesFailedError(count_star_data.get("error"))
+        count_star_data = _get_count_star_data(count_star_instance)
 
         engine_spec = datasource.database.db_engine_spec
         row_offset = limit_clause["row_offset"]
         row_limit = limit_clause["row_limit"]
 
-        if not engine_spec.supports_offset and row_offset > 0:
+        via_cursor = not engine_spec.supports_offset and row_offset > 0
+        if via_cursor:
             try:
                 sample_data = _fetch_samples_via_cursor(
                     datasource=datasource,
@@ -217,10 +232,83 @@ def get_samples(  # pylint: disable=too-many-arguments
 
         sample_data["page"] = page
         sample_data["per_page"] = per_page
-        sample_data["total_count"] = count_star_data["data"][0]["COUNT(*)"]
+        if skip_count:
+            _set_lower_bound_total(
+                sample_data, row_offset, row_limit, probed=not via_cursor
+            )
+        else:
+            sample_data["total_count"] = count_star_data["data"][0]["COUNT(*)"]
+            sample_data["total_count_is_lower_bound"] = False
         return sample_data
     except (IndexError, KeyError) as exc:
         raise DatasetSamplesFailedError from exc
+
+
+def _count_star_query_context(
+    datasource: Datasource,
+    payload: SamplesPayloadSchema | None,
+    form_data: dict[str, Any] | None,
+    force: bool,
+) -> QueryContext:
+    count_star_metric = {
+        "metrics": [
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "COUNT(*)",
+                "label": "COUNT(*)",
+            }
+        ]
+    }
+    return QueryContextFactory().create(
+        datasource={
+            "type": datasource.type,
+            "id": datasource.id,
+        },
+        queries=[{**payload, **count_star_metric} if payload else count_star_metric],
+        form_data=form_data,
+        result_type=ChartDataResultType.FULL,
+        force=force,
+    )
+
+
+def _get_count_star_data(
+    count_star_instance: QueryContext | None,
+) -> dict[str, Any]:
+    """Run the count query, or return an empty payload when it was skipped."""
+    if count_star_instance is None:
+        return {}
+
+    count_star_instance.raise_for_access()
+    count_star_data = count_star_instance.get_payload()["queries"][0]
+    if count_star_data.get("status") == QueryStatus.FAILED:
+        raise DatasetSamplesFailedError(count_star_data.get("error"))
+    return count_star_data
+
+
+def _set_lower_bound_total(
+    sample_data: dict[str, Any], row_offset: int, row_limit: int, probed: bool
+) -> None:
+    """
+    Report the total as "the rows up to and including this page".
+
+    The rows query asked for one probe row past the page. If it came back there
+    is at least one more page, so the probe is trimmed and the total flagged as
+    a lower bound; if it did not, this page is the last one and the total is
+    exact. The cursor path pages with an exact page size and has no probe row
+    (``probed=False``), so a full page is taken to mean there may be more.
+    """
+    data = sample_data.get("data") or []
+    page_size = row_limit or app.config["SAMPLES_ROW_LIMIT"]
+    if probed:
+        has_more = len(data) > page_size
+        if has_more:
+            data = data[:page_size]
+            sample_data["data"] = data
+            sample_data["rowcount"] = len(data)
+    else:
+        has_more = len(data) >= page_size
+    sample_data["total_count"] = row_offset + len(data)
+    sample_data["total_count_is_lower_bound"] = has_more
 
 
 def _fetch_samples_via_cursor(

@@ -394,3 +394,255 @@ def test_get_samples_cursor_path_unused_for_page_one(
         )
 
     datasource.database.db_engine_spec.fetch_data_with_cursor.assert_not_called()
+
+
+def _samples_ctx(rows: list[dict[str, int]]) -> MagicMock:
+    ctx = MagicMock()
+    ctx.get_payload.return_value = {
+        "queries": [
+            {
+                "data": rows,
+                "colnames": ["a"],
+                "coltypes": [],
+                "rowcount": len(rows),
+                "status": "success",
+            }
+        ]
+    }
+    return ctx
+
+
+def _count_ctx(count: int) -> MagicMock:
+    ctx = MagicMock()
+    ctx.get_payload.return_value = {
+        "queries": [{"data": [{"COUNT(*)": count}], "status": "success"}]
+    }
+    return ctx
+
+
+def _created_queries(qcf: MagicMock) -> list[dict[str, object]]:
+    return [
+        call.kwargs["queries"][0] for call in qcf.return_value.create.call_args_list
+    ]
+
+
+@pytest.mark.parametrize("payload", [None, {"filters": [], "columns": ["a"]}])
+def test_get_samples_partitioned_dataset_skips_count_star(
+    fake_datasource_factory: FakeDatasourceFactory,
+    payload: dict[str, object] | None,
+) -> None:
+    """
+    A dataset with a partition column never builds the COUNT(*) query: on a
+    40B-row Impala/Hive table it is an unbounded full scan. The rows query asks
+    for one probe row past the page instead, and since the probe came back the
+    total is reported as a lower bound with the probe trimmed off.
+    """
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=True)
+    datasource.partition_column = "ds"
+
+    with (
+        patch.object(utils, "is_feature_enabled", return_value=True),
+        patch.object(utils, "QueryContextFactory") as qcf,
+    ):
+        qcf.return_value.create.side_effect = [
+            _samples_ctx([{"a": i} for i in range(51)])
+        ]
+
+        result = utils.get_samples(
+            datasource_type="table",
+            datasource_id=1,
+            page=3,
+            per_page=50,
+            payload=payload,  # type: ignore[arg-type]
+            datasource=datasource,
+        )
+
+    queries = _created_queries(qcf)
+    assert len(queries) == 1
+    assert "metrics" not in queries[0]
+    assert queries[0]["row_limit"] == 51
+    assert queries[0]["row_offset"] == 100
+    assert result["data"] == [{"a": i} for i in range(50)]
+    assert result["rowcount"] == 50
+    assert result["total_count"] == 150
+    assert result["total_count_is_lower_bound"] is True
+
+
+def test_get_samples_partitioned_dataset_last_page_is_exact(
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
+    """
+    No probe row means this page is the last one, so offset plus the rows on it
+    is the exact total.
+    """
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=True)
+    datasource.partition_column = "ds"
+
+    with (
+        patch.object(utils, "is_feature_enabled", return_value=True),
+        patch.object(utils, "QueryContextFactory") as qcf,
+    ):
+        qcf.return_value.create.side_effect = [_samples_ctx([{"a": 1}] * 7)]
+
+        result = utils.get_samples(
+            datasource_type="table",
+            datasource_id=1,
+            page=2,
+            per_page=50,
+            datasource=datasource,
+        )
+
+    assert len(result["data"]) == 7
+    assert result["total_count"] == 57
+    assert result["total_count_is_lower_bound"] is False
+
+
+def test_get_samples_partitioned_dataset_default_page_size_probes(
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
+    """
+    ``per_page=0`` resolves to the configured SAMPLES_ROW_LIMIT downstream; the
+    probe has to be one past that, not one past zero.
+    """
+    from flask import current_app
+
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=True)
+    datasource.partition_column = "ds"
+    samples_row_limit = current_app.config["SAMPLES_ROW_LIMIT"]
+
+    with (
+        patch.object(utils, "is_feature_enabled", return_value=True),
+        patch.object(utils, "QueryContextFactory") as qcf,
+    ):
+        qcf.return_value.create.side_effect = [_samples_ctx([{"a": 1}] * 3)]
+
+        result = utils.get_samples(
+            datasource_type="table",
+            datasource_id=1,
+            page=1,
+            per_page=0,
+            datasource=datasource,
+        )
+
+    assert _created_queries(qcf)[0]["row_limit"] == samples_row_limit + 1
+    assert result["total_count"] == 3
+    assert result["total_count_is_lower_bound"] is False
+
+
+def test_get_samples_partitioned_dataset_cursor_path_full_page_is_lower_bound(
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
+    """
+    The cursor path pages by exact page size and carries no probe row, so a
+    full page is reported as a lower bound; there is still no COUNT(*).
+    """
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=False)
+    datasource.partition_column = "ds"
+    datasource.database.db_engine_spec.fetch_data_with_cursor.return_value = (
+        [(i,) for i in range(50)],
+        ["a"],
+    )
+
+    with (
+        patch.object(utils, "is_feature_enabled", return_value=True),
+        patch.object(utils, "QueryContextFactory") as qcf,
+        patch.object(utils, "extract_dataframe_dtypes", return_value=[]),
+    ):
+        samples_ctx = MagicMock()
+        samples_ctx.datasource.get_query_str.return_value = "SELECT a FROM t"
+        qcf.return_value.create.side_effect = [samples_ctx]
+
+        result = utils.get_samples(
+            datasource_type="table",
+            datasource_id=1,
+            page=2,
+            per_page=50,
+            datasource=datasource,
+        )
+
+    assert len(_created_queries(qcf)) == 1
+    fetch = datasource.database.db_engine_spec.fetch_data_with_cursor
+    assert fetch.call_args.kwargs["page_index"] == 1
+    assert fetch.call_args.kwargs["page_size"] == 50
+    assert result["total_count"] == 100
+    assert result["total_count_is_lower_bound"] is True
+
+
+def test_get_samples_partitioned_dataset_samples_failure_still_raises(
+    fake_datasource_factory: FakeDatasourceFactory,
+) -> None:
+    """With no count query there is no count cache entry to evict."""
+    from superset.commands.dataset.exceptions import DatasetSamplesFailedError
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=True)
+    datasource.partition_column = "ds"
+    samples_ctx = MagicMock()
+    samples_ctx.get_payload.return_value = {
+        "queries": [{"status": "failed", "error": "timed out"}]
+    }
+
+    with (
+        patch.object(utils, "is_feature_enabled", return_value=True),
+        patch.object(utils, "QueryContextFactory") as qcf,
+    ):
+        qcf.return_value.create.side_effect = [samples_ctx]
+
+        with pytest.raises(DatasetSamplesFailedError, match="timed out"):
+            utils.get_samples(
+                datasource_type="table",
+                datasource_id=1,
+                datasource=datasource,
+            )
+
+
+@pytest.mark.parametrize(
+    ("flag_enabled", "partition_column"),
+    [(False, "ds"), (True, None), (True, "")],
+)
+def test_get_samples_keeps_exact_count_without_partition_mapping(
+    fake_datasource_factory: FakeDatasourceFactory,
+    flag_enabled: bool,
+    partition_column: str | None,
+) -> None:
+    """
+    Datasets without a partition column, or deployments with the feature off,
+    keep the exact COUNT(*) and the un-probed row limit.
+    """
+    from superset.views.datasource import utils
+
+    datasource = fake_datasource_factory(supports_offset=True)
+    datasource.partition_column = partition_column
+
+    with (
+        patch.object(utils, "is_feature_enabled", return_value=flag_enabled),
+        patch.object(utils, "QueryContextFactory") as qcf,
+    ):
+        qcf.return_value.create.side_effect = [
+            _samples_ctx([{"a": 1}] * 50),
+            _count_ctx(1234),
+        ]
+
+        result = utils.get_samples(
+            datasource_type="table",
+            datasource_id=1,
+            page=1,
+            per_page=50,
+            datasource=datasource,
+        )
+
+    queries = _created_queries(qcf)
+    assert len(queries) == 2
+    assert queries[0]["row_limit"] == 50
+    assert queries[1]["metrics"][0]["sqlExpression"] == "COUNT(*)"  # type: ignore[index]
+    assert len(result["data"]) == 50
+    assert result["total_count"] == 1234
+    assert result["total_count_is_lower_bound"] is False

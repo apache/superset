@@ -171,6 +171,34 @@ const fetchWithTwoPages = () => {
   });
 };
 
+// A partitioned dataset: no COUNT(*), only "a full page came back and more
+// rows exist past it".
+const fetchWithLowerBoundTotal = () => {
+  setupDatasetEndpoint();
+  fetchMock.post(SAMPLES_ENDPOINT, {
+    result: {
+      total_count: 50,
+      total_count_is_lower_bound: true,
+      data: Array.from({ length: 50 }, (_, i) => ({
+        year: 1950 + i,
+        na_sales: i,
+        eu_sales: i,
+      })),
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+  fetchMock.post(SAMPLES_ENDPOINT_PAGE_2, {
+    result: {
+      total_count: 51,
+      total_count_is_lower_bound: false,
+      data: [{ year: 2020, na_sales: 42.42, eu_sales: 24.24 }],
+      colnames: ['year', 'na_sales', 'eu_sales'],
+      coltypes: [0, 0, 0],
+    },
+  });
+};
+
 afterEach(() => {
   fetchMock.clearHistory().removeRoutes();
   supersetGetCache.clear();
@@ -487,4 +515,24 @@ test('resets to page 1 and refetches on reload', async () => {
   expect(await screen.findByText('11.27')).toBeInTheDocument();
   expect(screen.queryByText('42.42')).not.toBeInTheDocument();
   expect(fetchMock.callHistory.calls(SAMPLES_ENDPOINT)).toHaveLength(2);
+});
+
+test('pages past a lower-bound total and settles on the exact one', async () => {
+  jest.restoreAllMocks();
+  fetchWithLowerBoundTotal();
+  await waitForRender();
+
+  expect(await screen.findByText('50+ rows')).toBeInTheDocument();
+  // 50 rows on a 50-row page would be a single page; the lower bound has to
+  // keep page 2 reachable.
+  const pagination = await waitFor(() => {
+    const element = document.querySelector<HTMLElement>('.ant-pagination');
+    expect(element).toBeTruthy();
+    return element as HTMLElement;
+  });
+  await userEvent.click(within(pagination).getByTitle('2'));
+
+  expect(await screen.findByText('2020')).toBeInTheDocument();
+  expect(screen.getByText('51 rows')).toBeInTheDocument();
+  expect(fetchMock.callHistory.calls(SAMPLES_ENDPOINT_PAGE_2)).toHaveLength(1);
 });
