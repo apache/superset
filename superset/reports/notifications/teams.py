@@ -91,6 +91,8 @@ def _send_to_teams(
     destination: TeamsDestination,
     service_url: str,
     card: dict[str, Any],
+    *,
+    retry_deadline: float | None = None,
 ) -> None:
     """Load the optional SDK only for delivery and map sanitized transport errors."""
     try:
@@ -101,7 +103,9 @@ def _send_to_teams(
     except ImportError:
         raise NotificationParamException("Teams SDK is not installed") from None
     try:
-        deliver_teams_alert(config, destination, service_url, card)
+        deliver_teams_alert(
+            config, destination, service_url, card, retry_deadline=retry_deadline
+        )
     except TeamsDeliveryError as ex:
         exception = {
             "authorization": NotificationAuthorizationException,
@@ -147,5 +151,9 @@ class TeamsNotification(BaseNotification):
                 "Unable to resolve Teams bot installation"
             ) from None
         _send_to_teams(
-            config, destination, service_url, build_teams_card(self._content)
+            config,
+            destination,
+            service_url,
+            build_teams_card(self._content),
+            retry_deadline=self._content.delivery_deadline,
         )

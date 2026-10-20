@@ -455,3 +455,50 @@ def test_teams_none_alert_reuses_execution_and_logs_without_screenshot(
     capture.assert_not_called()
     policy.assert_not_called()
     alert.return_value.run.assert_called_once()
+
+
+@pytest.mark.parametrize("total_seconds", [100.0, float("inf")])
+def test_teams_delivery_reuses_execution_deadline_and_cleanup_reserve(
+    configured_app: Flask,
+    monkeypatch: pytest.MonkeyPatch,
+    total_seconds: float,
+) -> None:
+    """Each recipient gets the same absolute deadline instead of a fresh allowance."""
+    from superset.reports.notifications.base import NotificationContent
+    from superset.utils.report_execution import (
+        ReportExecutionContext,
+        ReportExecutionDeadline,
+    )
+
+    state = execute.BaseReportState.__new__(execute.BaseReportState)
+    state._report_execution_context = ReportExecutionContext(
+        execution_id=uuid4(),
+        report_schedule_id=1,
+        deadline=ReportExecutionDeadline(total_seconds=total_seconds, started_at=10.0),
+        cleanup_reserve_seconds=5.0,
+    )
+    state._report_schedule = SimpleNamespace(name="Teams alert")
+    monkeypatch.setattr(state, "_assert_rendered_delivery_allowed", MagicMock())
+    monkeypatch.setattr(execute, "app", configured_app)
+    configured_app.config["ALERT_REPORTS_NOTIFICATION_DRY_RUN"] = False
+    notification = MagicMock()
+    factory = MagicMock(return_value=notification)
+    monkeypatch.setattr(execute, "create_notification", factory)
+    content = NotificationContent(
+        name="Teams alert",
+        header_data={
+            "notification_type": "Alert",
+            "notification_format": "NONE",
+            "editors": [],
+            "notification_source": None,
+            "chart_id": None,
+            "dashboard_id": None,
+            "slack_channels": None,
+            "execution_id": None,
+        },
+    )
+    recipient = teams_recipient(saved=True)
+    for _ in range(2):
+        state._send_notification(content, recipient)
+        assert content.delivery_deadline == 10.0 + total_seconds - 5.0
+    assert notification.send.call_count == 2

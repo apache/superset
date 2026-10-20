@@ -944,8 +944,10 @@ tabular results are rejected. The Adaptive Card's protocol attachment envelope
 contains only the card, with no attached files.
 
 Transport runs in the Teams adapter with a replaceable operation-scoped interface.
-It allows at most four attempts within a 60-second retry window, bounds individual
-HTTP requests to 10 seconds or the remaining window, and honors `Retry-After`
+It allows at most four attempts within one 60-second retry budget, capped by the
+remaining execution deadline after its cleanup reserve. Individual MSAL metadata,
+token, and channel HTTP requests use a timeout of at most 10 seconds or the
+remaining budget. The adapter honors `Retry-After`
 (seconds or HTTP date) and `x-ms-retry-after-ms`. A delay exceeding the remaining
 window ends delivery without retrying early. One 401 response can invalidate the
 MSAL token cache and retry with fresh authentication; a second 401 or any 403
@@ -996,19 +998,29 @@ before delivery. Removed configuration keys remain visible as unavailable when
 editing saved alerts; restore the configuration or select another approved channel.
 Credentials are managed only in deployment configuration.
 
-Teams delivery has a single 60-second wall-clock budget covering SDK construction,
-synchronous token acquisition, channel posting, resource cleanup, event-loop
-shutdown, and delivery-child reaping. Up to five seconds are reserved for cleanup
-and reaping. An exhausted operation raises the existing transient notification
-error; retries do not reset its budget. Request-level timeouts also apply.
+Teams delivery runs inside the existing report task. Authentication, posting,
+retry delays, and resource cleanup consume the same retry budget; an operation
+that finishes after the deadline cannot report success. SDK and MSAL clients are
+closed in the same operation, and Celery soft timeouts propagate to the existing
+execution handler without transport retries.
 
-Bounded delivery requires a Unix main-thread worker, such as Celery's prefork or
-solo worker. Each delivery uses a short-lived child process, without starting an
-SDK HTTP server. Only a sanitized outcome crosses the child's result pipe. The
-parent's alarms and signal handlers remain intact. If SDK teardown stalls, the
-parent terminates and reaps the child within the same operation budget. Other
-execution contexts fail before opening the transport.
+The retry budget is cooperative, not a separate hard 60-second wall-clock limit.
+[Requests timeouts](https://requests.readthedocs.io/en/latest/user/advanced/#timeouts)
+bound socket operations rather than the entire call; DNS resolution and a response
+that keeps delivering small amounts of data can exceed them. The adapter does not
+introduce a subprocess, signal handler, background thread, or watchdog to interrupt
+such work. Cleanup runs normally on success, failure, and soft task timeouts;
+a hard task kill cannot guarantee Python cleanup.
 
+For an outer bound on blocking work, use a Celery prefork worker on a platform
+that supports [Celery time limits](https://docs.celeryq.dev/en/stable/userguide/workers.html#time-limits),
+keep `ALERT_REPORTS_WORKING_TIME_OUT_KILL=True`, and set a finite schedule
+`working_timeout`. For alerts, the existing defaults apply a soft limit at
+`working_timeout + 1` seconds and a hard limit at `working_timeout + 10` seconds.
+These limits cover the entire task, including query evaluation and notification
+delivery, rather than granting Teams another independent hard timeout. Disabling
+those limits or using a worker pool without time-limit support removes this
+backstop; request timeouts alone do not replace it.
 
 ### Deploy the optional integration
 
@@ -1141,7 +1153,7 @@ and a new verified installation for that identity.
 | Callback returns 401 or 403 | Check connector token authentication, bot application/tenant IDs, approved team, signed service URL, and that ingress preserved Authorization. Browser cookies cannot authenticate this route. |
 | Delivery fails authorization | Check installation status, secret value/expiry, bot registration, and channel access. A second 401 after one refresh or a 403 ends delivery. |
 | Save fails after a configuration change | Restore the integration/key or explicitly remove/replace Teams recipients. Partial updates validate the merged schedule, including format and schedule type. |
-| Delivery times out or exhausts retries | Check Entra and Bot Framework connectivity and worker execution context. The entire synchronous call has one 60-second budget, including token acquisition and cleanup. Unix main-thread prefork/solo workers are supported. |
+| Delivery times out or exhausts retries | Check Entra and Bot Framework connectivity and worker execution context. The 60-second retry budget includes token acquisition and cleanup and is capped by the execution deadline. Use a supported prefork worker with finite `working_timeout` and `ALERT_REPORTS_WORKING_TIME_OUT_KILL=True` for the outer task limit. |
 | A duplicate channel post appears | A response can be lost after Teams accepted a post. Bounded retries may create another root post; delivery is not exactly-once. |
 
 Use the existing alert execution logs to inspect success and failure. Do not copy
