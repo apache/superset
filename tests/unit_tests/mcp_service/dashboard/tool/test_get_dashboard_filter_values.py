@@ -2063,6 +2063,49 @@ def test_virtual_dataset_url_param_renders_snapshot_url_params(
     assert "form_data" not in g
 
 
+_COUNTRY_SEARCH_MACRO_SQL = [
+    "select * from sales where 1 = 1 "
+    "{% for f in get_filters('country', remove_filter=True) %}"
+    "and country like '{{ f.get(\"val\") }}' {% endfor %}",
+    "select * from sales where 1 = 1 "
+    "{% for f in get_filters('country') %}"
+    "and country like '{{ f.get(\"val\") }}' {% endfor %}",
+]
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize("sql", _COUNTRY_SEARCH_MACRO_SQL)
+def test_search_consumed_by_jinja_filter_macro_is_unsupported(
+    sqlite_native_execution: dict[str, Any], sql: str
+) -> None:
+    """Jinja sees the raw search text, so its rows cannot prove completeness."""
+    sqlite_native_execution["dataset"].sql = sql
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("country")),
+        _request(filter_value_requests=[{"filter_id": "country", "search": "Fran"}]),
+    )
+    assert _available(summaries[0]).status == "unsupported"
+    assert _available(summaries[0]).reason == "unsupported_search"
+    assert _available(summaries[0]).values == []
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+def test_search_on_virtual_dataset_without_filter_macro_is_complete(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """Virtual SQL that does not read the searched column keeps literal search."""
+    sqlite_native_execution["dataset"].sql = (
+        "select * from sales where 1 = 1 "
+        "{% for f in get_filters('region') %}and 1 = 0 {% endfor %}"
+    )
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("country")),
+        _request(filter_value_requests=[{"filter_id": "country", "search": "Fran"}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == ["France"]
+
+
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
 def test_virtual_dataset_time_filter_macro_sees_cascading_time_parent(
     sqlite_native_execution: dict[str, Any],

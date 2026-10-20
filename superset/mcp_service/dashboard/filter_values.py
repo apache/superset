@@ -975,7 +975,16 @@ def _execute(command: ChartDataCommand) -> dict[str, Any]:
         if count_column and dataframe[count_column].iloc[index] == 0:
             value = None
         rows.append({target: value})
-    return {"queries": [{"data": rows, "is_truncated": bool(payload.get("warning"))}]}
+    return {
+        "queries": [
+            {
+                "data": rows,
+                "is_truncated": bool(payload.get("warning")),
+                "applied_template_filters": payload.get("applied_template_filters")
+                or [],
+            }
+        ]
+    }
 
 
 def _run(  # noqa: C901
@@ -1004,6 +1013,12 @@ def _run(  # noqa: C901
     queries = result.get("queries")
     if not isinstance(queries, list) or len(queries) != 1 or queries[0].get("error"):
         raise _DiscoveryUnavailableError("query_failed")
+    if item.search and target.column.column_name in (
+        queries[0].get("applied_template_filters") or []
+    ):
+        # Jinja filter macros receive the raw search text rather than the literal
+        # contains predicate, so the rows cannot prove which options match.
+        raise _DiscoveryUnavailableError("unsupported_search")
     rows = queries[0].get("data")
     if isinstance(rows, str):
         rows = json.loads(rows)
