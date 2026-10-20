@@ -768,7 +768,13 @@ def _restore_dashboard_membership(dashboard: Any, transaction_id: int) -> list[i
         )
     # Installing the baseline drops any unflushed change to the collection.
     # There is none here: the dashboard revert restores no relationships, and
-    # single_flush_scope holds back autoflush until the restore is done.
+    # single_flush_scope holds back autoflush until the restore is done. Fail
+    # loudly rather than silently discard one if that ever changes.
+    if sa.inspect(dashboard).attrs.slices.history.has_changes():
+        raise RuntimeError(
+            "dashboard.slices has unflushed changes; the membership baseline "
+            "would drop them"
+        )
     set_committed_value(dashboard, "slices", current_slices)
     dashboard.slices = live_slices
     live_ids = {slc.id for slc in live_slices}

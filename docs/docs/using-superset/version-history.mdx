@@ -285,7 +285,9 @@ worth knowing:
   have since been permanently deleted, the layout is restored without them and
   Superset tells you how many were not reattached. Archived charts are not
   skipped: they are linked to the dashboard as in the version, so restoring
-  one from the archive later puts it back on that dashboard.
+  one from the archive later puts it back on that dashboard. An archived chart
+  that was not in the version is unlinked, so restoring it from the archive
+  later does not put it back on this dashboard.
 
 Restoring is offered to the same users who may edit the entity, and is withheld
 from externally managed entities, whose source of truth lives outside Superset

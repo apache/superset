@@ -504,6 +504,85 @@ class TestDashboardRestoreApi(SupersetTestCase):
                 dashboard.slices.append(db.session.get(Slice, archived_id))
                 db.session.commit()
 
+    def test_restore_unlinks_archived_chart_from_empty_version(self) -> None:
+        """A version with no charts unlinks a chart archived since then."""
+        from superset.daos.version import derive_version_uuid
+        from superset.models.slice import Slice
+
+        _persist_fixture_state()
+        source: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert source is not None
+        archived: Slice = source.slices[0]
+        archived_id: int = archived.id
+        admin_id: int = self.get_user(ADMIN_USERNAME).id
+        dashboard: Dashboard = self.insert_dashboard(
+            "empty version restore", "empty-version-restore", [admin_id]
+        )
+        dashboard_id: int = dashboard.id
+
+        # Snapshot point: no charts.
+        dashboard.dashboard_title = "empty version restore — snapshot"
+        db.session.commit()
+        ver_cls: Any = version_class(Dashboard)
+        entity_uuid: UUID | None = dashboard.uuid
+        assert entity_uuid is not None
+        target_tx: int = (
+            db.session.query(ver_cls.transaction_id)
+            .filter(ver_cls.id == dashboard_id, ver_cls.uuid == entity_uuid)
+            .order_by(ver_cls.transaction_id.desc())
+            .limit(1)
+            .scalar()
+        )
+        target_uuid: str = str(derive_version_uuid(entity_uuid, target_tx))
+
+        dashboard.slices.append(archived)
+        db.session.commit()
+        self.login(ADMIN_USERNAME)
+        assert self.client.delete(f"/api/v1/chart/{archived_id}").status_code == 200
+        try:
+            rv: Any = self._restore(str(entity_uuid), target_uuid)
+            assert rv.status_code == 200, rv.data
+
+            db.session.expire_all()
+            members: list[Any] = db.session.execute(
+                sa.text(
+                    "SELECT slice_id FROM dashboard_slices "
+                    "WHERE dashboard_id = :dashboard_id"
+                ),
+                {"dashboard_id": dashboard_id},
+            ).fetchall()
+            assert members == []
+        finally:
+            db.session.rollback()
+            self.client.post(f"/api/v1/chart/{archived.uuid}/restore")
+            db.session.expire_all()
+            db.session.delete(db.session.get(Dashboard, dashboard_id))
+            db.session.commit()
+
+    def test_restore_membership_refuses_unflushed_slices_change(self) -> None:
+        """Installing the membership baseline would silently drop a pending
+        change to ``dashboard.slices``, so the restore refuses instead."""
+        from superset.versioning.restore import _restore_dashboard_membership
+
+        _persist_fixture_state()
+        dashboard: Dashboard = (
+            db.session.query(Dashboard)
+            .filter(Dashboard.dashboard_title == "USA Births Names")
+            .first()
+        )
+        assert dashboard is not None
+        try:
+            with db.session.no_autoflush:
+                dashboard.slices.remove(dashboard.slices[0])
+                with pytest.raises(RuntimeError, match="unflushed changes"):
+                    _restore_dashboard_membership(dashboard, 0)
+        finally:
+            db.session.rollback()
+
     def test_restore_denies_non_editor_with_write_permission(self) -> None:
         """A user holding can_write on Dashboard but who is not an editor
         of THIS dashboard gets 403 from the command's editorship check."""
