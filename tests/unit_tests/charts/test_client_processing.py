@@ -2507,8 +2507,25 @@ def test_table_applies_small_number_format() -> None:
 
     ``formatColumnValue`` in the Table plugin picks the formatter per value, so
     the report has to switch per cell rather than per column.
+
+    The switch point itself is covered on both sides and in both signs. The
+    browser's test is ``Math.abs(value) < 1``, so exactly one is a large cell
+    and a large negative stays large: widening the comparison to ``<= 1`` or
+    comparing the signed value would render one of these as a percentage.
     """
-    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 12.5, 2: -0.5, 3: 0.0}})
+    df = pd.DataFrame.from_dict(
+        {
+            "ratio": {
+                0: 0.0523,
+                1: 12.5,
+                2: -0.5,
+                3: 0.0,
+                4: 1.0,
+                5: -1.0,
+                6: -12.5,
+            }
+        }
+    )
     form_data = {
         "viz_type": "table",
         "metrics": ["ratio"],
@@ -2517,7 +2534,15 @@ def test_table_applies_small_number_format() -> None:
         },
     }
     formatted = table(df, form_data)
-    assert formatted["ratio"].tolist() == ["5.2%", "12.50", "-50.0%", "0.0%"]
+    assert formatted["ratio"].tolist() == [
+        "5.2%",
+        "12.50",
+        "-50.0%",
+        "0.0%",
+        "1.00",
+        "-1.00",
+        "-12.50",
+    ]
 
 
 def test_table_ignores_blank_small_number_format() -> None:
