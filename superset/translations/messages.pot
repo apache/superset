@@ -6595,6 +6595,10 @@ msgstr ""
 msgid "Failed at retrieving results"
 msgstr ""
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
@@ -12990,6 +12994,9 @@ msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some required filters on other tabs have values and will not be cleared"
+msgstr ""
+
+msgid "Some semantic views could not be added"
 msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
