@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { KeyboardEvent, useState } from 'react';
+import { KeyboardEvent, useId, useState } from 'react';
 import { t, tn } from '@apache-superset/core/translation';
 import { styled, useTheme } from '@apache-superset/core/theme';
 import { Button, Dropdown, Icons } from '@superset-ui/core/components';
@@ -254,6 +254,7 @@ export default function SaveGroupItem({
   onRestore,
   onOpenAsNew,
 }: SaveGroupItemProps) {
+  const metadataId = useId();
   const [expanded, setExpanded] = useState(false);
   const [showAll, setShowAll] = useState(false);
   const headline = groupHeadline(group);
@@ -324,6 +325,7 @@ export default function SaveGroupItem({
         onKeyDown={hasRecords ? activate(toggleExpanded) : undefined}
         aria-expanded={hasRecords ? expanded : undefined}
         aria-label={hasRecords ? headline : undefined}
+        aria-describedby={hasRecords ? metadataId : undefined}
         aria-current={hasRecords && marksCurrentState ? 'true' : undefined}
         hasRecords={hasRecords}
       >
@@ -332,7 +334,7 @@ export default function SaveGroupItem({
         </IconWrapper>
         <HeaderText>
           <Headline title={headline}>{headline}</Headline>
-          <Meta>
+          <Meta id={metadataId}>
             {isCurrent && (
               <>
                 <span>{t('Latest save')}</span>

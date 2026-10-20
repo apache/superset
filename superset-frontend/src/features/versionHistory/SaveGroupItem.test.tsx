@@ -316,3 +316,57 @@ test.each<{ entityType: VersionedEntityType; isCurrent: boolean }>([
     expect(screen.getAllByTestId('version-history-action-row')).toHaveLength(2);
   },
 );
+
+test.each([false, true])(
+  'latest-save metadata describes its header independently of aria-current (%s)',
+  marksCurrentState => {
+    const record: ActivityRecord = {
+      version_uuid: 'version-uuid',
+      entity_kind: 'chart',
+      entity_uuid: 'entity-uuid',
+      entity_name: 'My chart',
+      entity_deleted: false,
+      entity_deletion_state: null,
+      source: 'self',
+      transaction_id: 7,
+      action_kind: null,
+      issued_at: '2026-08-31T17:46:00',
+      changed_by: null,
+      kind: 'metrics',
+      operation: 'update',
+      path: ['metrics'],
+      from_value: null,
+      to_value: null,
+      summary: '',
+      impact: null,
+    };
+    const group = makeGroup({
+      records: [record],
+      changedBy: { id: 1, first_name: 'Ada', last_name: 'Lovelace' },
+    });
+    const { container: latest } = renderItem({
+      group,
+      isCurrent: true,
+      marksCurrentState,
+    });
+    const { container: historical } = renderItem({ group });
+    const latestHeader = within(latest).getByRole('button', {
+      name: /Aug 31, 2026/,
+    });
+    const historicalHeader = within(historical).getByRole('button', {
+      name: /Aug 31, 2026/,
+    });
+
+    expect(latestHeader).toHaveAccessibleDescription(
+      /Latest save · Ada Lovelace · 8\/31\/2026/,
+    );
+    expect(historicalHeader).toHaveAccessibleDescription(
+      /^Ada Lovelace · 8\/31\/2026/,
+    );
+    if (marksCurrentState) {
+      expect(latestHeader).toHaveAttribute('aria-current', 'true');
+    } else {
+      expect(latestHeader).not.toHaveAttribute('aria-current');
+    }
+  },
+);
