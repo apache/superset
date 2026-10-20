@@ -338,8 +338,8 @@ the required factory and provider cache behavior. Schema transport
 evolution is separate from these obligations; use the signatures supplied by the
 SDK version your provider supports.
 
-For tests without a running Superset application, install pytest and enable the
-SDK plugin in your root `conftest.py`:
+For tests without a running Superset application, install
+`apache-superset-core[testing]` and enable the SDK plugin in your root `conftest.py`:
 
 ```python
 pytest_plugins = ["superset_core.semantic_layers.testing"]

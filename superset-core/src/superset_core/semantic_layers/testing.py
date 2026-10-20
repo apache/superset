@@ -18,7 +18,8 @@
 """Opt-in pytest support for provider tests without a Superset application.
 
 Load with ``pytest_plugins = ["superset_core.semantic_layers.testing"]``.
-This module requires pytest; importing the provider SDK itself does not.
+Install ``apache-superset-core[testing]`` for pytest support; importing the
+provider SDK itself does not require pytest.
 """
 
 from collections.abc import Callable
@@ -34,9 +35,12 @@ _T = TypeVar("_T")
 def _registration(
     id: str, name: str, description: str | None = None
 ) -> Callable[[_T], _T]:
-    """Leave the decorated class intact without registering it with any host."""
+    """Set display metadata without registering the class with any host."""
 
     def decorate(provider: _T) -> _T:
+        # The decorator adds metadata; the input type need not declare it.
+        setattr(provider, "name", name)  # noqa: B010
+        setattr(provider, "description", description)  # noqa: B010
         return provider
 
     return decorate
@@ -49,6 +53,7 @@ def semantic_layer_registration(monkeypatch: pytest.MonkeyPatch) -> None:
     Request this fixture before importing modules that use ``@semantic_layer``;
     top-level provider imports in test modules run before fixtures. The fixture
     replaces only the SDK decorator, and pytest restores it after the test.
+    Decorated classes retain their assigned name and description, as in the host.
     Already-imported aliases are not patched. It does not emulate registration,
     namespacing, duplicate detection or extension lifecycle. Test those in a host
     integration lane. Use in isolated provider test processes, not a live host.
