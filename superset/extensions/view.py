@@ -24,7 +24,10 @@ from superset_core.extensions.types import Manifest, Page
 from werkzeug.exceptions import MethodNotAllowed, NotFound
 from werkzeug.routing import RequestRedirect
 
-from superset.constants import MODEL_VIEW_RW_METHOD_PERMISSION_MAP
+from superset.constants import (
+    EXTENSION_VIEW_MENU_PREFIX,
+    MODEL_VIEW_RW_METHOD_PERMISSION_MAP,
+)
 from superset.superset_typing import FlaskResponse
 from superset.utils.core import get_user_id
 from superset.views.base import BaseSupersetView, get_spa_template_context
@@ -54,6 +57,16 @@ def _render_shell() -> FlaskResponse:
     return render_template("superset/spa.html", **get_spa_template_context())
 
 
+def _view_menu(extension_id: str) -> str:
+    """The FAB view menu an extension's page permissions hang from.
+
+    Prefixed so the security manager can tell these apart from a core view's
+    permissions without keeping a registry of installed extensions. See
+    ``SupersetSecurityManager._is_admin_only``.
+    """
+    return f"{EXTENSION_VIEW_MENU_PREFIX}{extension_id}"
+
+
 def may_open(extension_id: str, permission: str | None) -> bool:
     """Whether the current user may open a page with this permission.
 
@@ -66,7 +79,7 @@ def may_open(extension_id: str, permission: str | None) -> bool:
         return True
     from superset import security_manager
 
-    return security_manager.can_access(permission, extension_id)
+    return security_manager.can_access(permission, _view_menu(extension_id))
 
 
 def _make_page_view(extension_id: str, page: Page) -> Callable[..., FlaskResponse]:
@@ -116,26 +129,65 @@ def _make_page_view(extension_id: str, page: Page) -> Callable[..., FlaskRespons
     return view
 
 
+def _segments(path: str) -> list[str]:
+    """A rule or page path as its path segments, ignoring trailing slashes."""
+    return [segment for segment in path.split("/") if segment]
+
+
+def _rule_reaches_into(page_path: str, rule_path: str) -> bool:
+    """Whether ``rule_path`` can serve a URL at or beneath ``page_path``.
+
+    Compared segment by segment, because a converter matches text that does
+    not resemble it. Comparing the templates as strings misses the case this
+    exists for: ``/api/v1/datasource/<datasource_type>/...`` does not start
+    with ``/api/v1/datasource/table/``, yet it answers
+    ``/api/v1/datasource/table/42``. A page at ``/api/v1/datasource/table``
+    would be accepted by a string comparison and would then take that request,
+    answering the app shell with HTTP 200 where a JSON API belongs.
+
+    A ``path`` converter spans every remaining segment, so a rule carrying one
+    above the page's depth reaches the whole subtree.
+
+    A page owns its path and everything beneath it exclusively, so any rule
+    reaching into that subtree is a conflict -- even one Werkzeug's precedence
+    would have resolved in the host's favour. The alternative is to reimplement
+    that precedence here and be wrong about it in a way nobody notices;
+    "this path is already in use, pick another" is a better error than a route
+    that works until the arithmetic shifts.
+    """
+    page_parts = _segments(page_path)
+    rule_parts = _segments(rule_path)
+
+    for index, page_part in enumerate(page_parts):
+        if index >= len(rule_parts):
+            # The rule ran out of segments without a `path` converter, so it
+            # serves URLs above the page rather than inside it.
+            return False
+        rule_part = rule_parts[index]
+        if rule_part.startswith("<"):
+            if rule_part.startswith("<path:"):
+                return True
+            continue
+        if rule_part != page_part:
+            return False
+    return True
+
+
 def _first_claimant(app: Flask, path: str) -> str | None:
-    """The endpoint already answering ``path`` or anything under it.
+    """The endpoint already answering ``path`` or anything beneath it.
 
     Two checks, because they catch different things and neither subsumes the
     other.
 
     Matching ``path`` against the live URL map catches a rule that answers it
-    without resembling it. A literal comparison is what let an earlier
-    revision of this code wave through ``/oauth-authorized/google/``: the rule
-    is registered as ``/oauth-authorized/<provider>`` and never string-matches
-    the request it would answer. A redirect counts as taken --
-    ``strict_slashes`` raises ``RequestRedirect`` for a rule that exists under
-    a different trailing slash -- and so does a method mismatch, since a rule
-    answering only POST still owns the path.
+    without resembling it, and catches what matching alone can report: a
+    redirect counts as taken -- ``strict_slashes`` raises ``RequestRedirect``
+    for a rule that exists under a different trailing slash -- and so does a
+    method mismatch, since a rule answering only POST still owns the path.
 
-    Scanning rule templates for the same prefix catches the opposite case: a
-    page takes everything beneath its path through its ``<path:rest>`` rule,
-    so a page at ``/report`` would shadow a core ``/report/list``. Matching
-    cannot find that one -- there is no single URL to probe that a static
-    descendant is guaranteed to answer -- so the templates are read directly.
+    Then every rule is compared segment-wise, which is what finds a rule that
+    reaches *into* the page's subtree. Matching cannot find those: there is no
+    single URL to probe that an arbitrary descendant is guaranteed to answer.
     """
     adapter = app.url_map.bind("localhost")
     try:
@@ -149,9 +201,8 @@ def _first_claimant(app: Flask, path: str) -> str | None:
     else:
         return endpoint
 
-    prefix = f"{path}/"
     for rule in app.url_map.iter_rules():
-        if rule.rule.startswith(prefix):
+        if _rule_reaches_into(path, rule.rule):
             return f"{rule.endpoint} (at {rule.rule}, which this page would shadow)"
 
     return None
@@ -232,6 +283,10 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
             endpoint=endpoint,
             view_func=view,
             methods=["GET"],
+            # Most Superset screens are reached with a trailing slash, so a
+            # page declared without one would hard-404 on `/review-queue/`
+            # rather than redirect.
+            strict_slashes=False,
         )
         app.add_url_rule(
             f"{page.path}/<path:rest>",
@@ -256,7 +311,12 @@ def registered_page_paths(app: Flask, extension_id: str) -> list[str]:
     here -- which is what keeps the frontend from offering a menu entry, or
     accepting a component, for a page that would 404 on a cold load.
     """
-    prefix = f"{_ENDPOINT_PREFIX}.{extension_id}"
+    # The trailing slash is load-bearing. Extension ids may contain hyphens,
+    # so without a separator `acme.review` is a prefix of `acme.review-plus`
+    # and would read back that extension's pages as its own -- undoing a
+    # refusal, and letting one extension's component be accepted for another
+    # extension's path.
+    prefix = f"{_ENDPOINT_PREFIX}.{extension_id}/"
     return [
         rule.rule
         for rule in app.url_map.iter_rules()
@@ -288,7 +348,9 @@ def _grant_to_admin(permission: str, extension_id: str) -> None:
         )
         return
 
-    pvm = security_manager.find_permission_view_menu(permission, extension_id)
+    pvm = security_manager.find_permission_view_menu(
+        permission, _view_menu(extension_id)
+    )
     if pvm is None:
         return
 
@@ -332,12 +394,13 @@ def ensure_page_permissions(manifest: Manifest) -> None:
     }
     for permission in sorted(required):
         try:
-            if not security_manager.find_permission_view_menu(permission, manifest.id):
-                security_manager.add_permission_view_menu(permission, manifest.id)
+            view_menu = _view_menu(manifest.id)
+            if not security_manager.find_permission_view_menu(permission, view_menu):
+                security_manager.add_permission_view_menu(permission, view_menu)
                 logger.info(
                     "Created permission '%s' on '%s' for extension pages",
                     permission,
-                    manifest.id,
+                    view_menu,
                 )
             _grant_to_admin(permission, manifest.id)
         except Exception:  # pylint: disable=broad-except

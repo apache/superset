@@ -79,7 +79,11 @@ from sqlalchemy.sql.elements import ColumnElement
 from sqlalchemy.sql.selectable import Alias
 
 from superset.common.chart_data import ChartDataResultType
-from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
+from superset.constants import (
+    EMPTY_FILTER_SQL_EXPRESSION,
+    EXTENSION_VIEW_MENU_PREFIX,
+    RouteMethod,
+)
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
     DatasetInvalidPermissionEvaluationException,
@@ -3551,6 +3555,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             pvm.view_menu.name in self.READ_ONLY_MODEL_VIEWS
             and pvm.permission.name not in self.READ_ONLY_PERMISSION
         ):
+            return True
+        if pvm.view_menu.name.startswith(EXTENSION_VIEW_MENU_PREFIX):
+            # Permissions an extension declares for its pages. The view-menu
+            # name is the extension's id, so it can never be listed in
+            # ADMIN_ONLY_VIEW_MENUS the way "UserRegistrationsRestAPI" above
+            # is; without this `_is_gamma_pvm` -- a denylist -- would hand
+            # every one of them to stock Gamma and Alpha, and a page's
+            # declared permission would stop restricting anything the next
+            # time `superset init` ran. Builtin roles other than Admin are
+            # excluded; a custom role an operator grants it to is untouched,
+            # because sync_role_definitions only rebuilds the builtin ones.
             return True
         return (
             pvm.view_menu.name in self.ADMIN_ONLY_VIEW_MENUS
