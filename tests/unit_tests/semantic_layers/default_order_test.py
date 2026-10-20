@@ -41,7 +41,9 @@ from superset.semantic_layers.cache_policy import ContainmentCapabilities
 from superset.semantic_layers.cache_repository import SemanticCacheRepository
 from superset.semantic_layers.cache_transform import transform_result
 from superset.semantic_layers.cache_types import (
+    CachedEntry,
     CachedResultCandidate,
+    ReuseMode,
     SemanticCacheLookupResult,
 )
 from tests.unit_tests.semantic_layers.conftest import build_view_meta
@@ -312,3 +314,42 @@ def test_rollup_reuses_an_unlimited_entry_whatever_its_default_order(
     )
 
     assert _serve_from_cache(stored_query, stored_rows, query) == expected
+
+
+def test_store_replaces_a_descriptor_written_without_the_default_order() -> None:
+    """A pre-upgrade entry for the same value is re-registered, not deduplicated."""
+    backend: _MemoryBackend = _MemoryBackend()
+    repository: SemanticCacheRepository = SemanticCacheRepository(
+        backend, _InlineCoordinator(), clock=lambda: 10.0
+    )
+    query: SemanticQuery = SemanticQuery(
+        metrics=[SALES], dimensions=[ORDER_DATE], limit=2
+    )
+    result: SemanticResult = SemanticResult(
+        requests=[],
+        results=pa.table(
+            {
+                "order_date": pa.array([date(2026, 1, 1)], pa.date32()),
+                "total_sales": [1.0],
+            }
+        ),
+    )
+    repository.store(build_view_meta(), query, result)
+    # Rewrite the descriptor as an upgrade would find it: same value, no order.
+    bucket_key: str = next(
+        key for key, value in backend.values.items() if isinstance(value, list)
+    )
+    entries: list[CachedEntry] = backend.values[bucket_key]  # type: ignore[assignment]
+    backend.values[bucket_key] = [replace(entry, order_key="") for entry in entries]
+    assert not repository.lookup(
+        build_view_meta(), query, ContainmentCapabilities()
+    ).candidates
+
+    assert repository.store(build_view_meta(), query, result, replace=False)
+
+    lookup: SemanticCacheLookupResult = repository.lookup(
+        build_view_meta(), query, ContainmentCapabilities()
+    )
+    assert [candidate.decision.mode for candidate in lookup.candidates] == [
+        ReuseMode.EXACT
+    ]

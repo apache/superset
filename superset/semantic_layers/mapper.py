@@ -163,13 +163,16 @@ def _dispatch_semantic_query(
     force: bool = False,
     cacheable: bool = True,
     cache_timeout: int | None = None,
+    default_order: bool = True,
 ) -> SemanticCacheOutcome:
     # Normalize before any store or reuse: a provider may return
     # ``SemanticResult(results=None)`` for zero rows, and a cached ``None``
-    # table would break every later transformation of that entry.
+    # table would break every later transformation of that entry. Order cannot
+    # change a row count, so count dispatches skip the default order.
     def normalized_dispatcher(dispatched_query: SemanticQuery) -> SemanticResult:
         result: SemanticResult = execute_semantic_query(
-            dispatcher, with_default_order(dispatched_query)
+            dispatcher,
+            with_default_order(dispatched_query) if default_order else dispatched_query,
         )
         return _coerce_empty_result(result, dispatched_query)
 
@@ -251,6 +254,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
         # storing those pages would only evict usable first-page descriptors.
         cacheable=not query_object.is_rowcount and not query_object.row_offset,
         cache_timeout=query_object.cache_timeout,
+        default_order=not query_object.is_rowcount,
     )
     main_result: SemanticResult = main_outcome.result
     main_result = _coerce_empty_result(main_result, main_query)
@@ -298,6 +302,7 @@ def get_results(query_object: QueryObject) -> QueryResult:
             force=query_object.force_query,
             cacheable=not query_object.is_rowcount and not query_object.row_offset,
             cache_timeout=query_object.cache_timeout,
+            default_order=not query_object.is_rowcount,
         )
         cache_hits.append(outcome.cache_hit)
         result: SemanticResult = outcome.result

@@ -382,10 +382,12 @@ class SemanticQuery:
     position, not ``SemanticView.preferred_temporal_dimension``), before
     ``offset`` and ``limit``. Rows that tie on it come back in no particular
     order, and where its NULL values sort is not specified. The host applies
-    this both to the query it sends the provider and to results it serves from
-    its cache. It is a default, never a prefix: a non-empty ``order`` is used
-    exactly as given. A provider therefore receives an empty ``order`` only when
-    no temporal dimension is selected, and may then return rows in any order.
+    this both to the ``get_table`` query it sends the provider and to results it
+    serves from its cache. It is a default, never a prefix: a non-empty
+    ``order`` is used exactly as given. A ``get_table`` call therefore receives
+    an empty ``order`` only when no temporal dimension is selected, and may then
+    return rows in any order. ``get_row_count`` gets no default, since order
+    cannot change a count.
 
     ``group_limit`` is a separate ranking, with its own metric, direction and
     optional filters.
