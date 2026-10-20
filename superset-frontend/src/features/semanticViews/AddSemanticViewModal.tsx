@@ -21,7 +21,8 @@ import { t } from '@apache-superset/core/translation';
 import { logging } from '@apache-superset/core/utils';
 import { styled } from '@apache-superset/core/theme';
 import { SupersetClient } from '@superset-ui/core';
-import { Select } from '@superset-ui/core/components';
+import { List, Select } from '@superset-ui/core/components';
+import { Alert } from '@apache-superset/core/components';
 import { Spin } from '@superset-ui/core/components/Spin';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { JsonForms } from '@jsonforms/react';
@@ -43,6 +44,11 @@ import {
   stableSerialize,
   SCHEMA_REFRESH_DEBOUNCE_MS,
 } from 'src/features/semanticLayers/jsonFormsHelpers';
+import {
+  creationErrorMessage,
+  isRecord,
+  parseCreationResult,
+} from './creationResult';
 
 interface SemanticLayerOption {
   uuid: string;
@@ -186,6 +192,9 @@ export default function AddSemanticViewModal({
 
   // --- Misc ---
   const [saving, setSaving] = useState(false);
+  const [creationErrors, setCreationErrors] = useState<
+    { name: string; message: string }[]
+  >([]);
   const fetchGenRef = useRef(0);
   // Bumped whenever dependent options go stale, so views queued or in
   // flight for a previous dependency state never land.
@@ -309,6 +318,7 @@ export default function AddSemanticViewModal({
       const gen = fetchGenRef.current;
 
       setSelectedLayerUuid(uuid);
+      setCreationErrors([]);
       if (schemaTimerRef.current) clearTimeout(schemaTimerRef.current);
       if (viewsTimerRef.current) clearTimeout(viewsTimerRef.current);
       setRuntimeSchema(null);
@@ -586,6 +596,7 @@ export default function AddSemanticViewModal({
       setSelectedViewNames([]);
       setLoadingViews(false);
       setSaving(false);
+      setCreationErrors([]);
       lastViewsKeyRef.current = '';
     }
   }, [show]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -600,7 +611,9 @@ export default function AddSemanticViewModal({
 
   const handleSave = async () => {
     if (!selectedLayerUuid || newViewCount === 0) return;
+    const gen = fetchGenRef.current;
     setSaving(true);
+    setCreationErrors([]);
     try {
       const viewsToCreate = availableViews
         .filter(v => selectedViewNames.includes(v.name) && !v.already_added)
@@ -610,47 +623,65 @@ export default function AddSemanticViewModal({
           configuration: runtimeData,
         }));
 
-      const { json } = await SupersetClient.post({
-        endpoint: '/api/v1/semantic_view/',
-        jsonPayload: { views: viewsToCreate },
-      });
-
-      const created = Array.isArray(json?.result?.created)
-        ? json.result.created
-        : [];
-      const errors = Array.isArray(json?.result?.errors)
-        ? json.result.errors
-        : [];
+      let body: unknown;
+      try {
+        const { json } = await SupersetClient.post({
+          endpoint: '/api/v1/semantic_view/',
+          jsonPayload: { views: viewsToCreate },
+        });
+        body = json;
+      } catch (error) {
+        // SupersetClient rejects non-2xx responses before parsing their body.
+        if (
+          !isRecord(error) ||
+          error.status !== 422 ||
+          typeof error.json !== 'function'
+        ) {
+          throw error;
+        }
+        body = await error.json();
+      }
+      if (gen !== fetchGenRef.current) return;
+      const { created, errors } = parseCreationResult(body);
+      setCreationErrors(errors);
 
       if (created.length > 0) {
+        setAvailableViews(previous =>
+          previous.map(view =>
+            created.includes(view.name)
+              ? { ...view, already_added: true }
+              : view,
+          ),
+        );
+        setSelectedViewNames(previous =>
+          previous.filter(name => !created.includes(name)),
+        );
         addSuccessToast(t('%s semantic view(s) added', created.length));
+        onSuccess();
       }
 
       if (errors.length > 0) {
-        const failedNames = errors
-          .map((error: { name?: string }) => error?.name)
-          .filter((name: string | undefined): name is string => !!name);
+        const failedNames = errors.map(error => error.name).filter(Boolean);
         addDangerToast(
           failedNames.length > 0
             ? t(
                 '%s semantic view(s) failed to add: %s',
-                errors.length,
+                failedNames.length,
                 failedNames.join(', '),
               )
-            : t('%s semantic view(s) failed to add', errors.length),
+            : creationErrorMessage(),
         );
       }
 
       if (created.length > 0 && errors.length === 0) {
-        onSuccess();
         onHide();
-      } else if (errors.length === 0) {
-        addDangerToast(t('An error occurred while adding semantic views'));
       }
     } catch {
-      addDangerToast(t('An error occurred while adding semantic views'));
+      if (gen !== fetchGenRef.current) return;
+      setCreationErrors([{ name: '', message: creationErrorMessage() }]);
+      addDangerToast(creationErrorMessage());
     } finally {
-      setSaving(false);
+      if (gen === fetchGenRef.current) setSaving(false);
     }
   };
 
@@ -726,12 +757,32 @@ export default function AddSemanticViewModal({
       saveLoading={saving}
     >
       <ModalContent>
+        {creationErrors.length > 0 && (
+          <Alert
+            type="error"
+            showIcon
+            message={t('Some semantic views could not be added')}
+            description={
+              <List
+                dataSource={creationErrors}
+                renderItem={error => (
+                  <List.Item>
+                    {error.name
+                      ? t('Failed to add %s: %s', error.name, error.message)
+                      : error.message}
+                  </List.Item>
+                )}
+              />
+            }
+          />
+        )}
         {/* Semantic Layer */}
         <ModalFormField label={t('Semantic Layer')}>
           <Select
             ariaLabel={t('Semantic layer')}
             placeholder={t('Select a semantic layer')}
             loading={loadingLayers}
+            disabled={saving}
             value={selectedLayerUuid}
             onChange={value => handleLayerChange(value as string)}
             options={layers.map(l => ({
@@ -755,6 +806,7 @@ export default function AddSemanticViewModal({
             <SectionLabel>{t('Source location')}</SectionLabel>
             <VerticalFormFields>
               <JsonForms
+                readonly={saving}
                 schema={runtimeSchema!}
                 uischema={runtimeUiSchema}
                 data={runtimeData}
@@ -780,7 +832,7 @@ export default function AddSemanticViewModal({
               placeholder={t('Select semantic views')}
               mode="multiple"
               loading={loadingViews}
-              disabled={viewsDisabled}
+              disabled={viewsDisabled || saving}
               value={selectedViewNames}
               onChange={values => setSelectedViewNames(values as string[])}
               options={viewOptions}

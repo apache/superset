@@ -215,8 +215,148 @@ test('shows partial success feedback when only some semantic views are created',
       '1 semantic view(s) failed to add: customers',
     );
   });
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'customers: create failed',
+  );
+  expect(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  ).toBeEnabled();
+  await selectOption('Semantic views', 'orders (already added)');
+  expect(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  ).toBeEnabled();
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
+  expect(props.onHide).not.toHaveBeenCalled();
+  mockedPost.mockResolvedValueOnce({
+    json: { result: { created: [{ uuid: 'view-2', name: 'customers' }] } },
+  });
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  expect(mockedPost).toHaveBeenLastCalledWith({
+    endpoint: '/api/v1/semantic_view/',
+    jsonPayload: {
+      views: [
+        {
+          name: 'customers',
+          semantic_layer_uuid: 'layer-1',
+          configuration: {},
+        },
+      ],
+    },
+  });
+  await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
+});
+
+test.each([
+  [
+    'all failed',
+    {
+      result: {
+        created: [],
+        errors: [
+          { name: 'orders', error: 'Invalid <script>model</script>' },
+          { name: 'customers', error: { configuration: ['Missing field'] } },
+        ],
+      },
+    },
+    [
+      'orders: Invalid <script>model</script>',
+      'customers: configuration: Missing field',
+    ],
+  ],
+  [
+    'malformed',
+    { result: { errors: 'private provider details' } },
+    ['An error occurred while adding semantic views'],
+  ],
+  [
+    'malformed success',
+    { result: { created: [null], errors: [null] } },
+    ['An error occurred while adding semantic views'],
+  ],
+])(
+  'shows safe inline creation feedback for %s',
+  async (_label, body, messages) => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: {
+            result: [
+              { name: 'orders', already_added: false },
+              { name: 'customers', already_added: false },
+            ],
+          },
+        });
+      return _label === 'malformed success'
+        ? Promise.resolve({ json: body })
+        : Promise.reject({ status: 422, json: async () => body });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await selectOption('Semantic views', 'customers');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    );
+    const alert = await screen.findByRole('alert');
+    messages.forEach(message => expect(alert).toHaveTextContent(message));
+    expect(alert.querySelector('script')).toBeNull();
+    expect(alert).not.toHaveTextContent('private provider details');
+    if (_label.startsWith('malformed')) {
+      expect(props.addDangerToast).toHaveBeenCalledWith(
+        'An error occurred while adding semantic views',
+      );
+    }
+    expect(props.onHide).not.toHaveBeenCalled();
+    expect(props.onSuccess).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    ).toBeEnabled();
+  },
+);
+
+test('a creation response cannot update a closed and reopened modal', async () => {
+  let finishSave: (value: unknown) => void = () => {};
+  const pendingSave = new Promise(resolve => {
+    finishSave = resolve;
+  });
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({ json: { result: { properties: {} } } });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return pendingSave;
+  });
+  const props = createProps();
+  const { rerender } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  rerender(<AddSemanticViewModal {...props} show={false} />);
+  rerender(<AddSemanticViewModal {...props} />);
+  await act(async () => {
+    finishSave({
+      json: { result: { created: [{ uuid: 'view-1', name: 'orders' }] } },
+    });
+  });
   expect(props.onSuccess).not.toHaveBeenCalled();
   expect(props.onHide).not.toHaveBeenCalled();
+  expect(props.addSuccessToast).not.toHaveBeenCalled();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
 test('shows toast when loading semantic layers fails', async () => {
@@ -276,6 +416,11 @@ test('shows toast when add semantic views fails', async () => {
       'An error occurred while adding semantic views',
     );
   });
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'An error occurred while adding semantic views',
+  );
+  expect(screen.getByRole('alert')).not.toHaveTextContent('save failed');
+  expect(props.onHide).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------
