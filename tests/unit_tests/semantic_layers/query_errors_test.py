@@ -161,6 +161,23 @@ def test_mapper_metadata_fault_is_backend_error(
     date_view.get_table.assert_not_called()
 
 
+def test_discovery_preserves_host_validation(
+    app_context: None, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A host validation error is not reclassified as a provider fault."""
+    from superset.semantic_layers.exceptions import discover_semantic_metadata
+
+    failure: QueryObjectValidationError = QueryObjectValidationError("invalid query")
+    discovery: MagicMock = MagicMock(side_effect=failure)
+    captured: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(QueryObjectValidationError) as captured:
+        discover_semantic_metadata(discovery)
+
+    assert captured.value is failure
+    discovery.assert_called_once_with()
+    assert "Semantic provider metadata discovery failed" not in caplog.text
+
+
 def test_malformed_provider_timezone_remains_500(
     client: FlaskClient,
     full_api_access: None,
