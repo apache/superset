@@ -2153,6 +2153,156 @@ def test_parent_sentinel_selection_matches_dashboard_null_coercion(
     assert _available(summaries[0]).values == ["Atlantis"]
 
 
+@pytest.mark.parametrize(
+    "parent",
+    [
+        _filter(defaultDataMask="not a mask"),
+        _filter(
+            "region",
+            filterType="filter_timegrain",
+            controlValues={"enableEmptyFilter": True},
+            defaultDataMask={"filterState": {"value": None}, "extraFormData": {}},
+        ),
+    ],
+)
+def test_unresolvable_saved_parent_blocks_the_child(
+    native_query: dict[str, Any], parent: dict[str, Any]
+) -> None:
+    """Invalid saved defaults and required empty grains are never read as unset."""
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(parent, _filter("country", cascadeParentIds=["region"])),
+        _request(filter_value_requests=[{"filter_id": "country"}]),
+    )
+    assert _available(summaries[0]).status == "unavailable"
+    assert _available(summaries[0]).reason == "parent_unresolved"
+    native_query["run"].assert_not_called()
+
+
+def test_server_row_cap_below_the_planned_limit_is_a_budget_failure(
+    native_query: dict[str, Any], mocker: MockerFixture
+) -> None:
+    """A row cap the query plan did not account for never yields a short list."""
+    mocker.patch.object(
+        choices, "apply_max_row_limit", side_effect=lambda limit, **kwargs: limit
+    )
+    mocker.patch.dict(current_app.config, {"SQL_MAX_ROW": 5})
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(), _request(filter_value_requests=[{"filter_id": "region"}])
+    )
+    assert _available(summaries[0]).status == "unavailable"
+    assert _available(summaries[0]).reason == "query_budget"
+    native_query["run"].assert_not_called()
+
+
+def test_discovery_restores_existing_request_form_data(
+    native_query: dict[str, Any],
+) -> None:
+    """Per-dropdown Jinja form data never replaces the caller's form data."""
+    g.form_data = {"slice_id": 99}
+    try:
+        choices.discover_filter_values(
+            _dashboard(), _request(filter_value_requests=[{"filter_id": "region"}])
+        )
+        assert native_query["run"].call_count == 1
+        assert g.form_data == {"slice_id": 99}
+    finally:
+        g.pop("form_data", None)
+
+
+@pytest.mark.parametrize(
+    ("proposal", "message"),
+    [
+        (
+            {"filter_id": "country", "values": ["France"]},
+            "configured ancestors of requested filters",
+        ),
+        (
+            {"filter_id": "region", "values": ["EMEA", "APAC"]},
+            "single-select proposal accepts at most one value",
+        ),
+        (
+            {"filter_id": "region", "values": [1]},
+            "Incompatible proposed value",
+        ),
+    ],
+)
+def test_invalid_proposals_reject_the_request(
+    native_query: dict[str, Any], proposal: dict[str, Any], message: str
+) -> None:
+    """Non-ancestor, over-long single-select and mistyped proposals are invalid."""
+    with pytest.raises(ValueError, match=message):
+        choices.discover_filter_values(
+            _dashboard(
+                _filter(controlValues={"multiSelect": False}),
+                _filter("country", cascadeParentIds=["region"]),
+            ),
+            _request(
+                filter_value_requests=[{"filter_id": "country"}],
+                proposed_filter_values=[proposal],
+            ),
+        )
+    native_query["run"].assert_not_called()
+
+
+def test_parent_column_missing_from_child_dataset_is_unresolved(
+    sqlite_native_execution: dict[str, Any], mocker: MockerFixture
+) -> None:
+    """A parent predicate the child dataset rejects never yields unconstrained rows."""
+    parent_dataset = sqlite_native_execution["dataset"]
+    child_dataset = SqlaTable(
+        id=7, table_name="sales", database=parent_dataset.database
+    )
+    child_dataset.columns = [TableColumn(column_name="country", type="VARCHAR")]
+    datasets = {5: parent_dataset, 7: child_dataset}
+    mocker.patch.object(
+        choices.DatasetDAO,
+        "find_by_id",
+        side_effect=lambda dataset_id, **kwargs: datasets.get(dataset_id),
+    )
+    mocker.patch(
+        "superset.daos.datasource.DatasourceDAO.get_datasource",
+        side_effect=lambda datasource_type, database_id_or_uuid: datasets[
+            int(database_id_or_uuid)
+        ],
+    )
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(
+            _filter(),
+            _filter(
+                "country",
+                cascadeParentIds=["region"],
+                targets=[{"datasetId": 7, "column": {"name": "country"}}],
+            ),
+        ),
+        _request(filter_value_requests=[{"filter_id": "country"}]),
+        snapshot_state={"dataMask": {"region": _mask(["EMEA"])}},
+    )
+    assert _available(summaries[0]).status == "unavailable"
+    assert _available(summaries[0]).reason == "parent_unresolved"
+    assert _available(summaries[0]).values == []
+    assert sqlite_native_execution["database_reads"].call_count == 1
+
+
+def test_numeric_calculated_column_counts_its_expression(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """The non-null COUNT resolves a calculated column rather than its name."""
+    sqlite_native_execution["dataset"].columns.append(
+        TableColumn(
+            column_name="double_amount", type="INTEGER", expression="amount * 2"
+        )
+    )
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("double_amount")),
+        _request(filter_value_requests=[{"filter_id": "double_amount"}]),
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == [None, 2, 4, 6]
+    sql = sqlite_native_execution["database_reads"].call_args.args[1].lower()
+    assert "count((amount * 2))" in sql
+    assert "count(double_amount)" not in sql
+
+
 @with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
 def test_search_on_virtual_dataset_without_filter_macro_is_complete(
     sqlite_native_execution: dict[str, Any],
@@ -2206,13 +2356,19 @@ def test_virtual_dataset_time_filter_macro_sees_cascading_time_parent(
             {"filters": [{"col": "amount", "op": ">=", "val": 2}]},
         ),
         ("filter_timegrain", {"time_grain_sqla": "P1D"}),
+        (
+            "filter_select",
+            {"filters": [{"col": "region", "op": "IN", "val": ["EMEA"]}]},
+        ),
     ],
 )
-def test_typed_parent_predicates_without_value_are_unresolved(
+def test_parent_predicates_without_value_are_unresolved(
     native_query: dict[str, Any], parent_type: str, extra: dict[str, Any]
 ) -> None:
     """Predicates lacking a typed value are not read as an unfiltered parent."""
     parent = _filter("parent", filterType=parent_type)
+    if parent_type == "filter_select":
+        parent["targets"] = [{"datasetId": 5, "column": {"name": "region"}}]
     summaries, _ = choices.discover_filter_values(
         _dashboard(parent, _filter("country", cascadeParentIds=["parent"])),
         _request(filter_value_requests=[{"filter_id": "country"}]),

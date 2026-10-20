@@ -494,6 +494,9 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "'/superset/dashboard/p/<key>/'. Resolves the dashboard and returns "
             "the shared active-tab and filter context; no identifier is required."
         ),
+        # Discovery treats an explicit null as invalid state, so a filled-in
+        # default must not be able to supply one.
+        json_schema_extra=_omit_mode_default,
     )
     filter_state: dict[str, Any] | None = Field(
         default=None,
@@ -509,6 +512,7 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "native_filter_values_incomplete flags unsupported filters/chart state "
             "that cannot be summarized safely. Choice discovery requires dataMask."
         ),
+        json_schema_extra=_omit_mode_default,
     )
     include_filter_values: StrictBool = Field(
         default=False,
@@ -516,22 +520,27 @@ class GetDashboardInfoRequest(MetadataCacheControl):
             "Discover dropdown choices for changing selections, not analytical results."
         ),
     )
+    # Discovery controls are presence-sensitive, so the schema advertises no
+    # defaults a client could fill in and have rejected without opt-in.
     filter_value_requests: list[FilterValueRequest] | None = Field(
         default=None,
         min_length=1,
         max_length=20,
         description="Unique IDs; literal search or strict exact_value, including null.",
+        json_schema_extra=_omit_mode_default_and_null,
     )
     filter_values_offset: StrictInt = Field(
         default=0,
         ge=0,
         description="Page 20 filter definitions; incompatible with explicit IDs.",
+        json_schema_extra=_omit_mode_default,
     )
     proposed_filter_values: list[ProposedFilterValues] | None = Field(
         default=None,
         min_length=1,
         max_length=20,
         description="Read-only select-ancestor preview; never changes live selections.",
+        json_schema_extra=_omit_mode_default_and_null,
     )
     select_columns: Annotated[
         List[str],

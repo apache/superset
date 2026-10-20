@@ -1530,6 +1530,33 @@ def test_discovery_mode_fields_advertise_no_default() -> None:
         FilterValueRequest.model_validate({"filter_id": "a", "search": None})
 
 
+def test_request_schema_defaults_keep_ordinary_and_discovery_calls_valid() -> None:
+    """Filling in every advertised default never supplies a discovery control."""
+    properties = GetDashboardInfoRequest.model_json_schema()["properties"]
+    presence_sensitive = {
+        "permalink_key",
+        "filter_state",
+        "filter_value_requests",
+        "filter_values_offset",
+        "proposed_filter_values",
+    }
+    assert not {name for name in presence_sensitive if "default" in properties[name]}
+    for name in ("filter_value_requests", "proposed_filter_values"):
+        assert properties[name]["type"] == "array"
+    defaults = {name: p["default"] for name, p in properties.items() if "default" in p}
+    metadata = GetDashboardInfoRequest.model_validate({**defaults, "identifier": 1})
+    discovery = GetDashboardInfoRequest.model_validate(
+        {
+            **defaults,
+            "identifier": 1,
+            "include_filter_values": True,
+            "filter_value_requests": [{"filter_id": "a"}],
+        }
+    )
+    assert not metadata.model_fields_set & presence_sensitive
+    assert discovery.model_fields_set & presence_sensitive == {"filter_value_requests"}
+
+
 def test_metadata_serialization_omits_choice_enrichment() -> None:
     """Existing dashboard serializers retain their metadata-only response shape."""
     summary = NativeFilterSummary(id="a", name="Region", filter_type="filter_select")

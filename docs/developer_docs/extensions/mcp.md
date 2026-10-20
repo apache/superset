@@ -671,7 +671,9 @@ this does not change metadata-only snapshot handling. Supplied snapshots must
 belong to the authorized dashboard; invalid or expired state never
 falls back to defaults. Explicit null `permalink_key` or `filter_state`, and an
 empty permalink key, return `state_invalid`; omit them to request standalone
-defaults. Deleted filter IDs in an otherwise valid snapshot are ignored, as in the
+defaults. The request schema advertises no defaults for these fields or for the
+discovery controls, so clients that fill in schema defaults keep this behavior.
+Deleted filter IDs in an otherwise valid snapshot are ignored, as in the
 dashboard UI.
 Malformed snapshot containers or entries invalidate the whole snapshot. Invalid
 supplied range or other non-select parent state returns `state_invalid`; invalid
@@ -691,12 +693,30 @@ Selected-state metadata remains redacted for restricted users. Discovery
 preserves dashboard-only access, guest
 restrictions, row-level security, saved dropdown predicates, and transitive parent
 selections. The target's own selection and unrelated filters do not restrict its
-dropdown. Analytical tools keep their existing dashboard scope.
+dropdown. Parent selections that pass snapshot validation then use the
+dashboard's native value handling, so on string columns the `<NULL>` and
+`<empty string>` sentinels and surrounding tabs and newlines behave as in the
+dashboard dropdown. Validation still rejects values that do not match the parent
+column's type, such as `"true"` for a boolean column or `"\t1\n"` for a numeric
+column, as described above. Range, time, and time-grain parents whose state
+carries predicates without a typed value return `parent_unresolved`, as select
+parents do. Analytical tools keep their existing dashboard scope.
+
+Virtual dataset SQL renders Jinja against the same form data as the dashboard
+dropdown, including the snapshot's `urlParams` (except `standalone` and `edit`)
+and inherited parent time ranges. When that SQL reads the target column through a
+filter macro such as `get_filters`, the macro receives discovery's own probe
+without its literal semantics, so search returns `unsupported/unsupported_search`,
+exact probes return `unsupported/unsupported_target`, and proposals for that
+column are not validated.
 
 For a simultaneous parent/child change, first establish the parent's exact choice,
 then supply `proposed_filter_values: [{"filter_id": "parent-id", "values": ["EMEA"]}]`
-while discovering the child. Proposals accept up to 20 configured ancestor IDs
-with 20 scalar values each. Unsupported ancestor types fail at runtime with
+while discovering the child. Proposals accept up to 20 configured ancestor IDs,
+each with up to 20 scalar values for a multi-select ancestor or one value for a
+single-select ancestor; more values for a single-select ancestor, a non-ancestor
+ID, or an incompatible value makes the whole request `invalid_request`.
+Unsupported ancestor types fail at runtime with
 `proposal_invalid`; request validation alone does not establish support. Proposals
 are validated in dependency order against a cloned snapshot; they do not mutate a
 permalink or live dashboard.
