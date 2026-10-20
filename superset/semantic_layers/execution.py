@@ -94,6 +94,16 @@ def semantic_namespace() -> str:
     return namespace
 
 
+def metadata_namespace(engine: Engine) -> str:
+    """Read the active metadata store's identity, not the app's startup bind.
+
+    Dynamic metadata hosts may use one app for multiple stores. Reuse the
+    execution identity's independent transaction and startup-race recovery.
+    Callers memoize this value only within their metadata session.
+    """
+    return _install_namespace(engine)
+
+
 def _install_namespace(engine: Engine) -> str:
     """Create a durable UUID independently, including startup races."""
     codec: JsonKeyValueCodec = JsonKeyValueCodec()

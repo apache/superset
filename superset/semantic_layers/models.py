@@ -71,7 +71,11 @@ from superset.semantic_layers.exceptions import (
     execute_semantic_query,
     SemanticLayerQueryRejectedError,
 )
-from superset.semantic_layers.execution import configured_namespace, SemanticBindingMemo
+from superset.semantic_layers.execution import (
+    configured_namespace,
+    metadata_namespace,
+    SemanticBindingMemo,
+)
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -152,6 +156,7 @@ class _MetadataGenerations:
     """Session-local generations, captured before discovery and forgotten on Save."""
 
     generations: dict[uuid.UUID, str] = field(default_factory=dict)
+    namespaces: dict[sa.engine.Engine, str] = field(default_factory=dict)
 
     @classmethod
     def for_session(cls, session: Session) -> _MetadataGenerations:
@@ -164,18 +169,12 @@ class _MetadataGenerations:
         """Web, task and MCP operations share a credential-independent identity."""
         if layer.uuid not in self.generations:
             namespace: str = configured_namespace()
-            url: sa.engine.URL = session.get_bind(mapper=SemanticLayer).engine.url
-            driver: str = url.drivername.split("+", 1)[0]
-            identity: list[str | int | None] = (
-                ["namespace", namespace]
-                if namespace
-                else [
-                    driver,
-                    url.host,
-                    url.port,
-                    url.database,
-                ]
-            )
+            if not namespace:
+                engine: sa.engine.Engine = session.get_bind(mapper=SemanticLayer).engine
+                if engine not in self.namespaces:
+                    self.namespaces[engine] = metadata_namespace(engine)
+                namespace = self.namespaces[engine]
+            identity: list[str] = ["namespace", namespace]
             scope: str = hashlib.sha256(json.dumps(identity).encode()).hexdigest()
             self.generations[layer.uuid] = f"{scope}:{layer.uuid}:{layer.cache_version}"
         return self.generations[layer.uuid]

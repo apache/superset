@@ -61,15 +61,23 @@ The context and reserved credentials channel are described in the
 [execution contract](extensions/semantic-execution-context.md). The host captures a database/workspace-scoped layer UUID and version
 once per metadata session (the ordinary request/task session); this is the layer's
 **metadata generation**, passed to providers as `cache_token`. The namespace is
-an opaque digest of the metadata database backend, host, port and database name;
-credentials, driver adapters, connection query options and `SECRET_KEY` do not
-affect it. `SEMANTIC_LAYER_CACHE_NAMESPACE`, when nonempty, replaces that database
+an opaque digest of the durable installation identity stored in the active metadata
+database, not its connection address. Host aliases, proxy/default ports, database
+aliases, credentials, driver adapters, connection query options and `SECRET_KEY`
+do not affect it. `SEMANTIC_LAYER_CACHE_NAMESPACE`, when nonempty, replaces that
 identity with an operator-provided, globally unique workspace name. Configure it
-when routing through different database host aliases or sharing a database across
-tenants. A callable may return the active workspace, but web, Celery and MCP
+when sharing one metadata database across tenants or cloning a database into an
+isolated workspace: a full clone also copies the installation identity. A callable
+may return the active workspace, but web, Celery and MCP
 contexts must resolve the same value for the same workspace. The host captures it
 once per layer per session. A metadata session must not span workspaces. No URL
 or credential is exposed in the token.
+
+Switching from the address-derived default causes a one-time cache miss for
+semantic-layer results after deployment. Roll web, worker and MCP processes
+together so they use the same key scheme. An existing explicit namespace keeps
+its key scheme. After restoring a backup, clear surviving caches or rotate the
+explicit namespace to prevent reuse of generations captured before the restore.
 
 Providers with process-local metadata caches must include the supplied token
 alongside existing endpoint, credential, role and view scope **before**
