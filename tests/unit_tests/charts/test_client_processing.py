@@ -4798,6 +4798,52 @@ def test_table_export_preserves_selected_dimension(
     assert query["colnames"] == source_df.columns.tolist()
 
 
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+def test_serialized_export_does_not_rename_display_label_twice(
+    result_format: ChartDataResultFormat,
+) -> None:
+    """A display label can equal another column's raw name without remapping."""
+    # Avoid app-init regression: QueryContextProcessor imports SQL dataset models.
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    labels: dict[str, str] = {
+        "category": "total_amount",
+        "total_amount": "Total amount",
+    }
+    source: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books", "Games"], "total_amount": [15, 20]}
+    )
+    expected: pd.DataFrame = source.rename(columns=labels)
+    datasource: MagicMock = MagicMock(data={"verbose_map": labels})
+    processor: QueryContextProcessor = QueryContextProcessor(
+        MagicMock(datasource=datasource, result_format=result_format)
+    )
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": processor.get_data(
+                    source, [GenericDataType.STRING, GenericDataType.NUMERIC]
+                ),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result,
+        {"viz_type": "table", "groupby": ["category"], "metrics": ["total_amount"]},
+        datasource,
+    )["queries"][0]
+    actual: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+    assert query["colnames"] == ["total_amount", "Total amount"]
+
+
 def test_table_xlsx_preserves_percent_metric_header() -> None:
     """A percent-only selection is a data column, not an unnamed row index."""
     source_df: pd.DataFrame = pd.DataFrame({"%count": [0, 1]})

@@ -1514,8 +1514,9 @@ def apply_client_processing(  # noqa: C901
                 data, form_data, datasource.data["verbose_map"] if datasource else None
             )
 
-        # convert all columns to verbose (label) name
-        if datasource:
+        # Serialized exports already carry labels from QueryContextProcessor.get_data.
+        # Remapping those labels can mistake them for another column's raw name.
+        if datasource and query["result_format"] == ChartDataResultFormat.JSON:
             df.rename(columns=datasource.data["verbose_map"], inplace=True)
 
         apply_number_format = query["result_format"] == ChartDataResultFormat.JSON
