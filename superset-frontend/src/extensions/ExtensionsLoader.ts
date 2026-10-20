@@ -18,9 +18,11 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
-import type { common as core } from '@apache-superset/core';
+import type {
+  common as core,
+  pages as pagesApi,
+} from '@apache-superset/core';
 import type { ComponentType } from 'react';
-import type { pages as pagesApi } from '@apache-superset/core';
 import { registerPageFor } from 'src/core/pages';
 import { makeUrl } from 'src/utils/navigationUtils';
 import 'src/extensions/Namespaces';
@@ -39,6 +41,16 @@ export interface LoadedExtension extends Extension {
   remoteEntry?: string;
   /** Webpack Module Federation container name (maps to window[name]). */
   moduleFederationName?: string;
+  /**
+   * What the extension's manifest declares it contributes.
+   *
+   * The server has already acted on this -- a URL rule per page, refused if
+   * the path is taken -- so it is sent here as the authoritative list of
+   * paths the extension is allowed to register a component against.
+   */
+  contributions?: {
+    pages?: { path: string }[];
+  };
 }
 
 /**
@@ -214,22 +226,26 @@ class ExtensionsLoader {
     // receives the same pre-bound instance. Parallel loading is safe because each
     // container gets its own scope with its own resolved module instance.
     const context = createExtensionContext(extension);
+    const declaredPagePaths = (extension.contributions?.pages ?? []).map(
+      page => page.path,
+    );
     const scopedCore = {
       ...window.superset,
       extensions: {
         ...window.superset.extensions,
         getContext: () => context,
       },
-      // `registerPage` is bound to this extension's id here, for the same
-      // reason the backend derives an extension's URL namespace from an
-      // ambient context rather than an argument: an extension states which
-      // page it is contributing, never whose. Because module federation
-      // resolves @apache-superset/core once per container, every import
-      // inside this extension receives this bound instance.
+      // `registerPage` is bound to this extension's id and to the paths its
+      // manifest declares, for the same reason the backend derives an
+      // extension's API namespace from an ambient context rather than an
+      // argument: an extension states which page it is contributing, never
+      // whose. Because module federation resolves @apache-superset/core once
+      // per container, every import inside this extension receives this
+      // bound instance.
       pages: {
         ...window.superset.pages,
         registerPage: (page: pagesApi.Page, component: ComponentType) =>
-          registerPageFor(extension.id, page, component),
+          registerPageFor(extension.id, declaredPagePaths, page, component),
       },
     };
     // Reuse the version key webpack already resolved for the host's own

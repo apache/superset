@@ -29,10 +29,55 @@ from pydantic import BaseModel, computed_field, Field  # noqa: I001
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
+    PAGE_PATH_PATTERN,
     PUBLISHER_PATTERN,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
 )
+
+
+class PageNav(BaseModel):
+    """Placement of a page in the navigation bar."""
+
+    label: str = Field(
+        ...,
+        description="Text of the navigation entry",
+        min_length=1,
+    )
+
+
+class Page(BaseModel):
+    """A page an extension serves at a path of its own."""
+
+    path: str = Field(
+        ...,
+        description="Absolute path the page is served at, e.g. '/approvals'",
+        pattern=PAGE_PATH_PATTERN,
+    )
+    name: str = Field(
+        ...,
+        description="Human-readable page name",
+        min_length=1,
+    )
+    nav: PageNav | None = Field(
+        default=None,
+        description="Navigation entry, when the page should appear in the menu",
+    )
+
+
+class Contributions(BaseModel):
+    """What an extension adds to the host.
+
+    Declared rather than merely registered at runtime, because the host has to
+    act on it in two places that never see each other: Flask registers a rule
+    per page so a cold load resolves, and the React router mounts the
+    component. One declaration keeps them from disagreeing.
+    """
+
+    pages: list[Page] = Field(
+        default_factory=list,
+        description="Pages contributed by this extension",
+    )
 
 
 class BaseExtension(BaseModel):
@@ -76,6 +121,10 @@ class BaseExtension(BaseModel):
     permissions: list[str] = Field(
         default_factory=list,
         description="Permissions required by this extension",
+    )
+    contributions: Contributions = Field(
+        default_factory=Contributions,
+        description="What this extension contributes to the host",
     )
 
     @computed_field(description="Composite extension ID (publisher.name)")  # type: ignore[prop-decorator]

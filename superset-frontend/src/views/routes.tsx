@@ -317,27 +317,29 @@ if (isAdmin) {
   }
 }
 
-if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
-  // One route for every page every extension contributes, mirroring the
-  // single server-side rule. `:extensionId` is matched loosely here and
-  // validated by the server; what actually decides whether a path is served
-  // is whether an extension registered a page for it.
-  routes.push({
-    path: '/extensions/:extensionId/:slug',
-    Component: ExtensionPage,
-  });
-  // The server serves the shell for an extension id with no slug too, so
-  // without this a trimmed or truncated URL renders an empty body rather
-  // than the "page not found" the two-segment route gives. Registered after
-  // it, so a real page still wins.
-  routes.push({
-    path: '/extensions/:extensionId',
-    Component: ExtensionPage,
-  });
-}
-
 if (authRegistrationEnabled) {
   routes.push({ path: RoutePaths.REGISTRATIONS, Component: UserRegistrations });
+}
+
+if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
+  // Pushed last, and deliberately a catch-all rather than one route per
+  // page. `<Switch>` takes the first match in array order, so every route
+  // the host ships wins over this one -- the same precedence Werkzeug gives
+  // the server's static rules over an extension's, arrived at a different
+  // way. An extension therefore cannot shadow a host screen here either,
+  // whatever path it declared.
+  //
+  // The route table is built once at module evaluation, while extensions
+  // load afterwards, so enumerating pages here is not possible; `/:path+`
+  // defers the question to `ExtensionPage`, which resolves it against the
+  // registry once extensions have settled.
+  //
+  // `+` requires at least one segment, which keeps `/` free for the
+  // `<Redirect to="/welcome/">` that follows the generated routes.
+  routes.push({
+    path: '/:extensionPagePath+',
+    Component: ExtensionPage,
+  });
 }
 
 const frontEndRoutes: Record<string, boolean> = routes

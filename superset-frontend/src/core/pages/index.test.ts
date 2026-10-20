@@ -22,7 +22,6 @@ import { logging } from '@apache-superset/core/utils';
 import {
   findPageByPath,
   getPages,
-  pagePath,
   registerPageFor,
   resolvePage,
 } from './index';
@@ -30,67 +29,86 @@ import {
 const disposables: Array<{ dispose: () => void }> = [];
 const Component = () => React.createElement('div', null, 'page');
 
+/** The manifest declaration the loader would have bound for these tests. */
+const DECLARED = ['/review-queue', '/review-queue-archive', '/a/b'];
+
+const register = (
+  extensionId: string,
+  page: { path: string; name: string },
+  declared: readonly string[] = DECLARED,
+) => registerPageFor(extensionId, declared, page, Component);
+
 afterEach(() => {
   disposables.forEach(d => d.dispose());
   disposables.length = 0;
 });
 
-test('the host derives the URL from the extension, not the extension', () => {
-  // The extension supplies only a slug. If it could supply a path it could
-  // claim the host's URLs, or another extension's.
+test('a declared page registers at the path it declared', () => {
   disposables.push(
-    registerPageFor('acme.tools', { slug: 'queue', name: 'Queue' }, Component),
+    register('acme.tools', { path: '/review-queue', name: 'Queue' }),
   );
 
   expect(getPages()).toEqual([
-    {
-      slug: 'queue',
-      name: 'Queue',
-      extensionId: 'acme.tools',
-      path: '/extensions/acme.tools/queue',
-    },
+    { path: '/review-queue', name: 'Queue', extensionId: 'acme.tools' },
   ]);
 });
 
-test('two extensions may use the same slug without colliding', () => {
-  // Namespacing is what makes this safe; without it one would replace the
-  // other and the loser would simply stop rendering.
-  disposables.push(
-    registerPageFor('acme.tools', { slug: 'queue', name: 'A' }, Component),
-    registerPageFor('other.ext', { slug: 'queue', name: 'B' }, Component),
-  );
-
-  expect(getPages().map(p => p.path)).toEqual([
-    '/extensions/acme.tools/queue',
-    '/extensions/other.ext/queue',
-  ]);
-});
-
-test.each([
-  ['a path rather than a slug', '/queue'],
-  ['a nested path', 'queue/42'],
-  ['an attempt to escape the namespace', '../../login'],
-  ['uppercase', 'Queue'],
-  ['empty', ''],
-  ['a leading hyphen', '-queue'],
-])('a slug that is %s is refused', (_label, slug) => {
+test('a path the manifest does not declare is refused', () => {
+  // The server registers URL rules from the manifest, so a component
+  // registered against an undeclared path would work on client navigation
+  // and 404 on a cold load. Refusing here keeps the halves in agreement.
   expect(() =>
-    registerPageFor('acme.tools', { slug, name: 'X' }, Component),
-  ).toThrow(/must be lowercase letters/);
+    register('acme.tools', { path: '/welcome', name: 'X' }),
+  ).toThrow(/manifest does not declare/);
   expect(getPages()).toEqual([]);
 });
 
-test('re-registering a slug within one extension replaces it, and says so', () => {
+test('the refusal names what was declared, so the fix is obvious', () => {
+  expect(() =>
+    register('acme.tools', { path: '/welcome', name: 'X' }, ['/review-queue']),
+  ).toThrow(/Declared: \/review-queue/);
+});
+
+test('an extension with no declared pages can register none', () => {
+  expect(() =>
+    register('acme.tools', { path: '/review-queue', name: 'X' }, []),
+  ).toThrow(/Declared: \(none\)/);
+});
+
+test.each([
+  ['relative', 'review-queue'],
+  ['an attempt to climb out', '/../login'],
+  ['a trailing slash', '/review-queue/'],
+  ['uppercase', '/Review-Queue'],
+  ['empty', ''],
+  ['a route parameter', '/review-queue/:id'],
+  ['a leading hyphen', '/-queue'],
+])('a path that is %s is refused', (_label, path) => {
+  // Checked before the manifest list, so a malformed path is reported as
+  // malformed even when it somehow appears in the manifest.
+  expect(() =>
+    register('acme.tools', { path, name: 'X' }, [path]),
+  ).toThrow(/must be an absolute path/);
+  expect(getPages()).toEqual([]);
+});
+
+test('a multi-segment path is allowed', () => {
+  disposables.push(register('acme.tools', { path: '/a/b', name: 'Nested' }));
+
+  expect(getPages().map(p => p.path)).toEqual(['/a/b']);
+});
+
+test('re-registering a path within one extension replaces it, and says so', () => {
   const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
   try {
     disposables.push(
-      registerPageFor('acme.tools', { slug: 'queue', name: 'First' }, Component),
-      registerPageFor('acme.tools', { slug: 'queue', name: 'Second' }, Component),
+      register('acme.tools', { path: '/review-queue', name: 'First' }),
+      register('acme.tools', { path: '/review-queue', name: 'Second' }),
     );
 
     expect(getPages().map(p => p.name)).toEqual(['Second']);
     expect(warn).toHaveBeenCalledWith(
-      expect.stringContaining('acme.tools.queue'),
+      expect.stringContaining('acme.tools:/review-queue'),
     );
   } finally {
     warn.mockRestore();
@@ -100,13 +118,12 @@ test('re-registering a slug within one extension replaces it, and says so', () =
 test('disposing a replaced registration leaves the replacement alone', () => {
   const warn = jest.spyOn(logging, 'warn').mockImplementation(() => {});
   try {
-    const first = registerPageFor(
-      'acme.tools',
-      { slug: 'queue', name: 'First' },
-      Component,
-    );
+    const first = register('acme.tools', {
+      path: '/review-queue',
+      name: 'First',
+    });
     disposables.push(
-      registerPageFor('acme.tools', { slug: 'queue', name: 'Second' }, Component),
+      register('acme.tools', { path: '/review-queue', name: 'Second' }),
     );
 
     first.dispose();
@@ -118,33 +135,30 @@ test('disposing a replaced registration leaves the replacement alone', () => {
 });
 
 test('a path is matched by prefix, so deep links reach their page', () => {
-  // The server serves `<path:rest>` under the page, so the client has to
+  // The server registers `<path:rest>` under each page, so the client has to
   // resolve the same way or a deep link would render "not found".
   disposables.push(
-    registerPageFor('acme.tools', { slug: 'queue', name: 'Queue' }, Component),
+    register('acme.tools', { path: '/review-queue', name: 'Queue' }),
   );
 
-  expect(findPageByPath('/extensions/acme.tools/queue')?.slug).toBe('queue');
-  expect(findPageByPath('/extensions/acme.tools/queue/42/edit')?.slug).toBe(
-    'queue',
-  );
+  expect(findPageByPath('/review-queue')?.name).toBe('Queue');
+  expect(findPageByPath('/review-queue/42/edit')?.name).toBe('Queue');
 });
 
 test('a path no extension claims matches nothing', () => {
   disposables.push(
-    registerPageFor('acme.tools', { slug: 'queue', name: 'Queue' }, Component),
+    register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+    register('acme.tools', {
+      path: '/review-queue-archive',
+      name: 'Archive',
+    }),
   );
 
-  expect(findPageByPath('/extensions/acme.tools/nonexistent')).toBeUndefined();
-  expect(findPageByPath('/extensions/nobody.nothing/x')).toBeUndefined();
-  // A sibling slug sharing a prefix must not be swallowed.
-  expect(findPageByPath('/extensions/acme.tools/queue-archive')).toBeUndefined();
+  expect(findPageByPath('/welcome')).toBeUndefined();
+  // A sibling sharing a prefix must not be swallowed by the shorter one.
+  expect(findPageByPath('/review-queue-archive')?.name).toBe('Archive');
 });
 
 test('resolvePage falls back to a placeholder for an unknown id', () => {
-  expect(resolvePage('acme.tools.missing')).toBeTruthy();
-});
-
-test('pagePath is the single definition of the namespace', () => {
-  expect(pagePath('acme.tools', 'queue')).toBe('/extensions/acme.tools/queue');
+  expect(resolvePage('acme.tools:/missing')).toBeTruthy();
 });
