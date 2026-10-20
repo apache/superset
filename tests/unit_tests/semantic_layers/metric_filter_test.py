@@ -261,6 +261,7 @@ def test_incompatible_filter_is_reported_without_breaking_chart(
     assert result["rejected_filters"][0]["column"] == column
     assert result["applied_filters"] == ([{"column": "category"}] if mixed else [])
     query: SemanticQuery = metric_view[1].get_table.call_args.args[0]
+    assert query.filters is not None
     assert {f.column.name for f in query.filters if f.column} == (
         {"category"} if mixed else set()
     )

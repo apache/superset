@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { Behavior, Filter, Divider } from '@superset-ui/core';
 import type { FormInstance } from '@superset-ui/core/components';
@@ -106,6 +106,11 @@ const buildCascadeConfigMap = (): Record<string, Filter | Divider> =>
     f3: { id: 'f3', filterType: 'filter_select', cascadeParentIds: [] },
   }) as unknown as Record<string, Filter | Divider>;
 
+const buildPlainForm = (): FormInstance<NativeFiltersForm> =>
+  ({
+    getFieldValue: () => undefined,
+  }) as unknown as FormInstance<NativeFiltersForm>;
+
 const buildDependencyForm = (
   dependenciesByFilter: Record<string, string[]>,
 ): FormInstance<NativeFiltersForm> => {
@@ -178,6 +183,14 @@ test('validateDependencies flags only the filters that participate in a cycle', 
   expect(errorsById.f3).toEqual([]);
 });
 
+beforeEach(() => {
+  jest.useFakeTimers();
+});
+
+afterEach(() => {
+  jest.useRealTimers();
+});
+
 // Minimal state harness (rather than the full useItemStateManager) so these
 // tests isolate handleRemoveFilter/restoreFilter's own timer handling,
 // without useItemStateManager's independent removedItems cleanup effect
@@ -211,10 +224,7 @@ function useFilterOperationsHarness(
 }
 
 test('handleRemoveFilter finalizes the removal once the pending delay elapses', () => {
-  jest.useFakeTimers();
-  const form = {
-    getFieldValue: () => undefined,
-  } as unknown as FormInstance<NativeFiltersForm>;
+  const form = buildPlainForm();
   const { result } = renderHook(() => useFilterOperationsHarness(['f1'], form));
 
   act(() => {
@@ -230,15 +240,10 @@ test('handleRemoveFilter finalizes the removal once the pending delay elapses', 
   expect(result.current.filterState.removedItems.f1).toEqual({
     isPending: false,
   });
-
-  jest.useRealTimers();
 });
 
 test('restoreFilter cancels the pending removal before the delay elapses', () => {
-  jest.useFakeTimers();
-  const form = {
-    getFieldValue: () => undefined,
-  } as unknown as FormInstance<NativeFiltersForm>;
+  const form = buildPlainForm();
   const { result } = renderHook(() => useFilterOperationsHarness(['f1'], form));
 
   act(() => {
@@ -254,8 +259,124 @@ test('restoreFilter cancels the pending removal before the delay elapses', () =>
   });
   // the timer was cancelled by the restore, so it never finalizes the removal
   expect(result.current.filterState.removedItems.f1).toBeNull();
+});
 
-  jest.useRealTimers();
+function useFilterOperationsWithStateManager(
+  filterIds: string[],
+  form: FormInstance<NativeFiltersForm>,
+) {
+  const filterState = useItemStateManager(filterIds, {});
+  const filterOperations = useFilterOperations({
+    form,
+    filterState,
+    filterIds,
+    filterConfigMap: {},
+    handleModifyItem: jest.fn(),
+    setActiveItem: jest.fn(),
+    setSaveAlertVisible: jest.fn(),
+  });
+  return { filterState, filterOperations };
+}
+
+test('removing a second filter does not cancel the first filter’s pending finalization', () => {
+  const form = buildPlainForm();
+  const { result } = renderHook(() =>
+    useFilterOperationsWithStateManager(['f1', 'f2'], form),
+  );
+
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f1');
+  });
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f2');
+  });
+  // f1's 5s delay elapses 4s after f2 was removed
+  act(() => {
+    jest.advanceTimersByTime(4000);
+  });
+  expect(result.current.filterState.removedItems.f1).toEqual({
+    isPending: false,
+  });
+  expect(result.current.filterState.removedItems.f2).toEqual(
+    expect.objectContaining({ isPending: true }),
+  );
+
+  act(() => {
+    jest.advanceTimersByTime(1000);
+  });
+  expect(result.current.filterState.removedItems.f2).toEqual({
+    isPending: false,
+  });
+});
+
+test('resetState cancels pending removal timers so they cannot repopulate the cleared state', () => {
+  const form = buildPlainForm();
+  const { result } = renderHook(() =>
+    useFilterOperationsWithStateManager(['f1'], form),
+  );
+
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f1');
+  });
+  act(() => {
+    result.current.filterState.resetState();
+  });
+  expect(result.current.filterState.removedItems).toEqual({});
+
+  act(() => {
+    jest.advanceTimersByTime(5000);
+  });
+  expect(result.current.filterState.removedItems).toEqual({});
+});
+
+test('unmounting cancels pending removal timers', () => {
+  const form = buildPlainForm();
+  const { result, unmount } = renderHook(() =>
+    useFilterOperationsWithStateManager(['f1'], form),
+  );
+
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f1');
+  });
+  const { timerId } = result.current.filterState.removedItems.f1 as {
+    timerId: number;
+  };
+  const clearTimeoutSpy = jest.spyOn(window, 'clearTimeout');
+
+  unmount();
+
+  expect(clearTimeoutSpy).toHaveBeenCalledWith(timerId);
+
+  clearTimeoutSpy.mockRestore();
+});
+
+test('resetState cancels a removal timer registered in the same commit, before passive effects flush', () => {
+  const form = buildPlainForm();
+  const { result } = renderHook(() => {
+    const state = useFilterOperationsWithStateManager(['f1'], form);
+    const { removedItems, resetState } = state.filterState;
+    // A layout effect runs after the commit but before passive effects, so a
+    // ref synced from a passive effect would still hold the previous value.
+    useLayoutEffect(() => {
+      if (removedItems.f1?.isPending) {
+        resetState();
+      }
+    }, [removedItems, resetState]);
+    return state;
+  });
+
+  act(() => {
+    result.current.filterOperations.handleRemoveFilter('f1');
+  });
+  expect(result.current.filterState.removedItems).toEqual({});
+
+  act(() => {
+    jest.advanceTimersByTime(5000);
+  });
+  expect(result.current.filterState.removedItems).toEqual({});
 });
 
 function renderFilterOperations(
