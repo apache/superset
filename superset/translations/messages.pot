@@ -3081,6 +3081,12 @@ msgstr ""
 msgid "Changing this semantic view is forbidden"
 msgstr ""
 
+msgid ""
+"Changing this setting may change the casing for all columns in this dataset, "
+"which may break any existing charts and dashboard filters that reference the "
+"current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr ""
 
@@ -11867,6 +11873,12 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr ""
 
@@ -11919,9 +11931,6 @@ msgid "Search in filters"
 msgstr ""
 
 msgid "Search metrics by key or label"
-msgstr ""
-
-msgid "Search records"
 msgstr ""
 
 msgid "Search tags"

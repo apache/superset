@@ -14643,6 +14643,16 @@ msgstr "انتقل إلى الأسفل لتمكين تغييرات الكتاب�
 msgid "Search"
 msgstr "ابحث"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
+
 msgid "Search / Filter"
 msgstr "البحث\\ التصفية"
 
@@ -14710,9 +14720,6 @@ msgstr "البحث في الفلاتر"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "مقاييس البحث والأعمدة"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

@@ -13464,6 +13464,14 @@ msgstr "Пригорнути вниз до кінця, щоб увімкнути
 msgid "Search"
 msgstr "Пошук"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Пошук серед %s запису"
+msgstr[1] "Пошук серед %s записів"
+msgstr[2] "Пошук серед %s записів"
+msgstr[3] "Пошук серед %s запису"
+
 msgid "Search / Filter"
 msgstr "Пошук / фільтр"
 
@@ -13521,9 +13529,6 @@ msgstr "Пошук у фільтрах"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Пошук показників та стовпців"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "Пошук міток"

@@ -13937,6 +13937,11 @@ msgstr "向下滚动到底部以启用覆盖更改。 "
 msgid "Search"
 msgstr "搜索"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "搜索 %s 条记录"
+
 msgid "Search / Filter"
 msgstr "搜索 / 过滤"
 
@@ -13997,9 +14002,6 @@ msgstr "在筛选器中搜索"
 
 msgid "Search metrics by key or label"
 msgstr "按键或标签搜索指标"
-
-msgid "Search records"
-msgstr "搜索记录"
 
 msgid "Search tags"
 msgstr "搜索标签"
