@@ -163,6 +163,30 @@ def test_aggregate_is_computed_over_filtered_rows(
     assert run(warehouse, scoped(database, sql)) == [(30,)]
 
 
+def test_not_equals_keeps_null_rows_like_the_dataset_path(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    """``client != 'A'`` excludes only A: B (300) and the NULL client (1000) stay."""
+    not_a = DashboardConstraints(
+        ({"col": "client", "op": "!=", "val": "A"},), None, None
+    )
+    assert run(
+        warehouse, scoped(database, "SELECT SUM(amount) FROM orders", not_a)
+    ) == [(1300,)]
+
+
+def test_not_equals_null_operand_stays_is_not_null(
+    database: Any, warehouse: sa.engine.Engine
+) -> None:
+    """A NULL operand still means IS NOT NULL: the NULL client row is excluded."""
+    not_null = DashboardConstraints(
+        ({"col": "client", "op": "!=", "val": None},), None, None
+    )
+    assert run(
+        warehouse, scoped(database, "SELECT SUM(amount) FROM orders", not_null)
+    ) == [(330,)]
+
+
 @pytest.mark.parametrize(
     "sql",
     [

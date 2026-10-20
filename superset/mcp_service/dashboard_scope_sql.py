@@ -382,6 +382,7 @@ def _filter_clause(
     """
     import sqlalchemy as sa
 
+    from superset.models.helpers import keep_null_rows
     from superset.utils.core import FilterOperator, GenericDataType
 
     values = clause["val"] if isinstance(clause["val"], list) else [clause["val"]]
@@ -428,7 +429,11 @@ def _filter_clause(
             "an empty value.",
             _SQL_GUIDANCE,
         )
-    return db_engine_spec.handle_comparison_filter(sqla_col, op, value)
+    comparison = db_engine_spec.handle_comparison_filter(sqla_col, op, value)
+    if op == FilterOperator.NOT_EQUALS and value is not None:
+        # Same as the dataset path: ``!= x`` only excludes ``x``; NULL rows stay.
+        return keep_null_rows(sqla_col, comparison, db_engine_spec)
+    return comparison
 
 
 def _in_list_clause(

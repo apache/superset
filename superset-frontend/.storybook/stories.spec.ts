@@ -16,27 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@apache-superset/core/theme';
-import {
-  colorSchemeDark,
-  colorSchemeLight,
-  themeQuartz,
-} from '@superset-ui/core/components/ThemedAgGridReact';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import tinycolor from 'tinycolor2';
 
-export const useIsDark = () => {
-  const theme = useTheme();
-  return tinycolor(theme.colorBgContainer).isDark();
-};
+// Source: https://gist.github.com/AriPerkkio/99b9eedc7d8f71ff6e6770f9425a4be4
+import { test } from '@playwright/test';
+import { loadStories } from './setup-stories';
 
-const useTableTheme = (): ReturnType<typeof themeQuartz.withPart> => {
-  const baseTheme = themeQuartz;
-  const isDarkTheme = useIsDark();
-  const tableTheme = isDarkTheme
-    ? baseTheme.withPart(colorSchemeDark)
-    : baseTheme.withPart(colorSchemeLight);
-  return tableTheme;
-};
-
-export default useTableTheme;
+for (const [title, body] of loadStories()) {
+  test(title, body);
+}
