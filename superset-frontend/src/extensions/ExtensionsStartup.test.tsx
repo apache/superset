@@ -102,9 +102,9 @@ test('sets up global superset object when user is logged in', async () => {
     expect((window as any).superset.commands).toBeDefined();
     expect((window as any).superset.extensions).toBeDefined();
     expect((window as any).superset.menus).toBeDefined();
-    expect(
-      typeof (window as any).superset.window.showInformationMessage,
-    ).toBe('function');
+    expect(typeof (window as any).superset.window.showInformationMessage).toBe(
+      'function',
+    );
     expect((window as any).superset.views).toBeDefined();
     expect((window as any).superset.sqlLab).toBeDefined();
   });
