@@ -91,3 +91,111 @@ test('password recovery pages are matched before the /login/ prefix route', () =
     expect(firstMatch?.path).toBe(pathname);
   });
 });
+
+/**
+ * The extension page catch-all must stay the last entry in `routes`.
+ *
+ * `<Switch>` renders the first match in array order, so that position is the
+ * whole of the guarantee that a contributed page cannot shadow a host screen
+ * -- the client-side counterpart to Werkzeug giving the server's static rules
+ * precedence over an extension's. An extension declares its own path now, so
+ * nothing else stops it naming one Superset already uses.
+ *
+ * Without these, appending a route after the catch-all would silently move
+ * that screen behind whatever extension claimed its path.
+ */
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('extension page catch-all precedence', () => {
+  const EXTENSION_CATCH_ALL = '/:extensionPagePath+';
+
+  const routesWithExtensions = async () => {
+    jest.resetModules();
+    jest.doMock('@superset-ui/core', () => {
+      const actual = jest.requireActual('@superset-ui/core');
+      return {
+        ...actual,
+        isFeatureEnabled: (flag: string) =>
+          flag === actual.FeatureFlag.EnableExtensions ||
+          actual.isFeatureEnabled(flag),
+      };
+    });
+    const { routes: scoped } = await import('./routes');
+    return scoped;
+  };
+
+  afterEach(() => {
+    jest.dontMock('@superset-ui/core');
+    jest.resetModules();
+  });
+
+  test('is registered last, so every host route outranks it', async () => {
+    const scoped = await routesWithExtensions();
+
+    expect(scoped[scoped.length - 1].path).toBe(EXTENSION_CATCH_ALL);
+    // Stated twice on purpose: the index check above is what breaks when a
+    // route is appended, and this is what that would mean.
+    expect(
+      scoped.filter(r => r.path === EXTENSION_CATCH_ALL),
+    ).toHaveLength(1);
+  });
+
+  test('every host route resolves to itself, not to the catch-all', async () => {
+    const scoped = await routesWithExtensions();
+
+    // Derived from the table rather than a fixed list, so a route added in
+    // the wrong place is covered the day it is added. Parameterised paths
+    // are skipped because there is no concrete URL to probe them with.
+    const literalPaths = scoped
+      .map(r => r.path)
+      .filter(path => path !== EXTENSION_CATCH_ALL && !path.includes(':'));
+
+    expect(literalPaths.length).toBeGreaterThan(5);
+
+    literalPaths.forEach(pathname => {
+      const firstMatch = scoped.find(r => matchPath(pathname, { path: r.path }));
+      expect([pathname, firstMatch?.path]).not.toEqual([
+        pathname,
+        EXTENSION_CATCH_ALL,
+      ]);
+    });
+  });
+
+  test.each(['/dashboard/123/', '/chart/add', '/sqllab/'])(
+    'a concrete URL under a parameterised host route (%s) still wins',
+    async pathname => {
+      const scoped = await routesWithExtensions();
+
+      const firstMatch = scoped.find(r => matchPath(pathname, { path: r.path }));
+      expect(firstMatch?.path).not.toBe(EXTENSION_CATCH_ALL);
+    },
+  );
+
+  test('a path no host route claims falls through to it', async () => {
+    const scoped = await routesWithExtensions();
+
+    // Both a single segment and a deep link, since a page owns everything
+    // beneath its own path.
+    ['/approvals', '/change-review/42/edit'].forEach(pathname => {
+      const firstMatch = scoped.find(r => matchPath(pathname, { path: r.path }));
+      expect(firstMatch?.path).toBe(EXTENSION_CATCH_ALL);
+    });
+  });
+
+  test('the root path is left to the welcome redirect', async () => {
+    const scoped = await routesWithExtensions();
+
+    // `+` requires at least one segment. Were it `*`, the catch-all would
+    // match `/` and render "page not found" in place of the
+    // `<Redirect from="/" to="/welcome/" exact />` that follows the routes.
+    const firstMatch = scoped.find(r => matchPath('/', { path: r.path }));
+    expect(firstMatch?.path).not.toBe(EXTENSION_CATCH_ALL);
+    expect(matchPath('/', { path: EXTENSION_CATCH_ALL })).toBeNull();
+  });
+
+  test('it does not exist when extensions are switched off', async () => {
+    jest.resetModules();
+    const { routes: scoped } = await import('./routes');
+
+    expect(scoped.map(r => r.path)).not.toContain(EXTENSION_CATCH_ALL);
+  });
+});
