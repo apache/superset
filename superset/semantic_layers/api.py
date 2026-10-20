@@ -28,6 +28,7 @@ from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
+from superset_core.semantic_layers.transport import ProviderRequestError
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -308,13 +309,12 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error(
-                "Error fetching structure for semantic view %d: %s",
-                pk,
-                str(ex),
-                exc_info=True,
+            logger.exception("Error fetching structure for semantic view %d", pk)
+            return self.response_422(
+                message=str(ex)
+                if isinstance(ex, ProviderRequestError)
+                else t("Unable to fetch semantic view structure.")
             )
-            return self.response_422(message=str(ex))
 
         return self.response(
             200,
@@ -853,7 +853,14 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
-            return self.response_400(message=str(ex))
+            logger.exception(
+                "Error fetching runtime schema for semantic layer %s", uuid
+            )
+            return self.response_400(
+                message=str(ex)
+                if isinstance(ex, ProviderRequestError)
+                else t("Unable to fetch semantic layer runtime schema.")
+            )
 
         return self.response(200, result=schema)
 
