@@ -76,6 +76,9 @@ _JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
 
 class BaseReportScheduleCommand(BaseCommand):
     _properties: dict[str, Any]
+    # Set by the update/delete subclasses, absent on create -- read with
+    # ``getattr(self, "_model", None)`` where both cases are possible.
+    _model: Any
 
     def run(self) -> Any:
         pass
@@ -225,6 +228,22 @@ class BaseReportScheduleCommand(BaseCommand):
             )
             if not effective_chart and not effective_dashboard:
                 exceptions.append(ReportScheduleEitherChartOrDashboardError())
+                return
+
+            # The stored target has to answer the same question as a submitted
+            # one. Without this, an update that omits the target -- activating a
+            # paused report, say -- resumes a schedule whose asset has since
+            # been withheld, while resubmitting that same asset is refused.
+            effective_kind, effective_id = (
+                ("chart", effective_chart)
+                if effective_chart
+                else ("dashboard", effective_dashboard)
+            )
+            target_id = getattr(effective_id, "id", effective_id)
+            if isinstance(target_id, int) and is_excluded_by_extra_access(
+                f"report_target_{effective_kind}s", target_id
+            ):
+                raise ReportScheduleForbiddenError()
 
     def _validate_report_extra(  # noqa: C901
         self, exceptions: list[ValidationError]

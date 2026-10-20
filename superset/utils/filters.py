@@ -227,8 +227,22 @@ def extra_access_exclusion_clause(
 def _extra_access_exclusion_hook(
     asset_kind: str,
 ) -> Optional[Callable[[Optional[int]], Any]]:
-    """The configured exclusion callable for this kind, or None."""
+    """The configured exclusion callable for this kind, or None.
+
+    Returns None for an embedded guest, so exclusions never apply to one. A
+    guest token already scopes its holder to the dashboards it names and fails
+    closed; withholding on top of that would make an embedded dashboard depend
+    on deployment state the token knows nothing about. ``ChartFilter`` and
+    ``DashboardAccessFilter`` return before reaching an exclusion for the same
+    reason -- the check lives here as well so a caller resolving a single id,
+    which has no such branch ahead of it, cannot miss it.
+    """
     from flask import current_app
+
+    from superset import security_manager
+
+    if security_manager.is_guest_user():
+        return None
 
     exclusions = current_app.config.get("EXTRA_ACCESS_QUERY_EXCLUSIONS") or {}
     return exclusions.get(asset_kind)

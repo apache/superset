@@ -454,3 +454,55 @@ def test_exclusions_accept_every_natural_return_shape(
     returned = {slc.id for slc in query.all()}
     assert withheld.id not in returned
     assert kept.id in returned
+
+
+def test_exclusions_never_apply_to_an_embedded_guest(
+    app_context: None,
+    mocker: MockerFixture,
+) -> None:
+    """A guest token scopes its holder; exclusions must not narrow it further.
+
+    The list filters return before reaching an exclusion, but a caller
+    resolving a single id has no such branch ahead of it -- an embedded
+    dashboard is fetched by uuid, so missing this 404s every embed.
+    """
+    from flask import current_app
+
+    from superset import db, security_manager
+    from superset.models.slice import Slice
+    from superset.utils.filters import is_excluded_by_extra_access
+
+    withheld = Slice(
+        slice_name="withheld from users", datasource_id=1, datasource_type="table"
+    )
+    db.session.add(withheld)
+    db.session.flush()
+
+    def hook(_user_id: Any) -> Any:
+        return db.session.query(Slice.id).filter(Slice.id == withheld.id).subquery()
+
+    mocker.patch("superset.utils.core.get_user_id", return_value=1)
+    mocker.patch.dict(
+        current_app.config,
+        {"EXTRA_ACCESS_QUERY_EXCLUSIONS": {"charts": hook}},
+    )
+
+    # An ordinary caller: withheld.
+    mocker.patch.object(security_manager, "is_guest_user", return_value=False)
+    assert is_excluded_by_extra_access("charts", withheld.id) is True
+    assert (
+        apply_extra_access_exclusions(
+            db.session.query(Slice), "charts", Slice.id
+        ).count()
+        == 0
+    )
+
+    # A guest: exempt on both paths.
+    mocker.patch.object(security_manager, "is_guest_user", return_value=True)
+    assert is_excluded_by_extra_access("charts", withheld.id) is False
+    assert (
+        apply_extra_access_exclusions(
+            db.session.query(Slice), "charts", Slice.id
+        ).count()
+        >= 1
+    )

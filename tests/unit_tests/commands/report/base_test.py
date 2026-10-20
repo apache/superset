@@ -483,3 +483,49 @@ def test_check_object_access_allows_a_target_that_is_not_excluded(
 
     raise_for_access.assert_called_once_with(chart=resolved)
     assert cmd._properties["chart"] is resolved
+
+
+def test_an_update_omitting_the_target_still_checks_the_stored_one(
+    mocker: MockerFixture,
+) -> None:
+    """Reactivating a report must not resume a schedule on a withheld target.
+
+    ``PUT /api/v1/report/<id>`` with only ``{"active": true}`` reaches the
+    branch that takes the target from the stored model, so without this the
+    schedule resumes while resubmitting that same target is refused.
+    """
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": True}
+    # The class declares no ``_model``; production reads it via ``getattr``.
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9)
+
+    with pytest.raises(ReportScheduleForbiddenError):
+        cmd.validate_chart_dashboard([], update=True)
+
+    assert excluded.call_args.args == ("report_target_dashboards", 9)
+
+
+def test_an_update_omitting_the_target_passes_when_not_withheld(
+    mocker: MockerFixture,
+) -> None:
+    """With no exclusion configured the stored target is left alone."""
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=False,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": True}
+    # The class declares no ``_model``; production reads it via ``getattr``.
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9)
+
+    exceptions: list[Any] = []
+    cmd.validate_chart_dashboard(exceptions, update=True)
+    assert exceptions == []
