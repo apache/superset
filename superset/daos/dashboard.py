@@ -857,7 +857,10 @@ class DashboardDAO(BaseDAO[Dashboard]):
                             ]
                         )
                     value["meta"]["chartId"] = new_id
-        else:
+        elif metadata.get("positions") is None:
+            # With a layout, set_dash_metadata links exactly the layout's charts.
+            # Linking the source's charts first and then dropping some makes the
+            # flush delete dashboard_slices rows that were never inserted.
             dash.slices = original_dash.slices
 
         dash.params = original_dash.params
