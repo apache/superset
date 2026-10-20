@@ -45,7 +45,7 @@ from superset.commands.database.importers.v1.utils import import_database
 from superset.commands.dataset.importers.v1.utils import import_dataset
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.v1 import ImportModelsCommand
-from superset.commands.importers.v1.utils import import_tag
+from superset.commands.importers.v1.utils import find_existing_for_import, import_tag
 from superset.commands.theme.import_themes import import_theme
 from superset.commands.utils import update_chart_config_dataset
 from superset.daos.dashboard import DashboardDAO
@@ -112,6 +112,13 @@ class ImportDashboardsCommand(ImportModelsCommand):
             # resolves a slug collision with ``is not None``, so an empty-string
             # slug is an identity value there and must be gated here too.
             if slug is None or not file_name.startswith(self.prefix):
+                continue
+            # ``import_dashboard()`` only resolves a collision by slug when no
+            # row, live or soft-deleted, already carries this UUID. If one
+            # does, this config is headed for the restore path instead, and
+            # the slug check must not fire just because some other active
+            # dashboard has claimed the slug in the meantime.
+            if find_existing_for_import(Dashboard, config["uuid"]) is not None:
                 continue
             owner = (
                 db.session.query(Dashboard)

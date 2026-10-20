@@ -895,3 +895,32 @@ def test_import_empty_slug_collision_is_flagged(session: Session) -> None:
     assert excinfo.value._exceptions[0].messages["dashboards/incoming.yaml"] == (
         "Dashboard already exists and `overwrite=true` was not passed"
     )
+
+
+def test_import_soft_deleted_uuid_skips_slug_check(session: Session) -> None:
+    """A config whose UUID matches a soft-deleted dashboard is headed for
+    ``import_dashboard()``'s restore path, not slug resolution, even if some
+    other active dashboard has since claimed the old slug: the slug check
+    must not flag it, since confirming the resulting OVERWRITE prompt
+    couldn't resolve the real (restore-slug) conflict anyway."""
+    _seed_existing_dashboard(session)
+
+    soft_deleted_uuid = "cccccccc-cccc-cccc-cccc-cccccccccccc"
+    soft_deleted = Dashboard(
+        dashboard_title="Soft-deleted dash",
+        slug="orphaned-slug",
+        slices=[],
+        published=True,
+        uuid=soft_deleted_uuid,
+    )
+    soft_deleted.deleted_at = datetime(2026, 1, 1, 12, 0, 0, tzinfo=timezone.utc)
+    session.add(soft_deleted)
+    session.flush()
+
+    bundle = _make_bundle(COLLIDING_SLUG)
+    dashboard = yaml.safe_load(bundle["dashboards/incoming.yaml"])
+    dashboard["uuid"] = soft_deleted_uuid
+    bundle["dashboards/incoming.yaml"] = yaml.dump(dashboard)
+
+    command = ImportDashboardsCommand(bundle, overwrite=False)
+    command.validate()
