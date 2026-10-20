@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { uniq, isEmpty } from 'lodash-es';
 import { FilterChangesType, FilterRemoval } from '../types';
 
@@ -75,13 +75,27 @@ export function useItemStateManager(
   const [orderedIds, setOrderedIds] = useState<string[]>(initialOrder);
   const [renderedIds, setRenderedIds] = useState<string[]>(DEFAULT_EMPTY_ARRAY);
 
+  // Assigned during render so the ref is current as soon as a commit lands,
+  // including for layout effects that run before passive effects flush.
+  const removedItemsRef = useRef(removedItems);
+  removedItemsRef.current = removedItems;
+
+  const clearPendingRemovalTimers = useCallback(() => {
+    Object.values(removedItemsRef.current).forEach(removal => {
+      if (removal?.isPending && removal.timerId) {
+        clearTimeout(removal.timerId);
+      }
+    });
+  }, []);
+
   const resetState = useCallback(() => {
+    clearPendingRemovalTimers();
     setChanges(DEFAULT_CHANGES);
     setNewIds(DEFAULT_EMPTY_ARRAY);
     setRemovedItems(DEFAULT_REMOVED_ITEMS);
     setErroredIds(DEFAULT_EMPTY_ARRAY);
     setRenderedIds(DEFAULT_EMPTY_ARRAY);
-  }, []);
+  }, [clearPendingRemovalTimers]);
 
   const addToRendered = useCallback((id: string) => {
     setRenderedIds(prev => {
@@ -124,15 +138,13 @@ export function useItemStateManager(
     });
   }, [configMap, newIds, removedItems]);
 
+  // Only on unmount: clearing on every removedItems change would cancel the
+  // timers of earlier, still-pending removals whenever another one is added.
   useEffect(
     () => () => {
-      Object.values(removedItems).forEach(removal => {
-        if (removal?.isPending && removal.timerId) {
-          clearTimeout(removal.timerId);
-        }
-      });
+      clearPendingRemovalTimers();
     },
-    [removedItems],
+    [clearPendingRemovalTimers],
   );
 
   return {
