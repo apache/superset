@@ -80,12 +80,19 @@ function findControlConfig(name: string) {
 // Totals and subtotals come from rollup levels fetched by the query. A
 // renderTrigger control re-renders the chart from the stored result without
 // querying, so its toggle can never add a level the stored result lacks.
-test.each(['rowTotals', 'rowSubTotals', 'colTotals', 'colSubTotals'])(
-  '%s is not a renderTrigger control, so toggling it re-queries',
-  name => {
-    expect(findControlConfig(name).renderTrigger).toBeFalsy();
-  },
-);
+// `metricsLayout` and `transposePivot` qualify too: they decide which axis the
+// metric pseudo-dimension lands on and which dimensions are rows, and with them
+// which collapsed levels the totals/subtotals options need.
+test.each([
+  'rowTotals',
+  'rowSubTotals',
+  'colTotals',
+  'colSubTotals',
+  'metricsLayout',
+  'transposePivot',
+])('%s is not a renderTrigger control, so toggling it re-queries', name => {
+  expect(findControlConfig(name).renderTrigger).toBeFalsy();
+});
 
 // With metrics on rows, the renderer's row hierarchy is [metric, ...rowDims],
 // so the level with every row dimension collapsed is the per-metric group

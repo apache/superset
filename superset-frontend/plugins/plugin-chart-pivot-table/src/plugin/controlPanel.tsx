@@ -113,7 +113,10 @@ const config: ControlPanelConfig = {
             name: 'metricsLayout',
             config: {
               type: 'RadioButtonControl',
-              renderTrigger: true,
+              // Not a renderTrigger: the axis the metrics land on decides which
+              // collapsed rollup level the totals/subtotals options need (see
+              // `buildGroupbyCombinations`), so changing it needs a real
+              // requery rather than a client-side-only re-render.
               label: t('Apply metrics on'),
               default: MetricsLayoutEnum.COLUMNS,
               options: [
@@ -258,8 +261,11 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Transpose pivot'),
               default: false,
+              // Not a renderTrigger: swapping rows and columns changes which
+              // dimensions form the rollup levels the totals/subtotals options
+              // need (see `buildGroupbyCombinations`), so it needs a real
+              // requery rather than a client-side-only re-render.
               description: t('Swap rows and columns'),
-              renderTrigger: true,
             },
           },
         ],
