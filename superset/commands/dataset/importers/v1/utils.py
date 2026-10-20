@@ -54,7 +54,7 @@ from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.models.helpers import (
     ChildMultipleResultsFound,
-    strip_reserved_template_params,
+    template_params_for_access_check,
 )
 from superset.sql.parse import Table
 from superset.utils import json
@@ -267,25 +267,79 @@ def _table_binding(
     )
 
 
-def _get_template_params(dataset: SqlaTable) -> dict[str, Any]:
+def _authorize_binding(config: dict[str, Any], existing: SqlaTable | None) -> None:
     """
-    Return a dataset's template params as a dict for the access check.
+    Authorize the table or SQL an import binds a dataset to.
 
-    Delegates to ``template_params_dict`` so the check reads the params the
-    same way rendering does, but tolerates the two inputs that property does
-    not guard: it raises on malformed JSON and passes non-dict JSON through.
-    Either yields an empty dict so the check still runs against the raw SQL.
-    Names the template processor reserves are dropped, since chart execution
-    never renders them.
+    Runs on the uploaded config before ``import_from_dict`` changes anything,
+    as the update command does. Once an overwrite has moved a dataset, the
+    lookup that authorizes a table finds that same row under its new binding,
+    and its ``datasource_access`` still matches because the dataset permission
+    name omits the schema. Keys missing from the config keep the stored value,
+    as they do in ``import_from_dict``.
     """
-    try:
-        params = dataset.template_params_dict
-    except json.JSONDecodeError:
-        logger.warning(
-            "Unable to decode template_params for dataset %s", dataset.table_name
+
+    def value(key: str) -> Any:
+        return config[key] if key in config else getattr(existing, key, None)
+
+    if "database_id" in config:
+        database = (
+            db.session.query(Database).filter_by(id=config["database_id"]).first()
         )
-        return {}
-    return strip_reserved_template_params(params) if isinstance(params, dict) else {}
+    else:
+        database = existing.database if existing else None
+    sql = value("sql")
+    # Empty strings would qualify table names against a nonexistent
+    # catalog/schema, so they are normalized to None to let the check fall
+    # back to the defaults.
+    catalog = value("catalog") or None
+    schema = value("schema") or None
+    table_name = value("table_name")
+    binding = (
+        database.id if database else None,
+        catalog,
+        schema,
+        table_name,
+        bool(sql),
+    )
+
+    try:
+        # Editorship of the dataset being overwritten or restored must not
+        # authorize a table, or an editor could re-import a ``SELECT 1`` decoy
+        # as a physical dataset over an arbitrary one. A physical dataset that
+        # is new or bound to a different table is authorized by data access on
+        # that table.
+        if not sql and (existing is None or binding != _table_binding(existing)):
+            security_manager.raise_for_access(
+                database=database,
+                table=Table(table_name, schema, catalog),
+                allow_dataset_editorship=False,
+            )
+        # For virtual datasets, validate access to the tables the SQL
+        # references, matching the create and update commands.
+        if sql:
+            security_manager.raise_for_access(
+                database=database,
+                sql=sql,
+                catalog=catalog,
+                schema=schema,
+                # Jinja-templated SQL only reveals the tables it really
+                # references once the params are applied, so they are
+                # forwarded rather than left to default to empty.
+                template_params=template_params_for_access_check(
+                    value("template_params")
+                ),
+                allow_dataset_editorship=False,
+            )
+    except SupersetSecurityException as ex:
+        raise DatasetAccessDeniedError() from ex
+    # SQL that can't be parsed or rendered can't be access-checked, so fail
+    # closed, but as an invalid payload (422) rather than an access denial or a
+    # server error.
+    except SupersetParseError as ex:
+        raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
+    except TemplateError as ex:
+        raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
 
 
 def import_dataset(  # noqa: C901
@@ -538,9 +592,8 @@ def import_dataset(  # noqa: C901
     # should we also load data into the dataset?
     data_uri = config.get("data")
 
-    # Snapshot the binding before the import mutates ``existing`` in place, so
-    # a physical rebinding can be told apart from an unchanged re-import.
-    previous_binding = _table_binding(existing) if existing else None
+    if not ignore_permissions:
+        _authorize_binding(config, existing)
 
     # import recursively to include columns and metrics
     try:
@@ -610,48 +663,8 @@ def import_dataset(  # noqa: C901
     if not ignore_permissions:
         try:
             security_manager.raise_for_access(datasource=dataset)
-            # The datasource check accepts editorship of the dataset itself,
-            # and an overwrite or restore only requires editorship of the row
-            # being replaced. Without this check an editor could re-import a
-            # ``SELECT 1`` decoy as a physical dataset over an arbitrary
-            # table. A physical dataset that is new or bound to a different
-            # table must be authorized by data access on that table.
-            if not dataset.sql and _table_binding(dataset) != previous_binding:
-                security_manager.raise_for_access(
-                    database=dataset.database,
-                    table=Table(
-                        dataset.table_name,
-                        dataset.schema or None,
-                        dataset.catalog or None,
-                    ),
-                    allow_dataset_editorship=False,
-                )
-            # For virtual datasets, also validate access to the tables the
-            # SQL references, matching the create and update commands.
-            if dataset.sql:
-                security_manager.raise_for_access(
-                    database=dataset.database,
-                    sql=dataset.sql,
-                    # Empty strings would qualify table names against a
-                    # nonexistent catalog/schema, so they are normalized to
-                    # None to let the check fall back to the defaults.
-                    catalog=dataset.catalog or None,
-                    schema=dataset.schema or None,
-                    # Jinja-templated SQL only reveals the tables it really
-                    # references once the params are applied, so they are
-                    # forwarded rather than left to default to empty.
-                    template_params=_get_template_params(dataset),
-                    allow_dataset_editorship=False,
-                )
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex
-        # SQL that can't be parsed or rendered can't be access-checked, so fail
-        # closed, but as an invalid payload (422) rather than an access denial
-        # or a server error.
-        except SupersetParseError as ex:
-            raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
-        except TemplateError as ex:
-            raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
 
     # `has_table` opens a live connection to the target database to run a
     # schema-introspection query. Its result is only ever consulted below to

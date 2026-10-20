@@ -838,6 +838,60 @@ def test_import_dataset_overwrite_physical_rebinding_requires_table_access(
     assert table_call.kwargs["allow_dataset_editorship"] is False
 
 
+@pytest.mark.parametrize(
+    ("stored_sql", "imported_sql"),
+    [
+        pytest.param(None, None, id="physical"),
+        pytest.param("SELECT 1", "SELECT * FROM restricted.t", id="virtual"),
+    ],
+)
+def test_import_dataset_rebinding_is_not_authorized_by_the_dataset_itself(
+    mocker: MockerFixture,
+    session: Session,
+    stored_sql: str | None,
+    imported_sql: str | None,
+) -> None:
+    """
+    The dataset permission name omits the schema, so ``datasource_access`` on
+    ``public.t`` would still match the same row once an overwrite moved it to
+    ``restricted``. The new binding must be authorized against the datasets
+    that exist before the import changes anything.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    existing = SqlaTable(
+        uuid=uuid.uuid4(),
+        table_name="t",
+        schema="public",
+        sql=stored_sql,
+        database_id=database.id,
+    )
+    db.session.add(existing)
+    db.session.flush()
+    existing.perm = existing.get_perm()
+    db.session.flush()
+    granted = {("can_write", "Dataset"), ("datasource_access", existing.perm)}
+
+    mocker.patch.object(
+        security_manager,
+        "can_access",
+        side_effect=lambda permission, view: (permission, view) in granted,
+    )
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+
+    config = {
+        **_physical_config(existing, database),
+        "schema": "restricted",
+        "sql": imported_sql,
+    }
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config, overwrite=True)
+
+
 def test_import_dataset_unchanged_physical_reimport_skips_table_check(
     mocker: MockerFixture, session: Session
 ) -> None:
