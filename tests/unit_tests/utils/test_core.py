@@ -493,6 +493,26 @@ def test_normalize_dttm_col_timezone_handles_dst() -> None:
     assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-07-01 02:00:00"
 
 
+def test_normalize_dttm_col_timezone_with_tz_aware_values() -> None:
+    """Values that already carry a timezone are converted, not re-localized."""
+    df = pd.DataFrame(
+        {
+            "date_col": pd.to_datetime(
+                ["2020-01-01 00:00:00+00:00", "2020-07-01 05:00:00+05:00"],
+                utc=True,
+            )
+        }
+    )
+    dttm_cols = (DateColumn(col_label="date_col", timezone="Europe/Berlin"),)
+
+    normalize_dttm_col(df, dttm_cols)
+
+    assert is_datetime64_dtype(df["date_col"])
+    assert df["date_col"][0].tzinfo is None
+    assert df["date_col"][0].strftime("%Y-%m-%d %H:%M:%S") == "2020-01-01 01:00:00"
+    assert df["date_col"][1].strftime("%Y-%m-%d %H:%M:%S") == "2020-07-01 02:00:00"
+
+
 def test_normalize_dttm_col_timezone_takes_precedence_over_offset() -> None:
     """When both timezone and offset are set, the timezone conversion wins."""
     df = pd.DataFrame({"date_col": ["2020-01-01 00:00:00"]})
