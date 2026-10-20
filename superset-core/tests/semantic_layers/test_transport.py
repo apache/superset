@@ -19,6 +19,7 @@
 
 import math
 from dataclasses import FrozenInstanceError
+from typing import cast
 
 import pytest
 
@@ -167,3 +168,19 @@ def test_provider_error_uses_only_a_bounded_display_name(
     )
     assert error.provider == expected
     assert str(error) == f"{expected} request failed with HTTP 503."
+
+
+@pytest.mark.parametrize(
+    "provider", [None, 42, b"https://secret.test/", {"secret": True}]
+)
+def test_non_string_error_labels_fall_back_without_coercion(provider: object) -> None:
+    from superset_core.semantic_layers.transport import (
+        ProviderRequestError,
+        ProviderRequestFailure,
+    )
+
+    error: ProviderRequestError = ProviderRequestError(
+        ProviderRequestFailure.UNREACHABLE, provider=cast(str, provider)
+    )
+    assert error.provider == "Provider"
+    assert str(error) == "Provider endpoint could not be reached."

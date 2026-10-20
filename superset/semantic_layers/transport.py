@@ -76,13 +76,14 @@ class HostProviderTransport(ProviderTransport):
         json: Any = None,
         consume: Callable[[int], None] | None = None,
     ) -> ProviderResponse:
+        # Do not coerce arbitrary objects while handling a URL-bearing failure.
+        provider = provider if isinstance(provider, str) else "Provider"
         bound: _Deadline = _Deadline(budget.deadline)
         token: Token[ConnectionDeadline | None] = PROVIDER_DEADLINE.set(bound)
         try:
             bound.remaining()  # No parsing, resolution or socket work after expiry.
             self._validated_url(url)
-            with _DirectSession() as session:
-                session.trust_env = self._allow_internal
+            with _DirectSession(allow_environment_ca=self._allow_internal) as session:
                 adapter: PinnedHTTPAdapter = PinnedHTTPAdapter(
                     public_only=not self._allow_internal
                 )
@@ -247,9 +248,19 @@ def build_provider_transport() -> ProviderTransport:
 
 
 class _DirectSession(requests.Session):
+    def __init__(self, *, allow_environment_ca: bool = False) -> None:
+        super().__init__()
+        self.trust_env = False  # Never discover credentials from netrc.
+        self._allow_environment_ca: bool = allow_environment_ca
+
     def merge_environment_settings(self, *args: Any, **kwargs: Any) -> _Settings:
-        # Retain internal-mode CA bundles, but the deadline must own the direct socket.
         settings: _Settings = super().merge_environment_settings(*args, **kwargs)
+        if self._allow_environment_ca and settings["verify"] is True:
+            settings["verify"] = (
+                os.environ.get("REQUESTS_CA_BUNDLE")
+                or os.environ.get("CURL_CA_BUNDLE")
+                or settings["verify"]
+            )
         settings["proxies"] = {}
         return settings
 

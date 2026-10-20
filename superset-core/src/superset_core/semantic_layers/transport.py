@@ -110,7 +110,8 @@ class ProviderRequestError(Exception):
         # Reject URL-like, control-bearing or excessive labels rather than echoing them.
         self.provider: str = (
             provider.strip()
-            if re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,63}", provider)
+            if isinstance(provider, str)
+            and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9 _-]{0,63}", provider)
             else "Provider"
         )
         super().__init__(failure)

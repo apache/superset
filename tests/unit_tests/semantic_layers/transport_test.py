@@ -27,14 +27,15 @@ import subprocess
 import sys
 import textwrap
 import time
-from collections.abc import Iterator
+import traceback
+from collections.abc import Callable, Iterator
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from threading import get_ident, Thread
-from typing import Any, TypeAlias
+from typing import Any, cast, TypeAlias
 from unittest.mock import patch
 
 import pytest
@@ -1387,3 +1388,58 @@ def test_fork_recreates_provider_workers_and_inherited_locks() -> None:
         check=False,
     )
     assert result.returncode == 0, result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("authorization", [None, "Bearer provider-owned-token"])
+def test_internal_requests_never_read_netrc(
+    authorization: str | None, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from unittest.mock import Mock
+
+    netrc_path: Path = tmp_path / "netrc"
+    netrc_path.write_text("machine localhost login fixture password netrc-secret\n")
+    netrc_path.chmod(0o600)
+    monkeypatch.setenv("NETRC", str(netrc_path))
+    lookup: Mock = Mock(wraps=requests.sessions.get_netrc_auth)
+    monkeypatch.setattr(requests.sessions, "get_netrc_auth", lookup)
+    observed: list[str | None] = []
+    original: Callable[[_Handler], None] = _Handler._respond
+
+    def respond(handler: _Handler) -> None:
+        observed.append(handler.headers.get("Authorization"))
+        original(handler)
+
+    monkeypatch.setattr(_Handler, "_respond", respond)
+    headers: dict[str, str] = (
+        {"Authorization": authorization} if authorization is not None else {}
+    )
+    with _server() as (port, _), _internal_hosts(True):
+        response: ProviderResponse = provider_request(
+            "Cube", "GET", f"http://localhost:{port}/", timeout=2, headers=headers
+        )
+    assert response.status == 200
+    assert observed == [authorization]
+    lookup.assert_not_called()
+
+
+@pytest.mark.parametrize("provider", [None, 42, {"url": "https://secret.test/"}])
+def test_non_string_label_cannot_chain_library_secrets(
+    provider: object, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    from unittest.mock import Mock
+
+    raw: str = "https://user:raw-secret@private.test/path?token=raw-secret"
+    send: Mock = Mock(side_effect=requests.ConnectionError(raw))
+    monkeypatch.setattr(semantic_layer_http._DirectSession, "request", send)
+    with pytest.raises(ProviderRequestError) as raised:
+        provider_request(cast(str, provider), "GET", raw, timeout=2)
+    assert raised.value.failure is ProviderRequestFailure.UNREACHABLE
+    assert str(raised.value) == "Provider endpoint could not be reached."
+    assert raised.value.__cause__ is None
+    assert raised.value.__suppress_context__
+    rendered: str = "".join(traceback.format_exception(raised.value))
+    assert "raw-secret" not in rendered
+    assert "private.test" not in rendered
+    assert "raw-secret" not in caplog.text
+    assert "private.test" not in caplog.text
+    send.assert_called_once()

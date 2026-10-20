@@ -85,7 +85,8 @@ Errors and logs include the provider display name. Pass a constant label such as
 `MetricFlow` or `dbt Semantic Layer`, never endpoint or configuration values.
 Labels must start with an ASCII letter or digit and contain only ASCII letters,
 digits, spaces, underscores or hyphens, up to 64 characters. Other labels fall
-back to `Provider`; valid labels have trailing spaces removed.
+back to `Provider`; valid labels have trailing spaces removed. Non-string labels
+also use that fallback, without converting the supplied object to a string.
 
 The transport sends `Accept-Encoding: identity` and refuses other response
 encodings. Non-2xx bodies are not read. Logs contain only the sanitized provider name, status and failure
@@ -104,7 +105,8 @@ Operators can set `SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS = True` in
 `superset_config.py` to allow private addresses and HTTP for these providers.
 This setting does not change OAuth or webhook policy. It never disables budgets,
 TLS verification or redirect restrictions. Both settings ignore environment proxy
-variables. Configure a reachable provider endpoint rather than relying on a proxy.
+variables and never discover credentials from `.netrc`. Configure a reachable
+provider endpoint rather than relying on a proxy.
 In allow-internal mode, `REQUESTS_CA_BUNDLE` (or `CURL_CA_BUNDLE` as fallback)
 can supply the trusted CA bundle for private TLS endpoints. Certificate and
 hostname verification remain enabled. The default policy ignores both variables.
