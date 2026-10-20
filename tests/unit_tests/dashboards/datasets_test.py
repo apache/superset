@@ -382,7 +382,19 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     implementation.get_metrics.return_value = []
     implementation.features = frozenset()
     implementation.uid.return_value = "provider-ambiguous"
-    ambiguous.__dict__["implementation"] = implementation
+    # `implementation` is a plain (non-settable) property shared by every
+    # `SemanticView` instance, so it can't be overridden per-instance via the
+    # `__dict__` backdoor the way a `cached_property` could. Dispatch on
+    # identity instead, falling back to whatever is currently installed
+    # (the `semantic_view` fixture's own `PropertyMock`) for every other
+    # instance -- `__get__` works whether that's a real `property` or a
+    # `PropertyMock`, unlike `.fget`, which only a real `property` has.
+    # Read the class `__dict__` directly, not `SemanticView.implementation`:
+    # the latter *invokes* whatever descriptor is installed (a `PropertyMock`
+    # calls itself even for class-level access, unlike a real `property`,
+    # which special-cases `obj is None`), so it would capture the fixture's
+    # mocked *return value* instead of the descriptor that produces it.
+    original_implementation = SemanticView.__dict__["implementation"]
     broken_chart: Slice = Slice(datasource_id=2, datasource_type="semantic_view")
     broken_chart.semantic_view = ambiguous
     healthy_chart: Slice = Slice(
@@ -391,6 +403,15 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     healthy_chart.semantic_view = semantic_view
     dashboard: Dashboard = Dashboard(id=17, slices=[broken_chart, healthy_chart])
     with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            property(
+                lambda self: implementation
+                if self is ambiguous
+                else original_implementation.__get__(self, SemanticView)
+            ),
+        ),
         patch(
             "superset.daos.dashboard.DashboardDAO.get_by_id_or_slug",
             return_value=dashboard,
