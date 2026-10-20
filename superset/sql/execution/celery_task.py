@@ -23,6 +23,7 @@ It is used by SQLExecutor.execute_async() to run queries in the background.
 
 from __future__ import annotations
 
+import base64
 import dataclasses
 import logging
 import traceback
@@ -55,6 +56,7 @@ from superset.sql.execution.executor import (
     build_statement_blocks,
     execute_sql_with_cursor,
 )
+from superset.sql.execution.serialization import serialize_nested_columns
 from superset.sql.execution.utils import (
     _discard_stored_results,
     _discard_unreferenced_results,
@@ -174,6 +176,8 @@ def _finalize_successful_query(
     total_execution_time_ms: float,
 ) -> None:
     """Update query metadata and payload after successful execution."""
+    from superset import results_backend_use_msgpack
+
     # Calculate total rows across all statements
     total_rows = 0
     statements_data: list[dict[str, Any]] = []
@@ -207,6 +211,20 @@ def _finalize_successful_query(
                     "execution_time_ms": exec_time,
                 }
             )
+            if result_set.nested_columns:
+                # Keep supported nested values out of the outer JSON/MessagePack
+                # serializer, which coerces types or rejects oversized integers.
+                statements_data[-1]["nested_columns_arrow_nbytes"] = {
+                    name: result_set.pa_table.column(name).nbytes
+                    for name in result_set.nested_columns
+                }
+                statements_data[-1]["nested_columns_msgpack"] = (
+                    serialize_nested_columns(
+                        result_set.nested_columns,
+                        use_msgpack=results_backend_use_msgpack,
+                    )
+                )
+
         else:
             # DML statement - no data, just row count
             statements_data.append(
@@ -240,6 +258,31 @@ def _finalize_successful_query(
         payload["query"]["state"] = QueryStatus.SUCCESS.value
 
 
+def _get_payload_size(payload: dict[str, Any], serialized_payload: bytes) -> int:
+    """Count raw Arrow and metadata, excluding duplicate nested sidecar values."""
+
+    def raw_size(value: bytes | str) -> int:
+        """Return decoded Base64 length without allocating a decoded copy."""
+        if isinstance(value, bytes):
+            return len(value)
+        return len(value) // 4 * 3 - value.endswith("=") - value.endswith("==")
+
+    size = len(serialized_payload)
+    for statement in payload.get("statements", []):
+        data = statement.get("data")
+        if isinstance(data, str):
+            size -= len(data) - raw_size(data)
+        if sidecars := statement.get("nested_columns_msgpack"):
+            # Arrow keeps nested columns as text for older readers and unknown
+            # tags. Count each nested column once, at the larger of its Arrow
+            # column and its raw typed copy.
+            column_sizes = statement.get("nested_columns_arrow_nbytes", {})
+            for name, value in sidecars.items():
+                duplicate = min(raw_size(value), column_sizes.get(name, 0))
+                size -= len(value) - raw_size(value) + duplicate
+    return size
+
+
 def _store_results_in_backend(
     query: Query,
     payload: dict[str, Any],
@@ -271,7 +314,9 @@ def _store_results_in_backend(
 
                 # Check payload size limit
                 if sql_lab_payload_max_mb := app.config.get("SQLLAB_PAYLOAD_MAX_MB"):
-                    serialized_payload_size = len(serialized_payload)
+                    serialized_payload_size = _get_payload_size(
+                        payload, serialized_payload
+                    )
                     max_bytes = sql_lab_payload_max_mb * BYTES_IN_MB
 
                     if serialized_payload_size > max_bytes:
@@ -338,33 +383,31 @@ def _store_results_in_backend(
 
 def _serialize_result_set(
     result_set: SupersetResultSet,
-) -> tuple[bytes | list[Any], list[Any]]:
+) -> tuple[bytes | str, list[Any]]:
     """
     Serialize result set based on RESULTS_BACKEND_USE_MSGPACK config.
 
-    When msgpack is enabled, uses Apache Arrow IPC format for efficiency.
-    Otherwise, falls back to JSON-serializable records.
+    Both transports use Apache Arrow IPC to retain the result types. JSON
+    wraps the IPC bytes in Base64; MessagePack carries them directly.
 
     :param result_set: Query result set to serialize
     :returns: Tuple of (serialized_data, columns)
     """
     from superset import results_backend_use_msgpack
-    from superset.dataframe import df_to_records
 
-    if results_backend_use_msgpack:
-        if has_app_context():
-            stats_logger = app.config["STATS_LOGGER"]
-            with stats_timing(
-                "sqllab.query.results_backend_pa_serialization", stats_logger
-            ):
-                data: bytes | list[Any] = write_ipc_buffer(
-                    result_set.pa_table
-                ).to_pybytes()
-        else:
-            data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+    if has_app_context():
+        stats_logger = app.config["STATS_LOGGER"]
+        with stats_timing(
+            "sqllab.query.results_backend_pa_serialization", stats_logger
+        ):
+            arrow_data = write_ipc_buffer(result_set.pa_table).to_pybytes()
     else:
-        df = result_set.to_pandas_df()
-        data = df_to_records(df, convert_decimals=True) or []
+        arrow_data = write_ipc_buffer(result_set.pa_table).to_pybytes()
+    data = (
+        arrow_data
+        if results_backend_use_msgpack
+        else base64.b64encode(arrow_data).decode("ascii")
+    )
 
     return (data, result_set.columns)
 

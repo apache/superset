@@ -21,7 +21,7 @@ import logging
 import os
 import sys
 import warnings
-from typing import Any, Callable, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, TYPE_CHECKING
 
 import wtforms_json
 from colorama import Fore, Style
@@ -88,6 +88,12 @@ from superset.utils.report_execution import validate_report_execution_config
 if TYPE_CHECKING:
     from superset.app import SupersetApp
 
+# The app that Celery tasks run under when no app context is active. It is
+# set on every initialization, so a process that initializes more than once
+# (the unit suite builds one app per test module) runs its tasks under the
+# most recent app and keeps no earlier app reachable through the task classes.
+_celery_task_app: SupersetApp | None = None
+
 logger = logging.getLogger(__name__)
 
 
@@ -143,17 +149,30 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         """
 
     def configure_celery(self) -> None:
+        global _celery_task_app  # pylint: disable=global-statement
+
         celery_app.config_from_object(self.config["CELERY_CONFIG"])
         celery_app.set_default()
-        superset_app = self.superset_app
+        _celery_task_app = self.superset_app
 
         # Here, we want to ensure that every call into Celery task has an app context
         # setup properly
         task_base = celery_app.Task
 
+        # ``celery_app`` is a process-wide singleton, so a second initialization
+        # in the same process finds the wrapper installed by the first one.
+        # The wrapper reads the app from this module when a task runs instead
+        # of closing over it, so it is installed once: wrapping again would
+        # grow the task class hierarchy by one level per initialization, and
+        # a wrapper that captured its app would keep every app ever
+        # initialized reachable through the task classes built under it.
+        if "_superset_app_context_task" in vars(task_base):
+            return
+
         class AppContextTask(task_base):  # type: ignore
             # pylint: disable=too-few-public-methods
             abstract = True
+            _superset_app_context_task: ClassVar[bool] = True
 
             # Grab each call into the task and set up an app context, unless
             # one is already active on this thread (e.g. Celery eager mode
@@ -165,7 +184,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             def __call__(self, *args: Any, **kwargs: Any) -> Any:
                 if has_app_context():
                     return task_base.__call__(self, *args, **kwargs)
-                with superset_app.app_context():
+                if _celery_task_app is None:
+                    raise RuntimeError("Celery task called before app initialization")
+                with _celery_task_app.app_context():
                     return task_base.__call__(self, *args, **kwargs)
 
         celery_app.Task = AppContextTask

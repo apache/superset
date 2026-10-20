@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-07 14:21-0300\n"
+"POT-Creation-Date: 2026-10-16 15:10-0400\n"
 "PO-Revision-Date: 2026-03-27 14:01+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: lv\n"
@@ -1152,6 +1152,12 @@ msgstr "Tiks izveidota jauna diagramma."
 msgid "A new dashboard will be created."
 msgstr "Tiks izveidots jauns infopanelis."
 
+#, python-format
+msgid ""
+"A password reset was requested for the %(app_name)s account "
+"\"%(username)s\"."
+msgstr ""
+
 msgid ""
 "A polar coordinate chart where the circle is broken into wedges of equal "
 "angle, and the value represented by any wedge is illustrated by its area,"
@@ -1173,6 +1179,11 @@ msgid "A reusable dataset will be saved with your chart."
 msgstr "Ar jūsu diagrammu tiks saglabāta atkārtoti lietojama datu kopa."
 
 msgid "A rule with this name already exists."
+msgstr ""
+
+msgid ""
+"A semantic query filter is invalid. Check its operator and values, then "
+"try again."
 msgstr ""
 
 msgid ""
@@ -1585,12 +1596,12 @@ msgstr ""
 msgid "Added '%s' dimension"
 msgstr ""
 
-#, python-format
-msgid "Added 1 new column to the virtual dataset"
-msgid_plural "Added %s new columns to the virtual dataset"
-msgstr[0] "Pievienota %s jauna kolonna virtuālajai datu kopai"
-msgstr[1] "Pievienotas %s jaunas kolonnas virtuālajai datu kopai"
-msgstr[2] "Pievienotas %s jaunas kolonnas virtuālajai datu kopai"
+#, fuzzy, python-format
+msgid "Added 1 new column to the dataset"
+msgid_plural "Added %s new columns to the dataset"
+msgstr[0] "Pievienota %s jauna kolonna datu kopai"
+msgstr[1] "Pievienotas %s jaunas kolonnas datu kopai"
+msgstr[2] "Pievienotas %s jaunas kolonnas datu kopai"
 
 #, python-format
 msgid "Added a %s"
@@ -2267,9 +2278,6 @@ msgstr "Radās kļūda, apstrādājot atslēgu."
 msgid "An error occurred while pruning logs "
 msgstr "Radās kļūda, tīrot žurnālus "
 
-msgid "An error occurred while refreshing the configuration schema"
-msgstr ""
-
 msgid "An error occurred while refreshing the runtime schema"
 msgstr ""
 
@@ -2870,6 +2878,9 @@ msgstr "Atpakaļ"
 msgid "Back to all"
 msgstr "Atpakaļ uz visu"
 
+msgid "Back to sign in"
+msgstr ""
+
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3239,6 +3250,9 @@ msgstr "CVAS (izveidot skatu kā atlasi) vaicājums nav SELECT izteikums."
 
 msgid "Cache Timeout (seconds)"
 msgstr "Kešatmiņas noildze (sekundes)"
+
+msgid "Cache cleared; reload to fetch metadata"
+msgstr ""
 
 msgid ""
 "Cache data separately for each user based on their data access roles and "
@@ -3787,6 +3801,9 @@ msgstr "Apskatiet šo informācijas paneli: "
 msgid "Check to force date partitions to have the same height"
 msgstr "Atzīmēt, lai piespiestu datuma partīcijām vienādu augstumu"
 
+msgid "Check your email"
+msgstr ""
+
 msgid "Checking charts and dashboards that use this dataset…"
 msgstr ""
 
@@ -3814,6 +3831,9 @@ msgstr "Izvēlēties atdalītāju"
 
 msgid "Choose a metric for right axis"
 msgstr "Izvēlieties rādītāju labajai asij"
+
+msgid "Choose a new password"
+msgstr ""
 
 msgid "Choose a number format"
 msgstr "Izvēlieties skaitļu formātu"
@@ -4124,6 +4144,9 @@ msgstr "Sakļaut datu paneli"
 
 msgid "Collapse row"
 msgstr "Sakļaut rindu"
+
+msgid "Collapse rows by default"
+msgstr ""
 
 msgid "Collapse settings"
 msgstr "Sakļaut iestatījumus"
@@ -4764,6 +4787,10 @@ msgstr ""
 msgid "Could not connect to database: \"%(database)s\""
 msgstr "Nevarēja savienoties ar datubāzi: \"%(database)s\""
 
+#, python-format
+msgid "Could not delete semantic views %s: %s"
+msgstr ""
+
 msgid "Could not fetch all saved charts"
 msgstr "Nevarēja iegūt visas saglabātās diagrammas"
 
@@ -4793,6 +4820,11 @@ msgid ""
 " and try again."
 msgstr ""
 
+msgid ""
+"Could not refresh metadata. Check the connection details and your "
+"permissions."
+msgstr ""
+
 #, python-format
 msgid "Could not resolve hostname: \"%(host)s\"."
 msgstr "Nevarēja atrisināt resursdatora nosaukumu: \"%(host)s\"."
@@ -4816,6 +4848,12 @@ msgstr "Skaits"
 
 msgid "Country"
 msgstr "Valsts"
+
+#, python-format
+msgid ""
+"Country %s has no world-map boundary; enable bubbles or filter the "
+"dataset."
+msgstr ""
 
 msgid "Country Color Scheme"
 msgstr "Valsts krāsu shēma"
@@ -6997,6 +7035,11 @@ msgstr "Ievadiet minimālās un maksimālās vērtības diapazona filtram"
 msgid "Enter report name"
 msgstr "Ievadiet atskaites nosaukumu"
 
+msgid ""
+"Enter the email address of your account and we will send you a link to "
+"reset your password."
+msgstr ""
+
 msgid "Enter the group's description"
 msgstr "Ievadiet grupas aprakstu"
 
@@ -7588,6 +7631,9 @@ msgstr "Neizdevās ielādēt diagrammas datus."
 msgid "Failed to load columns for %s %s"
 msgstr ""
 
+msgid "Failed to load datasource metadata"
+msgstr ""
+
 #, python-format
 msgid "Failed to load dimensions for semantic view %s"
 msgstr ""
@@ -7806,6 +7852,12 @@ msgstr ""
 msgid "Filter charts"
 msgstr "Filtrēt diagrammas"
 
+#, python-format
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions"
+msgstr ""
+
 msgid "Filter has default value"
 msgstr "Filtram ir noklusējuma vērtība"
 
@@ -7834,6 +7886,10 @@ msgstr "Filtra vērtība (reģistrjutīga)"
 msgid "Filter value is required"
 msgstr "Filtra vērtība ir obligāta"
 
+#, python-format
+msgid "Filter value is required for the IN / NOT IN operator on column %(column)s"
+msgstr ""
+
 msgid "Filter value list cannot be empty"
 msgstr "Filtra vērtību saraksts nevar būt tukšs"
 
@@ -7845,6 +7901,10 @@ msgstr "Filtrējiet savas diagrammas"
 
 msgid "Filters"
 msgstr "Filtri"
+
+#, python-format
+msgid "Filters (%s)"
+msgstr ""
 
 msgid "Filters and controls"
 msgstr "Filtri un vadības elementi"
@@ -8061,6 +8121,12 @@ msgstr "Ārējā atslēga"
 
 msgid "Forest Green"
 msgstr "Meža zaļš"
+
+msgid "Forgot password"
+msgstr ""
+
+msgid "Forgot password?"
+msgstr ""
 
 msgid "Form data not found in cache, reverting to chart metadata."
 msgstr ""
@@ -8518,6 +8584,15 @@ msgid "If a metric is specified, sorting will be done based on the metric value"
 msgstr "Ja norādīts rādītājs, kārtošana tiks veikta pēc rādītāja vērtības"
 
 msgid ""
+"If an account exists for that email address, a link to reset your "
+"password has been sent to it. If no email arrives, check your spam folder"
+" or contact your administrator."
+msgstr ""
+
+msgid "If an account with that email exists, a password reset link has been sent."
+msgstr ""
+
+msgid ""
 "If enabled, this control sorts the results/values descending, otherwise "
 "it sorts the results ascending."
 msgstr ""
@@ -8535,6 +8610,11 @@ msgid "If table already exists"
 msgstr "Ja tabula jau eksistē"
 
 msgid "If you delete this item, you won't be able to recover it."
+msgstr ""
+
+msgid ""
+"If you did not request a password reset, you can ignore this email; your "
+"password will not change."
 msgstr ""
 
 msgid "If you did not request this, you can ignore this email."
@@ -8652,11 +8732,18 @@ msgstr ""
 msgid "Include description to be sent with %s"
 msgstr "Iekļaut aprakstu nosūtīšanai kopā ar %s"
 
+msgid "Include matching BEGIN and END private key lines."
+msgstr ""
+
 msgid "Include series name as an axis"
 msgstr "Iekļaut sērijas nosaukumu kā asi"
 
 msgid "Include time"
 msgstr "Iekļaut laiku"
+
+#, python-format
+msgid "Incompatible filters (%d)"
+msgstr ""
 
 msgid "Increase"
 msgstr "Palielināt"
@@ -8917,6 +9004,9 @@ msgstr "Nederīgs rezultāta tips: %(result_type)s"
 #, python-format
 msgid "Invalid rolling_type: %(type)s"
 msgstr "Nederīgs rolling_type: %(type)s"
+
+msgid "Invalid semantic result cache version"
+msgstr ""
 
 msgid "Invalid state."
 msgstr "Nederīgs stāvoklis."
@@ -9280,6 +9370,9 @@ msgstr "Koka izkārtojuma tips"
 msgid "Least recently modified"
 msgstr "Visvecāk modificēts"
 
+msgid "Leave a bound empty for an unbounded range."
+msgstr ""
+
 msgid "Leave blank to keep the current password"
 msgstr ""
 
@@ -9551,6 +9644,9 @@ msgstr "Ielādētie dati kešoti"
 msgid "Loaded from cache"
 msgstr "Ielādēts no kešatmiņas"
 
+msgid "Loaded from semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Loading"
 msgstr "Ielādē..."
@@ -9657,6 +9753,10 @@ msgstr "Apakšējais slieksnis"
 msgid ""
 "Lower bound of the color scale. When both start and end are set, the "
 "legend uses this fixed range instead of the automatic data range."
+msgstr ""
+
+#, python-format
+msgid "Lower the row limit to SQL_MAX_ROW (%s) or less."
 msgstr ""
 
 msgid "Lower threshold must be lower than upper threshold"
@@ -10201,6 +10301,9 @@ msgstr "Trūkst URL parametru"
 msgid "Mixed Chart"
 msgstr "Jaukta diagramma"
 
+msgid "Mixed cache"
+msgstr ""
+
 msgid "Modified"
 msgstr "Mainīts"
 
@@ -10212,12 +10315,12 @@ msgstr ""
 msgid "Modified %s"
 msgstr "Modificēts %s"
 
-#, python-format
-msgid "Modified 1 column in the virtual dataset"
-msgid_plural "Modified %s columns in the virtual dataset"
-msgstr[0] "Modificēta %s kolonna virtuālajā datu kopā"
-msgstr[1] "Modificētas %s kolonnas virtuālajā datu kopā"
-msgstr[2] "Modificētas %s kolonnas virtuālajā datu kopā"
+#, fuzzy, python-format
+msgid "Modified 1 column in the dataset"
+msgid_plural "Modified %s columns in the dataset"
+msgstr[0] "Modificēta %s kolonna datu kopā"
+msgstr[1] "Modificētas %s kolonnas datu kopā"
+msgstr[2] "Modificētas %s kolonnas datu kopā"
 
 msgid "Modified by"
 msgstr "Modificēja"
@@ -11007,6 +11110,9 @@ msgstr "Viena vai vairākas attēlojamās metrikas"
 msgid "One or more annotation layers failed loading."
 msgstr "Viena vai vairākas anotācijas slāņi neielādējās."
 
+msgid "One or more chart-data queries failed"
+msgstr ""
+
 msgid "One or more columns already exist"
 msgstr "Viena vai vairākas kolonnas jau pastāv"
 
@@ -11087,6 +11193,12 @@ msgstr "Šim savienojumam tiek atbalstīts tikai noklusējuma katalogs"
 
 #, python-format
 msgid "Only the first %s values are listed."
+msgstr ""
+
+#, python-format
+msgid ""
+"Only the first %s values are listed. Enter a value manually if it is not "
+"listed."
 msgstr ""
 
 #, python-format
@@ -11925,6 +12037,11 @@ msgstr ""
 msgid "Preparing export…"
 msgstr ""
 
+msgid ""
+"Preserves the generated dashboard-time predicate subject through Explore "
+"saves."
+msgstr ""
+
 msgid "Preview"
 msgstr "Priekšskatījums"
 
@@ -12325,6 +12442,9 @@ msgstr "Pārlādēt"
 msgid "Reload SQL Lab"
 msgstr "Pārlādēt SQL Lab"
 
+msgid "Reload metadata"
+msgstr ""
+
 msgid "Reload the page and try again to continue."
 msgstr ""
 
@@ -12384,12 +12504,12 @@ msgstr ""
 msgid "Removed '%s' metric"
 msgstr ""
 
-#, python-format
-msgid "Removed 1 column from the virtual dataset"
-msgid_plural "Removed %s columns from the virtual dataset"
-msgstr[0] "Noņemta %s kolonna no virtuālās datu kopas"
-msgstr[1] "Noņemtas %s kolonnas no virtuālās datu kopas"
-msgstr[2] "Noņemtas %s kolonnas no virtuālās datu kopas"
+#, fuzzy, python-format
+msgid "Removed 1 column from the dataset"
+msgid_plural "Removed %s columns from the dataset"
+msgstr[0] "Noņemta %s kolonna no datu kopas"
+msgstr[1] "Noņemtas %s kolonnas no datu kopas"
+msgstr[2] "Noņemtas %s kolonnas no datu kopas"
 
 #, python-format
 msgid "Removed a %s"
@@ -12579,6 +12699,12 @@ msgstr "Atgrūšanas spēks starp mezgliem"
 msgid "Request Access"
 msgstr "Pieprasīt piekļuvi"
 
+msgid "Request a new link"
+msgstr ""
+
+msgid "Request a new link to reset your password."
+msgstr ""
+
 msgid "Request access"
 msgstr ""
 
@@ -12658,6 +12784,10 @@ msgstr "Atiestatīt stāvokli"
 
 msgid "Reset to default folders?"
 msgstr "Atjaunot noklusējuma mapes?"
+
+#, python-format
+msgid "Reset your %(app_name)s password"
+msgstr ""
 
 msgid "Resize"
 msgstr "Mainīt izmēru"
@@ -13029,6 +13159,11 @@ msgstr ""
 msgid "SQL Query"
 msgstr "SQL vaicājums"
 
+msgid ""
+"SQL WHERE/HAVING expressions are not supported for semantic views. Remove"
+" the SQL clause or use a semantic dimension filter."
+msgstr ""
+
 msgid "SQL expression"
 msgstr "SQL izteiksme"
 
@@ -13325,6 +13460,13 @@ msgstr "Ritiniet uz leju, lai iespējotu izmaiņu pārrakstīšanu. "
 msgid "Search"
 msgstr "Meklēt"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Meklēt %s ierakstos"
+msgstr[1] "Meklēt %s ierakstos"
+msgstr[2] "Meklēt %s ierakstos"
+
 msgid "Search / Filter"
 msgstr "Meklēt / Filtrēt"
 
@@ -13382,9 +13524,6 @@ msgstr "Meklēt filtros"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Meklēt metriku un kolonnas"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "Meklēt birkas"
@@ -13943,6 +14082,9 @@ msgstr "Semantiskais skats"
 msgid "Semantic Views"
 msgstr "Semantiskie skati"
 
+msgid "Semantic cache"
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Anotāciju slānis"
@@ -13978,6 +14120,17 @@ msgstr "Anotāciju slāņa tips"
 #, fuzzy
 msgid "Semantic layer updated"
 msgstr "Anotācijas veidne atjaunināta"
+
+#, python-format
+msgid ""
+"Semantic source is used by %(count)s dependent asset and cannot be "
+"deleted."
+msgid_plural ""
+"Semantic source is used by %(count)s dependent assets and cannot be "
+"deleted."
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
 
 #, fuzzy
 msgid "Semantic view could not be created."
@@ -14031,6 +14184,9 @@ msgstr "Sūtīt kā PNG"
 
 msgid "Send as text"
 msgstr "Sūtīt kā tekstu"
+
+msgid "Send reset link"
+msgstr ""
 
 msgid "Send the failed report to all recipients after retries are exhausted"
 msgstr ""
@@ -14446,6 +14602,9 @@ msgstr "Rādīt kopsavilkumu"
 msgid "Show the main ticks on axes."
 msgstr ""
 
+msgid "Show the numbers along the value axis."
+msgstr ""
+
 msgid "Show total"
 msgstr "Rādīt kopsummu"
 
@@ -14523,6 +14682,9 @@ msgstr "Piesakies"
 
 msgid "Sign in with"
 msgstr "Piesakies ar"
+
+msgid "Sign in with your new password."
+msgstr ""
 
 msgid "Significance Level"
 msgstr "Nozīmīguma līmenis"
@@ -14691,6 +14853,9 @@ msgstr ""
 
 msgid "Something went wrong."
 msgstr "Kaut kas nogāja greizi."
+
+msgid "Something went wrong. Please try again later."
+msgstr ""
 
 #, python-format
 msgid "Sorry there was an error fetching database information: %s"
@@ -14944,6 +15109,11 @@ msgid ""
 "Start field selection using current member IDs. This clears any existing "
 "query and formatting settings. Saved display titles cannot be safely "
 "mapped to member IDs. The saved chart is unchanged until you save."
+msgstr ""
+
+msgid ""
+"Start with row groups collapsed when row subtotals are shown. Each group "
+"can still be expanded with its arrow."
 msgstr ""
 
 msgid "Start y-axis at 0"
@@ -15636,6 +15806,10 @@ msgstr ""
 "X ass nav filtrēšanas sarakstā, kas neļauj to izmantot laika diapazona "
 "filtros paneļos. Vai vēlaties to pievienot filtrēšanas sarakstam?"
 
+#, python-format
+msgid "The `%(field)s` field must be a string."
+msgstr ""
+
 msgid ""
 "The affected charts or dashboards changed. Review the updated impact and "
 "type DELETE again to continue."
@@ -16175,6 +16349,9 @@ msgstr[0] "Parametrs %(parameters)s jūsu vaicājumā nav definēts."
 msgstr[1] "Sekojoši parametri jūsu vaicājumā nav definēti: %(parameters)s."
 msgstr[2] "Sekojoši parametri jūsu vaicājumā nav definēti: %(parameters)s."
 
+msgid "The password could not be reset. Please try again."
+msgstr ""
+
 #, python-format
 msgid "The password provided for username \"%(username)s\" is incorrect."
 msgstr "Parole lietotājvārdam \"%(username)s\" ir nepareiza."
@@ -16459,6 +16636,26 @@ msgstr "Ekrānuzņēmums tiek ģenerēts. Lūdzu, neaizejiet no lapas."
 msgid ""
 "The selected %s are linked to %s on %s. Deleting them will break those "
 "objects."
+msgstr ""
+
+msgid ""
+"The semantic layer could not verify that this query result is complete. "
+"Retry the query; if it continues, ask an administrator to check the "
+"semantic-layer connection."
+msgstr ""
+
+msgid ""
+"The semantic layer returned only part of this query result. Narrow the "
+"time range or selected dimensions, or request a smaller explicit row "
+"limit, then retry. Result pagination is not supported yet."
+msgstr ""
+
+msgid ""
+"The semantic query is invalid. Check its fields and options, then try "
+"again."
+msgstr ""
+
+msgid "The semantic-layer provider is unavailable."
 msgstr ""
 
 msgid "The service url of the layer"
@@ -17114,6 +17311,18 @@ msgstr ""
 msgid "This chart only"
 msgstr ""
 
+msgid ""
+"This chart version can't be restored because the dataset it used has been"
+" permanently deleted. Restore a version that uses an existing dataset, or"
+" recreate the chart."
+msgstr ""
+
+msgid ""
+"This chart version can't be restored because the semantic view it used "
+"has been permanently deleted. Restore a version that uses an existing "
+"semantic view or dataset, or recreate the chart."
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -17366,6 +17575,10 @@ msgstr ""
 "dinamiski ģenerēts, pielāgojot logrīku izmērus un pozīcijas, izmantojot "
 "vilkšanu un nomešanu paneļa skatā"
 
+#, python-format
+msgid "This link can be used once and expires in %(minutes)s minutes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [no refs]
 #, fuzzy
 msgid "This link cannot be followed because its address is unsafe."
@@ -17432,6 +17645,12 @@ msgstr "Šī lapa ir paredzēta iegulšanai iframe, bet šķiet, ka tas tā nav.
 msgid "This password is too common; please choose a less guessable one."
 msgstr "Šī parole ir pārāk izplatīta; lūdzu, izvēlieties grūtāk uzminamu paroli."
 
+msgid "This password reset link is invalid or has expired"
+msgstr ""
+
+msgid "This password reset link is invalid or has expired."
+msgstr ""
+
 msgid ""
 "This saved filter state predates the member-ID format. Reset it and "
 "explicitly choose its values again."
@@ -17460,6 +17679,19 @@ msgid "This section contains validation errors"
 msgstr "Šī sadaļa satur validācijas kļūdas"
 
 msgid "This semantic layer has no dependent semantic views."
+msgstr ""
+
+msgid ""
+"This semantic provider cannot apply the requested offset. Turn off "
+"pagination or use a supported limit and offset."
+msgstr ""
+
+msgid ""
+"This semantic provider does not support this query. Remove unsupported "
+"filters or grouping and try again."
+msgstr ""
+
+msgid "This semantic view does not support server pagination."
 msgstr ""
 
 msgid ""
@@ -17820,6 +18052,9 @@ msgstr[2] ""
 msgid "Token Request URI"
 msgstr "Talona pieprasījuma URI"
 
+msgid "Too many requests. Please wait and try again."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy, python-format
 msgid ""
@@ -18009,6 +18244,9 @@ msgstr "Otrdiena"
 msgid "Tukey"
 msgstr "Tūkija"
 
+msgid "Turn off server pagination"
+msgstr ""
+
 msgid "Turn off the logarithmic axis before stacking bars"
 msgstr ""
 
@@ -18109,6 +18347,9 @@ msgstr ""
 
 msgid "Unable to calculate such a date delta"
 msgstr "Nevar aprēķināt šādu datuma starpību"
+
+msgid "Unable to clear metadata cache"
+msgstr ""
 
 #, python-format
 msgid "Unable to connect to catalog named \"%(catalog_name)s\"."
@@ -18704,6 +18945,9 @@ msgstr "Vērtību formāts"
 
 msgid "Value and Percentage"
 msgstr "Vērtība un procenti"
+
+msgid "Value axis labels"
+msgstr ""
 
 msgid "Value bounds"
 msgstr "Vērtību robežas"
@@ -19921,6 +20165,11 @@ msgstr ""
 "redaktoru, lai pieprasītu izmaiņas vai rediģēšanas piekļuvi."
 
 msgid ""
+"You must be a chart editor in order to archive. Please reach out to a "
+"chart editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a chart editor in order to delete. Please reach out to a "
 "chart editor to request modifications or edit access."
 msgstr ""
@@ -19931,6 +20180,11 @@ msgid ""
 msgstr ""
 
 msgid ""
+"You must be a dashboard editor in order to archive. Please reach out to a"
+" dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
 "You must be a dashboard editor in order to delete. Please reach out to a "
 "dashboard editor to request modifications or edit access."
 msgstr ""
@@ -19938,6 +20192,11 @@ msgstr ""
 msgid ""
 "You must be a dashboard editor in order to edit. Please reach out to a "
 "dashboard editor to request modifications or edit access."
+msgstr ""
+
+msgid ""
+"You must be a dataset editor in order to archive. Please reach out to a "
+"dataset editor to request modifications or edit access."
 msgstr ""
 
 msgid ""
@@ -20056,6 +20315,15 @@ msgstr ""
 
 #, python-format
 msgid "Your export of \"%(title)s\" is ready."
+msgstr ""
+
+msgid "Your password could not be reset. Please try again later."
+msgstr ""
+
+msgid "Your password has been reset"
+msgstr ""
+
+msgid "Your password has been reset."
 msgstr ""
 
 msgid "Your query could not be saved"
