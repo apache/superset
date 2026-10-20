@@ -275,14 +275,24 @@ describe('tooltipHtml truncation modes', () => {
 });
 
 describe('tooltipMarker', () => {
-  test('keeps its color through sanitizeHtml', () => {
-    const html = sanitizeHtml(tooltipMarker('#1f77b4', 'rect'));
-    expect(removeWhitespaces(html)).toContain('color:#1f77b4');
-    expect(html).toContain('■');
+  test('keeps its color and shape through sanitizeHtml', () => {
+    const html = removeWhitespaces(
+      sanitizeHtml(tooltipMarker('#1f77b4', 'pin')),
+    );
+    expect(html).toContain('color:#1f77b4');
+    expect(html).toContain('border:5pxsolidcurrentcolor');
+    expect(html).toContain('border-radius:50%50%050%');
+  });
+
+  test('draws the triangle with borders and the diamond as a glyph', () => {
+    expect(tooltipMarker('#1f77b4', 'triangle')).toContain(
+      'border-width:0 5px 10px',
+    );
+    expect(tooltipMarker('#1f77b4', 'diamond')).toContain('◆');
   });
 
   test('falls back to a circle for unknown symbols', () => {
-    expect(tooltipMarker('red', 'arrow')).toContain('●');
+    expect(tooltipMarker('red', 'arrow')).toBe(tooltipMarker('red', 'circle'));
   });
 
   test('returns nothing without a color string', () => {
