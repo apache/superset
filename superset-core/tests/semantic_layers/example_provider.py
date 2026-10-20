@@ -78,7 +78,7 @@ class ExampleView(SemanticView):
         if dimension not in self.get_dimensions():
             raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_QUERY)
         if filters:
-            raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+            raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
         return SemanticResult(
             requests=[], results=pa.table({dimension.name: ["A", "B"]})
         )

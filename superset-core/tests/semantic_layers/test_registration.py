@@ -28,7 +28,12 @@ from superset_core.semantic_layers.errors import (
     SemanticQueryRejectedError,
 )
 from superset_core.semantic_layers.layer import ConfigT, SemanticLayer
-from superset_core.semantic_layers.types import Dimension
+from superset_core.semantic_layers.types import (
+    Dimension,
+    Filter,
+    Operator,
+    PredicateType,
+)
 
 pytest_plugins: list[str] = ["pytester", "superset_core.semantic_layers.testing"]
 
@@ -107,3 +112,42 @@ def test_example_rejects_unknown_dimension(semantic_layer_registration: None) ->
     with pytest.raises(SemanticQueryRejectedError) as error:
         ExampleView().get_values(dimension)
     assert error.value.code == SemanticQueryErrorCode.INVALID_QUERY
+
+
+def test_example_refuses_unsupported_search(semantic_layer_registration: None) -> None:
+    """A valid host LIKE search is unsupported, not an invalid user filter."""
+    from example_provider import ExampleView
+
+    view: ExampleView = ExampleView()
+    dimension: Dimension = next(iter(view.get_dimensions()))
+    narrowing: Filter = Filter(
+        type=PredicateType.WHERE,
+        column=dimension,
+        operator=Operator.LIKE,
+        value="%A%",
+    )
+    error: pytest.ExceptionInfo[SemanticQueryRejectedError]
+    with pytest.raises(SemanticQueryRejectedError) as error:
+        view.get_values(dimension, {narrowing})
+    assert error.value.code == SemanticQueryErrorCode.UNSUPPORTED_QUERY
+
+
+@pytest.mark.parametrize("description", [None, "Provider description"])
+def test_registration_sets_display_metadata(
+    semantic_layer_registration: None, description: str | None
+) -> None:
+    """The stub assigns host display metadata while leaving registration isolated."""
+    from superset_core.semantic_layers.decorators import semantic_layer
+
+    class Provider:
+        """A decorated provider with inherited/default display values."""
+
+        name: str = "Old name"
+        description: str | None = "Old description"
+
+    decorated: type[Provider] = semantic_layer(
+        id="example", name="Example", description=description
+    )(Provider)
+    assert decorated is Provider
+    assert Provider.name == "Example"
+    assert Provider.description == description

@@ -68,8 +68,10 @@ HTTP 500.
 
 An asynchronous totals-prerequisite query whose payload is marked FAILED fails
 its task with that payload's error. It does not publish a cache key for dependent
-contribution queries to read as if totals had been successfully cached. Other
-asynchronous chart queries retain their structured-error readback behavior.
+contribution queries to read as if totals had been successfully cached.
+Typed query validation failures also fail ordinary asynchronous chart tasks,
+without publishing a cache key or retrying the rejected query synchronously.
+Ordinary SQL engine errors retain their structured-error readback behavior.
 
 Host-classified client errors (`QueryObjectValidationError` and subclasses) keep
 their status. The shared SDK module also defines `SemanticResultCompletenessError`
