@@ -746,7 +746,7 @@ def _get_adhoc_filters(
 def _get_filters_from_extras(extras: dict[str, Any]) -> set[Filter]:
     """Reject SQL extras even when callers bypass QueryObject validation."""
     if extras.get("where") or extras.get("having"):
-        raise ValueError(
+        raise SemanticQueryInputError(
             _(
                 "SQL WHERE/HAVING expressions are not supported for semantic "
                 "views. Remove the SQL clause or use a semantic dimension filter."
