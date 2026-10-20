@@ -15,10 +15,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import sys
+import types as python_types
 from typing import Any, Optional
+from unittest.mock import MagicMock
 
 import pytest
 from sqlalchemy import JSON, types
+from sqlalchemy.exc import NoSuchTableError, ProgrammingError
 
 from superset.db_engine_specs.oceanbase import ARRAY, MAP, NUMBER, NUMERIC
 from superset.utils.core import GenericDataType
@@ -59,3 +63,164 @@ def test_get_column_spec(
     )
 
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
+
+
+@pytest.fixture
+def oceanbase_dialect(monkeypatch: pytest.MonkeyPatch) -> type:
+    """
+    Stub a minimal ``oceanbase_py`` package replicating the real dialect's
+    bugs (``Connection.execute(raw_string)``, no not-found handling), then
+    run ``OceanBaseEngineSpec``'s ``monkeypatch_dialect()`` against it.
+
+    This exercises the actual patch logic without needing the real driver
+    installed -- it pins ``sqlalchemy<2``, incompatible with this repo's own
+    pin, so it's never part of the base dev environment (see
+    ``requirements/development.in``); CI installs it standalone, with
+    ``--no-deps``, only for the dedicated nightly testcontainers job.
+    """
+
+    class FakeIdentifierPreparer:
+        @staticmethod
+        def quote_identifier(name: str) -> str:
+            return f"`{name}`"
+
+    class FakeOceanBaseDialect:
+        default_schema_name = "test_schema"
+        identifier_preparer = FakeIdentifierPreparer()
+
+        def _get_default_schema_name(self, connection: Any) -> str:
+            return self.default_schema_name
+
+        def has_table(
+            self, connection: Any, table_name: str, schema: Optional[str] = None
+        ) -> bool:
+            # The original, unpatched method: passes a raw string straight
+            # to Connection.execute() (rejected outright by SQLAlchemy 2.0)
+            # and never catches the "table doesn't exist" error, so it can
+            # only ever return True.
+            connection.execute(f"DESCRIBE {table_name}")
+            return True
+
+        def get_columns(
+            self, connection: Any, table_name: str, schema: Optional[str] = None
+        ) -> list[dict[str, Any]]:
+            connection.execute(f"SHOW COLUMNS FROM {table_name}")
+            return []
+
+    datatype_module = python_types.ModuleType("oceanbase_py.sqlalchemy.datatype")
+    datatype_module.parse_sql_type = lambda native_type: native_type  # type: ignore[attr-defined]
+
+    dialect_module = python_types.ModuleType("oceanbase_py.sqlalchemy.dialect")
+    dialect_module.OceanBaseDialect = FakeOceanBaseDialect  # type: ignore[attr-defined]
+
+    sqlalchemy_module = python_types.ModuleType("oceanbase_py.sqlalchemy")
+    sqlalchemy_module.datatype = datatype_module  # type: ignore[attr-defined]
+    sqlalchemy_module.dialect = dialect_module  # type: ignore[attr-defined]
+
+    package_module = python_types.ModuleType("oceanbase_py")
+    package_module.sqlalchemy = sqlalchemy_module  # type: ignore[attr-defined]
+
+    for name, module in {
+        "oceanbase_py": package_module,
+        "oceanbase_py.sqlalchemy": sqlalchemy_module,
+        "oceanbase_py.sqlalchemy.datatype": datatype_module,
+        "oceanbase_py.sqlalchemy.dialect": dialect_module,
+    }.items():
+        monkeypatch.setitem(sys.modules, name, module)
+
+    from superset.db_engine_specs.oceanbase import monkeypatch_dialect
+
+    monkeypatch_dialect()
+    return FakeOceanBaseDialect
+
+
+def test_monkeypatch_has_table_uses_exec_driver_sql(
+    oceanbase_dialect: type,
+) -> None:
+    """
+    The patched has_table() must use exec_driver_sql(), the call every other
+    raw-SQL method in the real dialect already uses -- the original's
+    connection.execute(raw_string) is exactly what SQLAlchemy 2.0 rejects
+    with ObjectNotExecutableError.
+    """
+    dialect = oceanbase_dialect()
+    connection = MagicMock()
+    connection.exec_driver_sql.return_value.first.return_value = ("id",)
+
+    assert dialect.has_table(connection, "pilot_types") is True
+    connection.exec_driver_sql.assert_called_once_with(
+        "DESCRIBE `test_schema`.`pilot_types`"
+    )
+    connection.execute.assert_not_called()
+
+
+def test_monkeypatch_has_table_returns_false_for_missing_table(
+    oceanbase_dialect: type,
+) -> None:
+    """
+    DESCRIBE on a nonexistent table raises 1146 ("table doesn't exist")
+    rather than returning an empty result set. The unpatched method never
+    catches this at all, so it can only ever return True -- breaking
+    MetaData.create_all()'s default checkfirst=True, which relies on
+    has_table() returning False for a table that isn't there yet.
+    """
+    dialect = oceanbase_dialect()
+    connection = MagicMock()
+    connection.exec_driver_sql.side_effect = ProgrammingError(
+        "DESCRIBE `missing_table`", {}, Exception("1146, Table doesn't exist")
+    )
+
+    assert dialect.has_table(connection, "missing_table") is False
+
+
+def test_monkeypatch_get_columns_raises_for_missing_table(
+    oceanbase_dialect: type,
+) -> None:
+    dialect = oceanbase_dialect()
+    connection = MagicMock()
+    connection.exec_driver_sql.side_effect = ProgrammingError(
+        "DESCRIBE `missing_table`", {}, Exception("1146, Table doesn't exist")
+    )
+
+    with pytest.raises(NoSuchTableError):
+        dialect.get_columns(connection, "missing_table")
+
+
+def test_monkeypatch_get_columns_uses_exec_driver_sql(
+    oceanbase_dialect: type,
+) -> None:
+    dialect = oceanbase_dialect()
+    connection = MagicMock()
+    describe_result = MagicMock()
+    describe_result.first.return_value = ("id",)
+    column_record = MagicMock(Field="id", Type="int", Null="NO", Default=None)
+    connection.exec_driver_sql.side_effect = [describe_result, [column_record]]
+
+    columns = dialect.get_columns(connection, "pilot_types")
+
+    assert columns == [
+        {"name": "id", "type": "int", "nullable": False, "default": None}
+    ]
+    connection.exec_driver_sql.assert_any_call(
+        "SHOW COLUMNS FROM `test_schema`.`pilot_types`"
+    )
+    connection.execute.assert_not_called()
+
+
+def test_monkeypatch_is_a_noop_without_the_driver_installed(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    oceanbase_py is an optional dependency: importing
+    superset.db_engine_specs.oceanbase, and therefore running
+    monkeypatch_dialect(), must not blow up in an environment that doesn't
+    have it installed (the base dev environment, for instance -- see
+    requirements/development.in).
+    """
+    monkeypatch.setitem(sys.modules, "oceanbase_py", None)
+    monkeypatch.setitem(sys.modules, "oceanbase_py.sqlalchemy", None)
+    monkeypatch.setitem(sys.modules, "oceanbase_py.sqlalchemy.dialect", None)
+
+    from superset.db_engine_specs.oceanbase import monkeypatch_dialect
+
+    monkeypatch_dialect()  # should not raise
