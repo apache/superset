@@ -51,6 +51,7 @@ from superset.semantic_layers.models import (
     SemanticView,
 )
 from superset.semantic_layers.registry import registry
+from tests.unit_tests.semantic_layers.conftest import make_execution_context
 
 STUB_PATH: Path = (
     Path(__file__).resolve().parents[2] / "e2e_extensions" / "semantic_stub"
@@ -79,9 +80,11 @@ def stub_view(
     stub_layer: type[SemanticLayer[Any, Any]], mocker: MockerFixture
 ) -> SemanticViewABC:
     """Serve chart-data requests for a semantic view backed by the stub."""
-    view: SemanticViewABC = stub_layer.from_configuration({}).get_semantic_view(
-        "orders", {}
-    )
+    view: SemanticViewABC = stub_layer.from_configuration(
+        {},
+        cache_token="test",  # noqa: S106
+        context=make_execution_context(),
+    ).get_semantic_view("orders", {})
     model: SemanticView = SemanticView(
         id=91,
         name="orders",
@@ -123,7 +126,12 @@ def test_stub_registers_through_the_extension_loader(
     """The stub carries the extension-prefixed type that seeding code uses."""
     assert stub_layer.name == "E2E Semantic Stub"
     assert {
-        view.name for view in stub_layer.from_configuration({}).get_semantic_views({})
+        view.name
+        for view in stub_layer.from_configuration(
+            {},
+            cache_token="test",  # noqa: S106
+            context=make_execution_context(),
+        ).get_semantic_views({})
     } == {"orders"}
 
 
@@ -131,10 +139,19 @@ def test_stub_rejects_configuration_and_unknown_views(
     stub_layer: type[SemanticLayer[Any, Any]],
 ) -> None:
     """Typos in seeding fail at creation instead of producing an empty view."""
+    context = make_execution_context()
     with pytest.raises(ValueError, match="Extra inputs are not permitted"):
-        stub_layer.from_configuration({"account": "unexpected"})
+        stub_layer.from_configuration(
+            {"account": "unexpected"},
+            cache_token="test",  # noqa: S106
+            context=context,
+        )
     with pytest.raises(ValueError, match="no semantic view"):
-        stub_layer.from_configuration({}).get_semantic_view("missing", {})
+        stub_layer.from_configuration(
+            {},
+            cache_token="test",  # noqa: S106
+            context=context,
+        ).get_semantic_view("missing", {})
 
 
 @pytest.mark.parametrize(
