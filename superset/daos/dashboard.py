@@ -1057,9 +1057,15 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # the raw-layout markdown placeholder while preserving geometry;
             # the remap below skips that slot because it has no chartId.
             reconcile_position_json(metadata.get("positions"), original_dash.id)
+            chart_id: int | None
+            layout_chart_ids: set[int] = {
+                chart_id
+                for node in metadata["positions"].values()
+                if (chart_id := _layout_chart_id(node)) is not None
+            }
             # Duplicating slices as well, mapping old ids to new ones
             for slc in original_dash.slices:
-                if slc.id in archived_ids:
+                if slc.id in archived_ids or slc.id not in layout_chart_ids:
                     continue
                 new_slice = slc.clone()
                 # ``Slice.clone()`` carries over no subjects, so both
