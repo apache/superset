@@ -258,17 +258,19 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         # a page that would 404 on a cold load.
         "contributions": {
             **manifest.contributions.model_dump(exclude_none=True),
+            # Every declared page is reported, with what became of it.
+            # Dropping the ones that did not get a rule would make a page the
+            # server refused indistinguishable from one never declared, and
+            # the extension's own bundle calls registerPage for every page it
+            # ships -- so the frontend needs to tell "refused, nothing you can
+            # do" apart from "you did not declare this".
             "pages": [
-                # `permitted` rather than filtering the page out: the
-                # extension's own bundle calls registerPage for every page it
-                # ships, and dropping one here would turn a permission the
-                # user lacks into a registration error in their console.
                 {
                     **page.model_dump(exclude_none=True),
+                    "registered": page.path in registered,
                     "permitted": page.path in permitted,
                 }
                 for page in manifest.contributions.pages
-                if page.path in registered
             ],
         },
     }

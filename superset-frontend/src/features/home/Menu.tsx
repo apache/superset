@@ -215,7 +215,7 @@ const { useBreakpoint } = Grid;
  * is left out until it can be done properly rather than shipped as an
  * option that silently does nothing.
  */
-function withExtensionPages(
+export function withExtensionPages(
   menu: MenuObjectProps[],
   pages: {
     name: string;

@@ -334,9 +334,10 @@ def _grant_to_admin(permission: str, extension_id: str) -> None:
     without first running init and without granting themselves access to
     their own deployment.
 
-    Re-checked on every boot rather than only on creation, so an Admin role
-    that lost the grant -- or a deployment that gained an extension before it
-    gained the role -- repairs itself at the next start.
+    Called only on the boot that creates the permission. Re-granting on every
+    boot would silently reinstate a grant an operator had deliberately
+    removed; withholding it from Admin has to remain something an operator
+    can decide.
     """
     from superset import security_manager
 
@@ -377,7 +378,7 @@ def ensure_page_permissions(manifest: Manifest) -> None:
     the Roles screen groups an extension's permissions together and reads as
     "can_review on preset.asset-approval". Pages of the same extension may
     share a permission or declare different ones; this registers whatever set
-    they name, and gives the Admin role each of them.
+    they name, and gives the Admin role each one it creates.
 
     Failures are logged and swallowed. Every worker runs this at boot, so two
     starting together can race between the lookup and the insert; the loser
@@ -395,13 +396,20 @@ def ensure_page_permissions(manifest: Manifest) -> None:
     for permission in sorted(required):
         try:
             view_menu = _view_menu(manifest.id)
-            if not security_manager.find_permission_view_menu(permission, view_menu):
-                security_manager.add_permission_view_menu(permission, view_menu)
-                logger.info(
-                    "Created permission '%s' on '%s' for extension pages",
-                    permission,
-                    view_menu,
-                )
+            if security_manager.find_permission_view_menu(permission, view_menu):
+                continue
+
+            security_manager.add_permission_view_menu(permission, view_menu)
+            logger.info(
+                "Created permission '%s' on '%s' for extension pages",
+                permission,
+                view_menu,
+            )
+            # Only here, on the boot that created it. Re-granting on every
+            # boot would silently reinstate a grant an operator had
+            # deliberately removed, which is not a decision this gets to
+            # overrule -- an operator who wants Admin to keep it can grant it
+            # back in the Roles screen, or run `superset init`.
             _grant_to_admin(permission, manifest.id)
         except Exception:  # pylint: disable=broad-except
             # Most often a concurrent worker inserting the same row.
