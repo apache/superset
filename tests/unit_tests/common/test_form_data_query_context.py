@@ -14,13 +14,59 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import pytest
+
 from superset.common.form_data_query_context import (
     adhoc_filters_to_query_filters,
     build_query_context_from_form_data,
     columns_from_form_data,
+    FORM_DATA_QUERY_FIELD_ALIASES,
+    query_fields_from_form_data,
 )
 
 DATASOURCE = {"id": 7, "type": "table"}
+
+
+@pytest.mark.parametrize(
+    "alias,target",
+    FORM_DATA_QUERY_FIELD_ALIASES.items(),
+)
+def test_shared_query_field_aliases_match_frontend_extraction(
+    alias: str, target: str
+) -> None:
+    """Every extractQueryFields.ts alias reaches its canonical query bucket."""
+    value: object = '["region", true]' if target == "orderby" else "revenue"
+    columns, metrics, orderby = query_fields_from_form_data({alias: value})
+    target = "columns" if target == "groupby" else target
+    expected = {
+        "columns": ["revenue"],
+        "metrics": ["revenue"],
+        "orderby": [["region", True]],
+    }
+    assert {"columns": columns, "metrics": metrics, "orderby": orderby}[target] == (
+        expected[target]
+    )
+
+
+def test_shared_query_field_extraction_honors_frontend_query_modes() -> None:
+    aggregate = query_fields_from_form_data(
+        {
+            "query_mode": "aggregate",
+            "all_columns": ["raw"],
+            "groupby": ["region"],
+            "metric_2": "revenue",
+        }
+    )
+    raw = query_fields_from_form_data(
+        {
+            "query_mode": "raw",
+            "all_columns": ["raw"],
+            "groupby": ["region"],
+            "metric_2": "revenue",
+        }
+    )
+    assert aggregate == (["region"], ["revenue"], [])
+    assert raw == (["raw"], [], [])
 
 
 def test_adhoc_filters_converts_simple_and_drops_custom_sql() -> None:
@@ -139,17 +185,19 @@ def test_build_context_merges_legacy_and_adhoc_filters() -> None:
     ]
 
 
-def test_big_number_trendline_promotes_granularity_sqla_column() -> None:
-    # A Big Number *with a trendline* (viz_type "big_number") has no
-    # groupby/columns; its time column (granularity_sqla) becomes the sole column.
+def test_big_number_legacy_trendline_uses_timestamp_axis_without_columns() -> None:
+    # Legacy Big Number form data carries granularity_sqla without an explicit
+    # x_axis. The frontend uses the implicit __timestamp axis in that mode.
     form_data = {"metric": "count", "granularity_sqla": "order_date"}
 
     query = build_query_context_from_form_data(
         form_data, DATASOURCE, viz_type="big_number"
     )["queries"][0]
 
-    assert query["columns"] == ["order_date"]
+    assert query["columns"] == []
     assert query["metrics"] == ["count"]
+    assert query["is_timeseries"] is True
+    assert query["post_processing"][0]["options"]["index"] == ["__timestamp"]
 
 
 def test_big_number_total_does_not_promote_granularity_sqla_column() -> None:
@@ -262,6 +310,16 @@ def test_orderby_raw_mode_parses_order_by_cols() -> None:
     assert query["orderby"] == [["a", True], ["b", False]]
 
 
+def test_column_extraction_ignores_stale_malformed_ordering() -> None:
+    form_data = {
+        "groupby": ["region"],
+        "order_by_cols": ["not json"],
+    }
+
+    assert columns_from_form_data(form_data) == ["region"]
+    assert query_fields_from_form_data(form_data) == (["region"], [], [])
+
+
 def test_aggregate_mode_ignores_stale_order_by_cols() -> None:
     # order_by_cols is a raw-mode-only control (resetOnHide: false), so it isn't
     # reset when switching to aggregate mode. The rebuild must ignore a stale value
@@ -343,8 +401,8 @@ def test_table_groupby_time_column_without_time_range_is_bucketed() -> None:
     assert query["granularity"] == "order_date"
 
 
-def test_simple_having_filter_converted_by_default_but_not_where_only() -> None:
-    # Default: all SIMPLE filters convert (the behavior MCP relies on).
+def test_simple_having_filter_rejected_by_default_but_not_where_only() -> None:
+    # Default conversion must not silently turn HAVING into WHERE.
     # where_only=True: SIMPLE HAVING is dropped (matching the chart), which the
     # export uses so it doesn't filter on a clause the chart ignores.
     adhoc = [
@@ -356,9 +414,8 @@ def test_simple_having_filter_converted_by_default_but_not_where_only() -> None:
             "comparator": 5,
         }
     ]
-    assert adhoc_filters_to_query_filters(adhoc) == [
-        {"col": "count", "op": ">", "val": 5}
-    ]
+    with pytest.raises(ValueError, match="SIMPLE HAVING filters are unsupported"):
+        adhoc_filters_to_query_filters(adhoc)
     assert adhoc_filters_to_query_filters(adhoc, where_only=True) == []
 
 
@@ -388,8 +445,8 @@ def test_build_context_ignores_simple_having_filter() -> None:
 
 
 def test_big_number_trendline_sets_granularity_without_time_range() -> None:
-    # A Big Number trendline groups by its time column; granularity must be set so
-    # time_grain_sqla buckets it even when there's no active time range.
+    # Legacy Big Number relies on is_timeseries + __timestamp rather than
+    # materializing granularity_sqla as an explicit query column.
     form_data = {
         "metric": "count",
         "granularity_sqla": "ds",
@@ -398,9 +455,11 @@ def test_big_number_trendline_sets_granularity_without_time_range() -> None:
     query = build_query_context_from_form_data(
         form_data, DATASOURCE, viz_type="big_number"
     )["queries"][0]
-    assert query["columns"] == ["ds"]
+    assert query["columns"] == []
+    assert query["is_timeseries"] is True
     assert query["granularity"] == "ds"
     assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert query["post_processing"][0]["options"]["index"] == ["__timestamp"]
 
 
 def test_time_range_falls_back_to_since_until() -> None:
@@ -408,6 +467,44 @@ def test_time_range_falls_back_to_since_until() -> None:
     form_data = {"metrics": ["count"], "since": "2020-01-01", "until": "2020-12-31"}
     query = build_query_context_from_form_data(form_data, DATASOURCE)["queries"][0]
     assert query["time_range"] == "2020-01-01 : 2020-12-31"
+
+
+def test_table_inherit_offset_requires_an_inherited_value() -> None:
+    base = {
+        "metrics": ["count"],
+        "groupby": ["region"],
+        "time_compare": ["inherit"],
+        "comparison_type": "values",
+    }
+    without_value = build_query_context_from_form_data(
+        base, DATASOURCE, viz_type="table"
+    )["queries"][0]
+    with_value = build_query_context_from_form_data(
+        {**base, "extra_form_data": {"time_compare": "1 year ago"}},
+        DATASOURCE,
+        viz_type="table",
+    )["queries"][0]
+
+    assert without_value["time_offsets"] == []
+    assert with_value["time_offsets"] == ["1 year ago"]
+
+
+@pytest.mark.parametrize("clause", [None, "where", "Where"])
+def test_legacy_simple_filter_where_clause_is_normalized(clause: str | None) -> None:
+    filters = adhoc_filters_to_query_filters(
+        [
+            {
+                "expressionType": "SIMPLE",
+                "clause": clause,
+                "subject": "region",
+                "operator": "==",
+                "comparator": "EMEA",
+            }
+        ],
+        where_only=True,
+    )
+
+    assert filters == [{"col": "region", "op": "==", "val": "EMEA"}]
 
 
 def test_raw_mode_ignores_stale_metrics_and_groupby() -> None:
@@ -593,3 +690,178 @@ def test_non_pie_carries_no_post_processing() -> None:
         "queries"
     ][0]
     assert "post_processing" not in query
+
+
+def test_mixed_secondary_sort_direction_ignores_primary_override() -> None:
+    """Query B owns its top-N direction even when the caller overrides A."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    queries = build_query_objects_from_form_data(
+        {
+            "viz_type": "mixed_timeseries",
+            "x_axis": "ds",
+            "metrics": ["revenue"],
+            "metrics_b": ["cost"],
+            "groupby_b": ["region"],
+            "order_desc": True,
+            "order_desc_b": False,
+            "series_limit_b": 1,
+        },
+        order_desc=True,
+    )
+    assert queries[0]["order_desc"] is True
+    assert queries[1]["order_desc"] is False
+    assert queries[1]["series_limit"] == 1
+
+
+def test_big_number_native_axis_pivot_references_selected_column() -> None:
+    """Native axes must use the same label in SELECT and post-processing."""
+    context = build_query_context_from_form_data(
+        {
+            "viz_type": "big_number",
+            "x_axis": {"column_name": "ds"},
+            "granularity_sqla": "ds",
+            "metric": "revenue",
+        },
+        DATASOURCE,
+    )
+    query = context["queries"][0]
+    assert query["columns"][0]["sqlExpression"] == "ds"
+    assert query["columns"][0]["isColumnReference"] is True
+    assert query["granularity"] == "ds"
+    pivot = next(p for p in query["post_processing"] if p["operation"] == "pivot")
+    assert pivot["options"]["index"] == ["ds"]
+
+
+def test_candlestick_fallback_selects_all_ohlc_metrics() -> None:
+    """Saved Candlestick controls participate in the shared metric extractor."""
+    context = build_query_context_from_form_data(
+        {
+            "viz_type": "candlestick",
+            "open": "opening",
+            "close": "closing",
+            "high": "highest",
+            "low": "lowest",
+        },
+        DATASOURCE,
+    )
+    assert context["queries"][0]["metrics"] == [
+        "opening",
+        "closing",
+        "highest",
+        "lowest",
+    ]
+
+
+def test_unused_query_builders_are_removed() -> None:
+    """Only the shared query adapter remains available for future fixes."""
+    import superset.common.form_data_query_context as common
+    import superset.mcp_service.chart.chart_helpers as helpers
+
+    assert not hasattr(common, "_columns_and_metrics")
+    for name in (
+        "with_x_axis_column",
+        "build_mixed_timeseries_secondary",
+        "_DECK_TIMESERIES_VIZ_TYPES",
+    ):
+        assert not hasattr(helpers, name)
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize(
+    "page_size,row_limit,expected",
+    [
+        (0, 2, 2),
+        (None, 2, 2),
+        (1, 2, 1),
+        (10, 2, 2),
+        (10, 0, 10),
+        (0, 0, 0),
+    ],
+    ids=[
+        "zero-page",
+        "missing-page",
+        "smaller-page",
+        "larger-page",
+        "page-only",
+        "defaults",
+    ],
+)
+def test_table_pagination_respects_explicit_limit_without_positive_page_size(
+    viz_type: str,
+    page_size: int | None,
+    row_limit: int,
+    expected: int,
+) -> None:
+    """An unset pagination size cannot erase a caller's compile or preview cap."""
+    query = build_query_context_from_form_data(
+        {
+            "viz_type": viz_type,
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "server_pagination": True,
+            "server_page_length": page_size,
+            "row_limit": row_limit,
+        },
+        DATASOURCE,
+    )["queries"][0]
+    assert query["row_limit"] == expected
+    assert query["row_offset"] == 0
+
+
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize("page_size,expected", [(0, 2), (10, 2), (1, 1)])
+def test_table_pagination_keeps_query_builder_caller_cap(
+    viz_type: str, page_size: int, expected: int
+) -> None:
+    """The explicit compile cap takes precedence over the saved chart row limit."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    query = build_query_objects_from_form_data(
+        {
+            "viz_type": viz_type,
+            "query_mode": "aggregate",
+            "groupby": ["region"],
+            "metrics": ["revenue"],
+            "server_pagination": True,
+            "server_page_length": page_size,
+            "row_limit": 1000,
+        },
+        row_limit=2,
+    )[0]
+    assert query["row_limit"] == expected
+
+
+@pytest.mark.parametrize(
+    "axis",
+    [
+        {"column_name": "ds"},
+        {"expressionType": "SQL", "sqlExpression": "ds", "label": "ds"},
+    ],
+)
+def test_big_number_saved_axis_keeps_monthly_range_binding(
+    axis: dict[str, str],
+) -> None:
+    """Native saved axes retain the same temporal contract as physical strings."""
+    form_data = {
+        "viz_type": "big_number",
+        "granularity_sqla": "ds",
+        "time_grain_sqla": "P1M",
+        "time_range": "2026-01-01 : 2026-02-01",
+        "metric": "revenue",
+    }
+    query = build_query_context_from_form_data(
+        {**form_data, "x_axis": axis}, DATASOURCE
+    )["queries"][0]
+    assert query["granularity"] == "ds"
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert query["time_range"] == form_data["time_range"]
+    assert query["columns"][0]["sqlExpression"] == "ds"
+    assert query["columns"][0]["timeGrain"] == "P1M"
+    pivot = next(p for p in query["post_processing"] if p["operation"] == "pivot")
+    assert pivot["options"]["index"] == ["ds"]

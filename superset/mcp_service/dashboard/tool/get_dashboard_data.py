@@ -138,6 +138,7 @@ def _summarize_chart_data(
         total_rows=total_rows,
         truncated=truncated,
         queries=queries,
+        headline=result.headline,
         filtered=bool(extra),
     )
 
@@ -163,6 +164,14 @@ async def get_dashboard_data(
     applied_filters (keyed by chart id, each value extra_form_data). Use this to
     answer analytical questions about a whole dashboard in one call instead of
     calling get_chart_data for every chart.
+
+    Big Number charts (big_number, big_number_total) also carry `headline`: the
+    one number the chart displays, computed from the full result, not from
+    sample_data. For big_number it is the chart's aggregation (latest value, sum,
+    mean, min, max, median, or overall value) over the whole trend series. Report
+    headline.value as the chart's value instead of reading or summing
+    sample_data; when it is null, headline.reason says why and the value is
+    unknown.
 
     Example:
     ```json

@@ -37,6 +37,10 @@ from superset.daos.dataset import DatasetDAO
 from superset.daos.query import QueryDAO
 from superset.daos.semantic_layer import SemanticViewDAO
 from superset.exceptions import SupersetTemplateException
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.semantic_layers.models import SemanticView
 from superset.utils.core import DatasourceType
 
@@ -76,6 +80,8 @@ def check_query_access(query_id: int) -> Optional[bool]:
 
 def check_semantic_view_access(view_id: int) -> bool:
     """Authorize a semantic source without treating its ID as a table ID."""
+    if not is_semantic_layers_enabled():
+        raise SemanticLayersDisabledError()
     view: SemanticView | None = SemanticViewDAO.find_by_id(
         view_id, skip_base_filter=True
     )

@@ -184,8 +184,31 @@ class SupersetApp(Flask):
         app startup.
         """
         try:
+            database_ready: bool = self._is_database_up_to_date()
+            # key_value predates pending migrations. Enabled installations can
+            # initialize identity before theme/tag synchronization reaches head.
+            from superset.semantic_layers.access import is_semantic_layers_enabled
+            from superset.semantic_layers.execution import bootstrap_semantic_namespace
+
+            namespace_ready: bool = True
+            try:
+                if is_semantic_layers_enabled():
+                    bootstrap_semantic_namespace()
+            except Exception as ex:
+                namespace_ready = False
+                if database_ready:
+                    logger.error(
+                        "Failed to bootstrap semantic execution namespace: %s", ex
+                    )
+                else:
+                    logger.info(
+                        "Semantic execution namespace initialization deferred until "
+                        "database upgrade; semantic access will retry (%s)",
+                        type(ex).__name__,
+                    )
+
             # Check if database is up-to-date with migrations
-            if not self._is_database_up_to_date():
+            if not database_ready:
                 logger.info("Pending database migrations: run 'superset db upgrade'")
                 return
 
@@ -204,7 +227,8 @@ class SupersetApp(Flask):
 
             SeedSystemThemesCommand().run()
 
-            logger.info("Configuration sync to database completed successfully")
+            if namespace_ready:
+                logger.info("Configuration sync to database completed successfully")
 
         except Exception as e:
             logger.error("Failed to sync configuration to database: %s", e)

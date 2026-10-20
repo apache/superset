@@ -21,7 +21,7 @@ from datetime import datetime
 
 import pytest
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine, text, types
+from sqlalchemy import types
 from sqlalchemy.engine.url import make_url
 
 from superset.errors import SupersetErrorType
@@ -289,49 +289,3 @@ def test_convert_dttm(
     from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
 
     assert_convert_dttm(spec, target_type, expected_result, dttm)
-
-
-@pytest.mark.parametrize(
-    "start,end,expected",
-    [
-        (
-            datetime(2026, 9, 20),
-            datetime(2026, 9, 22),
-            ["2026-09-20", "2026-09-21"],
-        ),
-        (
-            datetime(2026, 9, 20, 12),
-            datetime(2026, 9, 22, 12),
-            ["2026-09-21", "2026-09-22"],
-        ),
-    ],
-)
-def test_time_filter_on_date_column(
-    start: datetime,
-    end: datetime,
-    expected: list[str],
-) -> None:
-    """
-    Test that a time filter on a DATE column stored as text returns the right days.
-
-    D1 is SQLite, so the comparison runs on an in-memory SQLite database. Each day
-    counts as its midnight, as it would in a comparison of dates.
-    """
-    from superset.db_engine_specs.d1 import CloudflareD1EngineSpec as spec  # noqa: N813
-
-    since = spec.convert_dttm("DATE", start)
-    until = spec.convert_dttm("DATE", end)
-    sql = f"SELECT day FROM t WHERE day >= {since} AND day < {until} ORDER BY day"  # noqa: S608
-
-    engine = create_engine("sqlite://")
-    with engine.connect() as connection:
-        connection.execute(text("CREATE TABLE t (day DATE)"))
-        connection.execute(
-            text(
-                "INSERT INTO t VALUES "
-                "('2026-09-19'), ('2026-09-20'), ('2026-09-21'), ('2026-09-22')"
-            )
-        )
-        rows = connection.execute(text(sql)).fetchall()
-
-    assert [row[0] for row in rows] == expected

@@ -19,7 +19,12 @@
 import { ReactNode } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { JsonValue } from '@superset-ui/core';
-import { Radio, Tooltip, TooltipPlacement } from '@superset-ui/core/components';
+import {
+  Radio,
+  RadioChangeEvent,
+  Tooltip,
+  TooltipPlacement,
+} from '@superset-ui/core/components';
 import { ControlHeader } from '../../components/ControlHeader';
 
 export interface RadioButtonOptionObject {
@@ -76,7 +81,7 @@ export default function RadioButtonControl(props: RadioButtonControlProps) {
         <ControlHeader {...headerProps} />
         <Radio.Group
           value={currentValue}
-          onChange={e => onChange(e.target.value)}
+          onChange={(e: RadioChangeEvent) => onChange(e.target.value)}
         >
           {normalizedOptions.map(
             ({

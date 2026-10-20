@@ -18,10 +18,12 @@ from datetime import datetime, timezone
 from unittest.mock import Mock, patch
 
 import pytest
+from pytest_mock import MockerFixture
 
 from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.models.slice import Slice
+from superset.utils.core import QueryObjectFilterClause
 
 
 class TestQueryContextFactory:
@@ -674,6 +676,46 @@ class TestQueryContextFactory:
 
         assert query_object.granularity == "ds"
 
+    @pytest.mark.parametrize(
+        ("granularity_sqla", "expected"),
+        [
+            ({"label": "ds", "sqlExpression": "ds", "expressionType": "SQL"}, "ds"),
+            (
+                {
+                    "label": "day",
+                    "sqlExpression": "DATE_TRUNC('day', ds)",
+                    "expressionType": "SQL",
+                },
+                "other_dttm",
+            ),
+        ],
+    )
+    def test_apply_granularity_matches_adhoc_legacy_granularity_sqla(
+        self, granularity_sqla: dict[str, str], expected: str
+    ) -> None:
+        """An adhoc legacy time column is matched by its SQL expression."""
+        query_object = Mock(spec=QueryObject)
+        query_object.granularity = None
+        query_object.is_timeseries = True
+        query_object.columns = ["ds"]
+        query_object.post_processing = []
+        query_object.filter = []
+
+        datasource = Mock()
+        datasource.main_dttm_col = "other_dttm"
+        datasource.columns = [
+            {"column_name": "ds", "is_dttm": True},
+            {"column_name": "other_dttm", "is_dttm": True},
+        ]
+
+        self.factory._apply_granularity(
+            query_object,
+            {"granularity_sqla": granularity_sqla},
+            datasource,
+        )
+
+        assert query_object.granularity == expected
+
     def test_apply_granularity_keeps_explicit_granularity(self) -> None:
         """An overridden Time Column wins over the legacy form data key."""
         query_object = Mock(spec=QueryObject)
@@ -937,3 +979,36 @@ class TestQueryContextFactory:
         self.factory._add_currency_column(query_object, form_data, datasource)
 
         assert query_object.columns == ["col1"]
+
+
+@pytest.mark.parametrize(
+    "saved", [None, "No filter", "Aucun filtre", "2024-01-01 : 2024-06-01"]
+)
+@pytest.mark.parametrize("dashboard", [False, True])
+@pytest.mark.parametrize("already_extra", [False, True])
+def test_time_override_stamps_only_unbounded_saved_predicates(
+    mocker: MockerFixture,
+    saved: str | None,
+    dashboard: bool,
+    already_extra: bool,
+) -> None:
+    """Rewriting a real chart range never grants it dashboard provenance."""
+    mocker.patch("superset.utils.date_parser._", return_value="Aucun filtre")
+    filter_: QueryObjectFilterClause = {
+        "col": "ds",
+        "op": "TEMPORAL_RANGE",
+        "val": saved,
+    }
+    if already_extra:
+        filter_["isExtra"] = True
+    query: QueryObject = QueryObject(
+        filters=[filter_], time_range="2025-01-01 : 2025-02-01"
+    )
+    form_data: dict[str, object] = (
+        {"extra_form_data": {"time_range": query.time_range}} if dashboard else {}
+    )
+    QueryContextFactory()._apply_filters(query, form_data)
+    assert filter_["val"] == query.time_range
+    assert bool(filter_.get("isExtra")) == (
+        already_extra or (dashboard and saved in (None, "No filter", "Aucun filtre"))
+    )
