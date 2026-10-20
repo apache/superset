@@ -33,3 +33,9 @@ DISPLAY_NAME_PATTERN = r"^[a-zA-Z][a-zA-Z0-9\s\-_\.]*$"
 
 # Version pattern for semantic versioning
 VERSION_PATTERN = r"^\d+\.\d+\.\d+$"
+
+# Page id validation pattern: dot-separated segments of lowercase letters,
+# numbers, hyphens and underscores. Narrow because the id becomes part of a
+# generated view class name, which Flask-AppBuilder also uses when naming the
+# view's permissions.
+PAGE_ID_PATTERN = r"^[a-z][a-z0-9_-]*(\.[a-z0-9][a-z0-9_-]*)*$"

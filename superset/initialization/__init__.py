@@ -87,6 +87,7 @@ from superset.utils.report_execution import validate_report_execution_config
 
 if TYPE_CHECKING:
     from superset.app import SupersetApp
+    from superset.extensions.types import LoadedExtension
 
 # The app that Celery tasks run under when no app context is active. It is
 # set on every initialization, so a process that initializes more than once
@@ -666,6 +667,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             # present yet.
             return
 
+        self._register_extension_pages(extensions)
+
         for extension in extensions.values():
             if backend_files := extension.backend:
                 install_in_memory_importer(
@@ -688,6 +691,117 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                         "Failed to initialize extension '%s'",
                         extension.manifest.id,
                     )
+
+    @staticmethod
+    def _register_extension_pages(
+        extensions: dict[str, "LoadedExtension"],
+    ) -> None:
+        """Serve the application shell at each page an extension contributes.
+
+        The frontend mounts a contributed page as a client-side route, which
+        only exists once the application is running. Without a Flask route at
+        the same path, a cold load, a refresh or a bookmark reaches Flask and
+        404s, so the page works only for navigation that starts inside the app
+        -- which is the kind of break that shows up in a demo rather than in
+        development.
+
+        One declaration in the manifest therefore drives both halves. An
+        extension could add the route itself from its backend entrypoint, and
+        before this it had to, but then the path is written down twice and the
+        two copies can silently disagree.
+
+        Every extension is considered together rather than one at a time,
+        because the three ways a page can fail to register are all collisions,
+        and two of them are between extensions:
+
+        - two pages sharing an ``id`` generate one view class, so the second
+          silently replaces the first and its path never appears in the route
+          table at all;
+        - two pages claiming one path would register two rules for it, and
+          which one answers depends on load order;
+        - a page claiming a path the host already serves would shadow a real
+          Superset screen, or be shadowed by it.
+
+        Each is refused with a line naming both sides, because the alternative
+        is a page that is simply absent with nothing said about why.
+        """
+        from superset.extensions.view import build_page_view
+
+        declared: list[tuple[str, Any]] = [
+            (extension_id, page)
+            for extension_id, extension in extensions.items()
+            for page in getattr(
+                getattr(extension.manifest, "contributions", None), "pages", None
+            )
+            or []
+        ]
+        if not declared:
+            return
+
+        host_paths = {
+            str(rule).rstrip("/") + "/" for rule in current_app.url_map.iter_rules()
+        }
+        seen_ids: dict[str, tuple[str, str]] = {}
+        seen_paths: dict[str, str] = {}
+
+        for extension_id, page in declared:
+            owner = f"{extension_id}:{page.id}"
+
+            if (previous := seen_ids.get(page.id)) is not None:
+                logger.error(
+                    "Extension page id '%s' is declared twice, by %s at '%s' "
+                    "and by %s at '%s'; the second is not served, because both "
+                    "would build the same view.",
+                    page.id,
+                    previous[0],
+                    previous[1],
+                    owner,
+                    page.path,
+                )
+                continue
+
+            if (previous := seen_paths.get(page.path)) is not None:
+                logger.error(
+                    "Extension page path '%s' is claimed by both %s and %s; "
+                    "only the first is served.",
+                    page.path,
+                    previous,
+                    owner,
+                )
+                continue
+
+            if page.path in host_paths:
+                logger.error(
+                    "Extension page '%s' claims '%s', which Superset already "
+                    "serves; the page is not served, so the host keeps its own "
+                    "screen there.",
+                    owner,
+                    page.path,
+                )
+                continue
+
+            try:
+                appbuilder.add_view_no_menu(build_page_view(page))
+            except Exception:  # pylint: disable=broad-except
+                # One unservable page must not stop the extensions loading, or
+                # a typo in a path takes a backend down with it.
+                logger.exception(
+                    "Failed to register page '%s' at '%s'", owner, page.path
+                )
+                continue
+
+            seen_ids[page.id] = (owner, page.path)
+            seen_paths[page.path] = owner
+            # Logged because the failure this guards against is a silent 302:
+            # a viewer without the permission is redirected with no hint about
+            # which permission they are missing.
+            logger.info(
+                "Serving extension page '%s' at '%s', guarded by '%s on %s'.",
+                owner,
+                page.path,
+                page.permission.action,
+                page.permission.resource,
+            )
 
     @staticmethod
     def _remove_continuum_write_listeners() -> None:

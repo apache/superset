@@ -25,10 +25,11 @@ Two distinct schemas:
 
 from __future__ import annotations
 
-from pydantic import BaseModel, computed_field, Field  # noqa: I001
+from pydantic import BaseModel, computed_field, Field, field_validator  # noqa: I001
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
+    PAGE_ID_PATTERN,
     PUBLISHER_PATTERN,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
@@ -85,6 +86,109 @@ class BaseExtension(BaseModel):
 
 
 # =============================================================================
+# Contributions (declared in extension.json, carried into manifest.json)
+# =============================================================================
+
+
+class ManifestPage(BaseModel):
+    """A top-level page contributed by an extension.
+
+    The frontend mounts the page as a client-side route. The backend needs the
+    same ``path`` for a different reason: a client-side route only exists once
+    the application is running, so a cold load, a refresh, a bookmark or any
+    link from outside the app reaches Flask directly and 404s unless something
+    serves the application shell there.
+    """
+
+    id: str = Field(
+        ...,
+        description="Unique page id, namespaced by extension",
+        min_length=1,
+        pattern=PAGE_ID_PATTERN,
+    )
+    name: str = Field(..., description="Human-readable page name")
+    path: str = Field(
+        ...,
+        description="Absolute client-side route the page is mounted at",
+    )
+    permission: ManifestPagePermission = Field(
+        ...,
+        description="The existing FAB permission a viewer needs to load the page",
+    )
+
+    @field_validator("path")
+    @classmethod
+    def _check_path(cls, value: str) -> str:
+        """Reject anything that is not a plain, rooted, single-host path.
+
+        A path from a manifest ends up as a route and as something the host
+        renders links to, so the shapes that are not simply "a place in this
+        application" are rejected here rather than being handled by every
+        later reader:
+
+        - ``//elsewhere/`` is protocol-relative. A browser reads it as an
+          absolute URL to another host, so it would be an open redirect
+          wherever the host emitted it as a link.
+        - ``..`` escapes the declared prefix, which is the one thing the
+          prefix is for.
+        - a backslash is treated as a separator by some clients, so it is
+          another way to write the two cases above.
+        """
+        if not value.startswith("/"):
+            raise ValueError(f"page path must start with '/': {value!r}")
+        if value.startswith("//"):
+            raise ValueError(
+                f"page path must name a path in this application, not another "
+                f"host: {value!r}"
+            )
+        if "\\" in value:
+            raise ValueError(f"page path must not contain a backslash: {value!r}")
+        if ".." in value.split("/"):
+            raise ValueError(f"page path must not contain '..': {value!r}")
+        # A page owns its path as a prefix, so the root would be every page at
+        # once -- including the host's own screens.
+        if value.rstrip("/") == "":
+            raise ValueError(
+                f"page path must name a page, not the application root: {value!r}"
+            )
+        allowed = set("-_.")
+        segments = value.strip("/").split("/")
+        for segment in segments:
+            # An empty interior segment is a "//" in the middle, and "." names
+            # the segment it sits in. Both are spellings of a path that is not
+            # the one it looks like.
+            if not segment or segment in {".", ".."}:
+                raise ValueError(
+                    f"page path must not contain an empty or '.' segment: {value!r}"
+                )
+            if not all(c.isalnum() or c in allowed for c in segment):
+                raise ValueError(
+                    f"page path segments must be alphanumeric, '-', '_' "
+                    f"or '.': {value!r}"
+                )
+        # Normalised to exactly one trailing slash so that "/queue" and
+        # "/queue/" are the same page. Two extensions declaring those two
+        # spellings are colliding, and the host has to be able to say so.
+        return value.rstrip("/") + "/"
+
+
+class ManifestContributions(BaseModel):
+    """The contributions section of manifest.json.
+
+    Only the parts the backend acts on are modelled here. The rest of the
+    block is read by the frontend, and extra keys are kept rather than
+    rejected so a manifest built by a newer tool still loads.
+    """
+
+    model_config = {"extra": "allow"}
+
+    pages: list[ManifestPage] = Field(
+        default_factory=list,
+        description="Top-level pages the host mounts as routes",
+    )
+
+
+# =============================================================================
 # ExtensionConfig (extension.json)
 # =============================================================================
 
@@ -108,6 +212,10 @@ class ExtensionConfig(BaseExtension):
     backend: ExtensionConfigBackend | None = Field(
         default=None,
         description="Backend configuration",
+    )
+    contributions: ManifestContributions | None = Field(
+        default=None,
+        description="Contributions declared by the extension",
     )
 
 
@@ -135,6 +243,28 @@ class ManifestBackend(BaseModel):
     entrypoint: str
 
 
+class ManifestPagePermission(BaseModel):
+    """The existing FAB permission that guards a contributed page.
+
+    Required rather than defaulting to "any logged-in user", because the
+    insecure reading of an omitted field is the one nobody notices. An
+    extension names a permission it already owns -- the resource its own API
+    registers -- so nothing new has to be created and granted before the page
+    is reachable.
+    """
+
+    resource: str = Field(
+        ...,
+        description="FAB resource name, e.g. the extension API's class_permission_name",
+        min_length=1,
+    )
+    action: str = Field(
+        default="read",
+        description="FAB action name, e.g. 'read'",
+        min_length=1,
+    )
+
+
 class Manifest(BaseExtension):
     """
     Schema for manifest.json (built output).
@@ -149,4 +279,8 @@ class Manifest(BaseExtension):
     backend: ManifestBackend | None = Field(
         default=None,
         description="Backend manifest",
+    )
+    contributions: ManifestContributions | None = Field(
+        default=None,
+        description="Contributions declared by the extension",
     )

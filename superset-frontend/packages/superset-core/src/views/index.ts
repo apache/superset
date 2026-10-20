@@ -90,6 +90,70 @@ export declare function registerView(
 export declare function getViews(location: string): View[] | undefined;
 
 /**
+ * A top-level page contributed by an extension.
+ *
+ * A page is mounted by the host as a client-side route, so it owns the whole
+ * content area rather than occupying a slot inside an existing surface. This
+ * is what an extension needs in order to add a screen of its own - a settings
+ * page, a queue, a report - instead of only decorating screens the host
+ * already ships.
+ */
+export interface Page extends View {
+  /**
+   * The client-side route the page is mounted at, as an absolute path
+   * beginning with `/` (for example `"/change-review/"`).
+   *
+   * The host matches this with the same prefix semantics as its own routes, so
+   * `"/my-ext/"` also serves `"/my-ext/42/"`; read the remainder with the
+   * router hooks in the usual way. Paths are namespaced only by convention -
+   * prefix yours with something specific to the extension so it does not
+   * collide with a host route or with another extension's page.
+   */
+  path: string;
+}
+
+/**
+ * Registers a top-level page, mounted by the host as a client-side route.
+ *
+ * The component is rendered inside the host's own route machinery: it sits
+ * under the application chrome, within an error boundary and a Suspense
+ * fallback, and it can use the router and store hooks exactly as a host page
+ * does.
+ *
+ * Registering a page whose `path` collides with a host route has no effect on
+ * that route - the host's own routes are matched first, and the page is
+ * unreachable. The host logs a warning when it detects this.
+ *
+ * @param page The page descriptor (id, name and route path).
+ * @param component The React component to render at that route.
+ * @returns A Disposable that unmounts the route when disposed.
+ *
+ * @example
+ * ```typescript
+ * views.registerPage(
+ *   { id: 'my_ext.queue', name: 'Review queue', path: '/my-ext/queue/' },
+ *   ReviewQueuePage,
+ * );
+ * ```
+ */
+export declare function registerPage(
+  page: Page,
+  component: ComponentType,
+): Disposable;
+
+/**
+ * Retrieves every registered page, in registration order.
+ *
+ * @returns An array of Page objects, empty when no extension contributes one.
+ *
+ * @example
+ * ```typescript
+ * const paths = views.getPages().map(page => page.path);
+ * ```
+ */
+export declare function getPages(): Page[];
+
+/**
  * Event fired when a view is registered.
  */
 export interface ViewRegisteredEvent {

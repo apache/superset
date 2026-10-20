@@ -17,7 +17,8 @@
  * under the License.
  */
 import { matchPath } from 'react-router-dom';
-import { isFrontendRoute, routes } from './routes';
+import { views } from 'src/core';
+import { isFrontendRoute, isHostRoute, routes } from './routes';
 
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
 
@@ -90,4 +91,32 @@ test('password recovery pages are matched before the /login/ prefix route', () =
     const firstMatch = routes.find(r => matchPath(pathname, { path: r.path }));
     expect(firstMatch?.path).toBe(pathname);
   });
+});
+
+test('isFrontendRoute accepts a page contributed by an extension', () => {
+  // A contributed page is a client-side route like any other, so the menu must
+  // navigate to it in-app. The lookup has to be live: extensions register long
+  // after this module's route dictionary is built.
+  expect(isFrontendRoute('/my-ext/queue/')).toBe(false);
+
+  const disposable = views.registerPage(
+    { id: 'ext.queue', name: 'Review queue', path: '/my-ext/queue/' },
+    () => <div />,
+  );
+
+  try {
+    expect(isFrontendRoute('/my-ext/queue/')).toBe(true);
+    // It is not a host route, which is what tells a page it is not shadowed.
+    expect(isHostRoute('/my-ext/queue/')).toBe(false);
+  } finally {
+    disposable.dispose();
+  }
+
+  expect(isFrontendRoute('/my-ext/queue/')).toBe(false);
+});
+
+test('isHostRoute answers only for the hosts own routes', () => {
+  expect(isHostRoute('/welcome/')).toBe(true);
+  expect(isHostRoute('/welcome/?edit=true')).toBe(true);
+  expect(isHostRoute('/my-ext/queue/')).toBe(false);
 });

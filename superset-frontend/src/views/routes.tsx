@@ -27,6 +27,7 @@ import {
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { stripAppRoot } from 'src/utils/navigationUtils';
+import { getPages } from 'src/core/views';
 import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
@@ -326,6 +327,16 @@ const frontEndRoutes: Record<string, boolean> = routes
     {},
   );
 
+/**
+ * Whether `path` is one of the host's own routes.
+ *
+ * Kept separate from `isFrontendRoute`, which also answers for pages
+ * contributed by extensions: this one is what tells a contributed page that it
+ * is shadowed by a route the host already owns.
+ */
+export const isHostRoute = (path: string): boolean =>
+  !!frontEndRoutes[stripAppRoot(path.split(/[?#]/)[0])];
+
 export const isFrontendRoute = (path?: string): boolean => {
   if (path) {
     // Strip query / hash, then strip the application-root segment so menu URLs
@@ -338,7 +349,13 @@ export const isFrontendRoute = (path?: string): boolean => {
     // (e.g., the brand-link SPA-route check in `Menu.tsx`) accept a
     // full-page-reload fallback for those URLs.
     const basePath = stripAppRoot(path.split(/[?#]/)[0]);
-    return !!frontEndRoutes[basePath];
+    if (frontEndRoutes[basePath]) {
+      return true;
+    }
+    // Pages contributed by extensions are client-side routes too, so the menu
+    // must navigate to them in-app rather than reloading the page. They are
+    // looked up live because extensions register after this module loads.
+    return getPages().some(page => page.path === basePath);
   }
   return false;
 };

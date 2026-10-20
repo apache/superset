@@ -404,6 +404,56 @@ def test_build_manifest_creates_correct_manifest_structure(
 
 
 @pytest.mark.unit
+def test_build_manifest_carries_declared_pages_through(isolated_filesystem):
+    """A page's path has to survive the build to reach the host.
+
+    The host reads `contributions.pages` from the built manifest to serve the
+    application shell at each path. Dropping it here would leave the frontend
+    route resolving only for navigation that starts inside the app, and
+    404ing on a cold load or a refresh.
+    """
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
+        "version": "1.0.0",
+        "contributions": {
+            "pages": [
+                {
+                    "id": "test-org.test-extension.queue",
+                    "name": "Queue",
+                    "path": "/test-extension/queue/",
+                    "permission": {"resource": "Dashboard", "action": "read"},
+                }
+            ]
+        },
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    manifest = build_manifest(isolated_filesystem, None)
+
+    assert manifest.contributions is not None
+    [page] = manifest.contributions.pages
+    assert page.id == "test-org.test-extension.queue"
+    assert page.path == "/test-extension/queue/"
+    assert page.permission.resource == "Dashboard"
+    assert page.permission.action == "read"
+
+
+@pytest.mark.unit
+def test_build_manifest_without_contributions_declares_none(isolated_filesystem):
+    """Most extensions contribute no page, and must not grow an empty block."""
+    extension_data = {
+        "publisher": "test-org",
+        "name": "test-extension",
+        "displayName": "Test Extension",
+    }
+    (isolated_filesystem / "extension.json").write_text(json.dumps(extension_data))
+
+    assert build_manifest(isolated_filesystem, None).contributions is None
+
+
+@pytest.mark.unit
 def test_build_manifest_handles_minimal_extension(isolated_filesystem):
     """Test build_manifest with minimal extension.json (no frontend/backend)."""
     extension_data = {

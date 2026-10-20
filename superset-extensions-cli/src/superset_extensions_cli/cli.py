@@ -181,6 +181,11 @@ def build_manifest(cwd: Path, remote_entry: str | None) -> Manifest:
         dependencies=extension.dependencies,
         frontend=frontend,
         backend=backend,
+        # Carried through rather than recomputed: a page's path is declared
+        # once, and the host reads it from the built manifest to serve the
+        # application shell there. Dropping it here is what would leave the
+        # frontend route working only for navigation that starts in the app.
+        contributions=extension.contributions,
     )
 
 

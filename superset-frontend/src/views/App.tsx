@@ -41,7 +41,7 @@ import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 import ToastContainer from 'src/components/MessageToasts/ToastContainer';
 import setupApp from 'src/setup/setupApp';
 import setupPlugins from 'src/setup/setupPlugins';
-import { routes, isFrontendRoute } from 'src/views/routes';
+import { routes, isFrontendRoute, isHostRoute } from 'src/views/routes';
 import { Logger, LOG_ACTIONS_SPA_NAVIGATION } from 'src/logger/LogUtils';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import { logEvent } from 'src/logger/actions';
@@ -50,6 +50,8 @@ import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
 import { isUser } from 'src/types/bootstrapTypes';
 import ExtensionsStartup from 'src/extensions/ExtensionsStartup';
 import { ChatFloatingHost, ChatPanelHost, useChat } from 'src/core/chat';
+import { resolveView, usePages } from 'src/core/views';
+import { logging } from '@apache-superset/core/utils';
 import useStoredSidebarWidth from 'src/components/ResizableSidebar/useStoredSidebarWidth';
 import { RootContextProviders } from './RootContextProviders';
 import { ScrollToTop } from './ScrollToTop';
@@ -95,6 +97,24 @@ const CHAT_PANEL_MIN_WIDTH = 280;
 
 const RouteSwitch = () => {
   const theme = useTheme();
+  // Pages contributed by extensions are mounted as routes of their own, after
+  // the host's. `Switch` renders only its first matching child, so a page
+  // whose path collides with a host route is never reached - the host keeps
+  // its own screen, which is the safe way round. `usePages` subscribes to the
+  // registry, so a page registered after this first render mounts without a
+  // reload.
+  const pages = usePages();
+  useEffect(() => {
+    pages
+      .filter(page => isHostRoute(page.path))
+      .forEach(page =>
+        logging.warn(
+          `Extension page "${page.id}" declares path "${page.path}", which ` +
+            `the host already routes. The host's own screen is served there ` +
+            `and this page is unreachable.`,
+        ),
+      );
+  }, [pages]);
   return (
     <Switch>
       {routes.map(
@@ -120,6 +140,11 @@ const RouteSwitch = () => {
           </Route>
         ),
       )}
+      {pages.map(({ id, path }) => (
+        <Route path={path} key={id}>
+          <Suspense fallback={<Loading />}>{resolveView(id)}</Suspense>
+        </Route>
+      ))}
       <Redirect from="/" to="/welcome/" exact />
     </Switch>
   );
