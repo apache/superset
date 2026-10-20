@@ -307,6 +307,17 @@ title, CSS, metadata, and layout applied over it — the copy endpoint accepts
 only those fields, so properties such as description, slug, certification, and
 theme come from the dashboard as it stands today, not from the version.
 
+The new dashboard's settings come from the selected version's metadata. Settings
+missing from that version use defaults rather than inheriting values from the live
+dashboard. Chart-specific settings, including expanded charts, refresh exemptions
+and cross-filter configuration, retain only charts present in the copied layout.
+When charts are duplicated, these settings refer to the new chart IDs.
+
+The dashboard copy API treats its required `json_metadata` payload as the complete
+settings to copy. API clients copying the current dashboard should send its full
+metadata; a partial payload does not inherit omitted settings from the source.
+Ordinary dashboard updates still merge settings as before.
+
 When copying a dashboard **and its charts**, archived chart slots in the copy
 become placeholders saying "This archived chart was not copied." Their layout
 positions and sizes are preserved, but they do not link to the archived original.

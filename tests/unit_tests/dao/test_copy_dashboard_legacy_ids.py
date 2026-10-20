@@ -75,7 +75,37 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
             source,
             {
                 "dashboard_title": "copy",
-                "json_metadata": json.dumps({"positions": positions}),
+                "json_metadata": json.dumps(
+                    {
+                        "positions": positions,
+                        "expanded_slices": {str(chart.id): True, "999999": True},
+                        "timed_refresh_immune_slices": [chart.id, 999999],
+                        "chart_configuration": {
+                            str(chart.id): {
+                                "id": chart.id,
+                                "crossFilters": {
+                                    "scope": "global",
+                                    "chartsInScope": [chart.id, 999999],
+                                },
+                            },
+                            "999999": {"id": 999999},
+                        },
+                        "native_filter_configuration": [
+                            {
+                                "id": "filter",
+                                "scope": {
+                                    "rootPath": ["ROOT_ID"],
+                                    "excluded": [chart.id, 999999],
+                                    "selectedLayers": [
+                                        f"chart-{chart.id}-layer-0",
+                                        "chart-999999-layer-1",
+                                    ],
+                                },
+                                "chartsInScope": [chart.id, 999999],
+                            }
+                        ],
+                    }
+                ),
                 "duplicate_slices": True,
             },
         )
@@ -91,6 +121,24 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
         "meta": {"width": 4, "height": 50, "code": "This chart no longer exists."},
     }
     assert source.position_json == source_layout
+    copied_metadata: dict[str, Any] = result.params_dict
+    assert copied_metadata["expanded_slices"] == {str(clone.id): True}
+    assert copied_metadata["timed_refresh_immune_slices"] == [clone.id]
+    assert copied_metadata["chart_configuration"] == {
+        str(clone.id): {
+            "id": clone.id,
+            "crossFilters": {"scope": "global", "chartsInScope": [clone.id]},
+        }
+    }
+    assert copied_metadata["native_filter_configuration"][0]["scope"]["excluded"] == [
+        clone.id
+    ]
+    assert copied_metadata["native_filter_configuration"][0]["scope"][
+        "selectedLayers"
+    ] == [f"chart-{clone.id}-layer-0"]
+    assert copied_metadata["native_filter_configuration"][0]["chartsInScope"] == [
+        clone.id
+    ]
 
 
 @pytest.mark.parametrize("fresh_collection", [False, True])
@@ -262,3 +310,102 @@ def test_copy_without_charts_dropped_from_layout(
     assert {chart.id for chart in source.slices} == {
         chart.id for chart in charts.values()
     }
+
+
+@pytest.mark.parametrize("keep_chart", [False, True])
+def test_copy_metadata_uses_snapshot_and_layout(
+    session: Session, keep_chart: bool
+) -> None:
+    """A version copy must not inherit live-only settings or omitted chart IDs."""
+    Dashboard.metadata.create_all(session.get_bind())
+    dataset: SqlaTable = SqlaTable(
+        table_name="copy_snapshot",
+        database=Database(database_name="copy_snapshot", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    first: Slice = Slice(
+        slice_name="kept", datasource_type="table", datasource_id=dataset.id
+    )
+    second: Slice = Slice(
+        slice_name="omitted", datasource_type="table", datasource_id=dataset.id
+    )
+    source: Dashboard = Dashboard(dashboard_title="live", slices=[first, second])
+    db.session.add(source)
+    db.session.flush()
+    source.json_metadata = json.dumps(
+        {
+            "live_only": "not in snapshot",
+            "refresh_frequency": 999,
+            "expand_all_slices": True,
+        }
+    )
+    source_metadata: str = source.json_metadata
+    snapshot: dict[str, Any] = {
+        "positions": {"CHART-first": {"type": "CHART", "meta": {"chartId": first.id}}}
+        if keep_chart
+        else {},
+        "snapshot_only": "preserved",
+        "expanded_slices": {str(first.id): True, str(second.id): True},
+        "timed_refresh_immune_slices": [first.id, second.id],
+        "chart_configuration": {
+            str(first.id): {
+                "id": first.id,
+                "crossFilters": {"scope": "global", "chartsInScope": [second.id]},
+            },
+            str(second.id): {
+                "id": second.id,
+                "crossFilters": {"scope": "global", "chartsInScope": [first.id]},
+            },
+        },
+        "global_chart_configuration": {
+            "scope": {"rootPath": ["ROOT_ID"], "excluded": [second.id]},
+            "chartsInScope": [first.id, second.id],
+        },
+        "default_filters": json.dumps(
+            {str(first.id): {"country": "US"}, str(second.id): {"country": "CA"}}
+        ),
+        "filter_scopes": {
+            str(first.id): {"country": {"scope": ["ROOT_ID"], "immune": [second.id]}},
+            str(second.id): {"country": {"scope": ["ROOT_ID"], "immune": []}},
+        },
+    }
+    mock_g: MagicMock
+    with (
+        patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied: Dashboard = DashboardDAO.copy_dashboard(
+            source,
+            {"dashboard_title": "snapshot copy", "json_metadata": json.dumps(snapshot)},
+        )
+    result: dict[str, Any] = copied.params_dict
+    assert "live_only" not in result
+    assert result["refresh_frequency"] == 0
+    assert result["expand_all_slices"] is False
+    assert result["snapshot_only"] == "preserved"
+    assert result["expanded_slices"] == ({str(first.id): True} if keep_chart else {})
+    assert result["timed_refresh_immune_slices"] == ([first.id] if keep_chart else [])
+    assert set(result["chart_configuration"]) == (
+        {str(first.id)} if keep_chart else set()
+    )
+    if keep_chart:
+        assert (
+            result["chart_configuration"][str(first.id)]["crossFilters"][
+                "chartsInScope"
+            ]
+            == []
+        )
+    assert result["global_chart_configuration"]["scope"]["excluded"] == []
+    assert result["global_chart_configuration"]["chartsInScope"] == (
+        [first.id] if keep_chart else []
+    )
+    assert json.loads(result["default_filters"]) == (
+        {str(first.id): {"country": "US"}} if keep_chart else {}
+    )
+    assert set(result.get("filter_scopes", {})) == (
+        {str(first.id)} if keep_chart else set()
+    )
+    assert source.json_metadata == source_metadata
+    assert {chart.id for chart in source.slices} == {first.id, second.id}

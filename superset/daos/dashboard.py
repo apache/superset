@@ -17,6 +17,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections import defaultdict
 from datetime import datetime
 from typing import Any, Dict, List
@@ -37,7 +38,7 @@ from superset.commands.dashboard.exceptions import (
     DashboardUpdateFailedError,
 )
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
-from superset.dashboards.filter_scope import derive_metadata_scopes
+from superset.dashboards.filter_scope import derive_metadata_scopes, LAYER_SELECTION_RE
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.dashboards.layout import repair_position
 from superset.exceptions import SupersetSecurityException
@@ -320,6 +321,77 @@ def reconcile_position_json(positions: object, dashboard_id: int | None = None) 
     return _repair_dangling_chart_nodes(
         positions, _existing_chart_ids(chart_ids), dashboard_id
     )
+
+
+def _remap_copy_chart_ids(values: list[Any], key_map: dict[str, int]) -> list[int]:
+    """Drop omitted chart references and use clone IDs when applicable."""
+    new_id: int | None
+    return [
+        new_id for value in values if (new_id := key_map.get(str(value))) is not None
+    ]
+
+
+def _remap_copy_layers(values: list[Any], key_map: dict[str, int]) -> list[str]:
+    """Keep selected deck.gl layers on retained charts, including cloned charts."""
+    layers: list[str] = []
+    value: Any
+    match: re.Match[str] | None
+    for value in values:
+        if isinstance(value, str) and (match := LAYER_SELECTION_RE.fullmatch(value)):
+            new_id: int | None = key_map.get(match[1])
+            if new_id is not None:
+                layers.append(f"chart-{new_id}-layer-{match[2]}")
+    return layers
+
+
+def _remap_copy_scope(config: Any, key_map: dict[str, int]) -> None:
+    """Preserve scope structure while pruning its chart references."""
+    if not isinstance(config, dict):
+        return
+    scope: Any = config.get("scope")
+    if isinstance(scope, dict) and isinstance(scope.get("excluded"), list):
+        scope["excluded"] = _remap_copy_chart_ids(scope["excluded"], key_map)
+    if isinstance(scope, dict) and isinstance(scope.get("selectedLayers"), list):
+        scope["selectedLayers"] = _remap_copy_layers(scope["selectedLayers"], key_map)
+    if isinstance(config.get("chartsInScope"), list):
+        config["chartsInScope"] = _remap_copy_chart_ids(
+            config["chartsInScope"], key_map
+        )
+
+
+def _copy_chart_metadata(
+    metadata: dict[str, Any], chart_id_map: dict[int, int]
+) -> dict[str, Any]:
+    """Keep chart-specific copy settings only for charts retained in the copy."""
+    key_map: dict[str, int] = {str(old): new for old, new in chart_id_map.items()}
+    key: str
+    values: Any
+    for key in ("expanded_slices", "chart_configuration"):
+        values = metadata.get(key)
+        if isinstance(values, dict):
+            metadata[key] = {
+                str(key_map[str(old)]): value
+                for old, value in values.items()
+                if str(old) in key_map
+            }
+    values = metadata.get("timed_refresh_immune_slices")
+    if isinstance(values, list):
+        metadata["timed_refresh_immune_slices"] = _remap_copy_chart_ids(values, key_map)
+    values = metadata.get("chart_configuration")
+    if isinstance(values, dict):
+        chart_key: str
+        config: Any
+        for chart_key, config in values.items():
+            if isinstance(config, dict):
+                config["id"] = int(chart_key)
+                _remap_copy_scope(config.get("crossFilters"), key_map)
+    _remap_copy_scope(metadata.get("global_chart_configuration"), key_map)
+    for key in ("native_filter_configuration", "chart_customization_config"):
+        values = metadata.get(key)
+        if isinstance(values, list):
+            for config in values:
+                _remap_copy_scope(config, key_map)
+    return metadata
 
 
 class DashboardDAO(BaseDAO[Dashboard]):
@@ -863,8 +935,18 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # flush delete dashboard_slices rows that were never inserted.
             dash.slices = original_dash.slices
 
-        dash.params = original_dash.params
+        # Copy callers supply the selected version's complete metadata. Seeding
+        # from the live dashboard would leak settings absent from that version.
         cls.set_dash_metadata(dash, metadata, old_to_new_slice_ids)
+        copied_ids: set[int] = {chart.id for chart in dash.slices}
+        chart_id_map: dict[int, int] = (
+            {old: new for old, new in old_to_new_slice_ids.items() if new in copied_ids}
+            if data.get("duplicate_slices")
+            else {chart_id: chart_id for chart_id in copied_ids}
+        )
+        dash.json_metadata = json.dumps(
+            _copy_chart_metadata(dash.params_dict, chart_id_map)
+        )
         db.session.add(dash)
         # Flush so the returned dashboard always has a real, persisted
         # identity (dash.id populated) regardless of what the caller does
