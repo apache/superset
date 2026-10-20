@@ -18,6 +18,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 import pytest
 
 
@@ -31,9 +33,11 @@ import pytest
         ("not-an-int", None),
         ("5\nextra", None),
         ({"nested": "dict"}, None),
+        (float("inf"), None),
+        (float("nan"), None),
     ],
 )
-def test_as_int_coerces_or_drops(value, expected) -> None:
+def test_as_int_coerces_or_drops(value: Any, expected: int | None) -> None:
     from superset.charts.data.api import ChartDataRestApi
 
     assert ChartDataRestApi._as_int(value) == expected

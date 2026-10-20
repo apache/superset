@@ -734,7 +734,7 @@ class ChartDataRestApi(ChartRestApi):
         """Coerce a request-supplied id to an int, or None when it isn't one."""
         try:
             return int(value)
-        except (TypeError, ValueError):
+        except (TypeError, ValueError, OverflowError):
             return None
 
     def _map_form_data_datasource_to_dataset_id(
