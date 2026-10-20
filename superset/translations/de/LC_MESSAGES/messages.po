@@ -18355,6 +18355,12 @@ msgstr "Wert kann nicht dekodiert werden"
 msgid "Unable to encode value"
 msgstr "Wert kann nicht kodiert werden"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr ""
 "Semantische Ansichten können nicht abgerufen werden. Überprüfen Sie die "

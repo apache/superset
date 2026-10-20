@@ -18745,6 +18745,12 @@ msgstr "Nemožno dekódovať hodnotu"
 msgid "Unable to encode value"
 msgstr "Nemožno kódovať hodnotu"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy

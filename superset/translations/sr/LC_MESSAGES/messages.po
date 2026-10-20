@@ -22080,6 +22080,12 @@ msgstr "Није могуће декодирати вредност"
 msgid "Unable to encode value"
 msgstr "Није могуће кодирати вредност"
 
+msgid "Unable to fetch semantic layer runtime schema."
+msgstr ""
+
+msgid "Unable to fetch semantic view structure."
+msgstr ""
+
 msgid "Unable to fetch semantic views. Check the layer configuration."
 msgstr "Није могуће преузети семантичке приказе. Проверите конфигурацију слоја."
 
