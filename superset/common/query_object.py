@@ -457,13 +457,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     # Validate before result-cache access, including old entries
                     # computed while non-dimension predicates were discarded.
                     # avoid circular import: mapper imports QueryObject.
+                    from superset.semantic_layers.exceptions import (
+                        discover_semantic_metadata,
+                    )
                     from superset.semantic_layers.mapper import validate_filter_columns
 
                     dimension_names: set[str] = {
-                        dimension.name for dimension in implementation.get_dimensions()
+                        dimension.name
+                        for dimension in discover_semantic_metadata(
+                            implementation.get_dimensions
+                        )
                     }
                     metric_names: set[str] = {
-                        metric.name for metric in implementation.get_metrics()
+                        metric.name
+                        for metric in discover_semantic_metadata(
+                            implementation.get_metrics
+                        )
                     }
                     validate_filter_columns(self.filter, dimension_names, metric_names)
             self._validate_there_are_no_missing_series()

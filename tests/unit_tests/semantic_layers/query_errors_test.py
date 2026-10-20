@@ -34,7 +34,13 @@ from superset.common.query_context import QueryContext
 from superset.common.query_object import QueryObject
 from superset.common.query_serialization import serialize_query
 from superset.exceptions import QueryObjectValidationError
-from superset.semantic_layers.mapper import get_results
+from superset.semantic_layers.exceptions import SemanticLayerExecutionError
+from superset.semantic_layers.mapper import (
+    _coerce_scalar_filter_value,
+    _normalize_column,
+    get_results,
+    SemanticQueryInputError,
+)
 from superset.semantic_layers.models import SemanticView
 from superset.tasks.async_queries import execute_chart_query
 
@@ -131,22 +137,23 @@ def test_mapper_refusal_returns_400(
 
 
 @pytest.mark.parametrize("method", ["get_metrics", "get_dimensions"])
-def test_mapper_metadata_fault_is_not_converted(
+def test_mapper_metadata_fault_is_backend_error(
     app_context: None,
     date_view: MagicMock,
     method: str,
 ) -> None:
-    """The mapper leaves provider metadata exceptions unchanged."""
+    """The mapper reports provider metadata faults as backend errors."""
     view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
     view.__dict__["implementation"] = date_view
     query: QueryObject = QueryObject(columns=["ORDER_DATE"], metrics=["ORDER_COUNT"])
     query.datasource = view
     error: ValueError = ValueError("metadata fault")
     getattr(date_view, method).side_effect = error
-    captured: pytest.ExceptionInfo[ValueError]
-    with pytest.raises(ValueError, match="metadata fault") as captured:
+    captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
+    with pytest.raises(SemanticLayerExecutionError) as captured:
         get_results(query)
-    assert captured.value is error
+    assert captured.value.status == 500
+    assert captured.value.__cause__ is error
     date_view.get_table.assert_not_called()
 
 
@@ -181,17 +188,67 @@ def test_malformed_provider_timezone_remains_500(
 
 
 @pytest.mark.parametrize(
-    "method,status", [("get_metrics", 500), ("get_dimensions", 400)]
+    "filters", [[], [{"col": "ORDER_DATE", "op": ">=", "val": "2026-01-01"}]]
 )
+@pytest.mark.parametrize("method", ["get_metrics", "get_dimensions"])
 def test_metadata_discovery_fault_http(
     client: FlaskClient,
     full_api_access: None,
     date_view: MagicMock,
+    caplog: pytest.LogCaptureFixture,
     method: str,
-    status: int,
+    filters: list[dict[str, str]],
 ) -> None:
-    """Dimension discovery fails earlier in schema loading than metric discovery."""
-    getattr(date_view, method).side_effect = ValueError("Metadata unavailable")
+    """Provider discovery faults are backend errors with no provider detail."""
+    getattr(date_view, method).side_effect = ValueError("private-provider-metadata")
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["ORDER_DATE"],
+                    "metrics": ["ORDER_COUNT"],
+                    "filters": filters,
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 500
+    body: str = response.get_data(as_text=True)
+    assert "private-provider" not in body
+    assert "An error occurred while fetching the data." in body
+    date_view.get_table.assert_not_called()
+    records: list[logging.LogRecord] = [
+        record
+        for record in caplog.records
+        if record.name == "superset.semantic_layers.exceptions"
+        and record.levelno == logging.ERROR
+    ]
+    assert len(records) == 1
+    assert records[0].getMessage() == "Semantic provider metadata discovery failed"
+    assert records[0].exc_info is not None
+
+
+@pytest.mark.parametrize(
+    "target",
+    ["_validate_metrics", "_get_filters_from_query_object"],
+)
+def test_unexpected_mapper_value_error_http(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    target: str,
+) -> None:
+    """A mapper bug raising ValueError is a backend error, not a user error."""
+    mocker.patch(
+        f"superset.semantic_layers.mapper.{target}",
+        side_effect=ValueError("internal-mapper-detail"),
+    )
     response: TestResponse = client.post(
         "/api/v1/chart/data",
         json={
@@ -202,9 +259,83 @@ def test_metadata_discovery_fault_http(
             "force": True,
         },
     )
-    # Schema loading converts dimension-discovery ValueError to 400 before mapping.
-    assert response.status_code == status
+    assert response.status_code == 500
+    assert response.get_json()["errors"][0]["error_type"] == "GENERIC_BACKEND_ERROR"
     date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "target",
+    ["_validate_metrics", "_get_filters_from_query_object"],
+)
+def test_unexpected_mapper_value_error_is_not_converted(
+    app_context: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    target: str,
+) -> None:
+    """Only typed input refusals become QueryObjectValidationError."""
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    view.__dict__["implementation"] = date_view
+    query: QueryObject = QueryObject(columns=["ORDER_DATE"], metrics=["ORDER_COUNT"])
+    query.datasource = view
+    error: ValueError = ValueError("internal-mapper-detail")
+    mocker.patch(f"superset.semantic_layers.mapper.{target}", side_effect=error)
+    captured: pytest.ExceptionInfo[ValueError]
+    with pytest.raises(ValueError, match="internal-mapper-detail") as captured:
+        get_results(query)
+    assert captured.value is error
+    date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "selection,message",
+    [
+        ({"columns": ["MISSING"]}, "All dimensions must be defined"),
+        (
+            {
+                "filters": [
+                    {
+                        "col": "ORDER_DATE",
+                        "op": "TEMPORAL_RANGE",
+                        "val": "2026-02-01 : 2026-01-01",
+                    }
+                ]
+            },
+            "From date cannot be larger than to date",
+        ),
+    ],
+)
+def test_mapper_input_error_is_typed(
+    app_context: None,
+    date_view: MagicMock,
+    selection: dict[str, Any],
+    message: str,
+) -> None:
+    """Invalid selections and time ranges reach callers as typed 400s."""
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    view.__dict__["implementation"] = date_view
+    query: QueryObject = QueryObject(
+        **{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"], **selection}
+    )
+    query.datasource = view
+    captured: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(QueryObjectValidationError, match=message) as captured:
+        get_results(query)
+    assert captured.value.status == 400
+    assert isinstance(captured.value.__cause__, SemanticQueryInputError)
+    date_view.get_table.assert_not_called()
+
+
+def test_input_error_contract() -> None:
+    """Direct helpers raise a ValueError subclass so existing callers still match."""
+    assert issubclass(SemanticQueryInputError, ValueError)
+    with pytest.raises(SemanticQueryInputError, match="Adhoc dimensions"):
+        _normalize_column({"sqlExpression": "1", "label": "x"}, {"ORDER_DATE"})
+    with pytest.raises(SemanticQueryInputError, match="Invalid date value"):
+        _coerce_scalar_filter_value(
+            "not-a-date", Dimension("d", "ORDER_DATE", pa.date32())
+        )
 
 
 @pytest.mark.parametrize("is_totals_prerequisite", [False, True])

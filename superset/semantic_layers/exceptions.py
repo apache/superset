@@ -19,7 +19,7 @@
 
 import logging
 from collections.abc import Callable
-from typing import ParamSpec
+from typing import ParamSpec, TypeVar
 
 from billiard.exceptions import SoftTimeLimitExceeded
 from flask_babel import gettext as _
@@ -100,6 +100,40 @@ class SemanticLayerExecutionError(SupersetErrorException):
         )
 
 
+ProviderResult = TypeVar("ProviderResult")
+
+# Host signals that keep their own classification when raised by a provider.
+_HOST_SIGNALS: tuple[type[BaseException], ...] = (
+    QueryObjectValidationError,
+    SemanticLayerQueryRejectedError,
+    SemanticLayerExecutionError,
+    SupersetSecurityException,
+    OAuth2RedirectError,
+    OAuth2Error,
+    SupersetCancelQueryException,
+    SoftTimeLimitExceeded,
+)
+
+
+def discover_semantic_metadata(
+    discovery: Callable[[], ProviderResult],
+) -> ProviderResult:
+    """
+    Classify a provider metadata fault as a backend error.
+
+    Discovery takes no user input, so a provider exception here is never a
+    correctable request; it must not reach generic ``ValueError`` handlers
+    that answer 400, and its text must not reach the response.
+    """
+    try:
+        return discovery()
+    except _HOST_SIGNALS:
+        raise
+    except Exception as ex:  # pylint: disable=broad-except
+        logger.exception("Semantic provider metadata discovery failed")
+        raise SemanticLayerExecutionError() from ex
+
+
 def execute_semantic_query(
     dispatcher: Callable[ProviderArguments, SemanticResult],
     *args: ProviderArguments.args,
@@ -111,16 +145,7 @@ def execute_semantic_query(
             return dispatcher(*args, **kwargs)
     except SemanticQueryRejectedError as ex:
         raise SemanticLayerQueryRejectedError(ex.code) from ex
-    except (
-        QueryObjectValidationError,
-        SemanticLayerQueryRejectedError,
-        SemanticLayerExecutionError,
-        SupersetSecurityException,
-        OAuth2RedirectError,
-        OAuth2Error,
-        SupersetCancelQueryException,
-        SoftTimeLimitExceeded,
-    ):
+    except _HOST_SIGNALS:
         raise
     except Exception as ex:  # pylint: disable=broad-except
         logger.exception("Semantic provider query execution failed")

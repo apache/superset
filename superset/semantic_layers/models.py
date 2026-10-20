@@ -68,6 +68,7 @@ from superset.semantic_layers.dimension_resolution import (
     resolve_dimensions,
 )
 from superset.semantic_layers.exceptions import (
+    discover_semantic_metadata,
     execute_semantic_query,
     SemanticLayerQueryRejectedError,
 )
@@ -616,7 +617,7 @@ class SemanticView(AuditMixinNullable, Model):
                 description=metric.description,
                 d3format=metric.d3format,
             )
-            for metric in self.implementation.get_metrics()
+            for metric in discover_semantic_metadata(self.implementation.get_metrics)
         ]
 
     @property
@@ -629,7 +630,8 @@ class SemanticView(AuditMixinNullable, Model):
         # kept uses the same default/ambiguity policy as query mapping.
         return list(
             resolve_dimensions(
-                self.implementation.get_dimensions(), usage=DimensionUsage.METADATA
+                discover_semantic_metadata(self.implementation.get_dimensions),
+                usage=DimensionUsage.METADATA,
             ).values()
         )
 
