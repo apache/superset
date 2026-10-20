@@ -287,7 +287,7 @@ test('guest-token chart exports skip CSRF fetch and include guest_token form fie
 
   expect(SupersetClient.getCSRFToken).not.toHaveBeenCalled();
   expect(mockFetch).toHaveBeenCalledTimes(1);
-  const [, requestInit] = mockFetch.mock.calls[0];
+  const [[, requestInit]] = mockFetch.mock.calls;
   const body = requestInit.body as URLSearchParams;
 
   expect(body.get('guest_token')).toBe('guest-token');
@@ -337,7 +337,7 @@ test('non-guest chart exports fetch CSRF and include X-CSRFToken header', async 
   });
 
   expect(SupersetClient.getCSRFToken).toHaveBeenCalledTimes(1);
-  const [, requestInit] = mockFetch.mock.calls[0];
+  const [[, requestInit]] = mockFetch.mock.calls;
   expect(requestInit.headers).toMatchObject({
     'X-CSRFToken': 'mock-csrf-token',
   });
@@ -364,7 +364,7 @@ test('chart streaming export includes guest token in form body when configured',
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
-  const request = mockFetch.mock.calls[0][1];
+  const [[, request]] = mockFetch.mock.calls;
   expect(request.body.get('guest_token')).toBe('guest-token');
   expect(request.body.get('form_data')).toBe(
     JSON.stringify({ datasource: '1__table', viz_type: 'table' }),
@@ -394,7 +394,7 @@ test('SQL Lab exports fetch CSRF and omit guest_token even when guest token exis
   });
 
   expect(SupersetClient.getCSRFToken).toHaveBeenCalledTimes(1);
-  const [, requestInit] = mockFetch.mock.calls[0];
+  const [[, requestInit]] = mockFetch.mock.calls;
   const body = requestInit.body as URLSearchParams;
 
   expect(requestInit.headers).toMatchObject({
@@ -426,7 +426,7 @@ test('guest tokens do not bypass CSRF for unclassified non-client exports', asyn
   });
 
   expect(SupersetClient.getCSRFToken).toHaveBeenCalledTimes(1);
-  const [, requestInit] = mockFetch.mock.calls[0];
+  const [[, requestInit]] = mockFetch.mock.calls;
   const body = requestInit.body as URLSearchParams;
 
   expect(requestInit.headers).toMatchObject({
@@ -849,7 +849,7 @@ test('completes XLSX export successfully with correct filename', async () => {
     expect(result.current.progress.status).toBe(ExportStatus.COMPLETED);
   });
 
-  const request = mockFetch.mock.calls[0][1];
+  const [[, request]] = mockFetch.mock.calls;
   expect(request.body.get('guest_token')).toBeNull();
   expect(result.current.progress.filename).toBe('report.xlsx');
   expect(onComplete).toHaveBeenCalledWith('blob:mock-url', 'report.xlsx');

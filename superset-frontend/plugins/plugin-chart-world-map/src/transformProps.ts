@@ -60,7 +60,7 @@ export default function transformProps(chartProps: ChartProps) {
     columnFormats = {},
     currencyCodeColumn,
   } = datasource;
-  const { data: rawData, detected_currency: detectedCurrency } = queriesData[0];
+  const [{ data: rawData, detected_currency: detectedCurrency }] = queriesData;
 
   if (formData.mcpGeographic && !Array.isArray(rawData)) {
     throw new Error(

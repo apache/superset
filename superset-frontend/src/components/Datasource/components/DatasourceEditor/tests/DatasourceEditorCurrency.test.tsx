@@ -110,7 +110,7 @@ test('changes currency position from prefix to suffix', async () => {
 
   // Verify the exact call arguments - check the latest call
   const lastCallIndex = testProps.onChange.mock.calls.length - 1;
-  const callArg = testProps.onChange.mock.calls[lastCallIndex][0];
+  const [callArg] = testProps.onChange.mock.calls[lastCallIndex];
   const metrics = callArg.metrics || [];
   const updatedMetric = metrics.find(
     (m: MetricType) => m.currency?.symbolPosition === 'suffix',
@@ -132,7 +132,7 @@ test('changes currency symbol from USD to GBP', async () => {
 
   // Verify the exact call arguments - check the latest call
   const lastCallIndex = testProps.onChange.mock.calls.length - 1;
-  const callArg = testProps.onChange.mock.calls[lastCallIndex][0];
+  const [callArg] = testProps.onChange.mock.calls[lastCallIndex];
   const metrics = callArg.metrics || [];
   const updatedMetric = metrics.find(
     (m: MetricType) => m.currency?.symbol === 'GBP',

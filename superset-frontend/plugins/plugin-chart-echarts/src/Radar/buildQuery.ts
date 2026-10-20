@@ -24,7 +24,7 @@ import {
 
 export default function buildQuery(formData: QueryFormData) {
   const { series_limit_metric } = formData;
-  const sortByMetric = ensureIsArray(series_limit_metric)[0];
+  const [sortByMetric] = ensureIsArray(series_limit_metric);
 
   return buildQueryContext(formData, baseQueryObject => {
     let { metrics, orderby = [] } = baseQueryObject;

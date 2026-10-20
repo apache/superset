@@ -111,7 +111,7 @@ test('should render row guide when resizing from the bottom', () => {
   const { container, getAllByTestId } = setup({ editMode: true });
   expect(container.querySelector('.grid-row-guide')).not.toBeInTheDocument();
 
-  const component = getAllByTestId('mock-dashboard-component')[0];
+  const [component] = getAllByTestId('mock-dashboard-component');
   fireEvent.click(component);
 
   // guide is in DOM but hidden until first bottom resize event
@@ -125,7 +125,7 @@ test('should render row guide when resizing from the bottom', () => {
 
 test('should remove row guide after resize stops', () => {
   const { container, getAllByTestId } = setup({ editMode: true });
-  const component = getAllByTestId('mock-dashboard-component')[0];
+  const [component] = getAllByTestId('mock-dashboard-component');
 
   fireEvent.click(component);
   fireEvent.mouseMove(component);
@@ -138,7 +138,7 @@ test('should remove row guide after resize stops', () => {
 test('should call resizeComponent when a child DashboardComponent calls resizeStop', () => {
   const resizeComponent = jest.fn();
   const { getAllByTestId } = setup({ resizeComponent });
-  const dashboardComponent = getAllByTestId('mock-dashboard-component')[0];
+  const [dashboardComponent] = getAllByTestId('mock-dashboard-component');
   fireEvent.blur(dashboardComponent);
 
   expect(resizeComponent).toHaveBeenCalledTimes(1);

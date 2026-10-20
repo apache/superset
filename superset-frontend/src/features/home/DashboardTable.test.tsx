@@ -321,9 +321,9 @@ test('handles bulk dashboard export with correct ID and shows spinner', async ()
     { store },
   );
 
-  const moreOptionsButton = screen.getAllByRole('img', {
+  const [moreOptionsButton] = screen.getAllByRole('img', {
     name: 'more',
-  })[0];
+  });
   await userEvent.click(moreOptionsButton);
 
   // Wait for dropdown menu to appear
@@ -384,7 +384,7 @@ test('handles dashboard deletion confirmation', async () => {
     { store },
   );
 
-  const moreOptionsButton = screen.getAllByLabelText('more')[0];
+  const [moreOptionsButton] = screen.getAllByLabelText('more');
   await userEvent.click(moreOptionsButton);
 
   await waitFor(() => {
@@ -512,8 +512,8 @@ test('passes correct parameters to handleDashboardDelete for Other tab', async (
     expect.any(Function),
   );
 
-  const lastCall = mockHandleDashboardDelete.mock.calls[0];
-  const getDataParam = lastCall[6];
+  const [lastCall] = mockHandleDashboardDelete.mock.calls;
+  const [, , , , , , getDataParam] = lastCall;
 
   getDataParam('Other');
   expect(fetchDataMock).toHaveBeenCalledWith({

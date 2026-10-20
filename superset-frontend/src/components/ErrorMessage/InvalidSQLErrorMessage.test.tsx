@@ -90,7 +90,7 @@ describe('InvalidSQLErrorMessage', () => {
 
     // Check for caret (`^`) under the error column
     const preTags = container.querySelectorAll('pre');
-    const secondPre = preTags[1];
+    const [, secondPre] = preTags;
     expect(secondPre).toHaveTextContent('^');
 
     unmount();
