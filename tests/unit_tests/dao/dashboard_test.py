@@ -27,6 +27,7 @@ from superset.commands.dashboard.exceptions import DashboardInvalidError
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import (
+    _install_membership_baseline,
     _layout_chart_id,
     DashboardDAO,
     reconcile_position_json,
@@ -97,10 +98,13 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     db.session.add_all([live_chart, trashed_chart, dashboard])
     db.session.flush()
 
-    # Production shape: the PUT flow loads a fresh Dashboard whose
-    # ``slices`` collection is unloaded; expiring forces the baseline
-    # reload through the visibility listener during the assignment.
-    db.session.expire(dashboard, ["slices"])
+    # Production shape: the PUT flow loads the Dashboard through a query,
+    # which carries the visibility filter into the lazy load of its
+    # ``slices`` baseline. Expiring the collection alone is not enough: an
+    # object built in Python carries no filter into its lazy loads.
+    dashboard_id = dashboard.id
+    db.session.expunge(dashboard)
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
 
     positions: dict[str, dict[str, Any]] = {
         "CHART-live": {
@@ -131,6 +135,42 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     )
     # And the position slot kept its UUID rather than being nulled.
     assert positions["CHART-trashed"]["meta"]["uuid"] == str(trashed_chart.uuid)
+
+
+def test_install_membership_baseline_skips_transient_dashboard(
+    session: Session,
+) -> None:
+    """A dashboard with no stored rows keeps its in-memory chart list."""
+    Dashboard.metadata.create_all(session.get_bind())
+    chart = Slice(slice_name="transient_chart", datasource_type="table")
+    db.session.add(chart)
+    db.session.flush()
+    dashboard = Dashboard(dashboard_title="transient_dash", slices=[chart])
+
+    _install_membership_baseline(dashboard)
+
+    assert dashboard.slices == [chart]
+    assert inspect(dashboard).attrs.slices.history.added == [chart]
+
+
+def test_install_membership_baseline_keeps_unflushed_change(
+    session: Session,
+) -> None:
+    """A pending change to the chart list is kept, not replaced by the
+    stored baseline, when autoflush cannot flush it first."""
+    Dashboard.metadata.create_all(session.get_bind())
+    kept = Slice(slice_name="kept_chart", datasource_type="table")
+    added = Slice(slice_name="added_chart", datasource_type="table")
+    dashboard = Dashboard(dashboard_title="pending_dash", slices=[kept])
+    db.session.add_all([kept, added, dashboard])
+    db.session.flush()
+
+    with db.session.no_autoflush:
+        dashboard.slices.append(added)
+        _install_membership_baseline(dashboard)
+
+    assert dashboard.slices == [kept, added]
+    assert inspect(dashboard).attrs.slices.history.added == [added]
 
 
 def test_set_dash_metadata_preserves_refresh_frequency(session: Session) -> None:
