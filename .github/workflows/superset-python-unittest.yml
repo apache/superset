@@ -65,6 +65,12 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      - name: SDK unit tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          PYTHONPATH: ${{ github.workspace }}/superset-core/src
+        run: |
+          python -m pytest -q -o addopts='' superset-core/tests --junit-xml=test-results/junit-sdk.xml
       # The babel_update.sh tests run the script's msgcat step and fail on CI
       # when gettext is missing (tests/unit_tests/scripts/translations).
       - name: Install gettext tools
