@@ -18,7 +18,7 @@
 import logging
 from datetime import date
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -72,7 +72,9 @@ def date_view(mocker: MockerFixture) -> MagicMock:
         requests=[],
     )
     view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
-    view.__dict__["implementation"] = provider
+    mocker.patch.object(
+        SemanticView, "implementation", new_callable=PropertyMock, return_value=provider
+    )
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
         return_value=view,
@@ -492,7 +494,8 @@ def test_host_validation_keeps_400(
 
 
 @pytest.mark.parametrize(
-    "failure,status", [("fault", 500), ("rejection", 400), ("completeness", 400)]
+    "failure,status",
+    [("fault", 500), ("rejection", 400), ("completeness", 400), ("refusal", 403)],
 )
 def test_annotation_preserves_semantic_failure(
     app_context: None, mocker: MockerFixture, failure: str, status: int
@@ -501,7 +504,12 @@ def test_annotation_preserves_semantic_failure(
     from superset_core.semantic_layers.errors import SemanticQueryErrorCode
 
     from superset.common.query_context_processor import QueryContextProcessor
-    from superset.exceptions import SemanticResultCompletenessError, SupersetException
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import (
+        SemanticResultCompletenessError,
+        SupersetException,
+        SupersetSecurityException,
+    )
     from superset.semantic_layers.exceptions import (
         SemanticLayerExecutionError,
         SemanticLayerQueryRejectedError,
@@ -513,6 +521,14 @@ def test_annotation_preserves_semantic_failure(
             SemanticQueryErrorCode.INVALID_QUERY
         ),
         "completeness": SemanticResultCompletenessError("incomplete"),
+        "refusal": SupersetSecurityException(
+            SupersetError(
+                message="This data source can't be queried in the current context.",
+                error_type=SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"reason": "method_not_supported"},
+            )
+        ),
     }[failure]
     chart: MagicMock = MagicMock()
     chart.get_query_context.return_value.queries = []
@@ -532,6 +548,104 @@ def test_annotation_preserves_semantic_failure(
     assert captured.value is error
     assert error.status == status
     command.run.assert_called_once()
+
+
+def test_annotation_access_denial_is_validation_error(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """An ordinary annotation datasource denial keeps the validation boundary."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        SupersetSecurityException,
+    )
+
+    denial: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message="Annotation datasource access denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    chart: MagicMock = MagicMock()
+    chart.get_query_context.return_value.queries = []
+    chart.get_query_context.return_value.raise_for_access.side_effect = denial
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    with pytest.raises(
+        QueryObjectValidationError, match="Annotation datasource access denied"
+    ):
+        QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source"}, False
+        )
+    chart.get_query_context.return_value.raise_for_access.assert_called_once()
+
+
+@pytest.mark.parametrize("result_type", ["full", "query"])
+def test_annotation_access_denial_http(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    result_type: str,
+) -> None:
+    """Ordinary source denial is a query failure, not a whole-request 403."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    chart: MagicMock = MagicMock()
+    chart.get_query_context.return_value.queries = []
+    chart.get_query_context.return_value.raise_for_access.side_effect = (
+        SupersetSecurityException(
+            SupersetError(
+                message="Annotation datasource access denied",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["ORDER_DATE"],
+                    "metrics": ["ORDER_COUNT"],
+                    "annotation_layers": [
+                        {
+                            "annotationType": "EVENT",
+                            "sourceType": "table",
+                            "value": 42,
+                            "name": "Source",
+                            "show": True,
+                            "showMarkers": False,
+                        }
+                    ],
+                }
+            ],
+            "result_format": "json",
+            "result_type": result_type,
+            "force": True,
+        },
+    )
+    if result_type == "full":
+        assert response.status_code == 400
+        assert "Annotation datasource access denied" in response.get_data(as_text=True)
+        chart.get_query_context.return_value.raise_for_access.assert_called_once()
+    else:
+        # Query previews do not load annotations; their own validation error
+        # remains in the successful response's per-query payload.
+        assert response.status_code == 200
+        assert "provider query" in response.json["result"][0]["error"]
+        chart.get_query_context.return_value.raise_for_access.assert_not_called()
 
 
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])

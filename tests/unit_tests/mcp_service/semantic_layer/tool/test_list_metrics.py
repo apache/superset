@@ -24,7 +24,7 @@ import importlib
 from collections.abc import Generator
 from types import ModuleType
 from typing import Any
-from unittest.mock import call, MagicMock, Mock, patch
+from unittest.mock import call, MagicMock, Mock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -146,13 +146,26 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
     view.implementation.get_metrics.return_value = []
     view.implementation.get_compatible_dimensions.return_value = dimensions
     semantic_view: SemanticView = SemanticView()
-    semantic_view.implementation = view.implementation
-    view.get_compatible_dimensions.side_effect = semantic_view.get_compatible_dimensions
     dataset: MagicMock = _make_dataset(1)
     dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
     dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
     view_dao: MagicMock
-    with _patched_dataset_search([dataset]) as (_, view_dao, _):
+    # `implementation` is a plain (non-settable) property resolved through
+    # `SemanticBindingMemo`; patch it directly rather than assigning to it, and
+    # keep the patch alive across the yield since `get_compatible_dimensions`
+    # reads `self.implementation` again when the test later invokes it.
+    with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=view.implementation,
+        ),
+        _patched_dataset_search([dataset]) as (_, view_dao, _),
+    ):
+        view.get_compatible_dimensions.side_effect = (
+            semantic_view.get_compatible_dimensions
+        )
         view_dao.find_accessible.return_value = [view]
         view_dao.find_by_id.return_value = view
         yield view
