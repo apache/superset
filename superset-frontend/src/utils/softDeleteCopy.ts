@@ -174,9 +174,9 @@ function archiveHref(type: ArchivedObjectType): string {
   return ensureAppRoot(`/archived/?type=${type}`);
 }
 
-/** Confirmation text with a direct route to the permitted archive collection. */
+/** Explain recovery without navigating away before archiving is confirmed. */
 export function archiveConfirmContent(
-  type: ArchivedObjectType,
+  _type: ArchivedObjectType,
   typeLabel: string,
   plural = false,
 ): ReactElement {
@@ -184,8 +184,6 @@ export function archiveConfirmContent(
     Fragment,
     null,
     archiveConfirmDescription(typeLabel, plural),
-    ' ',
-    createElement('a', { href: archiveHref(type) }, t('Recently Archived')),
   );
 }
 
@@ -236,6 +234,17 @@ export function datasetArchiveImpact(
       dashboardCount,
     ),
   };
+  if (dashboardCount === 0) {
+    return plural
+      ? t(
+          'The selected %(type)s are used by %(charts)s. Archiving them will make dependent charts unavailable until they are recovered.',
+          values,
+        )
+      : t(
+          'This %(type)s is used by %(charts)s. Archiving it will make dependent charts unavailable until it is recovered.',
+          values,
+        );
+  }
   return plural
     ? t(
         'The selected %(type)s are linked to %(charts)s on %(dashboards)s. Archiving them will make dependent charts unavailable until they are recovered.',

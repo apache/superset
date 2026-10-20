@@ -20,6 +20,7 @@ import {
   archiveConfirmDescription,
   archiveConfirmContent,
   deletedToastContent,
+  datasetArchiveImpact,
   getSoftDeleteRetentionDays,
   recoveredToast,
 } from './softDeleteCopy';
@@ -145,12 +146,20 @@ test('the confirm copy omits the clause when there is no window', () => {
   );
 });
 
-test('archive confirmation links directly to the matching collection', () => {
-  render(archiveConfirmContent('dashboard', 'dashboard'));
-  expect(
-    screen.getByRole('link', { name: 'Recently Archived' }),
-  ).toHaveAttribute('href', '/archived/?type=dashboard');
-});
+test.each(['', '/superset'])(
+  'archive confirmation stays in the dialog under app root %s',
+  root => {
+    (applicationRoot as jest.Mock).mockReturnValue(root);
+    const { container } = render(
+      archiveConfirmContent('dashboard', 'dashboard'),
+    );
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(container).toHaveTextContent(
+      'This dashboard will be moved to Recently Archived. You can recover it there.',
+    );
+    expect(container.textContent?.match(/Recently Archived/g)).toHaveLength(1);
+  },
+);
 
 test('archive toast escapes names and links to its collection', () => {
   const spy = isFeatureEnabled as jest.Mock;
@@ -167,18 +176,30 @@ test('archive toast escapes names and links to its collection', () => {
   spy.mockReset();
 });
 
-test('archive confirmation preserves the application root', () => {
-  (applicationRoot as jest.Mock).mockReturnValue('/superset');
-  render(archiveConfirmContent('dashboard', 'dashboard'));
-  expect(
-    screen.getByRole('link', { name: 'Recently Archived' }),
-  ).toHaveAttribute('href', '/superset/archived/?type=dashboard');
-});
-
 test('archive toast preserves and escapes the application root', () => {
   (applicationRoot as jest.Mock).mockReturnValue('/superset&qa');
   (isFeatureEnabled as jest.Mock).mockReturnValue(true);
   expect(deletedToastContent('name', 'dataset').text).toContain(
     'href="/superset&amp;qa/archived/?type=dataset"',
+  );
+});
+
+test.each([1, 2])(
+  'dataset impact omits absent dashboards for %s charts',
+  count => {
+    const charts = count === 1 ? '1 chart' : '2 charts';
+    expect(datasetArchiveImpact('dataset', count, 0)).toBe(
+      `This dataset is used by ${charts}. Archiving it will make dependent charts unavailable until it is recovered.`,
+    );
+    expect(datasetArchiveImpact('datasets', count, 0, true)).toBe(
+      `The selected datasets are used by ${charts}. Archiving them will make dependent charts unavailable until they are recovered.`,
+    );
+  },
+);
+
+test('dataset impact omits empty dependencies and retains nonzero dashboard counts', () => {
+  expect(datasetArchiveImpact('dataset', 0, 0)).toBeNull();
+  expect(datasetArchiveImpact('dataset', 2, 1)).toContain(
+    'linked to 2 charts on 1 dashboard',
   );
 });

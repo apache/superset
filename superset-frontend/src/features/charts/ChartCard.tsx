@@ -128,7 +128,6 @@ export default function ChartCard({
         >
           <MenuItemButton
             type="button"
-
             data-test="chart-list-edit-option"
             onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
           >
@@ -152,7 +151,6 @@ export default function ChartCard({
       label: (
         <MenuItemButton
           type="button"
-
           data-test="chart-list-export-option"
           onClick={() => handleBulkChartExport([chart])}
         >
@@ -221,7 +219,6 @@ export default function ChartCard({
               <span>
                 <MenuItemButton
                   type="button"
-
                   disabled={!allowEdit}
                   aria-disabled={!allowEdit}
                   data-test="chart-list-delete-option"

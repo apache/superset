@@ -118,7 +118,6 @@ function DashboardCard({
         >
           <MenuItemButton
             type="button"
-
             className="action-button"
             onClick={
               allowEdit ? () => openDashboardEditModal(dashboard) : undefined
@@ -139,7 +138,6 @@ function DashboardCard({
       label: (
         <MenuItemButton
           type="button"
-
           onClick={() => handleBulkDashboardExport([dashboard])}
           className="action-button"
           data-test="dashboard-card-option-export-button"
@@ -171,7 +169,6 @@ function DashboardCard({
           <span>
             <MenuItemButton
               type="button"
-
               className="action-button"
               onClick={allowEdit ? () => onDelete(dashboard) : undefined}
               disabled={!allowEdit}

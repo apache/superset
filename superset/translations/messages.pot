@@ -18298,3 +18298,15 @@ msgstr ""
 
 msgid "The view configuration must be a JSON object."
 msgstr ""
+
+#, python-format
+msgid ""
+"The selected %(type)s are used by %(charts)s. Archiving them will make "
+"dependent charts unavailable until they are recovered."
+msgstr ""
+
+#, python-format
+msgid ""
+"This %(type)s is used by %(charts)s. Archiving it will make dependent charts"
+" unavailable until it is recovered."
+msgstr ""

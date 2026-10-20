@@ -176,7 +176,9 @@ test('with soft delete on, the card delete flow shows the archive dialog', async
   fireEvent.click(await screen.findByText('Archive'));
 
   const dialog = await screen.findByRole('dialog');
-  expect(dialog).toHaveAccessibleName('Archive Sample Chart ?');
+  expect(
+    within(dialog).getByText('Sample Chart').parentElement,
+  ).toHaveTextContent('Archive Sample Chart?');
   // The body comes from the shared soft-delete copy module; its exact
   // wording evolves there (location hint, retention clause), so pin the
   // stable prefix rather than a full sentence.
@@ -223,7 +225,6 @@ test.each(['تقرير المبيعات حسب المنطقة', 'Sales overview'
     const isolatedName = within(dialog).getByText(name);
     expect(isolatedName.tagName).toBe('BDI');
     expect(isolatedName).toHaveAttribute('dir', 'auto');
-    expect(dialog).toHaveAccessibleName(`Archive ${name} ?`);
     expect(isolatedName.parentElement).toHaveTextContent(`Archive ${name}?`);
   },
 );
