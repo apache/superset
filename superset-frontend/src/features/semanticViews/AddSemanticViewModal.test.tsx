@@ -24,6 +24,7 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
+import { StrictMode } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 
 import {
@@ -661,6 +662,7 @@ async function chooseDependentOption(name: string, value: string) {
 
 async function openDependentSchemaForm(
   makeSchema: typeof databaseSchema = databaseSchema,
+  { strict = false }: { strict?: boolean } = {},
 ) {
   jest.useFakeTimers();
   const pending: PendingSchema[] = [];
@@ -679,7 +681,10 @@ async function openDependentSchemaForm(
     },
   });
   const props = createProps();
-  const { rerender } = render(<AddSemanticViewModal {...props} />);
+  const modal = <AddSemanticViewModal {...props} />;
+  const { rerender, unmount } = render(
+    strict ? <StrictMode>{modal}</StrictMode> : modal,
+  );
   await chooseDependentOption('Semantic layer', 'Snowflake SL');
   // Let JSON Forms emit its mount-time change before selecting a database.
   // Otherwise that delayed event can reset the dependency snapshot mid-pick.
@@ -694,7 +699,7 @@ async function openDependentSchemaForm(
   await act(async () => {
     pending[0].resolve(initial);
   });
-  return { pending, props, rerender };
+  return { pending, props, rerender, unmount };
 }
 
 const viewsRequests = () =>
@@ -740,6 +745,95 @@ test.each(['shared', 'old_only'])(
     ).toBeNull();
   },
 );
+
+test('a debounced refresh scheduled before unmount never fires', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  await chooseDependentOption('Database', 'second');
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  // A timer that outlives the modal posts on behalf of a component that is
+  // gone, and in this file it would land in the next test's mocks.
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('StrictMode remounting keeps dependency refreshes and views fetches working', async () => {
+  // StrictMode mounts, runs the unmount cleanup, then mounts again in
+  // development. The opening helper already requires the Database change to
+  // post a schema refresh, which a stale unmounted flag would swallow.
+  const { pending } = await openDependentSchemaForm(databaseSchema, {
+    strict: true,
+  });
+  expect(pending).toHaveLength(1);
+  const viewsBefore = viewsRequests().length;
+  await chooseDependentOption('Schema', 'shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(viewsRequests().length).toBeGreaterThan(viewsBefore);
+});
+
+test('a views fetch scheduled before unmount never fires', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  // A complete form queues a views fetch behind the modal's debounce.
+  await chooseDependentOption('Schema', 'shared');
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('a runtime schema response delivered after unmount fetches no views', async () => {
+  let finishSchema: (() => void) | undefined;
+  mockLayerWithSchema(
+    {},
+    {
+      '/api/v1/semantic_layer/layer-1/schema/runtime': () =>
+        new Promise(resolve => {
+          finishSchema = () => resolve({ json: { result: {} } });
+        }),
+    },
+  );
+  const props = createProps();
+  const { unmount } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Snowflake SL');
+  await waitFor(() => expect(finishSchema).toBeDefined());
+  unmount();
+  // A schema with no properties would otherwise fetch views right away.
+  await act(async () => {
+    finishSchema?.();
+  });
+  expect(viewsRequests()).toHaveLength(0);
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('a form change delivered after unmount schedules no refresh', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Database' }));
+  const option = await waitFor(() => {
+    const item = document.querySelector(
+      '.ant-select-item-option[title="second"]',
+    );
+    if (!item) throw new Error('Missing option second');
+    return item;
+  });
+  fireEvent.click(option);
+  // Unmount inside JSON Forms' own 10 ms change debounce, so its onChange
+  // reaches the modal only after the modal is gone.
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
 
 test('dependent options ignore an older response while the latest refresh is pending', async () => {
   const { pending } = await openDependentSchemaForm();

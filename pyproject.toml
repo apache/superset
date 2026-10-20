@@ -42,7 +42,7 @@ dependencies = [
     # ``google-auth`` 2.53+ dropped it, so Superset must declare it
     # explicitly to keep fresh ``pip install apache-superset`` working
     # without the ``base.txt`` lock file (#40962).
-    "cachetools>=7.2.0, <8",
+    "cachetools>=7.2.1, <8",
     "celery>=5.6.3, <6.0.0",
     "click>=8.5.0",
     "click-option-group",
@@ -94,7 +94,7 @@ dependencies = [
     "parsedatetime",
     "paramiko>=3.4.0, <4.0", # 4.0 removed DSSKey, still referenced by sshtunnel
     "Pillow>=12.3.0, <13", # raise floor to match resolved pin; closes SCA false-positive on 11.x-range CVEs already fixed in 12.3.0
-    "pydantic>=2.13.5",
+    "pydantic>=2.14.0",
     "pyparsing>=3.3.3, <4",
     "python-dateutil",
     "python-dotenv", # optional dependencies for Flask but required for Superset, see https://flask.palletsprojects.com/en/stable/installation/#optional-dependencies
@@ -111,7 +111,7 @@ dependencies = [
     "slack_sdk>=3.45.0, <4",
     "sqlalchemy>=2.0.52, <2.1",
     "sqlalchemy-continuum>=1.8.0, <2.0.0",
-    "sqlalchemy-utils>=0.42.1, <0.43", # expanding lowerbound to work with pydoris
+    "sqlalchemy-utils>=0.43.0, <0.44", # expanding lowerbound to work with pydoris
     # Dialect-specific gaps/bugs against this pin are worked around in
     # superset/sql/dialects/ (e.g. starrocks.py); check there for anything
     # that can be cleaned up when bumping
@@ -139,10 +139,10 @@ bigquery = [
     "pandas-gbq>=0.35.2",
     # 1.17.1 is likely the final release: googleapis/python-bigquery-sqlalchemy
     # was archived 2026-05-16. Both 1.17.0 and 1.17.1 support SQLAlchemy 1.4/2.0.
-    "sqlalchemy-bigquery>=1.17.2",
+    "sqlalchemy-bigquery>=1.17.3",
     "google-cloud-bigquery>=3.46.1",
 ]
-clickhouse = ["clickhouse-connect>=1.9.0, <2.0"]
+clickhouse = ["clickhouse-connect>=1.10.0, <2.0"]
 # The `cockroachdb` PyPI package (last released 2021) is abandoned and its
 # SQLAlchemy dialect cannot even import under SQLAlchemy 2.0 (it references
 # sqlalchemy.dialects.postgresql.psycopg2.PGCompiler_psycopg2, removed in
@@ -181,7 +181,7 @@ dynamodb = ["pydynamodb>=0.8.2"]
 # SQLAlchemy ~1.4.7 upstream, no SQLAlchemy 2.0 work. See
 # superset/db_engine_specs/solr.py's known_incompatibilities metadata.
 solr = ["sqlalchemy-solr>=0.2.4.3"]
-elasticsearch = ["elasticsearch-dbapi>=0.2.13, <0.3.0"]
+elasticsearch = ["elasticsearch-dbapi>=0.3.0, <0.4.0"]
 # sqlalchemy-exasol cuts hard from SQLAlchemy 1.4-only (<6.0.0) to 2.0-only
 # (>=6.0.0) with no dual-compat release. Bumped now that Superset's own
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
@@ -256,14 +256,14 @@ ocient = [
     "shapely",
     "geojson",
 ]
-oracle = ["oracledb>=4.0.2, <5"]
+oracle = ["oracledb>=26.0.0, <27"]
 parseable = ["sqlalchemy-parseable>=0.1.6,<0.2.0"]
 pinot = ["pinotdb[sqlalchemy]>=8.0.0, <10.0.0"]
 playwright = ["playwright>=1.63.0, <2"]
 postgres = ["psycopg2-binary==2.9.13"]
 presto = ["pyhive[presto]>=0.7.0"]
 trino = ["trino>=0.340.0"]
-prophet = ["prophet>=1.4.0, <2"]
+prophet = ["prophet>=1.5.0, <2"]
 # sqlalchemy-redshift cuts hard from SQLAlchemy 1.4-only (0.8.x) to 2.0-only
 # (>=1.0.0) with no dual-compat release. Bumped now that Superset's own
 # SQLAlchemy 2.0 core bump has landed (discussion #40273).
@@ -276,7 +276,7 @@ risingwave = ["sqlalchemy-risingwave>=2.0.0"]
 shillelagh = ["shillelagh[all]>=1.4.5, <2"]
 singlestore = ["sqlalchemy-singlestoredb>=1.2.1, <2"]
 snowflake = ["snowflake-sqlalchemy>=1.11.1, <2"]
-sqlite = ["syntaqlite>=0.9.0,<0.10.0"]
+sqlite = ["syntaqlite>=0.12.1,<0.13.0"]
 spark = [
     "pyhive[hive_pure_sasl]>=0.7",
     "tableschema",
@@ -346,7 +346,7 @@ development = [
     "ruff",
     "sqloxide",
     "statsd",
-    "syntaqlite>=0.9.0,<0.10.0",
+    "syntaqlite>=0.12.1,<0.13.0",
 ]
 
 [project.urls]

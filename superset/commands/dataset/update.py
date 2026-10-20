@@ -42,8 +42,11 @@ from superset.commands.dataset.exceptions import (
     DatasetMetricsNotFoundValidationError,
     DatasetNotFoundError,
     DatasetSoftDeletedTwinExistsError,
+    DatasetSqlRenderValidationError,
     DatasetUpdateFailedError,
     MultiCatalogDisabledValidationError,
+    TEMPLATE_RENDER_ERRORS,
+    TemplateParamsInvalidValidationError,
 )
 from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
@@ -55,6 +58,11 @@ from superset.exceptions import (
     SupersetSecurityException,
 )
 from superset.models.core import Database
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_equivalent,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.utils.decorators import on_error, transaction
 
@@ -67,6 +75,24 @@ DEFAULT_COLUMNS_FOLDER_UUID = "83a7ae8f-2e8a-4f2b-a8cb-ebaebef95b9b"
 DEFAULT_FOLDER_UUIDS = frozenset(
     {DEFAULT_METRICS_FOLDER_UUID, DEFAULT_COLUMNS_FOLDER_UUID}
 )
+
+
+def _template_params_differ(requested: str | None, stored: str | None) -> bool:
+    """
+    Could replacing ``stored`` params with ``requested`` change what a
+    templated SQL renders?
+
+    An identical value is never a change -- including a legacy value that is
+    not a JSON object (the editor echoes the stored params back on every save,
+    so a metadata-only edit must not be treated as a repoint just because the
+    stored params predate object validation). Otherwise, compared the way
+    execution reads them, so re-serialized JSON with the same values is no
+    change while values of different JSON types (e.g. ``1`` vs ``true``, which
+    Jinja distinguishes) are a change.
+    """
+    if requested == stored:
+        return False
+    return not template_params_equivalent(requested, stored)
 
 
 class UpdateDatasetCommand(UpdateMixin, BaseCommand):
@@ -148,11 +174,21 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         database_changed = new_db_connection is not None
 
         # Detect a caller-supplied change to the source binding, inspected
-        # before the catalog normalization below injects derived values.
-        source_changed = database_changed or any(
+        # before the catalog normalization below injects derived values. The
+        # connection, catalog and schema decide where a virtual dataset's SQL
+        # resolves its tables; ``table_name`` only names the table a physical
+        # dataset reads (for a virtual one it is a label). An empty catalog or
+        # schema means "none", as in ``/datasource/save/``: the editor can send
+        # ``None`` back for a stored ``""``, which is not a move.
+        location_changed = database_changed or any(
             field in self._properties
-            and self._properties[field] != getattr(self._model, field)
-            for field in ("catalog", "schema", "table_name")
+            and (self._properties[field] or None)
+            != (getattr(self._model, field) or None)
+            for field in ("catalog", "schema")
+        )
+        source_changed = location_changed or (
+            "table_name" in self._properties
+            and self._properties["table_name"] != self._model.table_name
         )
 
         catalog, schema, table = self._resolve_catalog_schema_table(db, exceptions)
@@ -191,7 +227,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         ):
             self._validate_table_access(db, table, exceptions)
 
-        self._validate_sql_access(db, catalog, schema, exceptions)
+        self._validate_sql_access(db, catalog, schema, location_changed, exceptions)
 
     def _get_new_database_connection(
         self, database_id: int | None, exceptions: list[ValidationError]
@@ -250,7 +286,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         exceptions: list[ValidationError],
     ) -> None:
         try:
-            security_manager.raise_for_access(database=new_db_connection, table=table)
+            security_manager.raise_for_access(
+                database=new_db_connection, table=table, allow_editorship=False
+            )
         except SupersetSecurityException as ex:
             exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
         else:
@@ -260,39 +298,76 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         self, db: Database, table: Table, exceptions: list[ValidationError]
     ) -> None:
         try:
-            security_manager.raise_for_access(database=db, table=table)
+            security_manager.raise_for_access(
+                database=db, table=table, allow_editorship=False
+            )
         except SupersetSecurityException as ex:
             exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
 
-    def _validate_sql_access(
+    def _validate_sql_access(  # pylint: disable=too-many-arguments
         self,
         db: Database,
         catalog: str | None,
         schema: str | None,
+        location_changed: bool,
         exceptions: list[ValidationError],
     ) -> None:
-        """Validate SQL query access if SQL is being updated."""
+        """Validate access to the tables a virtual dataset's SQL will read.
+
+        A virtual dataset's executed tables depend on its SQL text, its
+        template params, and the connection, catalog and schema that
+        unqualified names resolve against, so a change to any of them
+        re-authorizes the SQL -- a params-only edit can repoint a templated
+        ``FROM`` and a schema-only edit can repoint ``SELECT * FROM t``. The
+        check uses the effective (post-update) values so it matches execution.
+        """
         # we know we have a valid model
         self._model = cast(SqlaTable, self._model)
 
-        sql = self._properties.get("sql")
-        if sql and sql != self._model.sql:
-            try:
-                security_manager.raise_for_access(
-                    database=db,
-                    sql=sql,
-                    catalog=catalog,
-                    schema=schema,
+        effective_sql = self._properties.get("sql", self._model.sql)
+        if not effective_sql:
+            return  # physical dataset; the table binding is gated elsewhere
+
+        sql_changed = "sql" in self._properties and (
+            self._properties["sql"] != self._model.sql
+        )
+        params_changed = "template_params" in self._properties and (
+            _template_params_differ(
+                self._properties["template_params"], self._model.template_params
+            )
+        )
+        if not (sql_changed or params_changed or location_changed):
+            return
+
+        try:
+            template_params = parse_template_params(
+                self._properties.get("template_params", self._model.template_params)
+            )
+        except ValueError:
+            # Fail closed: params execution would read differently can't be
+            # authorized.
+            exceptions.append(TemplateParamsInvalidValidationError())
+            return
+        try:
+            security_manager.raise_for_access(
+                database=db,
+                sql=effective_sql,
+                catalog=catalog,
+                schema=schema,
+                template_params=template_params_for_access_check(template_params),
+                allow_editorship=False,
+            )
+        except SupersetSecurityException as ex:
+            exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
+        except SupersetParseError as ex:
+            exceptions.append(
+                ValidationError(
+                    f"Invalid SQL: {ex.error.message}",
+                    field_name="sql",
                 )
-            except SupersetSecurityException as ex:
-                exceptions.append(DatasetDataAccessIsNotAllowed(ex.error.message))
-            except SupersetParseError as ex:
-                exceptions.append(
-                    ValidationError(
-                        f"Invalid SQL: {ex.error.message}",
-                        field_name="sql",
-                    )
-                )
+            )
+        except TEMPLATE_RENDER_ERRORS as ex:
+            exceptions.append(DatasetSqlRenderValidationError(ex))
 
     def _validate_semantics(self, exceptions: list[ValidationError]) -> None:
         # we know we have a valid model
