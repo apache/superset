@@ -41,3 +41,10 @@ VERSION_PATTERN = r"^\d+\.\d+\.\d+$"
 # into the Flask URL map, so anything a converter could interpret (``<``,
 # ``>``, ``:``) must never reach it.
 PAGE_PATH_PATTERN = r"^(/[a-z]([a-z0-9]*(-[a-z0-9]+)*)?)+$"
+
+# Permission name validation pattern: lowercase letters, digits and
+# underscores, starting with a letter. Deliberately permissive about the
+# `can_` prefix that Superset's own permissions use -- an extension may want
+# `approve_assets` -- but narrow enough that a declared name cannot be
+# confused for a different permission once it is rendered in the Roles screen.
+PERMISSION_NAME_PATTERN = r"^[a-z][a-z0-9_]*$"

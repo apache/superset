@@ -30,6 +30,7 @@ from pydantic import BaseModel, computed_field, Field  # noqa: I001
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
     PAGE_PATH_PATTERN,
+    PERMISSION_NAME_PATTERN,
     PUBLISHER_PATTERN,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
@@ -62,6 +63,16 @@ class Page(BaseModel):
     nav: PageNav | None = Field(
         default=None,
         description="Navigation entry, when the page should appear in the menu",
+    )
+    permission: str | None = Field(
+        default=None,
+        description=(
+            "Permission a user must hold to open the page, granted on the "
+            "extension in the Roles screen. Omit to require only that the "
+            "user is signed in."
+        ),
+        pattern=PERMISSION_NAME_PATTERN,
+        max_length=100,
     )
 
 

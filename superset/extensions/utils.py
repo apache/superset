@@ -240,10 +240,11 @@ def get_loaded_extension(
 
 
 def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
-    from superset.extensions.view import registered_page_paths
+    from superset.extensions.view import permitted_page_paths, registered_page_paths
 
     manifest = extension.manifest
     registered = set(registered_page_paths(current_app, manifest.id))
+    permitted = permitted_page_paths(current_app, manifest)
     extension_data: dict[str, Any] = {
         "id": manifest.id,
         "publisher": manifest.publisher,
@@ -258,7 +259,14 @@ def build_extension_data(extension: LoadedExtension) -> dict[str, Any]:
         "contributions": {
             **manifest.contributions.model_dump(exclude_none=True),
             "pages": [
-                page.model_dump(exclude_none=True)
+                # `permitted` rather than filtering the page out: the
+                # extension's own bundle calls registerPage for every page it
+                # ships, and dropping one here would turn a permission the
+                # user lacks into a registration error in their console.
+                {
+                    **page.model_dump(exclude_none=True),
+                    "permitted": page.path in permitted,
+                }
                 for page in manifest.contributions.pages
                 if page.path in registered
             ],

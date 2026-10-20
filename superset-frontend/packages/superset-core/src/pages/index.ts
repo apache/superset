@@ -80,6 +80,18 @@ export interface Page {
     /** Defaults to the page's `name`. */
     label?: string;
   };
+  /**
+   * Permission a user must hold to open the page.
+   *
+   * Declared in the manifest; the host creates it against the extension when
+   * the extension loads, so an administrator can grant it in the Roles
+   * screen as, for example, `can_review on acme.tools`. The server refuses
+   * the page with 403 to anyone without it.
+   *
+   * Omit to require only that the user is signed in, which is how every page
+   * behaves without this field.
+   */
+  permission?: string;
 }
 
 /**
@@ -88,6 +100,15 @@ export interface Page {
 export interface ResolvedPage extends Page {
   /** The extension that contributed the page, as `publisher.name`. */
   extensionId: string;
+  /**
+   * Whether the signed-in user may open this page.
+   *
+   * Always true for a page that declares no `permission`. The host hides a
+   * page the user may not open from the navigation bar and renders a refusal
+   * in its place, and the server refuses it independently -- this is what
+   * the host knows, not what enforces it.
+   */
+  permitted: boolean;
 }
 
 /**

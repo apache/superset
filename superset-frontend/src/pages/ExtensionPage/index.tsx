@@ -61,6 +61,24 @@ export default function ExtensionPage() {
 
   const page = findPageByPath(stripAppRoot(pathname));
 
+  if (page && !page.permitted) {
+    // The server has already refused a cold load of this path with 403; this
+    // is the client-side arrival, where saying so beats rendering the page's
+    // chrome around data its own API calls will refuse one by one.
+    return (
+      <ErrorAlert
+        errorType={t('Not authorized')}
+        message={t('You do not have permission to open this page.')}
+        description={t(
+          'Ask an administrator to grant you the permission this page ' +
+            'requires on the extension that provides it.',
+        )}
+        type="warning"
+        closable={false}
+      />
+    );
+  }
+
   if (page) {
     return resolvePage(`${page.extensionId}:${page.path}`);
   }

@@ -49,7 +49,7 @@ export interface LoadedExtension extends Extension {
    * paths the extension is allowed to register a component against.
    */
   contributions?: {
-    pages?: { path: string }[];
+    pages?: { path: string; permitted?: boolean }[];
   };
 }
 
@@ -226,9 +226,7 @@ class ExtensionsLoader {
     // receives the same pre-bound instance. Parallel loading is safe because each
     // container gets its own scope with its own resolved module instance.
     const context = createExtensionContext(extension);
-    const declaredPagePaths = (extension.contributions?.pages ?? []).map(
-      page => page.path,
-    );
+    const declaredPages = extension.contributions?.pages ?? [];
     const scopedCore = {
       ...window.superset,
       extensions: {
@@ -245,7 +243,7 @@ class ExtensionsLoader {
       pages: {
         ...window.superset.pages,
         registerPage: (page: pagesApi.Page, component: ComponentType) =>
-          registerPageFor(extension.id, declaredPagePaths, page, component),
+          registerPageFor(extension.id, declaredPages, page, component),
       },
     };
     // Reuse the version key webpack already resolved for the host's own
