@@ -89,11 +89,21 @@ SMART_DATE = "smart_date"
 # verbatim, so a d3-only one would reach the report as literal text: ``%L`` and
 # ``%q`` stay ``%L`` and ``%q`` rather than becoming milliseconds and a quarter.
 # These are the directives that carry the same meaning in d3-time-format and in
-# ``strftime``. Left out are the locale-composite ones (``%c``, ``%x``, ``%X``),
-# whose output follows the server's locale rather than the chart's, and the
-# platform-dependent or d3-only ones (``%e``, ``%g``, ``%L``, ``%q``, ``%Q``,
-# ``%s``, ``%Z``, ``%z``).
-SHARED_TIME_DIRECTIVES = frozenset("aAbBdfGHIjmMpSuUVwWyY%")
+# ``strftime``. Left out are:
+#
+# * the ones that name a weekday, a month or a period (``%a``, ``%A``, ``%b``,
+#   ``%B``, ``%p``). The browser reads those names from the d3 locale
+#   definition, which ``D3_TIME_FORMAT`` overrides key by key, while
+#   ``strftime`` reads them from the worker's ``LC_TIME``. The two agree only
+#   when nothing is configured and the worker runs in English.
+# * the locale-composite ones (``%c``, ``%x``, ``%X``), whose output follows
+#   the server's locale rather than the chart's.
+# * ``%f``. d3 derives it from ``getUTCMilliseconds() * 1000``, so the browser's
+#   microseconds always end in ``000``, while a warehouse column with sub-second
+#   precision reaches ``strftime`` with the real value.
+# * the platform-dependent or d3-only ones (``%e``, ``%g``, ``%L``, ``%q``,
+#   ``%Q``, ``%s``, ``%Z``, ``%z``).
+SHARED_TIME_DIRECTIVES = frozenset("dGHIjmMSuUVwWyY%")
 
 # ``time-format/TimeFormats.ts::LOCAL_PREFIX``. The browser's registry removes
 # this marker from the format and formats in the viewer's own time zone instead
