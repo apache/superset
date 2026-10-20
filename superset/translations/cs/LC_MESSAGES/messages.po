@@ -13708,6 +13708,13 @@ msgstr "Posuňte se dolů pro povolení přepsání změn. "
 msgid "Search"
 msgstr "Hledat"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Hledat %s záznam"
+msgstr[1] "Hledat %s záznamy"
+msgstr[2] "Hledat %s záznamů"
+
 msgid "Search / Filter"
 msgstr "Hledat / Filtrovat"
 
@@ -13767,9 +13774,6 @@ msgstr "Hledat ve filtrech"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Hledat metriky a sloupce"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

@@ -45,6 +45,12 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: next
+      # Same suite as Python-Unit, whose babel_update.sh tests need gettext.
+      - name: Install gettext tools
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: gettext
+          version: 1.0
       - name: Python unit tests
         env:
           SUPERSET_TESTENV: true

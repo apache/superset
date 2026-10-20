@@ -21,7 +21,9 @@ from functools import partial
 from typing import Any
 
 from flask_appbuilder.models.sqla import Model
+from flask_babel import lazy_gettext as _
 from sqlalchemy.exc import SQLAlchemyError
+from superset_core.semantic_layers.view import SemanticView as SemanticViewABC
 
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
@@ -30,6 +32,7 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticLayerNotFoundError,
     SemanticViewCreateFailedError,
     SemanticViewForbiddenError,
+    SemanticViewInvalidError,
 )
 from superset.commands.semantic_layer.utils import validate_configuration
 from superset.commands.utils import current_user_can_modify_object
@@ -108,7 +111,46 @@ class CreateSemanticViewCommand(BaseCommand):
             raise SemanticViewForbiddenError()
 
         name: str = self._properties.get("name", "")
-        configuration: dict[str, Any] = self._properties.get("configuration") or {}
+        raw_configuration: dict[str, Any] | str = (
+            self._properties.get("configuration") or {}
+        )
+        try:
+            configuration: Any = (
+                json.loads(raw_configuration)
+                if isinstance(raw_configuration, str)
+                else raw_configuration
+            )
+        except ValueError:
+            configuration = None
+        if not isinstance(configuration, dict):
+            raise SemanticViewInvalidError(
+                _("The view configuration must be a JSON object.")
+            )
+        try:
+            view: SemanticViewABC | None = layer.implementation.get_semantic_view(
+                name, configuration
+            )
+        except Exception as ex:  # pylint: disable=broad-except
+            logger.warning(
+                "Semantic view lookup failed for layer %s, view %s: %s",
+                layer_uuid,
+                name,
+                type(ex).__name__,
+            )
+            view = None
+        if view is None:
+            logger.info(
+                "Semantic view lookup produced no view for layer %s, view %s",
+                layer_uuid,
+                name,
+            )
+            raise SemanticViewInvalidError(
+                _(
+                    "Couldn't validate this semantic view: it may not exist, "
+                    "or the semantic layer is unreachable."
+                )
+            ) from None
+
         if not SemanticViewDAO.validate_uniqueness(name, layer_uuid, configuration):
             raise ValueError(
                 f"Semantic view '{name}' already exists for this layer"

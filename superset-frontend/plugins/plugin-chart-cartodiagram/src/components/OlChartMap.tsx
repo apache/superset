@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 import Point from 'ol/geom/Point';
@@ -268,6 +268,22 @@ export const OlChartMap = (props: OlChartMapProps) => {
       });
     }
   }, [olMap, currentMapView.mode]);
+
+  /**
+   * Refit the map when new data arrives while the view fits the data.
+   * A dashboard auto-refresh keeps the chart mounted, so the initial
+   * extent effect above doesn't run again for the new rows.
+   */
+  const fittedChartConfigs = useRef(currentChartConfigs);
+  useEffect(() => {
+    if (currentChartConfigs === fittedChartConfigs.current) {
+      return;
+    }
+    fittedChartConfigs.current = currentChartConfigs;
+    if (currentMapView.mode === 'FIT_DATA') {
+      fitMapToCharts(olMap, currentChartConfigs);
+    }
+  }, [olMap, currentChartConfigs, currentMapView.mode]);
 
   /**
    * Send updated zoom to chart config control.

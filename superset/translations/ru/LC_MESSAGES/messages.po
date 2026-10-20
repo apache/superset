@@ -13263,6 +13263,13 @@ msgstr "Прокрутите вниз до конца для активации 
 msgid "Search"
 msgstr "Поиск"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Поиск %s записи"
+msgstr[1] "Поиск %s записи"
+msgstr[2] "Поиск %s записей"
+
 msgid "Search / Filter"
 msgstr "Поиск / Фильтр"
 
@@ -13316,9 +13323,6 @@ msgstr "Поиск в фильтрах"
 
 msgid "Search metrics by key or label"
 msgstr "Поиск мер по ключу или имени"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "Поиск тегов"

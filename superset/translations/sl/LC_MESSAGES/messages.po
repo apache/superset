@@ -13633,6 +13633,14 @@ msgstr "Pomaknite se do dna, da omogočite prepis sprememb. "
 msgid "Search"
 msgstr "Išči"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Išči %s zapis"
+msgstr[1] "Išči %s zapisa"
+msgstr[2] "Išči %s zapisi"
+msgstr[3] "Išči %s zapisov"
+
 msgid "Search / Filter"
 msgstr "Iskanje / Filter"
 
@@ -13686,9 +13694,6 @@ msgstr "Iskanje v filtrih"
 
 msgid "Search metrics by key or label"
 msgstr "Išči mere po ključu ali oznaki"
-
-msgid "Search records"
-msgstr "Išči zapise"
 
 msgid "Search tags"
 msgstr "Išči oznake"
