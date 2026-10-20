@@ -30,11 +30,13 @@ from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_babel import gettext, ngettext
 from marshmallow import ValidationError
 
-from superset import is_feature_enabled
+from superset import is_feature_enabled, security_manager
 from superset.charts.filters import ChartFilter
 from superset.commands.report.create import CreateReportScheduleCommand
 from superset.commands.report.delete import DeleteReportScheduleCommand
 from superset.commands.report.exceptions import (
+    ReportConfigConflictError,
+    ReportConfigUpdateFailedError,
     ReportScheduleCeleryNotConfiguredError,
     ReportScheduleCreateFailedError,
     ReportScheduleDeleteFailedError,
@@ -46,7 +48,9 @@ from superset.commands.report.exceptions import (
 )
 from superset.commands.report.execute_now import ExecuteReportScheduleNowCommand
 from superset.commands.report.update import UpdateReportScheduleCommand
+from superset.commands.report.update_config import UpdateReportConfigCommand
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
+from superset.daos.report import ReportConfigDAO
 from superset.dashboards.filters import DashboardAccessFilter
 from superset.databases.filters import DatabaseFilter
 from superset.exceptions import SupersetException
@@ -57,6 +61,8 @@ from superset.reports.schemas import (
     get_delete_ids_schema,
     get_slack_channels_schema,
     openapi_spec_methods_override,
+    ReportConfigImpactedSchema,
+    ReportConfigurationSchema,
     ReportScheduleExecuteResponseSchema,
     ReportSchedulePostSchema,
     ReportSchedulePutSchema,
@@ -81,6 +87,15 @@ logger = logging.getLogger(__name__)
 class ReportScheduleRestApi(BaseSupersetModelRestApi):
     datamodel = SQLAInterface(ReportSchedule)
 
+    def ensure_access_list_write_access(self, column_name: str) -> Optional[Response]:
+        """Only admins may search users for the per-schedule executors."""
+        if (
+            column_name in {"run_as", "run_alert_query_as"}
+            and not security_manager.is_admin()
+        ):
+            return self.response_403()
+        return super().ensure_access_list_write_access(column_name)
+
     @before_request
     def ensure_alert_reports_enabled(self) -> Optional[Response]:
         if not is_feature_enabled("ALERT_REPORTS"):
@@ -93,9 +108,15 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "slack_channels",  # not using RouteMethod since locally defined
         "subscribe",
         "execute",  # not using RouteMethod since locally defined
+        "get_configuration",
+        "put_configuration",
     }
     class_permission_name = "ReportSchedule"
-    method_permission_name = MODEL_API_RW_METHOD_PERMISSION_MAP
+    method_permission_name = {
+        **MODEL_API_RW_METHOD_PERMISSION_MAP,
+        "get_configuration": "read",
+        "put_configuration": "write",
+    }
     resource_name = "report"
     allow_browser_login = True
 
@@ -103,6 +124,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         **BaseSupersetModelRestApi.extra_fields_rel_fields,
         "created_by": ["email", "active"],
         "editors": ["type", "active", "secondary_label", "img"],
+        "run_as": ["email", "active"],
+        "run_alert_query_as": ["email", "active"],
     }
 
     base_filters = [
@@ -144,6 +167,14 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.recipient_config_json",
         "recipients.type",
         "report_format",
+        "run_as_type",
+        "run_alert_query_as_type",
+        "run_alert_query_as.first_name",
+        "run_alert_query_as.id",
+        "run_alert_query_as.last_name",
+        "run_as.first_name",
+        "run_as.id",
+        "run_as.last_name",
         "sql",
         "timezone",
         "type",
@@ -187,6 +218,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "recipients.id",
         "recipients.type",
         "report_format",
+        "run_as_type",
+        "run_as.id",
         "timezone",
         "type",
         "retry_on_failure",
@@ -214,6 +247,10 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "name",
         "recipients",
         "report_format",
+        "run_alert_query_as",
+        "run_as",
+        "run_as_type",
+        "run_alert_query_as_type",
         "sql",
         "timezone",
         "type",
@@ -265,6 +302,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "created_by",
         "changed_by",
         "editors",
+        "run_as",
+        "run_alert_query_as",
     }
 
     base_related_field_filters = {
@@ -273,6 +312,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "database": [["id", DatabaseFilter, lambda: []]],
         "created_by": [["id", BaseFilterRelatedUsers, lambda: []]],
         "changed_by": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "run_as": [["id", BaseFilterRelatedUsers, lambda: []]],
+        "run_alert_query_as": [["id", BaseFilterRelatedUsers, lambda: []]],
         "editors": [
             [
                 "type",
@@ -293,6 +334,8 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "database": "database_name",
         "created_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "changed_by": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "run_as": RelatedFieldFilter("first_name", FilterRelatedUsers),
+        "run_alert_query_as": RelatedFieldFilter("first_name", FilterRelatedUsers),
         "editors": RelatedFieldFilter("label", FilterRelatedSubjects),
     }
 
@@ -300,8 +343,142 @@ class ReportScheduleRestApi(BaseSupersetModelRestApi):
         "get_delete_ids_schema": get_delete_ids_schema,
         "get_slack_channels_schema": get_slack_channels_schema,
     }
+    openapi_spec_component_schemas = (
+        ReportConfigurationSchema,
+        ReportConfigImpactedSchema,
+    )
     openapi_spec_tag = "Report Schedules"
     openapi_spec_methods = openapi_spec_methods_override
+
+    configuration_schema = ReportConfigurationSchema()
+    impacted_schedule_schema = ReportConfigImpactedSchema()
+
+    @expose("/configuration/", methods=("GET",))
+    @protect()
+    @safe
+    @permission_name("read")
+    @statsd_metrics
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.get_configuration"
+        ),
+        log_to_statsd=False,
+    )
+    def get_configuration(self) -> Response:
+        """Get the global Alerts & Reports configuration.
+        ---
+        get:
+          summary: Get the global Alerts & Reports configuration
+          description: >-
+            Returns the values in effect for every setting: the stored value when
+            an admin saved one, otherwise the legacy application config or
+            feature flag fallback.
+          responses:
+            200:
+              description: Alerts & Reports configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/ReportConfigurationSchema'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        config = ReportConfigDAO.get_effective_config()
+        return self.response(200, result=self.configuration_schema.dump(config))
+
+    @expose("/configuration/", methods=("PUT",))
+    @protect()
+    @safe
+    @permission_name("write")
+    @statsd_metrics
+    @requires_json
+    @event_logger.log_this_with_context(
+        action=lambda self, *args, **kwargs: (
+            f"{self.__class__.__name__}.put_configuration"
+        ),
+        log_to_statsd=False,
+    )
+    def put_configuration(self) -> Response:
+        """Update the global Alerts & Reports configuration.
+        ---
+        put:
+          summary: Update the global Alerts & Reports configuration
+          description: >-
+            Admin only. Absent fields keep their value and ``null`` clears a
+            field without restoring its legacy fallback. Recipient restrictions
+            and minimum intervals are validated against existing alerts/reports.
+            When any conflicts, the configuration is not saved and the impacted
+            schedules are returned.
+          requestBody:
+            description: Alerts & Reports configuration
+            required: true
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/ReportConfigurationSchema'
+          responses:
+            200:
+              description: Configuration updated
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      result:
+                        $ref: '#/components/schemas/ReportConfigurationSchema'
+            400:
+              $ref: '#/components/responses/400'
+            401:
+              $ref: '#/components/responses/401'
+            403:
+              $ref: '#/components/responses/403'
+            422:
+              description: Existing schedules conflict with the configuration
+              content:
+                application/json:
+                  schema:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      impacted_schedules:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/ReportConfigImpactedSchema'
+            500:
+              $ref: '#/components/responses/500'
+        """
+        if not security_manager.is_admin():
+            return self.response_403()
+        try:
+            item = self.configuration_schema.load(request.json)
+        except ValidationError as error:
+            return self.response_400(message=error.messages)
+        try:
+            config = UpdateReportConfigCommand(item).run()
+            return self.response(200, result=self.configuration_schema.dump(config))
+        except ReportConfigConflictError as ex:
+            return self.response(
+                422,
+                message=str(ex),
+                impacted_schedules=self.impacted_schedule_schema.dump(
+                    ex.impacted_schedules, many=True
+                ),
+            )
+        except ReportConfigUpdateFailedError as ex:
+            logger.error(
+                "Error updating the Alerts & Reports configuration: %s",
+                str(ex),
+                exc_info=True,
+            )
+            return self.response_422(message=str(ex))
 
     @expose("/<int:pk>", methods=("DELETE",))
     @protect()

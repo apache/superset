@@ -16,7 +16,7 @@
 # under the License.
 import hashlib
 import logging
-from typing import Any
+from typing import Any, cast
 
 from flask import current_app as app, make_response, request, Response
 from flask_appbuilder.api import expose, protect, rison, safe
@@ -33,19 +33,29 @@ from superset.common.tabular_query import (
     resolve_explorable,
     ResolvedExplorable,
     TabularQueryValidationError,
+    validate_names,
     validate_query_names,
 )
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasource.schemas import DatasourceQuerySchema
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
     SupersetSecurityException,
 )
 from superset.extensions import cache_manager
+from superset.semantic_layers.access import SemanticLayersDisabledError
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
+from superset.semantic_layers.exceptions import (
+    SemanticLayerExecutionError,
+    SemanticLayerQueryRejectedError,
+)
 from superset.semantic_layers.mapper import SUPPORTED_FILTER_OPERATORS
+from superset.semantic_layers.models import SemanticView
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import (
@@ -55,6 +65,7 @@ from superset.utils.core import (
     parse_boolean_string,
     SqlExpressionType,
 )
+from superset.utils.error_sanitization import sanitize_error_message
 from superset.views.base_api import BaseSupersetApi, protect_read, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -64,12 +75,123 @@ SEARCH_CACHE_TIMEOUT = 60
 
 
 class _HttpError(Exception):
-    """Carries an HTTP status out of the shared resolve helper."""
+    """Carry an HTTP status and response payload out of the resolve helper."""
 
-    def __init__(self, status: int, message: str) -> None:
+    def __init__(
+        self, status: int, message: str, *, error: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(message)
-        self.status = status
-        self.message = message
+        self.status: int = status
+        self.payload: dict[str, Any] = {"message": message}
+        if error is not None:
+            self.payload["errors"] = [error]
+
+
+def _column_values_cache_key(
+    datasource: BaseDatasource | SemanticView, query: dict[str, Any]
+) -> str:
+    """Bind a value query to its producer guarantee and existing security scope."""
+    material: dict[str, Any] = dict(query)
+    if isinstance(datasource, SemanticView):
+        material["metadata_version"] = datasource.metadata_generation
+        discriminator: tuple[str, str] | None = datasource.result_cache_discriminator
+        if discriminator is not None:
+            material["semantic_result_version"] = discriminator
+    material.update(
+        uid=datasource.uid,
+        rls=security_manager.get_rls_cache_key(datasource),
+        changed_on=str(getattr(datasource, "changed_on", "")),
+    )
+    return (
+        "col_values:"
+        + hashlib.sha256(json.dumps(material, sort_keys=True).encode()).hexdigest()
+    )
+
+
+def get_cached_column_values(
+    datasource: BaseDatasource | SemanticView,
+    *,
+    column_name: str,
+    limit: int,
+    denormalize_column: bool,
+    array_elements: bool = False,
+    search: str | None = None,
+    selection_version: str | None = None,
+    force: bool = False,
+) -> tuple[list[Any], bool]:
+    """Return a column's distinct values through the shared ``data_cache`` entry.
+
+    Used by the column-values endpoint and by callers that read the same
+    values (e.g. the MCP filter validation), so they share cache entries and
+    a heavy virtual dataset's DISTINCT query runs once per key, not once per
+    caller (#39342).
+
+    Callers must have authorized the datasource (``raise_for_access``) first:
+    the key partitions entries by effective RLS, not by user, so the cache
+    itself is not an access check. ``search`` must already be stripped, with
+    ``None`` for "no search", so equal queries produce equal keys.
+
+    Returns ``(values, cache_hit)``. ``force`` skips the read and refreshes
+    the entry.
+    """
+    cache_key: str = _column_values_cache_key(
+        datasource,
+        {
+            **(
+                {"semantic_selection_version": selection_version}
+                if selection_version is not None
+                else {}
+            ),
+            "col": column_name,
+            "limit": limit,
+            "denorm": denormalize_column,
+            "elements": array_elements,
+            "q": search,
+        },
+    )
+    timeout: int = datasource.cache_timeout or app.config.get(
+        "CACHE_DEFAULT_TIMEOUT", 300
+    )
+    cached: list[Any] | None
+    if (
+        timeout != CACHE_DISABLED_TIMEOUT
+        and not force
+        and (cached := cache_manager.data_cache.get(cache_key)) is not None
+    ):
+        logger.debug(
+            "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
+        )
+        return cached, True
+    payload: list[Any] = datasource.values_for_column(
+        column_name=column_name,
+        limit=limit,
+        denormalize_column=denormalize_column,
+        array_elements=array_elements,
+        search=search,
+    )
+
+    # Warn before caching very large payloads (high-cardinality columns)
+    # so operators can spot cache-memory pressure before Redis OOMs.
+    # Threshold is operator-tunable; defaults to 100k rows.
+    warn_threshold: int = app.config.get("FILTER_VALUES_CACHE_WARN_THRESHOLD", 100_000)
+    payload_size: int
+    if (payload_size := len(payload)) > warn_threshold:
+        logger.warning(
+            "column-values payload exceeds cache-warn threshold: "
+            "uid=%s col=%s rows=%d threshold=%d",
+            datasource.uid,
+            column_name,
+            payload_size,
+            warn_threshold,
+        )
+
+    # Bound each distinct search term's lifetime instead of retaining one
+    # entry per keystroke for the full default timeout.
+    timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
+    if timeout != CACHE_DISABLED_TIMEOUT:
+        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
+    logger.debug("column-values cache MISS: uid=%s col=%s", datasource.uid, column_name)
+    return payload, False
 
 
 class DatasourceRestApi(BaseSupersetApi):
@@ -130,9 +252,18 @@ class DatasourceRestApi(BaseSupersetApi):
               type: string
             name: q
             description: >-
-              Optional case-insensitive substring; only values containing it are
-              returned. Lets the client search the full column rather than the
-              truncated first page.
+              Optional substring search for SQL dataset columns and text semantic
+              dimensions. Semantic non-text dimensions return the bounded page
+              without server-side search. Case sensitivity follows the datasource
+              or semantic provider.
+          - in: query
+            schema:
+              type: string
+            name: semantic_selection_version
+            description: >-
+              Identity version from the saved or explicitly initialized field
+              selections. Required for versioned semantic views; never infer it
+              from current datasource metadata for legacy selections.
           responses:
             200:
               description: A List of distinct values for the column
@@ -141,6 +272,13 @@ class DatasourceRestApi(BaseSupersetApi):
                   schema:
                     type: object
                     properties:
+                      suggestions_status:
+                        type: string
+                        enum: [unavailable_versioned_view]
+                        description: >-
+                          Selection provenance is missing or stale for this
+                          versioned semantic view; reselect fields or enter
+                          values manually.
                       result:
                         type: array
                         items:
@@ -172,20 +310,51 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except DatasourceTypeNotSupportedError as ex:
             return self.response(400, message=ex.message)
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        row_limit = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
-        denormalize_column = not datasource.normalize_columns
+        try:
+            return self._column_values_response(
+                datasource, datasource_type, column_name
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
+
+    def _column_values_response(
+        self, datasource: BaseDatasource, datasource_type: str, column_name: str
+    ) -> FlaskResponse:
+        """Return suggestions for an authorized datasource, gating before cache."""
+        # A saved display title may equal a different member's stable ID.
+        # Check the caller's selection version before cache access or value
+        # retrieval. The marker is the caller's assertion, not proof of
+        # provenance: anyone can copy it from datasource metadata. It only
+        # prevents stale-title collisions; authorization is enforced above.
+        selection_version: str | None = None
+        if datasource_type == DatasourceType.SEMANTIC_VIEW.value:
+            selection_version = cast(
+                SemanticView, datasource
+            ).implementation.selection_identity_version
+            if (
+                selection_version is not None
+                and request.args.get("semantic_selection_version") != selection_version
+            ):
+                return self.response(
+                    200,
+                    result=[],
+                    suggestions_status="unavailable_versioned_view",
+                )
+
+        row_limit: int = apply_max_row_limit(app.config["FILTER_SELECT_ROW_LIMIT"])
+        denormalize_column: bool = not datasource.normalize_columns
         # Element-level operators (Contains any / Contains all) request the
         # distinct array *elements* rather than distinct whole arrays.
-        array_elements = parse_boolean_string(request.args.get("array_elements"))
+        array_elements: bool = parse_boolean_string(request.args.get("array_elements"))
         # Server-side search. Without it the client can only match against the
         # bounded first page, so a value beyond ``FILTER_SELECT_ROW_LIMIT`` is
         # unfindable on a high-cardinality column.
-        search = (request.args.get("q") or "").strip() or None
+        search: str | None = (request.args.get("q") or "").strip() or None
 
         # Cache distinct column-value results so a dashboard with many filters
         # backed by the same (often heavy) virtual dataset doesn't re-execute
@@ -208,45 +377,26 @@ class DatasourceRestApi(BaseSupersetApi):
         #   underlying SQL is edited.
         # - ``uid`` / ``col`` / ``limit`` / ``denorm`` — basic query-shape
         #   isolation so different inputs never collide.
-        force = parse_boolean_string(request.args.get("force"))
-        cache_key = (
-            "col_values:"
-            + hashlib.sha256(
-                json.dumps(
-                    {
-                        "uid": datasource.uid,
-                        "col": column_name,
-                        "limit": row_limit,
-                        "denorm": denormalize_column,
-                        "elements": array_elements,
-                        "q": search,
-                        "rls": security_manager.get_rls_cache_key(datasource),
-                        "changed_on": str(getattr(datasource, "changed_on", "")),
-                    },
-                    sort_keys=True,
-                ).encode()
-            ).hexdigest()
-        )
-
-        if (
-            not force
-            and (cached := cache_manager.data_cache.get(cache_key)) is not None
-        ):
-            logger.debug(
-                "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
-            )
-            response = self.response(200, result=cached, limit=row_limit)
-            response.headers["X-Cache-Status"] = "HIT"
-            return response
-
+        # - ``semantic_result_version`` — opt-in producer guarantee, omitted
+        #   for SDK-default providers to preserve their legacy key bytes.
+        force: bool = parse_boolean_string(request.args.get("force"))
         try:
-            payload = datasource.values_for_column(
+            payload, cache_hit = get_cached_column_values(
+                datasource,
                 column_name=column_name,
                 limit=row_limit,
                 denormalize_column=denormalize_column,
                 array_elements=array_elements,
                 search=search,
+                selection_version=selection_version,
+                force=force,
             )
+        except (SemanticLayerQueryRejectedError, SemanticLayerExecutionError) as ex:
+            return self.response(ex.status, message=ex.message)
+        except QueryObjectValidationError as ex:
+            # Validation errors can quote dataset SQL; embedded guests get the
+            # same generic text as the chart-data API.
+            return self.response(400, message=sanitize_error_message(str(ex)))
         except KeyError:
             return self.response(
                 400, message=f"Column name {column_name} does not exist"
@@ -260,33 +410,8 @@ class DatasourceRestApi(BaseSupersetApi):
                 ),
             )
 
-        # Warn before caching very large payloads (high-cardinality columns)
-        # so operators can spot cache-memory pressure before Redis OOMs.
-        # Threshold is operator-tunable; defaults to 100k rows.
-        warn_threshold = app.config.get("FILTER_VALUES_CACHE_WARN_THRESHOLD", 100_000)
-        if (payload_size := len(payload)) > warn_threshold:
-            logger.warning(
-                "column-values payload exceeds cache-warn threshold: "
-                "uid=%s col=%s rows=%d threshold=%d",
-                datasource.uid,
-                column_name,
-                payload_size,
-                warn_threshold,
-            )
-
-        timeout = datasource.cache_timeout or app.config.get(
-            "CACHE_DEFAULT_TIMEOUT", 300
-        )
-        if search:
-            # Every distinct search term is its own key, so a few users typing
-            # would otherwise pin one entry per keystroke for the full timeout.
-            timeout = min(timeout, SEARCH_CACHE_TIMEOUT)
-        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
-        logger.debug(
-            "column-values cache MISS: uid=%s col=%s", datasource.uid, column_name
-        )
-        response = self.response(200, result=payload, limit=row_limit)
-        response.headers["X-Cache-Status"] = "MISS"
+        response: Response = self.response(200, result=payload, limit=row_limit)
+        response.headers["X-Cache-Status"] = "HIT" if cache_hit else "MISS"
         return response
 
     @expose(
@@ -399,7 +524,7 @@ class DatasourceRestApi(BaseSupersetApi):
             return self.response(400, message=str(ex))
         except DatasourceTypeNotSupportedError as ex:
             return self.response(400, message=ex.message)
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
@@ -467,8 +592,12 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
-    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
-        """Return metrics and dimensions compatible with the current selection.
+    def compatible(  # noqa: C901
+        self, datasource_type: str, datasource_id: int
+    ) -> FlaskResponse:
+        """Return compatible members, refusing unknown selected names with a 400.
+
+        Non-string entries in selection lists do not select datasource members.
         ---
         post:
           summary: Get compatible metrics and dimensions
@@ -535,14 +664,60 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except DatasourceTypeNotSupportedError as ex:
             return self.response(400, message=ex.message)
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             return self.response(404, message=ex.message)
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        body = request.get_json(silent=True) or {}
-        selected_metrics = body.get("selected_metrics", [])
-        selected_dimensions = body.get("selected_dimensions", [])
+        body: Any = request.get_json(silent=True) or {}
+        raw_metrics: object = body.get("selected_metrics", [])
+        raw_dimensions: object = body.get("selected_dimensions", [])
+        if not isinstance(raw_metrics, list) or not isinstance(raw_dimensions, list):
+            return self.response(
+                400, message="selected_metrics and selected_dimensions must be lists"
+            )
+
+        selected_metrics: list[str] = [
+            name for name in raw_metrics if isinstance(name, str)
+        ]
+        selected_dimensions: list[str] = [
+            name for name in raw_dimensions if isinstance(name, str)
+        ]
+
+        # Check names before the result cache: live datasource members can change
+        # without invalidating a previously cached compatibility result.
+        selection_errors: list[str] = []
+        if selected_metrics:
+            selection_errors.extend(
+                validate_names(
+                    selected_metrics,
+                    {metric.metric_name for metric in datasource.metrics},
+                    "metric",
+                )
+            )
+        if selected_dimensions:
+            try:
+                selection_errors.extend(
+                    validate_names(
+                        selected_dimensions,
+                        {dimension.column_name for dimension in datasource.columns},
+                        "dimension",
+                    )
+                )
+            except AmbiguousDimensionError as ex:
+                return self.response(400, message=str(ex))
+        if selection_errors:
+            return self.response(400, message="; ".join(selection_errors))
+
+        try:
+            datasource_uid: str = datasource.uid
+            metadata_version: str | None = (
+                datasource.metadata_generation
+                if isinstance(datasource, SemanticView)
+                else None
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
@@ -551,7 +726,9 @@ class DatasourceRestApi(BaseSupersetApi):
             + hashlib.sha256(
                 json.dumps(
                     {
-                        "uid": datasource.uid,
+                        "uid": datasource_uid,
+                        "changed_on": str(getattr(datasource, "changed_on", "")),
+                        "metadata_version": metadata_version,
                         "m": sorted(selected_metrics),
                         "d": sorted(selected_dimensions),
                     },
@@ -560,22 +737,30 @@ class DatasourceRestApi(BaseSupersetApi):
             ).hexdigest()
         )
 
-        if (cached := cache_manager.data_cache.get(cache_key)) is not None:
-            return self.response(200, result=cached)
-
-        result = {
-            "compatible_metrics": datasource.get_compatible_metrics(
-                selected_metrics, selected_dimensions
-            ),
-            "compatible_dimensions": datasource.get_compatible_dimensions(
-                selected_metrics, selected_dimensions
-            ),
-        }
-
-        timeout = datasource.cache_timeout or app.config.get(
+        timeout: int = datasource.cache_timeout or app.config.get(
             "CACHE_DEFAULT_TIMEOUT", 300
         )
-        cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+        cached: dict[str, list[str]] | None
+        if (
+            timeout != CACHE_DISABLED_TIMEOUT
+            and (cached := cache_manager.data_cache.get(cache_key)) is not None
+        ):
+            return self.response(200, result=cached)
+
+        try:
+            result: dict[str, list[str]] = {
+                "compatible_metrics": datasource.get_compatible_metrics(
+                    selected_metrics, selected_dimensions
+                ),
+                "compatible_dimensions": datasource.get_compatible_dimensions(
+                    selected_metrics, selected_dimensions
+                ),
+            }
+        except AmbiguousDimensionError as ex:
+            return self.response(400, message=str(ex))
+
+        if timeout != CACHE_DISABLED_TIMEOUT:
+            cache_manager.data_cache.set(cache_key, result, timeout=timeout)
 
         return self.response(200, result=result)
 
@@ -583,10 +768,6 @@ class DatasourceRestApi(BaseSupersetApi):
         self, datasource_type: str, datasource_id: int, payload: dict[str, Any]
     ) -> ResolvedExplorable:
         """Resolve + authorize, translating DAO/security errors to HTTP."""
-        if DatasourceType(
-            datasource_type
-        ) == DatasourceType.SEMANTIC_VIEW and not is_feature_enabled("SEMANTIC_LAYERS"):
-            raise _HttpError(404, "Semantic views are not enabled.")
         try:
             return resolve_explorable(
                 datasource_type,
@@ -596,9 +777,14 @@ class DatasourceRestApi(BaseSupersetApi):
             )
         except DatasourceTypeNotSupportedError as ex:
             raise _HttpError(400, ex.message) from ex
-        except DatasourceNotFound as ex:
+        except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             raise _HttpError(404, ex.message) from ex
         except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise _HttpError(403, ex.message, error=ex.to_dict()) from ex
             raise _HttpError(403, ex.message) from ex
         except TabularQueryValidationError as ex:
             raise _HttpError(400, str(ex)) from ex
@@ -664,7 +850,7 @@ class DatasourceRestApi(BaseSupersetApi):
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, payload)
         except _HttpError as ex:
-            return self.response(ex.status, message=ex.message)
+            return self.response(ex.status, **ex.payload)
         except ValueError:
             return self.response(
                 400, message=f"Invalid datasource type: {datasource_type}"
@@ -751,6 +937,7 @@ class DatasourceRestApi(BaseSupersetApi):
             time_range=payload["time_range"],
             time_grain=payload["time_grain"],
             grain_column=grain_column,
+            semantic_selection_version=payload.get("semantic_selection_version"),
             rewrite_one_sided_time_range=(
                 resolved.explorable.type == DatasourceType.SEMANTIC_VIEW.value
             ),
@@ -857,7 +1044,7 @@ class DatasourceRestApi(BaseSupersetApi):
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, {})
         except _HttpError as ex:
-            return self.response(ex.status, message=ex.message)
+            return self.response(ex.status, **ex.payload)
         except ValueError:
             return self.response(
                 400, message=f"Invalid datasource type: {datasource_type}"

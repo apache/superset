@@ -55,6 +55,10 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_groupby_inline = True
+    # ClickHouse resolves an identifier to a SELECT alias first, in every clause:
+    # with `toStartOfDay(toDateTime(ts)) AS ts`, `GROUP BY toStartOfDay(...(ts))`
+    # re-truncates the alias and `WHERE ts >= ...` filters on the bucket.
+    select_alias_shadows_source_column = True
     supports_multivalues_insert = True
     supports_multivalue_columns = True
 
@@ -266,7 +270,8 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
             "ClickHouse is an open-source column-oriented database for real-time "
             "analytics using SQL (legacy clickhouse-sqlalchemy driver)."
         ),
-        "logo": "clickhouse.png",
+        "logo": "clickhouse.svg",
+        "logo_dark": "clickhouse-dark.svg",
         "homepage_url": "https://clickhouse.com/",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
@@ -416,25 +421,29 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             "analytics using SQL. It's known for extremely fast query performance "
             "on large datasets."
         ),
-        "logo": "clickhouse.png",
+        "logo": "clickhouse.svg",
+        "logo_dark": "clickhouse-dark.svg",
         "homepage_url": "https://clickhouse.com/",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["clickhouse-connect>=0.13.0"],
+        "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "drivers": [
             {
-                "name": "clickhouse-connect (Recommended)",
-                "pypi_package": "clickhouse-connect>=0.13.0",
+                "name": "clickhouse-connect",
+                "pypi_package": "clickhouse-connect>=1.8.0,<2.0",
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}:{port}/{database}"
                 ),
                 "is_recommended": True,
+                "docs_url": "https://github.com/ClickHouse/clickhouse-connect",
                 "notes": (
-                    "Official ClickHouse Python driver with native protocol support."
+                    "Official ClickHouse Python driver using HTTP(S). Use the HTTP "
+                    "port (8123 by default), or the HTTPS port with secure=true "
+                    "(8443 for ClickHouse Cloud). Native TCP ports are not supported."
                 ),
             },
             {
@@ -452,6 +461,20 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         ],
         "connection_examples": [
             {
+                "description": (
+                    "ClickHouse Cloud SQL playground (demo user, no password)"
+                ),
+                "connection_string": (
+                    "clickhousedb://demo:@sql-clickhouse.clickhouse.com:8443/uk?secure=true"
+                ),
+            },
+            {
+                "description": "ClickHouse Cloud (HTTPS)",
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
+                ),
+            },
+            {
                 "description": "Altinity Cloud",
                 "connection_string": (
                     "clickhousedb://demo:demo@github.demo.trial.altinity.cloud"
@@ -459,12 +482,26 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                 ),
             },
             {
-                "description": "Local (no auth, no SSL)",
-                "connection_string": "clickhousedb://localhost/default",
+                "description": "Local (default user, no password, no TLS)",
+                "connection_string": "clickhousedb://default@localhost:8123/default",
             },
         ],
         "install_instructions": (
-            'echo "clickhouse-connect>=0.13.0" >> ./docker/requirements-local.txt'
+            "# For a Python environment\n"
+            'pip install "clickhouse-connect>=1.8.0,<2.0"\n\n'
+            "# For the repository Docker Compose setup\n"
+            'echo "clickhouse-connect>=1.8.0,<2.0" >> ./docker/requirements-local.txt\n'
+            "# Restart the containers after adding the driver."
+        ),
+        "docs_url": "https://clickhouse.com/docs/integrations/superset",
+        "notes": (
+            "The SQL playground at sql.clickhouse.com uses the database endpoint "
+            "sql-clickhouse.clickhouse.com; the example connects to its uk sample "
+            "database. "
+            "URL-encode special characters in usernames and passwords when building "
+            "a SQLAlchemy URI. Use database credentials, not your ClickHouse Cloud "
+            "console sign-in. For Docker deployments, localhost refers to the "
+            "Superset container; use a hostname reachable from that container."
         ),
         "compatible_databases": [
             {
@@ -474,24 +511,39 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     "for ClickHouse. It provides automatic scaling, built-in "
                     "backups, and enterprise security features."
                 ),
-                "logo": "clickhouse.png",
+                "logo": "clickhouse-mark.svg",
+                "logo_dark": "clickhouse-mark-dark.svg",
                 "homepage_url": "https://clickhouse.cloud/",
                 "categories": [
                     DatabaseCategory.ANALYTICAL_DATABASES,
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "pypi_packages": ["clickhouse-connect>=0.13.0"],
+                "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
                 ),
                 "parameters": {
-                    "username": "ClickHouse Cloud username",
-                    "password": "ClickHouse Cloud password",
-                    "host": "Your ClickHouse Cloud hostname",
+                    "username": (
+                        "Database username from the service Connect dialog "
+                        "(default: default)"
+                    ),
+                    "password": (
+                        "URL-encoded database password from the service Connect dialog"
+                    ),
+                    "host": "HTTPS hostname from the service Connect dialog",
                     "database": "Database name (default)",
                 },
-                "docs_url": "https://clickhouse.com/docs/en/cloud",
+                "docs_url": (
+                    "https://clickhouse.com/docs/products/cloud/"
+                    "getting-started/cloud-get-started"
+                ),
+                "notes": (
+                    "Open your service in the ClickHouse Cloud console and select "
+                    "Connect to find the HTTPS endpoint and database credentials. "
+                    "For public connections, allow the Superset server IP address "
+                    "in the service IP access list."
+                ),
             },
             {
                 "name": "Altinity.Cloud",
@@ -506,7 +558,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "pypi_packages": ["clickhouse-connect>=0.13.0"],
+                "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}/{database}?secure=true"
                 ),

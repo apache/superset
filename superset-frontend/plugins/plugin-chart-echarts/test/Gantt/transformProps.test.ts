@@ -259,11 +259,8 @@ describe('Gantt transformProps', () => {
           position: 'start',
           formatter: '{b}',
           color: 'rgba(0,0,0,0.88)',
-          // Must match the font size measureTextWidth assumed when reserving
-          // `categoryLabelWidth`, or the rendered label overflows the room
-          // that was reserved for it.
           fontSize: supersetTheme.fontSizeSM,
-          // room reserved for the category name, truncated past the cap
+          fontFamily: supersetTheme.fontFamily,
           width: expect.any(Number),
           overflow: 'truncate',
         },
@@ -275,6 +272,212 @@ describe('Gantt transformProps', () => {
         symbol: ['none', 'none'],
       },
     });
+  });
+});
+
+describe('category label width reservation', () => {
+  test('reserves the ink extent of the widest label, not just its narrower advance width', () => {
+    // Simulates a glyph whose visible ink extends past the metrics.width
+    // advance value returned by measureText (e.g. italics, or glyphs whose
+    // ink overhangs the pen advance).
+    // The grid must grow to fit the ink extent, or the previous
+    // "prevent cut off" fix (#39137) regresses back to clipped labels.
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
+    try {
+      // "first" always measures narrower than "second" so "second" alone
+      // drives maxCategoryLabelWidth in both runs below.
+      getContext.mockReturnValue({
+        measureText: (text: string) =>
+          text === 'second'
+            ? {
+                width: 10,
+                actualBoundingBoxLeft: 0,
+                actualBoundingBoxRight: 10,
+              }
+            : { width: 5, actualBoundingBoxLeft: 0, actualBoundingBoxRight: 5 },
+      } as never);
+      const withoutOverhang = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      getContext.mockReturnValue({
+        measureText: (text: string) =>
+          text === 'second'
+            ? {
+                width: 10,
+                actualBoundingBoxLeft: 5,
+                actualBoundingBoxRight: 45,
+              }
+            : { width: 5, actualBoundingBoxLeft: 0, actualBoundingBoxRight: 5 },
+      } as never);
+      const withOverhang = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      const noOverhangLeft = (
+        withoutOverhang.echartOptions.grid as { left: number }
+      ).left;
+      const overhangLeft = (withOverhang.echartOptions.grid as { left: number })
+        .left;
+
+      // Ink extent for "second" is 5 + 45 = 50 vs. its 10px advance width;
+      // the reserved space must grow by the full 40px difference.
+      expect(overhangLeft - noOverhangLeft).toBe(40);
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
+  test('reserves the advance width when bounding-box metrics are absent', () => {
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
+    try {
+      getContext.mockReturnValue({
+        measureText: (text: string) =>
+          text === 'second'
+            ? {
+                width: 10,
+                actualBoundingBoxLeft: 0,
+                actualBoundingBoxRight: 10,
+              }
+            : { width: 5, actualBoundingBoxLeft: 0, actualBoundingBoxRight: 5 },
+      } as never);
+      const withMetrics = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      // Same advance widths, but no actualBoundingBox* fields at all.
+      getContext.mockReturnValue({
+        measureText: (text: string) => ({ width: text === 'second' ? 10 : 5 }),
+      } as never);
+      const withoutMetrics = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      const withMetricsLeft = (
+        withMetrics.echartOptions.grid as { left: number }
+      ).left;
+      const withoutMetricsLeft = (
+        withoutMetrics.echartOptions.grid as { left: number }
+      ).left;
+
+      expect(withoutMetricsLeft).not.toBeNaN();
+      expect(withoutMetricsLeft).toBe(withMetricsLeft);
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
+  test('reserves an approximate width when canvas is unavailable', () => {
+    const getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(null);
+    try {
+      const transformed = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+      const categoryLabelSeries = (
+        transformed.echartOptions.series as Array<{
+          markLine?: { label?: { show?: boolean; width?: number } };
+        }>
+      ).find(series => series.markLine?.label?.show);
+
+      // "second" is the widest category name (6 chars) at ~0.62em per char,
+      // plus the 1px ECharts reserves before truncating.
+      expect(categoryLabelSeries?.markLine?.label?.width).toBe(
+        Math.ceil('second'.length * supersetTheme.fontSizeSM * 0.62) + 1,
+      );
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
+  test('sizes the label box so ECharts does not truncate the widest name', () => {
+    // ECharts' `overflow: 'truncate'` only keeps text that fits in
+    // `width - 1`, so a box exactly as wide as the text cuts off its last
+    // glyph. The widest name here measures an integral 142px.
+    const getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: (text: string) =>
+          text === 'second'
+            ? {
+                width: 142,
+                actualBoundingBoxLeft: 0,
+                actualBoundingBoxRight: 141,
+              }
+            : {
+                width: 50,
+                actualBoundingBoxLeft: 0,
+                actualBoundingBoxRight: 50,
+              },
+      } as never);
+    try {
+      const transformed = transformProps(
+        new ChartProps({
+          ...chartPropsConfig,
+          width: 1000,
+        }) as EchartsGanttChartProps,
+      );
+      const categoryLabelSeries = (
+        transformed.echartOptions.series as Array<{
+          markLine?: { label?: { show?: boolean; width?: number } };
+        }>
+      ).find(series => series.markLine?.label?.show);
+      const labelWidth = categoryLabelSeries?.markLine?.label?.width ?? 0;
+
+      expect(labelWidth - 1).toBeGreaterThanOrEqual(142);
+    } finally {
+      getContext.mockRestore();
+    }
+  });
+
+  test('measures label width using the exact font the label is rendered in', () => {
+    let capturedFont = '';
+    const getContext = jest.spyOn(HTMLCanvasElement.prototype, 'getContext');
+    try {
+      getContext.mockReturnValue({
+        set font(value: string) {
+          capturedFont = value;
+        },
+        get font() {
+          return capturedFont;
+        },
+        measureText: (text: string) => ({
+          width: text.length * 7,
+          actualBoundingBoxLeft: 0,
+          actualBoundingBoxRight: text.length * 7,
+        }),
+      } as never);
+
+      const transformed = transformProps(
+        new ChartProps(chartPropsConfig) as EchartsGanttChartProps,
+      );
+
+      expect(capturedFont).toBe(
+        `${supersetTheme.fontSizeSM}px ${supersetTheme.fontFamily}`,
+      );
+
+      const categoryLabelSeries = (
+        transformed.echartOptions.series as Array<{
+          markLine?: {
+            label?: {
+              show?: boolean;
+              fontSize?: number;
+              fontFamily?: string;
+            };
+          };
+        }>
+      ).find(series => series.markLine?.label?.show);
+
+      // The rendered label must use the same font as the measurement, or the
+      // reserved grid space can fall out of sync with the painted text again.
+      expect(categoryLabelSeries?.markLine?.label).toMatchObject({
+        fontSize: supersetTheme.fontSizeSM,
+        fontFamily: supersetTheme.fontFamily,
+      });
+    } finally {
+      getContext.mockRestore();
+    }
   });
 });
 
@@ -424,7 +627,7 @@ test('reserves grid room for category names so they are not clipped (#38844)', (
   expect(categoryMarkLine.markLine.label.overflow).toBe('truncate');
   expect(categoryMarkLine.markLine.label.width).toBeGreaterThan(0);
   expect(categoryMarkLine.markLine.label.width).toBeLessThanOrEqual(800 * 0.25);
-  // the label must render at the font size measureTextWidth assumed above,
+  // the label must render at the font size used for measurement above,
   // or the reserved width won't match what actually gets drawn (#43189)
   expect(categoryMarkLine.markLine.label.fontSize).toBe(
     supersetTheme.fontSizeSM,
