@@ -174,7 +174,7 @@ function buildTimeseriesCustomLegend({
   interactive: boolean;
   legendNames: string[];
   legendState?: LegendState;
-  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
+  orientation: LegendOrientation;
   series: SeriesOption[];
 }): TimeseriesCustomLegend {
   const firstSeriesByName = new Map<string, SeriesOption>();
@@ -1387,7 +1387,9 @@ export default function transformProps(
     isLegendVisible &&
     legendType === LegendType.Plain &&
     (legendOrientation === LegendOrientation.Top ||
-      legendOrientation === LegendOrientation.Bottom);
+      legendOrientation === LegendOrientation.Bottom ||
+      legendOrientation === LegendOrientation.Left ||
+      legendOrientation === LegendOrientation.Right);
   const nativeLegendVisible = isLegendVisible && !usesCustomLegend;
   // Use the exact final ordering ECharts receives. Forecast components share
   // a legend name, and ECharts takes the first matching series as its visual.
