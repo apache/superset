@@ -17,8 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import { useTheme } from '@apache-superset/core/theme';
-import { Button, Modal, Space } from '@superset-ui/core/components';
+import { ConfirmModal } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { queryCostWarningMetrics } from 'src/features/databases/queryCostWarning';
 import type { WarningEstimate } from './useQueryCostWarning';
@@ -33,63 +32,50 @@ export default function QueryCostWarningDialog({
   onCancel: () => void;
   onContinue: () => void;
 }) {
-  const theme = useTheme();
   const format = (value: number | bigint) =>
     typeof value === 'bigint'
       ? value.toLocaleString()
       : value.toLocaleString(undefined, { maximumSignificantDigits: 21 });
   return (
-    <Modal
+    <ConfirmModal
       show={!!estimate}
-      title={
-        <Space size="small">
-          <Icons.WarningOutlined
-            iconColor={theme.colorWarning}
-            aria-hidden="true"
-          />
-          {t('Query cost warning')}
-        </Space>
-      }
       onHide={onCancel}
-      footer={
-        <>
-          <Button buttonStyle="secondary" onClick={onCancel}>
-            {t('Cancel')}
-          </Button>
-          <Button buttonStyle="primary" onClick={onContinue}>
-            {estimate?.status === 'unavailable'
-              ? t('Run without estimate')
-              : t('Run anyway')}
-          </Button>
-        </>
+      onConfirm={onContinue}
+      title={t('Query cost warning')}
+      icon={<Icons.WarningOutlined iconSize="m" aria-hidden="true" />}
+      confirmText={
+        estimate?.status === 'unavailable'
+          ? t('Run without estimate')
+          : t('Run anyway')
       }
-    >
-      {estimate && (
-        <>
-          <p>{estimate.message}</p>
-          {estimate.value !== null && (
+      body={
+        estimate && (
+          <>
+            <p>{estimate.message}</p>
+            {estimate.value !== null && (
+              <p>
+                {estimate.label}:{' '}
+                <strong>
+                  {format(estimate.value)} {estimate.unit}
+                </strong>
+                {estimate.accuracy === 'LOWER_BOUND' && (
+                  <> ({t('lower bound')})</>
+                )}
+                {estimate.accuracy === 'UPPER_BOUND' && (
+                  <> ({t('upper bound')})</>
+                )}
+              </p>
+            )}
             <p>
-              {estimate.label}:{' '}
+              {t('Warning threshold')}:{' '}
               <strong>
-                {format(estimate.value)} {estimate.unit}
+                {format(estimate.threshold)} {estimate.unit}
               </strong>
-              {estimate.accuracy === 'LOWER_BOUND' && (
-                <> ({t('lower bound')})</>
-              )}
-              {estimate.accuracy === 'UPPER_BOUND' && (
-                <> ({t('upper bound')})</>
-              )}
             </p>
-          )}
-          <p>
-            {t('Warning threshold')}:{' '}
-            <strong>
-              {format(estimate.threshold)} {estimate.unit}
-            </strong>
-          </p>
-          <p>{queryCostWarningMetrics[estimate.metric].explanation()}</p>
-        </>
-      )}
-    </Modal>
+            <p>{queryCostWarningMetrics[estimate.metric].explanation()}</p>
+          </>
+        )
+      }
+    />
   );
 }
