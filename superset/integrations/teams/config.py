@@ -87,13 +87,22 @@ def _uuid(value: object, path: str) -> str:
     return str(parsed)
 
 
+def validate_team_id(value: object) -> str:
+    """Match installation identity limits without rewriting operator-supplied IDs."""
+    if not isinstance(value, str) or not value.strip() or len(value) > 255:
+        raise TeamsConfigError("Teams team ID must contain 1 to 255 characters")
+    if value != value.strip():
+        raise TeamsConfigError("Teams team ID must not have surrounding whitespace")
+    return value
+
+
 def parse_teams_config(value: object) -> TeamsConfig | None:
     """Validate ALERT_REPORTS_TEAMS; an empty mapping leaves Teams unconfigured.
 
     This parser performs no network calls and imports no optional Teams dependency.
     Operators must approve standard channels in the configured tenant. Channel IDs
     alone cannot establish membership or distinguish standard/private/shared types.
-    Feature gating and Teams metadata checks belong to the future delivery layer.
+    Feature gating and authenticated Teams metadata checks run outside this parser.
     """
     if isinstance(value, Mapping) and not value:
         return None
@@ -121,7 +130,7 @@ def parse_teams_config(value: object) -> TeamsConfig | None:
         if not re.fullmatch(r"[a-zA-Z0-9][a-zA-Z0-9_-]{0,127}", key):
             raise TeamsConfigError("Teams destination key must be a stable identifier")
         label = _text(destination["label"], "Teams destination label")
-        team_id = _text(destination["team_id"], "Teams destination team_id")
+        team_id = validate_team_id(destination["team_id"])
         channel_id = _text(destination["channel_id"], "Teams destination channel_id")
         if key in keys or (team_id, channel_id) in channels:
             raise TeamsConfigError("Teams destination keys and channels must be unique")

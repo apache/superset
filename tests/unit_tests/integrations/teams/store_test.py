@@ -281,3 +281,21 @@ def test_migration_downgrade_and_reupgrade(engine: Engine, session: Session) -> 
             migration.upgrade()
             assert "teams_installations" in inspect(connection).get_table_names()
             assert connection.execute(select(TeamsInstallation.id)).all() == []
+
+
+@pytest.mark.parametrize("team_id", ["t" * 256, " team-1", "team-1 ", "\tteam-1\n"])
+@pytest.mark.parametrize("operation", ["install", "remove", "get_active"])
+def test_store_rejects_invalid_team_ids_consistently(
+    session: Session,
+    team_id: str,
+    operation: str,
+) -> None:
+    """Authenticated event persistence shares the deployment identifier validator."""
+    store = TeamsInstallationStore(session)
+    args: tuple[str, ...] = (TENANT, APPLICATION, team_id)
+    if operation == "install":
+        args = (*args, SERVICE_URL)
+    method = getattr(store, operation)
+    with pytest.raises(ValueError, match="Teams team ID"):
+        method(*args)
+    assert session.query(TeamsInstallation).count() == 0
