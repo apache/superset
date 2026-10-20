@@ -95,6 +95,7 @@
                           "UNKNOWN_DATASOURCE_TYPE_ERROR",
                           "FAILED_FETCHING_DATASOURCE_INFO_ERROR",
                           "TABLE_SECURITY_ACCESS_ERROR",
+                          "SEMANTIC_EXECUTION_REFUSED_ERROR",
                           "DATASOURCE_SECURITY_ACCESS_ERROR",
                           "DATABASE_SECURITY_ACCESS_ERROR",
                           "QUERY_SECURITY_ACCESS_ERROR",
@@ -3925,6 +3926,10 @@
             "type": "boolean"
           },
           "main_dttm_col": {
+            "type": "string"
+          },
+          "metadata_error": {
+            "description": "Validation error for this dataset only.",
             "type": "string"
           },
           "metrics": {

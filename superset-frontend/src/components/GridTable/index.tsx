@@ -159,6 +159,13 @@ export function GridTable<RecordType extends object>({
     [rowHeight, headerHeight],
   );
 
+  // ag-grid paints its sticky header and pinned containers with the data
+  // background, so it must be opaque or scrolled rows show through them.
+  const gridThemeOverrides = useMemo(
+    () => ({ backgroundColor: theme.colorBgContainer, ...themeOverrides }),
+    [theme.colorBgContainer, themeOverrides],
+  );
+
   return (
     <div
       css={css`
@@ -207,7 +214,7 @@ export function GridTable<RecordType extends object>({
         components={gridComponents}
         gridOptions={gridOptions}
         onCellKeyDown={onKeyDown}
-        themeOverrides={themeOverrides}
+        themeOverrides={gridThemeOverrides}
       />
     </div>
   );

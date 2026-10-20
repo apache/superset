@@ -36,6 +36,11 @@ from provider execution returns HTTP 500 with generic text; a plain `ValueError`
 is not evidence of invalid query input. Authentication, authorization, cancellation,
 and worker timeout control exceptions keep their existing behavior.
 
+`SemanticView.validate_selection_version` is a separate selection-boundary
+check: it raises `ValueError` when a saved selection's version does not match.
+Handle that specific call at the selection boundary. This does not make arbitrary
+`ValueError` exceptions from provider execution deliberate query refusals.
+
 During `get_table` and `get_row_count` execution, provider-raised
 `SupersetTimeoutException` (previously HTTP 408),
 `SupersetGenericDBErrorException` (previously HTTP 400), and
@@ -51,6 +56,22 @@ normalize, so adapter typos stay visible. Existing providers remain import-compa
 must adopt the new core contract to receive actionable validation messages.
 Deploy compatible core/host versions before adapters that import the new exception.
 Discovery and compatibility methods are outside this execution contract.
+
+The host mapper converts invalid query selections and filter values rejected during
+its validation and translation steps into `QueryObjectValidationError`, so
+chart-data requests receive HTTP 400 instead of HTTP 500. This conversion does
+not surround provider metadata discovery or query execution. Malformed timezone
+metadata remains a server error rather than a query validation refusal.
+This mapper boundary does not govern earlier schema loading: dimension discovery
+can fail there with HTTP 400, while metric discovery failures in the mapper remain
+HTTP 500.
+
+An asynchronous totals-prerequisite query whose payload is marked FAILED fails
+its task with that payload's error. It does not publish a cache key for dependent
+contribution queries to read as if totals had been successfully cached.
+Typed query validation failures also fail ordinary asynchronous chart tasks,
+without publishing a cache key or retrying the rejected query synchronously.
+Ordinary SQL engine errors retain their structured-error readback behavior.
 
 Host-classified client errors (`QueryObjectValidationError` and subclasses) keep
 their status. The shared SDK module also defines `SemanticResultCompletenessError`

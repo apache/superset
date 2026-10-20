@@ -18,7 +18,7 @@
 import logging
 from datetime import date
 from typing import Any
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -29,7 +29,14 @@ from superset_core.semantic_layers.types import Dimension, Metric, SemanticResul
 from superset_core.semantic_layers.view import SemanticView as ProviderView
 from werkzeug.test import TestResponse
 
+from superset.charts.schemas import ChartDataQueryContextSchema
+from superset.common.query_context import QueryContext
+from superset.common.query_object import QueryObject
+from superset.common.query_serialization import serialize_query
+from superset.exceptions import QueryObjectValidationError
+from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.models import SemanticView
+from superset.tasks.async_queries import execute_chart_query
 
 
 @pytest.fixture
@@ -65,7 +72,9 @@ def date_view(mocker: MockerFixture) -> MagicMock:
         requests=[],
     )
     view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
-    view.__dict__["implementation"] = provider
+    mocker.patch.object(
+        SemanticView, "implementation", new_callable=PropertyMock, return_value=provider
+    )
     mocker.patch(
         "superset.common.query_context_factory.DatasourceDAO.get_datasource",
         return_value=view,
@@ -81,6 +90,168 @@ def date_view(mocker: MockerFixture) -> MagicMock:
         return_value=-1,
     )
     return provider
+
+
+@pytest.mark.parametrize(
+    "selection,message",
+    [
+        (
+            {"series_columns": ["ORDER_DATE"], "series_limit": 5},
+            "Group limit is not supported in this Semantic View.",
+        ),
+        (
+            {"filters": [{"col": "ORDER_DATE", "op": "==", "val": "not-a-date"}]},
+            "Invalid date value",
+        ),
+    ],
+)
+def test_mapper_refusal_returns_400(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    selection: dict[str, Any],
+    message: str,
+) -> None:
+    """Real validation and mapping refusals are client errors before dispatch."""
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"], **selection}
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 400
+    assert message in response.get_data(as_text=True)
+    date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize("method", ["get_metrics", "get_dimensions"])
+def test_mapper_metadata_fault_is_not_converted(
+    app_context: None,
+    date_view: MagicMock,
+    method: str,
+) -> None:
+    """The mapper leaves provider metadata exceptions unchanged."""
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    view.__dict__["implementation"] = date_view
+    query: QueryObject = QueryObject(columns=["ORDER_DATE"], metrics=["ORDER_COUNT"])
+    query.datasource = view
+    error: ValueError = ValueError("metadata fault")
+    getattr(date_view, method).side_effect = error
+    captured: pytest.ExceptionInfo[ValueError]
+    with pytest.raises(ValueError, match="metadata fault") as captured:
+        get_results(query)
+    assert captured.value is error
+    date_view.get_table.assert_not_called()
+
+
+def test_malformed_provider_timezone_remains_500(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+) -> None:
+    """A provider's malformed timezone is not a correctable query refusal."""
+    date_view.get_dimensions.return_value = {
+        Dimension("order_date", "ORDER_DATE", pa.timestamp("us", tz="/abs"))
+    }
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["ORDER_DATE"],
+                    "metrics": ["ORDER_COUNT"],
+                    "filters": [{"col": "ORDER_DATE", "op": ">=", "val": "2026-01-01"}],
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    assert response.status_code == 500
+    assert "/abs" not in response.get_data(as_text=True)
+    date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "method,status", [("get_metrics", 500), ("get_dimensions", 400)]
+)
+def test_metadata_discovery_fault_http(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    method: str,
+    status: int,
+) -> None:
+    """Dimension discovery fails earlier in schema loading than metric discovery."""
+    getattr(date_view, method).side_effect = ValueError("Metadata unavailable")
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [{"columns": ["ORDER_DATE"], "metrics": ["ORDER_COUNT"]}],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        },
+    )
+    # Schema loading converts dimension-discovery ValueError to 400 before mapping.
+    assert response.status_code == status
+    date_view.get_table.assert_not_called()
+
+
+@pytest.mark.parametrize("is_totals_prerequisite", [False, True])
+def test_async_validation_failure_does_not_publish_cache_key(
+    app_context: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    is_totals_prerequisite: bool,
+) -> None:
+    """Snowflake-shaped DATE refusals fail ordinary and totals workers as 400s."""
+    context: QueryContext = ChartDataQueryContextSchema().load(
+        {
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["ORDER_DATE"],
+                    "metrics": ["ORDER_COUNT"],
+                    "filters": [{"col": "ORDER_DATE", "op": ">=", "val": "not-a-date"}],
+                }
+            ],
+            "result_format": "json",
+            "result_type": "full",
+            "force": True,
+        }
+    )
+    task_context: MagicMock = mocker.patch(
+        "superset.tasks.async_queries.get_context"
+    ).return_value
+    mocker.patch("superset.tasks.async_queries._resolve_user")
+    mocker.patch("superset.tasks.async_queries.override_user")
+    mocker.patch(
+        "superset.tasks.async_queries.load_serialized_query", return_value=context
+    )
+    captured: pytest.ExceptionInfo[QueryObjectValidationError]
+    with pytest.raises(QueryObjectValidationError) as captured:
+        execute_chart_query.func(
+            serialize_query(context, 0),
+            user_id=7,
+            is_totals_prerequisite=is_totals_prerequisite,
+        )
+    assert captured.value.status == 400
+    assert str(captured.value) == (
+        "Error: Invalid date value 'not-a-date' for filter column ORDER_DATE"
+    )
+    assert isinstance(captured.value.__cause__, QueryObjectValidationError)
+    task_context.update_task.assert_not_called()
+    date_view.get_table.assert_not_called()
 
 
 @pytest.mark.parametrize("guest", [False, True])
@@ -188,7 +359,7 @@ def test_provider_fault_is_not_validation(
     provider: MagicMock = MagicMock(side_effect=fault("private-provider-diagnostic"))
     captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
     with pytest.raises(SemanticLayerExecutionError) as captured:
-        execute_semantic_query(provider, SemanticQuery(dimensions=set(), metrics=set()))
+        execute_semantic_query(provider, SemanticQuery(dimensions=[], metrics=[]))
     assert captured.value.status == 500
     assert "private" not in str(captured.value.to_dict())
     provider.assert_called_once()
@@ -265,9 +436,7 @@ def test_provider_control_signal_is_preserved(app_context: None, kind: str) -> N
     dispatcher: MagicMock = MagicMock(side_effect=control)
     captured: pytest.ExceptionInfo[Exception]
     with pytest.raises(type(control)) as captured:
-        execute_semantic_query(
-            dispatcher, SemanticQuery(dimensions=set(), metrics=set())
-        )
+        execute_semantic_query(dispatcher, SemanticQuery(dimensions=[], metrics=[]))
     assert captured.value is control
     dispatcher.assert_called_once()
 
@@ -335,7 +504,8 @@ def test_host_validation_keeps_400(
 
 
 @pytest.mark.parametrize(
-    "failure,status", [("fault", 500), ("rejection", 400), ("completeness", 400)]
+    "failure,status",
+    [("fault", 500), ("rejection", 400), ("completeness", 400), ("refusal", 403)],
 )
 def test_annotation_preserves_semantic_failure(
     app_context: None, mocker: MockerFixture, failure: str, status: int
@@ -344,7 +514,12 @@ def test_annotation_preserves_semantic_failure(
     from superset_core.semantic_layers.errors import SemanticQueryErrorCode
 
     from superset.common.query_context_processor import QueryContextProcessor
-    from superset.exceptions import SemanticResultCompletenessError, SupersetException
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import (
+        SemanticResultCompletenessError,
+        SupersetException,
+        SupersetSecurityException,
+    )
     from superset.semantic_layers.exceptions import (
         SemanticLayerExecutionError,
         SemanticLayerQueryRejectedError,
@@ -356,6 +531,14 @@ def test_annotation_preserves_semantic_failure(
             SemanticQueryErrorCode.INVALID_QUERY
         ),
         "completeness": SemanticResultCompletenessError("incomplete"),
+        "refusal": SupersetSecurityException(
+            SupersetError(
+                message="This data source can't be queried in the current context.",
+                error_type=SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR,
+                level=ErrorLevel.ERROR,
+                extra={"reason": "method_not_supported"},
+            )
+        ),
     }[failure]
     chart: MagicMock = MagicMock()
     chart.get_query_context.return_value.queries = []
@@ -375,6 +558,104 @@ def test_annotation_preserves_semantic_failure(
     assert captured.value is error
     assert error.status == status
     command.run.assert_called_once()
+
+
+def test_annotation_access_denial_is_validation_error(
+    app_context: None, mocker: MockerFixture
+) -> None:
+    """An ordinary annotation datasource denial keeps the validation boundary."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        SupersetSecurityException,
+    )
+
+    denial: SupersetSecurityException = SupersetSecurityException(
+        SupersetError(
+            message="Annotation datasource access denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+    chart: MagicMock = MagicMock()
+    chart.get_query_context.return_value.queries = []
+    chart.get_query_context.return_value.raise_for_access.side_effect = denial
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    with pytest.raises(
+        QueryObjectValidationError, match="Annotation datasource access denied"
+    ):
+        QueryContextProcessor.get_viz_annotation_data(
+            {"value": 42, "name": "Source"}, False
+        )
+    chart.get_query_context.return_value.raise_for_access.assert_called_once()
+
+
+@pytest.mark.parametrize("result_type", ["full", "query"])
+def test_annotation_access_denial_http(
+    client: FlaskClient,
+    full_api_access: None,
+    date_view: MagicMock,
+    mocker: MockerFixture,
+    result_type: str,
+) -> None:
+    """Ordinary source denial is a query failure, not a whole-request 403."""
+    from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+    from superset.exceptions import SupersetSecurityException
+
+    chart: MagicMock = MagicMock()
+    chart.get_query_context.return_value.queries = []
+    chart.get_query_context.return_value.raise_for_access.side_effect = (
+        SupersetSecurityException(
+            SupersetError(
+                message="Annotation datasource access denied",
+                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                level=ErrorLevel.ERROR,
+            )
+        )
+    )
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+    response: TestResponse = client.post(
+        "/api/v1/chart/data",
+        json={
+            "datasource": {"id": 7, "type": "semantic_view"},
+            "queries": [
+                {
+                    "columns": ["ORDER_DATE"],
+                    "metrics": ["ORDER_COUNT"],
+                    "annotation_layers": [
+                        {
+                            "annotationType": "EVENT",
+                            "sourceType": "table",
+                            "value": 42,
+                            "name": "Source",
+                            "show": True,
+                            "showMarkers": False,
+                        }
+                    ],
+                }
+            ],
+            "result_format": "json",
+            "result_type": result_type,
+            "force": True,
+        },
+    )
+    if result_type == "full":
+        assert response.status_code == 400
+        assert "Annotation datasource access denied" in response.get_data(as_text=True)
+        chart.get_query_context.return_value.raise_for_access.assert_called_once()
+    else:
+        # Query previews do not load annotations; their own validation error
+        # remains in the successful response's per-query payload.
+        assert response.status_code == 200
+        assert "provider query" in response.json["result"][0]["error"]
+        chart.get_query_context.return_value.raise_for_access.assert_not_called()
 
 
 @pytest.mark.parametrize("reason", ["incomplete", "unverified"])
@@ -472,9 +753,7 @@ def test_provider_rejection_uses_host_guidance(
     dispatcher: MagicMock = MagicMock(side_effect=SemanticQueryRejectedError(code))
     captured: pytest.ExceptionInfo[SemanticLayerQueryRejectedError]
     with pytest.raises(SemanticLayerQueryRejectedError) as captured:
-        execute_semantic_query(
-            dispatcher, SemanticQuery(dimensions=set(), metrics=set())
-        )
+        execute_semantic_query(dispatcher, SemanticQuery(dimensions=[], metrics=[]))
     assert captured.value.message == expected
     assert captured.value.status == 400
     assert "private" not in str(captured.value.to_dict())

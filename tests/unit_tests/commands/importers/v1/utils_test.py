@@ -19,6 +19,11 @@
 import gzip
 import io
 import logging
+import lzma
+import struct
+import zipfile
+import zlib
+from typing import Callable
 from unittest.mock import MagicMock, patch
 
 import pandas as pd
@@ -605,3 +610,141 @@ class TestDatabaseConnectionIdentityUnchanged:
         assert not database_connection_identity_unchanged(
             "postgresql://user:XXXXXXXXXX@host1:5432/db", None
         )
+
+
+def _make_bundle() -> bytes:
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n")
+    return buf.getvalue()
+
+
+def test_open_import_bundle_valid_zip() -> None:
+    """A valid ZIP is opened and its contents are readable."""
+    from superset.commands.importers.v1.utils import (
+        get_contents_from_bundle,
+        open_import_bundle,
+    )
+
+    with open_import_bundle(io.BytesIO(_make_bundle())) as bundle:
+        contents = get_contents_from_bundle(bundle)
+
+    assert contents == {"metadata.yaml": "version: 1.0.0\n"}
+
+
+def test_open_import_bundle_corrupt_central_directory() -> None:
+    """
+    A ZIP with a corrupt central directory passes ``is_zipfile`` but fails to
+    open; it must raise ``IncorrectFormatError`` instead of ``BadZipFile``.
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import open_import_bundle
+
+    corrupt = io.BytesIO(_make_bundle().replace(b"PK\x01\x02", b"XXXX"))
+    assert zipfile.is_zipfile(corrupt)
+
+    with pytest.raises(IncorrectFormatError) as excinfo:
+        with open_import_bundle(corrupt):
+            pass
+
+    assert excinfo.value.message == "Invalid or corrupted ZIP file"
+    assert isinstance(excinfo.value.__cause__, zipfile.BadZipFile)
+
+
+def test_open_import_bundle_bad_member() -> None:
+    """``BadZipFile`` raised while reading members is also converted."""
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import open_import_bundle
+
+    with pytest.raises(IncorrectFormatError):
+        with open_import_bundle(io.BytesIO(_make_bundle())):
+            raise zipfile.BadZipFile("Bad CRC-32 for file 'bundle/metadata.yaml'")
+
+
+def _make_compressed_bundle(compression: int = zipfile.ZIP_DEFLATED) -> bytearray:
+    """Build a single-member bundle large enough to be compressed."""
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", compression=compression) as bundle:
+        bundle.writestr("bundle/metadata.yaml", "version: 1.0.0\n" * 20)
+    return bytearray(buf.getvalue())
+
+
+def _member_data_offset(data: bytearray) -> int:
+    """Return the offset of the first member's data, after its local header."""
+    name_length, extra_length = struct.unpack("<HH", data[26:30])
+    return 30 + name_length + extra_length
+
+
+def _corrupt_deflate() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_DEFLATED)
+    # 0xFF starts a deflate block with the reserved (invalid) block type
+    data[_member_data_offset(data)] = 0xFF
+    return bytes(data)
+
+
+def _unsupported_compression() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_DEFLATED)
+    central_directory = data.find(b"PK\x01\x02")
+    # 99 (AES) is a compression method ``zipfile`` does not implement
+    data[8:10] = struct.pack("<H", 99)
+    data[central_directory + 10 : central_directory + 12] = struct.pack("<H", 99)
+    return bytes(data)
+
+
+def _encrypted_member() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_DEFLATED)
+    central_directory = data.find(b"PK\x01\x02")
+    # bit 0 of the general purpose flags marks the member as encrypted
+    data[6] |= 0x01
+    data[central_directory + 8] |= 0x01
+    return bytes(data)
+
+
+def _corrupt_bzip2() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_BZIP2)
+    data[_member_data_offset(data) + 4] ^= 0xFF
+    return bytes(data)
+
+
+def _corrupt_lzma() -> bytes:
+    data = _make_compressed_bundle(zipfile.ZIP_LZMA)
+    offset = _member_data_offset(data)
+    data[offset + 4 : offset + 12] = b"\xff" * 8
+    return bytes(data)
+
+
+@pytest.mark.parametrize(
+    "make_bundle, cause",
+    [
+        (_corrupt_deflate, zlib.error),
+        (_unsupported_compression, NotImplementedError),
+        (_encrypted_member, RuntimeError),
+        (_corrupt_bzip2, OSError),
+        (_corrupt_lzma, lzma.LZMAError),
+    ],
+    ids=["corrupt-deflate", "unsupported-compression", "encrypted", "bzip2", "lzma"],
+)
+def test_open_import_bundle_corrupt_member(
+    make_bundle: Callable[[], bytes],
+    cause: type[Exception],
+) -> None:
+    """
+    A ZIP whose central directory is intact but whose member cannot be read
+    passes ``is_zipfile`` and opens fine; reading the member must raise
+    ``IncorrectFormatError`` instead of the underlying decompression error.
+    """
+    from superset.commands.importers.exceptions import IncorrectFormatError
+    from superset.commands.importers.v1.utils import (
+        get_contents_from_bundle,
+        open_import_bundle,
+    )
+
+    corrupt = io.BytesIO(make_bundle())
+    assert zipfile.is_zipfile(corrupt)
+
+    with pytest.raises(IncorrectFormatError) as excinfo:
+        with open_import_bundle(corrupt) as bundle:
+            get_contents_from_bundle(bundle)
+
+    assert excinfo.value.message == "Invalid or corrupted ZIP file"
+    assert isinstance(excinfo.value.__cause__, cause)

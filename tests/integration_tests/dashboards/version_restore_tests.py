@@ -28,17 +28,22 @@ from typing import Any
 
 import pytest
 import sqlalchemy as sa
+from flask_appbuilder.security.sqla.models import User
+from parameterized import parameterized
 from sqlalchemy_continuum import version_class
+from werkzeug.test import TestResponse
 
 from superset.extensions import db
 from superset.models.dashboard import Dashboard
 from superset.utils import json as _json
+from superset.versioning.activity.windows import M2M_OP_DELETE
 from tests.integration_tests.base_tests import SupersetTestCase
 from tests.integration_tests.constants import ADMIN_USERNAME
 from tests.integration_tests.fixtures.birth_names_dashboard import (  # noqa: F401
     load_birth_names_dashboard_with_slices,
     load_birth_names_data,
 )
+from tests.integration_tests.insert_chart_mixin import InsertChartMixin
 
 
 def _get_version_rows(dashboard: Dashboard) -> list[Any]:
@@ -500,3 +505,174 @@ class TestDashboardRestoreApi(SupersetTestCase):
         )
         dashboard.dashboard_title = original_title
         db.session.commit()
+
+
+def _chart_layout(chart_ids: list[int]) -> dict[str, Any]:
+    """Return a one-row dashboard layout holding *chart_ids* in order."""
+    keys: list[str] = [f"CHART-{chart_id}" for chart_id in chart_ids]
+    positions: dict[str, Any] = {
+        "DASHBOARD_VERSION_KEY": "v2",
+        "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["GRID_ID"]},
+        "GRID_ID": {
+            "id": "GRID_ID",
+            "type": "GRID",
+            "children": ["ROW-1"],
+            "parents": ["ROOT_ID"],
+        },
+        "ROW-1": {
+            "id": "ROW-1",
+            "type": "ROW",
+            "children": keys,
+            "parents": ["ROOT_ID", "GRID_ID"],
+        },
+    }
+    chart_id: int
+    key: str
+    for chart_id, key in zip(chart_ids, keys, strict=True):
+        positions[key] = {
+            "id": key,
+            "type": "CHART",
+            "children": [],
+            "parents": ["ROOT_ID", "GRID_ID", "ROW-1"],
+            "meta": {"chartId": chart_id, "width": 4, "height": 50},
+        }
+    return positions
+
+
+class TestDashboardRestoreLayoutMembership(SupersetTestCase, InsertChartMixin):
+    """Restoring a version saved from a layout links exactly that layout's charts.
+
+    Each version is saved through ``PUT`` with a layout, as the dashboard
+    editor saves it, so the restore has to remove charts the dashboard gained
+    since the version and reattach charts it lost.
+    """
+
+    @parameterized.expand(
+        [
+            # A chart gained since the version, one lost, both, and the baseline.
+            ([["a"], ["a", "b"]], 1),
+            ([["a", "b"], ["a"]], 1),
+            ([["a", "b"], ["a", "c"]], 1),
+            ([["a", "b"]], 0),
+        ]
+    )
+    def test_restore_layout_version(
+        self, layouts: list[list[str]], version_number: int
+    ) -> None:
+        from superset.connectors.sqla.models import SqlaTable
+        from superset.models.core import Database
+        from superset.models.slice import Slice
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        # Integer ids can be reused across cases, so only read history written
+        # by this case.
+        first_transaction: int = db.session.execute(
+            sa.text("SELECT COALESCE(MAX(id), 0) FROM version_transaction")
+        ).scalar_one()
+        dataset: SqlaTable = SqlaTable(
+            table_name="restore_layout_membership",
+            database=Database(
+                database_name="restore_layout_membership", sqlalchemy_uri="sqlite://"
+            ),
+        )
+        db.session.add(dataset)
+        db.session.commit()
+        charts: dict[str, Slice] = {}
+        dashboard_id: int | None = None
+        try:
+            names: list[str] = sorted({name for layout in layouts for name in layout})
+            name: str
+            for name in names:
+                charts[name] = self.insert_chart(
+                    f"restore-layout-{name}", [admin.id], dataset.id
+                )
+            self.login(ADMIN_USERNAME)
+            dashboard_id = self.client.post(
+                "/api/v1/dashboard/", json={"dashboard_title": "restore-layout"}
+            ).json["id"]
+            dashboard: Dashboard = db.session.get(Dashboard, dashboard_id)
+            dashboard_uuid: str = str(dashboard.uuid)
+            layout: list[str]
+            for layout in layouts:
+                rv: TestResponse = self.client.put(
+                    f"/api/v1/dashboard/{dashboard_id}",
+                    json={
+                        "json_metadata": _json.dumps(
+                            {"positions": _chart_layout([charts[n].id for n in layout])}
+                        )
+                    },
+                )
+                assert rv.status_code == 200, rv.data
+            versions: list[dict[str, Any]] = self.client.get(
+                f"/api/v1/dashboard/{dashboard_uuid}/versions/"
+            ).json["result"]
+            version_uuid: str | None = next(
+                (
+                    version["version_uuid"]
+                    for version in versions
+                    if version["version_number"] == version_number
+                ),
+                None,
+            )
+            assert version_uuid is not None, versions
+
+            rv = self.client.post(
+                f"/api/v1/dashboard/{dashboard_uuid}/versions/{version_uuid}/restore"
+            )
+            assert rv.status_code == 200, rv.data
+
+            db.session.expire_all()
+            expected: set[int] = (
+                {charts[name].id for name in layouts[version_number - 1]}
+                if version_number
+                else set()
+            )
+            members: set[int] = {
+                row[0]
+                for row in db.session.execute(
+                    sa.text(
+                        "SELECT slice_id FROM dashboard_slices "
+                        "WHERE dashboard_id = :dashboard_id"
+                    ),
+                    {"dashboard_id": dashboard_id},
+                )
+            }
+            assert members == expected
+            restored: Dashboard = db.session.get(Dashboard, dashboard_id)
+            assert {
+                node["meta"]["chartId"]
+                for node in restored.position.values()
+                if isinstance(node, dict) and node.get("type") == "CHART"
+            } == expected
+            # The newest association history row of each chart agrees with
+            # the live membership: an insert for members, a delete otherwise.
+            latest: dict[int, int] = {}
+            slice_id: int
+            operation_type: int
+            for slice_id, operation_type in db.session.execute(
+                sa.text(
+                    "SELECT slice_id, operation_type FROM dashboard_slices_version "
+                    "WHERE dashboard_id = :dashboard_id "
+                    "AND transaction_id > :first_transaction "
+                    "ORDER BY transaction_id, operation_type"
+                ),
+                {"dashboard_id": dashboard_id, "first_transaction": first_transaction},
+            ):
+                latest[slice_id] = operation_type
+            assert {
+                slice_id
+                for slice_id, operation_type in latest.items()
+                if operation_type != M2M_OP_DELETE
+            } == expected
+        finally:
+            db.session.rollback()
+            if dashboard_id is not None:
+                db.session.delete(db.session.get(Dashboard, dashboard_id))
+            chart: Slice
+            for chart in charts.values():
+                db.session.delete(db.session.get(Slice, chart.id))
+            table: SqlaTable = db.session.get(SqlaTable, dataset.id)
+            database: Database = table.database
+            db.session.delete(table)
+            db.session.delete(database)
+            db.session.commit()
