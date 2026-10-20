@@ -838,7 +838,10 @@ Reaching the profile page requires `can_read` on `user`, which the built-in
 Admin/Alpha/Gamma roles hold by default but a custom role is not guaranteed
 to. A user whose only role lacks it and who gets redirected there by a forced
 password change is now redirected to logout with an explanatory message
-instead, so they are never trapped in a redirect loop. Clearing the flag also
+instead, so they are never trapped in a redirect loop. Under
+`AUTH_REMOTE_USER` a logout cannot help (the header re-authenticates the user
+immediately), so such a user gets a terminal 403 with the same explanation and
+no logout. Clearing the flag also
 needs `can_read` and `can_write` on `CurrentUserRestApi` (for `GET` and `PUT`
 on `/api/v1/me/`), so grant all three permissions to any custom role whose
 members may have `password_must_change` set on their account.
