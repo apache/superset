@@ -255,7 +255,6 @@ def test_installation_does_not_authorize_destinations(session: Session) -> None:
     store.remove(TENANT, APPLICATION, "unapproved")
     store.install(TENANT, APPLICATION, "unapproved", REFRESHED_URL)
     assert raw_config == before
-    assert config.public_destinations() == [{"key": "ops", "label": "Operations"}]
     assert config.get_destination("ops").team_id == "approved"
     assert set(TeamsInstallation.__table__.columns.keys()) == {
         "id",

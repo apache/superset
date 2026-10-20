@@ -35,10 +35,6 @@ class TeamsDestination:
     team_id: str
     channel_id: str
 
-    def as_public_dict(self) -> dict[str, str]:
-        """Return the only destination fields intended for browser responses."""
-        return {"key": self.key, "label": self.label}
-
 
 @dataclass(frozen=True)
 class TeamsConfig:
@@ -55,10 +51,6 @@ class TeamsConfig:
             if destination.key == key:
                 return destination
         raise TeamsConfigError("Teams destination is not approved")
-
-    def public_destinations(self) -> list[dict[str, str]]:
-        """Project selectable destinations without identity, routing, or credentials."""
-        return [destination.as_public_dict() for destination in self.destinations]
 
 
 def _mapping(value: object, fields: set[str], path: str) -> Mapping[str, object]:

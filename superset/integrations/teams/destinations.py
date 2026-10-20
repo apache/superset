@@ -16,7 +16,10 @@
 # under the License.
 """Browser-safe discovery of operator-approved Teams destinations."""
 
+from uuid import UUID
+
 from flask import current_app
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from superset.extensions import db, feature_flag_manager
@@ -26,7 +29,7 @@ from superset.integrations.teams.config import (
     TeamsConfigError,
 )
 from superset.integrations.teams.dependencies import is_teams_sdk_installed
-from superset.integrations.teams.store import TeamsInstallationStore
+from superset.integrations.teams.models import TeamsInstallation
 
 
 def configured_teams() -> TeamsConfig | None:
@@ -46,17 +49,23 @@ def list_teams_destinations() -> list[dict[str, str | bool]]:
     if config is None:
         return []
     with Session(db.engine) as session:
-        store = TeamsInstallationStore(session)
-        return [
-            {
-                "key": destination.key,
-                "label": destination.label,
-                "available": store.get_active(
-                    tenant_id=config.tenant_id,
-                    application_id=config.application_id,
-                    team_id=destination.team_id,
+        active_teams = set(
+            session.scalars(
+                select(TeamsInstallation.team_id).where(
+                    TeamsInstallation.tenant_id == UUID(config.tenant_id),
+                    TeamsInstallation.application_id == UUID(config.application_id),
+                    TeamsInstallation.active.is_(True),
+                    TeamsInstallation.team_id.in_(
+                        {destination.team_id for destination in config.destinations}
+                    ),
                 )
-                is not None,
-            }
-            for destination in config.destinations
-        ]
+            )
+        )
+    return [
+        {
+            "key": destination.key,
+            "label": destination.label,
+            "available": destination.team_id in active_teams,
+        }
+        for destination in config.destinations
+    ]

@@ -22,7 +22,7 @@ from unittest.mock import MagicMock
 
 import pytest
 from flask import current_app, Flask
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.orm import Session
 
 from superset.integrations.teams import destinations
@@ -218,3 +218,26 @@ def test_disabled_integration_registers_and_bootstraps_without_sdk(
         == 404
     )
     missing_sdk.assert_not_called()
+
+
+def test_destination_availability_uses_one_query(configured_app: Flask) -> None:
+    statements: list[str] = []
+
+    def record_query(
+        connection: Any,
+        cursor: Any,
+        statement: str,
+        parameters: Any,
+        context: Any,
+        executemany: bool,
+    ) -> None:
+        statements.append(statement)
+
+    engine = destinations.db.engine
+    event.listen(engine, "before_cursor_execute", record_query)
+    try:
+        assert len(destinations.list_teams_destinations()) == 3
+    finally:
+        event.remove(engine, "before_cursor_execute", record_query)
+    assert len(statements) == 1
+    assert statements[0].lstrip().upper().startswith("SELECT")
