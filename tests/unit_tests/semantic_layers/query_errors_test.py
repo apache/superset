@@ -16,6 +16,7 @@
 # under the License.
 
 import logging
+import traceback
 from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any, cast
@@ -157,7 +158,8 @@ def test_mapper_metadata_fault_is_backend_error(
     with pytest.raises(SemanticLayerExecutionError) as captured:
         get_results(query)
     assert captured.value.status == 500
-    assert captured.value.__cause__ is error
+    assert captured.value.__cause__ is None
+    assert "metadata fault" not in "".join(traceback.format_exception(captured.value))
     date_view.get_table.assert_not_called()
 
 
@@ -282,7 +284,38 @@ def test_host_metadata_reads_classify_discovery_faults(
     captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
     with pytest.raises(SemanticLayerExecutionError) as captured:
         read(view)
-    assert captured.value.__cause__ is error
+    # Error handlers log with exc_info, which would print a retained cause.
+    assert captured.value.__cause__ is None
+    assert "private-provider" not in "".join(traceback.format_exception(captured.value))
+    assert "private-provider" not in caplog.text
+
+
+@pytest.mark.parametrize(
+    "read",
+    [
+        lambda view: view.get_time_grains(),
+        lambda view: view.has_drill_by_columns(["ORDER_DATE"]),
+        lambda view: view.get_compatible_metrics([], []),
+        lambda view: view.get_compatible_dimensions([], []),
+    ],
+)
+def test_host_metadata_reads_classify_binding_faults(
+    app_context: None,
+    mocker: MockerFixture,
+    caplog: pytest.LogCaptureFixture,
+    read: Callable[[SemanticView], object],
+) -> None:
+    """Binding the provider is part of discovery and is classified the same way."""
+    mocker.patch.object(
+        SemanticView,
+        "implementation",
+        new_callable=PropertyMock,
+        side_effect=ValueError("private-provider-binding"),
+    )
+    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    with pytest.raises(SemanticLayerExecutionError) as captured:
+        read(view)
+    assert captured.value.__cause__ is None
     assert "private-provider" not in caplog.text
 
 

@@ -482,7 +482,7 @@ def map_semantic_result_to_query_result(
             metadata.dimensions
             if metadata is not None
             else discover_semantic_metadata(
-                query_object.datasource.implementation.get_dimensions
+                lambda: query_object.datasource.implementation.get_dimensions()
             )
         )
     }

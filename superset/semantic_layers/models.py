@@ -609,11 +609,11 @@ class SemanticView(AuditMixinNullable, Model):
 
     def _provider_metrics(self) -> set[Metric]:
         """Read the provider's metrics, classifying faults as backend errors."""
-        return discover_semantic_metadata(self.implementation.get_metrics)
+        return discover_semantic_metadata(lambda: self.implementation.get_metrics())
 
     def _provider_dimensions(self) -> set[Dimension]:
         """Read the provider's dimensions, classifying faults as backend errors."""
-        return discover_semantic_metadata(self.implementation.get_dimensions)
+        return discover_semantic_metadata(lambda: self.implementation.get_dimensions())
 
     @property
     def metrics(self) -> list[MetricMetadata]:

@@ -136,7 +136,8 @@ def discover_semantic_metadata(
         logger.error(
             "Semantic provider metadata discovery failed: %s", type(ex).__name__
         )
-        raise SemanticLayerExecutionError() from ex
+        # No chained cause: error handlers log with exc_info, which would print it.
+        raise SemanticLayerExecutionError() from None
 
 
 def execute_semantic_query(
