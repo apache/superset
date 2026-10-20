@@ -85,6 +85,12 @@ filter cleanup; the response warns that the dashboard's filters need review.
 
 ## Deleting an object permanently
 
+Archived charts and dashboards still block deletion of semantic views and layers
+they depend on. The refusal includes the number of archived dependents. Use
+**Recently Archived** to restore and repoint them, or permanently delete them,
+before deleting the semantic source. If you cannot access those assets, ask an
+admin for help.
+
 Use the **Delete permanently** action on a row to remove an object for good.
 You will be asked to confirm.
 
@@ -392,5 +398,3 @@ exit status 0 alone as proof of erasure.
 The purge removes the entity together with its
 [version history](./version-history.mdx). The retention window for version history
 itself is configured separately and is described on that page.
-
-Archived charts and dashboards still block deletion of semantic views and layers they depend on. The refusal includes the number of archived dependents. Use **Recently Archived** to restore and repoint them, or permanently delete them, before deleting the semantic source.

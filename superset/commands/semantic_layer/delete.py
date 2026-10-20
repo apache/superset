@@ -101,6 +101,8 @@ def _dashboard_target_ids(view_ids: sa.Select) -> set[int]:
     selected_ids: set[int] = set(db.session.execute(view_ids).scalars())
     if not selected_ids:
         return set()
+    # Core columns bypass the ORM do_orm_execute soft-delete filter so archived
+    # dashboards remain deletion blockers, including metadata-only targets.
     candidates: sa.Select = sa.select(
         Dashboard.__table__.c.id, Dashboard.__table__.c.json_metadata
     ).where(
@@ -119,6 +121,8 @@ def _dependent_assets(
     view_ids: sa.Select,
 ) -> tuple[int, list[dict[str, str | int]], int, int]:
     """Count dependents, naming only assets visible through their list APIs."""
+    # Core table selects bypass the ORM do_orm_execute soft-delete filter:
+    # archived charts and dashboards must still block semantic-source deletion.
     chart_ids: sa.Select = sa.select(Slice.__table__.c.id).where(
         Slice.__table__.c.datasource_type == "semantic_view",
         Slice.__table__.c.datasource_id.in_(view_ids),

@@ -1068,3 +1068,64 @@ def test_archived_chart_blocks_semantic_delete(
     assert "Recently Archived" in str(exc_info.value)
     layer_dao.delete.assert_not_called()
     view_dao.delete.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "path", ["membership", "native_filter_configuration", "chart_customization_config"]
+)
+def test_archived_dashboard_blocks_delete_with_orm_listener(
+    session: Session, mocker: MockerFixture, path: str
+) -> None:
+    """Core dependency queries must retain dashboards hidden by the ORM listener."""
+    from datetime import datetime
+
+    from superset.commands.semantic_layer.delete import _raise_for_dependents
+    from superset.models.dashboard import Dashboard
+    from superset.models.slice import Slice
+    from superset.utils import json
+
+    Dashboard.metadata.create_all(session.get_bind())
+    session.execute(
+        Dashboard.__table__.insert().values(
+            id=950,
+            dashboard_title="Archived dashboard",
+            deleted_at=datetime(2026, 1, 1),
+            json_metadata=json.dumps(
+                {
+                    path: [
+                        {
+                            "targets": [
+                                {"datasourceType": "semantic_view", "datasetId": 42}
+                            ]
+                        }
+                    ]
+                }
+            )
+            if path != "membership"
+            else "{}",
+        )
+    )
+    if path == "membership":
+        session.execute(
+            Slice.__table__.insert().values(
+                id=951,
+                slice_name="Member",
+                datasource_type="semantic_view",
+                datasource_id=42,
+            )
+        )
+        session.execute(
+            sa.text(
+                "INSERT INTO dashboard_slices (dashboard_id, slice_id) "
+                "VALUES (950, 951)"
+            )
+        )
+    # Prove the session listener is active; do not substitute Connection.execute.
+    assert session.scalar(sa.select(Dashboard.id).where(Dashboard.id == 950)) is None
+    mocker.patch("superset.security_manager.can_access", return_value=False)
+    exc_info: pytest.ExceptionInfo[SemanticDeleteDependentsError]
+    with pytest.raises(SemanticDeleteDependentsError) as exc_info:
+        _raise_for_dependents(sa.select(sa.literal(42)))
+    assert exc_info.value.total == (2 if path == "membership" else 1)
+    assert exc_info.value.archived_count == 1
+    assert exc_info.value.dependents == []

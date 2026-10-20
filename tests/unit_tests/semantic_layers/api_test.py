@@ -1056,7 +1056,7 @@ def test_semantic_delete_reports_dependents_as_conflict(
         "Remove or repoint these assets before deleting the semantic source. "
         "3 dependent assets are archived. "
         "Go to Recently Archived to restore and repoint archived assets, "
-        "or delete them permanently."
+        "or delete them permanently, or ask an admin for help."
     )
 
 

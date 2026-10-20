@@ -1602,7 +1602,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               </p>
               <p>
                 {t(
-                  'Deletion is blocked while any assets depend on this view, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently.',
+                  'Deletion is blocked while any assets depend on this view, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.',
                 )}
               </p>
             </>
@@ -1730,7 +1730,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             {pendingBulkSemanticCount > 0 && (
               <p>
                 {t(
-                  'Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently.',
+                  'Deletion is blocked while any assets depend on the selected semantic views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.',
                 )}
               </p>
             )}

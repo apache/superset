@@ -548,6 +548,9 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                         type: integer
                       archived_count:
                         type: integer
+                        description: >-
+                          Archived dependents are included in inaccessible_count;
+                          these counts overlap and must not be added together.
             422:
               $ref: '#/components/responses/422'
         """
@@ -649,6 +652,9 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                         type: integer
                       archived_count:
                         type: integer
+                        description: >-
+                          Archived dependents are included in inaccessible_count;
+                          these counts overlap and must not be added together.
             422:
               $ref: '#/components/responses/422'
         """
@@ -1180,6 +1186,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                         type: integer
                       archived_count:
                         type: integer
+                        description: >-
+                          Archived dependents are included in inaccessible_count;
+                          these counts overlap and must not be added together.
             422:
               $ref: '#/components/responses/422'
         """

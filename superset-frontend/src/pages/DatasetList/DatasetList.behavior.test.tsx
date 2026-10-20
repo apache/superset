@@ -81,7 +81,7 @@ test('single semantic view delete displays the counted dependency conflict', asy
     kind: 'semantic_view',
   };
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   const addDangerToast = jest.fn();
   mockDatasetListEndpoints({ result: [view], count: 1 });
   fetchMock.delete('glob:*/api/v1/semantic_view/99', {
@@ -119,7 +119,7 @@ test('mixed bulk delete names refused semantic views and their conflict reason',
   };
   const addDangerToast = jest.fn();
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   mockDatasetListEndpoints({ result: [dataset, semanticView], count: 2 });
   fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
     charts: { count: 0, result: [] },

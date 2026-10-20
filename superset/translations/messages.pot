@@ -15128,9 +15128,6 @@ msgstr ""
 msgid "This section contains validation errors"
 msgstr ""
 
-msgid "This semantic layer has no dependent semantic views."
-msgstr ""
-
 msgid "This semantic provider cannot apply the requested offset. Turn off pagination or use a supported limit and offset."
 msgstr ""
 
@@ -18265,33 +18262,6 @@ msgid ""
 msgstr ""
 
 
-msgid ""
-"Deletion is blocked while any assets depend on the selected semantic views, "
-"including archived assets. Remove or repoint them first. Use Recently "
-"Archived to restore and repoint archived assets, or delete them permanently."
-msgstr ""
-
-
-msgid ""
-"Deletion is blocked while any assets depend on these views, including "
-"archived assets. Remove or repoint them first. Use Recently Archived to "
-"restore and repoint archived assets, or delete them permanently."
-msgstr ""
-
-
-msgid ""
-"Deletion is blocked while any assets depend on this view, including archived"
-" assets. Remove or repoint them first. Use Recently Archived to restore and "
-"repoint archived assets, or delete them permanently."
-msgstr ""
-
-
-msgid ""
-"Go to Recently Archived to restore and repoint archived assets, or delete "
-"them permanently."
-msgstr ""
-
-
 msgid "Remove or repoint these assets before deleting the semantic source."
 msgstr ""
 
@@ -18305,3 +18275,33 @@ msgid_plural ""
 "undone."
 msgstr[0] ""
 msgstr[1] ""
+
+msgid ""
+"Deletion is blocked while any assets depend on the selected semantic views, "
+"including archived assets. Remove or repoint them first. Use Recently "
+"Archived to restore and repoint archived assets, or delete them permanently,"
+" or ask an admin for help."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on these views, including "
+"archived assets. Remove or repoint them first. Use Recently Archived to "
+"restore and repoint archived assets, or delete them permanently, or ask an "
+"admin for help."
+msgstr ""
+
+msgid ""
+"Deletion is blocked while any assets depend on this view, including archived"
+" assets. Remove or repoint them first. Use Recently Archived to restore and "
+"repoint archived assets, or delete them permanently, or ask an admin for "
+"help."
+msgstr ""
+
+msgid ""
+"Go to Recently Archived to restore and repoint archived assets, or delete "
+"them permanently, or ask an admin for help."
+msgstr ""
+
+msgid ""
+"This semantic layer has no dependent semantic views. This cannot be undone."
+msgstr ""

@@ -245,10 +245,12 @@ test('a genuinely empty layer says so instead of warning about nonexistent views
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
+  expect(dialog).toHaveTextContent('This cannot be undone.');
+  expect(dialog).not.toHaveTextContent('Deletion is blocked');
 
   expect(
     within(dialog).getByText(
-      'This semantic layer has no dependent semantic views.',
+      'This semantic layer has no dependent semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
@@ -443,7 +445,7 @@ test("a stale lookup resolving late cannot replace a newer row's modal", async (
 
 test('layer delete displays the counted dependency conflict', async () => {
   const reason =
-    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently.';
+    'Semantic source is used by 25 dependent assets and cannot be deleted. 3 dependent assets are archived. Go to Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.';
   setupMocks({ dependents: [], deleteError: reason });
   const addDangerToast = jest.fn();
   renderDatabaseList(mockUser, addDangerToast);

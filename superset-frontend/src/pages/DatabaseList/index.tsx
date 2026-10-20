@@ -148,7 +148,13 @@ function SemanticLayerCascadeWarning({
   // never access-filtered. An honest empty message keeps the destructive
   // warning credible for the layers where it matters.
   if (preview.dependentViewCount === 0) {
-    return <p>{t('This semantic layer has no dependent semantic views.')}</p>;
+    return (
+      <p>
+        {t(
+          'This semantic layer has no dependent semantic views. This cannot be undone.',
+        )}
+      </p>
+    );
   }
 
   const listedViewCount = preview.dependentViewNames.length;
@@ -1181,11 +1187,14 @@ function DatabaseList({
                 <b>{slDeletePreview.item.database_name}</b>?
               </p>
               <SemanticLayerCascadeWarning preview={slDeletePreview} />
-              <p>
-                {t(
-                  'Deletion is blocked while any assets depend on these views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently.',
-                )}
-              </p>
+              {(slDeletePreview.status === 'failed' ||
+                slDeletePreview.dependentViewCount > 0) && (
+                <p>
+                  {t(
+                    'Deletion is blocked while any assets depend on these views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.',
+                  )}
+                </p>
+              )}
             </>
           }
           onConfirm={() => {

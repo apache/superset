@@ -112,6 +112,6 @@ class SemanticDeleteDependentsError(CommandException):
             )
             message += " " + _(
                 "Go to Recently Archived to restore and repoint archived assets, "
-                "or delete them permanently."
+                "or delete them permanently, or ask an admin for help."
             )
         super().__init__(message)
