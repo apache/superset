@@ -16,6 +16,11 @@
 # under the License.
 """Warning checks must describe execution SQL without hiding errors or bounds."""
 
+import os
+import subprocess
+import sys
+from pathlib import Path
+from textwrap import dedent
 from typing import Any, cast
 from unittest.mock import MagicMock
 
@@ -429,6 +434,77 @@ def test_warning_rejects_custom_transformations(
     )
     assert _run_warning(command)["status"] == "unavailable"
     transform.assert_not_called()
+
+
+def test_warning_rejects_configured_sql_mutator(tmp_path: Path) -> None:
+    """Detect overrides loaded before the command imports the config module."""
+    config_file = tmp_path / "superset_config.py"
+    config_file.write_text(
+        "from unittest.mock import Mock\nSQL_QUERY_MUTATOR = Mock()\n",
+        encoding="utf-8",
+    )
+    result = subprocess.run(  # noqa: S603
+        [
+            sys.executable,
+            "-c",
+            dedent(
+                """
+                from unittest.mock import MagicMock, patch
+
+                from superset import config
+                from superset.app import create_app
+
+                app = create_app("tests.integration_tests.superset_test_config")
+
+                from superset.commands.sql_lab.estimate import QueryEstimationCommand
+                from superset.db_engine_specs.base import QueryCostEstimate
+                from superset.db_engine_specs.postgres import PostgresEngineSpec
+                from superset.models.core import Database
+                from superset.utils import json
+
+                database = Database(
+                    sqlalchemy_uri="postgresql://localhost/test",
+                    extra=json.dumps({
+                        "cost_estimate_enabled": True,
+                        "query_cost_warning": {
+                            "enabled": True, "metric": "total_cost", "threshold": 10,
+                        },
+                    }),
+                )
+                command = QueryEstimationCommand({
+                    "database_id": 1, "sql": "SELECT 1", "catalog": "test",
+                    "schema": "public", "template_params": {}, "check_warning": True,
+                })
+                with (
+                    app.app_context(),
+                    patch("superset.commands.sql_lab.estimate.DatabaseDAO.find_by_id",
+                          return_value=database),
+                    patch("superset.commands.sql_lab.estimate.security_manager",
+                          new_callable=MagicMock),
+                    patch("superset.commands.sql_lab.estimate.is_feature_enabled",
+                          side_effect=lambda name: name in {
+                              "SQLLAB_QUERY_COST_WARNINGS", "ESTIMATE_QUERY_COST",
+                          }),
+                    patch.object(
+                        PostgresEngineSpec, "estimate_query_cost_for_warning",
+                        return_value=QueryCostEstimate.from_value(1),
+                    ) as estimator,
+                ):
+                    response = command.run()
+                    assert response["status"] == "unavailable", response
+                    assert "custom SQL transformations" in response["message"]
+                    config.SQL_QUERY_MUTATOR.assert_not_called()
+                    estimator.assert_not_called()
+                """
+            ),
+        ],
+        env={**os.environ, "SUPERSET_CONFIG_PATH": str(config_file)},
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
 
 
 @pytest.mark.parametrize("engine", ["postgresql", "bigquery"])

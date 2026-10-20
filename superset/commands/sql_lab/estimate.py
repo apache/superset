@@ -207,7 +207,7 @@ class QueryEstimationCommand(BaseCommand):
         ):
             return None, __("Warning checks are unavailable for SQL templates.")
         mutator = app.config["SQL_QUERY_MUTATOR"]
-        if (mutator and mutator is not config.SQL_QUERY_MUTATOR) or (
+        if (mutator and mutator is not config._default_sql_query_mutator) or (
             is_feature_enabled("ENABLE_TEMPLATE_PROCESSING")
             and spec.engine in app.config["CUSTOM_TEMPLATE_PROCESSORS"]
         ):

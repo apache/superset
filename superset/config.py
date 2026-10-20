@@ -2694,6 +2694,10 @@ def SQL_QUERY_MUTATOR(  # pylint: disable=invalid-name,unused-argument  # noqa: 
     return sql
 
 
+# Retain the built-in identity when user configuration replaces the public hook.
+_default_sql_query_mutator = SQL_QUERY_MUTATOR
+
+
 # A variable that chooses whether to apply the SQL_QUERY_MUTATOR before or after splitting the input query  # noqa: E501
 # It allows for using the SQL_QUERY_MUTATOR function for more than comments
 # Usage: If you want to apply a change to every statement to a given query, set MUTATE_AFTER_SPLIT = True  # noqa: E501
