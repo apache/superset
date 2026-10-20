@@ -66,6 +66,7 @@ import { ExtensionConfigs } from 'src/features/home/types';
 import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import type { MenuObjectProps } from 'src/types/bootstrapTypes';
 import DatabaseModal from 'src/features/databases/DatabaseModal';
+import OAuth2TokensModal from 'src/features/databases/OAuth2TokensModal';
 import UploadDataModal from 'src/features/databases/UploadDataModel';
 import SemanticLayerModal from 'src/features/semanticLayers/SemanticLayerModal';
 import { DatabaseObject } from 'src/features/databases/types';
@@ -270,6 +271,9 @@ function DatabaseList({
   user,
 }: DatabaseListProps) {
   const theme = useTheme();
+  const [tokensDatabase, setTokensDatabase] = useState<DatabaseObject | null>(
+    null,
+  );
   const showSemanticLayers = isFeatureEnabled(SEMANTIC_LAYERS_FLAG);
 
   const fullUser = useSelector<
@@ -278,6 +282,11 @@ function DatabaseList({
   >(state => state.user);
   const canReadDatabase = findPermission(
     'can_read',
+    'Database',
+    fullUser.roles,
+  );
+  const canManageOAuth2Tokens = findPermission(
+    'can_manage_oauth2_tokens',
     'Database',
     fullUser.roles,
   );
@@ -939,7 +948,7 @@ function DatabaseList({
           const handleDelete = () => openDatabaseDeleteModal(original);
           const handleExport = () => handleDatabaseExport(original);
           const handleSync = () => handleDatabasePermSync(original);
-          if (!canEdit && !canDelete && !canExport) {
+          if (!canEdit && !canDelete && !canExport && !canManageOAuth2Tokens) {
             return null;
           }
           return (
@@ -976,6 +985,17 @@ function DatabaseList({
                   onClick={handleSync}
                 />
               )}
+              {canManageOAuth2Tokens &&
+                original.engine_information?.oauth2_enabled && (
+                  <ActionButton
+                    label={t('Manage OAuth2 tokens')}
+                    tooltip={t('Manage OAuth2 tokens')}
+                    placement="bottom"
+                    icon={<Icons.KeyOutlined iconSize="l" />}
+                    dataTest="database-oauth2-tokens"
+                    onClick={() => setTokensDatabase(original)}
+                  />
+                )}
               {canDelete && (
                 <ActionButton
                   label={t('Delete %s', databaseLabelLower())}
@@ -991,7 +1011,12 @@ function DatabaseList({
         },
         Header: t('Actions'),
         id: 'actions',
-        hidden: !canEdit && !canDelete && !canExport && !canWriteLayer,
+        hidden:
+          !canEdit &&
+          !canDelete &&
+          !canExport &&
+          !canWriteLayer &&
+          !canManageOAuth2Tokens,
         disableSortBy: true,
       },
       {
@@ -1010,6 +1035,7 @@ function DatabaseList({
       canDelete,
       canEdit,
       canExport,
+      canManageOAuth2Tokens,
       handleDatabaseEditModal,
       handleDatabaseExport,
       handleDatabasePermSync,
@@ -1115,6 +1141,15 @@ function DatabaseList({
   return (
     <>
       <SubMenu {...menuData} />
+      {tokensDatabase && (
+        <OAuth2TokensModal
+          key={tokensDatabase.id}
+          database={tokensDatabase}
+          onHide={() => setTokensDatabase(null)}
+          addDangerToast={addDangerToast}
+          addSuccessToast={addSuccessToast}
+        />
+      )}
       <DatabaseModal
         databaseId={currentDatabase?.id}
         show={databaseModalOpen}
