@@ -13616,6 +13616,12 @@ msgstr ""
 msgid "Search"
 msgstr "Rechercher"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Rechercher dans %s enregistrement"
+msgstr[1] "Rechercher dans %s enregistrements"
+
 msgid "Search / Filter"
 msgstr "Rechercher / Filtrer"
 
@@ -13669,9 +13675,6 @@ msgstr "Recherche dans les filtres"
 
 msgid "Search metrics by key or label"
 msgstr "Rechercher les mesures par clé ou intitulé"
-
-msgid "Search records"
-msgstr "Rechercher des enregistrements"
 
 msgid "Search tags"
 msgstr "Recherche d'étiquettes"

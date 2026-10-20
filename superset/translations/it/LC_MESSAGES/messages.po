@@ -16885,6 +16885,12 @@ msgstr "Scorri fino in fondo per abilitare la sovrascrittura delle modifiche. "
 msgid "Search"
 msgstr "Cerca"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Cerca %s record"
+msgstr[1] "Cerca %s record"
+
 msgid "Search / Filter"
 msgstr "Cerca / Filtra"
 
@@ -16938,9 +16944,6 @@ msgstr "Cerca nei filtri"
 
 msgid "Search metrics by key or label"
 msgstr "Cerca metriche per chiave o etichetta"
-
-msgid "Search records"
-msgstr "Cerca record"
 
 msgid "Search tags"
 msgstr "Cerca tag"

@@ -14309,6 +14309,13 @@ msgstr ""
 msgid "Search"
 msgstr "Caută"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Caută %s înregistrare"
+msgstr[1] "Caută %s înregistrări"
+msgstr[2] "Caută %s de înregistrări"
+
 msgid "Search / Filter"
 msgstr "Caută / Filtrează"
 
@@ -14377,9 +14384,6 @@ msgstr "Caută în filtre"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Căutați metrici după cheie sau etichetă"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "Caută etichete"
