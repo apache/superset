@@ -48,6 +48,7 @@ jest.mock('@superset-ui/core', () => ({
     <div
       data-test="mock-super-chart"
       data-is-refreshing={isRefreshing ? 'true' : 'false'}
+      data-queries-data={JSON.stringify(props.queriesData ?? null)}
       data-enable-no-results={props.enableNoResults ? 'true' : 'false'}
       data-async-mode={String(
         (props.hooks as { resolveAsyncMode?: () => boolean } | undefined)?.[
@@ -426,6 +427,24 @@ test('renders chart during loading when suppressLoadingSpinner has valid data', 
     'data-is-refreshing',
     'true',
   );
+  // Without the previous data SuperChart falls back to the no-results state.
+  expect(getByTestId('mock-super-chart')).toHaveAttribute(
+    'data-queries-data',
+    JSON.stringify(props.queriesResponse),
+  );
+});
+
+test('does not render chart during loading when the spinner is not suppressed', () => {
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    suppressLoadingSpinner: false,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });
 
 test('does not mark chart as refreshing when loading is not in progress', () => {

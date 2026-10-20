@@ -24,6 +24,15 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
+  CSV/text reports leave Total and Subtotal cells blank when they combine different
+  metrics, including two SUM metrics. Metric-specific values and totals remain
+  available, including with Combine metrics and Transpose pivot enabled. Previously
+  these cells could show an arbitrary metric's value or a sum across unrelated metrics.
+  Downstream consumers must handle empty cells or use a single metric that explicitly
+  computes the desired combined value. This change does not restore result-aggregation
+  parity between exports and the browser.
+
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which
   cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
@@ -118,8 +127,21 @@ assists people when migrating to a new version.
   the metric; select a dimension or remove the unsupported predicate. Dashboard
   filters on incompatible columns (including metrics) are skipped and reported
   as rejected, so the chart renders with an **Incompatible** filter indicator.
-  Unknown chart-defined columns are also reported as rejected, matching SQL
-  datasets. Valid dimension filters are reported as applied.
+  A chart-defined filter on a column the semantic view no longer has also
+  returns a client error naming the column, instead of being skipped (which
+  widened the result); edit the chart's filters and select a dimension. This
+  differs from SQL datasets, which skip and report such filters. Scheduled
+  reports, alerts and thumbnails for such charts fail until the chart is edited.
+  A "No filter" time range on a missing column is not refused. Dashboard time
+  overrides mark only previously unbounded temporal predicates as dashboard
+  filters; bounded chart-defined filters on missing columns or metrics remain
+  refused. This change affects only opt-in, pre-GA deployments with
+  `SEMANTIC_LAYERS` enabled. On upgrade, dashboard tabs already open across the
+  deploy send filters without `isExtra`; their semantic charts return HTTP 400
+  for incompatible dashboard filters until the user reloads the page. This
+  accepted pre-GA compatibility window will be revisited before GA. A dashboard
+  filter carried into a new chart (such as drill-by "Edit chart") becomes a chart
+  filter. Valid dimension filters are reported as applied.
 
 - Dashboard-applied filters now carry `isExtra` in chart-data requests, including
   MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for
@@ -129,9 +151,12 @@ assists people when migrating to a new version.
 - Semantic-layer configuration Save and Reload metadata increment a database-backed
   cache generation. Apply the `c179af013f48` migration before deploying the updated
   application; existing semantic chart caches become cold once on upgrade.
-  Providers with local metadata caches must adopt the optional cache-token factory
-  hook for complete invalidation. When tenants share a metadata database or web,
-  Celery and MCP use different database host aliases, configure
+  Providers must accept required keyword-only `cache_token` and `context` on
+  `from_configuration`; the optional `from_configuration_with_cache_token` hook
+  is removed. Local metadata caches must include `cache_token` in their keys
+  before lookup or eager discovery for complete invalidation. When tenants share
+  a metadata database or web, Celery and MCP use different database host aliases,
+  configure
   `SEMANTIC_LAYER_CACHE_NAMESPACE` as a globally unique workspace identity that
   resolves identically in all three contexts. A metadata session must not span
   workspaces. Saves handled by old instances during a rolling deployment do not
@@ -1956,7 +1981,7 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
-### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control restored)
 
 Pivot Table subtotals and grand totals are now computed by the database at each
 rollup level instead of re-aggregating the already-aggregated cell values on the
@@ -1965,11 +1990,9 @@ client. This fixes long-standing incorrect totals for non-additive metrics
 which previously summed the displayed cell values.
 
 As a result the per-table **"Aggregation function"** control (which let you pick
-how totals were aggregated client-side, e.g. Sum/Average/Count) has been
-removed: totals now always reflect the metric's own definition evaluated at the
-total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
-is unchanged. If you previously relied on a plain sum-of-cells total for a
-non-additive metric, that specific behavior is no longer available.
+how totals were aggregated client-side, e.g. Sum/Average/Count) was temporarily
+removed: totals reflected the metric's own definition evaluated at the total's
+granularity, with no way to pick a different reducer for subtotals/totals.
 
 The "Sum as Fraction of Total/Rows/Columns" display options are back as a
 new, standalone **"Show values as"** control (below "Combine metrics" in the
@@ -1982,9 +2005,49 @@ Fraction of ..." variants are **not** migrated: they divided a record count,
 while the new control divides the metric's own value, so translating them
 automatically would silently change what the chart displays rather than
 restore it; those charts need to be manually reconfigured if the value-based
-percentage is what's wanted. Charts that used any other non-fraction
-`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
-that specific behavior remains unavailable per the above.
+percentage is what's wanted.
+
+The **"Aggregation function"** control itself (form_data field
+`aggregateFunction`) is also back, as a second aggregation pass over a
+metric's own grouped results -- e.g. the median of a set of per-store
+`SUM(sales)` values -- computed correctly this time: every scope (subtotal,
+row/column total, grand total) reduces its own original contributing query
+results, never another scope's already-displayed value, so the previous
+non-additive-metric bug this section originally removed the control for does
+not return. It reuses the exact same field name and value spellings as
+before, so a chart that still had e.g. `aggregateFunction: "Median"` sitting
+unused in its saved `params` starts computing totals with that aggregation
+again automatically, with no action required and no value to reconfigure. The
+one exception is a chart that also has a percent "Show values as" selected:
+that control only exists since the per-table aggregation was removed, so the
+percent choice is the more recent, explicit intent (made on top of
+database-computed totals), and a result aggregation would both change those
+totals and hide the percent display. The migration drops the orphaned
+`aggregateFunction` from such a chart (and from its saved `query_context`)
+instead of restoring it, so it keeps rendering exactly as before. This drop
+is a one-time, upgrade-time heuristic, not a durable fact about the chart: if
+you later downgrade past this migration and then re-upgrade, a chart where
+you deliberately chose both an `aggregateFunction` and a percent "Show values
+as" *after* the control was restored looks identical to the original
+pre-restoration orphan, and the migration drops that deliberate choice again.
+Charts arriving through import are neither dropped nor tagged, so they render
+with the restored aggregation and no notice.
+A one-time migration tags every other such chart with a `legacy-pivot-aggregation-restored`
+custom tag; opening a tagged chart in Explore shows a notice that its totals
+may now look different, which clears once you review and accept it (or save
+the chart). Accepting only removes the tag; it does not rebuild the saved
+`query_context` that alerts, reports and cache warm-up keep using. If you have
+alerts/reports built on one of these charts, re-save each affected chart in
+Explore first, then validate its scheduled outputs, since a scheduled report
+render does not pass through that notice and Accept alone leaves the stale
+`query_context` in place. CSV/XLSX exports and CSV/text reports do apply the
+selected aggregation, but, unlike the chart, apply it to every cell rather
+than scoping it to subtotals and totals the way the chart does, so a leaf
+cell's own database-computed metric value can be overwritten by the
+aggregation instead of passed through
+(https://github.com/apache/superset/issues/45215) -- e.g. a `Count`
+aggregation showing `1` for every leaf, or `Sample Variance` showing `0`,
+where the chart still shows the real per-cell metric value.
 
 ### `thumbnail_url` removed from dashboard list API response
 

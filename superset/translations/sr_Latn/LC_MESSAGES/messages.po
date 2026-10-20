@@ -16352,6 +16352,13 @@ msgstr "Skrolujte do dna da biste omogućili prepisivanje izmena. "
 msgid "Search"
 msgstr "Pretraga"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Pretraži %s zapis"
+msgstr[1] "Pretraži %s zapisa"
+msgstr[2] "Pretraži %s zapisa"
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Search / Filter"
@@ -16415,9 +16422,6 @@ msgstr "Pretraga u filterima"
 
 msgid "Search metrics by key or label"
 msgstr "Pretraži metrike po ključu ili oznaci"
-
-msgid "Search records"
-msgstr ""
 
 # uk]
 msgid "Search tags"
