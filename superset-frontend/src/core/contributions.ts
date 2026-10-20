@@ -21,7 +21,7 @@
  * integration. Unlike `src/SqlLab/contributions.ts`, these locations
  * aren't declared via the manifest `contributions.views`/`contributions.menus`
  * field -- `ViewContributions`/`MenuContributions` in `superset-core`
- * only accept a `sqllab` scope today -- so extensions register against
+ * only accept a `sqllab` scope -- so extensions register against
  * them imperatively instead.
  *
  * This constant is internal to the Superset app; it isn't exported from
