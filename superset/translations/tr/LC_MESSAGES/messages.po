@@ -14025,8 +14025,9 @@ msgid "Search"
 msgstr "Ara"
 
 #, python-format
-msgid "Search %s records"
-msgstr "Arama   %s kayıtları"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Arama   %s kayıtları"
 
 msgid "Search / Filter"
 msgstr "Ara / Filtrele"

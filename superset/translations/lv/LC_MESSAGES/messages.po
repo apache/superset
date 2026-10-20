@@ -13461,8 +13461,11 @@ msgid "Search"
 msgstr "Meklēt"
 
 #, python-format
-msgid "Search %s records"
-msgstr "Meklēt %s ierakstos"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Meklēt %s ierakstos"
+msgstr[1] "Meklēt %s ierakstos"
+msgstr[2] "Meklēt %s ierakstos"
 
 msgid "Search / Filter"
 msgstr "Meklēt / Filtrēt"

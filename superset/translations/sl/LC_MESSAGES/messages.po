@@ -13634,8 +13634,12 @@ msgid "Search"
 msgstr "Išči"
 
 #, python-format
-msgid "Search %s records"
-msgstr "Išči %s zapisov"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Išči %s zapis"
+msgstr[1] "Išči %s zapisa"
+msgstr[2] "Išči %s zapisi"
+msgstr[3] "Išči %s zapisov"
 
 msgid "Search / Filter"
 msgstr "Iskanje / Filter"

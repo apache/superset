@@ -14310,8 +14310,11 @@ msgid "Search"
 msgstr "Caută"
 
 #, python-format
-msgid "Search %s records"
-msgstr "Caută %s înregistrări"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Caută %s înregistrare"
+msgstr[1] "Caută %s înregistrări"
+msgstr[2] "Caută %s de înregistrări"
 
 msgid "Search / Filter"
 msgstr "Caută / Filtrează"

@@ -13938,8 +13938,9 @@ msgid "Search"
 msgstr "搜索"
 
 #, python-format
-msgid "Search %s records"
-msgstr "搜索 %s 条记录"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "搜索 %s 条记录"
 
 msgid "Search / Filter"
 msgstr "搜索 / 过滤"

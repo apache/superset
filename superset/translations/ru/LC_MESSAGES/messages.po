@@ -13264,8 +13264,11 @@ msgid "Search"
 msgstr "Поиск"
 
 #, python-format
-msgid "Search %s records"
-msgstr "Поиск %s записей"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Поиск %s записи"
+msgstr[1] "Поиск %s записи"
+msgstr[2] "Поиск %s записей"
 
 msgid "Search / Filter"
 msgstr "Поиск / Фильтр"

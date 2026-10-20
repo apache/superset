@@ -14044,8 +14044,10 @@ msgid "Search"
 msgstr "Buscar"
 
 #, python-format
-msgid "Search %s records"
-msgstr "Buscar %s registros"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Buscar %s registro"
+msgstr[1] "Buscar %s registros"
 
 msgid "Search / Filter"
 msgstr "Buscar / Filtrar"

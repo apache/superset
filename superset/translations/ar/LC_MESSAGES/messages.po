@@ -14644,8 +14644,14 @@ msgid "Search"
 msgstr "ابحث"
 
 #, python-format
-msgid "Search %s records"
-msgstr ""
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+msgstr[2] ""
+msgstr[3] ""
+msgstr[4] ""
+msgstr[5] ""
 
 msgid "Search / Filter"
 msgstr "البحث\\ التصفية"

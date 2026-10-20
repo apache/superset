@@ -14542,8 +14542,10 @@ msgid "Search"
 msgstr "Zoek"
 
 #, python-format
-msgid "Search %s records"
-msgstr ""
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
 
 msgid "Search / Filter"
 msgstr "Zoek / Filter"

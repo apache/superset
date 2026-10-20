@@ -12563,8 +12563,9 @@ msgid "Search"
 msgstr "検索"
 
 #, python-format
-msgid "Search %s records"
-msgstr "%s 件のレコードを検索"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "%s 件のレコードを検索"
 
 msgid "Search / Filter"
 msgstr "検索 / フィルター"

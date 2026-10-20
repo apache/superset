@@ -13709,8 +13709,11 @@ msgid "Search"
 msgstr "Hledat"
 
 #, python-format
-msgid "Search %s records"
-msgstr "Hledat %s záznamů"
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Hledat %s záznam"
+msgstr[1] "Hledat %s záznamy"
+msgstr[2] "Hledat %s záznamů"
 
 msgid "Search / Filter"
 msgstr "Hledat / Filtrovat"
