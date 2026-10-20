@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Hashable
 from typing import Any
-from unittest.mock import ANY, call, Mock, patch, PropertyMock
+from unittest.mock import ANY, Mock, patch, PropertyMock
 from uuid import uuid4
 
 import pytest
