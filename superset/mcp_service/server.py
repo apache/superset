@@ -25,18 +25,21 @@ For multi-pod deployments, configure MCP_EVENT_STORE_CONFIG with Redis URL.
 import inspect
 import logging
 import os
+import re
 from collections.abc import Sequence
 from typing import Annotated, Any, Callable
 
 import uvicorn
 from fastmcp.exceptions import ToolError
 from fastmcp.server.middleware import Middleware
+from pydantic.fields import FieldInfo
 from starlette.requests import ClientDisconnect
 
 from superset.mcp_service.app import create_mcp_app, init_fastmcp_server
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
 from superset.mcp_service.mcp_config import (
     get_mcp_factory_config,
+    MCP_NATIVE_TOOL_LIST_CONFIG,
     MCP_STATELESS_HTTP,
     MCP_STORE_CONFIG,
     MCP_STRUCTURED_OUTPUT_ENABLED,
@@ -301,30 +304,80 @@ def _strip_titles(obj: Any, in_properties_map: bool = False) -> Any:
     return obj
 
 
+_PARAGRAPH_BREAK = re.compile(r"\n\s*\n")
+# A list item, an IMPORTANT marker, or a first line ending in a colon (heading).
+_STRUCTURED_PARAGRAPH = re.compile(
+    r"^\s*(?:[-*+]|\d+[.)])\s|^\W*IMPORTANT\b|\A[^\n]*:[ \t]*$", re.MULTILINE
+)
+
+
+def _complete_sentences(text: str, max_length: int) -> str:
+    """Return the longest prefix of *text* made of complete sentences."""
+    if max_length <= 0:
+        return ""
+    # Look one character past the budget so a boundary exactly at the limit counts.
+    boundaries = re.finditer(r"[.!?](?=\s|$)", text[: max_length + 1])
+    ends = [match.end() for match in boundaries if match.end() <= max_length]
+    return text[: ends[-1]].strip() if ends else ""
+
+
+def _drop_trailing_lead_in(text: str) -> str:
+    """Drop a final sentence ending in a colon, which introduces a cut-off list."""
+    if not text.endswith(":"):
+        return text
+    boundaries = list(re.finditer(r"[.!?](?=\s)", text))
+    return text[: boundaries[-1].end()].strip() if boundaries else text
+
+
 def _truncate_description(text: str, max_length: int) -> str:
-    """Truncate a tool description for search results.
+    """Keep whole paragraphs, then whole sentences of the next one, within budget.
 
-    Cuts at the last sentence boundary before *max_length*, or at
-    *max_length* with an ellipsis if no sentence boundary is found.
-
-    Dedents first: Python 3.13 has the compiler strip a docstring's common
-    leading whitespace at compile time (``__doc__`` comes out already
-    cleaned), while 3.11/3.12 store it raw and leave that to the caller. A
-    multi-line tool docstring's raw, un-dedented form is longer per line, so
-    the same character budget lands at a different point in the text
-    depending on which Python compiled it. Cleaning here first makes the cut
-    point (and this function's callers' byte budgets) consistent regardless
-    of interpreter version.
+    Clean docstring indentation before applying the budget so the cut point
+    is consistent across Python versions that store docstrings differently.
     """
+    if max_length <= 0:
+        return ""
     text = inspect.cleandoc(text) if text else text
     if not text or len(text) <= max_length:
         return text
-    # Try to cut at the last sentence boundary
-    truncated = text[:max_length]
-    last_period = truncated.rfind(". ")
-    if last_period > max_length // 2:
-        return truncated[: last_period + 1]
-    return truncated.rstrip() + "..."
+    kept, rest = "", text
+    for match in _PARAGRAPH_BREAK.finditer(text):
+        if match.start() > max_length:
+            break
+        kept, rest = text[: match.start()].strip(), text[match.end() :]
+    kept = _drop_trailing_lead_in(kept)
+    following = _PARAGRAPH_BREAK.split(rest, maxsplit=1)[0]
+    # After a whole paragraph fits, do not partly advertise a structured block.
+    if kept and _STRUCTURED_PARAGRAPH.search(following):
+        return kept
+    separator = "\n\n" if kept else ""
+    extra = _complete_sentences(following, max_length - len(kept) - len(separator))
+    return f"{kept}{separator}{extra}" if extra else kept
+
+
+def _request_instructions(tool: Any) -> str:
+    """Return calling instructions authored on the tool's ``request`` parameter.
+
+    Only ``Field(description=...)`` on the parameter itself counts. Schema
+    dereferencing also copies the request model's docstring onto the served
+    ``request`` property; that is model documentation, not calling instructions,
+    and must not be advertised as calling instructions.
+    """
+    try:
+        signature = inspect.signature(tool.fn)
+    except (AttributeError, TypeError, ValueError):
+        return ""
+    if (parameter := signature.parameters.get("request")) is None:
+        return ""
+    fields = (*getattr(parameter.annotation, "__metadata__", ()), parameter.default)
+    return next(
+        (
+            field.description
+            for field in fields
+            if isinstance(field, FieldInfo) and field.description
+        ),
+        "",
+    )
 
 
 def _extract_parameter_names(input_schema: dict[str, Any]) -> str:
@@ -353,7 +406,7 @@ def _serialize_tools_without_output_schema(
     results = []
     for tool in tools:
         data = tool.to_mcp_tool().model_dump(
-            mode="json", exclude_none=True, exclude={"outputSchema"}
+            mode="json", by_alias=True, exclude_none=True, exclude={"outputSchema"}
         )
         data.pop("outputSchema", None)
         if input_schema := data.get("inputSchema"):
@@ -367,7 +420,8 @@ def _build_summary_serializer(max_desc: int) -> Any:
 
     Returns a callable that serializes each tool to ``name``,
     ``description`` (optionally truncated), and a ``parameters_hint``
-    string listing top-level parameter names.  ``inputSchema`` and
+    string listing top-level parameter names and unabridged request instructions.
+    Instructions do not consume the prose budget. ``inputSchema`` and
     ``outputSchema`` are stripped entirely.
     """
 
@@ -375,13 +429,16 @@ def _build_summary_serializer(max_desc: int) -> Any:
         results = []
         for tool in tools:
             data = tool.to_mcp_tool().model_dump(
-                mode="json", exclude_none=True, exclude={"outputSchema"}
+                mode="json", by_alias=True, exclude_none=True, exclude={"outputSchema"}
             )
             data.pop("outputSchema", None)
+            instructions = _request_instructions(tool)
             if input_schema := data.pop("inputSchema", None):
                 hint = _extract_parameter_names(input_schema)
                 if hint:
-                    data["parameters_hint"] = hint
+                    data["parameters_hint"] = (
+                        f"{hint}: {instructions}" if instructions else hint
+                    )
             if max_desc and (desc := data.get("description")):
                 data["description"] = _truncate_description(desc, max_desc)
             results.append(data)
@@ -470,7 +527,8 @@ def _create_search_result_serializer(
 
     Titles and output schemas are stripped by the base serializer. The legacy
     ``compact_schemas`` setting only selects the default description limit;
-    ``max_description_length`` explicitly controls description truncation.
+    ``max_description_length`` budgets prose alone. Request-wrapper instructions
+    stay in the schema even when they exceed a small prose limit.
     """
     include_schemas = config.get("include_schemas", False)
 
@@ -585,7 +643,7 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     in a future major version, these subclasses will need to be updated.
     """
     from fastmcp.server.context import Context
-    from fastmcp.tools.tool import Tool, ToolResult
+    from fastmcp.tools import Tool, ToolResult
 
     strategy = config.get("strategy", "bm25")
     kwargs: dict[str, Any] = {
@@ -649,6 +707,15 @@ def _apply_tool_search_transform(mcp_instance: Any, config: dict[str, Any]) -> N
     )
 
 
+def _name_words(text: str) -> list[str]:
+    """Split a tool name or query into lowercase words for name matching.
+
+    Mirrors the BM25 tokenizer: runs of letters and digits, dropping
+    single-character fragments.
+    """
+    return [word for word in re.split(r"[^a-z0-9]+", text.lower()) if len(word) > 1]
+
+
 def _create_search_transform(  # noqa: C901
     *,
     strategy: str,
@@ -657,7 +724,7 @@ def _create_search_transform(  # noqa: C901
 ) -> Any:
     """Create the configured search transform with tool-permission filtering."""
     from fastmcp.server.context import Context
-    from fastmcp.tools.tool import Tool
+    from fastmcp.tools import Tool
 
     def _make_optional_query_search_tool(transform: Any) -> Any:
         """Create search tool with optional query — returns all tools when omitted."""
@@ -684,13 +751,32 @@ def _create_search_transform(  # noqa: C901
         tool = Tool.from_function(fn=search_tools, name=transform._search_tool_name)
         return _fix_search_tool_query(tool)
 
-    def _promote_exact_name(
+    def _promote_name_matches(
         tools: Sequence[Tool],
         query: str,
         ranked: Sequence[Tool],
         max_results: int,
+        *,
+        cover_query_words: bool = False,
     ) -> Sequence[Tool]:
-        """Promote caller-visible exact names without duplicating ranked matches."""
+        """Promote tools whose names the query spells out, within ``max_results``.
+
+        BM25 indexes a tool's name as ordinary text next to its description, so
+        a tool with a long definition can rank below the result limit even when
+        the query contains every word of its name. Two kinds of name match are
+        moved ahead of the upstream ranking:
+
+        1. Exact names, which always come first.
+        2. With ``cover_query_words`` (natural-language search only), multi-word
+           names whose words appear in the query as a contiguous, in-order run,
+           for example ``get_dataset_info`` for "get dataset info execute sql",
+           ordered by name length, query position, and then upstream rank.
+           Names nested inside another covered name are not promoted. Words
+           scattered across the query do not count.
+
+        Only caller-visible candidates are inspected, never the full catalog,
+        and the result never exceeds ``max_results``.
+        """
         normalized_query = " ".join(query.casefold().replace("_", " ").split())
         exact = [
             tool
@@ -698,15 +784,48 @@ def _create_search_transform(  # noqa: C901
             if " ".join(tool.name.casefold().replace("_", " ").split())
             == normalized_query
         ]
-        if not exact:
-            return ranked
-        # Only inspect the caller-filtered candidates, never the full catalog.
-        # The upstream top-N contains enough non-exact results to fill the
-        # remaining slots, without changing upstream ordering or shared limits.
         exact_names = {tool.name for tool in exact}
+        covered: list[Tool] = []
+        if cover_query_words:
+            query_words = _name_words(query)
+            ranked_position = {tool.name: index for index, tool in enumerate(ranked)}
+            matches: list[tuple[Tool, list[str], int]] = []
+            for tool in tools:
+                if tool.name in exact_names:
+                    continue
+                words = _name_words(tool.name)
+                if len(words) <= 1:
+                    continue
+                for run_start in range(len(query_words) - len(words) + 1):
+                    if query_words[run_start : run_start + len(words)] == words:
+                        matches.append((tool, words, run_start))
+                        break
+            covered = [
+                tool
+                for tool, words, run_start in sorted(
+                    matches,
+                    key=lambda match: (
+                        -len(match[1]),
+                        match[2],
+                        ranked_position.get(match[0].name, len(ranked_position)),
+                    ),
+                )
+                if not any(
+                    len(other_words) > len(words)
+                    and any(
+                        other_words[start : start + len(words)] == words
+                        for start in range(len(other_words) - len(words) + 1)
+                    )
+                    for _, other_words, _ in matches
+                )
+            ]
+        promoted_names = exact_names | {tool.name for tool in covered}
+        if not promoted_names:
+            return ranked
         return [
             *exact,
-            *(tool for tool in ranked if tool.name not in exact_names),
+            *covered,
+            *(tool for tool in ranked if tool.name not in promoted_names),
         ][:max_results]
 
     if strategy == "regex":
@@ -725,7 +844,7 @@ def _create_search_transform(  # noqa: C901
             ) -> Sequence[Tool]:
                 """Promote visible exact names before applying the result limit."""
                 ranked = await super()._search(tools, query)
-                return _promote_exact_name(tools, query, ranked, self._max_results)
+                return _promote_name_matches(tools, query, ranked, self._max_results)
 
             def _make_call_tool(self) -> Any:
                 """Build the normalized ``call_tool`` proxy for regex search."""
@@ -750,9 +869,11 @@ def _create_search_transform(  # noqa: C901
             return await _filter_visible_tools_fail_open(tools)
 
         async def _search(self, tools: Sequence[Tool], query: str) -> Sequence[Tool]:
-            """Promote visible exact names before applying the final result limit."""
+            """Promote visible exact names and contiguous name runs before the limit."""
             ranked = await super()._search(tools, query)
-            return _promote_exact_name(tools, query, ranked, self._max_results)
+            return _promote_name_matches(
+                tools, query, ranked, self._max_results, cover_query_words=True
+            )
 
         def _make_call_tool(self) -> Any:
             """Build the normalized ``call_tool`` proxy for BM25 search."""
@@ -763,6 +884,50 @@ def _create_search_transform(  # noqa: C901
             return _make_optional_query_search_tool(self)
 
     return _FixedBM25SearchTransform(**kwargs)
+
+
+def _apply_compact_tool_list_transform(
+    mcp_instance: Any, config: dict[str, Any]
+) -> None:
+    """Bound tool descriptions in the native ``tools/list`` when configured.
+
+    Opt-in via ``MCP_NATIVE_TOOL_LIST_CONFIG["compact"]``. Listed descriptions
+    are bounded with :func:`_truncate_description`. Request instructions ship
+    in the unchanged input schema and never consume the prose budget. Only the
+    listing changes: names, input and output schemas,
+    and annotations are served unchanged, and ``tools/call`` resolves the
+    registered tool, so validation and execution do not depend on this setting.
+    """
+    if not config.get("compact", False):
+        return
+    max_desc = config.get("max_description_length", 300)
+    if not max_desc:
+        return
+
+    from fastmcp.server.transforms import Transform
+
+    class _CompactToolListTransform(Transform):
+        """List tools with bounded descriptions; lookups pass through unchanged."""
+
+        def __repr__(self) -> str:
+            return f"{self.__class__.__name__}(max_description_length={max_desc})"
+
+        async def list_tools(self, tools: Sequence[Any]) -> Sequence[Any]:
+            return [
+                tool.model_copy(
+                    update={
+                        "description": _truncate_description(tool.description, max_desc)
+                    }
+                )
+                if tool.description
+                else tool
+                for tool in tools
+            ]
+
+    mcp_instance.add_transform(_CompactToolListTransform())
+    logger.info(
+        "Compact native tool list enabled (max_description_length=%d)", max_desc
+    )
 
 
 def _create_auth_provider(flask_app: Any) -> Any | None:
@@ -1010,9 +1175,18 @@ def run_server(
         flask_app = None
 
         # Apply tool search transform if configured
-        tool_search_config = MCP_TOOL_SEARCH_CONFIG
+        tool_search_config = factory_flask_app.config.get(
+            "MCP_TOOL_SEARCH_CONFIG", MCP_TOOL_SEARCH_CONFIG
+        )
         if tool_search_config.get("enabled", False):
             _apply_tool_search_transform(mcp_instance, tool_search_config)
+        else:
+            _apply_compact_tool_list_transform(
+                mcp_instance,
+                factory_flask_app.config.get(
+                    "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
+                ),
+            )
     else:
         # Use default initialization with auth from Flask config
         logging.info("Creating MCP app with default configuration...")
@@ -1050,6 +1224,13 @@ def run_server(
             if size_guard_middleware:
                 search_name = tool_search_config.get("search_tool_name", "search_tools")
                 size_guard_middleware.excluded_tools.add(search_name)
+        else:
+            _apply_compact_tool_list_transform(
+                mcp_instance,
+                flask_app.config.get(
+                    "MCP_NATIVE_TOOL_LIST_CONFIG", MCP_NATIVE_TOOL_LIST_CONFIG
+                ),
+            )
 
     _register_health_endpoint(mcp_instance)
 

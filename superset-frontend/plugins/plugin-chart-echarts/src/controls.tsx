@@ -546,6 +546,17 @@ export const gridlines: ControlSetItem = {
   },
 };
 
+export const valueAxisLabels: ControlSetItem = {
+  name: 'valueAxisLabels',
+  config: {
+    type: 'CheckboxControl',
+    label: t('Value axis labels'),
+    default: true,
+    renderTrigger: true,
+    description: t('Show the numbers along the value axis.'),
+  },
+};
+
 export const forceCategorical: ControlSetItem = {
   name: 'forceCategorical',
   config: {

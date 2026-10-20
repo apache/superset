@@ -35,10 +35,15 @@ from sqlalchemy.sql.elements import Cast, ColumnElement
 from sqlalchemy.sql.visitors import iterate
 
 from superset.superset_typing import AdhocColumn, AdhocMetric, OrderBy
-from superset.utils.core import FilterOperator, GenericDataType
+from superset.utils.core import (
+    FilterOperator,
+    GenericDataType,
+    QueryObjectFilterClause,
+)
 from tests.unit_tests.conftest import with_feature_flags
 
 if TYPE_CHECKING:
+    from superset.connectors.sqla.models import SqlaTable
     from superset.jinja_context import BaseTemplateProcessor
     from superset.models.core import Database
 
@@ -3082,7 +3087,7 @@ def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
             {
                 "col": "global_sales",
                 "op": "IN",
-                "val": [33, 29.02, None],  # type: ignore[list-item]
+                "val": [33, 29.02, None],
             },
         ],
         extras={},
@@ -3106,6 +3111,138 @@ def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
         f"even with a NULL present, but it was likely truncated. "
         f"Generated SQL: {sql}"
     )
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "region", "op": "IN"}, id="in-missing-val"),
+        pytest.param({"col": "region", "op": "NOT IN"}, id="not-in-missing-val"),
+        pytest.param({"col": "region", "op": "IN", "val": None}, id="in-val-none"),
+        pytest.param(
+            {"col": "region", "op": "NOT IN", "val": None}, id="not-in-val-none"
+        ),
+    ],
+)
+def test_get_sqla_query_in_filter_without_value_raises_validation_error(
+    database: Database,
+    flt: dict[str, Any],
+) -> None:
+    """
+    An IN / NOT IN filter with no value must raise a QueryObjectValidationError
+    (surfaced to the client as a 4xx) rather than an AssertionError (a 500).
+    The filter must not be silently dropped, as that would widen the results.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="region", type="VARCHAR(255)"),
+            TableColumn(column_name="created_at", type="TIMESTAMP", is_dttm=True),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="region"):
+        table.get_sqla_query(
+            columns=["region"],
+            filter=[
+                {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "No filter"},
+                flt,  # type: ignore[list-item]
+            ],
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "ip", "op": "IN"}, id="in-missing-val"),
+        pytest.param({"col": "ip", "op": "NOT IN"}, id="not-in-missing-val"),
+        pytest.param({"col": "ip", "op": "IN", "val": None}, id="in-val-none"),
+        pytest.param({"col": "ip", "op": "NOT IN", "val": None}, id="not-in-val-none"),
+    ],
+)
+def test_get_sqla_query_in_filter_without_value_advanced_data_type(
+    mocker: MockerFixture,
+    database: Database,
+    flt: dict[str, Any],
+) -> None:
+    """
+    With ENABLE_ADVANCED_DATA_TYPES on, an IN / NOT IN filter with no value on an
+    advanced-data-type column must raise a QueryObjectValidationError rather than
+    passing ``None`` to ``translate_type`` (a TypeError, i.e. a 500).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    mocker.patch(
+        "superset.models.helpers.feature_flag_manager.is_feature_enabled",
+        side_effect=lambda feature: feature == "ENABLE_ADVANCED_DATA_TYPES",
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="ip",
+                type="VARCHAR(255)",
+                advanced_data_type="internet_address",
+            ),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="ip"):
+        table.get_sqla_query(
+            columns=["ip"],
+            filter=[flt],  # type: ignore[list-item]
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+
+@pytest.mark.parametrize("op", ["IN", "NOT IN"])
+def test_get_sqla_query_in_filter_with_value_builds_query(
+    database: Database,
+    op: str,
+) -> None:
+    """
+    A valid IN / NOT IN filter keeps building the expected IN clause.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="region", type="VARCHAR(255)")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["region"],
+        filter=[{"col": "region", "op": op, "val": ["EMEA", "APAC"]}],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert f"region {op} ('EMEA', 'APAC')" in sql
 
 
 def test_multiple_calculated_columns_each_parenthesized(
@@ -4121,6 +4258,36 @@ def test_normalize_df_applies_python_date_format_to_unaggregated_columns(
     assert result["ts"][2].strftime("%Y-%m-%d") == "2022-01-01"
 
 
+def test_normalize_df_replaces_infinity_without_downcasting_warning() -> None:
+    """Replacing +/-inf in an object column must not emit pandas' silent
+    downcasting ``FutureWarning``, and must still yield a float column."""
+    import warnings
+
+    import numpy as np
+    import pandas as pd
+
+    ts_col = MagicMock(
+        column_name="ts", is_dttm=True, python_date_format=None, datetime_format=None
+    )
+    datasource = _normalize_df_datasource(ts_col)
+    df = pd.DataFrame(
+        {
+            "metric": pd.Series([1.0, np.inf, -np.inf, 2.0], dtype=object),
+            "count": pd.Series([1, 2, -np.inf, 4], dtype=object),
+            "label": ["a", "b", "c", "d"],
+        }
+    )
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FutureWarning)
+        result = datasource.normalize_df(df, _raw_query_object())
+
+    assert result["metric"].dtype == np.float64
+    assert result["metric"].isna().tolist() == [False, True, True, False]
+    assert result["count"].dtype == np.float64
+    assert result["label"].dtype == object
+
+
 @pytest.mark.parametrize(
     "datetime_format,value",
     [
@@ -5116,6 +5283,48 @@ def test_temporal_epoch_string_filter_list_is_coerced_for_clickhouse() -> None:
 
 
 @pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.IN, FilterOperator.NOT_IN],
+)
+@pytest.mark.parametrize(
+    "values",
+    [[0, 1], [False, True], ["false", "true"]],
+)
+def test_boolean_filter_values_coerced_for_databricks(
+    operator: FilterOperator,
+    values: list[Any],
+) -> None:
+    """
+    Native dashboard filters on boolean columns build `IN` clauses through
+    `filter_values_handler` (#36765). Databricks rejects `col IN (0)` with
+    DATATYPE_MISMATCH, and the Hive/Databricks drivers render bound Python
+    booleans as integers, so values must coerce to boolean keywords.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.databricks import DatabricksBaseEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    for db_engine_spec in (DatabricksBaseEngineSpec, SparkEngineSpec):
+        coerced = ExploreMixin.filter_values_handler(
+            values=values,
+            operator=operator,
+            target_generic_type=GenericDataType.BOOLEAN,
+            is_list_target=True,
+            db_engine_spec=db_engine_spec,
+        )
+        assert isinstance(coerced, list)
+        assert len(coerced) == 2
+        assert all(isinstance(value, ColumnElement) for value in coerced)
+        # the coerced values compile to boolean keywords and never reach the
+        # driver as bind parameters (which pyhive renders as 0/1)
+        compiled = Column("is_test_user", Boolean).in_(coerced).compile()
+        assert str(compiled) == "is_test_user IN (false, true)"
+        assert compiled.params == {}
+
+
+@pytest.mark.parametrize(
     "target_type,expected",
     [
         ("DATE", "TO_DATE('2026-05-13', 'YYYY-MM-DD')"),
@@ -5444,6 +5653,619 @@ def test_like_filter_on_string_column_does_not_cast(database: Database) -> None:
     assert not any(isinstance(node, Cast) for node in iterate(whereclause)), (
         f"Unexpected Cast node in the filter expression: {whereclause}"
     )
+
+
+# Rows used by the NULL-handling tests for negated filters. ``state`` is the
+# column that is selected back out; the other columns are the filter targets for
+# the column-type cases (``ip`` and ``port`` carry the advanced data types). The
+# last row is NULL in every filtered column.
+_NEGATION_COLUMNS = ("id", "state", "n", "flag", "ts", "uid", "ip", "port")
+_NEGATION_ROWS = [
+    (
+        1,
+        "CA",
+        1,
+        1,
+        "2024-01-01 00:00:00",
+        "aaaaaaaa-0000-0000-0000-000000000001",
+        16843009,  # 1.1.1.1
+        80,
+    ),
+    (
+        2,
+        "NY",
+        2,
+        0,
+        "2024-02-01 00:00:00",
+        "bbbbbbbb-0000-0000-0000-000000000002",
+        3232235777,  # 192.168.1.1
+        443,
+    ),
+    (
+        3,
+        "TX",
+        3,
+        0,
+        "2024-03-01 00:00:00",
+        "cccccccc-0000-0000-0000-000000000003",
+        3232236033,  # 192.168.2.1
+        8080,
+    ),
+    (4, None, None, None, None, None, None, None),
+]
+
+
+def _negation_table(database: Database) -> SqlaTable:
+    """Create ``negation_t`` holding the ``_NEGATION_ROWS`` and register it."""
+    from sqlalchemy import text
+
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+    with database.get_sqla_engine() as engine:
+        with engine.begin() as connection:
+            connection.execute(text("DROP TABLE IF EXISTS negation_t"))
+            connection.execute(
+                text(
+                    "CREATE TABLE negation_t (id INTEGER, state TEXT, n INTEGER, "
+                    "flag BOOLEAN, ts TIMESTAMP, uid UUID, ip INTEGER, port INTEGER, "
+                    "state_copy TEXT)"
+                )
+            )
+            for row in _NEGATION_ROWS:
+                connection.execute(
+                    text(
+                        "INSERT INTO negation_t "
+                        "(id, state, n, flag, ts, uid, ip, port) "
+                        "VALUES (:id, :state, :n, :flag, :ts, :uid, :ip, :port)"
+                    ),
+                    dict(zip(_NEGATION_COLUMNS, row, strict=True)),
+                )
+            connection.execute(text("UPDATE negation_t SET state_copy = state"))
+
+    return SqlaTable(
+        database=database,
+        schema=None,
+        table_name="negation_t",
+        columns=[
+            TableColumn(column_name="id", type="INTEGER"),
+            TableColumn(column_name="state", type="TEXT"),
+            TableColumn(column_name="n", type="INTEGER"),
+            TableColumn(column_name="flag", type="BOOLEAN"),
+            TableColumn(column_name="ts", type="TIMESTAMP", is_dttm=True),
+            TableColumn(column_name="uid", type="UUID"),
+            TableColumn(
+                column_name="ip", type="INTEGER", advanced_data_type="internet_address"
+            ),
+            TableColumn(column_name="port", type="INTEGER", advanced_data_type="port"),
+            TableColumn(
+                column_name="state_copy",
+                type="TEXT",
+                advanced_data_type="null_aware_type",
+            ),
+            TableColumn(
+                column_name="upper_state", type="TEXT", expression="UPPER(state)"
+            ),
+        ],
+        metrics=[SqlMetric(metric_name="sum_n", expression="SUM(n)")],
+    )
+
+
+def _run_negation_query(
+    database: Database, table: SqlaTable, flt: QueryObjectFilterClause, **kwargs: Any
+) -> tuple[str, set[str | None]]:
+    """
+    Build ``flt`` with the real ``get_sqla_query``, compile it and run it on
+    SQLite. Returns the compiled SQL and the ``state`` values of the surviving
+    rows (``None`` for the all-NULL row).
+    """
+    query = table.get_sqla_query(
+        **{
+            "columns": ["state"],
+            "metrics": [],
+            "extras": {},
+            "filter": [flt],
+            "granularity": None,
+            "is_timeseries": False,
+            **kwargs,
+        }
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+    with database.get_sqla_engine() as engine:
+        with engine.connect() as connection:
+            return sql, {row[0] for row in connection.exec_driver_sql(sql).fetchall()}
+
+
+def _states_matching_filter(
+    database: Database, flt: QueryObjectFilterClause
+) -> set[str | None]:
+    """The ``state`` values of the ``_NEGATION_ROWS`` that survive ``flt``."""
+    return _run_negation_query(database, _negation_table(database), flt)[1]
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "state", "op": "!=", "val": "CA"}, id="not-equals-text"),
+        pytest.param(
+            {"col": "state", "op": "NOT LIKE", "val": "%C%"}, id="not-like-text"
+        ),
+        pytest.param(
+            {"col": "state", "op": "NOT ILIKE", "val": "%c%"}, id="not-ilike-text"
+        ),
+    ],
+)
+def test_negated_filter_keeps_null_rows(
+    database: Database, flt: QueryObjectFilterClause
+) -> None:
+    """
+    ``!=``, ``NOT LIKE`` and ``NOT ILIKE`` only exclude the rows they name.
+
+    In SQL ``NULL != 'CA'`` is not true, so a bare ``state != 'CA'`` would also
+    drop the row whose ``state`` is NULL. A negated filter must keep it.
+    """
+    assert _states_matching_filter(database, flt) == {"NY", "TX", None}
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "n", "op": "!=", "val": 1}, id="not-equals-numeric"),
+        pytest.param({"col": "n", "op": "!=", "val": "1"}, id="not-equals-numeric-str"),
+        pytest.param({"col": "flag", "op": "!=", "val": True}, id="not-equals-boolean"),
+        pytest.param(
+            {"col": "ts", "op": "!=", "val": "2024-01-01 00:00:00"},
+            id="not-equals-temporal",
+        ),
+        pytest.param(
+            {"col": "upper_state", "op": "!=", "val": "CA"},
+            id="not-equals-calculated-column",
+        ),
+        pytest.param(
+            {
+                "col": {
+                    "expressionType": "SQL",
+                    "sqlExpression": "UPPER(state)",
+                    "label": "upper_state_expr",
+                },
+                "op": "!=",
+                "val": "CA",
+            },
+            id="not-equals-adhoc-sql-column",
+        ),
+        pytest.param(
+            {"col": "n", "op": "NOT LIKE", "val": "1%"},
+            id="not-like-numeric-cast-to-string",
+        ),
+        pytest.param(
+            {"col": "n", "op": "NOT ILIKE", "val": "1%"},
+            id="not-ilike-numeric-cast-to-string",
+        ),
+        pytest.param(
+            {"col": "uid", "op": "NOT LIKE", "val": "aaaaaaaa%"},
+            id="not-like-uuid-cast-to-string",
+        ),
+        pytest.param(
+            {"col": "uid", "op": "NOT ILIKE", "val": "AAAAAAAA%"},
+            id="not-ilike-uuid-cast-to-string",
+        ),
+    ],
+)
+def test_negated_filter_keeps_null_rows_across_column_types(
+    database: Database, flt: QueryObjectFilterClause
+) -> None:
+    """
+    The NULL row is kept for numeric, boolean, temporal, UUID, calculated and
+    ad-hoc SQL expression columns, including the LIKE paths that cast the column
+    to a string first.
+    """
+    assert _states_matching_filter(database, flt) == {"NY", "TX", None}
+
+
+@pytest.mark.parametrize(
+    "flt, expected",
+    [
+        pytest.param({"col": "state", "op": "==", "val": "CA"}, {"CA"}, id="equals"),
+        pytest.param({"col": "state", "op": "IN", "val": ["CA"]}, {"CA"}, id="in"),
+        pytest.param({"col": "state", "op": "LIKE", "val": "%C%"}, {"CA"}, id="like"),
+        pytest.param({"col": "state", "op": "ILIKE", "val": "%c%"}, {"CA"}, id="ilike"),
+        pytest.param(
+            {"col": "state", "op": "IS NULL", "val": None}, {None}, id="is-null"
+        ),
+        pytest.param(
+            {"col": "state", "op": "IS NOT NULL", "val": None},
+            {"CA", "NY", "TX"},
+            id="is-not-null",
+        ),
+        pytest.param(
+            {"col": "n", "op": ">", "val": 1}, {"NY", "TX"}, id="greater-than"
+        ),
+        pytest.param(
+            {"col": "state", "op": "NOT IN", "val": ["CA", None]},
+            {"NY", "TX"},
+            id="not-in-with-explicit-null-operand",
+        ),
+        pytest.param(
+            {"col": "state", "op": "!=", "val": None},
+            {"CA", "NY", "TX"},
+            id="not-equals-null-operand",
+        ),
+        pytest.param(
+            {"col": "state", "op": "!=", "val": "<NULL>"},
+            {"CA", "NY", "TX"},
+            id="not-equals-null-marker-operand",
+        ),
+        pytest.param(
+            {"col": "state", "op": "==", "val": None},
+            {None},
+            id="equals-null-operand",
+        ),
+    ],
+)
+def test_filters_with_unchanged_null_semantics(
+    database: Database, flt: QueryObjectFilterClause, expected: set[str | None]
+) -> None:
+    """
+    Operators that are not negated comparisons, and negated operators given an
+    explicit NULL operand, keep their NULL handling: ``!= NULL`` still means
+    ``IS NOT NULL`` and ``NOT IN (..., NULL)`` still excludes the NULL row.
+    """
+    assert _states_matching_filter(database, flt) == expected
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "state", "op": "!=", "val": ""}, id="empty-string"),
+        pytest.param({"col": "n", "op": "!=", "val": 0}, id="zero"),
+        pytest.param({"col": "flag", "op": "!=", "val": False}, id="false"),
+        pytest.param({"col": "state", "op": "!=", "val": ["XX"]}, id="one-item-list"),
+        pytest.param(
+            {"col": "state", "op": "!=", "val": ["XX", "CA"]}, id="multi-item-list"
+        ),
+    ],
+)
+def test_negated_filter_with_falsy_or_list_operand_keeps_null_rows(
+    database: Database, flt: QueryObjectFilterClause
+) -> None:
+    """
+    A falsy operand (``0``, ``False``, ``""``) is a real value, not an absent one,
+    so the NULL row is kept. A list operand for a scalar ``!=`` collapses to its
+    first item and is treated the same way.
+    """
+    states = _states_matching_filter(database, flt)
+    assert None in states
+
+
+@pytest.mark.parametrize("val", [[], [None]], ids=["empty-list", "list-of-null"])
+def test_not_equals_with_empty_operand_stays_is_not_null(
+    database: Database, val: list[None]
+) -> None:
+    """A list operand with no usable item collapses to NULL and stays IS NOT NULL."""
+    flt = cast(QueryObjectFilterClause, {"col": "state", "op": "!=", "val": val})
+    assert _states_matching_filter(database, flt) == {"CA", "NY", "TX"}
+
+
+def test_not_equals_on_metric_keeps_null_aggregates(database: Database) -> None:
+    """
+    A ``!=`` filter on a metric is applied in HAVING; a group whose aggregate is
+    NULL is kept alongside the groups with a different aggregate.
+    """
+    table = _negation_table(database)
+    # SUM(n) per state: CA=1, NY=2, TX=3, NULL state -> NULL
+    sql, states = _run_negation_query(
+        database,
+        table,
+        {"col": "sum_n", "op": "!=", "val": 1},
+        columns=[],
+        groupby=["state"],
+        metrics=["sum_n"],
+    )
+    assert "HAVING" in sql
+    assert states == {"NY", "TX", None}
+
+
+@pytest.mark.parametrize(
+    "flt, expected",
+    [
+        pytest.param(
+            {"col": "sum_n", "op": "==", "val": 1}, {"CA"}, id="equals-aggregate"
+        ),
+        pytest.param(
+            {"col": "sum_n", "op": "!=", "val": None},
+            {"CA", "NY", "TX"},
+            id="not-equals-null-operand",
+        ),
+    ],
+)
+def test_metric_filters_with_unchanged_null_semantics(
+    database: Database, flt: QueryObjectFilterClause, expected: set[str | None]
+) -> None:
+    """``==`` on a metric and ``!= NULL`` on a metric keep their behavior."""
+    _, states = _run_negation_query(
+        database,
+        _negation_table(database),
+        flt,
+        columns=[],
+        groupby=["state"],
+        metrics=["sum_n"],
+    )
+    assert states == expected
+
+
+@pytest.mark.parametrize(
+    "flt, null_target",
+    [
+        pytest.param(
+            {"col": "upper_state", "op": "!=", "val": "CA"},
+            r"my_isnull\(\(?UPPER\(state\)\)?\)",
+            id="not-equals-calculated-column",
+        ),
+        pytest.param(
+            {"col": "n", "op": "NOT LIKE", "val": "1%"},
+            r"my_isnull\(n\)",
+            id="not-like-checks-column-before-cast",
+        ),
+        pytest.param(
+            {"col": "n", "op": "NOT ILIKE", "val": "1%"},
+            r"my_isnull\(n\)",
+            id="not-ilike-checks-column-before-cast",
+        ),
+        pytest.param(
+            {"col": "state", "op": "!=", "val": "CA"},
+            r"my_isnull\(state\)",
+            id="not-equals-plain-column",
+        ),
+    ],
+)
+def test_negated_filter_null_check_uses_engine_spec_hook(
+    mocker: MockerFixture,
+    database: Database,
+    flt: QueryObjectFilterClause,
+    null_target: str,
+) -> None:
+    """
+    The NULL check comes from the engine spec's ``handle_null_filter`` hook, so
+    engines with their own NULL syntax (e.g. KQL ``isnull(col)``) get it, and it
+    is applied to the filtered column itself rather than to its string cast.
+    """
+    from sqlalchemy import func
+
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.db_engine_specs.sqlite import SqliteEngineSpec
+
+    class NullFunctionEngineSpec(SqliteEngineSpec):
+        @classmethod
+        def handle_null_filter(cls, sqla_col: Any, op: FilterOperator) -> Any:
+            if op == FilterOperator.IS_NULL:
+                return func.my_isnull(sqla_col)
+            return super().handle_null_filter(sqla_col, op)
+
+    mocker.patch.object(
+        SqlaTable, "db_engine_spec", new=property(lambda self: NullFunctionEngineSpec)
+    )
+    table = _negation_table(database)
+    query = table.get_sqla_query(
+        columns=["state"],
+        metrics=[],
+        extras={},
+        filter=[flt],
+        granularity=None,
+        is_timeseries=False,
+    )
+    sql = database.compile_sqla_query(query.sqla_query)
+
+    assert re.search(null_target, sql), sql
+    assert "IS NULL" not in sql.upper()
+
+
+@pytest.fixture
+def advanced_data_types(mocker: MockerFixture) -> None:
+    mocker.patch(
+        "superset.models.helpers.feature_flag_manager.is_feature_enabled",
+        side_effect=lambda feature: feature == "ENABLE_ADVANCED_DATA_TYPES",
+    )
+
+
+@pytest.mark.usefixtures("advanced_data_types")
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "ip", "op": "!=", "val": "1.1.1.1"}, id="ip-not-equals"),
+        pytest.param({"col": "ip", "op": "NOT IN", "val": ["1.1.1.1"]}, id="ip-not-in"),
+        pytest.param({"col": "port", "op": "!=", "val": "80"}, id="port-not-equals"),
+    ],
+)
+def test_negated_advanced_data_type_filter_keeps_null_rows(
+    database: Database, flt: QueryObjectFilterClause
+) -> None:
+    """``!=`` / ``NOT IN`` on internet address and port columns keep NULL rows."""
+    states = _states_matching_filter(database, flt)
+    assert None in states
+    assert "CA" not in states
+
+
+@pytest.mark.usefixtures("advanced_data_types")
+@pytest.mark.parametrize(
+    "flt, expected_with_null",
+    [
+        pytest.param(
+            {"col": "ip", "op": "!=", "val": "192.168.1.0/24"},
+            {"CA", "TX", None},
+            id="ip-not-equals-cidr-range",
+        ),
+        pytest.param(
+            {"col": "port", "op": "NOT IN", "val": ["80", "443"]},
+            {"TX", None},
+            id="port-not-in-multiple",
+        ),
+    ],
+)
+def test_negated_advanced_data_type_filter_keeps_null_rows_with_ranges_and_lists(
+    database: Database,
+    flt: QueryObjectFilterClause,
+    expected_with_null: set[str | None],
+) -> None:
+    """The CIDR-range ``!=`` and multi-value port ``NOT IN`` forms keep NULL rows."""
+    assert _states_matching_filter(database, flt) == expected_with_null
+
+
+@pytest.mark.usefixtures("advanced_data_types")
+def test_ip_not_in_cidr_range_keeps_null_row(database: Database) -> None:
+    """The NULL row survives a CIDR-range ``NOT IN``."""
+    flt: QueryObjectFilterClause = {
+        "col": "ip",
+        "op": "NOT IN",
+        "val": ["192.168.1.0/24"],
+    }
+    assert None in _states_matching_filter(database, flt)
+
+
+@pytest.mark.usefixtures("advanced_data_types")
+@pytest.mark.parametrize(
+    "flt, expected",
+    [
+        pytest.param(
+            {"col": "ip", "op": "==", "val": "1.1.1.1"}, {"CA"}, id="ip-equals"
+        ),
+        pytest.param({"col": "ip", "op": "IN", "val": ["1.1.1.1"]}, {"CA"}, id="ip-in"),
+        pytest.param(
+            {"col": "ip", "op": "==", "val": "192.168.1.0/24"},
+            {"NY"},
+            id="ip-equals-cidr-range",
+        ),
+        pytest.param(
+            {"col": "port", "op": "==", "val": "80"}, {"CA"}, id="port-equals"
+        ),
+        pytest.param(
+            {"col": "port", "op": "IN", "val": ["80", "443"]},
+            {"CA", "NY"},
+            id="port-in",
+        ),
+    ],
+)
+def test_advanced_data_type_filters_with_unchanged_null_semantics(
+    database: Database, flt: QueryObjectFilterClause, expected: set[str | None]
+) -> None:
+    """Non-negated operators on advanced data type columns are unchanged."""
+    assert _states_matching_filter(database, flt) == expected
+
+
+@pytest.mark.usefixtures("advanced_data_types")
+def test_ip_not_in_cidr_range_non_null_rows_unchanged(database: Database) -> None:
+    """
+    Pins the current behavior for the non-NULL rows of a CIDR-range ``NOT IN``:
+    the range conjunction ``(col > end) AND (col < start)`` can never hold, so no
+    non-NULL row matches. Only the NULL row handling is meant to change.
+    """
+    flt: QueryObjectFilterClause = {
+        "col": "ip",
+        "op": "NOT IN",
+        "val": ["192.168.1.0/24"],
+    }
+    assert _states_matching_filter(database, flt) - {None} == set()
+
+
+@pytest.fixture
+def null_aware_advanced_data_type(
+    mocker: MockerFixture, advanced_data_types: None
+) -> None:
+    """
+    Register a custom advanced data type whose translation understands NULL
+    operands: ``!= NULL`` / ``NOT IN (NULL)`` become ``IS NOT NULL`` (the plugin
+    request contract allows NULL values).
+    """
+    from flask import current_app
+    from sqlalchemy import and_
+
+    from superset.advanced_data_type.types import (
+        AdvancedDataType,
+        AdvancedDataTypeRequest,
+        AdvancedDataTypeResponse,
+    )
+
+    def translate_type(req: AdvancedDataTypeRequest) -> AdvancedDataTypeResponse:
+        return {
+            "values": list(req["values"]),
+            "error_message": "",
+            "display_value": "",
+            "valid_filter_operators": [],
+        }
+
+    def translate_filter(col: Any, op: FilterOperator, values: list[Any]) -> Any:
+        non_null = [value for value in values if value is not None]
+        if op == FilterOperator.EQUALS:
+            return col == values[0]
+        if op == FilterOperator.IN:
+            return col.in_(non_null)
+        if op == FilterOperator.NOT_EQUALS:
+            return col.isnot(None) if values[0] is None else col != values[0]
+        if not non_null:
+            return col.isnot(None)
+        if len(non_null) < len(values):
+            return and_(col.isnot(None), ~col.in_(non_null))
+        return ~col.in_(non_null)
+
+    mocker.patch.dict(
+        current_app.config["ADVANCED_DATA_TYPES"],
+        {
+            "null_aware_type": AdvancedDataType(
+                verbose_name="null aware",
+                description="translates NULL operands itself",
+                valid_data_types=["str"],
+                translate_type=translate_type,
+                translate_filter=translate_filter,
+            )
+        },
+    )
+
+
+@pytest.mark.usefixtures("null_aware_advanced_data_type")
+@pytest.mark.parametrize(
+    "flt, expected",
+    [
+        pytest.param(
+            {"col": "state_copy", "op": "!=", "val": None},
+            {"CA", "NY", "TX"},
+            id="not-equals-null-operand",
+        ),
+        pytest.param(
+            {"col": "state_copy", "op": "NOT IN", "val": [None]},
+            {"CA", "NY", "TX"},
+            id="not-in-only-null",
+        ),
+        pytest.param(
+            {"col": "state_copy", "op": "NOT IN", "val": ["CA", None]},
+            {"NY", "TX"},
+            id="not-in-with-explicit-null",
+        ),
+        pytest.param(
+            {"col": "state_copy", "op": "==", "val": "CA"}, {"CA"}, id="equals"
+        ),
+    ],
+)
+def test_custom_advanced_data_type_explicit_null_translation_is_not_wrapped(
+    database: Database, flt: QueryObjectFilterClause, expected: set[str | None]
+) -> None:
+    """
+    A plugin that translates an explicit NULL operand itself (``IS NOT NULL``) is
+    not wrapped with a keep-NULL disjunct, which would make it match every row.
+    """
+    assert _states_matching_filter(database, flt) == expected
+
+
+@pytest.mark.usefixtures("null_aware_advanced_data_type")
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "state_copy", "op": "!=", "val": "CA"}, id="not-equals"),
+        pytest.param({"col": "state_copy", "op": "NOT IN", "val": ["CA"]}, id="not-in"),
+    ],
+)
+def test_custom_advanced_data_type_negation_with_value_keeps_null_rows(
+    database: Database, flt: QueryObjectFilterClause
+) -> None:
+    """The same plugin, given a non-NULL operand, gets its negation wrapped."""
+    assert _states_matching_filter(database, flt) == {"NY", "TX", None}
 
 
 def test_get_sqla_query_calculated_column_inlined_in_raw_records(
@@ -5777,3 +6599,54 @@ def test_filter_adhoc_column(database: Database) -> None:
     # The adhoc column resolved by label is parenthesized in the WHERE clause,
     # consistent with inline adhoc columns, to guard operator precedence.
     assert "lower((real_name)) LIKE lower('Zona%')" in sql
+
+
+def test_get_query_result_wraps_post_processing_type_error(
+    database: "Database",
+) -> None:
+    """
+    A raw TypeError from pandas inside exec_post_processing (e.g. resample.mean()
+    on a DataFrame that contains object-dtype columns) must be surfaced as
+    QueryObjectValidationError (400) rather than propagating as a system 500.
+    """
+    from datetime import timedelta
+    from unittest.mock import patch
+
+    import pandas as pd
+
+    from superset.common.query_object import QueryObject
+    from superset.connectors.sqla.models import SqlaTable
+    from superset.exceptions import QueryObjectValidationError
+    from superset.models.helpers import QueryResult
+
+    table = SqlaTable(table_name="t", database=database)
+
+    # DatetimeIndex + object-dtype "category" column causes
+    # df.resample("1D").mean() to raise TypeError in pandas ≥ 2.x
+    df = pd.DataFrame(
+        {"metric": [1.0, 2.0], "category": ["a", "b"]},
+        index=pd.to_datetime(["2023-01-01", "2023-01-03"]),
+    )
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "resample", "options": {"method": "mean", "rule": "1D"}}
+        ],
+    )
+
+    with (
+        patch.object(
+            table,
+            "query",
+            return_value=QueryResult(
+                df=df,
+                query="SELECT 1",
+                duration=timedelta(0),
+                sql_shifted_temporal_labels=set(),
+            ),
+        ),
+        patch.object(table, "normalize_df", return_value=df),
+        pytest.raises(QueryObjectValidationError),
+    ):
+        table.get_query_result(query_object)

@@ -322,7 +322,7 @@ test('prunes a formatter once its column leaves the column options', async () =>
     value: [greaterThanA, lessThanB],
     removeIrrelevantConditions: true,
   });
-  expect(lastChange(onChange)).toEqual([greaterThanA, lessThanB]);
+  expect(onChange).not.toHaveBeenCalled();
 
   rerender(
     <ConditionalFormattingControl
@@ -345,7 +345,88 @@ test('keeps formatters for missing columns when pruning is disabled', async () =
     removeIrrelevantConditions: false,
   });
 
-  await waitFor(() => expect(onChange).toHaveBeenCalled());
-  expect(lastChange(onChange)).toEqual([greaterThanA, lessThanB]);
+  expect(onChange).not.toHaveBeenCalled();
   expect(screen.getByText('col_a > 1')).toBeInTheDocument();
+  expect(screen.getByText('col_b < 2')).toBeInTheDocument();
+});
+
+// Writing [] for a chart with no formatters made version history record a
+// "Set 'conditional formatting'" change the user never made.
+test('leaves an unset value unset when nothing is configured', () => {
+  const onChange = jest.fn();
+  render(
+    <ConditionalFormattingControl {...defaultProps} onChange={onChange} />,
+  );
+  expect(screen.getByText('Add new color formatter')).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('keeps an explicitly empty value working', () => {
+  const onChange = jest.fn();
+  render(
+    <ConditionalFormattingControl
+      {...defaultProps}
+      onChange={onChange}
+      value={[]}
+    />,
+  );
+  expect(screen.getByText('Add new color formatter')).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('does not overwrite a value supplied after mount', () => {
+  const onChange = jest.fn();
+  const { rerender } = render(
+    <ConditionalFormattingControl {...defaultProps} onChange={onChange} />,
+  );
+  // E.g. an in-place version restore hydrating formatters into the panel.
+  rerender(
+    <ConditionalFormattingControl
+      {...defaultProps}
+      onChange={onChange}
+      value={[
+        {
+          column: 'my_col',
+          operator: Comparator.IsTrue,
+          colorScheme: 'colorSuccess',
+        },
+      ]}
+    />,
+  );
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+test('reports the removal of the last formatter', async () => {
+  const onChange = jest.fn();
+  const value: ConditionalFormattingConfig[] = [
+    {
+      column: 'my_col',
+      operator: Comparator.IsTrue,
+      colorScheme: 'colorSuccess',
+    },
+  ];
+  render(
+    <ConditionalFormattingControl
+      {...defaultProps}
+      onChange={onChange}
+      value={value}
+    />,
+  );
+  await userEvent.click(screen.getByLabelText('close'));
+  expect(screen.queryByText('my_col is true')).not.toBeInTheDocument();
+  expect(onChange).toHaveBeenLastCalledWith([]);
+});
+
+test('reports adding and then removing a formatter on an unset value', async () => {
+  const { onChange } = renderCrud();
+  await userEvent.click(screen.getByText('Add new color formatter'));
+  await pickColumn('Column B');
+  await userEvent.click(await screen.findByText('Apply'));
+  await waitFor(() =>
+    expect(lastChange(onChange)).toEqual([
+      expect.objectContaining({ column: 'col_b' }),
+    ]),
+  );
+  await userEvent.click(screen.getByLabelText('close'));
+  expect(lastChange(onChange)).toEqual([]);
 });

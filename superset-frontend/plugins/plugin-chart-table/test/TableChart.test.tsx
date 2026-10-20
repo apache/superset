@@ -2620,7 +2620,7 @@ describe('plugin-chart-table', () => {
 
         await waitFor(() => {
           expect(screen.getByRole('textbox')).toHaveValue('Michael');
-          expect(screen.getByLabelText('Search records')).toHaveValue(
+          expect(screen.getByLabelText('Search 0 records')).toHaveValue(
             'Michael',
           );
         });
@@ -2994,6 +2994,60 @@ describe('plugin-chart-table', () => {
       expect(filters[0].col).toBe('name');
       expect(filters[0].val).toEqual(['Michael']);
     });
+  });
+
+  test('search box placeholder and label show the record count', () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        include_search: true,
+        server_pagination: false,
+      },
+    });
+    props.includeSearch = true;
+
+    render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    const recordCount = testData.basic.queriesData[0].data.length;
+    const searchInput = screen.getByRole('textbox');
+    expect(searchInput).toHaveAttribute(
+      'placeholder',
+      `${recordCount} records...`,
+    );
+    expect(searchInput).toHaveAccessibleName(`Search ${recordCount} records`);
+  });
+
+  test('search box label uses the singular form for one record', () => {
+    const props = transformProps({
+      ...testData.basic,
+      formData: {
+        ...testData.basic.formData,
+        include_search: true,
+        server_pagination: false,
+      },
+      queriesData: [
+        {
+          ...testData.basic.queriesData[0],
+          data: [testData.basic.queriesData[0].data[0]],
+        },
+      ],
+    });
+    props.includeSearch = true;
+
+    render(
+      <ProviderWrapper>
+        <TableChart {...props} sticky={false} />
+      </ProviderWrapper>,
+    );
+
+    const searchInput = screen.getByRole('textbox');
+    expect(searchInput).toHaveAttribute('placeholder', '1 record...');
+    expect(searchInput).toHaveAccessibleName('Search 1 record');
   });
 
   test('does not render "Search by" if there are no search options (server pagination enabled)', () => {
@@ -3571,4 +3625,92 @@ test('TableChart should NOT emit cross-filter when clicking a cell in a not-filt
     (call: any[]) => call[0]?.filterState?.filters,
   );
   expect(crossFilterCall).toBeUndefined();
+});
+
+test.each([
+  { orderDesc: true, firstClickDesc: true },
+  { orderDesc: false, firstClickDesc: false },
+])(
+  'pushes the clicked column sort to the server own state when server pagination is enabled (order_desc $orderDesc)',
+  ({ orderDesc, firstClickDesc }) => {
+    const setDataMask = jest.fn();
+    const props = transformProps({
+      ...testData.raw,
+      rawFormData: {
+        ...testData.raw.rawFormData,
+        server_pagination: true,
+        order_desc: orderDesc,
+      },
+      hooks: { setDataMask },
+      queriesData: [
+        {
+          ...testData.raw.queriesData[0],
+          colnames: ['name'],
+          coltypes: [GenericDataType.String],
+          data: [{ name: 'Michael' }, { name: 'John' }],
+        },
+      ],
+    });
+    render(
+      ProviderWrapper({
+        children: (
+          <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+        ),
+      }),
+    );
+
+    const lastPushedSortBy = () =>
+      setDataMask.mock.calls
+        .map(([mask]) => mask?.ownState?.sortBy)
+        .filter(Array.isArray)
+        .at(-1);
+
+    expect(lastPushedSortBy()).toBeUndefined();
+
+    // The first click sorts in the configured default direction and the
+    // second click flips it; each change is pushed with the column key.
+    fireEvent.click(screen.getByText('name'));
+    expect(lastPushedSortBy()).toEqual([
+      expect.objectContaining({ key: 'name', desc: firstClickDesc }),
+    ]);
+
+    fireEvent.click(screen.getByText('name'));
+    expect(lastPushedSortBy()).toEqual([
+      expect.objectContaining({ key: 'name', desc: !firstClickDesc }),
+    ]);
+  },
+);
+
+test('does not push a column sort to the server own state when server pagination is disabled', () => {
+  const setDataMask = jest.fn();
+  const props = transformProps({
+    ...testData.raw,
+    rawFormData: {
+      ...testData.raw.rawFormData,
+      server_pagination: false,
+    },
+    hooks: { setDataMask },
+    queriesData: [
+      {
+        ...testData.raw.queriesData[0],
+        colnames: ['name'],
+        coltypes: [GenericDataType.String],
+        data: [{ name: 'Michael' }, { name: 'John' }],
+      },
+    ],
+  });
+  render(
+    ProviderWrapper({
+      children: (
+        <TableChart {...props} setDataMask={setDataMask} sticky={false} />
+      ),
+    }),
+  );
+
+  fireEvent.click(screen.getByText('name'));
+
+  const pushedSort = setDataMask.mock.calls.some(([mask]) =>
+    Object.prototype.hasOwnProperty.call(mask?.ownState ?? {}, 'sortBy'),
+  );
+  expect(pushedSort).toBe(false);
 });

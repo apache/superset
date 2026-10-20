@@ -629,7 +629,8 @@ class PostgresEngineSpec(BasicParametersMixin, PostgresBaseEngineSpec):
             {
                 "name": "ClickHouse Managed Postgres",
                 "description": "Managed PostgreSQL from ClickHouse.",
-                "logo": "clickhouse.png",
+                "logo": "clickhouse-mark.svg",
+                "logo_dark": "clickhouse-mark-dark.svg",
                 "homepage_url": "https://clickhouse.com/cloud/postgres",
                 "pypi_packages": ["psycopg2"],
                 "connection_string": (

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { Preset, DatasourceType, Filter } from '@superset-ui/core';
+import { GenericDataType } from '@apache-superset/core/common';
 import fetchMock from 'fetch-mock';
 import chartQueries from 'spec/fixtures/mockChartQueries';
 import { dashboardLayout } from 'spec/fixtures/mockDashboardLayout';
@@ -115,12 +116,15 @@ const datasetResult = (id: number) => ({
   },
   result: {
     metrics: [],
-    columns: [
-      {
-        column_name: 'Column A',
-        id: 1,
-      },
-    ],
+    columns: ['Column A', 'state', 'country', 'product'].map(
+      (column_name, index) => ({
+        column_name,
+        id: index + 1,
+        type_generic: GenericDataType.String,
+        filterable: true,
+      }),
+    ),
+    datasource_type: DatasourceType.Table,
     table_name: 'birth_names',
     id,
   },
@@ -128,9 +132,9 @@ const datasetResult = (id: number) => ({
 });
 
 function setupFetchMocks() {
-  fetchMock.get(`glob:*/api/v1/dataset/${id}`, datasetResult(id));
+  fetchMock.get(`path:/api/v1/dataset/${id}`, datasetResult(id));
   // Mock dataset 1 for buildNativeFilter fixtures which use datasetId: 1
-  fetchMock.get('glob:*/api/v1/dataset/1', datasetResult(1));
+  fetchMock.get('path:/api/v1/dataset/1', datasetResult(1));
   // Mock the dataset list endpoint for the dataset selector dropdown
   // Uses `id` constant (matches mockDatasource.id) for fixture data consistency
   fetchMock.get('glob:*/api/v1/dataset/?*', {
@@ -173,7 +177,10 @@ const FILTER_SETTINGS_REGEX = /^filter settings$/i;
 const DEFAULT_VALUE_REGEX = /^filter has default value$/i;
 const MULTIPLE_REGEX = /^can select multiple values$/i;
 const FILTER_REQUIRED_REGEX = /^filter value is required/i;
-const DEPENDENCIES_REGEX = /^values are dependent on other filters$/i;
+// No trailing `$`: like the other tooltip-bearing checkboxes below, the
+// accessible name includes the trailing info icon (e.g. "... other filters
+// info-circle"), so an exact-end anchor would never match.
+const DEPENDENCIES_REGEX = /^values are dependent on other filters/i;
 const FIRST_VALUE_REGEX = /^select first filter value by default/i;
 const INVERSE_SELECTION_REGEX = /^inverse selection/i;
 const SEARCH_ALL_REGEX = /^dynamically search all filter values/i;
@@ -532,6 +539,43 @@ test('deletes a filter including dependencies', async () => {
   );
 }, 30000);
 
+test('shows the dependency control on first render for a saved cascade filter', () => {
+  const nativeFilterConfig = [
+    buildNativeFilter('NATIVE_FILTER-1', 'state', ['NATIVE_FILTER-2']),
+    buildNativeFilter('NATIVE_FILTER-2', 'country', []),
+  ];
+  const state = {
+    ...defaultState(),
+    dashboardInfo: {
+      metadata: {
+        native_filter_configuration: nativeFilterConfig,
+      },
+    },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+
+  // No interaction: the dependency control must be checked as soon as the
+  // modal opens on a filter that already has a cascade parent, without
+  // waiting for a rerender.
+  expect(getCheckbox(DEPENDENCIES_REGEX)).toBeChecked();
+
+  // The saved parent ("country") must render as the actual selected
+  // dependency, not a "(deleted or invalid type)" placeholder. antd Select
+  // renders the active selection as a span whose title attribute is the
+  // picked option's label.
+  expect(
+    document.querySelector(
+      '.ant-select-content-has-value[title="country"], .ant-select-selection-item[title="country"]',
+    ),
+  ).toBeInTheDocument();
+
+  // hasAdditionalFilters has the same first-render read as
+  // canDependOnOtherFilters above: the pre-filter control must also be
+  // present (not merely unchecked) on the very first paint.
+  expect(getCheckbox(PRE_FILTER_REGEX)).not.toBeChecked();
+});
+
 const SORTABLE_ITEM_HEIGHT = 40;
 const SORTABLE_ITEM_WIDTH = 200;
 
@@ -612,16 +656,22 @@ test('reorders filters via keyboard (Space, ArrowDown, Space)', async () => {
     firstSortable.focus();
 
     fireEvent.keyDown(firstSortable, { code: 'Space' });
-    await sleep(1);
+    await waitFor(() =>
+      expect(firstSortable).toHaveAttribute('aria-pressed', 'true'),
+    );
+    // The keyboard sensor attaches its document listener on the next timer tick.
+    await sleep(0);
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'ArrowDown',
     });
-    await sleep(1);
+    await sleep(0);
     fireEvent.keyDown(document.activeElement ?? firstSortable, {
       code: 'Space',
     });
 
-    await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
+    const saveButton = screen.getByRole('button', { name: SAVE_REGEX });
+    await waitFor(() => expect(saveButton).toBeEnabled());
+    await userEvent.click(saveButton);
 
     await waitFor(
       () =>
@@ -1122,6 +1172,46 @@ test('toggles "Filter has default value" to show and hide the Default Value cont
   });
 });
 
+test('semantic range defaults use manual inputs without a chart-data bounds request', async () => {
+  fetchMock.clearHistory();
+  fetchMock.get('glob:*/api/v1/semantic_view/988/structure', {
+    result: {
+      name: 'Orders',
+      dimensions: [{ name: 'Orders.age', type: 'number' }],
+      metrics: [],
+    },
+  });
+  const filter = {
+    ...buildNativeFilter('NATIVE_FILTER-range', 'Age', []),
+    filterType: 'filter_range',
+    targets: [
+      {
+        datasetId: 988,
+        datasourceType: DatasourceType.SemanticView,
+        column: { name: 'Orders.age' },
+      },
+    ],
+    controlValues: { enableSingleValue: undefined },
+    defaultDataMask: { filterState: { value: [18, 65] }, extraFormData: {} },
+  };
+  const state = {
+    ...defaultState(),
+    dashboardInfo: { metadata: { native_filter_configuration: [filter] } },
+    dashboardLayout,
+  };
+  defaultRender(state, { ...props, createNewOnOpen: false });
+  expect(
+    await screen.findByRole('spinbutton', { name: 'Minimum value' }),
+  ).toHaveValue('18');
+  expect(screen.getByRole('spinbutton', { name: 'Maximum value' })).toHaveValue(
+    '65',
+  );
+  expect(screen.queryByRole('slider')).not.toBeInTheDocument();
+  expect(fetchMock.callHistory.calls('glob:*/api/v1/chart/data')).toHaveLength(
+    0,
+  );
+}, 30000);
+
 test('semantic filter reset requires reselection and survives save and reopen', async () => {
   fetchMock.get('glob:*/api/v1/semantic_view/987/structure', {
     result: {
@@ -1188,8 +1278,10 @@ test('semantic filter reset requires reselection and survives save and reopen', 
   );
   await userEvent.click(await screen.findByText('Orders.status'));
   // Column validation clears the previous save error asynchronously.
-  await waitFor(() =>
-    expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeEnabled(),
+  await waitFor(
+    () =>
+      expect(screen.getByRole('button', { name: SAVE_REGEX })).toBeEnabled(),
+    { timeout: 5000 },
   );
   await userEvent.click(screen.getByRole('button', { name: SAVE_REGEX }));
   await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
