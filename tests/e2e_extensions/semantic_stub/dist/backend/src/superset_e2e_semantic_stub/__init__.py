@@ -36,7 +36,15 @@ from typing import Any
 
 import pyarrow as pa
 from pydantic import BaseModel, ConfigDict
+from superset_core.semantic_layers.context import (
+    SemanticCredentials,
+    SemanticExecutionContext,
+)
 from superset_core.semantic_layers.decorators import semantic_layer
+from superset_core.semantic_layers.errors import (
+    SemanticQueryErrorCode,
+    SemanticQueryRejectedError,
+)
 from superset_core.semantic_layers.layer import SemanticLayer
 from superset_core.semantic_layers.types import (
     AggregationType,
@@ -97,9 +105,9 @@ class StubConfiguration(BaseModel):
 
 def _validate_filter(filter_: Filter) -> None:
     if filter_.type != PredicateType.WHERE or not isinstance(filter_.column, Dimension):
-        raise ValueError("The E2E stub only supports WHERE filters on dimensions")
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
     if filter_.operator not in SUPPORTED_OPERATORS:
-        raise ValueError(f"The E2E stub does not support {filter_.operator.value}")
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.UNSUPPORTED_QUERY)
 
 
 def _matches(row: dict[str, Any], filter_: Filter) -> bool:
@@ -226,14 +234,30 @@ class StubOrdersView(SemanticView):
 )
 class StubSemanticLayer(SemanticLayer[StubConfiguration, StubOrdersView]):
     configuration_class: type[StubConfiguration] = StubConfiguration
+    cache_token: str
+    context: SemanticExecutionContext
+    credentials: SemanticCredentials | None
 
     def __init__(self, configuration: StubConfiguration) -> None:
         """Keep validated configuration available to host schema requests."""
         self.configuration: StubConfiguration = configuration
 
     @classmethod
-    def from_configuration(cls, configuration: dict[str, Any]) -> StubSemanticLayer:
-        return cls(StubConfiguration.model_validate(configuration))
+    def from_configuration(
+        cls,
+        configuration: dict[str, Any],
+        *,
+        cache_token: str,
+        context: SemanticExecutionContext,
+        credentials: SemanticCredentials | None = None,
+    ) -> StubSemanticLayer:
+        instance: StubSemanticLayer = cls(
+            StubConfiguration.model_validate(configuration)
+        )
+        instance.cache_token = cache_token
+        instance.context = context
+        instance.credentials = credentials
+        return instance
 
     @classmethod
     def get_configuration_schema(

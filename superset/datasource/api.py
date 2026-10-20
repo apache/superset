@@ -40,6 +40,7 @@ from superset.connectors.sqla.models import BaseDatasource
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasource.schemas import DatasourceQuerySchema
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
@@ -73,12 +74,16 @@ SEARCH_CACHE_TIMEOUT = 60
 
 
 class _HttpError(Exception):
-    """Carries an HTTP status out of the shared resolve helper."""
+    """Carry an HTTP status and response payload out of the resolve helper."""
 
-    def __init__(self, status: int, message: str) -> None:
+    def __init__(
+        self, status: int, message: str, *, error: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(message)
-        self.status = status
-        self.message = message
+        self.status: int = status
+        self.payload: dict[str, Any] = {"message": message}
+        if error is not None:
+            self.payload["errors"] = [error]
 
 
 def _column_values_cache_key(
@@ -304,7 +309,12 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        return self._column_values_response(datasource, datasource_type, column_name)
+        try:
+            return self._column_values_response(
+                datasource, datasource_type, column_name
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
     def _column_values_response(
         self, datasource: BaseDatasource, datasource_type: str, column_name: str
@@ -576,7 +586,9 @@ class DatasourceRestApi(BaseSupersetApi):
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.compatible",
         log_to_statsd=False,
     )
-    def compatible(self, datasource_type: str, datasource_id: int) -> FlaskResponse:
+    def compatible(  # noqa: C901
+        self, datasource_type: str, datasource_id: int
+    ) -> FlaskResponse:
         """Return compatible members, refusing unknown selected names with a 400.
 
         Non-string entries in selection lists do not select datasource members.
@@ -678,15 +690,28 @@ class DatasourceRestApi(BaseSupersetApi):
                 )
             )
         if selected_dimensions:
-            selection_errors.extend(
-                validate_names(
-                    selected_dimensions,
-                    {dimension.column_name for dimension in datasource.columns},
-                    "dimension",
+            try:
+                selection_errors.extend(
+                    validate_names(
+                        selected_dimensions,
+                        {dimension.column_name for dimension in datasource.columns},
+                        "dimension",
+                    )
                 )
-            )
+            except AmbiguousDimensionError as ex:
+                return self.response(400, message=str(ex))
         if selection_errors:
             return self.response(400, message="; ".join(selection_errors))
+
+        try:
+            datasource_uid: str = datasource.uid
+            metadata_version: str | None = (
+                datasource.metadata_generation
+                if isinstance(datasource, SemanticView)
+                else None
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
@@ -695,12 +720,8 @@ class DatasourceRestApi(BaseSupersetApi):
             + hashlib.sha256(
                 json.dumps(
                     {
-                        "uid": datasource.uid,
-                        "metadata_version": (
-                            datasource.metadata_generation
-                            if isinstance(datasource, SemanticView)
-                            else None
-                        ),
+                        "uid": datasource_uid,
+                        "metadata_version": metadata_version,
                         "m": sorted(selected_metrics),
                         "d": sorted(selected_dimensions),
                     },
@@ -747,6 +768,11 @@ class DatasourceRestApi(BaseSupersetApi):
         except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             raise _HttpError(404, ex.message) from ex
         except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise _HttpError(403, ex.message, error=ex.to_dict()) from ex
             raise _HttpError(403, ex.message) from ex
         except TabularQueryValidationError as ex:
             raise _HttpError(400, str(ex)) from ex
@@ -812,7 +838,7 @@ class DatasourceRestApi(BaseSupersetApi):
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, payload)
         except _HttpError as ex:
-            return self.response(ex.status, message=ex.message)
+            return self.response(ex.status, **ex.payload)
         except ValueError:
             return self.response(
                 400, message=f"Invalid datasource type: {datasource_type}"
@@ -1006,7 +1032,7 @@ class DatasourceRestApi(BaseSupersetApi):
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, {})
         except _HttpError as ex:
-            return self.response(ex.status, message=ex.message)
+            return self.response(ex.status, **ex.payload)
         except ValueError:
             return self.response(
                 400, message=f"Invalid datasource type: {datasource_type}"
