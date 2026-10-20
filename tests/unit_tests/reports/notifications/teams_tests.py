@@ -18,7 +18,7 @@
 
 from collections.abc import Iterator
 from types import SimpleNamespace
-from unittest.mock import MagicMock
+from unittest.mock import MagicMock, patch
 
 import pytest
 from flask import Flask
@@ -33,6 +33,7 @@ from superset.reports.notifications.exceptions import (
     NotificationError,
     NotificationParamException,
 )
+from superset.reports.notifications.teams import _send_to_teams
 from superset.utils import json
 
 
@@ -232,3 +233,17 @@ def test_card_omits_empty_description_and_hides_execution_error(
     )
     assert "secret_table" not in json.dumps(card)
     assert "credential" not in json.dumps(card)
+
+
+def test_delivery_still_reports_missing_sdk(
+    notification: SimpleNamespace,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Previously saved recipients retain the lazy delivery-time dependency error."""
+    monkeypatch.setattr(teams, "_send_to_teams", _send_to_teams)
+    with patch.dict("sys.modules", {"superset.integrations.teams.adapter": None}):
+        with pytest.raises(
+            NotificationParamException, match="^Teams SDK is not installed$"
+        ):
+            teams.TeamsNotification(notification.recipient, notification.content).send()
+    notification.session.return_value.__exit__.assert_called_once()

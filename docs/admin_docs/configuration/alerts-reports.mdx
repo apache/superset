@@ -985,9 +985,12 @@ Keep the entire mapping on the server. Browser destination lists must use
 store only the selected destination key, never credentials or routing details.
 Do not serialize the parsed configuration object, including via `dataclasses.asdict`.
 
-The alert editor lists Teams when the integration is enabled and configured and
-attachments are disabled. Choose an approved channel by its display label. To
-notify multiple channels, add another notification method and choose Teams again;
+The alert editor lists Teams when the integration is enabled and configured, the
+optional SDK is installed, and attachments are disabled. Dependency discovery reads
+package metadata without importing the SDK. If the SDK is absent, the destination
+API returns an empty list and saved Teams recipients remain visible as unavailable
+when editing. Delivery retains a lazy import guard for missing or unloadable SDKs.
+Choose an approved channel by its display label. To notify multiple channels, add another notification method and choose Teams again;
 each entry stores one destination key. Scheduled reports do not offer Teams.
 
 The destination list uses the Reports API read permission and returns only keys,

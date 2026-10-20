@@ -25,17 +25,19 @@ from superset.integrations.teams.config import (
     TeamsConfig,
     TeamsConfigError,
 )
+from superset.integrations.teams.dependencies import is_teams_sdk_installed
 from superset.integrations.teams.store import TeamsInstallationStore
 
 
 def configured_teams() -> TeamsConfig | None:
-    """Resolve an enabled integration without exposing configuration errors."""
+    """Resolve an enabled, configured integration with its optional SDK installed."""
     if not feature_flag_manager.is_feature_enabled("ALERT_REPORT_TEAMS"):
         return None
     try:
-        return parse_teams_config(current_app.config.get("ALERT_REPORTS_TEAMS", {}))
+        config = parse_teams_config(current_app.config.get("ALERT_REPORTS_TEAMS", {}))
     except TeamsConfigError:
         return None
+    return config if config is not None and is_teams_sdk_installed() else None
 
 
 def list_teams_destinations() -> list[dict[str, str | bool]]:

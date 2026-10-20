@@ -4871,3 +4871,55 @@ test('Teams unavailable saved keys can be replaced without losing inactive state
     fetchMock.removeRoute('teams-replacement-save');
   }
 });
+
+test('Teams saved recipients stay visible and replaceable when the optional SDK is unavailable', async () => {
+  mockNotificationMethods = ['Email'];
+  fetchMock.get('glob:*/api/v1/report/95', {
+    result: {
+      ...generateMockPayload(true),
+      id: 95,
+      report_format: 'NONE',
+      recipients: [
+        { id: 1, type: 'Teams', recipient_config_json: '{"target":"ops"}' },
+      ],
+    },
+  });
+  fetchMock.get(
+    'glob:*/api/v1/report/teams_destinations/',
+    { result: [] },
+    { name: 'teams-sdk-missing' },
+  );
+  try {
+    render(
+      <AlertReportModal
+        {...generateMockedProps(false, true)}
+        alert={{ ...validAlert, id: 95 }}
+      />,
+      {
+        useRedux: true,
+        initialState: { user: adminUser },
+      },
+    );
+    await userEvent.click(screen.getByTestId('notification-method-panel'));
+    expect(await screen.findByText('ops (Unavailable)')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        /Teams delivery is unavailable.*optional Teams dependency/,
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Teams destination' }),
+    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: /save/i })).toBeDisabled();
+    await userEvent.click(
+      screen.getByRole('combobox', { name: /^Delivery method/ }),
+    );
+    await userEvent.click(await screen.findByText('Email'));
+    expect(
+      screen.queryByRole('combobox', { name: 'Teams destination' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('ops (Unavailable)')).not.toBeInTheDocument();
+  } finally {
+    fetchMock.removeRoute('teams-sdk-missing');
+  }
+});

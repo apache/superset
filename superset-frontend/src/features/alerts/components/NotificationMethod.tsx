@@ -649,7 +649,7 @@ export const NotificationMethod: FunctionComponent<NotificationMethodProps> = ({
               <Alert
                 type="warning"
                 message={t(
-                  'Teams delivery is unavailable. Contact your administrator to enable and configure it.',
+                  'Teams delivery is unavailable. Contact your administrator to check the integration configuration and optional Teams dependency.',
                 )}
               />
             )}
