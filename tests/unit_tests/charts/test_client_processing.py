@@ -2570,13 +2570,15 @@ def test_table_time_format_keeps_nulls() -> None:
         "%Q",
         "%-d %b",
         "%x",
+        "local!%Y-%m-%d",
     ],
 )
 def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> None:
     """
     ``strftime`` copies a directive it does not recognize into its output, so a
-    format carrying a d3-only one would reach the report as literal text. The
-    column is left raw instead, the way an unsupported number format is.
+    format carrying a d3-only one would reach the report as literal text, and so
+    would the ``local!`` marker that the browser's registry strips. The column is
+    left raw instead, the way an unsupported number format is.
     """
     df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
     form_data = {
@@ -2587,6 +2589,25 @@ def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> 
     formatted = table(df, form_data)
 
     assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+
+
+def test_table_time_format_reads_an_aware_value_in_utc() -> None:
+    """
+    ``createD3TimeFormatter`` formats with ``utcFormat`` unless the format asks
+    for local time, so an aware value has to be read in UTC rather than in its
+    own offset, which is a different instant.
+    """
+    df = pd.DataFrame(
+        {"ds": pd.to_datetime(["2024-01-01 00:30"]).tz_localize("Asia/Kolkata")}
+    )
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y-%m-%d %H:%M"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == ["2023-12-31 19:00"]
 
 
 def test_table_report_time_format_survives_the_notification_table() -> None:
