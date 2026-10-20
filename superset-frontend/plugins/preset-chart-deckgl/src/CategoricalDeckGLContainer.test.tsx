@@ -27,6 +27,12 @@ import CategoricalDeckGLContainer, {
 import { addColorToFeatures } from './utils/addColor';
 import { COLOR_SCHEME_TYPES } from './utilities/utils';
 
+// maplibre-gl 6 is ESM-only, so jest can't resolve it; DeckGLContainer.tsx
+// calls setWorkerUrl() on it at import time.
+jest.mock('maplibre-gl', () => ({ setWorkerUrl: jest.fn() }), {
+  virtual: true,
+});
+
 const mockViewports: JsonObject[] = [];
 jest.mock('./DeckGLContainer', () => ({
   DeckGLContainerStyledWrapper: jest
