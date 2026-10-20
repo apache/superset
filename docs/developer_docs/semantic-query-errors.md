@@ -36,6 +36,11 @@ from provider execution returns HTTP 500 with generic text; a plain `ValueError`
 is not evidence of invalid query input. Authentication, authorization, cancellation,
 and worker timeout control exceptions keep their existing behavior.
 
+`SemanticView.validate_selection_version` is a separate selection-boundary
+check: it raises `ValueError` when a saved selection's version does not match.
+Handle that specific call at the selection boundary. This does not make arbitrary
+`ValueError` exceptions from provider execution deliberate query refusals.
+
 During `get_table` and `get_row_count` execution, provider-raised
 `SupersetTimeoutException` (previously HTTP 408),
 `SupersetGenericDBErrorException` (previously HTTP 400), and
@@ -63,8 +68,10 @@ HTTP 500.
 
 An asynchronous totals-prerequisite query whose payload is marked FAILED fails
 its task with that payload's error. It does not publish a cache key for dependent
-contribution queries to read as if totals had been successfully cached. Other
-asynchronous chart queries retain their structured-error readback behavior.
+contribution queries to read as if totals had been successfully cached.
+Typed query validation failures also fail ordinary asynchronous chart tasks,
+without publishing a cache key or retrying the rejected query synchronously.
+Ordinary SQL engine errors retain their structured-error readback behavior.
 
 Host-classified client errors (`QueryObjectValidationError` and subclasses) keep
 their status. The shared SDK module also defines `SemanticResultCompletenessError`
