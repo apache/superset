@@ -99,7 +99,15 @@ export default {
     "@storybook/addon-docs"
   ],
 
-  staticDirs: ['../src/assets/images'],
+  staticDirs: [
+    '../src/assets/images',
+    // maplibre-gl 6's ESM-only build loads its worker from a real URL
+    // instead of an inlined blob (see MapLibre.tsx for the matching
+    // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+    // relative ESM import of its "shared" chunk, so both files must be
+    // copied verbatim, unhashed, into the same output directory.
+    '../node_modules/maplibre-gl/dist',
+  ],
 
   webpackFinal: config => ({
     ...config,

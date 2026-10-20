@@ -3082,7 +3082,7 @@ def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
             {
                 "col": "global_sales",
                 "op": "IN",
-                "val": [33, 29.02, None],  # type: ignore[list-item]
+                "val": [33, 29.02, None],
             },
         ],
         extras={},
@@ -3106,6 +3106,138 @@ def test_get_sqla_query_in_filter_preserves_float_precision_with_null(
         f"even with a NULL present, but it was likely truncated. "
         f"Generated SQL: {sql}"
     )
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "region", "op": "IN"}, id="in-missing-val"),
+        pytest.param({"col": "region", "op": "NOT IN"}, id="not-in-missing-val"),
+        pytest.param({"col": "region", "op": "IN", "val": None}, id="in-val-none"),
+        pytest.param(
+            {"col": "region", "op": "NOT IN", "val": None}, id="not-in-val-none"
+        ),
+    ],
+)
+def test_get_sqla_query_in_filter_without_value_raises_validation_error(
+    database: Database,
+    flt: dict[str, Any],
+) -> None:
+    """
+    An IN / NOT IN filter with no value must raise a QueryObjectValidationError
+    (surfaced to the client as a 4xx) rather than an AssertionError (a 500).
+    The filter must not be silently dropped, as that would widen the results.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(column_name="region", type="VARCHAR(255)"),
+            TableColumn(column_name="created_at", type="TIMESTAMP", is_dttm=True),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="region"):
+        table.get_sqla_query(
+            columns=["region"],
+            filter=[
+                {"col": "created_at", "op": "TEMPORAL_RANGE", "val": "No filter"},
+                flt,  # type: ignore[list-item]
+            ],
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+
+@pytest.mark.parametrize(
+    "flt",
+    [
+        pytest.param({"col": "ip", "op": "IN"}, id="in-missing-val"),
+        pytest.param({"col": "ip", "op": "NOT IN"}, id="not-in-missing-val"),
+        pytest.param({"col": "ip", "op": "IN", "val": None}, id="in-val-none"),
+        pytest.param({"col": "ip", "op": "NOT IN", "val": None}, id="not-in-val-none"),
+    ],
+)
+def test_get_sqla_query_in_filter_without_value_advanced_data_type(
+    mocker: MockerFixture,
+    database: Database,
+    flt: dict[str, Any],
+) -> None:
+    """
+    With ENABLE_ADVANCED_DATA_TYPES on, an IN / NOT IN filter with no value on an
+    advanced-data-type column must raise a QueryObjectValidationError rather than
+    passing ``None`` to ``translate_type`` (a TypeError, i.e. a 500).
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+    from superset.exceptions import QueryObjectValidationError
+
+    mocker.patch(
+        "superset.models.helpers.feature_flag_manager.is_feature_enabled",
+        side_effect=lambda feature: feature == "ENABLE_ADVANCED_DATA_TYPES",
+    )
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[
+            TableColumn(
+                column_name="ip",
+                type="VARCHAR(255)",
+                advanced_data_type="internet_address",
+            ),
+        ],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="ip"):
+        table.get_sqla_query(
+            columns=["ip"],
+            filter=[flt],  # type: ignore[list-item]
+            extras={},
+            is_timeseries=False,
+            metrics=[],
+        )
+
+
+@pytest.mark.parametrize("op", ["IN", "NOT IN"])
+def test_get_sqla_query_in_filter_with_value_builds_query(
+    database: Database,
+    op: str,
+) -> None:
+    """
+    A valid IN / NOT IN filter keeps building the expected IN clause.
+    """
+    from superset.connectors.sqla.models import SqlaTable, TableColumn
+
+    table = SqlaTable(
+        database=database,
+        schema=None,
+        table_name="t",
+        columns=[TableColumn(column_name="region", type="VARCHAR(255)")],
+    )
+
+    sqla_query = table.get_sqla_query(
+        columns=["region"],
+        filter=[{"col": "region", "op": op, "val": ["EMEA", "APAC"]}],
+        extras={},
+        is_timeseries=False,
+        metrics=[],
+    )
+
+    with database.get_sqla_engine() as engine:
+        sql = str(
+            sqla_query.sqla_query.compile(
+                dialect=engine.dialect,
+                compile_kwargs={"literal_binds": True},
+            )
+        )
+
+    assert f"region {op} ('EMEA', 'APAC')" in sql
 
 
 def test_multiple_calculated_columns_each_parenthesized(
@@ -5143,6 +5275,48 @@ def test_temporal_epoch_string_filter_list_is_coerced_for_clickhouse() -> None:
     assert len(values) == 1
     assert isinstance(values[0], ColumnElement)
     assert str(values[0]) == "toDate('2026-04-27')"
+
+
+@pytest.mark.parametrize(
+    "operator",
+    [FilterOperator.IN, FilterOperator.NOT_IN],
+)
+@pytest.mark.parametrize(
+    "values",
+    [[0, 1], [False, True], ["false", "true"]],
+)
+def test_boolean_filter_values_coerced_for_databricks(
+    operator: FilterOperator,
+    values: list[Any],
+) -> None:
+    """
+    Native dashboard filters on boolean columns build `IN` clauses through
+    `filter_values_handler` (#36765). Databricks rejects `col IN (0)` with
+    DATATYPE_MISMATCH, and the Hive/Databricks drivers render bound Python
+    booleans as integers, so values must coerce to boolean keywords.
+    """
+    from sqlalchemy import Boolean, Column
+
+    from superset.db_engine_specs.databricks import DatabricksBaseEngineSpec
+    from superset.db_engine_specs.spark import SparkEngineSpec
+    from superset.models.helpers import ExploreMixin
+
+    for db_engine_spec in (DatabricksBaseEngineSpec, SparkEngineSpec):
+        coerced = ExploreMixin.filter_values_handler(
+            values=values,
+            operator=operator,
+            target_generic_type=GenericDataType.BOOLEAN,
+            is_list_target=True,
+            db_engine_spec=db_engine_spec,
+        )
+        assert isinstance(coerced, list)
+        assert len(coerced) == 2
+        assert all(isinstance(value, ColumnElement) for value in coerced)
+        # the coerced values compile to boolean keywords and never reach the
+        # driver as bind parameters (which pyhive renders as 0/1)
+        compiled = Column("is_test_user", Boolean).in_(coerced).compile()
+        assert str(compiled) == "is_test_user IN (false, true)"
+        assert compiled.params == {}
 
 
 @pytest.mark.parametrize(

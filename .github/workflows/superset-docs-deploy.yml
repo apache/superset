@@ -113,7 +113,7 @@ jobs:
           persist-credentials: false
           submodules: recursive
       - name: Set up Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version-file: "./docs/.nvmrc"
       - name: Setup Python
@@ -141,7 +141,7 @@ jobs:
           yarn install --check-cache
       - name: Download database diagnostics (if triggered by integration tests)
         if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
-        uses: dawidd6/action-download-artifact@27e4ae67c24b67d3b54bc6d6a45475be1e28031b # v26
+        uses: dawidd6/action-download-artifact@eab87c9830c39eff17e5a6eadb20bfb4bc880477 # v27
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml
@@ -150,7 +150,7 @@ jobs:
           path: docs/src/data/
       - name: Try to download latest diagnostics (for push/dispatch triggers)
         if: github.event_name != 'workflow_run'
-        uses: dawidd6/action-download-artifact@27e4ae67c24b67d3b54bc6d6a45475be1e28031b # v26
+        uses: dawidd6/action-download-artifact@eab87c9830c39eff17e5a6eadb20bfb4bc880477 # v27
         continue-on-error: true
         with:
           workflow: superset-python-integrationtest.yml

@@ -22,9 +22,9 @@ from __future__ import annotations
 import contextlib
 import importlib
 from collections.abc import Generator
-from types import MethodType, ModuleType
+from types import ModuleType
 from typing import Any
-from unittest.mock import call, MagicMock, Mock, patch
+from unittest.mock import call, MagicMock, Mock, patch, PropertyMock
 
 import pyarrow as pa
 import pytest
@@ -145,19 +145,33 @@ def large_metric_catalog() -> Generator[MagicMock, None, None]:
     view.implementation.get_dimensions.return_value = dimensions
     view.implementation.get_metrics.return_value = []
     view.implementation.get_compatible_dimensions.return_value = dimensions
-    view.get_compatible_dimensions.side_effect = MethodType(
-        SemanticView.get_compatible_dimensions, view
-    )
+    semantic_view: SemanticView = SemanticView()
     dataset: MagicMock = _make_dataset(1)
     dataset.metrics = [_make_metric(f"builtin_{i}") for i in range(20)]
     dataset.columns = [_make_column(f"column_{i}") for i in range(30)]
     view_dao: MagicMock
-    with _patched_dataset_search([dataset]) as (_, view_dao, _):
+    # `implementation` is a plain (non-settable) property resolved through
+    # `SemanticBindingMemo`; patch it directly rather than assigning to it, and
+    # keep the patch alive across the yield since `get_compatible_dimensions`
+    # reads `self.implementation` again when the test later invokes it.
+    with (
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=view.implementation,
+        ),
+        _patched_dataset_search([dataset]) as (_, view_dao, _),
+    ):
+        view.get_compatible_dimensions.side_effect = (
+            semantic_view.get_compatible_dimensions
+        )
         view_dao.find_accessible.return_value = [view]
         view_dao.find_by_id.return_value = view
         yield view
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_default_page_byte_bound(
     mcp_server: FastMCP,
@@ -177,6 +191,7 @@ async def test_list_metrics_default_page_byte_bound(
     large_metric_catalog.get_compatible_dimensions.assert_not_called()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_embedded_page_byte_bound(
     mcp_server: FastMCP,
@@ -328,6 +343,7 @@ async def test_list_metrics_builtin_happy_path(mcp_server: FastMCP) -> None:
     assert all(m["dataset_id"] == 42 for m in metrics)
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_mutual_exclusion_validation(mcp_server: FastMCP) -> None:
     """list_metrics returns a validation error when dataset_id and view_id coexist."""
@@ -378,6 +394,7 @@ async def test_list_metrics_search_filter(mcp_server: FastMCP) -> None:
     assert metrics[0]["name"] == "revenue"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_includes_verbose_name(
     mcp_server: FastMCP,
@@ -404,6 +421,7 @@ async def test_list_metrics_external_includes_verbose_name(
     assert metrics["bookings"]["semantic_selection_version"] == "cube-member-id-v1"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
     """An explicit view_id lookup surfaces AccessDenied instead of InternalError."""
@@ -424,6 +442,7 @@ async def test_list_metrics_external_access_denied(mcp_server: FastMCP) -> None:
     assert data["error_type"] == "AccessDenied"
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_external_per_metric_compatible_dimensions(
     mcp_server: FastMCP,
@@ -533,6 +552,7 @@ async def test_list_metrics_nonexistent_dataset_id_returns_empty(
     mock_dao.find_by_id.assert_called_once()
 
 
+@pytest.mark.usefixtures("semantic_layers_enabled")
 @pytest.mark.asyncio
 async def test_list_metrics_nonexistent_view_id_returns_empty(
     mcp_server: FastMCP,

@@ -71,12 +71,7 @@ from superset.utils import json
 
 
 class DatasetFilter(ColumnOperator):
-    """
-    Filter object for dataset listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for dataset listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "uuid",
@@ -275,13 +270,12 @@ class ListDatasetsRequest(
     MetadataCacheControl,
     PaginatedListRequest[DatasetFilter],
 ):
-    """Request schema for list_datasets with clear, unambiguous types.
+    """Request schema for list_datasets with clear, unambiguous types."""
 
-    Unlike its siblings, this schema does NOT parse JSON-string `filters`/
-    `select_columns` into lists — it relies on Pydantic's native list
-    validation instead. Preserved intentionally; see
-    test_list_datasets_with_string_filters.
-    """
+    # Unlike its siblings, this schema does NOT parse JSON-string `filters`/
+    # `select_columns` into lists; it relies on Pydantic's native list
+    # validation instead. Preserved intentionally; see
+    # test_list_datasets_with_string_filters.
 
     order_column: Annotated[
         str | None,
@@ -1138,16 +1132,12 @@ class QueryDatasetFilter(BaseModel):
 
     @model_validator(mode="after")
     def _validate_temporal_range_val(self) -> "QueryDatasetFilter":
-        """Hold a TEMPORAL_RANGE filter to the same grammar as ``time_range``.
+        """Validate a filter comparator before it reaches the shared parser.
 
-        This operator resolves through ``get_since_until()`` exactly like the
-        dedicated ``time_range`` field does, so an unparseable value here
-        produces the same silent full-table match. Validating only
-        ``time_range`` would leave that gap open to any caller that spells
-        the same filter out longhand.
+        Unlike optional top-level defaults, blank filter values are invalid.
         """
         if self.op == "TEMPORAL_RANGE" and isinstance(self.val, str):
-            self.val = validate_time_range(self.val)
+            self.val = validate_time_range(self.val, allow_empty=False)
         return self
 
 
