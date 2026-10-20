@@ -2375,6 +2375,168 @@ def test_delete_semantic_view_forbidden(
     assert response.status_code == 403
 
 
+def _bulk_views(count: int) -> dict[str, list[dict[str, Any]]]:
+    layer_uuid = str(uuid_lib.uuid4())
+    return {
+        "views": [
+            {"name": f"view_{i}", "semantic_layer_uuid": layer_uuid}
+            for i in range(count)
+        ]
+    }
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS": 2,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_refuses_oversized_batch(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A batch over the configured cap is refused before any provider lookup."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(3))
+
+    assert response.status_code == 400
+    assert response.json is not None
+    assert response.json["message"] == (
+        "Too many views in one request: 3 provided, at most 2 allowed."
+    )
+    mock_command.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS": 2,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_accepts_batch_at_cap(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A batch exactly at the cap is processed."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    new_model = MagicMock()
+    new_model.uuid = uuid_lib.uuid4()
+    new_model.name = "view"
+    mock_command.return_value.run.return_value = new_model
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(2))
+
+    assert response.status_code == 201
+    assert mock_command.call_count == 2
+
+
+@SEMANTIC_LAYERS_APP
+def test_post_semantic_view_refuses_non_list_views(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """A ``views`` value that is not a list is refused without lookups."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+
+    response: TestResponse = client.post(
+        "/api/v1/semantic_view/", json={"views": {"name": "orders"}}
+    )
+
+    assert response.status_code == 400
+    mock_command.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_TIMEOUT": 10,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_fails_remaining_views_after_deadline(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Views not started before the deadline fail with a typed timeout error."""
+    mock_time = mocker.patch("superset.semantic_layers.api.time")
+    # start, first view check, then every later check is past the deadline
+    mock_time.monotonic.side_effect = [0.0, 1.0, 11.0, 12.0]
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+    new_model = MagicMock()
+    new_model.uuid = uuid_lib.uuid4()
+    new_model.name = "view_0"
+    mock_command.return_value.run.return_value = new_model
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(3))
+
+    assert response.status_code == 201
+    assert response.json is not None
+    result = response.json["result"]
+    assert result["created"] == [{"uuid": str(new_model.uuid), "name": "view_0"}]
+    timeout_message = (
+        "Semantic view validation timed out before this view was checked. "
+        "Retry it in a separate request."
+    )
+    assert result["errors"] == [
+        {"name": "view_1", "error": timeout_message, "error_type": "TIMEOUT"},
+        {"name": "view_2", "error": timeout_message, "error_type": "TIMEOUT"},
+    ]
+    assert mock_command.call_count == 1
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_TIMEOUT": 0,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_all_views_timed_out(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """With no budget left, no lookup runs and the batch is unprocessable."""
+    mock_command = mocker.patch(
+        "superset.semantic_layers.api.CreateSemanticViewCommand",
+    )
+
+    response: TestResponse = client.post("/api/v1/semantic_view/", json=_bulk_views(2))
+
+    assert response.status_code == 422
+    assert response.json is not None
+    errors = response.json["result"]["errors"]
+    assert [error["error_type"] for error in errors] == ["TIMEOUT", "TIMEOUT"]
+    mock_command.assert_not_called()
+
+
 # =============================================================================
 # SemanticViewRestApi.bulk_delete tests
 # =============================================================================

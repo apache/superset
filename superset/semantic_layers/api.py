@@ -17,9 +17,10 @@
 from __future__ import annotations
 
 import logging
+import time
 from typing import Any
 
-from flask import Blueprint, make_response, request, Response
+from flask import Blueprint, current_app, make_response, request, Response
 from flask_appbuilder import AppBuilder
 from flask_appbuilder.api import BaseApi, expose, protect, rison, safe
 from flask_appbuilder.api.schemas import get_list_schema
@@ -86,6 +87,23 @@ from superset.views.base_api import (
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _bulk_create_refusal(views_data: Any) -> str | None:
+    """Return why a bulk creation batch is refused before any lookup, if it is."""
+    if not isinstance(views_data, list):
+        return t("Views must be a list")
+    if not views_data:
+        return "No views provided"
+    max_views = current_app.config["SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS"]
+    if len(views_data) > max_views:
+        return t(
+            "Too many views in one request: %(count)s provided, "
+            "at most %(limit)s allowed.",
+            count=len(views_data),
+            limit=max_views,
+        )
+    return None
 
 
 def _refuse_disabled_semantic_layers() -> FlaskResponse | None:
@@ -351,6 +369,10 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                   properties:
                     views:
                       type: array
+                      description: >-
+                        At most SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS views. Views
+                        not validated within SEMANTIC_VIEW_BULK_CREATE_TIMEOUT
+                        seconds are reported with error_type TIMEOUT.
                       items:
                         type: object
                         properties:
@@ -379,13 +401,30 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
 
         body = request.json or {}
         views_data = body.get("views", [])
-        if not views_data:
-            return self.response_400(message="No views provided")
+        if refusal := _bulk_create_refusal(views_data):
+            return self.response_400(message=refusal)
 
         schema = SemanticViewPostSchema()
         created = []
         errors = []
+        # Checked between lookups only: an in-flight provider call is bounded by
+        # the semantic layer's own timeouts.
+        deadline = (
+            time.monotonic() + current_app.config["SEMANTIC_VIEW_BULK_CREATE_TIMEOUT"]
+        )
         for view_data in views_data:
+            if time.monotonic() >= deadline:
+                errors.append(
+                    {
+                        "name": view_data.get("name"),
+                        "error": t(
+                            "Semantic view validation timed out before this view "
+                            "was checked. Retry it in a separate request."
+                        ),
+                        "error_type": "TIMEOUT",
+                    }
+                )
+                continue
             try:
                 item = schema.load(view_data)
             except ValidationError as error:
