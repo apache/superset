@@ -73,7 +73,16 @@ export interface ResolvedPage extends Page {
  * Registers a page, mounted by the host as a client-side route.
  *
  * The component renders inside the host's own chrome, under an error
- * boundary, and may use the router and store hooks as a host page does.
+ * boundary.
+ *
+ * It cannot use the host's router or store. `react-router-dom` and
+ * `react-redux` are not in the Module Federation share scope, so an
+ * extension importing either gets a second module instance with its own
+ * React context, and `useLocation()` throws at runtime. A page is therefore
+ * a single screen today: there is no supported way to navigate within it or
+ * to read a sub-path, even though the host serves every path beneath the
+ * page and resolves it back to this component. Keep sub-screen state in the
+ * component until the host offers a navigation primitive.
  *
  * Registering the same slug twice within one extension replaces the first
  * registration and logs a warning; slugs cannot collide across extensions,
@@ -92,6 +101,44 @@ export declare function registerPage(
  * Retrieves every registered page, in registration order.
  */
 export declare function getPages(): ResolvedPage[];
+
+/**
+ * The path beneath this page's own root, always beginning with `/`.
+ *
+ * The host serves every path under a page and resolves it back to the same
+ * component, so a page can own a sub-path the way a host screen owns one --
+ * `/queue/42` and `/queue/42/edit` both reach the `queue` page, and this
+ * reports `/42` and `/42/edit`. On the page's own root it reports `/`.
+ *
+ * This exists because `react-router-dom` is not shared: an extension that
+ * imported it would get a second module instance with its own React context
+ * and `useLocation()` would throw. This reads the host's router instead.
+ *
+ * @example
+ * ```typescript
+ * const subPath = pages.useSubPath();          // '/42'
+ * const id = subPath.split('/')[1];
+ * ```
+ */
+export declare function useSubPath(): string;
+
+/**
+ * Returns a function that navigates within this page.
+ *
+ * The argument is relative to the page's own root, so a page never writes
+ * its own URL and cannot navigate out of its namespace by accident. It is a
+ * client-side transition through the host's router, so the back button, the
+ * host's scroll restoration and its navigation logging all behave as they do
+ * on a host screen.
+ *
+ * @example
+ * ```typescript
+ * const navigate = pages.useNavigate();
+ * navigate(`/${row.id}`);   // -> /extensions/<publisher>.<name>/queue/42
+ * navigate('/');            // back to the page root
+ * ```
+ */
+export declare function useNavigate(): (subPath: string) => void;
 
 /** Event fired when a page is registered. */
 export declare const onDidRegisterPage: Event<ResolvedPage>;

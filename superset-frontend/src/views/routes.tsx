@@ -325,6 +325,14 @@ if (isFeatureEnabled(FeatureFlag.EnableExtensions)) {
     path: '/extensions/:extensionId/:slug',
     Component: ExtensionPage,
   });
+  // The server serves the shell for an extension id with no slug too, so
+  // without this a trimmed or truncated URL renders an empty body rather
+  // than the "page not found" the two-segment route gives. Registered after
+  // it, so a real page still wins.
+  routes.push({
+    path: '/extensions/:extensionId',
+    Component: ExtensionPage,
+  });
 }
 
 if (authRegistrationEnabled) {
