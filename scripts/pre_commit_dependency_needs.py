@@ -24,6 +24,11 @@ tsx,css,scss,sass,json}`; oxlint-docs on `docs/*.{js,jsx,ts,tsx}`), so a
 changed-file list that matches none of these patterns means npm ci / yarn
 install can be skipped without any hook missing its dependencies.
 
+The Node.js setup itself is gated separately (needs_node): oxfmt-websocket
+(`superset-websocket/*.{js,ts}`) runs `npx oxfmt` without either install, so
+it still wants the .nvmrc-selected Node even when npm ci and yarn install are
+both skipped.
+
 A previous inline-bash version of this (`printf '%s\\n' "$files" | grep -q
 ...`) risked a false "not needed" result: under `set -o pipefail`, grep -q's
 early exit on a match can SIGPIPE a producer still mid-write for a large
@@ -46,6 +51,9 @@ FRONTEND_PATTERNS: List[str] = [
 # Mirrors oxlint-docs's own `files:` pattern exactly. Most docs contributions
 # are prose (.md/.mdx), which this correctly treats as not needing the install.
 DOCS_PATTERNS: List[str] = [r"^docs/.*\.(js|jsx|ts|tsx)$"]
+# Mirrors oxfmt-websocket's own `files:` pattern exactly. It needs Node (npx)
+# but neither of the two dependency installs.
+WEBSOCKET_PATTERNS: List[str] = [r"^superset-websocket/.*\.(js|ts)$"]
 
 
 def _matches_any(files: List[str], patterns: List[str]) -> bool:
@@ -61,14 +69,24 @@ def needs_docs(files: List[str]) -> bool:
     return _matches_any(files, DOCS_PATTERNS)
 
 
+def needs_node(files: List[str]) -> bool:
+    """True when any hook that shells out to Node (npx/npm/yarn) will run."""
+    return (
+        needs_frontend(files)
+        or needs_docs(files)
+        or _matches_any(files, WEBSOCKET_PATTERNS)
+    )
+
+
 def main() -> None:
     """Reads newline-separated changed file paths from stdin, writes
-    needs_frontend/needs_docs booleans to $GITHUB_OUTPUT (or stdout, for a
-    local/manual run outside CI)."""
+    needs_frontend/needs_docs/needs_node booleans to $GITHUB_OUTPUT (or
+    stdout, for a local/manual run outside CI)."""
     files = [line.strip() for line in sys.stdin if line.strip()]
     lines = [
         f"needs_frontend={'true' if needs_frontend(files) else 'false'}",
         f"needs_docs={'true' if needs_docs(files) else 'false'}",
+        f"needs_node={'true' if needs_node(files) else 'false'}",
     ]
     if output_path := os.getenv("GITHUB_OUTPUT"):
         with open(output_path, "a", encoding="utf-8") as f:

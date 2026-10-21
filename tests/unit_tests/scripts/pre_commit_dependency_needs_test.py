@@ -28,12 +28,43 @@ def test_pure_backend_change_needs_neither() -> None:
     files = ["superset/commands/database/update.py", "tests/unit_tests/foo.py"]
     assert needs.needs_frontend(files) is False
     assert needs.needs_docs(files) is False
+    assert needs.needs_node(files) is False
 
 
 def test_pure_frontend_change_needs_frontend_only() -> None:
     files = ["superset-frontend/src/preamble.ts"]
     assert needs.needs_frontend(files) is True
     assert needs.needs_docs(files) is False
+    assert needs.needs_node(files) is True
+
+
+def test_frontend_style_and_json_changes_need_frontend() -> None:
+    """oxfmt-frontend also covers css/scss/sass/json, so these must keep the
+    npm ci; this pins the non-js/ts arm of FRONTEND_PATTERNS."""
+    for file in [
+        "superset-frontend/src/foo.css",
+        "superset-frontend/src/foo.scss",
+        "superset-frontend/src/foo.sass",
+        "superset-frontend/package.json",
+    ]:
+        assert needs.needs_frontend([file]) is True, file
+
+
+def test_websocket_change_needs_node_but_no_installs() -> None:
+    """oxfmt-websocket runs `npx oxfmt` without either dependency install,
+    so a websocket-only change must still set up the .nvmrc Node while
+    skipping npm ci and yarn install."""
+    files = ["superset-websocket/src/index.ts"]
+    assert needs.needs_frontend(files) is False
+    assert needs.needs_docs(files) is False
+    assert needs.needs_node(files) is True
+
+
+def test_websocket_non_js_change_needs_nothing() -> None:
+    """oxfmt-websocket only fires on js/ts (JSON is excluded by its own
+    `files:` pattern), so e.g. a package-lock.json bump needs no Node."""
+    files = ["superset-websocket/package-lock.json", "superset-websocket/README.md"]
+    assert needs.needs_node(files) is False
 
 
 def test_frontend_prose_change_needs_neither() -> None:
@@ -64,11 +95,13 @@ def test_docs_js_change_needs_docs_only() -> None:
     files = ["docs/src/components/Foo.tsx"]
     assert needs.needs_frontend(files) is False
     assert needs.needs_docs(files) is True
+    assert needs.needs_node(files) is True
 
 
 def test_empty_file_list_needs_neither() -> None:
     assert needs.needs_frontend([]) is False
     assert needs.needs_docs([]) is False
+    assert needs.needs_node([]) is False
 
 
 def test_similarly_named_path_outside_the_real_directory_does_not_match() -> None:
@@ -111,6 +144,7 @@ def test_main_writes_expected_outputs_to_github_output(tmp_path: Path) -> None:
     output = output_file.read_text()
     assert "needs_frontend=true" in output
     assert "needs_docs=false" in output
+    assert "needs_node=true" in output
 
 
 def test_main_writes_needs_docs_true_for_a_docs_js_change(tmp_path: Path) -> None:
@@ -129,3 +163,4 @@ def test_main_writes_needs_docs_true_for_a_docs_js_change(tmp_path: Path) -> Non
     output = output_file.read_text()
     assert "needs_frontend=false" in output
     assert "needs_docs=true" in output
+    assert "needs_node=true" in output
