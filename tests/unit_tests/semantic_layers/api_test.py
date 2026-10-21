@@ -2620,9 +2620,9 @@ def test_post_semantic_view_retry_after_timeout_adds_remaining_views(
     assert retry.status_code == 201
     assert retry.json is not None
     assert [view["name"] for view in retry.json["result"]["created"]] == ["view_2"]
-    assert [error.get("error_type") for error in retry.json["result"]["errors"]] == [
-        None,
-        None,
+    assert retry.json["result"]["errors"] == [
+        {"name": name, "error": "Semantic view could not be created."}
+        for name in ("view_0", "view_1")
     ]
     assert existing == {"view_0", "view_1", "view_2"}
     assert layer.implementation.get_semantic_view.call_count == 3

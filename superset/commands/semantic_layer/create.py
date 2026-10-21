@@ -155,6 +155,7 @@ class CreateSemanticViewCommand(BaseCommand):
             ) from None
 
         # Check again after the lookup to keep the check-to-insert window short.
+        # Best effort: under REPEATABLE READ this sees the transaction's snapshot.
         self._validate_uniqueness(name, layer_uuid, configuration)
 
     @staticmethod

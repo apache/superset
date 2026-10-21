@@ -506,6 +506,38 @@ def test_create_semantic_view_uniqueness_around_lookup(
     layer.implementation.get_semantic_views.assert_not_called()
 
 
+def test_create_semantic_view_duplicate_added_during_lookup(
+    mocker: MockerFixture,
+) -> None:
+    """A view added by another request during the lookup is refused, not inserted."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import (
+        SemanticViewCreateFailedError,
+    )
+
+    layer: MagicMock = MagicMock()
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO"
+    )
+    dao.validate_uniqueness.side_effect = [True, False]
+
+    with pytest.raises(SemanticViewCreateFailedError):
+        CreateSemanticViewCommand(
+            {"name": "orders", "semantic_layer_uuid": "layer-uuid"}
+        ).run()
+
+    layer.implementation.get_semantic_view.assert_called_once_with("orders", {})
+    dao.create.assert_not_called()
+
+
 @pytest.mark.parametrize(
     "failure",
     [None, ValueError("secret"), ConnectionError("secret"), RuntimeError("secret")],
