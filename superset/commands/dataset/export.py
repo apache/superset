@@ -18,7 +18,7 @@
 
 import logging
 from collections.abc import Iterator
-from typing import Callable
+from typing import Any, Callable
 
 import yaml
 
@@ -34,6 +34,28 @@ from superset.utils import json
 logger = logging.getLogger(__name__)
 
 JSON_KEYS = {"params", "template_params", "extra"}
+
+
+def _omit_default_partition_fields(payload: dict[str, Any]) -> None:
+    """
+    Leave the partition mapping fields out while they hold their defaults.
+
+    So a dataset that does not use partition filter mapping exports a bundle an
+    older Superset can import: its schemas refuse a field they do not know. The
+    importer reads an omitted field as its default, so nothing is lost.
+
+    The monotonic declaration describes the transform, so without one it is
+    left out whatever it says.
+    """
+    for key in ("partition_column", "partition_mapped_column"):
+        if payload.get(key) is None:
+            payload.pop(key, None)
+    for attributes in payload.get("columns", []):
+        if attributes.get("partition_value_transform") is None:
+            attributes.pop("partition_value_transform", None)
+            attributes.pop("partition_transform_is_monotonic", None)
+        elif not attributes.get("partition_transform_is_monotonic"):
+            attributes.pop("partition_transform_is_monotonic", None)
 
 
 class ExportDatasetsCommand(ExportModelsCommand):
@@ -73,6 +95,8 @@ class ExportDatasetsCommand(ExportModelsCommand):
                         logger.info(
                             "Unable to decode `extra` field: %s", attributes["extra"]
                         )
+
+        _omit_default_partition_fields(payload)
 
         payload["version"] = EXPORT_VERSION
         payload["database_uuid"] = str(model.database.uuid)

@@ -3818,13 +3818,13 @@ def test_import_keeps_a_usable_transform(session: Session) -> None:
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=False)
-def test_import_leaves_transforms_alone_while_the_feature_is_off(
+def test_import_drops_an_unsavable_transform_while_the_feature_is_off(
     session: Session,
 ) -> None:
     """
-    No *usability* check runs with the flag off: nothing mirrors, so there is
-    only stored configuration to lose. The structural check still runs, and
-    Jinja passes it -- balanced blocks are substituted out before parsing.
+    The blocking checks do not answer to the flag. Skipped while it was off, a
+    transform no save accepts was imported and stored, and the first flag-on
+    save of the dataset was refused over it.
     """
     engine = db.session.get_bind()
     SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
@@ -3837,10 +3837,7 @@ def test_import_leaves_transforms_alone_while_the_feature_is_off(
     )
     drop_unusable_partition_transforms(config)
 
-    assert (
-        config["columns"][0]["partition_value_transform"]
-        == "unix_timestamp({{ current_username() }})"
-    )
+    assert config["columns"][0]["partition_value_transform"] is None
 
 
 #: Expressions the save path refuses outright, rather than ones that merely
@@ -3977,3 +3974,39 @@ def test_an_unfinished_transform_survives_the_export_import_round_trip(
     drop_unusable_partition_transforms(config)
 
     assert config["columns"][0]["partition_value_transform"] == transform
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_overwrite_reads_omitted_mapping_fields_as_their_defaults(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Export leaves the mapping fields out while they hold their defaults, so an
+    older Superset can import the bundle. Omitted therefore means "the default":
+    read as "keep what is stored", overwriting a mapped dataset with a bundle
+    from one that is not mapped kept a mapping the source does not have.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="pm_db", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = _partition_mapping_config(database.id, "lower(:value)")
+    mapped = import_dataset(copy.deepcopy(config), overwrite=True)
+    assert mapped.partition_column == "dt_epoch"
+
+    unmapped = copy.deepcopy(config)
+    for key in ("partition_column", "partition_mapped_column"):
+        del unmapped[key]
+    for column in unmapped["columns"]:
+        column.pop("partition_value_transform", None)
+        column.pop("partition_transform_is_monotonic", None)
+    dataset = import_dataset(unmapped, overwrite=True)
+
+    assert dataset.partition_column is None
+    assert dataset.partition_mapped_column is None
+    assert all(c.partition_value_transform is None for c in dataset.columns)
+    assert not any(c.partition_transform_is_monotonic for c in dataset.columns)
