@@ -535,7 +535,20 @@ active editor, and asynchronous execution follows the connection's current
 setting. Cancelling leaves the new tab open without executing its query. Repeated
 Run clicks while a check or confirmation is pending do not create another attempt.
 
+### Stopping chart queries
+
+In Explore, a mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not
+update the chart if the query finishes while the button is held, including when
+the browser delivers the release click without pointer metadata. With multiple touch
+presses, these clicks follow the order in which the pointers were released. Release and press
+**Create chart** or **Update chart** again to intentionally run another query.
+Escape cancels a held Space activation, including its release. Holding Enter
+starts at most one query until you release it and press again. Cancelling a press
+does not block a later independent assistive-technology activation.
+
 ### SQL Lab Tips
+
+**Run/Stop button**: A mouse, touch, pen, or Enter/Space key press that starts on **Stop** will not run the SQL if the query finishes while the button is held. Release and press **Run** again to start another execution. Escape cancels a held Space activation, including its eventual release; moving focus away also cancels keyboard activation. Holding Enter starts at most one execution, even if it finishes before you release the key. Releasing a pointer outside the button cancels that press. An independent assistive-technology or programmatic click still performs the action displayed on the button. This also applies to the CTAS/CVAS main button.
 
 **Stopping queries**: An accepted Stop shows “Query was stopped.” even if engine cancellation fails. A finished query refreshes its completed outcome without a stop-failure toast. A Stop rejected after the target commit, while result preparation is still running, shows the “Failed to stop query.” toast. See [Stopping a SQL Lab query](#stopping-a-sql-lab-query) for transaction guarantees and metadata-database limitations.
 

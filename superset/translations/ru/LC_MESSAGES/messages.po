@@ -4057,6 +4057,9 @@ msgstr "Закрыть редактор цветовых порогов"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Закрыть вкладку"
 
@@ -8408,10 +8411,10 @@ msgstr "Скрывает линию для временного ряда"
 msgid "Hierarchy"
 msgstr "Иерархия"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9668,10 +9671,10 @@ msgstr "Долгота и широта"
 msgid "Longitude of default viewport"
 msgstr "Долгота для области просмотра"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11131,9 +11134,6 @@ msgstr "Непрозрачность пузырьков, где 0 - прозра
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Непрозрачность, принимаются значения от 0 до 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Открыть вкладку источника данных"
 
@@ -11163,6 +11163,9 @@ msgstr "Открыть в SQL Lab"
 
 msgid "Open in SQL lab"
 msgstr "Открыть в SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Открыть в SQL Lab"
@@ -13356,6 +13359,13 @@ msgstr "Прокрутите вниз до конца для активации 
 msgid "Search"
 msgstr "Поиск"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Поиск %s записи"
+msgstr[1] "Поиск %s записи"
+msgstr[2] "Поиск %s записей"
+
 msgid "Search / Filter"
 msgstr "Поиск / Фильтр"
 
@@ -13409,9 +13419,6 @@ msgstr "Поиск в фильтрах"
 
 msgid "Search metrics by key or label"
 msgstr "Поиск мер по ключу или имени"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "Поиск тегов"

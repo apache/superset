@@ -22,6 +22,7 @@ import type { AnyAction } from 'redux';
 import type { ThunkAction, ThunkDispatch } from 'redux-thunk';
 import type { QueryColumn, SupersetError } from '@superset-ui/core';
 import {
+  DatasourceType,
   FeatureFlag,
   SupersetClient,
   isFeatureEnabled,
@@ -1683,7 +1684,40 @@ export function popDatasourceQuery(
 ): SqlLabThunkAction<Promise<unknown>> {
   return function (dispatch: AppDispatch) {
     const QUERY_TEXT = t('Query');
-    const datasetId = datasourceKey.split('__')[0];
+    const [datasetId, datasourceType] = datasourceKey.split('__');
+
+    // The id of a `query` datasource is a SQL Lab query id, not a dataset id.
+    if (datasourceType === DatasourceType.Query) {
+      return SupersetClient.get({
+        endpoint: `/fetch_datasource_metadata?datasourceKey=${encodeURIComponent(datasourceKey)}`,
+      })
+        .then(({ json }) =>
+          dispatch(
+            addQueryEditor({
+              name: json.name ? `${QUERY_TEXT} ${json.name}` : QUERY_TEXT,
+              dbId: json.database.id,
+              catalog: json.catalog,
+              schema: json.schema,
+              autorun: false,
+              sql: sql || json.sql,
+            }),
+          ),
+        )
+        .catch(() =>
+          dispatch(addDangerToast(t("The datasource couldn't be loaded"))),
+        );
+    }
+
+    // Only tables are looked up as datasets; other typed keys (for example
+    // semantic views) have no dataset to open an editor from.
+    if (
+      datasourceType !== undefined &&
+      datasourceType !== DatasourceType.Table
+    ) {
+      return Promise.resolve(
+        dispatch(addDangerToast(t("The datasource couldn't be loaded"))),
+      );
+    }
 
     const queryParams = rison.encode({
       keys: ['none'],

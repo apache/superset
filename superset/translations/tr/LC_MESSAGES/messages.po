@@ -4239,6 +4239,9 @@ msgstr "Close color breakpoint editörü"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Sekmey, kapat"
 
@@ -8903,10 +8906,10 @@ msgstr "Zaman serisi için Line'ı izler"
 msgid "Hierarchy"
 msgstr "Hierarchy"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10240,10 +10243,10 @@ msgstr "Uzunlık ve"
 msgid "Longitude of default viewport"
 msgstr "Varsayılan görünümün uzunluğu"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11793,9 +11796,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opakity, 0 ile 100 arasındaki değerleri bekliyor"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Open Datasource sekmesi"
 
@@ -11831,6 +11831,9 @@ msgstr "SQL Lab’da aç"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "SQL Lab’da aç"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Sorguyu SQL Lab’da aç"
@@ -14117,6 +14120,11 @@ msgstr "Yazma değişikliklerini sağlamak için alta çıkın."
 msgid "Search"
 msgstr "Ara"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Arama   %s kayıtları"
+
 msgid "Search / Filter"
 msgstr "Ara / Filtrele"
 
@@ -14184,9 +14192,6 @@ msgstr "Filtrelerde ara"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Metrikleri anahtara veya etikete göre ara"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

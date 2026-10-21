@@ -4379,6 +4379,9 @@ msgstr "Fechar editor de ponto de interrupção de cores"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Fechar aba"
 
@@ -9271,10 +9274,10 @@ msgstr "Oculta a linha da série temporal"
 msgid "Hierarchy"
 msgstr "Hierarquia"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10703,10 +10706,10 @@ msgstr "Longitude e Latitude"
 msgid "Longitude of default viewport"
 msgstr "Longitude da viewport padrão"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 #, fuzzy
@@ -12306,9 +12309,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacidade, espera valores entre 0 e 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Abrir aba fonte de dados"
 
@@ -12344,6 +12344,9 @@ msgstr "Abrir no SQL Lab"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Abrir no laboratório SQL"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Abrir consulta no SQL Lab"
@@ -14764,6 +14767,12 @@ msgstr "Role para baixo para ativar a substituição de alterações."
 msgid "Search"
 msgstr "Pesquisar"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Pesquisar %s registro"
+msgstr[1] "Pesquisar %s registros"
+
 msgid "Search / Filter"
 msgstr "Pesquisa / Filtro"
 
@@ -14823,9 +14832,6 @@ msgstr "Pesquisar em filtros"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Pesquise métricas por chave ou rótulo"
-
-msgid "Search records"
-msgstr "Pesquisar registros"
 
 #, fuzzy
 msgid "Search tags"

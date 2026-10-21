@@ -35,6 +35,7 @@ from superset.commands.sql_lab.results import SqlExecutionResultsCommand
 from superset.commands.sql_lab.streaming_export_command import (
     StreamingSqlResultExportCommand,
 )
+from superset.commands.streaming_export.base import encode_csv_stream
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP
 from superset.daos.database import DatabaseDAO
 from superset.daos.query import QueryDAO
@@ -475,7 +476,8 @@ class SqlLabRestApi(BaseSupersetApi):
 
         # Create response with streaming headers
         response = Response(
-            csv_generator_callable(),  # Call the callable to get generator
+            # Call the callable to get generator
+            encode_csv_stream(csv_generator_callable(), encoding),
             mimetype=f"text/csv; charset={encoding}",
             headers={
                 "Content-Disposition": f'attachment; filename="{filename}"',

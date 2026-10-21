@@ -3782,6 +3782,9 @@ msgstr "カラー境界エディターを閉じる"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr "終値"
+
 msgid "Close tab"
 msgstr "タブを閉じる"
 
@@ -7900,11 +7903,11 @@ msgstr "時系列の線を非表示にします"
 msgid "Hierarchy"
 msgstr "階層"
 
-msgid "High"
-msgstr ""
-
 msgid "High color"
 msgstr ""
+
+msgid "High price"
+msgstr "高値"
 
 msgid "Highest value for each period."
 msgstr "各期間の高値。"
@@ -9127,11 +9130,11 @@ msgstr "経度および緯度"
 msgid "Longitude of default viewport"
 msgstr "既定ビューポートの経度"
 
-msgid "Low"
-msgstr ""
-
 msgid "Low color"
 msgstr ""
+
+msgid "Low price"
+msgstr "安値"
 
 msgid "Lower Threshold"
 msgstr "下限しきい値"
@@ -10513,9 +10516,6 @@ msgstr "バブルの不透明度(0は完全透明、1は不透明)"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "不透明度(0から100の間の値)"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "データソースタブを開く"
 
@@ -10545,6 +10545,9 @@ msgstr "SQL Labで開く"
 
 msgid "Open in SQL lab"
 msgstr "SQL Labで開く"
+
+msgid "Open price"
+msgstr "始値"
 
 msgid "Open query in SQL Lab"
 msgstr "クエリをSQL Labで開く"
@@ -12655,6 +12658,11 @@ msgstr "変更の上書きを有効にするには、一番下までスクロー
 msgid "Search"
 msgstr "検索"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "%s 件のレコードを検索"
+
 msgid "Search / Filter"
 msgstr "検索 / フィルター"
 
@@ -12708,9 +12716,6 @@ msgstr "フィルター内を検索"
 
 msgid "Search metrics by key or label"
 msgstr "メトリックをキーまたはラベルで検索"
-
-msgid "Search records"
-msgstr "記録を検索"
 
 msgid "Search tags"
 msgstr "タグを検索"

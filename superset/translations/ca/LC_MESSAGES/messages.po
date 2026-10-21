@@ -4296,6 +4296,9 @@ msgstr "Tanca l'editor de punts de ruptura de color"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Tancar pestanya"
 
@@ -9002,10 +9005,10 @@ msgstr "Amaga la línia per les sèries temporals"
 msgid "Hierarchy"
 msgstr "Jerarquia"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10353,10 +10356,10 @@ msgstr "Longitud i Latitud"
 msgid "Longitude of default viewport"
 msgstr "Longitud de la vista per defecte"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11903,9 +11906,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacitat, espera valors entre 0 i 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Obrir pestanya de Font de Dades"
 
@@ -11941,6 +11941,9 @@ msgstr "Obrir al SQL Lab"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Obrir al SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Obrir consulta al SQL Lab"
@@ -14235,6 +14238,12 @@ msgstr "Desplaça't cap avall fins al final per habilitar sobreescriure canvis. 
 msgid "Search"
 msgstr "Cercar"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Cercar %s registre"
+msgstr[1] "Cercar %s registres"
+
 msgid "Search / Filter"
 msgstr "Cercar / Filtrar"
 
@@ -14294,9 +14303,6 @@ msgstr "Cercar en filtres"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Cercar Mètriques i Columnes"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"

@@ -6592,6 +6592,9 @@ msgstr "Sulje värikynnysarvon editori"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -14003,10 +14006,10 @@ msgstr "Piilottaa aikasarjan viivan"
 msgid "Hierarchy"
 msgstr "Hierarkia"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -16173,10 +16176,10 @@ msgstr "Pituusaste ja leveysaste"
 msgid "Longitude of default viewport"
 msgstr "Oletusikkunan pituusaste"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -18683,9 +18686,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Peittävyys, odottaa arvoja välillä 0 ja 100"
 
-msgid "Open"
-msgstr ""
-
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -18733,6 +18733,9 @@ msgstr "Avaa SQL Labissa"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Avaa SQL labissa"
+
+msgid "Open price"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
@@ -22456,6 +22459,12 @@ msgstr "Vieritä alas loppuun ottaaksesi muutosten ylikirjoituksen käyttöön. 
 msgid "Search"
 msgstr "Hae"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Hae %s tietue"
+msgstr[1] "Hae %s tietuetta"
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
@@ -22554,9 +22563,6 @@ msgstr "Hae suodattimista"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Hae mittareita ja sarakkeita"
-
-msgid "Search records"
-msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]

@@ -4398,6 +4398,9 @@ msgstr "關閉顏色斷點編輯器"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "關闭選項卡"
 
@@ -9328,10 +9331,10 @@ msgstr "隐藏時間系列的線"
 msgid "Hierarchy"
 msgstr "層次"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10772,10 +10775,10 @@ msgstr "經度/緯度"
 msgid "Longitude of default viewport"
 msgstr "預設視口經度"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 #, fuzzy
@@ -12433,9 +12436,6 @@ msgstr "氣泡的不透明度，0 表示完全透明，1 表示不透明"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "不透明度，期望值介於 0 到 100 之間"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "打開數據源 tab"
 
@@ -12471,6 +12471,9 @@ msgstr "在 SQL 工具箱中打開"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "在 SQL 工具箱中打開"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "在 SQL 工具箱中打開查詢"
@@ -14899,6 +14902,11 @@ msgstr "向下捲動到底部以啟用覆寫變更。"
 msgid "Search"
 msgstr "搜索"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "搜索 %s 紀錄"
+
 msgid "Search / Filter"
 msgstr "搜索 / 過濾"
 
@@ -14968,9 +14976,6 @@ msgstr "搜索 / 過濾"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "搜索指標和列"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
