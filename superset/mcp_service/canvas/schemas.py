@@ -21,10 +21,28 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    model_serializer,
+    SerializationInfo,
+    SerializerFunctionWrapHandler,
+)
 
 
-class GetCanvasResponse(BaseModel):
+class _Compact(BaseModel):
+    """Leaves unset (``None``) fields out of the result, so agents don't pay
+    for a dozen empty keys on every call."""
+
+    @model_serializer(mode="wrap")
+    def _drop_none(
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
+    ) -> dict[str, Any]:
+        return {key: value for key, value in handler(self).items() if value is not None}
+
+
+class GetCanvasResponse(_Compact):
     model_config = ConfigDict(populate_by_name=True)
 
     id: int | None = None
@@ -63,7 +81,7 @@ class ListCanvasesResponse(BaseModel):
     error: str | None = None
 
 
-class CanvasWriteResponse(BaseModel):
+class CanvasWriteResponse(_Compact):
     """The result of creating or updating a canvas."""
 
     id: int | None = None
@@ -79,7 +97,7 @@ class CanvasWriteResponse(BaseModel):
     )
 
 
-class PreviewWidgetResponse(BaseModel):
+class PreviewWidgetResponse(_Compact):
     placement_id: str | None = None
     widget_type: str | None = None
     row_count: int | None = Field(
@@ -111,10 +129,13 @@ class PreviewWidgetResponse(BaseModel):
         default=None,
         description="Whether an image was attached, and its size.",
     )
+    rendered: bool | None = Field(
+        default=None, description="False when the renderer failed: not checked."
+    )
     error: str | None = None
 
 
-class CanvasDraftResponse(BaseModel):
+class CanvasDraftResponse(_Compact):
     """A canvas draft, or the result of a write to one."""
 
     model_config = ConfigDict(populate_by_name=True)
@@ -136,12 +157,16 @@ class CanvasDraftResponse(BaseModel):
     )
     definition: dict[str, Any] | None = None
     ops: list[dict[str, Any]] | None = Field(
-        default=None, description="The operations just applied, with their ids."
+        default=None, description="The operations just applied, with ids, no props."
     )
     filter_scopes: dict[str, list[str]] | None = Field(
         default=None, alias="filterScopes"
     )
     placements: dict[str, dict[str, int]] | None = None
+    grid_columns: dict[str, int] | None = None
+    displaced: list[str] | None = Field(
+        default=None, description="Placements pushed down without being named."
+    )
     widget_types: dict[str, str] | None = Field(default=None, alias="widgetTypes")
     canvas_revision: int | None = Field(
         default=None, description="The canvas revision after a commit."

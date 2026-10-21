@@ -132,8 +132,13 @@ def _with_render(
         rendered = _render(url, props, rows, definition, size, dark)
     except requests.RequestException as ex:
         logger.warning("Canvas widget renderer failed: %s", ex)
-        warnings.append(f"No image: the renderer failed ({ex})")
+        result["rendered"] = False
+        warnings.append(
+            f"No image: the renderer failed ({ex}). The chart was not checked "
+            "visually; don't report it as verified."
+        )
         return None
+    result["rendered"] = True
     result["option"] = rendered.get("option")
     warnings.extend(rendered.get("warnings", []))
     if rendered.get("error"):

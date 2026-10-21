@@ -39,6 +39,14 @@ def test_list_widget_types_impl() -> None:
     assert {"metric-tile", "ag-grid-table", "balloons"} <= ids
 
 
+def test_list_widget_types_names_required_props_and_grid_columns() -> None:
+    types = {b["id"]: b for b in _list_widget_types_impl()}
+
+    assert types["markdown"]["requiredProps"] == ["content"]
+    assert types["group"]["requiredProps"] is None
+    assert types["group"]["canvas"]["gridColumns"] == 12
+
+
 def test_get_widget_control_schema_is_minimal() -> None:
     result = _get_widget_control_schema_impl("balloons")
     assert result["x-disclosure"] == "minimal"

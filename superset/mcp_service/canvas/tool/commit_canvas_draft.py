@@ -23,6 +23,7 @@ from typing import Any
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
 from superset.commands.canvas.draft import CommitCanvasDraftCommand, load_draft
+from superset.daos.canvas import CanvasDAO
 from superset.mcp_service.canvas.schemas import CanvasDraftResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import error_result
 
@@ -35,8 +36,10 @@ def _commit_canvas_draft_impl(token: str, revision: int) -> dict[str, Any]:
         if (error := error_result(ex)) is None:
             raise
         return error
+    canvas = CanvasDAO.find_by_id(draft.canvas_id)
     return {
         "canvas_id": draft.canvas_id,
+        "url": canvas.url if canvas else None,
         "canvas_revision": result.revision if result else draft.base_revision,
     }
 
@@ -55,7 +58,8 @@ def _commit_canvas_draft_impl(token: str, revision: int) -> dict[str, Any]:
 )
 def commit_canvas_draft(token: str, revision: int) -> CanvasDraftResponse:
     """Publish a canvas draft: its changes land on the canvas as one revision
-    and the draft is deleted. Rejected (``canvas_changed``) if the canvas
+    and the draft is deleted. Returns the canvas ``url`` and its new
+    ``canvas_revision``. Rejected (``canvas_changed``) if the canvas
     changed since the draft started; start a new draft then. Only commit
     when the person asks you to publish.
     """

@@ -23,9 +23,13 @@ from typing import Any
 from pydantic import ValidationError
 from superset_core.mcp.decorators import tool, ToolAnnotations
 
+from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import DraftOperationsRequest
 from superset.canvas.definition.validation import request_pointer
-from superset.commands.canvas.draft import ApplyCanvasDraftOperationsCommand
+from superset.commands.canvas.draft import (
+    ApplyCanvasDraftOperationsCommand,
+    load_draft,
+)
 from superset.mcp_service.canvas.schemas import CanvasDraftResponse
 from superset.mcp_service.canvas.tool.canvas_draft_common import describe, error_result
 
@@ -46,6 +50,7 @@ def _apply_canvas_draft_ops_impl(
             ],
         }
     try:
+        before = render_context(load_draft(token).definition)["placements"]
         draft, applied = ApplyCanvasDraftOperationsCommand(
             token, request.revision, request.ops
         ).run()
@@ -53,7 +58,23 @@ def _apply_canvas_draft_ops_impl(
         if (result := error_result(ex)) is None:
             raise
         return result
-    return {**describe(draft, include_definition=False), "ops": applied}
+    context = render_context(draft.definition)
+    after = context["placements"]
+    targeted = {op.get("id") for op in applied}
+    return {
+        **describe(draft, include_definition=False),
+        # The agent sent the props; echo what the server filled in (ids).
+        "ops": [{k: v for k, v in op.items() if k != "props"} for op in applied],
+        "placements": after,
+        "grid_columns": context["gridColumns"],
+        "displaced": sorted(
+            node_id
+            for node_id, placement in after.items()
+            if node_id not in targeted
+            and node_id in before
+            and before[node_id] != placement
+        ),
+    }
 
 
 @tool(
@@ -101,8 +122,14 @@ def apply_canvas_draft_ops(
       "crossFilters", "value": {...}}``.
 
     Grid layouts are 1-based: ``col`` runs from 1 to the grid's columns (24
-    on the root) and ``row`` starts at 1. Leave ``col``/``row`` out to
-    auto-place, and leave spans out to use the widget's default size.
+    on the root; ``grid_columns`` has each container's) and ``row`` starts
+    at 1. Leave ``col``/``row`` out to auto-place, and spans out for the
+    widget's default size. ``place`` takes the whole layout.
+
+    Overlaps push the later placement (in ``children`` order) down; nothing
+    moves back up, so close gaps with ``place``. Containers grow to fit.
+    The response has every resolved ``placements`` and ``displaced``, what
+    got pushed without being named.
     """
     return CanvasDraftResponse.model_validate(
         _apply_canvas_draft_ops_impl(token, revision, ops)
