@@ -1895,14 +1895,31 @@ def _run_probe(
     later hit, and the editor reported a working mapping as not mirroring
     while the query went on pruning. The per-input skip still happens where it
     belongs, in the caller's own ``NULL`` guard.
+
+    A probe where *every* input answers ``NULL`` is different only when it is
+    all the evidence there is. ``trunc(..., 'HH')`` on Hive returns ``NULL`` for
+    any input, and recording that as a working transform left Explore's glyph
+    promising a partition predicate no query carried. So an all-``NULL`` probe
+    records ``False`` -- but never over a stored ``True``, which some other
+    input earned and the ``NULLIF`` case above must keep. A later probe that
+    answers anything restores ``True`` the ordinary way: a fresh input misses
+    the probe cache, so it re-records.
     """
     values = _probe(database, catalog, schema, transform, distinct, errors=errors)
+    if values is None:
+        mirrors = False
+    elif any(value is not None for value in values):
+        mirrors = True
+    elif known_mirror_verdict(database, catalog, schema, transform) is not True:
+        mirrors = False
+    else:
+        return values
     record_mirror_verdict(
         database,
         catalog,
         schema,
         transform,
-        mirrors=values is not None,
+        mirrors=mirrors,
     )
     return values
 

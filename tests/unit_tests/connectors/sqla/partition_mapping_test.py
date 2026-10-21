@@ -2758,22 +2758,70 @@ def test_a_failed_probe_records_that_it_does_not_mirror(app: Flask) -> None:
         assert known_mirror_verdict(database, None, None, "no_such_fn(:value)") is False
 
 
-def test_a_probe_that_returns_null_leaves_the_verdict_alone(app: Flask) -> None:
+def test_a_null_does_not_withdraw_a_verdict_another_input_earned(
+    app: Flask,
+) -> None:
     """
     A `NULL` is this input's answer, not the transform's. The verdict is keyed
-    without the values -- see the test below -- so recording one input's `NULL`
-    against the whole transform is the same category error the type-mismatch
-    decline already avoids.
+    without the values -- see the tests below -- so recording one input's
+    `NULL` over a transform that has mirrored is the same category error the
+    type-mismatch decline already avoids.
 
     The filter itself still gets no mirror: that is the caller's own `NULL`
     guard, which is per request and where it belongs.
     """
-    database = _database_returning([None])
+    transform = "NULLIF(:value, 0)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        value = None if "'0'" in sql else 2
+        return pd.DataFrame([[value]], columns=["v0"])
+
+    database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
 
     with app.app_context():
-        evaluate_transform(database, None, None, "lower(:value)", ["x"])
+        evaluate_transform(database, None, None, transform, ["2"])
+        evaluate_transform(database, None, None, transform, ["0"])
 
-        assert known_mirror_verdict(database, None, None, "lower(:value)") is True
+        assert known_mirror_verdict(database, None, None, transform) is True
+
+
+def test_a_transform_that_only_ever_answers_null_does_not_mirror(
+    app: Flask,
+) -> None:
+    """
+    `trunc(from_unixtime(:value), 'HH')` on Hive 4: the unit is not supported,
+    so every input answers `NULL` and no query ever carries a mirror. With
+    nothing else to go on, that is the transform's answer, and the glyph must
+    not promise pruning on it.
+    """
+    transform = "unix_timestamp(trunc(from_unixtime(:value), 'HH'))"
+    database = _database_returning([None, None])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, transform, [1790850600, 1790852399])
+
+        assert known_mirror_verdict(database, None, None, transform) is False
+
+
+def test_an_answer_after_an_all_null_probe_restores_the_verdict(app: Flask) -> None:
+    """The `False` an all-`NULL` probe records is not sticky: the next input that
+    answers misses the probe cache, re-probes and re-records."""
+    transform = "NULLIF(:value, 0)"
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+
+    def answer(sql: str, **kwargs: Any) -> pd.DataFrame:
+        value = None if "'0'" in sql else 2
+        return pd.DataFrame([[value]], columns=["v0"])
+
+    database.get_df = MagicMock(side_effect=answer)  # type: ignore[method-assign]
+
+    with app.app_context():
+        evaluate_transform(database, None, None, transform, ["0"])
+        assert known_mirror_verdict(database, None, None, transform) is False
+
+        evaluate_transform(database, None, None, transform, ["2"])
+        assert known_mirror_verdict(database, None, None, transform) is True
 
 
 def test_a_null_for_one_input_does_not_outlive_itself(app: Flask) -> None:
