@@ -71,6 +71,7 @@ import pandas as pd
 import pyarrow as pa
 from flask import current_app as app, g, has_app_context
 from flask_babel import gettext as __
+from sqlalchemy import inspect
 
 from superset import db
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
@@ -1033,10 +1034,11 @@ class SQLExecutor:
         query_id = None
         if query is not None:
             try:
+                # Read the persisted identity without loading expired attributes.
+                query_id = inspect(query).identity[0]
                 # A failed metadata flush must be rolled back before recording failure.
                 if not db.session.is_active:
                     db.session.rollback()  # pylint: disable=consider-using-transaction
-                query_id = query.id
                 query.status = status.value
                 query.error_message = error_message
                 query.end_time = now_as_float()

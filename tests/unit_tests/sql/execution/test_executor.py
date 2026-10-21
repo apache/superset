@@ -769,14 +769,16 @@ def test_execute_failure_finishes_query_record(
     mocker: MockerFixture,
     database: Database,
     app_context: None,
-    mock_query: MagicMock,
     mock_db_session: MagicMock,
     default_sql_config: None,
     failure: str,
 ) -> None:
     """An execution failure must not leave its audit record running."""
+    from sqlalchemy.orm import make_transient_to_detached
+
     from superset.errors import ErrorLevel, SupersetErrorType
     from superset.exceptions import OAuth2Error, SupersetTimeoutException
+    from superset.models.sql_lab import Query
     from superset.sql.execution.executor import SQLExecutor
 
     errors = {
@@ -788,8 +790,9 @@ def test_execute_failure_finishes_query_record(
         ),
         "oauth": OAuth2Error("Authentication required"),
     }
-    mock_query.status = "running"
-    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
+    query = Query(id=123, status="running")
+    make_transient_to_detached(query)
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=query)
     mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
     mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=errors[failure])
     mocker.patch(
@@ -807,12 +810,12 @@ def test_execute_failure_finishes_query_record(
     else:
         result = database.execute("SELECT 1")
         assert result.status == expected_status
-        assert result.query_id == mock_query.id
-        assert result.error_message == mock_query.error_message
+        assert result.query_id == query.id
+        assert result.error_message == query.error_message
 
-    assert mock_query.status == expected_status.value
-    assert mock_query.error_message
-    assert mock_query.end_time == 1234000.0
+    assert query.status == expected_status.value
+    assert query.error_message
+    assert query.end_time == 1234000.0
     mock_db_session.rollback.assert_not_called()
     mock_db_session.commit.assert_called_once()
 
@@ -823,7 +826,6 @@ def test_execute_preserves_error_when_failure_recording_fails(
     mocker: MockerFixture,
     database: Database,
     app_context: None,
-    mock_query: MagicMock,
     mock_db_session: MagicMock,
     default_sql_config: None,
     failure: str,
@@ -831,12 +833,15 @@ def test_execute_preserves_error_when_failure_recording_fails(
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     """A metadata outage must not replace the execution error or OAuth redirect."""
+    from sqlalchemy.orm import make_transient_to_detached
+
     from superset.errors import ErrorLevel, SupersetErrorType
     from superset.exceptions import (
         OAuth2Error,
         OAuth2RedirectError,
         SupersetTimeoutException,
     )
+    from superset.models.sql_lab import Query
     from superset.sql.execution.executor import SQLExecutor
 
     caplog.set_level("WARNING", logger="superset.sql.execution.executor")
@@ -852,7 +857,9 @@ def test_execute_preserves_error_when_failure_recording_fails(
             "https://example.com/auth", "tab-id", "https://example.com/callback"
         ),
     }[failure]
-    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
+    query = Query(id=123, status="running")
+    make_transient_to_detached(query)
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=query)
     mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
     mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=error)
     mock_db_session.is_active = metadata_failure != "rollback"
@@ -874,13 +881,66 @@ def test_execute_preserves_error_when_failure_recording_fails(
             if failure == "timeout"
             else "sqlite error: Query failed"
         )
-        if metadata_failure == "commit":
-            assert result.query_id == mock_query.id
+        assert result.query_id == query.id
 
     assert mock_db_session.rollback.call_count == (
         2 if metadata_failure == "rollback" else 1
     )
     assert "Failed to persist SQL query error" in caplog.text
+
+
+@pytest.mark.parametrize("metadata_failure", ["rollback", "reload"])
+def test_execute_failure_preserves_expired_query_identity(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    metadata_failure: str,
+) -> None:
+    """Keep the persisted ID even when rollback or an expired-attribute load fails."""
+    from sqlalchemy import create_engine, inspect
+    from sqlalchemy.exc import IntegrityError
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import executor
+
+    engine = create_engine("sqlite://")
+    Query.__table__.create(engine)
+    with Session(engine) as session:
+        query = Query(id=123, client_id="sync-error", database_id=1, status="running")
+        session.add(query)
+        session.commit()
+        if metadata_failure == "rollback":
+            session.add(Query(client_id="invalid", database_id=None))
+            with pytest.raises(IntegrityError):
+                session.flush()
+            assert not session.is_active
+        assert "id" in inspect(query).expired_attributes
+        mocker.patch.object(
+            session,
+            "rollback" if metadata_failure == "rollback" else "execute",
+            side_effect=RuntimeError("Metadata unavailable"),
+        )
+        mocker.patch.object(executor.db, "session", session)
+        mocker.patch.object(
+            executor.SQLExecutor, "_create_query_record", return_value=query
+        )
+        mocker.patch.object(
+            executor.SQLExecutor, "_try_get_cached_result", return_value=None
+        )
+        mocker.patch.object(
+            executor.SQLExecutor,
+            "_execute_statements",
+            side_effect=RuntimeError("Query failed"),
+        )
+
+        result = database.execute("SELECT 1")
+
+        assert result.status == QueryStatus.FAILED
+        assert result.error_message == "sqlite error: Query failed"
+        assert result.query_id == 123
+    engine.dispose()
 
 
 @pytest.mark.parametrize("metadata_flush_fails", [False, True])
