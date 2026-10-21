@@ -21,7 +21,7 @@ from copy import deepcopy
 from typing import Any
 
 import pytest
-from fastmcp.tools.tool import Tool
+from fastmcp.tools import Tool
 from jsonschema import Draft202012Validator
 
 from superset.mcp_service.app import mcp

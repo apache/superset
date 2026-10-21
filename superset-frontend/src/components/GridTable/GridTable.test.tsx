@@ -16,8 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { render } from 'spec/helpers/testing-library';
-import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
+import { render, waitFor } from 'spec/helpers/testing-library';
+import { supersetTheme } from '@apache-superset/core/theme';
+import {
+  setupAGGridModules,
+  type AgGridContainerElement,
+} from '@superset-ui/core/components/ThemedAgGridReact';
 import { GridTable } from '.';
 
 const mockedProps = {
@@ -45,6 +49,23 @@ test('renders a grid with 3 Table rows', () => {
   mockedProps.data.forEach(({ b: columnBContent }) => {
     expect(queryByText(columnBContent)).toBeInTheDocument();
   });
+});
+
+test('sets an opaque grid background so rows do not show through the sticky header', async () => {
+  const { container } = render(<GridTable {...mockedProps} />);
+  const gridContainer = container.querySelector<AgGridContainerElement>(
+    '[data-themed-ag-grid]',
+  );
+  await waitFor(() => expect(gridContainer?._agGridApi).toBeDefined());
+
+  // ag-grid paints its sticky header container with the data background,
+  // which derives from the backgroundColor param.
+  const theme = gridContainer!._agGridApi!.getGridOption(
+    'theme',
+  ) as unknown as { _getParamsCss: () => string };
+  expect(theme._getParamsCss()).toContain(
+    `--ag-background-color: var(--ag-inherited-background-color, ${supersetTheme.colorBgContainer});`,
+  );
 });
 
 test('sorts strings correctly', () => {
