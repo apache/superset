@@ -556,6 +556,62 @@ def test_deactivating_a_report_on_a_withheld_target_is_allowed(
     excluded.assert_not_called()
 
 
+def test_pausing_from_the_edit_modal_is_allowed(mocker: MockerFixture) -> None:
+    """A pause that resends the target must be honoured too.
+
+    ``AlertReportModal`` spreads the whole form into its PUT and always sets
+    ``chart``/``dashboard`` from the loaded report, so a pause from there arrives
+    as ``{"active": false, "dashboard": 9}`` and takes the *submitted*-target
+    branch -- not the stored-target branch the list page's toggle reaches, which
+    sends ``{"active": false}`` alone. An exemption only the stored path could
+    see left the modal returning 403, so the owner could not pause at all.
+    """
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+    mocker.patch("superset.commands.report.base.security_manager")
+    dao = mocker.patch("superset.commands.report.base.DashboardDAO")
+    dao.find_by_id.return_value = mocker.MagicMock()
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": False, "dashboard": 9}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=True)
+
+    exceptions: list[Any] = []
+    cmd.validate_chart_dashboard(exceptions, update=True)
+
+    assert exceptions == []
+    excluded.assert_not_called()
+
+
+def test_activating_from_the_edit_modal_is_still_refused(
+    mocker: MockerFixture,
+) -> None:
+    """The pause exemption must not become a way in.
+
+    Same payload shape as the test above with the switch the other way: a
+    schedule that will run is checked, so nothing is gained by routing the
+    request through the modal.
+    """
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+    mocker.patch("superset.commands.report.base.security_manager")
+    dao = mocker.patch("superset.commands.report.base.DashboardDAO")
+    dao.find_by_id.return_value = mocker.MagicMock()
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": True, "dashboard": 9}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=False)
+
+    with pytest.raises(ReportScheduleForbiddenError):
+        cmd.validate_chart_dashboard([], update=True)
+
+
 def test_an_already_paused_report_may_be_edited(mocker: MockerFixture) -> None:
     """The check guards delivery, not editing."""
     excluded = mocker.patch(

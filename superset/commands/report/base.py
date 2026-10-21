@@ -132,6 +132,25 @@ class BaseReportScheduleCommand(BaseCommand):
                     )
                 )
 
+    def _result_is_active(self) -> bool:
+        """Whether this request leaves the schedule running.
+
+        What the exclusion checks guard is delivery, not editing. Refusing a
+        request that leaves the schedule paused would trap its owner: they could
+        neither pause the report nor stop the scheduler selecting it, which is
+        strictly worse than not checking at all.
+
+        Both access paths consult this, because either can carry the pause. The
+        list page's toggle sends ``{"active": false}`` on its own and reaches the
+        stored-target path, while the edit modal always resends the stored
+        chart/dashboard id alongside its own active switch and so reaches the
+        submitted-target path. Answering it in one place and asking it from both
+        is the point; an exemption that only one path could see is what made
+        pausing from the modal a 403.
+        """
+        model = getattr(self, "_model", None)
+        return bool(self._properties.get("active", getattr(model, "active", True)))
+
     def _check_object_access(
         self,
         object_id: int,
@@ -151,7 +170,9 @@ class BaseReportScheduleCommand(BaseCommand):
             # ordinary access filter, so an excluded id posted directly would
             # otherwise be accepted. Ask the report-target question here, where
             # the id is actually resolved.
-            if is_excluded_by_extra_access(f"report_target_{kind}s", object_id):
+            if self._result_is_active() and is_excluded_by_extra_access(
+                f"report_target_{kind}s", object_id
+            ):
                 raise ReportScheduleForbiddenError()
             try:
                 security_manager.raise_for_access(**{kind: obj})
@@ -245,15 +266,10 @@ class BaseReportScheduleCommand(BaseCommand):
         Without this, activating a paused report resumes a schedule whose asset
         has since been withheld, while resubmitting that same asset is refused.
 
-        Only when the result is a *scheduled* report, though. What this guards is
-        delivery, not editing: refusing a request that leaves the report inactive
-        would trap its owner, who could then neither pause the report nor stop
-        the scheduler selecting it -- strictly worse than not checking at all.
+        Only when the result is a *scheduled* report; see
+        :meth:`_result_is_active`.
         """
-        effective_active = self._properties.get(
-            "active", getattr(model, "active", True)
-        )
-        if not effective_active:
+        if not self._result_is_active():
             return
 
         kind, target = (
