@@ -313,6 +313,7 @@ def test_host_metadata_reads_classify_binding_faults(
         side_effect=ValueError("private-provider-binding"),
     )
     view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
     with pytest.raises(SemanticLayerExecutionError) as captured:
         read(view)
     assert captured.value.__cause__ is None
