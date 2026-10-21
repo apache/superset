@@ -41,6 +41,10 @@ class PivotTableChartPlugin(BaseChartPlugin):
     native_viz_types: ClassVar[Mapping[str, str]] = {
         "pivot_table_v2": "Pivot Table",
     }
+    query_role_keys = BaseChartPlugin.query_role_keys | {
+        "groupbyColumns",
+        "groupbyRows",
+    }
 
     def pre_validate(
         self,

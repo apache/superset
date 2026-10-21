@@ -39,10 +39,14 @@ import {
   getAxisType,
   getChartPadding,
   getLegendProps,
+  getLegendScrollDataIndex,
   getOverMaxHiddenFormatter,
+  getGrainBarMaxWidth,
   getMinAndMaxFromBounds,
   capTickMarks,
   getTemporalTickValues,
+  measureTextInkWidth,
+  measureTextWidth,
   sanitizeHtml,
   sortAndFilterSeries,
   sortRows,
@@ -54,7 +58,12 @@ import {
   LegendType,
 } from '../../src/types';
 import { defaultLegendPadding } from '../../src/defaults';
-import { NULL_STRING, StackControlsValue } from '../../src/constants';
+import {
+  NULL_STRING,
+  ONE_DAY_MS,
+  StackControlsValue,
+  TIMEGRAIN_TO_TIMESTAMP,
+} from '../../src/constants';
 
 const {
   getHorizontalLegendAvailableWidth,
@@ -130,6 +139,11 @@ const expectedThemeProps = {
     color: theme.colorText,
     borderColor: theme.colorBorder,
   },
+};
+
+const expectedScrollThemeProps = {
+  ...expectedThemeProps,
+  animation: false,
 };
 
 const sortData: DataRecord[] = [
@@ -307,7 +321,7 @@ test('sortRows by max ascending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       true,
     ),
   ).toEqual([
@@ -323,7 +337,7 @@ test('sortRows by max descending', () => {
       sortData,
       totalStackedValues,
       'my_x_axis',
-      SortSeriesType.Min,
+      SortSeriesType.Max,
       false,
     ),
   ).toEqual([
@@ -907,7 +921,9 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: false, isHorizontal: false },
       ),
-    ).toEqual([undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1]);
+    ).toEqual({
+      __default__: [undefined, 1, 0, 1, undefined, 2, 1, 1, undefined, 1],
+    });
   });
 
   test('should handle the negative numbers for total only', () => {
@@ -965,7 +981,93 @@ describe('extractShowValueIndexes', () => {
         ],
         { stack: true, onlyTotal: true, isHorizontal: false },
       ),
-    ).toEqual([undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1]);
+    ).toEqual({
+      __default__: [undefined, 1, 0, 2, undefined, 1, 1, 2, undefined, 1],
+    });
+  });
+
+  test('should track topmost series independently per stack group (stackDimension)', () => {
+    // Simulates 2 stack groups: 'groupA' (series indices 0, 1) and 'groupB' (series index 2).
+    // With onlyTotal, each group's topmost positive series should be flagged independently.
+    expect(
+      extractShowValueIndexes(
+        [
+          {
+            id: 'A-cat1',
+            name: 'A-cat1',
+            data: [
+              ['Jan', 10],
+              ['Feb', 5],
+            ],
+          },
+          {
+            id: 'A-cat2',
+            name: 'A-cat2',
+            data: [
+              ['Jan', 20],
+              ['Feb', 15],
+            ],
+          },
+          {
+            id: 'B-cat1',
+            name: 'B-cat1',
+            data: [
+              ['Jan', 30],
+              ['Feb', 25],
+            ],
+          },
+        ],
+        {
+          stack: true,
+          onlyTotal: true,
+          isHorizontal: false,
+          seriesStackIds: ['groupA', 'groupA', 'groupB'],
+        },
+      ),
+    ).toEqual({
+      groupA: [1, 1], // series index 1 is top of groupA for both data points
+      groupB: [2, 2], // series index 2 is top of groupB for both data points
+    });
+  });
+
+  test('should safely handle stack groups with prototype property names like __proto__ or constructor', () => {
+    const result = extractShowValueIndexes(
+      [
+        {
+          id: 'proto-series',
+          name: 'proto-series',
+          data: [
+            ['Jan', 10],
+            ['Feb', 20],
+          ],
+        },
+        {
+          id: 'ctor-series',
+          name: 'ctor-series',
+          data: [
+            ['Jan', 30],
+            ['Feb', 40],
+          ],
+        },
+      ],
+      {
+        stack: true,
+        onlyTotal: true,
+        isHorizontal: false,
+        seriesStackIds: ['__proto__', 'constructor'],
+      },
+    );
+
+    expect(Object.prototype.hasOwnProperty.call(result, '__proto__')).toBe(
+      true,
+    );
+    expect(Object.prototype.hasOwnProperty.call(result, 'constructor')).toBe(
+      true,
+    );
+    expect(Object.getOwnPropertyDescriptor(result, '__proto__')?.value).toEqual(
+      [0, 0],
+    );
+    expect(result['constructor']).toEqual([1, 1]);
   });
 });
 
@@ -1016,6 +1118,12 @@ describe('formatSeriesName', () => {
   });
 });
 
+test('getLegendScrollDataIndex clamps saved scroll position to legend length', () => {
+  expect(getLegendScrollDataIndex(12, 5)).toBe(4);
+  expect(getLegendScrollDataIndex(undefined, 3)).toBe(0);
+  expect(getLegendScrollDataIndex(2, 0)).toBe(0);
+});
+
 describe('getLegendProps', () => {
   test('should return the correct props for scroll type with top orientation without zoom', () => {
     expect(
@@ -1032,7 +1140,7 @@ describe('getLegendProps', () => {
       right: 0,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
   });
 
@@ -1048,11 +1156,30 @@ describe('getLegendProps', () => {
     ).toEqual({
       show: true,
       top: 0,
-      right: 55,
+      right: 90,
       orient: 'horizontal',
       type: 'scroll',
-      ...expectedThemeProps,
+      ...expectedScrollThemeProps,
     });
+  });
+
+  // #37286: a top-oriented legend shares the top-right corner with the
+  // zoomable toolbox, whose dataZoom icons reach ~67px in from the chart's
+  // right edge. Reserving less than that overlays the legend's All/Inv
+  // selector buttons on the zoom controls.
+  test('should reserve enough width to keep the legend selector clear of the zoomable toolbox', () => {
+    const { right } = getLegendProps(
+      LegendType.Scroll,
+      LegendOrientation.Top,
+      true,
+      theme,
+      true,
+    );
+    const TOOLBOX_ICONS_RIGHT_FOOTPRINT = 67;
+    const SAFETY_MARGIN = 15;
+    expect(right).toBeGreaterThan(
+      TOOLBOX_ICONS_RIGHT_FOOTPRINT + SAFETY_MARGIN,
+    );
   });
 
   test('should return the correct props for plain type with left orientation', () => {
@@ -1816,6 +1943,94 @@ describe('getTemporalTickValues', () => {
   });
 });
 
+describe('getGrainBarMaxWidth', () => {
+  const xAxisCol = '__timestamp';
+  const plotLengthPx = 600;
+
+  test('returns undefined for a non-time axis', () => {
+    expect(
+      getGrainBarMaxWidth(
+        AxisType.Category,
+        TimeGranularity.HOUR,
+        [[{ [xAxisCol]: 0 }]],
+        xAxisCol,
+        plotLengthPx,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('returns undefined when there is no resolved time grain', () => {
+    expect(
+      getGrainBarMaxWidth(
+        AxisType.Time,
+        undefined,
+        [[{ [xAxisCol]: 0 }]],
+        xAxisCol,
+        plotLengthPx,
+      ),
+    ).toBeUndefined();
+  });
+
+  test('computes the same grain-aware width whether the x column is numbers, Dates or ISO strings', () => {
+    // Regression: getGrainBarMaxWidth delegates to getXAxisDomain, which used
+    // to only recognize `typeof === 'number'`. A Date- or ISO-string-valued
+    // temporal column found no domain bounds and this returned undefined,
+    // silently falling back to the flat 100px sparse-bar cap instead of the
+    // grain-aware one.
+    const hour = TIMEGRAIN_TO_TIMESTAMP[TimeGranularity.HOUR];
+    const t0 = Date.UTC(2024, 0, 1, 0);
+    const t1 = Date.UTC(2024, 0, 1, 3);
+    const expected = (hour / (t1 - t0)) * plotLengthPx;
+
+    const numeric = getGrainBarMaxWidth(
+      AxisType.Time,
+      TimeGranularity.HOUR,
+      [[{ [xAxisCol]: t0 }, { [xAxisCol]: t1 }]],
+      xAxisCol,
+      plotLengthPx,
+    );
+    const dates = getGrainBarMaxWidth(
+      AxisType.Time,
+      TimeGranularity.HOUR,
+      [[{ [xAxisCol]: new Date(t0) }, { [xAxisCol]: new Date(t1) }]],
+      xAxisCol,
+      plotLengthPx,
+    );
+    const isoStrings = getGrainBarMaxWidth(
+      AxisType.Time,
+      TimeGranularity.HOUR,
+      [
+        [
+          { [xAxisCol]: '2024-01-01T00:00:00.000Z' },
+          { [xAxisCol]: '2024-01-01T03:00:00.000Z' },
+        ],
+      ],
+      xAxisCol,
+      plotLengthPx,
+    );
+
+    expect(numeric).toBeCloseTo(expected);
+    expect(dates).toBeCloseTo(expected);
+    expect(isoStrings).toBeCloseTo(expected);
+  });
+
+  test('falls back to the 2-day degenerate-domain span for a single distinct Date value', () => {
+    const hour = TIMEGRAIN_TO_TIMESTAMP[TimeGranularity.HOUR];
+    const t0 = new Date(Date.UTC(2024, 0, 1));
+    const expected = (hour / (2 * ONE_DAY_MS)) * plotLengthPx;
+
+    expect(
+      getGrainBarMaxWidth(
+        AxisType.Time,
+        TimeGranularity.HOUR,
+        [[{ [xAxisCol]: t0 }, { [xAxisCol]: new Date(t0.getTime()) }]],
+        xAxisCol,
+        plotLengthPx,
+      ),
+    ).toBeCloseTo(expected);
+  });
+});
+
 describe('capTickMarks', () => {
   test('returns values unchanged when within the cap', () => {
     const values = [1, 2, 3];
@@ -2038,4 +2253,124 @@ test('getAreaScaledSymbolSize handles degenerate extents and bad values', () => 
   expect(getAreaScaledSymbolSize(NaN, [10, 40], [5, 30])).toBeCloseTo(
     midAreaSize,
   );
+});
+
+describe('measureTextWidth caching', () => {
+  // jsdom does not implement canvas measurement, so stub document.createElement
+  // to hand back a fake 2d context whose measureText call count/args we can
+  // assert on -- that's the only way to observe a cache hit vs. a recompute.
+  let measureText: jest.Mock;
+  let createElementSpy: jest.SpyInstance;
+
+  beforeEach(() => {
+    measureText = jest.fn((text: string) => ({ width: text.length * 7 }));
+    createElementSpy = jest
+      .spyOn(document, 'createElement')
+      .mockImplementation(
+        () => ({ getContext: () => ({ font: '', measureText }) }) as never,
+      );
+  });
+
+  afterEach(() => {
+    createElementSpy.mockRestore();
+  });
+
+  test('caches by [fontFamily, fontSizeSM, text] and skips remeasuring on a hit', () => {
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureTextWidth('Category A', theme)).toBe(70);
+    expect(measureText).toHaveBeenCalledTimes(1);
+
+    // A different theme is a different cache key, so it does remeasure.
+    measureTextWidth('Category A', { ...theme, fontSizeSM: 20 });
+    expect(measureText).toHaveBeenCalledTimes(2);
+  });
+
+  test('evicts the least-recently-used entry once the cache is full', () => {
+    // Fill the cache (2000 entries) then measure one more distinct label --
+    // whichever key gets evicted must be remeasured on its next lookup.
+    for (let i = 0; i < 2000; i += 1) {
+      measureTextWidth(`label-${i}`, theme);
+    }
+    measureText.mockClear();
+
+    measureTextWidth('one-too-many', theme);
+    expect(measureText).toHaveBeenCalledTimes(1);
+
+    // The oldest entry (label-0) was evicted to make room, so it recomputes.
+    measureTextWidth('label-0', theme);
+    expect(measureText).toHaveBeenCalledTimes(2);
+
+    // A more recently used entry is still cached.
+    measureTextWidth('label-1999', theme);
+    expect(measureText).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('measureTextInkWidth', () => {
+  let getContext: jest.SpyInstance;
+
+  afterEach(() => {
+    getContext.mockRestore();
+  });
+
+  test('uses the ink extent when it exceeds the advance width', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: () => ({
+          width: 10,
+          actualBoundingBoxLeft: 5,
+          actualBoundingBoxRight: 45,
+        }),
+      } as never);
+    expect(measureTextInkWidth('label', theme)).toBe(50);
+  });
+
+  test('keeps the advance width when it exceeds the ink extent', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        measureText: () => ({
+          width: 30,
+          actualBoundingBoxLeft: 0,
+          actualBoundingBoxRight: 20,
+        }),
+      } as never);
+    expect(measureTextInkWidth('label', theme)).toBe(30);
+  });
+
+  test('falls back to the advance width when bounding-box metrics are absent', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({ measureText: () => ({ width: 42 }) } as never);
+    const width = measureTextInkWidth('label', theme);
+    expect(width).not.toBeNaN();
+    expect(width).toBe(42);
+  });
+
+  test('falls back to an approximate width when canvas is unavailable', () => {
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue(null);
+    expect(measureTextInkWidth('label', theme)).toBeCloseTo(
+      'label'.length * theme.fontSizeSM * 0.62,
+    );
+  });
+
+  test('measures with the theme small font', () => {
+    let capturedFont = '';
+    getContext = jest
+      .spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValue({
+        set font(value: string) {
+          capturedFont = value;
+        },
+        get font() {
+          return capturedFont;
+        },
+        measureText: () => ({ width: 1 }),
+      } as never);
+    measureTextInkWidth('label', theme);
+    expect(capturedFont).toBe(`${theme.fontSizeSM}px ${theme.fontFamily}`);
+  });
 });

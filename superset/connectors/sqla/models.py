@@ -76,6 +76,7 @@ from superset.connectors.sqla.utils import (
     get_physical_table_metadata,
     get_virtual_table_metadata,
 )
+from superset.constants import EPOCH_FORMATS
 from superset.db_engine_specs.base import BaseEngineSpec, TimestampExpression
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import (
@@ -172,6 +173,27 @@ def _is_calculated_column(column: TableColumn) -> bool:
     name = column.column_name or ""
     quoted_path = ".".join(f'"{part}"' for part in name.split("."))
     return column.expression != quoted_path
+
+
+def _without_shadowed_nested_fields(
+    new_columns: list[ResultSetColumnType],
+    old_columns_by_name: dict[str, TableColumn],
+) -> list[ResultSetColumnType]:
+    """Drop expanded nested fields named like an existing calculated column.
+
+    Such calculated columns (e.g. ``calendar.day`` on a BigQuery STRUCT) are
+    user-defined and must keep their expression; ``fetch_metadata`` adds them
+    back with the other calculated columns.
+    """
+    return [
+        col
+        for col in new_columns
+        if not (
+            col.get("nested_field")
+            and (old_column := old_columns_by_name.get(col["column_name"]))
+            and _is_calculated_column(old_column)
+        )
+    ]
 
 
 METRIC_FORM_DATA_PARAMS = [
@@ -806,7 +828,9 @@ class BaseDatasource(
         match it. Since the fields are different for the different
         connectors, the implementation uses ``update_from_object_fields``
         which can be defined for each connector and
-        defines which fields should be synced"""
+        defines which fields should be synced. Note that this replaces rather
+        than merges: a key omitted from ``obj`` clears the field rather than
+        leaving it untouched."""
         for attr in self.update_from_object_fields:
             setattr(self, attr, obj.get(attr))
 
@@ -1316,7 +1340,7 @@ class TableColumn(AuditMixinNullable, ImportExportMixin, CertificationMixin, Mod
         label = label or utils.DTTM_ALIAS
 
         pdf = self.python_date_format
-        is_epoch = pdf in ("epoch_s", "epoch_ms")
+        is_epoch = pdf in EPOCH_FORMATS
         db_engine_spec = self.db_engine_spec
         column_spec = db_engine_spec.get_column_spec(self.type, db_extra=self.db_extra)
         type_ = column_spec.sqla_type if column_spec else DateTime
@@ -1903,6 +1927,14 @@ class SqlaTable(
     @property
     def data(self) -> ExplorableData:
         data_ = super().data
+        # Editors gate the "Edit dataset" action in Explore. They are serialized
+        # with the same compact subject shape the dataset REST API exposes
+        # (``editors.id`` / ``editors.label`` / ``editors.type``) so both
+        # payloads can be consumed by the same frontend code.
+        data_["editors"] = [
+            {"id": editor.id, "label": editor.label, "type": editor.type}
+            for editor in self.editors
+        ]
         if self.type == "table":
             data_["granularity_sqla"] = self.granularity_sqla
             data_["time_grain_sqla"] = self.time_grain_sqla
@@ -2384,6 +2416,7 @@ class SqlaTable(
         old_columns_by_name: dict[str, TableColumn] = {
             col.column_name: col for col in old_columns
         }
+        new_columns = _without_shadowed_nested_fields(new_columns, old_columns_by_name)
         results = MetadataResult(
             removed=[
                 col

@@ -36,11 +36,11 @@ from typing import (
 )
 from urllib.parse import quote
 
-from flask import current_app, Flask, g, has_app_context, Request, Response
+from flask import abort, current_app, Flask, g, has_app_context, Request, Response
 from flask_appbuilder import Model
 from flask_appbuilder.api import expose, permission_name, protect, safe
 from flask_appbuilder.models.filters import BaseFilter
-from flask_appbuilder.security.manager import AUTH_REMOTE_USER
+from flask_appbuilder.security.manager import AUTH_DB, AUTH_OAUTH, AUTH_REMOTE_USER
 from flask_appbuilder.security.sqla.apis import GroupApi, RoleApi, UserApi
 from flask_appbuilder.security.sqla.apis.permission_view_menu.api import (
     PermissionViewMenuApi,
@@ -60,19 +60,23 @@ from flask_appbuilder.security.sqla.models import (
 from flask_appbuilder.security.views import (
     PermissionModelView,
     PermissionViewModelView,
+    ResetMyPasswordView,
+    ResetPasswordView,
     ViewMenuModelView,
 )
 from flask_babel import lazy_gettext as _
 from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
+from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, func as sa_func, inspect, or_
+from sqlalchemy import and_, func as sa_func, inspect, or_, select, Table as SQLATable
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.orm.query import Query as SqlaQuery
-from sqlalchemy.sql import exists
+from sqlalchemy.sql.elements import ColumnElement
+from sqlalchemy.sql.selectable import Alias
 
 from superset.common.chart_data import ChartDataResultType
 from superset.constants import EMPTY_FILTER_SQL_EXPRESSION, RouteMethod
@@ -129,6 +133,33 @@ def get_conf() -> Any:
     return current_app.config
 
 
+# The legacy Flask-AppBuilder server-rendered password reset views. Superset's
+# SPA covers every flow they served (administrators reset passwords from the
+# Users list edit modal, users change their own from the profile page, and a
+# forced password change lands on that profile page), so these are never
+# registered and their persisted permissions are never assigned to roles.
+LEGACY_PASSWORD_VIEWS: tuple[type[Any], ...] = (
+    ResetPasswordView,
+    ResetMyPasswordView,
+)
+
+# FAB ``UserDBModelView`` actions that redirect to the views above, keyed by
+# action name. They are hidden and answer 404, see
+# ``SupersetSecurityManager._disable_legacy_password_reset_launchers``.
+LEGACY_PASSWORD_LAUNCHERS: frozenset[str] = frozenset(
+    {"resetpasswords", "resetmypassword"}
+)
+
+
+def _legacy_password_reset_disabled(*_: Any) -> None:
+    """
+    Replacement handler for a FAB user-view password reset action whose target
+    view is not registered: answers 404 instead of letting FAB's ``url_for``
+    raise ``BuildError``.
+    """
+    abort(404)
+
+
 def _get_subject_id(subject: Any) -> int | None:
     from superset.subjects.models import (
         Subject,  # pylint: disable=import-outside-toplevel
@@ -162,9 +193,21 @@ def get_extra_editor_subject_ids(resource: Model) -> list[int]:
     if not resolver:
         return []
 
+    try:
+        resolved_subjects = resolver(resource) or []
+    except Exception:  # pylint: disable=broad-except
+        # A misbehaving EXTRA_EDITORS_RESOLVER must not turn every read of
+        # this resource into a 500; fail closed on the extra-editors list
+        # instead of failing the whole request.
+        logger.exception(
+            "EXTRA_EDITORS_RESOLVER raised while resolving extra editors for %s",
+            resource,
+        )
+        return []
+
     subject_ids: list[int] = []
     seen: set[int] = set()
-    for subject in resolver(resource) or []:
+    for subject in resolved_subjects:
         subject_id = _get_subject_id(subject)
         if subject_id is not None and subject_id not in seen:
             subject_ids.append(subject_id)
@@ -200,6 +243,26 @@ def get_extra_editors_by_pk(
         getattr(resource, pk_col.name): get_extra_editor_subject_ids(resource)
         for resource in resources
     }
+
+
+def attach_extra_editors(result: dict[str, Any], resource: Model) -> None:
+    """
+    Attach ``extra_editors`` to a single-object API response, if configured.
+    """
+    if has_app_context() and current_app.config.get("EXTRA_EDITORS_RESOLVER"):
+        result["extra_editors"] = get_extra_editor_subject_ids(resource)
+
+
+def attach_extra_editors_to_rows(data: dict[str, Any], model_cls: type[Model]) -> None:
+    """
+    Attach ``extra_editors`` to each row of a list API response, matching
+    ``attach_extra_editors``'s single-object behavior.
+    """
+    ids = data.get("ids", [])
+    extra_editors_by_id = get_extra_editors_by_pk(model_cls, ids)
+    for row, row_id in zip(data.get("result", []), ids, strict=False):
+        if row_id in extra_editors_by_id:
+            row["extra_editors"] = extra_editors_by_id[row_id]
 
 
 # Retired from ``PERMISSION_INSTRUCTIONS_LINK``: see
@@ -497,10 +560,12 @@ class SupersetUserApi(UserApi):
         UserDAO._sync_subject(item)
 
         if data.get("password"):
-            # An admin-initiated password change via this endpoint must
-            # invalidate the target account's other outstanding sessions,
-            # the same as the self-service ``/me/`` path and the two
-            # password-reset views.
+            # An admin-initiated password change via this endpoint (the
+            # Users list edit modal) must invalidate the target account's
+            # other outstanding sessions, the same as the self-service
+            # ``/me/`` path. The forced-change flag is deliberately left
+            # alone: a temporary password set by an admin still has to be
+            # replaced by the user at next login.
             from superset.security.session_invalidation import (
                 invalidate_sessions_for_user,
             )
@@ -587,6 +652,13 @@ class SupersetUserApi(UserApi):
         from superset.daos.user import UserDAO
 
         item.roles = []
+        # Rows written before the self-referencing audit columns were guarded
+        # can point at themselves, which SQLAlchemy cannot order for DELETE
+        # (CircularDependencyError). Clear them so the delete can proceed.
+        for column in ("changed_by_fk", "created_by_fk"):
+            if getattr(item, column, None) == item.id:
+                setattr(item, column, None)
+        self.datamodel.session.flush()
         UserDAO._delete_subject(item.id)
 
     def post_add(self, item: Model) -> None:
@@ -782,6 +854,21 @@ def _payload_value_identity(value: Any, *, is_metric: bool) -> str:
     return freeze_value(_denormalize_base_axis_column(value))
 
 
+def _datasource_matches(
+    datasource: "BaseDatasource | Explorable | None",
+    datasource_id: object,
+    datasource_type: object,
+) -> bool:
+    """Match a stored reference without loading provider metadata."""
+    return (
+        datasource is not None
+        and isinstance(datasource_id, int)
+        and not isinstance(datasource_id, bool)
+        and datasource_id == datasource.id
+        and datasource_type == datasource.type
+    )
+
+
 def _native_filter_allowed_targets(
     query_context: "QueryContext", form_data: dict[str, Any]
 ) -> Optional[tuple[set[str], set[str]]]:
@@ -814,21 +901,28 @@ def _native_filter_allowed_targets(
     except (TypeError, ValueError):
         return None
 
-    datasource = getattr(query_context, "datasource", None)
-    datasource_id = datasource.data.get("id") if datasource else None
+    datasource: BaseDatasource | Explorable | None = query_context.datasource
 
     allowed_columns: set[str] = set()
     allowed_metrics: set[str] = set()
     for fltr in metadata.get("native_filter_configuration", []):
         if fltr.get("id") != native_filter_id:
             continue
-        for target in fltr.get("targets", []):
-            column = target.get("column")
-            if (
-                target.get("datasetId") == datasource_id
-                and isinstance(column, dict)
-                and column.get("name")
-            ):
+        matching_targets: list[dict[str, Any]] = [
+            target
+            for target in fltr.get("targets", [])
+            if _datasource_matches(
+                datasource,
+                target.get("datasetId"),
+                # A missing or null type is a legacy SQL dataset target.
+                target.get("datasourceType") or DatasourceType.TABLE,
+            )
+        ]
+        if not matching_targets:
+            return None
+        for target in matching_targets:
+            column: object = target.get("column")
+            if isinstance(column, dict) and column.get("name"):
                 allowed_columns.add(column["name"])
         # The filter may be configured to sort its values by a saved metric; a
         # legitimate value lookup then sends that metric name.
@@ -961,8 +1055,7 @@ def _native_filter_request_modified(query_context: "QueryContext") -> bool:
     # Fail closed when the request cannot be tied to a native filter.
     if targets is None:
         return True
-    # Empty allowed sets (filter resolved but no matching column/metric target)
-    # intentionally deny every value-returning term below.
+    # Empty allowed sets intentionally deny every value-returning term below.
     allowed_columns, allowed_metrics = targets
 
     # The samples/drill_detail preparers replace a query's columns with every
@@ -2019,7 +2112,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "UsersListView",
         "List Roles",
         "List Groups",
-        "ResetPasswordView",
         "RoleModelView",
         "UserGroupModelView",
         "Row Level Security",
@@ -2107,7 +2199,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         "datasource_access",
     }
 
-    ACCESSIBLE_PERMS = {"can_userinfo", "resetmypassword", "can_recent_activity"}
+    ACCESSIBLE_PERMS = {"can_userinfo", "can_recent_activity"}
 
     SQLLAB_ONLY_PERMISSIONS = {
         ("can_read", "SavedQuery"),
@@ -2225,13 +2317,14 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """Reset a user's password, clearing the forced-change flag only on a
         self-service reset.
 
-        Both the self-service reset (``ResetMyPasswordView``) and the admin
-        "Reset Password" action (``ResetPasswordView``) route through this
-        method. The forced-password-change flag must only be cleared when the
-        user resets *their own* password — an admin-initiated reset sets a
-        temporary password and must preserve the "must change at next login"
-        requirement, otherwise the first-use lifecycle would be silently
-        bypassed. We distinguish the two by comparing the acting user
+        The SPA flows do not go through here (they hash the password in the
+        ``/api/v1/me/`` and ``/api/v1/security/users/`` APIs), but FAB's own
+        callers still do, e.g. the ``fab reset-password`` CLI command and
+        custom security managers. The forced-password-change flag must only be
+        cleared when the user resets *their own* password — an admin-initiated
+        reset sets a temporary password and must preserve the "must change at
+        next login" requirement, otherwise the first-use lifecycle would be
+        silently bypassed. We distinguish the two by comparing the acting user
         (``g.user``) against the target ``userid``: they match for a
         self-service reset and differ for an admin reset.
 
@@ -2264,6 +2357,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             )
 
             clear_password_must_change(int(userid))
+            db.session.commit()  # pylint: disable=consider-using-transaction
 
     @staticmethod
     def _same_user(left: Any, right: Any) -> bool:
@@ -2636,7 +2730,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 .one_or_none()
             )
             and slc in dashboard.slices
-            and slc.datasource == datasource
+            and _datasource_matches(datasource, slc.datasource_id, slc.datasource_type)
             and (dimensions := form_data.get("groupby"))
             and datasource.has_drill_by_columns(dimensions)
         )
@@ -2904,22 +2998,36 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if not g.user.is_anonymous:
             user_id = get_user_id()
 
-            user_roles_filter = or_(
-                exists().where(
-                    (assoc_user_role.c.user_id == user_id)
-                    & (assoc_user_role.c.role_id == self.role_model.id)
-                    & (self.permission_model.name == permission_name)
-                ),
-                exists().where(
-                    (assoc_user_group.c.user_id == user_id)
-                    & (assoc_user_group.c.group_id == self.group_model.id)
-                    & (assoc_group_role.c.group_id == self.group_model.id)
-                    & (assoc_group_role.c.role_id == self.role_model.id)
-                    & (self.permission_model.name == permission_name)
-                ),
+            # The user's effective roles: granted directly, or via a group.
+            #
+            # Filtering on this (small) set of role ids rather than on an OR of
+            # two correlated EXISTS lets the planner drive the join from
+            # ab_permission_view_role(role_id). With the EXISTS form the
+            # permission name is trapped inside both branches of the OR, so it
+            # cannot restrict the join, and the whole of
+            # ab_permission_view_role is scanned and filtered on every call.
+            # The cost then scales with the total number of permissions on the
+            # instance instead of with the number of roles the user holds.
+            user_role_ids = (
+                select(assoc_user_role.c.role_id)
+                .where(assoc_user_role.c.user_id == user_id)
+                .union(
+                    select(assoc_group_role.c.role_id)
+                    .select_from(
+                        assoc_user_group.join(
+                            assoc_group_role,
+                            assoc_group_role.c.group_id == assoc_user_group.c.group_id,
+                        )
+                    )
+                    .where(assoc_user_group.c.user_id == user_id)
+                )
             )
 
-            view_menu_names = base_query.filter(user_roles_filter).all()
+            view_menu_names = (
+                base_query.filter(self.permission_model.name == permission_name).filter(
+                    self.role_model.id.in_(user_role_ids)
+                )
+            ).all()
             return {s.name for s in view_menu_names}
 
         # Properly treat anonymous user
@@ -3284,6 +3392,25 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         if deleted_count := pvms.delete():
             logger.info("Deleted %i faulty permissions", deleted_count)
 
+    @staticmethod
+    def _is_legacy_password_pvm(pvm: PermissionView) -> bool:
+        """
+        Return whether a permission belongs to a legacy FAB password reset view
+        or to one of the user-view launcher actions that redirected to it.
+
+        Those views are never registered (see ``LEGACY_PASSWORD_VIEWS``), but an
+        upgraded installation still carries their permission rows in the
+        metadata database, and ``_get_all_pvms`` returns them. Excluding them
+        here keeps ``sync_role_definitions`` from handing Admin (or any other
+        role) a permission on a route that no longer exists. The rows
+        themselves are left alone.
+        """
+        view_menu = pvm.view_menu.name
+        permission = pvm.permission.name
+        return view_menu in {view.__name__ for view in LEGACY_PASSWORD_VIEWS} or (
+            view_menu == "UserDBModelView" and permission in LEGACY_PASSWORD_LAUNCHERS
+        )
+
     def sync_role_definitions(self) -> None:
         """
         Initialize the Superset application with security roles and such.
@@ -3293,7 +3420,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         self.create_custom_permissions()
 
-        pvms = self._get_all_pvms()
+        pvms = [
+            pvm for pvm in self._get_all_pvms() if not self._is_legacy_password_pvm(pvm)
+        ]
 
         # Creating default roles
         self.set_role("Admin", self._is_admin_pvm, pvms)
@@ -3911,17 +4040,21 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         Handles permissions update when a dataset is deleted.
         Triggered by a SQLAlchemy after_delete event.
 
-        We need to delete:
-         - The dataset PVM
+        Retain the datasource_access PVM if another datasource still owns the
+        same permission name.
 
         :param mapper: The SQLA mapper
         :param connection: The SQLA connection
         :param target: The changed dataset object
         :return:
         """
-        dataset_vm_name = self.get_dataset_perm(
+        dataset_vm_name: str | None = target.perm or self.get_dataset_perm(
             target.id, target.table_name, target.database.database_name
         )
+        if dataset_vm_name and self._datasource_perm_owned_elsewhere(
+            connection, dataset_vm_name, None
+        ):
+            return
         self._delete_pvm_on_sqla_event(
             mapper, connection, "datasource_access", dataset_vm_name
         )
@@ -4281,6 +4414,163 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                         .values(perm=new_view_perm)
                     )
 
+    def semantic_layer_before_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SemanticLayer",
+    ) -> None:
+        """
+        Remove child view permissions before the layer row is deleted.
+
+        Views the session has not loaded are deleted by the database
+        ``ON DELETE CASCADE`` (``passive_deletes=True``), so their ORM
+        ``after_delete`` hook never runs. Read their perms through the
+        connection while the rows still exist; views the ORM deletes itself
+        are already gone by now and clean up in ``semantic_view_after_delete``.
+        """
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        view_perms: set[str] = {
+            perm
+            for perm in connection.execute(
+                select(sv_table.c.perm)
+                .where(sv_table.c.semantic_layer_uuid == target.uuid)
+                .order_by(sv_table.c.id)
+                .with_for_update()
+            ).scalars()
+            if perm
+        }
+        if not view_perms:
+            return
+        if self._retain_shared_datasource_perm_for_isolation(connection):
+            return
+
+        # Lock child views before permission rows, matching direct view deletion.
+        # Otherwise its after_delete hook can wait on us while our cascade waits
+        # on its view row. Unloaded views have no ORM after_delete hook.
+        self._lock_datasource_perms(connection, view_perms)
+
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+
+        dataset_table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
+        deleting_views: Alias = sv_table.alias("deleting_views")
+        owned_perms: set[str] = set(
+            connection.execute(
+                select(dataset_table.c.perm)
+                .join(
+                    deleting_views,
+                    dataset_table.c.perm == deleting_views.c.perm,
+                )
+                .where(deleting_views.c.semantic_layer_uuid == target.uuid)
+                .distinct()
+            ).scalars()
+        )
+        owned_perms.update(
+            connection.execute(
+                select(sv_table.c.perm)
+                .join(deleting_views, sv_table.c.perm == deleting_views.c.perm)
+                .where(
+                    deleting_views.c.semantic_layer_uuid == target.uuid,
+                    sv_table.c.semantic_layer_uuid != target.uuid,
+                )
+                .distinct()
+            ).scalars()
+        )
+        view_perm: str
+        for view_perm in view_perms - owned_perms:
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "datasource_access", view_perm
+            )
+
+    def _datasource_perm_owned_elsewhere(
+        self,
+        connection: Connection,
+        perm: str,
+        deleted_view_id: int | None,
+    ) -> bool:
+        """
+        Whether cleanup must retain *perm* for another owner or unsafe isolation.
+
+        Pass the deleted view's ID when checking its delete event. Pass None
+        after dataset deletion, when every remaining view is a possible owner.
+        The dataset query includes soft-deleted rows by using the Core table.
+
+        Lock the shared permission row before checking either owner table. Two
+        transactions deleting the final owners of one permission then make
+        their decisions in commit order rather than both retaining the PVM
+        because each still sees the other's uncommitted owner row.
+        Treat an untrusted MySQL snapshot as possibly owned rather than revoking
+        a permission that another datasource may still use.
+        """
+        from superset.connectors.sqla.models import (  # pylint: disable=import-outside-toplevel
+            SqlaTable,
+        )
+        from superset.semantic_layers.models import (  # pylint: disable=import-outside-toplevel
+            SemanticView,
+        )
+
+        if self._retain_shared_datasource_perm_for_isolation(connection):
+            return True
+
+        self._lock_datasource_perms(connection, {perm})
+
+        # These unindexed probes run per delete. LIMIT 1 bounds returned rows,
+        # not scan work; a large purge backlog can require repeated catalog scans.
+        table: SQLATable = SqlaTable.__table__  # pylint: disable=no-member
+        if connection.execute(
+            table.select().where(table.c.perm == perm).limit(1)
+        ).first():
+            return True
+        sv_table: SQLATable = SemanticView.__table__  # pylint: disable=no-member
+        view_predicate: ColumnElement[bool] = sv_table.c.perm == perm
+        if deleted_view_id is not None:
+            view_predicate = and_(view_predicate, sv_table.c.id != deleted_view_id)
+        return (
+            connection.execute(sv_table.select().where(view_predicate).limit(1)).first()
+            is not None
+        )
+
+    def _retain_shared_datasource_perm_for_isolation(
+        self, connection: Connection
+    ) -> bool:
+        """Fail safe when a MySQL owner probe cannot use a fresh snapshot."""
+        if connection.dialect.name not in ("mysql", "mariadb"):
+            return False
+        try:
+            isolation_level: str | None = connection.get_isolation_level()
+        except Exception as ex:  # pylint: disable=broad-exception-caught
+            logger.warning(
+                "Retaining shared datasource permission: MySQL isolation "
+                "could not be verified (%s)",
+                type(ex).__name__,
+            )
+            return True
+        if isolation_level != "READ COMMITTED":
+            logger.warning(
+                "Retaining shared datasource permission: MySQL isolation is %s",
+                isolation_level,
+            )
+            return True
+        return False
+
+    def _lock_datasource_perms(
+        self, connection: Connection, perms: AbstractSet[str]
+    ) -> None:
+        """Serialize owner checks sharing datasource permission names."""
+        view_menu_table: SQLATable = self.viewmenu_model.__table__  # pylint: disable=no-member
+        connection.execute(
+            select(view_menu_table.c.id)
+            .where(view_menu_table.c.name.in_(perms))
+            .order_by(view_menu_table.c.name)
+            .with_for_update()
+        ).all()
+
     def semantic_layer_after_delete(
         self,
         mapper: Mapper,
@@ -4408,11 +4698,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         """
         Handle permission cleanup when a semantic view is deleted.
 
-        Removes the datasource_access PVM.
+        Removes the datasource_access PVM unless another live resource still
+        owns the same permission name.
         """
-        self._delete_pvm_on_sqla_event(
-            mapper, connection, "datasource_access", target.perm
-        )
+        if target.perm and not self._datasource_perm_owned_elsewhere(
+            connection, target.perm, target.id
+        ):
+            self._delete_pvm_on_sqla_event(
+                mapper, connection, "datasource_access", target.perm
+            )
 
     def _delete_pvm_on_sqla_event(  # pylint: disable=too-many-arguments
         self,
@@ -4698,6 +4992,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         template_params: Optional[dict[str, Any]] = None,
         force_dataset_match: bool = False,
         allow_query_authorship_bypass: bool = False,
+        allow_editorship: bool = True,
     ) -> None:
         """
         Raise an exception if the user cannot access the resource.
@@ -4715,11 +5010,15 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             ``catalog_access`` / ``schema_access`` fallthroughs in the
             database+table / query branch are bypassed and every referenced
             table must resolve to a registered Superset dataset the user
-            has ``datasource_access`` on (or owns). Call sites that execute
-            or return raw row data (SQL Lab, MetaDB) set this to True.
+            has ``datasource_access`` on; editorship/ownership of the
+            dataset is not sufficient here (it is accepted only on the
+            non-strict path). Call sites that execute or return raw row
+            data (SQL Lab, MetaDB, MCP ``execute_sql``, alert/report
+            queries) set this to True.
             The default (False) preserves the historical semantics for
-            chart-data, dataset CRUD, ``/table_metadata/``, and
-            ``/select_star/``.
+            chart-data, ``/table_metadata/``, and ``/select_star/`` (dataset
+            create/update/import additionally opt out of the editorship accept
+            via ``allow_editorship`` below).
         :param allow_query_authorship_bypass: When True, a SQL Lab query's
             own author is granted access to that exact, already-succeeded
             query without an additional dataset-level ``datasource_access``
@@ -4732,6 +5031,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             access, and a query's SQL may be templated such that the
             tables actually touched depend on parameters supplied at
             request time.
+        :param allow_editorship: When False, editorship/ownership of a
+            registered dataset no longer counts as access to the underlying
+            table (in both the database+table / query branch and the
+            datasource / query_context branch; the ``catalog_access`` /
+            ``schema_access`` / ``datasource_access`` checks still apply).
+            The paths that define or repoint a dataset over a table -- dataset
+            create, update, v1 import, and the legacy ``/datasource/save/``
+            repoint -- and query-backed chart-data set this to False so that
+            binding a dataset to (or reading a stored query against) a table
+            requires real data access to that table, not editorship of a
+            same-named dataset -- otherwise a no-table decoy dataset named
+            after the table would let its editor define a second dataset that
+            reads it. Unlike ``force_dataset_match`` this keeps the
+            catalog/schema fallthroughs, so ``schema_access`` still authorizes
+            defining a dataset. Ignored when ``force_dataset_match`` is True
+            (editorship is already excluded there).
         :raises SupersetSecurityException: If the user cannot access the resource
         """
         # pylint: disable=import-outside-toplevel
@@ -5089,10 +5404,37 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     catalog=effective_catalog,
                 )
                 for datasource_ in datasources:
+                    # ``datasource_access`` on a registered dataset is always
+                    # sufficient. Editorship of the dataset is accepted only on
+                    # the non-strict path (chart-data, ``/table_metadata/``,
+                    # ``/select_star/``), where it is the dataset-owner
+                    # "explore your own dataset" grant from #20382.
+                    #
+                    # It is excluded on two kinds of call:
+                    #   * strict scoping (``force_dataset_match``) -- SQL Lab
+                    #     raw queries, MetaDB, MCP ``execute_sql`` and
+                    #     alert/report queries -- which return raw rows and
+                    #     also drop the catalog/schema fallthroughs;
+                    #   * ``allow_editorship=False`` -- the paths that define
+                    #     or repoint a dataset over a table (create, update, v1
+                    #     import, and the legacy ``/datasource/save/`` repoint)
+                    #     and query-backed chart-data (which runs a stored
+                    #     query's raw SQL) -- which keep the catalog/schema
+                    #     fallthroughs but refuse editorship.
+                    # Both must follow the user's live data-access grants, not
+                    # editorship of a same-named dataset: any principal able to
+                    # create a dataset can make themselves an editor of one
+                    # named after an arbitrary table, so accepting editorship
+                    # here would let dataset creation stand in for data access
+                    # and would outlive revocation of every real grant.
                     if self.can_access(
                         "datasource_access",
                         datasource_.perm or "",
-                    ) or self.is_editor(datasource_):
+                    ) or (
+                        not force_dataset_match
+                        and allow_editorship
+                        and self.is_editor(datasource_)
+                    ):
                         # access to any datasource is sufficient
                         break
                 else:
@@ -5128,6 +5470,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 form_data = query_context.form_data
 
             assert datasource
+            self.raise_for_unsupported_guest_rls(datasource)
 
             def has_promiscuous_chart_access() -> bool:
                 if not (
@@ -5143,16 +5486,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 ):
                     return False
 
-                viewer_datasource_id = getattr(viewer_slc, "datasource_id", None)
-                datasource_id = getattr(datasource, "id", None)
-                same_datasource = (
-                    isinstance(viewer_datasource_id, int)
-                    and isinstance(datasource_id, int)
-                    and viewer_datasource_id == datasource_id
-                )
-                if (
-                    not same_datasource
-                    and getattr(viewer_slc, "datasource", None) is not datasource
+                if not _datasource_matches(
+                    datasource, viewer_slc.datasource_id, viewer_slc.datasource_type
                 ):
                     return False
 
@@ -5164,7 +5499,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 # A grant on a semantic view's parent layer covers the view,
                 # matching SemanticView.raise_for_access (sc-119501).
                 or self._semantic_layer_grant_allows(datasource)
-                or self.is_editor(datasource)
+                # ``allow_editorship`` is honored here too so a caller that opts
+                # out of the editorship accept (e.g. dataset define/repoint
+                # validation) gets consistent behavior across both branches,
+                # rather than the flag silently applying only to the
+                # database+table / query branch above.
+                or (allow_editorship and self.is_editor(datasource))
                 or (
                     # Grant access to the datasource only if dashboard RBAC is enabled
                     # or the user is an embedded guest user with access to the dashboard
@@ -5196,7 +5536,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                             and dashboard_.json_metadata
                             and (json_metadata := json.loads(dashboard_.json_metadata))
                             and any(
-                                target.get("datasetId") == datasource.data["id"]
+                                _datasource_matches(
+                                    datasource,
+                                    target.get("datasetId"),
+                                    target.get("datasourceType")
+                                    or DatasourceType.TABLE,
+                                )
                                 for fltr in json_metadata.get(
                                     "native_filter_configuration",
                                     [],
@@ -5221,7 +5566,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                                 .one_or_none()
                                             )
                                             and slc in dashboard_.slices
-                                            and slc.datasource == datasource
+                                            and _datasource_matches(
+                                                datasource,
+                                                slc.datasource_id,
+                                                slc.datasource_type,
+                                            )
                                         )
                                         or
                                         # Multi-layer chart child access (has parent)
@@ -5250,7 +5599,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                                                 .filter(Slice.id == slice_id)
                                                 .one_or_none()
                                             )
-                                            and child_slc.datasource == datasource
+                                            and _datasource_matches(
+                                                datasource,
+                                                child_slc.datasource_id,
+                                                child_slc.datasource_type,
+                                            )
                                         )
                                     )
                                 )
@@ -5281,7 +5634,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     "datasets"
                 )
                 if allowed_datasets is not None and (
-                    not isinstance(allowed_datasets, list)
+                    datasource.type != DatasourceType.TABLE
+                    or not isinstance(allowed_datasets, list)
                     or not all(isinstance(d, int) for d in allowed_datasets)
                     or datasource.id not in allowed_datasets
                 ):
@@ -5333,13 +5687,8 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 member_slices = dashboard.slices
 
                 def member_datasource_accessible() -> bool:
-                    seen: set[tuple[str | None, int | None]] = set()
-                    for slc in member_slices:
-                        key = (slc.datasource_type, slc.datasource_id)
-                        if key in seen:
-                            continue
-                        seen.add(key)
-                        resolved = slc.resolved_datasource
+                    resolved: BaseDatasource | Explorable | None
+                    for resolved in Slice.iter_resolved_datasources(member_slices):
                         if resolved is not None and self.can_access_datasource(
                             resolved
                         ):
@@ -5479,6 +5828,24 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return [self.get_public_role()] if public_role else []
         return super().get_user_roles(user)
 
+    def raise_for_unsupported_guest_rls(
+        self, datasource: "BaseDatasource | Explorable"
+    ) -> None:
+        """Deny semantic reads whose guest row restrictions cannot be enforced."""
+        if (
+            datasource.type == DatasourceType.SEMANTIC_VIEW
+            and self.get_guest_rls_filters(datasource)
+        ):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    message=_(
+                        "Semantic views cannot enforce guest row-level security rules."
+                    ),
+                    level=ErrorLevel.WARNING,
+                )
+            )
+
     def get_guest_rls_filters(
         self, dataset: "BaseDatasource | Explorable"
     ) -> list[GuestTokenRlsRule]:
@@ -5493,7 +5860,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 rule
                 for rule in guest_user.rls
                 if not rule.get("dataset")
-                or str(rule.get("dataset")) == str(dataset.data["id"])
+                or str(rule.get("dataset")) == str(dataset.id)
             ]
         return []
 
@@ -5692,6 +6059,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         return [f.get("clause", "") for f in self.get_guest_rls_filters(table)]
 
     def get_rls_cache_key(self, datasource: "Explorable | BaseDatasource") -> list[str]:
+        self.raise_for_unsupported_guest_rls(datasource)
         rls_clauses_with_group_key = []
         if datasource.is_rls_supported:
             rls_clauses_with_group_key = [
@@ -5785,8 +6153,10 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 raise SupersetSecurityException(
                     self.get_dashboard_access_error_object(dashboard)
                 )
-            if datasets is not None and resolved.id not in datasets:
-                continue  # the token will not grant this datasource
+            if datasets is not None and (
+                resolved.type != DatasourceType.TABLE or resolved.id not in datasets
+            ):
+                continue  # the allowlist grants only the SQL datasets it lists
             if not self.can_access_datasource(resolved):
                 raise SupersetSecurityException(
                     self.get_datasource_access_error_object(resolved)
@@ -6113,9 +6483,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         if not user:
-            if not get_current_user():
+            # Resolving the current user forces evaluation of flask_login's
+            # ``current_user`` proxy, which on a request that carries no JWT and
+            # no guest token invokes the app's request loader and lets
+            # ``verify_jwt_in_request`` raise ``NoAuthorizationError``. That is
+            # fine for a real view (a global handler turns it into a 401), but
+            # ``is_guest_user`` is also called from paths that run before auth
+            # (e.g. error sanitization while handling an unrelated HTTPException),
+            # where the raise escapes as an unhandled exception. A request with
+            # no JWT/guest token definitionally cannot be an embedded guest
+            # viewer, so returning ``False`` is the semantically correct answer.
+            try:
+                if not get_current_user():
+                    return False
+                user = g.user
+            except NoAuthorizationError:
                 return False
-            user = g.user
 
         return hasattr(user, "is_guest_user") and user.is_guest_user
 
@@ -6335,6 +6718,61 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             role.name for role in self.get_user_roles()
         ]
 
+    def _skip_legacy_fab_password_view_registration(self) -> Callable[..., Any]:
+        """
+        Temporarily patch ``add_view_no_menu`` so the legacy FAB password reset
+        views (``LEGACY_PASSWORD_VIEWS``) are never registered during
+        ``register_views()``.
+
+        Flask-AppBuilder registers these views unconditionally for ``AUTH_DB``
+        and offers no per-view switch (``FAB_ADD_SECURITY_VIEWS = False`` drops
+        every security view, the login view included), and a blueprint cannot
+        be unregistered once it has been added to the app, so intercepting the
+        registration call is the only way to keep the routes out of the URL
+        map.
+
+        :returns: the original, unpatched ``add_view_no_menu`` bound method, so
+            the caller can restore it once ``register_views()`` completes.
+        """
+        original_add_view_no_menu: Callable[..., Any] = self.appbuilder.add_view_no_menu
+
+        def add_view_no_menu_without_legacy_password_views(
+            baseview: Any, *args: Any, **kwargs: Any
+        ) -> Any:
+            if isinstance(baseview, LEGACY_PASSWORD_VIEWS) or (
+                isinstance(baseview, type)
+                and issubclass(baseview, LEGACY_PASSWORD_VIEWS)
+            ):
+                return baseview
+            return original_add_view_no_menu(baseview, *args, **kwargs)
+
+        self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+            add_view_no_menu_without_legacy_password_views
+        )
+        return original_add_view_no_menu
+
+    def _disable_legacy_password_reset_launchers(self) -> None:
+        """
+        Hide the user view's password reset actions, whose target views are
+        never registered.
+
+        FAB's ``UserDBModelView`` renders a "Reset Password" button on the user
+        show page and a "Reset my password" button on the user info page, and
+        both handlers redirect via ``url_for`` to the reset views. Since those
+        views are not registered that ``url_for`` would raise ``BuildError`` (a
+        500), so this hides each action from the show and list widgets and
+        makes a direct request to it answer 404 instead. Unrelated actions are
+        left untouched.
+        """
+        actions = getattr(getattr(self, "user_view", None), "actions", None) or {}
+        for action_name in LEGACY_PASSWORD_LAUNCHERS:
+            action = actions.get(action_name)
+            if action is None:
+                continue
+            action.single = False
+            action.multiple = False
+            action.func = _legacy_password_reset_disabled
+
     # temporal change to remove the roles view from the security menu,
     # after migrating all views to frontend, we will set FAB_ADD_SECURITY_VIEWS = False
     def register_views(self) -> None:
@@ -6354,7 +6792,17 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         # FlaskAppBuilder's AuthRemoteUserView actually claims the route.
         if self.register_superset_auth_view and self.auth_type != AUTH_REMOTE_USER:
             self.auth_view = self.appbuilder.add_view_no_menu(SupersetAuthView)
-        if self.register_superset_registeruser_view:
+        # AUTH_USER_REGISTRATION is what makes FlaskAppBuilder provision users on
+        # first login, so LDAP/SAML/AUTH_REMOTE_USER deployments have to enable
+        # it; that must not publish the "/register/" self-registration page.
+        # FlaskAppBuilder only wires the "/register/form" handler that page posts
+        # to for AUTH_DB and AUTH_OAUTH (see its own register_views), so for any
+        # other auth type the page is a registration form that submits to a 404.
+        if (
+            self.register_superset_registeruser_view
+            and self.auth_user_registration
+            and self.auth_type in (AUTH_DB, AUTH_OAUTH)
+        ):
             self.registeruser_view = self.appbuilder.add_view_no_menu(
                 SupersetRegisterUserView
             )
@@ -6378,11 +6826,20 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         original_auth_rate_limited = current_app.config["AUTH_RATE_LIMITED"]
         current_app.config["AUTH_RATE_LIMITED"] = False
 
+        original_add_view_no_menu: Callable[..., Any] = (
+            self._skip_legacy_fab_password_view_registration()
+        )
+
         try:
             super().register_views()
         finally:
-            # Restore original value even if an exception occurs
+            # Restore original values even if an exception occurs
             current_app.config["AUTH_RATE_LIMITED"] = original_auth_rate_limited
+            self.appbuilder.add_view_no_menu = (  # type: ignore[method-assign]
+                original_add_view_no_menu
+            )
+
+        self._disable_legacy_password_reset_launchers()
 
         for view in list(self.appbuilder.baseviews):
             if isinstance(view, self.rolemodelview.__class__) and getattr(
@@ -6402,3 +6859,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     "User Registrations",
                 ]:
                     security_menu.childs.remove(item)
+
+
+# Keep the original function identity before operator configuration can replace it.
+STOCK_RAISE_FOR_ACCESS: Callable[..., None] = SupersetSecurityManager.raise_for_access

@@ -103,14 +103,6 @@ flask-app:
 node-app:
 	cd superset-frontend; npm run dev-server
 
-build-cypress:
-	cd superset-frontend; npm run build-instrumented
-	cd superset-frontend/cypress-base; npm ci
-
-open-cypress:
-	if ! [ $(port) ]; then cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:9000 npm run cypress open; fi
-	cd superset-frontend/cypress-base; CYPRESS_BASE_URL=http://localhost:$(port) npm run cypress open
-
 report-celery-worker:
 	celery --app=superset.tasks.celery_app:app worker
 

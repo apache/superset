@@ -76,7 +76,10 @@ from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
 )
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.database import DatabaseDAO
 from superset.databases.decorators import check_table_access
@@ -147,6 +150,8 @@ from superset.views.error_handling import handle_api_exception, json_error_respo
 from superset.views.filters import BaseFilterRelatedUsers, FilterRelatedUsers
 
 logger = logging.getLogger(__name__)
+
+MAX_RELATED_DATASETS = 10
 
 
 # pylint: disable=too-many-public-methods
@@ -465,6 +470,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             item["uuid"] = new_model.uuid
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = new_model.sqlalchemy_uri
+            if "masked_encrypted_extra" in item:
+                item["masked_encrypted_extra"] = (
+                    new_model.db_engine_spec.mask_encrypted_extra(
+                        item["masked_encrypted_extra"]
+                    )
+                )
             item["expose_in_sqllab"] = new_model.expose_in_sqllab
 
             # If parameters are available return them in the payload
@@ -564,6 +575,12 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             changed_model = UpdateDatabaseCommand(pk, item).run()
             # Return censored version for sqlalchemy URI
             item["sqlalchemy_uri"] = changed_model.sqlalchemy_uri
+            if "masked_encrypted_extra" in item:
+                item["masked_encrypted_extra"] = (
+                    changed_model.db_engine_spec.mask_encrypted_extra(
+                        item["masked_encrypted_extra"]
+                    )
+                )
             if changed_model.parameters:
                 item["parameters"] = changed_model.parameters
             # Return SSH Tunnel and hide passwords if any
@@ -1388,6 +1405,26 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             {"id": tab_state.id, "label": tab_state.label, "active": tab_state.active}
             for tab_state in data["sqllab_tab_states"]
         ]
+        # Names are access-filtered like charts and dashboards above, but the
+        # count is not. This route only requires ``can_read`` on Database, and
+        # ``DatabaseFilter`` admits a caller holding ``datasource_access`` on a
+        # single dataset in the database, so returning every name here would let
+        # them enumerate datasets they hold no permission on. The count has to
+        # stay unfiltered because it is what explains the delete being blocked --
+        # a bare number discloses far less than a name and schema.
+        datasets = []
+        for dataset in data["datasets"]:
+            if not security_manager.can_access_datasource(dataset):
+                continue
+            datasets.append(
+                {
+                    "id": dataset.id,
+                    "table_name": dataset.table_name,
+                    "schema": dataset.schema,
+                }
+            )
+            if len(datasets) == MAX_RELATED_DATASETS:
+                break
         return self.response(
             200,
             charts={"count": len(charts), "result": charts},
@@ -1396,6 +1433,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
                 "count": len(sqllab_tab_states),
                 "result": sqllab_tab_states,
             },
+            datasets={"count": data["dataset_count"], "result": datasets},
         )
 
     @expose("/<int:pk>/validate_sql/", methods=("POST",))
@@ -1666,7 +1704,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
             return self.response_400()
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:
@@ -2056,7 +2094,7 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         except ValidationError as ex:
             errors = [
                 SupersetError(
-                    message="\n".join(messages),
+                    message="\n".join(str(m) for m in messages),
                     error_type=SupersetErrorType.INVALID_PAYLOAD_SCHEMA_ERROR,
                     level=ErrorLevel.ERROR,
                     extra={"invalid": [attribute]},
