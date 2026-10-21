@@ -794,3 +794,17 @@ def test_duplicate_defaults_to_isolated_charts() -> None:
         source, request.dashboard_title, request.duplicate_slices
     )
     assert payload["duplicate_slices"] is True
+
+
+@pytest.mark.asyncio
+async def test_duplicate_description_explains_isolated_default() -> None:
+    """Published guidance must not introduce the default as an opt-in."""
+    tools = await mcp.list_tools()
+    tool = next(tool for tool in tools if tool.name == "duplicate_dashboard")
+    description = " ".join((tool.description or "").split())
+    assert "By default the copy deep-copies charts" in description
+    assert "With duplicate_slices=true" not in description
+    assert "Set duplicate_slices=false only" in description
+    from superset.mcp_service.dashboard.schemas import DuplicateDashboardRequest
+
+    assert DuplicateDashboardRequest.model_fields["duplicate_slices"].default is True

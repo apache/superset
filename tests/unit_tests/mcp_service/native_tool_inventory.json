@@ -167,11 +167,11 @@
         "openWorldHint": false,
         "readOnlyHint": false
       },
-      "compact_description_chars": 193,
-      "description_chars": 487,
+      "compact_description_chars": 50,
+      "description_chars": 453,
       "entry_bytes": {
-        "structured": 9521,
-        "text_only": 1616
+        "structured": 9486,
+        "text_only": 1581
       },
       "input_schema_bytes": 850,
       "output_schema_bytes": 7889
@@ -762,10 +762,10 @@
       "compact_description_chars": 279,
       "description_chars": 1555,
       "entry_bytes": {
-        "structured": 18716,
-        "text_only": 6279
+        "structured": 18745,
+        "text_only": 6308
       },
-      "input_schema_bytes": 4435,
+      "input_schema_bytes": 4464,
       "output_schema_bytes": 12421
     },
     "list_dashboards": {
@@ -794,10 +794,10 @@
       "compact_description_chars": 204,
       "description_chars": 221,
       "entry_bytes": {
-        "structured": 8740,
-        "text_only": 3133
+        "structured": 8769,
+        "text_only": 3162
       },
-      "input_schema_bytes": 2679,
+      "input_schema_bytes": 2708,
       "output_schema_bytes": 5591
     },
     "list_datasets": {
@@ -810,10 +810,10 @@
       "compact_description_chars": 230,
       "description_chars": 2331,
       "entry_bytes": {
-        "structured": 14726,
-        "text_only": 6769
+        "structured": 14755,
+        "text_only": 6798
       },
-      "input_schema_bytes": 4117,
+      "input_schema_bytes": 4146,
       "output_schema_bytes": 7941
     },
     "list_layer_annotations": {
@@ -874,10 +874,10 @@
       "compact_description_chars": 249,
       "description_chars": 270,
       "entry_bytes": {
-        "structured": 8386,
-        "text_only": 3472
+        "structured": 8415,
+        "text_only": 3501
       },
-      "input_schema_bytes": 2974,
+      "input_schema_bytes": 3003,
       "output_schema_bytes": 4898
     },
     "list_rls_filters": {
@@ -1267,12 +1267,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 525171,
-      "text_only": 214684
+      "structured": 525252,
+      "text_only": 214765
     },
     "compact_catalog_bytes": {
-      "structured": 472329,
-      "text_only": 161842
+      "structured": 472299,
+      "text_only": 161812
     },
     "largest_entry": {
       "structured": {
