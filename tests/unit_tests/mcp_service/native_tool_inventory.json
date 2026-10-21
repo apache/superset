@@ -24,10 +24,10 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 284,
-      "description_chars": 2706,
+      "description_chars": 2782,
       "entry_bytes": {
-        "structured": 8702,
-        "text_only": 6026
+        "structured": 8779,
+        "text_only": 6103
       },
       "input_schema_bytes": 2951,
       "output_schema_bytes": 2660
@@ -1267,8 +1267,8 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 526716,
-      "text_only": 215599
+      "structured": 526793,
+      "text_only": 215676
     },
     "compact_catalog_bytes": {
       "structured": 472742,

@@ -805,9 +805,10 @@ async def apply_dashboard_filters(
     and ask before applying it.
 
     Use this to answer "show me the dashboard filtered to X". It returns a
-    shareable ``/dashboard/p/<key>/`` permalink. The dashboard's saved
-    configuration is NOT modified and no other viewer is affected -- to
-    add, change, or remove the filters themselves, use
+    shareable ``/dashboard/p/<key>/`` permalink. The link opens the
+    dashboard with the requested values already applied. The dashboard's
+    saved configuration is NOT modified and no other viewer is affected --
+    to add, change, or remove the filters themselves, use
     manage_native_filters instead.
 
     Target each filter by its display name (matched case-insensitively) or
@@ -818,8 +819,8 @@ async def apply_dashboard_filters(
     values are checked against readable column options and an unknown value
     is rejected, listing column values when available; values that cannot
     be verified are kept unchanged, not certified as present),
-    ``time_range`` for a filter_time
-    filter, ``range`` as a ``[lower, upper]`` pair for a filter_range filter
+    ``time_range`` for a filter_time filter, ``range`` as a
+    ``[lower, upper]`` pair for a filter_range filter
     (either bound may be null, and ``[null, null]`` clears it), and
     ``time_grain`` as a list of at most one value for a filter_timegrain
     filter (an empty list clears it). Filters
