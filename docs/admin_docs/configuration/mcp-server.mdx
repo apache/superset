@@ -2424,3 +2424,12 @@ Context names are returned verbatim per the Tool Result Value Contract.
 "Did you mean" column candidates also preserve dataset spelling, including
 quotes and ampersands, with a 200-character bound per candidate. Use
 `get_dataset_info` for the complete schema.
+
+### Title validation errors
+
+Rejected MCP titles report a field-specific reason without echoing the input.
+Titles exceeding 500 characters for dashboards or 255 characters for charts
+report "String exceeds the allowed maximum length". `duplicate_dashboard`
+requires a non-blank title and reports "Text must not be empty" when no text
+remains after sanitization. Optional titles retain their existing empty-value
+behavior.

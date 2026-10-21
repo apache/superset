@@ -6398,14 +6398,7 @@ class GenerateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        try:
-            return sanitize_user_input(
-                v, "Chart name", max_length=255, allow_empty=True
-            )
-        except ValueError as ex:
-            raise PydanticCustomError(
-                "unsafe_text", "{error}", {"error": str(ex)}
-            ) from ex
+        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -6544,14 +6537,7 @@ class UpdateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        try:
-            return sanitize_user_input(
-                v, "Chart name", max_length=255, allow_empty=True
-            )
-        except ValueError as ex:
-            raise PydanticCustomError(
-                "unsafe_text", "{error}", {"error": str(ex)}
-            ) from ex
+        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):

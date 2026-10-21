@@ -180,6 +180,39 @@ def test_title_sanitization_error_names_field(
     assert exc.value.errors()[0]["loc"] == (field,)
 
 
+def make_title_server() -> FastMCP:
+    """Register the real title request schemas for wire-level validation."""
+    server = FastMCP("title-validation")
+    server.add_middleware(ToolResultCompatibilityMiddleware())
+
+    @server.tool
+    def generate_dashboard(request: GenerateDashboardRequest) -> str:
+        """Validate dashboard creation."""
+        return "ok"
+
+    @server.tool
+    def update_dashboard(request: UpdateDashboardRequest) -> str:
+        """Validate dashboard updates."""
+        return "ok"
+
+    @server.tool
+    def duplicate_dashboard(request: DuplicateDashboardRequest) -> str:
+        """Validate dashboard duplication."""
+        return "ok"
+
+    @server.tool
+    def generate_chart(request: GenerateChartRequest) -> str:
+        """Validate chart creation."""
+        return "ok"
+
+    @server.tool
+    def update_chart(request: UpdateChartRequest) -> str:
+        """Validate chart updates."""
+        return "ok"
+
+    return server
+
+
 @pytest.mark.asyncio
 @pytest.mark.parametrize(
     ("tool", "payload", "field"),
@@ -218,33 +251,7 @@ async def test_title_sanitization_wire_error_names_field_with_actionable_reason(
     rejected: str,
 ) -> None:
     """Real MCP argument validation names fields without exposing rejected input."""
-    server = FastMCP("title-validation")
-    server.add_middleware(ToolResultCompatibilityMiddleware())
-
-    @server.tool
-    def generate_dashboard(request: GenerateDashboardRequest) -> str:
-        """Validate dashboard creation."""
-        return "ok"
-
-    @server.tool
-    def update_dashboard(request: UpdateDashboardRequest) -> str:
-        """Validate dashboard updates."""
-        return "ok"
-
-    @server.tool
-    def duplicate_dashboard(request: DuplicateDashboardRequest) -> str:
-        """Validate dashboard duplication."""
-        return "ok"
-
-    @server.tool
-    def generate_chart(request: GenerateChartRequest) -> str:
-        """Validate chart creation."""
-        return "ok"
-
-    @server.tool
-    def update_chart(request: UpdateChartRequest) -> str:
-        """Validate chart updates."""
-        return "ok"
+    server = make_title_server()
 
     async with Client(server) as client:
         result = await client.call_tool_mcp(
@@ -524,3 +531,70 @@ async def test_sibling_alias_sanitization_wire_error_names_canonical_field(
     )
     assert f"request.{field}: Contains disallowed content" in message
     assert "private-input" not in message
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "payload", "field", "limit"),
+    [
+        ("generate_dashboard", {"chart_ids": [1]}, "dashboard_title", 500),
+        ("update_dashboard", {"identifier": 1}, "dashboard_title", 500),
+        ("duplicate_dashboard", {"dashboard_id": 1}, "dashboard_title", 500),
+        (
+            "generate_chart",
+            {
+                "dataset_id": 1,
+                "config": {"chart_type": "table", "columns": [{"name": "a"}]},
+            },
+            "chart_name",
+            255,
+        ),
+        ("update_chart", {"identifier": 1}, "chart_name", 255),
+    ],
+)
+@pytest.mark.parametrize("alias", [None, "title", "name"])
+@pytest.mark.parametrize("length", [None, 600])
+async def test_title_length_wire_reason(
+    tool: str,
+    payload: dict[str, Any],
+    field: str,
+    limit: int,
+    alias: str | None,
+    length: int | None,
+) -> None:
+    """Length errors retain their reason through warning detection and MCP."""
+    rejected = "x" * (length or limit + 1)
+    async with Client(make_title_server()) as client:
+        result = await client.call_tool_mcp(
+            tool, {"request": {**payload, alias or field: rejected}}
+        )
+    assert result.isError is True
+    assert result.content == [
+        TextContent(
+            type="text",
+            text=f"Error: Validation error in {tool}: request.{field}: "
+            "String exceeds the allowed maximum length",
+        )
+    ]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("field", ["dashboard_title", "title", "name"])
+@pytest.mark.parametrize("rejected", ["", " \t\n"])
+async def test_duplicate_dashboard_empty_title_wire_reason(
+    field: str,
+    rejected: str,
+) -> None:
+    """Blank required titles have a static, actionable reason on the wire."""
+    async with Client(make_title_server()) as client:
+        result = await client.call_tool_mcp(
+            "duplicate_dashboard", {"request": {"dashboard_id": 1, field: rejected}}
+        )
+    assert result.isError is True
+    assert result.content == [
+        TextContent(
+            type="text",
+            text="Error: Validation error in duplicate_dashboard: "
+            "request.dashboard_title: Text must not be empty",
+        )
+    ]

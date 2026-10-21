@@ -1461,7 +1461,7 @@ class GenerateDashboardResponse(BaseModel):
 class DuplicateDashboardRequest(BaseModel):
     """Request schema for duplicating an existing dashboard."""
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     dashboard_id: Annotated[
         int | str,
@@ -1549,7 +1549,7 @@ class DuplicateDashboardRequest(BaseModel):
             v, "Dashboard title", max_length=500, allow_empty=True
         )
         if not sanitized:
-            raise ValueError("dashboard_title cannot be empty")
+            raise PydanticCustomError("empty_text", "dashboard_title cannot be empty")
         return sanitized
 
 

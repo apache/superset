@@ -47,7 +47,11 @@ def field_validation_error(field_name: str) -> Iterator[None]:
     try:
         yield
     except ValueError as ex:
-        error = PydanticCustomError("unsafe_text", "{error}", {"error": str(ex)})
+        error = (
+            ex
+            if isinstance(ex, PydanticCustomError)
+            else PydanticCustomError("unsafe_text", "{error}", {"error": str(ex)})
+        )
         raise ValidationError.from_exception_data(
             "Field validation", [{"type": error, "loc": (field_name,)}]
         ) from ex
