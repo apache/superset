@@ -467,3 +467,70 @@ def test_chart_time_grain_form_data_contains_strings(
     if config.chart_type == "mixed_timeseries":
         assert type(form_data["time_grain_sqla_b"]) is str
         assert form_data["time_grain_sqla_b"] == "P1Y"
+
+
+@pytest.mark.parametrize(
+    "app", [{"FEATURE_FLAGS": {"ENABLE_TEMPLATE_PROCESSING": True}}], indirect=True
+)
+@pytest.mark.parametrize(
+    "config_data",
+    [
+        {
+            "chart_type": "big_number",
+            "metric": {"name": "val", "aggregate": "SUM"},
+            "show_trendline": True,
+            "temporal_column": "ts",
+            "time_grain": "P1M",
+            "aggregation": "sum",
+        },
+        {
+            "chart_type": "xy",
+            "x": {"name": "ts"},
+            "y": [{"name": "val", "aggregate": "SUM"}],
+            "kind": "line",
+            "time_grain": "P1M",
+        },
+    ],
+    ids=["big_number", "xy"],
+)
+def test_time_grain_renders_on_virtual_dataset(
+    mocker: MockerFixture, config_data: dict[str, Any]
+) -> None:
+    """A time grain must reach a virtual dataset's Jinja context as a string.
+
+    A virtual dataset (``sql`` set) renders its SQL through the template
+    processor, which rejects any context value whose type is not a plain
+    builtin. An enum-valued ``time_grain`` fails there with ``Unsafe template
+    value for key time_grain: TimeGrain``.
+    """
+    from pydantic import TypeAdapter
+
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+    from superset.mcp_service.chart.chart_utils import map_config_to_form_data
+    from superset.mcp_service.chart.schemas import ChartConfig
+
+    mocker.patch(
+        "superset.mcp_service.chart.chart_utils.is_column_truly_temporal",
+        return_value=True,
+    )
+    table = _events_dataset(mocker)
+    table.table_name = "virtual_events"
+    table.sql = "SELECT ts, val FROM events"
+
+    config = TypeAdapter(ChartConfig).validate_python(config_data)
+    form_data = map_config_to_form_data(config)
+    query = build_query_objects_from_form_data(form_data)[0]
+
+    sql_query = table.get_sqla_query(
+        metrics=query["metrics"],
+        columns=query.get("columns"),
+        extras=query["extras"],
+        granularity=query.get("granularity"),
+        is_timeseries=True,
+    )
+
+    assert "SELECT ts, val FROM events" in str(sql_query.sqla_query)
+    assert type(query["extras"]["time_grain_sqla"]) is str
+    assert query["extras"]["time_grain_sqla"] == "P1M"
