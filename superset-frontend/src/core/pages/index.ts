@@ -158,7 +158,12 @@ export const registerPageFor = (
   // `name` there does not have to repeat them in code to be seen. They are
   // only defaults: anything the registration passes wins, because that is the
   // call the author wrote.
-  const { path, registered, permitted, ...declaredFields } = declaration;
+  const {
+    path: _path,
+    registered: _registered,
+    permitted,
+    ...declaredFields
+  } = declaration;
   const resolved: ResolvedPage = {
     ...(declaredFields as Partial<Page>),
     ...page,
