@@ -25,6 +25,7 @@ import {
   getPages,
   registerPageFor,
   resolvePage,
+  type DeclaredPage,
 } from './index';
 
 const disposables: Array<{ dispose: () => void }> = [];
@@ -40,7 +41,7 @@ const DECLARED = [
 const register = (
   extensionId: string,
   page: { path: string; name: string },
-  declared: readonly { path: string; permitted?: boolean }[] = DECLARED,
+  declared: readonly DeclaredPage[] = DECLARED,
 ) => registerPageFor(extensionId, declared, page, Component);
 
 afterEach(() => {

@@ -27,7 +27,12 @@ import { ErrorAlert } from 'src/components/ErrorMessage/ErrorAlert';
 export interface PageBoundaryProps {
   /** The page's registry id, so one page's crash cannot reach another. */
   id: string;
-  children: ReactNode;
+  /**
+   * Optional as React's own `PropsWithChildren` has it, so the boundary can
+   * be built with `createElement`, which passes children as a third argument
+   * rather than in props.
+   */
+  children?: ReactNode;
 }
 
 /**
