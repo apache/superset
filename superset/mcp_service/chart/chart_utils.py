@@ -68,10 +68,6 @@ from superset.mcp_service.chart.schemas import (
     WaterfallChartConfig,
     XYChartConfig,
 )
-from superset.mcp_service.chart.sunburst import (
-    apply_sunburst_hierarchy_time_grain,
-    restore_sunburst_hierarchy_time_grain,
-)
 from superset.mcp_service.chart.validation.dataset_validator import (
     is_dataset_column_temporal,
     resolve_exact_first_casefold,
@@ -2063,7 +2059,7 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
 
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
-    return apply_sunburst_hierarchy_time_grain(form_data)
+    return form_data
 
 
 # Sunburst fields with explicit omission/clear semantics. Mapper defaults must
@@ -2654,12 +2650,6 @@ def finalize_sunburst_update_form_data(  # noqa: C901
     config: SunburstChartConfig,
 ) -> Dict[str, Any]:
     """Apply Sunburst omission, explicit-clear and temporal-pair semantics."""
-    existing_form_data = dict(existing_form_data)
-    restore_sunburst_hierarchy_time_grain(existing_form_data)
-    if existing_form_data.get("viz_type") == new_form_data.get("viz_type"):
-        for key in ("granularity_sqla", "time_grain_sqla"):
-            if key in existing_form_data:
-                merged.setdefault(key, existing_form_data[key])
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
     fields_set: set[str] = getattr(config, "model_fields_set", set())
     temporal_fields = {"time_grain", "temporal_column"}
@@ -2713,7 +2703,7 @@ def finalize_sunburst_update_form_data(  # noqa: C901
     # see and reject it consistently across immediate, preview-first, and
     # cached update paths instead of letting the query builder silently ignore
     # a request that cannot be represented by the frontend contract.
-    return apply_sunburst_hierarchy_time_grain(merged)
+    return merged
 
 
 _DATASET_BOUND_FORM_DATA_KEYS = frozenset(

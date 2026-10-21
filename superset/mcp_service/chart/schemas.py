@@ -2548,38 +2548,12 @@ class SunburstChartConfig(BaseChartConfig):
         )
         if hierarchy_key is None:
             return
-        from superset.mcp_service.chart.sunburst import (
-            grained_column_reference,
-            restore_sunburst_hierarchy_time_grain,
-        )
-
         hierarchy = data[hierarchy_key]
         if isinstance(hierarchy, (str, dict)):
             hierarchy = [hierarchy]
         if isinstance(hierarchy, list):
-            temporal_levels = [
-                item
-                for item in hierarchy
-                if grained_column_reference(item)
-                and item.get("timeGrain") not in (None, "")
-            ]
-            if len(temporal_levels) > 1:
-                raise ValueError(
-                    "Sunburst typed configuration supports one temporal grain"
-                )
-            native_state = {**data, "columns": hierarchy}
-            restore_sunburst_hierarchy_time_grain(native_state)
-            for key in ("granularity_sqla", "time_grain_sqla"):
-                if key in native_state:
-                    data[key] = native_state[key]
-            # Explore saves the grain on the column, without top-level controls.
-            names = [
-                item if isinstance(item, str) else grained_column_reference(item)
-                for item in hierarchy
-            ]
             data[hierarchy_key] = [
-                {"name": name} if name else item
-                for name, item in zip(names, hierarchy, strict=True)
+                {"name": item} if isinstance(item, str) else item for item in hierarchy
             ]
         if hierarchy_key != "groupby":
             # Saved Sunburst payloads sometimes retain an empty groupby from a

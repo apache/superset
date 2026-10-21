@@ -1179,9 +1179,6 @@ def build_query_dicts_from_form_data(
     secondary_form_data = (
         plugin.secondary_query_form_data(form_data) if plugin is not None else None
     )
-    grain_override = merge_extra_form_data(
-        form_data.get("extra_form_data"), extra_form_data or {}
-    ).get("time_grain_sqla")
     prepare_form_data_for_query(
         form_data,
         datasource_id,
@@ -1201,39 +1198,33 @@ def build_query_dicts_from_form_data(
 
     # Plugins see (and may validate) the complete reconstructed state, including
     # legacy clauses and request-level extra_form_data merged above.
-    queries: list[dict[str, Any]] | None = None
     if plugin is not None:
-        queries = plugin.build_query_dicts(
+        plugin_queries = plugin.build_query_dicts(
             form_data,
             viz_type=viz_type,
             engine=engine,
             row_limit=row_limit,
             order_desc=order_desc,
         )
-    if queries is None:
-        # Deck.gl charts use spatial column configs rather than the standard
-        # metrics / groupby fields. Extract columns from the spatial controls.
-        if viz_type.startswith("deck_"):
-            queries = [
-                build_deck_gl_query_dict(
-                    form_data, viz_type, row_limit=row_limit, order_desc=order_desc
-                )
-            ]
-        else:
-            queries = build_query_objects_from_form_data(
-                form_data,
-                viz_type=viz_type,
-                row_limit=row_limit,
-                order_desc=order_desc,
-                filters_prepared=True,
-                secondary_form_data=secondary_form_data,
+        if plugin_queries is not None:
+            return plugin_queries
+
+    # Deck.gl charts use spatial column configs rather than the standard
+    # metrics / groupby fields. Extract columns from the spatial controls.
+    if viz_type.startswith("deck_"):
+        return [
+            build_deck_gl_query_dict(
+                form_data, viz_type, row_limit=row_limit, order_desc=order_desc
             )
-    if grain_override is not None:
-        # A BASE_AXIS column's own grain drives SQL grouping, so overriding
-        # extras alone leaves the saved grain in effect on fresh queries.
-        for query in queries:
-            apply_time_grain_to_base_axis(query, grain_override)
-    return queries
+        ]
+    return build_query_objects_from_form_data(
+        form_data,
+        viz_type=viz_type,
+        row_limit=row_limit,
+        order_desc=order_desc,
+        filters_prepared=True,
+        secondary_form_data=secondary_form_data,
+    )
 
 
 def build_deck_gl_query_dict(

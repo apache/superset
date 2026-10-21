@@ -1713,13 +1713,6 @@ For Generic Chart Axes charts, both MCP overrides and dashboard time-grain
 filters update the `BASE_AXIS` column's `timeGrain`, regardless of its position
 in the query's `columns` list. Other columns are left untouched. Queries without
 a `BASE_AXIS` column continue to use `extras.time_grain_sqla`.
-Sunburst temporal hierarchy levels also carry their grain on the column, so
-opening or re-saving an MCP chart in Explore retains its monthly or yearly
-buckets. Native Sunburst round-trips and same-visualization updates preserve
-that column-local grain when the top-level temporal controls are absent.
-Semantic views honor the same per-column grain contract. Native raw timestamp
-levels do not consume the typed Sunburst contract's single temporal-grain slot;
-multiple grained levels are rejected instead of losing their grains.
 Same-visualization updates that supply only a non-null `time_grain` preserve saved
 temporal range filters. Explicitly setting `time_grain` to null clears saved
 temporal state, including `time_range` and temporal range filters; it does not

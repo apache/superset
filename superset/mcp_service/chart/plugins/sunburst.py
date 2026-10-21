@@ -128,11 +128,9 @@ class SunburstChartPlugin(BaseChartPlugin):
         self, form_data: Mapping[str, Any], viz_type: str
     ) -> tuple[list[Any], list[Any]] | None:
         from superset.mcp_service.chart.chart_helpers import (
-            normalize_groupby,
             resolve_groupby,
             resolve_shared_metrics,
         )
-        from superset.mcp_service.chart.sunburst import grained_column_reference
 
         # The standardized controls promote both singular metrics into the
         # query: transformProps colors nodes by the secondary/primary ratio.
@@ -141,15 +139,6 @@ class SunburstChartPlugin(BaseChartPlugin):
             secondary_metric not in metrics
         ):
             metrics.append(secondary_metric)
-        columns = form_data.get("columns")
-        if not normalize_groupby(form_data) and isinstance(columns, list):
-            # A grained temporal level is a column object; keep it in place
-            # rather than dropping it with other non-string references.
-            return metrics, [
-                column
-                for column in columns
-                if isinstance(column, str) or grained_column_reference(column)
-            ]
         return metrics, resolve_groupby(dict(form_data))
 
     def normalize_query_result(self, result: Any, form_data: Mapping[str, Any]) -> Any:

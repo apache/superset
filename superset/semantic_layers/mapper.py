@@ -540,11 +540,13 @@ def _map_query_object(
 
     metrics = [all_metrics[metric] for metric in (query_object.metrics or [])]
 
-    grouping_grains: dict[str, Grain | None] = {
-        name: grain
-        for name, grain in _get_grouping_grains(query_object, all_dimensions).items()
-        if name in normalized_columns
-    }
+    grain = _convert_time_grain(query_object.extras.get("time_grain_sqla"))
+    time_axis_column = _get_grain_time_axis_column(query_object, all_dimensions)
+    grouping_grains: dict[str, Grain | None] = (
+        {time_axis_column: grain}
+        if time_axis_column is not None and time_axis_column in normalized_columns
+        else {}
+    )
     grouping_dimensions: dict[str, Dimension] = resolve_dimensions(
         view_dimensions, usage=DimensionUsage.GROUP, grouping_grains=grouping_grains
     )
@@ -1318,42 +1320,6 @@ def _get_grain_time_axis_column(
     return None
 
 
-def _get_grouping_grains(
-    query_object: ValidatedQueryObject,
-    all_dimensions: dict[str, Dimension],
-) -> dict[str, Grain | None]:
-    """Resolve legacy grain defaults and explicit per-column temporal grains.
-
-    BASE_AXIS references retain their own grains when Explore drops top-level
-    time controls. Like SQL datasource queries, column-local grains take
-    precedence over the legacy extras default and identify their own subjects.
-    """
-    axis = _get_grain_time_axis_column(query_object, all_dimensions)
-    default_grain = query_object.extras.get("time_grain_sqla")
-    requested_grains = (
-        {axis: default_grain} if axis is not None and default_grain else {}
-    )
-    dimension_names = set(all_dimensions)
-    for column in query_object.columns:
-        if (
-            isinstance(column, dict)
-            and column.get("columnType") == "BASE_AXIS"
-            and column.get("isColumnReference") is True
-        ):
-            name = _normalize_column(column, dimension_names)
-            requested_grains[name] = column.get("timeGrain")
-    grains: dict[str, Grain | None] = {}
-    for name, requested in requested_grains.items():
-        grain = _convert_time_grain(requested)
-        if requested and grain is None:
-            raise QueryObjectValidationError(
-                "The time grain is not supported for the time column in the "
-                "Semantic View."
-            )
-        grains[name] = grain
-    return grains
-
-
 def _convert_time_grain(time_grain: str | None) -> Grain | None:
     """
     Convert a time grain string (ISO 8601 duration) to a Grain instance.
@@ -1531,27 +1497,19 @@ def _validate_granularity(
             "The time column must be defined in the Semantic View dimensions."
         )
 
-    has_column_grain = any(
-        isinstance(column, dict)
-        and column.get("columnType") == "BASE_AXIS"
-        and column.get("isColumnReference") is True
-        for column in query_object.columns
-    )
-    if not query_object.extras.get("time_grain_sqla") and not has_column_grain:
-        return
+    if time_grain := query_object.extras.get("time_grain_sqla"):
+        time_column = _get_grain_time_axis_column(query_object, all_dimensions)
+        if not time_column:
+            raise ValueError(
+                "A time column must be specified when a time grain is provided."
+            )
 
-    grouping_grains = _get_grouping_grains(query_object, all_dimensions)
-    if not grouping_grains:
-        raise ValueError(
-            "A time column must be specified when a time grain is provided."
-        )
-    for time_column, grain in grouping_grains.items():
         supported_time_grains = {
             dimension.grain
             for dimension in view_dimensions
             if dimension.name == time_column and dimension.grain
         }
-        if grain is not None and grain not in supported_time_grains:
+        if _convert_time_grain(time_grain) not in supported_time_grains:
             raise QueryObjectValidationError(
                 "The time grain is not supported for the time column in the "
                 "Semantic View."

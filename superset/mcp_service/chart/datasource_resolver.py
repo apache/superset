@@ -229,7 +229,6 @@ def validate_semantic_view_form_data(
         resolve_sort_metric,
     )
     from superset.mcp_service.chart.registry import plugin_for_viz_type
-    from superset.mcp_service.chart.sunburst import grained_column_reference
 
     viz_type: object = form_data.get("viz_type")
     plugin: ChartTypePlugin | None = (
@@ -320,7 +319,6 @@ def validate_semantic_view_form_data(
             else form_data.get(key) or []
         )
     ] + [form_data[key] for key in ("x_axis", "granularity_sqla") if form_data.get(key)]
-    dimensions = [grained_column_reference(value) or value for value in dimensions]
     if any(not isinstance(value, str) or value not in columns for value in dimensions):
         return ChartGenerationError(
             error_type="column_not_found",
