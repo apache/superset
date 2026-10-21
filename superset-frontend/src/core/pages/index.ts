@@ -59,6 +59,8 @@ export interface DeclaredPage {
   /** False when the server refused the path and registered no rule for it. */
   registered?: boolean;
   permitted?: boolean;
+  /** Everything else the manifest declared about the page. */
+  [field: string]: unknown;
 }
 
 /** A registration that did not take, so a caller can dispose it harmlessly. */
@@ -151,10 +153,17 @@ export const registerPageFor = (
   // Registered whether or not the user may open it, so that the component is
   // there to render a refusal rather than a blank screen, and so an
   // extension's own bundle never has to branch on permissions.
+  //
+  // The manifest's own fields come first, so a page that declares `nav` or
+  // `name` there does not have to repeat them in code to be seen. They are
+  // only defaults: anything the registration passes wins, because that is the
+  // call the author wrote.
+  const { path, registered, permitted, ...declaredFields } = declaration;
   const resolved: ResolvedPage = {
+    ...(declaredFields as Partial<Page>),
     ...page,
     extensionId,
-    permitted: declaration.permitted !== false,
+    permitted: permitted !== false,
   };
 
   const replaced = pageRegistry.get(id);
