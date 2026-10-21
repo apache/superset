@@ -949,14 +949,23 @@ def check_chart_data_access(chart: Any) -> "DatasetValidationResult":
     permissions before tool execution; this function enforces data-level
     permissions inside tools after retrieving specific objects.
 
+    Semantic views share the numeric id space with datasets, so the source is
+    resolved by ``datasource_type``, never by id alone.
+
     Args:
-        chart: A Slice ORM object with datasource_id attribute
+        chart: A Slice ORM object with datasource_id and datasource_type
 
     Returns:
         DatasetValidationResult with is_valid, error, etc.
     """
-    from superset.mcp_service.chart.chart_utils import validate_chart_dataset
+    from superset.mcp_service.chart.chart_utils import (
+        validate_chart_dataset,
+        validate_chart_semantic_view,
+    )
+    from superset.utils.core import DatasourceType
 
+    if getattr(chart, "datasource_type", None) == DatasourceType.SEMANTIC_VIEW.value:
+        return validate_chart_semantic_view(chart.datasource_id, check_access=True)
     return validate_chart_dataset(chart.datasource_id, check_access=True)
 
 

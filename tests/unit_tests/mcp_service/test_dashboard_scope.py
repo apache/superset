@@ -1311,7 +1311,16 @@ async def test_query_dataset_builds_the_scoped_query(
         ),
         patch(
             "superset.commands.chart.data.get_data_command.ChartDataCommand.run",
-            return_value={"queries": [{"data": [{"count": 1}], "colnames": ["count"]}]},
+            return_value={
+                "queries": [
+                    {
+                        "data": [{"count": 1}],
+                        "colnames": ["count"],
+                        "coltypes": [0],
+                        "rowcount": 1,
+                    }
+                ]
+            },
         ),
         patch(
             "superset.common.query_context_factory.QueryContextFactory.create",

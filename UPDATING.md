@@ -24,6 +24,244 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
+  CSV/text reports leave Total and Subtotal cells blank when they combine different
+  metrics, including two SUM metrics. Metric-specific values and totals remain
+  available, including with Combine metrics and Transpose pivot enabled. Previously
+  these cells could show an arbitrary metric's value or a sum across unrelated metrics.
+  Downstream consumers must handle empty cells or use a single metric that explicitly
+  computes the desired combined value. This change does not restore result-aggregation
+  parity between exports and the browser.
+
+- **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
+  Lab stop on Impala is delivered to the worker that is polling the query, which
+  cancels it with `cancel_operation()`, as Hive and Presto already do. The HTTP
+  cancel invalidated the handle the worker was still polling, so the run failed
+  instead of ending as stopped. When no worker is polling, the query is marked
+  stopped but Impala keeps running it and holds its admission slot until it
+  finishes or Impala closes it: for example when the worker has died or
+  restarted, or when the stop arrives while results are being fetched.
+  Operators who relied on the HTTP cancel to free admission slots in those cases
+  should rely on Impala's own query and session timeouts. Chart and MCP
+  cancellation still use the HTTP cancel.
+- `POST /api/v1/query/stop` returns HTTP 422 instead of 200 when the query
+  has already finished or its worker has committed the target transaction.
+  The response contains `message: "Could not cancel query"` and the recorded
+  `query`; an async handle's `cancel()` returns `False`. After a target commit,
+  that query can still be running while SQL Lab prepares its results.
+  PostgreSQL/MySQL metadata databases serialize Stop against the worker's final
+  stop check and target commit. If Stop wins, transactional work is discarded;
+  if the worker wins, Stop is rejected even before results are published.
+  An accepted Stop returns HTTP 200 (`cancel()` returns `True`) even if engine
+  cancellation or subsequent cancellation-metadata persistence fails. Its stopped
+  state and original end time survive repeated Stop requests and worker timeouts.
+  Repeated Stop requests do not retry engine cancellation.
+  Engine cancellation is best-effort: its statement may continue, but SQL Lab
+  discards the results. Stop cannot undo autocommit, implicit-commit DDL, or SQL
+  commits performed during execution. With SQLite metadata (which does not
+  support row locks), a Stop accepted between the worker's final check and
+  target commit can also leave transactional changes committed. Target and
+  metadata commits are not atomic: a metadata commit failure after the target
+  commit can likewise leave database changes without the committed marker.
+- **Semantic dimension variant resolution.** With `SEMANTIC_LAYERS` enabled,
+  same-name dimension variants use one default
+  preference for metadata, filters and grouping fallbacks: raw (no grain), then
+  second/minute/hour/day/week/month/quarter/year, then other grain representations
+  in lexical order. Explicit supported grouping grains remain honored; filters
+  and time bounds use the default independently of grouping. Sorting and series
+  limits use the selected grouping grain. This can change
+  results that depended on arbitrary catalog ordering. Providers exposing
+  different IDs or conflicting types, definitions or descriptions for the same
+  name and grain must disambiguate their catalog; such catalogs are rejected
+  instead of silently selecting a variant. On dashboards,
+  only the affected dataset reports the ambiguity; other datasets still load.
+  Independent temporal predicates are retained unless replaced by the query's
+  time-axis bounds; time-series offsets and separate inner-bound queries replace
+  ranges on their selected axis. Retained predicates can narrow results where
+  earlier releases discarded them.
+
+- **Semantic NULL filters and provider SDK upgrade.** Semantic filters normalize
+  UI NULL/empty-string selections. Mixed positive NULL membership uses `OrFilter`,
+  which every semantic provider must render; previously NULL rows could be
+  omitted. Update provider adapters before, or together with, the host/SDK
+  upgrade. Adapters must narrow `SemanticQuery.filters` and `GroupLimit.filters`
+  members (`Filter | OrFilter`) before reading leaf attributes; `get_values`
+  remains `set[Filter] | None`. Empty membership and invalid NULL comparison
+  operands return query validation errors. Semantic result keys include a
+  filter-protocol version, and chart-backed annotation results also receive a new
+  cache discriminator: expect a one-time cold cache after upgrading. See the
+  [semantic filter contract](docs/developer_docs/extensions/semantic-filters.md)
+  for NULL value typing, mandatory `OrFilter` rendering and guarded loading on
+  older SDKs.
+
+- `SEMANTIC_LAYER_CONTAINMENT_CACHE` is off by default; opted-in providers can
+  reuse cached semantic-view results for narrower queries. Containment keys include
+  the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
+  `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
+
+- `!=`, `NOT LIKE` and `NOT ILIKE` filters on SQLAlchemy-backed datasets now also
+  return rows where the column is NULL, as do whole-array `!=` / `NOT IN` filters
+  and `!=` / `NOT IN` filters on advanced data type columns (internet address,
+  port). Previously these rows were dropped by SQL three-valued logic
+  (`NULL != 'CA'` is not true), so a filter such as `state != 'CA'` removed NULL
+  rows in addition to `CA`. Dashboards, charts and reports that use these
+  operators may therefore show additional NULL rows. An explicit NULL operand
+  behaves as before (`!= NULL` still means `IS NOT NULL`).
+
+- Address validation refuses additional non-global address forms. Addresses in
+  the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
+  address and refused when that address is unsafe. Local-use translation
+  (`64:ff9b:1::/48`), IPv4-compatible (`::/96`), 6to4 and Teredo forms are refused
+  outright. Operator-specific NAT64 prefixes are not detected: recognizing them
+  requires knowledge of the operator's prefix configuration. Existing per-feature
+  internal-host settings continue to control OAuth2, webhook, URL dataset import
+  and Impala checks.
+
+- Semantic-layer APIs are registered regardless of the `SEMANTIC_LAYERS` flag.
+  The flag is evaluated at runtime for API requests and background queries.
+  Disabling it refuses semantic-view data, chart saves and cached chart/dashboard
+  images containing semantic charts, while retaining stored assets. Both fresh
+  and cached dashboard screenshots/thumbnails return 404 when any chart uses a
+  semantic view. Interactive dashboards retain unavailable semantic charts and
+  continue rendering ordinary datasets. Dual-source MCP tools retain dataset
+  access; unscoped metric listings omit semantic views. Legacy batch warm-up
+  reports a per-chart error for a disabled semantic chart and continues. Existing
+  permissions remain required when enabled. Run `superset init` during upgrade
+  to register the existing semantic permissions even when the feature is off.
+  Runtime flag hooks can enable the feature without another restart or permission
+  sync; provider extensions must already be loaded. Do not target runtime
+  enablement until all web and worker processes run this version.
+
+- Semantic-view chart-defined metric filters return a client error identifying
+  the metric; select a dimension or remove the unsupported predicate. Dashboard
+  filters on incompatible columns (including metrics) are skipped and reported
+  as rejected, so the chart renders with an **Incompatible** filter indicator.
+  A chart-defined filter on a column the semantic view no longer has also
+  returns a client error naming the column, instead of being skipped (which
+  widened the result); edit the chart's filters and select a dimension. This
+  differs from SQL datasets, which skip and report such filters. Scheduled
+  reports, alerts and thumbnails for such charts fail until the chart is edited.
+  A "No filter" time range on a missing column is not refused. Dashboard time
+  overrides mark only previously unbounded temporal predicates as dashboard
+  filters; bounded chart-defined filters on missing columns or metrics remain
+  refused. This change affects only opt-in, pre-GA deployments with
+  `SEMANTIC_LAYERS` enabled. On upgrade, dashboard tabs already open across the
+  deploy send filters without `isExtra`; their semantic charts return HTTP 400
+  for incompatible dashboard filters until the user reloads the page. This
+  accepted pre-GA compatibility window will be revisited before GA. A dashboard
+  filter carried into a new chart (such as drill-by "Edit chart") becomes a chart
+  filter. Valid dimension filters are reported as applied.
+
+- Dashboard-applied filters now carry `isExtra` in chart-data requests, including
+  MCP chart tools that accept `extra_form_data` (chart data, SQL and previews, for
+  saved and unsaved charts). This changes chart cache keys for dashboard-filtered
+  queries once, so expect a cold chart cache right after deploying.
+
+- Semantic-layer configuration Save and Reload metadata increment a database-backed
+  cache generation. Apply the `c179af013f48` migration before deploying the updated
+  application; existing semantic chart caches become cold once on upgrade.
+  Providers must accept required keyword-only `cache_token` and `context` on
+  `from_configuration`; the optional `from_configuration_with_cache_token` hook
+  is removed. Local metadata caches must include `cache_token` in their keys
+  before lookup or eager discovery for complete invalidation. When tenants share
+  a metadata database or web, Celery and MCP use different database host aliases,
+  configure
+  `SEMANTIC_LAYER_CACHE_NAMESPACE` as a globally unique workspace identity that
+  resolves identically in all three contexts. A metadata session must not span
+  workspaces. Saves handled by old instances during a rolling deployment do not
+  bump the generation; repeat Reload metadata after rollout for those changes.
+  After restoring a metadata database backup, clear surviving data/provider caches
+  or rotate the workspace namespace to avoid reusing generations from the backup.
+  See the [cache invalidation contract](docs/developer_docs/semantic-layer-cache-clear.md).
+
+- Malformed explicit `time_range` values are rejected with a validation error
+  (HTTP 400 on chart-data requests) instead of silently producing an upper-bound-only
+  scan. Update saved charts, dashboard filters, imports, and API callers to use
+  `<start> : <end>` (including spaces around the colon) or a supported shorthand,
+  such as `Last week`. An empty string is invalid; use `No filter` for no time
+  filter. Omitted `time_range` values still support legacy `since`/`until` bounds.
+
+- Semantic-view providers may declare `SemanticView.preferred_temporal_dimension`
+  to choose the default exposed temporal dimension for new charts. The declaration
+  is optional; absent, unknown or non-temporal names retain the existing fallback.
+  Saved chart selections are preserved.
+
+### Dashboard copy layout validation
+
+Copying a dashboard with its charts returns HTTP 422 if a layout slot references
+an existing chart outside the source dashboard's membership. No partial copy is
+saved. Open and re-save the source dashboard to rebuild its chart membership
+before retrying. Non-null malformed chart references also return HTTP 422.
+Empty slots left by older copies (null or missing chart IDs in object metadata)
+are converted to placeholders, preserving their size. Detached slots are
+reattached to a reachable container by layout repair.
+
+- MCP data-bearing tools enforce mandatory chart-query result limits before
+  response serialization or CSV/XLSX export, independently of the configurable
+  response size guard (`MCP_RESPONSE_SIZE_CONFIG`). Results are limited to 32
+  queries, 50,000 rows per query, 100,000 rows in total, 4,096 columns per row,
+  2,500,000 values, 16 MiB of JSON, and 1 MiB of metadata. Nested cells
+  are limited to 4,096 items per container and 32 levels of nesting; text cells
+  are limited to 65,536 UTF-8 bytes. Increasing `SQL_MAX_ROW` or raising/disabling
+  the response size guard does not raise these fixed limits. Oversized results,
+  including saved Table exports, return `InvalidQueryResult`; lower row limits,
+  filter, select fewer/narrower columns, or aggregate before exporting.
+  Bullet preview numeric format precision is limited to 20 digits; raw data
+  reads do not validate presentation formats.
+
+- MCP `update_chart` requires a complete `config` when changing `dataset_id`
+  to a different dataset, for both preview and immediate-save requests. Re-sending
+  the existing dataset ID remains an idempotent update.
+
+- Semantic-layer providers may opt into `SemanticLayer.result_cache_version` to
+  isolate chart, filter-value and chart-backed annotation results from older
+  producer guarantees. The default `None` preserves existing cache keys. Providers
+  enforcing completeness should raise the public
+  `superset_core.semantic_layers.errors.SemanticResultCompletenessError` when
+  results are incomplete or cannot be verified (an additive `apache-superset-core`
+  API, available from 0.2.0; import it from `superset_core.semantic_layers.errors`,
+  not the same-named host class in `superset.exceptions`); the host converts it to
+  its client error, and these
+  failures do not publish a successful async result cache key. A provider raising
+  `superset.exceptions.SemanticResultCompletenessError` directly is still accepted
+  for one release. Deploy compatible host/provider versions to
+  all web and worker processes and drain old deliveries before activating a new
+  guarantee. Mixed fleets and an old host with an opted-in provider are unsupported.
+
+- A chart whose datasource no longer exists (hard-deleted, or no datasource ID)
+  has its denormalized `perm`, `schema_perm` and `catalog_perm` cleared when it is
+  saved, including during the dataset's deletion. Purging a soft-deleted dataset
+  (the retention task or force purge) keeps its charts but clears their
+  datasource ID and these permission fields, as an ordinary hard delete already
+  does, so a later dataset cannot take over those charts. Such orphaned charts no
+  longer appear in the chart list through `schema_access` or `catalog_access`
+  grants, matching the object-level check that already denies them. Charts of a
+  soft-deleted dataset keep their permissions, so restoring the dataset restores
+  access. Purge does not advance the detached charts' history or ETags; the
+  purge audit's `affected_referrers` records which charts were detached. Charts
+  left by purges that ran before this change are not migrated:
+  they keep the purged dataset's ID and permission fields. Saving such a chart
+  clears its permission fields only while no dataset has that ID; if a new
+  dataset has since taken the ID, the save adopts that dataset instead.
+  Operators should find charts whose `table` datasource no longer exists and
+  repoint them to the intended dataset or detach them.
+
+- MCP dashboard mutation tools refuse externally managed dashboards, including
+  owner and role changes. Update the dashboard in its external source of truth
+  instead; the response sets `managed_externally: true`. Read-only tools and
+  certification inspection are unaffected.
+
+- For MySQL/MariaDB metadata databases, use `READ COMMITTED` isolation. Superset
+  defaults the `mysql` and `postgresql` URI backends to `READ COMMITTED` when no
+  `isolation_level` is configured. For the `mariadb` URI backend (including
+  `mariadb://` and `mariadb+pymysql://`), set
+  `SQLALCHEMY_ENGINE_OPTIONS = {"isolation_level": "READ COMMITTED"}` explicitly.
+  With any other isolation level, dataset and semantic-view deletion and purge retain
+  `datasource_access` permission records by design, rather than risk revoking a
+  shared grant based on a stale snapshot. Records with no remaining owner become
+  orphans and can accumulate. Cleanup is also skipped if the isolation level
+  cannot be verified.
+
 - Example export (`/export_as_example/`) rejects dashboards whose charts or
   native-filter targets use semantic views; use the ordinary chart/dashboard
   bundle export instead.
@@ -44,6 +282,109 @@ assists people when migrating to a new version.
   loader rejects semantic bundles;
   use the chart, dashboard or assets importer instead.
 
+### Table and AG Grid server pagination for semantic views
+
+Table and AG Grid Table charts backed by semantic views require the optional `ROW_OFFSET`
+capability to enable Server pagination. Missing capability metadata disables
+the control with an explanation; SQL datasets are unchanged. Saved pagination
+settings are not rewritten. Users can explicitly turn off an unsupported
+saved setting; provider errors remain authoritative until that edit.
+Extension providers must use a compatible core version before declaring the
+new capability.
+
+### Graph null category colors
+
+Graph charts label SQL `NULL` categories as `<NULL>` and share their colors with
+other charts using that label. Move any `label_colors["N/A"]` setting intended for
+SQL NULL to `label_colors["<NULL>"]`; `N/A` continues to identify the literal value.
+
+The literal string `<NULL>` is quoted as `"<NULL>"` to keep it separate from SQL
+NULL. Quoted forms of that literal are also escaped to avoid collisions; other
+quoted labels keep their existing display and color keys. Use the displayed
+label as the custom color key, for example:
+
+```json
+{"<NULL>": "#e53935", "\"<NULL>\"": "#123456"}
+```
+
+### Alerts & Reports: runtime configuration and per-schedule "Run As" executor (SIP-209)
+
+- The migration creates an empty versioned document in the existing `key_value` table
+  for the global Alerts & Reports settings that admins can now manage from the
+  **Configuration** button on the Alerts & Reports list page (or
+  `GET`/`PUT /api/v1/report/configuration/`). `ALERTS_ATTACH_REPORTS`,
+  `ALERT_MINIMUM_INTERVAL` and `REPORT_MINIMUM_INTERVAL` are deprecated: they keep working
+  as fallbacks until the corresponding setting is saved in the UI, at which point the saved
+  value wins. Two new settings, **Limit recipients to users** and **Allowed e-mail
+  domains**, restrict e-mail recipients; they are enforced when saving a schedule and at
+  execution time.
+- Alerts have an **Include attachment** toggle, represented by `report_format: "NONE"`
+  when off. Attachment-free alerts need no chart/dashboard; asset-less notifications omit
+  the asset link. An alert with an attachment format must have a chart/dashboard even
+  when global alert attachments are disabled. Saved attachment settings are retained.
+  Reports always require content. Downgrading past this migration changes attachment-free
+  alerts with a saved chart or dashboard to PNG and deletes attachment-free alerts with
+  no saved asset. Back up the metadata database before downgrading if those alerts must be retained (or update them to set a valid attachment).
+- **Behavior change for existing Text alerts:** Before this upgrade, a chart alert with
+  `report_format: "TEXT"` embedded its data table in the notification even when
+  `ALERTS_ATTACH_REPORTS` was off. After this upgrade, when the global **Enable
+  attachments for alerts** setting is off, the alert notification is still sent but
+  **the embedded table is omitted**. This applies even if `ALERT_REPORT_DYNAMIC_EXECUTOR`
+  remains off. Disabling attachments now fully bypass data collection, to ensure notification
+  will be sent right away.
+- Behind the new `ALERT_REPORT_DYNAMIC_EXECUTOR` feature flag (off by default), alerts and
+  reports record the user they execute as (`run_as`, plus `run_alert_query_as` for the
+  alert condition query). Non-admins can only set themselves. `ALERT_REPORTS_EXECUTORS` is
+  deprecated in favor of these fields; schedules without a value keep using it. The
+  migration adds nullable `run_as_fk` / `run_alert_query_as_fk` columns to
+  `report_schedule` and does not change untouched legacy schedules. Executor types are
+  persisted separately: deleting a selected user does not restore legacy execution.
+- Admins can select a specific user or Application default
+  (`ALERT_REPORTS_EXECUTORS`). An unset content executor remains on the application
+  default when edited, and admins can clear an explicit choice back to it. A blank
+  alert-query executor inherits the content executor dynamically.
+- Saving a schedule while `ALERT_REPORT_DYNAMIC_EXECUTOR` is off clears any stored
+  per-schedule content and alert-query executor selections. The schedule continues
+  using `ALERT_REPORTS_EXECUTORS` if the flag is enabled again. Untouched schedules
+  retain their selections.
+- Non-admins must select **Execute using my permissions** before changing content or
+  recipients on a schedule using another user, a typed executor, or a legacy content
+  executor. For alerts, this action switches both executors to the current user on Save.
+  Metadata-only edits preserve existing executor settings.
+- Saved `null` configuration values clear a setting without restoring application-config
+  defaults (only keys never saved inherit defaults/fallbacks). Configuration read failures
+  propagate instead of treating delivery as unrestricted. The UI updates only changed keys.
+- Recipient restrictions also cover retry/final-failure notices to configured recipients;
+  operational notices to owners/editors remain exempt.
+- Missing executors and recipient-policy violations terminate an execution without retry.
+- Domain allow-lists accept wildcards. Matching is case-insensitive.
+- The SIP migration follows the execution-ownership migration. Run `superset db upgrade`
+  before starting this code, with scheduling paused and active work/queued retries drained
+  as described below. Keep web and worker versions aligned. Before rollback, replace `NONE`
+  formats with a supported format and account for losing explicit executor/policy settings.
+
+### Semantic provider error handling
+
+Semantic chart-query execution and value suggestions return HTTP 400 with
+host-owned guidance for typed provider rejections, and generic HTTP 500 responses
+for provider faults. In chart execution this includes provider-raised
+`SupersetTimeoutException` (formerly 408), `SupersetGenericDBErrorException` and
+`SupersetTemplateParamsErrorException` (formerly 400). Host input validation and
+worker control exceptions retain their existing handling. Failed server-side
+value searches no longer retry without their narrowing filter; manual filter-value
+entry remains available. Providers should raise `SemanticQueryRejectedError` only
+for positively identified input-validation failures. See the
+[provider error contract](docs/developer_docs/semantic-query-errors.md).
+
+### Semantic-view Table charts without a temporal axis
+
+Semantic-view Table charts omit recognized dormant time grains from
+frontend-generated aggregate queries when no temporal axis is present. The saved
+grain and Time Grain control visibility are unchanged. Direct API payloads and
+saved chart-data GET requests that bypass frontend rebuilding retain strict
+validation; some old stored query contexts can therefore still fail. Deploy
+updated frontend assets with this change.
+
 ### SQLite time filters on `DATE` columns
 
 On SQLite, Shillelagh and the Superset meta database, a time filter on a `DATE`
@@ -55,6 +396,15 @@ holds values in another format, such as `20260920`, `09/20/2026` or epoch
 seconds, now matches no rows, even with a Datetime format set. Columns declared
 as `INTEGER` are not affected. On Shillelagh and the meta database, a bound
 with a time of day is cut to its date.
+
+### MCP chart target aliases
+
+Chart tools interpret legacy `datasource_id` with `datasource_type`:
+`table` (the default when omitted) selects a dataset; `semantic_view` selects a
+view. For table-only requests, an explicit `dataset_id` takes precedence over
+`datasource_id`. Unsupported types or conflicting semantic selectors return
+validation errors instead of silently selecting a table. Prefer `dataset_id`
+or `view_id`.
 
 ### Apache Doris connection form and `DBS_AVAILABLE_DENYLIST`
 
@@ -68,6 +418,17 @@ Connector/C this also verifies the server hostname, so the switch needs
 `ssl_ca=<path>` in Additional parameters and a Doris FE certificate matching the
 host. A Doris FE on its default self-signed certificate fails to connect once
 the switch is on.
+
+### MCP get_chart_data error categories
+
+`get_chart_data` returns `AccessDenied` when a query is refused for access, and
+`ValidationError` when a semantic layer provider rejects the query or Superset's
+query validation rejects it while it runs (for example, a semantic view refusing
+an empty `IN` filter), matching the chart-data API's 403 and 400. These were previously
+reported as `DataError`.
+Clients that matched on `DataError` for these cases should handle the new types.
+On the saved-chart path these errors also no longer emit an error-level MCP log
+notification; the category is carried by the response envelope alone.
 
 ### Empty MCP chart previews
 
@@ -111,6 +472,20 @@ format. Use a consistent timezone and precision for stored strings and bounds.
   `GET /register/activation/<hash>`, which previously stayed reachable and
   able to provision a user regardless of `AUTH_USER_REGISTRATION`; it now
   requires the same gate as `/register/`.
+
+### MCP chart tools advertise a compact chart config schema
+
+`generate_chart`, `update_chart`, `update_chart_preview` and
+`generate_explore_link` no longer inline every chart type's JSON Schema in
+their tool input schemas. Their `config` parameter is advertised as an object
+whose `chart_type` is one of the supported chart types. The fields and
+examples for each chart type come from `get_chart_type_schema(chart_type)`,
+which returns the same per-type schema as before.
+
+Server-side validation is unchanged: requests are still validated against the
+complete chart configuration model and invalid fields are rejected with the
+same errors. MCP clients that built chart configs only from the tool input
+schema should call `get_chart_type_schema` first.
 
 ### SQL execution request limits are safety caps
 
@@ -447,14 +822,34 @@ routes answer 404, and the "Reset Password" and "Reset my password" buttons on
 the legacy FAB user pages that led to them are gone. `superset init` no longer
 assigns their permissions (`can this form get/post on ResetPasswordView` and
 `ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
-`UserDBModelView`) to any role. Every flow they served lives in the SPA:
-administrators reset a user's password from the "New password" fields in the
-Users list edit modal (`PUT /api/v1/security/users/<id>`), users change their
-own from the "Reset my password" modal on their profile page (`PUT
-/api/v1/me/`, which requires `current_password` when the account already has one), and a pending forced password
-change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile page
-instead of the removed form. Deployments that link to either legacy route should
-point at `/user_info/` or the Users list instead.
+`UserDBModelView`) to the built-in Admin/Alpha/Gamma/sql_lab roles, and a data
+migration removes those same permissions from every other (operator-defined)
+role that already held them. The one exception is a custom-named
+`AUTH_ROLE_ADMIN`: FAB re-registers the two `UserDBModelView` action
+permissions on app creation and grants new ones to that role, and `superset
+init` only resyncs the built-in roles, so such a role re-acquires those two
+(still hidden, still 404) entries. Every flow they served lives in the SPA: administrators reset a user's
+password from the "New password" fields in the Users list edit modal (`PUT
+/api/v1/security/users/<id>`), users change their own from the "Reset my
+password" modal on their profile page (`PUT /api/v1/me/`, which requires
+`current_password` when the account already has one), and a pending forced
+password change (`ENABLE_FORCE_PASSWORD_CHANGE`) now redirects to that profile
+page instead of the removed form. Deployments that link to either legacy route
+should point at `/user_info/` or the Users list instead.
+
+Reaching the profile page requires `can_read` on `user`, which the built-in
+Admin/Alpha/Gamma roles hold by default but a custom role is not guaranteed
+to. A user whose only role lacks it and who gets redirected there by a forced
+password change is now redirected to logout with an explanatory message
+instead, so they are never trapped in a redirect loop. Under
+`AUTH_REMOTE_USER` a logout cannot help (the header re-authenticates the user
+immediately), so such a user gets a terminal 403 with the same explanation and
+no logout. Clearing the flag also
+needs `can_read` and `can_write` on `CurrentUserRestApi` (for `GET` and `PUT`
+on `/api/v1/me/`), so grant all three permissions to any custom role whose
+members may have `password_must_change` set on their account.
+`ENABLE_FORCE_PASSWORD_CHANGE` is the deployment-wide setting that turns the
+check on; `password_must_change` is the per-user flag it acts on.
 
 ### Unused `INCLUDE_FIREFOX` build arg and dead config removed
 
@@ -963,10 +1358,13 @@ chart's explicit reselection. Supporting dynamic group-by requires preserving th
 version in target rebuilds and recording the source identity in the emitted mask;
 that follow-up is not included here.
 
-Matrixify All mode with A to Z or Z to A sorting cannot populate or refresh values
-for versioned semantic views. Saved values are preserved; for a new selection,
-switch to Members and enter values manually. The control explains this limitation
-when suggestions are unavailable.
+Versioned semantic-view value suggestions require `semantic_selection_version`
+from saved or explicitly initialized selections on the column-values request.
+Missing or stale markers return `unavailable_versioned_view` before cache access
+or provider value retrieval. Explore filter and Matrixify controls preserve this
+provenance; they never infer it from current datasource metadata. After explicit
+reselection, suggestions and Matrixify All mode work again. Manual entry remains
+available when selection provenance cannot be verified.
 
 The marker is a compatibility contract, not an authorization credential. API
 clients must rebuild their selections from current member IDs before supplying
@@ -1088,15 +1486,16 @@ that don't touch SQLAlchemy directly.
 
 `MEDIAN`, `STDDEV_SAMP`, and `VAR_SAMP` are now available anywhere a metric
 aggregate is chosen (every chart type, SQL Lab, MCP), not only in Pivot
-Table's controls. Support is opt-in per database engine *spec class*,
-verified against a live instance before being enabled: Postgres, MySQL
-(`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and Redshift (inherits
-Postgres's support, not yet separately verified) ship enabled in this
-release. Engine specs that subclass one of those (e.g. MariaDB, Aurora
-MySQL/Postgres, TimescaleDB) inherit the same support, on the same
-not-yet-independently-verified basis. Picking one of these aggregates on a
-database that has not opted in returns a clear "not supported on this
-database" error rather than a failed query. See
+Table's controls. Support is opt-in per database engine *spec class*:
+Postgres, MySQL (`STDDEV_SAMP`/`VAR_SAMP` only, no `MEDIAN`), DuckDB, and
+Redshift (inherits Postgres's support) were verified against a live
+instance; Databricks and Snowflake (both `MEDIAN`/`STDDEV_SAMP`/`VAR_SAMP`)
+were confirmed against each vendor's own documented SQL function reference,
+not yet against a live instance. Engine specs that subclass one of these
+(e.g. MariaDB, Aurora MySQL/Postgres, TimescaleDB) inherit the same support,
+on the same verification basis as their parent. Picking one of these
+aggregates on a database that has not opted in returns a clear "not
+supported on this database" error rather than a failed query. See
 `docs/sip/median-stddev-variance-aggregates.md` for the full design
 rationale, including why this is safe to add without reintroducing the
 totals/subtotals correctness bug fixed by #41184 (SIP-216).
@@ -1611,7 +2010,7 @@ The pivot table chart's `First` and `Last` aggregations now return the first and
 
 The `error` and `response` parameters of the `retryDelay` and `retryOn` callbacks in `FetchRetryOptions` (exported from `@superset-ui/core`) are now typed `Error | null` and `Response | null` to match the actual call-site signature provided by `fetch-retry`. Because these parameter types are contravariant, consumers who typed their callbacks with the non-nullable `(attempt: number, error: Error, response: Response) => number` will get a TypeScript compile error. Widen your callback signatures to accept `Error | null` / `Response | null`.
 
-### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control removed)
+### Pivot Table totals are now computed by the database (per-metric "Aggregation function" control restored)
 
 Pivot Table subtotals and grand totals are now computed by the database at each
 rollup level instead of re-aggregating the already-aggregated cell values on the
@@ -1620,11 +2019,9 @@ client. This fixes long-standing incorrect totals for non-additive metrics
 which previously summed the displayed cell values.
 
 As a result the per-table **"Aggregation function"** control (which let you pick
-how totals were aggregated client-side, e.g. Sum/Average/Count) has been
-removed: totals now always reflect the metric's own definition evaluated at the
-total's granularity. For additive metrics (`SUM`/`COUNT`/`MIN`/`MAX`) the result
-is unchanged. If you previously relied on a plain sum-of-cells total for a
-non-additive metric, that specific behavior is no longer available.
+how totals were aggregated client-side, e.g. Sum/Average/Count) was temporarily
+removed: totals reflected the metric's own definition evaluated at the total's
+granularity, with no way to pick a different reducer for subtotals/totals.
 
 The "Sum as Fraction of Total/Rows/Columns" display options are back as a
 new, standalone **"Show values as"** control (below "Combine metrics" in the
@@ -1637,9 +2034,49 @@ Fraction of ..." variants are **not** migrated: they divided a record count,
 while the new control divides the metric's own value, so translating them
 automatically would silently change what the chart displays rather than
 restore it; those charts need to be manually reconfigured if the value-based
-percentage is what's wanted. Charts that used any other non-fraction
-`aggregateFunction` value (Sum, Average, Count, ...) are unaffected, since
-that specific behavior remains unavailable per the above.
+percentage is what's wanted.
+
+The **"Aggregation function"** control itself (form_data field
+`aggregateFunction`) is also back, as a second aggregation pass over a
+metric's own grouped results -- e.g. the median of a set of per-store
+`SUM(sales)` values -- computed correctly this time: every scope (subtotal,
+row/column total, grand total) reduces its own original contributing query
+results, never another scope's already-displayed value, so the previous
+non-additive-metric bug this section originally removed the control for does
+not return. It reuses the exact same field name and value spellings as
+before, so a chart that still had e.g. `aggregateFunction: "Median"` sitting
+unused in its saved `params` starts computing totals with that aggregation
+again automatically, with no action required and no value to reconfigure. The
+one exception is a chart that also has a percent "Show values as" selected:
+that control only exists since the per-table aggregation was removed, so the
+percent choice is the more recent, explicit intent (made on top of
+database-computed totals), and a result aggregation would both change those
+totals and hide the percent display. The migration drops the orphaned
+`aggregateFunction` from such a chart (and from its saved `query_context`)
+instead of restoring it, so it keeps rendering exactly as before. This drop
+is a one-time, upgrade-time heuristic, not a durable fact about the chart: if
+you later downgrade past this migration and then re-upgrade, a chart where
+you deliberately chose both an `aggregateFunction` and a percent "Show values
+as" *after* the control was restored looks identical to the original
+pre-restoration orphan, and the migration drops that deliberate choice again.
+Charts arriving through import are neither dropped nor tagged, so they render
+with the restored aggregation and no notice.
+A one-time migration tags every other such chart with a `legacy-pivot-aggregation-restored`
+custom tag; opening a tagged chart in Explore shows a notice that its totals
+may now look different, which clears once you review and accept it (or save
+the chart). Accepting only removes the tag; it does not rebuild the saved
+`query_context` that alerts, reports and cache warm-up keep using. If you have
+alerts/reports built on one of these charts, re-save each affected chart in
+Explore first, then validate its scheduled outputs, since a scheduled report
+render does not pass through that notice and Accept alone leaves the stale
+`query_context` in place. CSV/XLSX exports and CSV/text reports do apply the
+selected aggregation, but, unlike the chart, apply it to every cell rather
+than scoping it to subtotals and totals the way the chart does, so a leaf
+cell's own database-computed metric value can be overwritten by the
+aggregation instead of passed through
+(https://github.com/apache/superset/issues/45215) -- e.g. a `Count`
+aggregation showing `1` for every leaf, or `Sample Variance` showing `0`,
+where the chart still shows the real per-cell metric value.
 
 ### `thumbnail_url` removed from dashboard list API response
 
@@ -1700,6 +2137,8 @@ Authorization reuses the resource's `can_read` permission and per-object `raise_
 
 Entity version history (the `version_transaction` / `*_version` shadow tables that back version capture) is aged out by a nightly Celery beat task, `version_history.prune_old_versions` (`superset.tasks.version_history_retention`).
 
+**Scheduled-run cap (behavior change):** `VERSION_HISTORY_PRUNE_MAX_TRANSACTIONS_PER_RUN` defaults to 1000 whole prunable transactions per invocation; associated shadow and change rows remain atomic. `0` or `None` restores unlimited runs. Invalid values skip the task before deletion. Capped results report `cap_reached`, `remaining_eligible`, and `remaining_count_complete`; the remainder is a lower bound from one candidate window after the live scan's stopping point when the probe does not cover the backlog, and `None` if the probe fails after committed deletion. Physical shadow-row counts remain separate. `VERSION_HISTORY_PRUNE_DRY_RUN=True` scans the entire prunable backlog without writes and reports the exact `eligible_backlog` and `estimated_capped_runs`; non-boolean values skip the scheduled task without deleting history. A backlog drains over successive scheduled runs only when successful pruning exceeds newly eligible inflow. At the default daily schedule, each task is configured for 1000 of its units per day (transactions for history, root entities for soft-delete purge). Raise the relevant cap or schedule more frequent runs to provide catch-up capacity; repeated `cap_reached=True` warrants checking the backlog trend, count completeness, and failure counters. The cap is per task invocation, not a quota shared across concurrent workers. When a commit outcome is classified as uncertain, the task reports an error and stops without retrying that window, so that outcome cannot prune past the cap.
+
 | Key | Default | Purpose |
 |---|---|---|
 | `VERSION_HISTORY_RETENTION_DAYS` | `30` | Version rows whose owning `version_transaction.issued_at` is older than this many days are pruned. Each entity's live row (`end_transaction_id IS NULL`) is always preserved, as are the live rows of its children and associations; closed historical rows (including the baseline) age out. `0` disables pruning; `-1` makes historical rows eligible on the next scheduled run. Other negative values are invalid and skip pruning. |
@@ -1722,6 +2161,8 @@ force-purge or provide downgrade grace protection.
 Soft-deleted dashboards, charts, and datasets are now permanently removed after a retention window (default 30 days; `SOFT_DELETE_RETENTION_DAYS`, `0` disables; settable per workspace at runtime via the `deletion-retention set-window` CLI, which takes precedence when no host retention callback is installed). The `deletion_retention.purge_soft_deleted` Celery beat task runs daily and removes each aged-out entity together with its M:N join rows, owned children, datasource permission, and version-history shadow rows. After purge an entity is **unrecoverable** — its detail and `/restore` endpoints return 404 and its version history is gone.
 
 Purging is **live by default** (`SOFT_DELETE_PURGE_DRY_RUN=False`), so the retention promise above is real on a stock deployment. Set it to `True` to have the task log `would_purge` counts and delete nothing — the lever is retained, so an operator can return to dry-run at any time. Note `would_purge` is an **upper bound** — it counts every entity past the retention window without evaluating deletion blockers, so a real run may purge fewer (entities referenced by report schedules or set as a user's welcome dashboard are blocked and reported separately). The task only acts while the `SOFT_DELETE` rollout flag is on; it now ships on by default.
+
+**Scheduled-run cap (behavior change):** `SOFT_DELETE_PURGE_MAX_PER_RUN` defaults to 1000 successful root-entity purges across charts, dashboards, and datasets per invocation. One root plus its cascade counts as one; physical row counts are separate. The cap bounds committed deletions, not candidate evaluations: blocked roots are re-evaluated on every run, so a blocked-heavy backlog can still require substantial work. Set `0` or `None` for unlimited scheduled purging. Invalid values skip the task before deletion. Capped runs report `cap_reached` and `remaining_eligible` (aged supported roots, including blocked roots); `remaining_count_complete=False` and a null remainder mean the remainder is unknown: a model scan failed, a commit outcome is uncertain, or the remainder measurement failed. This can happen before any confirmed purge; confirmed purge totals are retained. Inspect `scan_failures`, `commit_uncertain`, the `deletion_retention.remainder_count_failed` counter, and task logs to distinguish these cases. Model priority rotates by day so a sustained backlog in one model does not indefinitely exclude the others. Dry-run still counts the entire eligible backlog without writes and reports `eligible_backlog` and `estimated_capped_runs`; this is an upper-bound estimate when references block deletion. The cap is per task invocation, not a quota shared across concurrent workers. The manual `superset deletion-retention force-purge` command stays uncapped.
 
 Deployments that replace the default `CELERY_CONFIG` must ensure workers register `superset.tasks.deletion_retention` and schedule the `deletion_retention.purge_soft_deleted` task themselves. The shipped Docker development config uses `imports` and includes both entries. While `SOFT_DELETE` is statically enabled, a missing beat entry logs a startup warning; when the override explicitly defines `imports`, a missing purge module is also reported.
 

@@ -97,12 +97,16 @@ from superset.commands.chart.restore import RestoreChartCommand
 from superset.commands.chart.unfave import DelFavoriteChartCommand
 from superset.commands.chart.update import UpdateChartCommand
 from superset.commands.chart.warm_up_cache import ChartWarmUpCacheCommand
+from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.commands.exceptions import CommandException, TagForbiddenError
 from superset.commands.importers.exceptions import (
     IncorrectFormatError,
     NoValidFilesFoundError,
 )
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.chart import ChartDAO
@@ -112,8 +116,12 @@ from superset.exceptions import (
 from superset.extensions import event_logger, security_manager
 from superset.models.slice import Slice
 from superset.security.manager import (
-    get_extra_editor_subject_ids,
-    get_extra_editors_by_pk,
+    attach_extra_editors,
+    attach_extra_editors_to_rows,
+)
+from superset.semantic_layers.access import (
+    is_semantic_image_unavailable,
+    SemanticLayersDisabledError,
 )
 from superset.semantic_layers.import_export import SemanticReferenceError
 from superset.subjects.filters import (
@@ -481,8 +489,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             result = self.chart_get_response_schema.dump(dash)
             if resolver := current_app.config.get("EXTRA_OWNERS_RESOLVER"):
                 result["extra_owners"] = resolver(dash)
-            if current_app.config.get("EXTRA_EDITORS_RESOLVER"):
-                result["extra_editors"] = get_extra_editor_subject_ids(dash)
+            attach_extra_editors(result, dash)
 
             return set_version_etag(
                 self.response(200, result=result),
@@ -494,11 +501,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     def pre_get_list(self, data: dict[str, Any]) -> None:
         """Attach ``extra_editors`` to each row, matching the single-object GET."""
         super().pre_get_list(data)
-        ids = data.get("ids", [])
-        extra_editors_by_id = get_extra_editors_by_pk(Slice, ids)
-        for row, row_id in zip(data.get("result", []), ids, strict=False):
-            if row_id in extra_editors_by_id:
-                row["extra_editors"] = extra_editors_by_id[row_id]
+        attach_extra_editors_to_rows(data, Slice)
 
     @expose("/", methods=("GET",))
     @protect()
@@ -1186,6 +1189,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         chart_url = get_url_path("Superset.slice", slice_id=chart.id)
         screenshot_obj = ChartScreenshot(chart_url, chart.digest)
@@ -1267,6 +1272,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
 
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         if cache_payload := ChartScreenshot.get_from_cache_key(digest):
             # The digest is caller-supplied and cache entries are shared
@@ -1338,6 +1345,8 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         chart = cast(Slice, self.datamodel.get(pk, self._base_filters))
         if not chart:
             return self.response_404()
+        if is_semantic_image_unavailable(chart):
+            return self.response(404, message=SemanticLayersDisabledError.message)
 
         current_user = get_current_user()
         if chart.digest != digest:
@@ -1432,6 +1441,10 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                         bundle, f"{root}/{file_name}", file_content().encode()
                     )
             except ChartNotFoundError:
+                return self.response_404()
+            except DatasetNotFoundError:
+                # The dataset DAO hides datasets the caller cannot access, so
+                # mirror the dataset export's bare 404 without naming it.
                 return self.response_404()
             except SemanticReferenceError as ex:
                 return self.response(ex.status, message=ex.message)
@@ -1640,7 +1653,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 body.get("extra_filters"),
             ).run()
             return self.response(200, result=[result])
-        except CommandException as ex:
+        except (CommandException, SemanticLayersDisabledError) as ex:
             return self.response(ex.status, message=ex.message)
 
     @expose("/import/", methods=("POST",))
@@ -1735,7 +1748,7 @@ class ChartRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
             return self.response_400()
         if not is_zipfile(upload):
             raise IncorrectFormatError("Not a ZIP file")
-        with ZipFile(upload) as bundle:
+        with open_import_bundle(upload) as bundle:
             contents = get_contents_from_bundle(bundle)
 
         if not contents:
