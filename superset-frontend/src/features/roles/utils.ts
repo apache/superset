@@ -87,7 +87,7 @@ export const clearPermissionSearchCache = () => {
 
 const fetchPermissionPageRaw = async (queryParams: Record<string, unknown>) => {
   const response = await SupersetClient.get({
-    endpoint: `/api/v1/security/permissions-resources/?q=${rison.encode(queryParams)}`,
+    endpoint: `/api/v1/security/permissions-resources/?q=${encodeURIComponent(rison.encode(queryParams))}`,
   });
   return {
     data: mapPermissionResults(response.json?.result || []),
