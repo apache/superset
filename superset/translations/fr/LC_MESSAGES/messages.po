@@ -4149,6 +4149,9 @@ msgstr "Fermer l'éditeur de points d'arrêt de couleur"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Fermer l'onglet"
 
@@ -8567,10 +8570,10 @@ msgstr "Masquer la ligne de la série temporelle"
 msgid "Hierarchy"
 msgstr "Hiérarchie"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9853,10 +9856,10 @@ msgstr "Longitude et latitude"
 msgid "Longitude of default viewport"
 msgstr "Longitude de la fenêtre de visualisation par défaut"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11352,9 +11355,6 @@ msgstr "Opacité des bulles, 0 signifie complètement transparent, 1 signifie op
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacité, attend des valeurs entre 0 et 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Ouvrir l'onglet Source de données"
 
@@ -11386,6 +11386,9 @@ msgstr "Ouvrir dans SQL Lab"
 
 msgid "Open in SQL lab"
 msgstr "Ouvrir dans SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Ouvrir une requête dans SQL Lab"
@@ -13616,6 +13619,12 @@ msgstr ""
 msgid "Search"
 msgstr "Rechercher"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Rechercher dans %s enregistrement"
+msgstr[1] "Rechercher dans %s enregistrements"
+
 msgid "Search / Filter"
 msgstr "Rechercher / Filtrer"
 
@@ -13669,9 +13678,6 @@ msgstr "Recherche dans les filtres"
 
 msgid "Search metrics by key or label"
 msgstr "Rechercher les mesures par clé ou intitulé"
-
-msgid "Search records"
-msgstr "Rechercher des enregistrements"
 
 msgid "Search tags"
 msgstr "Recherche d'étiquettes"
