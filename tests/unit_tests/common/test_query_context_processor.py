@@ -23,6 +23,8 @@ from unittest.mock import MagicMock, patch, PropertyMock
 import numpy as np
 import pandas as pd
 import pytest
+from flask import Flask
+from pytest_mock import MockerFixture
 
 from superset.common.chart_data import ChartDataResultFormat, ChartDataResultType
 from superset.common.chart_data_timing import QueryDataResult, QueryTiming
@@ -35,6 +37,14 @@ from superset.exceptions import QueryObjectValidationError
 from superset.utils import json as superset_json
 from superset.utils.core import GenericDataType
 from superset.utils.date_parser import get_past_or_future
+
+
+@pytest.fixture
+def semantic_cache_namespace(app: Flask, mocker: MockerFixture) -> None:
+    """Isolate transient semantic datasource cache tests from metadata storage."""
+    mocker.patch.dict(
+        app.config, {"SEMANTIC_LAYER_CACHE_NAMESPACE": "query-context-tests"}
+    )
 
 
 @pytest.fixture
@@ -2932,6 +2942,7 @@ def test_completeness_error_escapes_failed_payload_conversion(
 
 def test_semantic_annotation_generation_versions_sql_parent(
     processor: QueryContextProcessor,
+    semantic_cache_namespace: None,
 ) -> None:
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
@@ -2996,6 +3007,7 @@ def test_completeness_annotation_failure_preserves_subtype(app_context: Any) -> 
 
 def test_data_generation_separates_late_legacy_writer_and_task_keys(
     processor: QueryContextProcessor,
+    semantic_cache_namespace: None,
 ) -> None:
     from unittest.mock import PropertyMock
 
@@ -3071,6 +3083,7 @@ def test_get_viz_annotation_data_ignores_source_chart_annotations(
 def test_semantic_annotation_null_protocol_versions_parent_cache(
     app_context: Any,
     monkeypatch: pytest.MonkeyPatch,
+    semantic_cache_namespace: None,
 ) -> None:
     """Saved semantic annotation rows must not reuse pre-NULL-fix parent keys."""
     from superset.common.query_context import QueryContext
