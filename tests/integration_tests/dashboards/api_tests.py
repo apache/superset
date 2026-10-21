@@ -44,6 +44,7 @@ from flask import g
 from freezegun import freeze_time
 from sqlalchemy import and_
 from sqlalchemy.engine.reflection import Inspector
+from sqlalchemy.orm.exc import StaleDataError
 from superset import db, security_manager  # noqa: F401
 from superset.commands.dashboard.permalink.create import CreateDashboardPermalinkCommand
 from superset.daos.dashboard import (
@@ -5381,6 +5382,96 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.delete(other)
             db.session.commit()
 
+    @parameterized.expand([(True, False), (False, False), (True, True), (False, True)])
+    def test_copy_dashboard_layout_without_current_charts(
+        self, keep_first: bool, duplicate_slices: bool
+    ) -> None:
+        """Copy a layout that omits charts the source has, as a version fork does."""
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dataset_id: int = (
+            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        )
+        first: Slice = self.insert_chart("copy-subset-first", [admin.id], dataset_id)
+        second: Slice = self.insert_chart("copy-subset-second", [admin.id], dataset_id)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-subset-source", None, [admin.id], slices=[first, second]
+        )
+        source_members: set[int] = {first.id, second.id}
+        positions: dict[str, Any] = (
+            {
+                "CHART-first": {
+                    "id": "CHART-first",
+                    "type": "CHART",
+                    "meta": {"chartId": first.id, "width": 4, "height": 50},
+                }
+            }
+            if keep_first
+            else {}
+        )
+        self.login(ADMIN_USERNAME)
+        copied_id: int | None = None
+        try:
+            response: TestResponse = self.client.post(
+                f"/api/v1/dashboard/{dashboard.id}/copy/",
+                json={
+                    "dashboard_title": "copy-subset-result",
+                    "duplicate_slices": duplicate_slices,
+                    "json_metadata": json.dumps({"positions": positions}),
+                },
+            )
+            assert response.status_code == 200, response.data
+            copied_id = response.json["result"]["id"]
+            db.session.expire_all()
+            copied: Dashboard = db.session.get(Dashboard, copied_id)
+            expected: set[str] = {"copy-subset-first"} if keep_first else set()
+            assert {chart.slice_name for chart in copied.slices} == expected
+            assert {chart.id for chart in dashboard.slices} == source_members
+        finally:
+            db.session.rollback()
+            if copied_id is not None:
+                db.session.delete(db.session.get(Dashboard, copied_id))
+            db.session.delete(dashboard)
+            # Clones carry the source names, including ones the layout left out.
+            chart: Slice
+            for chart in db.session.query(Slice).filter(
+                Slice.slice_name.in_(["copy-subset-first", "copy-subset-second"])
+            ):
+                db.session.delete(chart)
+            db.session.commit()
+
+    def test_copy_dashboard_logs_database_error(self) -> None:
+        """A database error behind the generic copy 400 is logged with its cause."""
+        admin: User = self.get_user(ADMIN_USERNAME)
+        dashboard: Dashboard = self.insert_dashboard(
+            "copy-log-source", None, [admin.id]
+        )
+        self.login(ADMIN_USERNAME)
+        logger: MagicMock
+        try:
+            with (
+                patch(
+                    "superset.commands.dashboard.copy.DashboardDAO.copy_dashboard",
+                    side_effect=StaleDataError("dashboard_slices row missing"),
+                ),
+                patch("superset.dashboards.api.logger") as logger,
+            ):
+                response: TestResponse = self.client.post(
+                    f"/api/v1/dashboard/{dashboard.id}/copy/",
+                    json={
+                        "dashboard_title": "copy-log-result",
+                        "json_metadata": json.dumps({"positions": {}}),
+                    },
+                )
+            assert response.status_code == 400
+            assert response.json == {"message": "Arguments are not correct"}
+            logger.error.assert_called_once()
+            assert logger.error.call_args.kwargs == {"exc_info": True}
+        finally:
+            db.session.delete(dashboard)
+            db.session.commit()
+
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_copy_dashboard(self):
         self.login(ADMIN_USERNAME)
@@ -7326,6 +7417,11 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
 
     Note: DASHBOARD_LIST_CUSTOM_TAGS_ONLY config is checked at app startup in
     DashboardRestApi.__init__(), so these tests verify the current runtime behavior.
+
+    ``editor:``/``type:`` tags are no longer auto-generated (see
+    superset/tags/models.py), so this test creates them manually to simulate
+    the legacy rows an upgraded deployment may still carry, and verifies the
+    custom_tags relationship/API path still filters them out.
     """
 
     def setUp(self) -> None:
@@ -7337,7 +7433,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         """Verify custom_tags filtering at model and API level.
 
         With DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True in superset_test_config.py:
-        1. dashboard.tags returns ALL tags (custom + editor + type)
+        1. dashboard.tags returns ALL tags (custom + legacy editor/type)
         2. dashboard.custom_tags returns ONLY custom tags
         3. API response returns ONLY custom tags in the "tags" property
         """
@@ -7350,15 +7446,21 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         db.session.flush()
 
         custom_tag = Tag(name="critical", type=TagType.custom)
-        db.session.add(custom_tag)
+        # Legacy implicit tags: no longer generated, but rows from before an
+        # upgrade may still exist and must keep being filtered out.
+        editor_tag = Tag(name="editor:admin", type=TagType.editor)
+        type_tag = Tag(name="type:dashboard", type=TagType.type)
+        db.session.add_all([custom_tag, editor_tag, type_tag])
         db.session.flush()
 
-        tagged_obj = TaggedObject(
-            tag_id=custom_tag.id,
-            object_id=dashboard.id,
-            object_type="dashboard",
+        db.session.add_all(
+            [
+                TaggedObject(
+                    tag_id=tag.id, object_id=dashboard.id, object_type="dashboard"
+                )
+                for tag in (custom_tag, editor_tag, type_tag)
+            ]
         )
-        db.session.add(tagged_obj)
         db.session.commit()
 
         try:
@@ -7421,5 +7523,6 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         finally:
             db.session.delete(dashboard)
             db.session.commit()
-            db.session.delete(custom_tag)
+            for tag in (custom_tag, editor_tag, type_tag):
+                db.session.delete(tag)
             db.session.commit()
