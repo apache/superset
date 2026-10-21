@@ -31,7 +31,7 @@ import {
   ENDPOINTS,
 } from '../../helpers/api/dashboard';
 import { createTestDashboard } from './dashboard-test-helpers';
-import { waitForGet, waitForPost } from '../../helpers/api/intercepts';
+import { interceptGet, waitForPost } from '../../helpers/api/intercepts';
 import {
   expectDeleted,
   expectStatusOneOf,
@@ -133,7 +133,7 @@ test('should export a dashboard as a zip file', async ({
   });
 
   // Set up API response intercept for export endpoint
-  const exportResponsePromise = waitForGet(page, ENDPOINTS.DASHBOARD_EXPORT);
+  const exportResponsePromise = interceptGet(page, ENDPOINTS.DASHBOARD_EXPORT);
 
   // Click export action button
   await dashboardListPage.clickExportAction(dashboardName);
@@ -262,7 +262,7 @@ test('should bulk export multiple dashboards', async ({
   // Set up API response intercept BEFORE the click that triggers it.
   // Exports of multiple dashboards can take longer than 30s under load,
   // so use SLOW_TEST instead of the default test-timeout-bound budget.
-  const exportResponsePromise = waitForGet(page, ENDPOINTS.DASHBOARD_EXPORT, {
+  const exportResponsePromise = interceptGet(page, ENDPOINTS.DASHBOARD_EXPORT, {
     timeout: TIMEOUT.SLOW_TEST,
   });
 

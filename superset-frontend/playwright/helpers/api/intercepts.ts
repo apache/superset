@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import type { Page, Response } from '@playwright/test';
+import type { Page, Response, Route, APIResponse } from '@playwright/test';
 
 /**
  * HTTP methods enum for consistency
@@ -98,6 +98,58 @@ export function waitForGet(
   options?: WaitForResponseOptions,
 ): Promise<Response> {
   return waitForResponse(page, urlPattern, HTTP_METHODS.GET, options);
+}
+
+/**
+ * Intercept the next GET request matching the URL pattern and resolve with
+ * the response Playwright itself fetched, after handing an identical
+ * response through to the page unmodified via `route.fulfill()`.
+ *
+ * Unlike `waitForGet`, which only observes the response the browser already
+ * received, this fetches it independently via Playwright's own HTTP client,
+ * so the returned response's `.body()` doesn't race the page's own
+ * consumption of that same response (e.g. a resource-export endpoint that
+ * the app reads via `fetch().then(r => r.blob())` to trigger a client-side
+ * download). Use this instead of `waitForGet` whenever the body bytes
+ * themselves need to be asserted on, not just headers/status.
+ */
+export function interceptGet(
+  page: Page,
+  urlPattern: string | RegExp,
+  options?: WaitForResponseOptions,
+): Promise<APIResponse> {
+  const { pathMatch, timeout } = options ?? {};
+  const predicate = (url: URL) =>
+    matchUrl(url.toString(), urlPattern, pathMatch);
+  return new Promise<APIResponse>((resolve, reject) => {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const handler = async (route: Route) => {
+      if (route.request().method() !== HTTP_METHODS.GET) {
+        await route.fallback();
+        return;
+      }
+      if (timer) clearTimeout(timer);
+      page.unroute(predicate, handler).catch(() => {});
+      try {
+        const response = await route.fetch();
+        await route.fulfill({ response });
+        resolve(response);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    page.route(predicate, handler);
+    if (timeout) {
+      timer = setTimeout(() => {
+        page.unroute(predicate, handler).catch(() => {});
+        reject(
+          new Error(
+            `interceptGet timed out after ${timeout}ms waiting for a GET matching ${urlPattern}`,
+          ),
+        );
+      }, timeout);
+    }
+  });
 }
 
 /**

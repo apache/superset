@@ -26,7 +26,7 @@ import {
 import { Toast } from '../../components/core';
 import { apiGetChart, ENDPOINTS } from '../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
-import { waitForGet, waitForPut } from '../../helpers/api/intercepts';
+import { interceptGet, waitForPut } from '../../helpers/api/intercepts';
 import {
   expectDeleted,
   expectStatusOneOf,
@@ -178,7 +178,7 @@ test('should export a chart as a zip file', async ({
   });
 
   // Set up API response intercept for export endpoint
-  const exportResponsePromise = waitForGet(page, ENDPOINTS.CHART_EXPORT);
+  const exportResponsePromise = interceptGet(page, ENDPOINTS.CHART_EXPORT);
 
   // Click export action button
   await chartListPage.clickExportAction(chartName);
@@ -367,7 +367,7 @@ test('should bulk export multiple charts', async ({
   // Set up API response intercept BEFORE the click that triggers it.
   // Exports of multiple charts can take longer than 30s under load,
   // so use SLOW_TEST instead of the default test-timeout-bound budget.
-  const exportResponsePromise = waitForGet(page, ENDPOINTS.CHART_EXPORT, {
+  const exportResponsePromise = interceptGet(page, ENDPOINTS.CHART_EXPORT, {
     timeout: TIMEOUT.SLOW_TEST,
   });
 
