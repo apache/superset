@@ -6595,6 +6595,10 @@ msgstr ""
 msgid "Failed at retrieving results"
 msgstr ""
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
@@ -8190,6 +8194,9 @@ msgid "Last year"
 msgstr ""
 
 msgid "Lat"
+msgstr ""
+
+msgid "Latest save"
 msgstr ""
 
 msgid "Latitude"
@@ -12992,6 +12999,9 @@ msgstr ""
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 
+msgid "Some semantic views could not be added"
+msgstr ""
+
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
 
@@ -17246,6 +17256,11 @@ msgid "Your query was updated"
 msgstr ""
 
 msgid "Your report could not be deleted"
+msgstr ""
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
 msgstr ""
 
 msgid "Your session has ended. Please sign in again."
