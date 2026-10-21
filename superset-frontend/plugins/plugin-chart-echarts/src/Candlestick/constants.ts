@@ -24,11 +24,15 @@ import {
 import { defaultXAxis } from '../defaults';
 import { CandlestickSeriesStyle, EchartsCandlestickFormData } from './types';
 
+// Bare 'Close' shares a msgid with the dialog close action, so it gets its own
+// string to be translated as a price. 'Open', 'High' and 'Low' don't collide
+// with anything; they follow the same pattern so the tooltip and control
+// labels stay consistent.
 export const OHLC_LABELS = {
-  OPEN: t('Open'),
-  CLOSE: t('Close'),
-  LOW: t('Low'),
-  HIGH: t('High'),
+  OPEN: t('Open price'),
+  CLOSE: t('Close price'),
+  LOW: t('Low price'),
+  HIGH: t('High price'),
 };
 
 export const DIRECTION_LABELS = {

@@ -4103,6 +4103,9 @@ msgstr "Закрити редактор кольорових порогів"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Закрити вкладку"
 
@@ -8480,10 +8483,10 @@ msgstr "Приховує лінію для часових рядів"
 msgid "Hierarchy"
 msgstr "Ієрархія"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9749,10 +9752,10 @@ msgstr "Довгота і широта"
 msgid "Longitude of default viewport"
 msgstr "Довгота типового вікна перегляду"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11229,9 +11232,6 @@ msgstr "Прозорість бульбашок: 0 — повністю проз
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Прозорість, очікує значення від 0 до 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Відкрити вкладку джерел даних"
 
@@ -11265,6 +11265,9 @@ msgstr "Відкрити в майстерні запитів"
 
 msgid "Open in SQL lab"
 msgstr "Відкрити в майстерні запитів"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Відкрити запит у майстерні"
@@ -13464,6 +13467,14 @@ msgstr "Пригорнути вниз до кінця, щоб увімкнути
 msgid "Search"
 msgstr "Пошук"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Пошук серед %s запису"
+msgstr[1] "Пошук серед %s записів"
+msgstr[2] "Пошук серед %s записів"
+msgstr[3] "Пошук серед %s запису"
+
 msgid "Search / Filter"
 msgstr "Пошук / фільтр"
 
@@ -13521,9 +13532,6 @@ msgstr "Пошук у фільтрах"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Пошук показників та стовпців"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "Пошук міток"

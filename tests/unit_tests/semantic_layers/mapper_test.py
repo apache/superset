@@ -401,71 +401,73 @@ def test_convert_date_time_grain(
     assert _convert_time_grain(input_grain) == expected_grain
 
 
-def test_get_filters_from_extras_empty() -> None:
-    """
-    Test that empty extras returns empty set.
-    """
-    result = _get_filters_from_extras({})
-    assert result == set()
+@pytest.mark.parametrize(
+    "extras",
+    [
+        {},
+        {"where": "", "having": None},
+        {"where": None, "having": ""},
+        {"time_grain_sqla": "P1D"},
+    ],
+)
+def test_get_filters_from_extras_empty(extras: dict[str, str | None]) -> None:
+    """Empty SQL clauses and unrelated extras introduce no filters."""
+    assert _get_filters_from_extras(extras) == set()
 
 
-def test_get_filters_from_extras_where() -> None:
-    """
-    Test extraction of WHERE clause from extras.
-    """
-    extras = {"where": "customer_id > 100"}
-    result = _get_filters_from_extras(extras)
-
-    assert len(result) == 1
-    filter_ = next(iter(result))
-    assert isinstance(filter_, Filter)
-    assert filter_.type == PredicateType.WHERE
-    assert filter_.column is None
-    assert filter_.operator == Operator.ADHOC
-    assert filter_.value == "customer_id > 100"
-
-
-def test_get_filters_from_extras_having() -> None:
-    """
-    Test extraction of HAVING clause from extras.
-    """
-    extras = {"having": "SUM(sales) > 1000"}
-    result = _get_filters_from_extras(extras)
-
-    assert result == {
-        Filter(
-            type=PredicateType.HAVING,
-            column=None,
-            operator=Operator.ADHOC,
-            value="SUM(sales) > 1000",
-        ),
-    }
+@pytest.mark.parametrize(
+    "extras",
+    [
+        {"where": "customer_id > 100"},
+        {"having": "SUM(sales) > 1000"},
+        {"where": "region = 'US'", "having": "COUNT(*) > 10"},
+        {"where": " "},
+    ],
+)
+def test_get_filters_from_extras_rejects_sql(extras: dict[str, str]) -> None:
+    """Direct helper calls reject SQL text rather than producing ADHOC filters."""
+    with pytest.raises(ValueError, match="SQL WHERE/HAVING.*semantic views"):
+        _get_filters_from_extras(extras)
 
 
-def test_get_filters_from_extras_both() -> None:
-    """
-    Test extraction of both WHERE and HAVING from extras.
-    """
-    extras = {
-        "where": "region = 'US'",
-        "having": "COUNT(*) > 10",
-    }
-    result = _get_filters_from_extras(extras)
-
-    assert result == {
-        Filter(
-            type=PredicateType.WHERE,
-            column=None,
-            operator=Operator.ADHOC,
-            value="region = 'US'",
-        ),
-        Filter(
-            type=PredicateType.HAVING,
-            column=None,
-            operator=Operator.ADHOC,
-            value="COUNT(*) > 10",
-        ),
-    }
+@pytest.mark.parametrize("entry", ["mapping", "validation", "execution"])
+@pytest.mark.parametrize(
+    "extras",
+    [
+        {"where": "customer_id > 100"},
+        {"having": "SUM(sales) > 1000"},
+        {"where": "region = 'US'", "having": "COUNT(*) > 10"},
+    ],
+)
+def test_mapper_entrypoints_reject_sql_extras(
+    mock_datasource: MagicMock,
+    mocker: MockerFixture,
+    entry: str,
+    extras: dict[str, str],
+) -> None:
+    """Callers bypassing QueryObject.validate still cannot dispatch SQL extras."""
+    query: ValidatedQueryObject = ValidatedQueryObject(
+        datasource=mock_datasource,
+        metrics=["total_sales"],
+        columns=["category"],
+        extras=extras,
+    )
+    dispatch: MagicMock = mocker.patch(
+        "superset.semantic_layers.mapper._dispatch_semantic_query",
+        side_effect=AssertionError("provider execution reached"),
+    )
+    mocker.patch.object(mock_datasource.implementation, "get_table", create=True)
+    operation: Callable[[ValidatedQueryObject], object] = {
+        "mapping": map_query_object,
+        "validation": validate_query_object,
+        "execution": get_results,
+    }[entry]
+    error_type: type[Exception] = (
+        ValueError if entry == "mapping" else QueryObjectValidationError
+    )
+    with pytest.raises(error_type, match="SQL WHERE/HAVING.*semantic views"):
+        operation(query)
+    dispatch.assert_not_called()
 
 
 def test_get_time_bounds_no_offset(mock_datasource: MagicMock) -> None:
@@ -677,46 +679,27 @@ def test_get_filters_from_query_object_basic(mock_datasource: MagicMock) -> None
     }
 
 
-def test_get_filters_from_query_object_with_extras(mock_datasource: MagicMock) -> None:
-    """
-    Test filter extraction with extras.
-    """
-    query_object = ValidatedQueryObject(
+@pytest.mark.parametrize("clause", ["where", "having"])
+def test_get_filters_from_query_object_with_extras(
+    mock_datasource: MagicMock, clause: str
+) -> None:
+    """Main query filters reject SQL extras instead of forwarding them."""
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
         metrics=["total_sales"],
         columns=["category"],
         granularity="order_date",
-        extras={"where": "customer_id > 100"},
+        extras={clause: "customer_id > 100"},
     )
 
-    all_dimensions = {
+    all_dimensions: dict[str, Dimension] = {
         dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
-    result = _get_filters_from_query_object(query_object, None, all_dimensions)
-
-    assert result == {
-        Filter(
-            type=PredicateType.WHERE,
-            column=all_dimensions["order_date"],
-            operator=Operator.GREATER_THAN_OR_EQUAL,
-            value=datetime(2025, 10, 15),
-        ),
-        Filter(
-            type=PredicateType.WHERE,
-            column=all_dimensions["order_date"],
-            operator=Operator.LESS_THAN,
-            value=datetime(2025, 10, 22),
-        ),
-        Filter(
-            type=PredicateType.WHERE,
-            column=None,
-            operator=Operator.ADHOC,
-            value="customer_id > 100",
-        ),
-    }
+    with pytest.raises(ValueError, match="SQL WHERE/HAVING.*semantic views"):
+        _get_filters_from_query_object(query_object, None, all_dimensions)
 
 
 def test_get_filters_from_query_object_with_fetch_values(
@@ -1028,15 +1011,16 @@ def test_get_group_limit_filters_different_bounds(mock_datasource: MagicMock) ->
     }
 
 
-def test_get_group_limit_filters_with_extras(mock_datasource: MagicMock) -> None:
-    """
-    Test that extras filters are included in group limit filters.
-    """
-    all_dimensions = {
+@pytest.mark.parametrize("clause", ["where", "having"])
+def test_get_group_limit_filters_with_extras(
+    mock_datasource: MagicMock, clause: str
+) -> None:
+    """Separate group-limit filters reject SQL extras as the main query does."""
+    all_dimensions: dict[str, Dimension] = {
         dim.name: dim for dim in mock_datasource.implementation.get_dimensions()
     }
 
-    query_object = ValidatedQueryObject(
+    query_object: ValidatedQueryObject = ValidatedQueryObject(
         datasource=mock_datasource,
         from_dttm=datetime(2025, 10, 15),
         to_dttm=datetime(2025, 10, 22),
@@ -1045,31 +1029,11 @@ def test_get_group_limit_filters_with_extras(mock_datasource: MagicMock) -> None
         metrics=["total_sales"],
         columns=["category"],
         granularity="order_date",
-        extras={"where": "customer_id > 100"},
+        extras={clause: "customer_id > 100"},
     )
 
-    result = _get_group_limit_filters(query_object, all_dimensions)
-
-    assert result == {
-        Filter(
-            type=PredicateType.WHERE,
-            column=all_dimensions["order_date"],
-            operator=Operator.GREATER_THAN_OR_EQUAL,
-            value=datetime(2025, 9, 22),
-        ),
-        Filter(
-            type=PredicateType.WHERE,
-            column=all_dimensions["order_date"],
-            operator=Operator.LESS_THAN,
-            value=datetime(2025, 10, 22),
-        ),
-        Filter(
-            type=PredicateType.WHERE,
-            column=None,
-            operator=Operator.ADHOC,
-            value="customer_id > 100",
-        ),
-    }
+    with pytest.raises(ValueError, match="SQL WHERE/HAVING.*semantic views"):
+        _get_group_limit_filters(query_object, all_dimensions)
 
 
 def test_map_query_object_basic(mock_datasource: MagicMock) -> None:

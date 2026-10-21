@@ -56,6 +56,7 @@ from superset.models.slice import Slice
 from superset.utils import json
 from superset.utils.core import get_user_id
 from superset.utils.dashboard_filter_scopes_converter import copy_filter_scopes
+from superset.utils.filters import is_excluded_by_extra_access
 
 logger = logging.getLogger(__name__)
 
@@ -511,6 +512,12 @@ class DashboardDAO(BaseDAO[Dashboard]):
         if is_uuid(id_or_slug):
             # just get dashboard if it's uuid
             dashboard = Dashboard.get(id_or_slug)
+            # This branch skips ``base_filter``, so an
+            # ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` entry -- which reaches the id
+            # branch below through it -- would otherwise leave the same
+            # dashboard absent by id and readable by uuid.
+            if dashboard and is_excluded_by_extra_access("dashboards", dashboard.id):
+                raise DashboardNotFoundError()
         else:
             query = (
                 db.session.query(Dashboard)
