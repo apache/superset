@@ -37,10 +37,15 @@ import type {
 } from './types';
 import type { UseVersionActivityResult } from './useVersionActivity';
 import { relatedEntryKey } from './grouping';
-import { formatVersionDateTime } from './display';
+import {
+  formatVersionDateTime,
+  selectHighlightedTransactionId,
+} from './display';
 import SaveGroupItem from './SaveGroupItem';
 import RelatedUpdateRow from './RelatedUpdateRow';
-import CurrentVersionSection from './CurrentVersionSection';
+import CurrentVersionSection, {
+  hasCurrentVersionContent,
+} from './CurrentVersionSection';
 
 const VERSION_HISTORY_PANEL_WIDTH = 320;
 
@@ -74,16 +79,17 @@ const PanelTitle = styled.span`
   `}
 `;
 
+// Search and scope filter are stacked, each the panel's full content width.
+// Half of the 320px panel is too narrow for the scope labels ("This
+// dashboard only", "Related items only") in the control and in its option
+// list, which takes the control's width.
 const Controls = styled.div`
   ${({ theme }) => `
     display: flex;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: ${theme.sizeUnit * 2}px;
     padding: ${theme.sizeUnit * 4}px ${theme.sizeUnit * 6}px;
-    > * {
-      flex: 1 1 0;
-      min-width: 0;
-    }
   `}
 `;
 
@@ -205,28 +211,27 @@ export default function VersionHistoryPanel({
 
   const hasSearch = searchTerm.trim().length > 0;
 
-  // The newest self save IS the live state: it gets a "Current" tag,
-  // no preview affordances, and no restore action. The newest save
-  // being a restore additionally means the live entity matches an
-  // older version; surface that in the "Current version" section.
+  // The newest self save IS the live state: no preview affordances and no
+  // restore action, only Open as new. The newest save being a restore
+  // additionally means the live entity matches an older version; surface
+  // that in the "Current version" section.
   // newestGroup comes from the hook's last unfiltered fetch — the visible
   // timeline is search-filtered, so its first group may be an older save.
   const currentTransactionId = newestGroup?.transactionId ?? null;
-  // Exactly one group carries the active "you are here" treatment: the
-  // previewed group while a historical preview is open, otherwise the
-  // current (live) group at rest. Deriving it here — rather than letting
-  // each item OR its own flags together — is what keeps the highlight
-  // exclusive when a preview is active.
-  const highlightedTransactionId =
-    previewedTransactionId != null &&
-    previewedTransactionId !== currentTransactionId
-      ? previewedTransactionId
-      : currentTransactionId;
   const canRestoreKnownVersion = canRestore && currentVersionStatus === 'known';
   const restoreNotice =
     newestGroup?.actionKind === 'restore'
       ? t('Restored version · %s', formatVersionDateTime(newestGroup.issuedAt))
       : null;
+  const currentShownInSection = hasCurrentVersionContent({
+    entries: sessionEntries,
+    restoreNotice,
+  });
+  const highlightedTransactionId = selectHighlightedTransactionId({
+    previewedTransactionId,
+    currentTransactionId,
+    currentShownInSection,
+  });
 
   const isInitialLoading = isLoading && timeline.length === 0;
 
@@ -243,7 +248,7 @@ export default function VersionHistoryPanel({
           <Icons.CloseOutlined iconSize="xl" />
         </CloseButton>
       </PanelHeader>
-      <Controls>
+      <Controls data-test="version-history-controls">
         <Input
           allowClear
           placeholder={t('Search actions')}
@@ -306,6 +311,10 @@ export default function VersionHistoryPanel({
               isCurrent={entry.transactionId === currentTransactionId}
               canRestore={canRestoreKnownVersion}
               isHighlighted={entry.transactionId === highlightedTransactionId}
+              marksCurrentState={
+                entry.transactionId === currentTransactionId &&
+                !currentShownInSection
+              }
               onPreview={onPreview}
               onExitPreview={onExitPreview}
               onRestore={onRestore}
