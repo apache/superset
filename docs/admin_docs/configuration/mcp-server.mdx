@@ -772,7 +772,9 @@ as the media type and load a data URL whose media type is invalid, such as
 `substitute data: Jira, support` is rejected because it cannot be told apart
 from a data URL. When title or name
 sanitization fails, MCP validation errors identify the field, such as
-`request.dashboard_title`, without echoing the supplied value.
+`request.dashboard_title`, and provide a fixed disallowed-content reason,
+including the comma restriction on `data:` labels, without echoing the supplied
+value.
 
 ## Deployment
 

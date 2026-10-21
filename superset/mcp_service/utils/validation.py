@@ -32,6 +32,10 @@ _MAX_EXTRACTED_ERRORS = 128
 # value_error is intentionally absent: custom validator messages may carry input.
 _REASONS = {
     "missing": "Field required",
+    "unsafe_text": (
+        "Contains disallowed content (HTML, script or data: URL, event handler, "
+        "or SQL keyword); a 'data:' label must not be followed by a comma"
+    ),
     "missing_argument": "Field required",
     "missing_keyword_only_argument": "Field required",
     "unexpected_keyword_argument": "Unexpected argument",

@@ -191,12 +191,13 @@ def test_title_sanitization_error_names_field(
     [
         "javascript:alert('private-input')",
         "Inspect data: text,private-input",
+        "Exec (source data: source-a, source-b) private-input",
         "java\tscript:private-input",
         "vb\nscript:private-input",
         "dat\ra:text/html,private-input",
     ],
 )
-async def test_title_sanitization_wire_error_names_field(
+async def test_title_sanitization_wire_error_names_field_with_actionable_reason(
     tool: str,
     payload: dict[str, Any],
     field: str,
@@ -240,6 +241,7 @@ async def test_title_sanitization_wire_error_names_field(
     message = " ".join(
         block.text for block in result.content if isinstance(block, TextContent)
     )
-    assert f"request.{field}: Invalid value" in message
+    assert f"request.{field}: Contains disallowed content" in message
+    assert "a 'data:' label must not be followed by a comma" in message
     assert rejected not in message
     assert "private-input" not in message
