@@ -17,6 +17,160 @@ specific language governing permissions and limitations
 under the License.
 -->
 
+# Asset approval — QA build
+
+Apache Superset with **maker-checker review** turned on: an edit to a
+dashboard, chart or dataset does not reach viewers until a second eligible
+editor approves it.
+
+This branch exists for testing that feature and nothing else. It is not
+proposed for merge, and the parts of it that belong in Superset go upstream
+as their own pull requests. Superset's own README follows this guide.
+
+---
+
+## Setting it up
+
+You need Docker with roughly 8 GB available to it. Everything below runs
+from the root of this checkout. The first run takes 15–25 minutes, nearly
+all of it image building and example loading.
+
+### 1. Build the extension
+
+The review feature ships as a Superset extension. Its source is in the
+repository; its build output is not, so you build it once:
+
+```bash
+docker run --rm -v "$PWD:/app" -w /app/local_extensions/asset-approval/frontend node:20 bash -lc "npm install --legacy-peer-deps && npm run build"
+```
+
+`--legacy-peer-deps` is required, not optional: the published
+`@apache-superset/core` still declares a peer dependency on React 17 while
+Superset itself is on React 18, so a plain `npm install` refuses to resolve.
+
+Then assemble the loadable bundle:
+
+```bash
+docker run --rm -v "$PWD:/app" -w /app/local_extensions/asset-approval node:20 bash -lc "bash build.sh"
+```
+
+That writes `local_extensions/asset-approval/dist/`. It worked if it prints
+`built: 19 files` and the manifest lists two contributed pages.
+
+### 2. Start Superset
+
+```bash
+NODE_PORT=9002 docker compose -p asset-approval-qa -f docker-compose-light.yml up -d
+```
+
+The first run builds images and loads the example dashboards, which is the
+slow part. Follow it with:
+
+```bash
+docker compose -p asset-approval-qa logs -f superset-init-light
+```
+
+When that container exits, open **http://localhost:9002** and sign in as
+`admin` / `admin`.
+
+### 3. Seed the review flow
+
+```bash
+docker compose -p asset-approval-qa exec superset-light python /app/local_extensions/asset-approval/qa/seed.py
+```
+
+This creates the two test accounts, makes them both editors of an example
+dashboard, chart and dataset, and leaves exactly one change waiting for a
+reviewer. It prints what it set up, and it is safe to re-run at any time.
+
+---
+
+## Logins
+
+| user | password | role | use it for |
+|---|---|---|---|
+| `maker` | `general` | Alpha | making changes |
+| `checker` | `general` | Alpha | reviewing them |
+| `admin` | `admin` | Admin | setup only |
+
+**Test as `maker` and `checker`, not as `admin`.** Admin's blanket access
+deliberately does not count as editorship for approval, so admin sees a
+more permissive picture than a real user does. Permission and UI bugs only
+show up on the non-admin accounts.
+
+Two accounts exist because an author may never approve their own work: the
+gate looks for a *second* editor of the asset, so one account cannot
+demonstrate the flow at all.
+
+---
+
+## The flow to walk
+
+Seeding leaves one change already waiting, so you can start at step 3 to see
+the reviewer's side straight away, or at step 1 to do a full round yourself.
+
+1. **As `maker`** — open a dashboard, change something, Save. The toast says
+   viewers still see the live version. Nothing has gone live.
+2. **As `maker`** — Request review.
+3. **As `checker`** — the notification bell carries a count, and its popover
+   lists what is waiting. **Settings → Manage → Approvals** shows the same
+   as a list.
+4. **As `checker`** — open the review. It takes you to the dashboard itself:
+   a banner across the top, and a panel on the right with the field-by-field
+   diff, "Show changes", and a link to the live version.
+5. **As `checker`** — Approve, which asks for confirmation first. Or Request
+   changes, to send it back with a note.
+6. **As `maker`** — a returned change appears in the bell as "returned".
+
+Datasets are reviewed from the Approvals list rather than from a page of
+their own, because a dataset has no page to put a banner on.
+
+---
+
+## Known gaps
+
+Understood already — no need to file these:
+
+- **No count on the Settings → Manage entry.** The design asks for the
+  number to appear there as well as on the bell. Superset's menu entries
+  carry no badge, so that needs a new capability rather than a placement
+  change. The bell itself counts correctly.
+- **No page per change request.** Review happens on the asset, or from the
+  list for a dataset. Links that used to point at a change request's own
+  page open the list instead.
+- **Deleting a chart customization under review** clears the filter from
+  your own view even though nothing was applied for anyone else. Superset
+  clears those locally before the request goes out, and this branch does not
+  reorder that.
+
+## Reporting what you find
+
+Say which account you were using, which of the six steps you were on, and
+whether the change was new or one the seed created. Where the UI and the
+data disagree, the API is the tie-breaker:
+
+    /api/v1/change_request/count          what the bell should show
+    /api/v1/change_request/?show=for_me   what is waiting on you
+
+## Starting over
+
+Back to one change waiting for review, keeping everything else:
+
+```bash
+docker compose -p asset-approval-qa exec superset-light python /app/local_extensions/asset-approval/qa/seed.py
+```
+
+Back to nothing at all, database included:
+
+```bash
+docker compose -p asset-approval-qa -f docker-compose-light.yml down -v
+```
+
+---
+---
+
+*Everything below is Apache Superset's own README, unchanged.*
+
 # Superset
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/license/apache-2-0)
