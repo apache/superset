@@ -16762,6 +16762,13 @@ msgid ""
 "Mirrored filters on this mapping would fail at the database."
 msgstr ""
 
+#, python-format
+msgid ""
+"The transform returned %(returned)s for %(column)s, which this database "
+"cannot write into a query as a %(type)s value without changing it. "
+"Filters on this mapping will not be mirrored."
+msgstr ""
+
 msgid "The two passwords that you entered do not match!"
 msgstr "நீங்கள் உள்ளிட்ட இரண்டு கடவுச்சொற்களும் பொருந்தவில்லை!"
 
