@@ -73,10 +73,19 @@ docker compose -p asset-approval-qa logs -f superset-init-light
 When that container exits, open **http://localhost:9002** and sign in as
 `admin` / `admin`.
 
+The example dashboards load on the first run, which is what the seed in the
+next step edits. If `docker/.env-local` exists on your machine and sets
+`SUPERSET_LOAD_EXAMPLES=no`, it wins over the default and they are skipped —
+the init log then shows three steps instead of four. Load them by hand with:
+
+```bash
+docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/superset load-examples
+```
+
 ### 3. Seed the review flow
 
 ```bash
-docker compose -p asset-approval-qa exec superset-light python /app/local_extensions/asset-approval/qa/seed.py
+docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/python /app/local_extensions/asset-approval/qa/seed.py
 ```
 
 This creates the two test accounts, makes them both editors of an example
@@ -157,7 +166,7 @@ data disagree, the API is the tie-breaker:
 Back to one change waiting for review, keeping everything else:
 
 ```bash
-docker compose -p asset-approval-qa exec superset-light python /app/local_extensions/asset-approval/qa/seed.py
+docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/python /app/local_extensions/asset-approval/qa/seed.py
 ```
 
 Back to nothing at all, database included:
