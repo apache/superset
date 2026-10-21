@@ -19,7 +19,7 @@ from collections.abc import Callable, Iterator
 from dataclasses import replace
 from datetime import date, datetime, time, timezone
 from itertools import permutations
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock, Mock
 from zoneinfo import ZoneInfo
 
@@ -3632,6 +3632,7 @@ def test_validate_granularity_valid(mocker: MockerFixture) -> None:
 
     query_object = mocker.Mock()
     query_object.datasource = mock_datasource
+    query_object.columns = ["order_date"]
     query_object.granularity = "order_date"
     query_object.extras = {"time_grain_sqla": "P1D"}
 
@@ -5284,3 +5285,126 @@ def test_public_provider_completeness_error_becomes_host_error(
         get_results(query)
     assert excinfo.value.reason == reason
     assert excinfo.value.__cause__ is failure
+
+
+def _grained_semantic_column(name: str, grain: str | None) -> AdhocColumn:
+    """Build the physical BASE_AXIS reference carried by Explore controls."""
+    return cast(
+        AdhocColumn,
+        {
+            "columnType": "BASE_AXIS",
+            "expressionType": "SQL",
+            "isColumnReference": True,
+            "label": name,
+            "sqlExpression": name,
+            "timeGrain": grain,
+        },
+    )
+
+
+@pytest.mark.parametrize("extra_grain", [None, "P1D", "P1M", "P1Y"])
+def test_sunburst_controls_only_semantic_query_preserves_column_grain(
+    mock_datasource: MagicMock, extra_grain: str | None
+) -> None:
+    """Explore's grained hierarchy survives without top-level time controls."""
+    from superset.common.form_data_query_context import (
+        build_query_context_from_form_data,
+    )
+
+    raw = Dimension("date.raw", "order_date", pa.timestamp("us"))
+    month = replace(raw, id="date.month", grain=Grains.MONTH)
+    day = replace(raw, id="date.day", grain=Grains.DAY)
+    category = Dimension("category", "category", pa.string())
+    mock_datasource.implementation = AbcOnlyView({raw, month, day, category}, set())
+    form_data: dict[str, Any] = {
+        "viz_type": "sunburst_v2",
+        "columns": [_grained_semantic_column("order_date", "P1M"), "category"],
+    }
+    if extra_grain is not None:
+        form_data["time_grain_sqla"] = extra_grain
+    query_dict = build_query_context_from_form_data(
+        form_data, {"id": 7, "type": "semantic_view"}, viz_type="sunburst_v2"
+    )["queries"][0]
+    query = ValidatedQueryObject(datasource=mock_datasource, **query_dict)
+
+    assert validate_query_object(query)
+    assert map_query_object(query)[0].dimensions == [month, category]
+
+
+@pytest.mark.parametrize("annotated", [1, 2])
+def test_semantic_column_grains_identify_multiple_temporal_hierarchy_levels(
+    mock_datasource: MagicMock, annotated: int
+) -> None:
+    """Each explicit grain applies only to its own selected temporal column."""
+    first = Dimension("first.raw", "first", pa.timestamp("us"))
+    first_month = replace(first, id="first.month", grain=Grains.MONTH)
+    second = Dimension("second.raw", "second", pa.timestamp("us"))
+    second_day = replace(second, id="second.day", grain=Grains.DAY)
+    mock_datasource.implementation = AbcOnlyView(
+        {first, first_month, second, second_day}, set()
+    )
+    query = ValidatedQueryObject(
+        datasource=mock_datasource,
+        columns=[
+            _grained_semantic_column("first", "P1M"),
+            _grained_semantic_column("second", "P1D") if annotated == 2 else "second",
+        ],
+        metrics=[],
+    )
+
+    assert validate_query_object(query)
+    assert map_query_object(query)[0].dimensions == [
+        first_month,
+        second_day if annotated == 2 else second,
+    ]
+
+
+@pytest.mark.parametrize("grain", ["P1Y", "not-a-grain"])
+def test_semantic_column_grain_rejects_unsupported_variant(
+    mock_datasource: MagicMock, grain: str
+) -> None:
+    """Column-local grains receive the same support validation as legacy ones."""
+    raw = Dimension("date.raw", "order_date", pa.timestamp("us"))
+    month = replace(raw, id="date.month", grain=Grains.MONTH)
+    mock_datasource.implementation = AbcOnlyView({raw, month}, set())
+    query = ValidatedQueryObject(
+        datasource=mock_datasource,
+        columns=[_grained_semantic_column("order_date", grain)],
+        metrics=[],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="time grain is not supported"):
+        validate_query_object(query)
+
+
+def test_semantic_column_grain_does_not_accept_unknown_dimension(
+    mock_datasource: MagicMock,
+) -> None:
+    """An embedded time grain does not bypass semantic dimension validation."""
+    query = ValidatedQueryObject(
+        datasource=mock_datasource,
+        columns=[_grained_semantic_column("missing", "P1M")],
+        metrics=[],
+    )
+
+    with pytest.raises(QueryObjectValidationError, match="Adhoc dimensions"):
+        validate_query_object(query)
+
+
+@pytest.mark.parametrize("grain", ["", None])
+def test_empty_semantic_column_grain_overrides_legacy_default(
+    mock_datasource: MagicMock, grain: str | None
+) -> None:
+    """Empty BASE_AXIS grains select raw values, matching SQL datasources."""
+    raw = Dimension("date.raw", "order_date", pa.timestamp("us"))
+    month = replace(raw, id="date.month", grain=Grains.MONTH)
+    mock_datasource.implementation = AbcOnlyView({raw, month}, set())
+    query = ValidatedQueryObject(
+        datasource=mock_datasource,
+        columns=[_grained_semantic_column("order_date", grain)],
+        extras={"time_grain_sqla": "P1M"},
+        metrics=[],
+    )
+
+    assert validate_query_object(query)
+    assert map_query_object(query)[0].dimensions == [raw]

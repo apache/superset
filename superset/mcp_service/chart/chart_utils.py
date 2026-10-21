@@ -68,7 +68,11 @@ from superset.mcp_service.chart.schemas import (
     WaterfallChartConfig,
     XYChartConfig,
 )
-from superset.mcp_service.chart.sunburst import apply_sunburst_hierarchy_time_grain
+from superset.mcp_service.chart.sunburst import (
+    apply_sunburst_hierarchy_time_grain,
+    grained_column_reference,
+    restore_sunburst_hierarchy_time_grain,
+)
 from superset.mcp_service.chart.validation.dataset_validator import (
     is_dataset_column_temporal,
     resolve_exact_first_casefold,
@@ -2651,6 +2655,12 @@ def finalize_sunburst_update_form_data(  # noqa: C901
     config: SunburstChartConfig,
 ) -> Dict[str, Any]:
     """Apply Sunburst omission, explicit-clear and temporal-pair semantics."""
+    existing_form_data = dict(existing_form_data)
+    restore_sunburst_hierarchy_time_grain(existing_form_data)
+    if existing_form_data.get("viz_type") == new_form_data.get("viz_type"):
+        for key in ("granularity_sqla", "time_grain_sqla"):
+            if key in existing_form_data:
+                merged.setdefault(key, existing_form_data[key])
     same_viz = existing_form_data.get("viz_type") == new_form_data.get("viz_type")
     fields_set: set[str] = getattr(config, "model_fields_set", set())
     temporal_fields = {"time_grain", "temporal_column"}
@@ -2683,6 +2693,11 @@ def finalize_sunburst_update_form_data(  # noqa: C901
     )
     if explicit_temporal_clear:
         merged = _scrub_temporal_form_data(merged)
+        if isinstance(merged.get("columns"), list):
+            merged["columns"] = [
+                grained_column_reference(column) or column
+                for column in merged["columns"]
+            ]
 
     # Merge the temporal subject and grain as one final-state control pair.
     temporal_set = "temporal_column" in fields_set

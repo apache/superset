@@ -59,6 +59,31 @@ def grained_column_reference(column: Any) -> str | None:
     return None
 
 
+def restore_sunburst_hierarchy_time_grain(form_data: dict[str, Any]) -> None:
+    """Recover the temporal pair from an Explore-saved columns control."""
+    if any(
+        key in form_data
+        for key in (
+            "temporal_column",
+            "granularity_sqla",
+            "time_grain",
+            "time_grain_sqla",
+        )
+    ):
+        return
+    columns = form_data.get("columns")
+    if not isinstance(columns, list):
+        return
+    levels = [
+        (name, column["timeGrain"])
+        for column in columns
+        if (name := grained_column_reference(column)) is not None
+        and column.get("timeGrain") not in (None, "")
+    ]
+    if len(levels) == 1:
+        form_data["granularity_sqla"], form_data["time_grain_sqla"] = levels[0]
+
+
 def apply_sunburst_hierarchy_time_grain(form_data: dict[str, Any]) -> dict[str, Any]:
     """Carry the Sunburst time grain on the temporal hierarchy level.
 
@@ -80,7 +105,9 @@ def apply_sunburst_hierarchy_time_grain(form_data: dict[str, Any]) -> dict[str, 
     rewritten: list[Any] = []
     for column in columns:
         name = column if isinstance(column, str) else grained_column_reference(column)
-        if name is None:
+        if name is None or (
+            "granularity_sqla" not in form_data and "time_grain_sqla" not in form_data
+        ):
             rewritten.append(column)
         elif isinstance(grain, str) and grain and name == temporal_column:
             rewritten.append(
@@ -446,13 +473,21 @@ def normalize_sunburst_form_data_references(  # noqa: C901
     )
 
     normalized = deepcopy(dict(form_data))
+    restore_sunburst_hierarchy_time_grain(normalized)
     columns = normalized.get("columns")
     if isinstance(columns, list):
         for index, column in enumerate(columns):
             if (grained := grained_column_reference(column)) is not None:
-                # Re-encoded with the canonical name once granularity_sqla is
-                # canonicalized below.
-                column = grained
+                canonical = DatasetValidator.get_canonical_column_name(
+                    grained, dataset_context
+                )
+                if isinstance(column, dict):
+                    columns[index] = {
+                        **column,
+                        "label": canonical,
+                        "sqlExpression": canonical,
+                    }
+                continue
             if isinstance(column, str):
                 columns[index] = DatasetValidator.get_canonical_column_name(
                     column, dataset_context

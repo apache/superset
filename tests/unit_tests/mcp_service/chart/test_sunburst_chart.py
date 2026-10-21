@@ -5741,3 +5741,114 @@ def test_saved_grained_hierarchy_round_trips_through_native_and_normalize() -> N
     fields = plugin.resolve_query_fields(normalized, "sunburst_v2")
     assert fields is not None
     assert fields[1] == [_grained("OrderDate", "P1M"), "Region"]
+
+
+def test_explore_saved_temporal_hierarchy_retains_column_local_grain() -> None:
+    """Explore saves the columns control without the top-level temporal pair."""
+    saved = {
+        "viz_type": "sunburst_v2",
+        "columns": [_grained("orderdate", "P1M"), "region"],
+        "metric": "SavedSales",
+    }
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[
+            {"name": "Region", "type": "VARCHAR"},
+            {"name": "OrderDate", "type": "TIMESTAMP", "is_temporal": True},
+        ],
+        available_metrics=[{"name": "SavedSales", "expression": "SUM(sales)"}],
+    )
+    normalized = normalize_sunburst_form_data_references(saved, context)
+    assert normalized["columns"] == [_grained("OrderDate", "P1M"), "Region"]
+    config = SunburstChartConfig.model_validate(saved)
+    assert config.temporal_column == "orderdate"
+    assert config.time_grain == "P1M"
+    assert map_config_to_form_data(config)["columns"] == saved["columns"]
+    assert "granularity_sqla" not in saved
+
+
+@pytest.mark.parametrize(
+    "overrides",
+    [
+        {},
+        {"time_grain": "P1Y"},
+        {"time_grain": None},
+        {"temporal_column": None},
+        {"time_range": None},
+    ],
+)
+def test_explore_saved_grain_survives_replacement_update(
+    overrides: dict[str, object],
+) -> None:
+    """An omitted temporal pair inherits the grain saved on the hierarchy."""
+    saved = {
+        "viz_type": "sunburst_v2",
+        "columns": [_grained("OrderDate", "P1M"), "Region"],
+        "metric": "SavedSales",
+    }
+    chart = Mock(
+        id=19, datasource_id=7, slice_name="Saved hierarchy", params=json.dumps(saved)
+    )
+    config = _config(hierarchy=[{"name": "OrderDate"}, {"name": "Region"}], **overrides)
+    request = UpdateChartRequest(identifier=19, config=config)
+    payload = _build_update_payload(request, chart, parsed_config=config)
+    preview = _build_preview_form_data(request, chart, parsed_config=config)
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+    expected: object = (
+        "OrderDate"
+        if any(value is None for value in overrides.values())
+        else _grained("OrderDate", str(overrides.get("time_grain", "P1M")))
+    )
+    for state in (json.loads(payload["params"]), preview):
+        assert state["columns"] == [expected, "Region"]
+
+
+@pytest.mark.parametrize("grain", ["INVALID", 123])
+def test_native_column_local_grain_is_validated(grain: object) -> None:
+    """An unsupported embedded grain must not silently become raw dates."""
+    with pytest.raises(ValidationError):
+        SunburstChartConfig.model_validate(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": [{**_grained("order_date", "P1M"), "timeGrain": grain}],
+                "metric": "sales",
+            }
+        )
+
+
+def test_native_multiple_column_grains_cannot_be_lossily_round_tripped() -> None:
+    """The typed temporal pair cannot represent multiple local grains."""
+    with pytest.raises(ValueError, match="one temporal grain"):
+        SunburstChartConfig.model_validate(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": [
+                    _grained("order_date", "P1M"),
+                    _grained("ship_date", "P1Y"),
+                ],
+                "metric": "sales",
+            }
+        )
+
+
+@pytest.mark.parametrize("raw_grain", [None, ""])
+@pytest.mark.parametrize("monthly_level", [False, True])
+def test_native_raw_temporal_level_does_not_invent_a_grain(
+    raw_grain: object, monthly_level: bool
+) -> None:
+    """Native raw timestamps do not consume the typed temporal grain slot."""
+    columns: list[object] = [{**_grained("ship_date", "P1D"), "timeGrain": raw_grain}]
+    if monthly_level:
+        columns.insert(0, _grained("order_date", "P1M"))
+    config = SunburstChartConfig.model_validate(
+        {"viz_type": "sunburst_v2", "columns": columns, "metric": "sales"}
+    )
+    assert config.time_grain == ("P1M" if monthly_level else None)
+    assert config.temporal_column == ("order_date" if monthly_level else None)
+    assert map_config_to_form_data(config)["columns"] == (
+        [_grained("order_date", "P1M"), "ship_date"] if monthly_level else ["ship_date"]
+    )
