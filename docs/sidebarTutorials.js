@@ -85,6 +85,7 @@ const sidebars = {
             'extensions/extension-points/sqllab',
             'extensions/extension-points/editors',
             'extensions/extension-points/chat',
+            'extensions/extension-points/settings',
           ],
         },
         'extensions/development',
