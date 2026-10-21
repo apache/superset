@@ -52,6 +52,7 @@
  */
 import * as fs from 'fs';
 import * as path from 'path';
+import { fileURLToPath } from 'url';
 import { test, expect, Page } from '@playwright/test';
 
 const THUMBNAIL_SIZE = 512;
@@ -79,6 +80,7 @@ const TEXT_RENDERED_CHART_SELECTOR =
   '[data-test="chart-container"]:not(:has([data-test="loading-indicator"]))';
 
 /** superset-frontend root, resolved from this spec's location. */
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND_ROOT = path.resolve(__dirname, '..', '..', '..');
 
 const ECHARTS = 'plugins/plugin-chart-echarts/src';
