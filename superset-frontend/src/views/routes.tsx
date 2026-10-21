@@ -23,7 +23,7 @@ import { lazyWithRetry } from 'src/utils/lazyWithRetry';
 import { isUserAdmin } from 'src/dashboard/util/permissionUtils';
 import getBootstrapData from 'src/utils/getBootstrapData';
 import { stripAppRoot } from 'src/utils/navigationUtils';
-import { getPages } from 'src/core/pages';
+import { findPageByPath } from 'src/core/pages';
 import { RoutePaths } from './routePaths';
 
 // not lazy loaded since this is the home page.
@@ -367,13 +367,13 @@ export const isFrontendRoute = (path?: string): boolean => {
     if (frontEndRoutes[basePath]) {
       return true;
     }
-    // Extension pages are keyed in the table by their parameterised path, so
-    // a concrete URL never matches it. They are client-side routes all the
-    // same, and without this the menu would full-page-reload to reach one.
-    // Read live: extensions register long after this module is evaluated.
-    return getPages().some(
-      page => basePath === page.path || basePath.startsWith(`${page.path}/`),
-    );
+    // Extension pages sit behind a catch-all, so a concrete URL never matches
+    // the route table. They are client-side routes all the same, and without
+    // this the menu would full-page-reload to reach one. Asked of the
+    // registry rather than re-derived here, so there is one definition of
+    // which paths a page owns. Read live: extensions register long after
+    // this module is evaluated.
+    return findPageByPath(basePath) !== undefined;
   }
   return false;
 };

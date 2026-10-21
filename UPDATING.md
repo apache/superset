@@ -33,15 +33,17 @@ assists people when migrating to a new version.
   computes the desired combined value. This change does not restore result-aggregation
   parity between exports and the browser.
 
-- **`@superset-ui/core` is now a shared Module Federation singleton for
-  extensions.** An extension that bundled its own copy previously got that
-  copy; it now resolves to the host's. This is what makes `SupersetClient`
-  usable from an extension -- including CSRF handling on mutations -- and what
-  keeps the registries in that package, which hold state in module-level
-  closures, from silently splitting in two. Extensions behind
-  `ENABLE_EXTENSIONS` that relied on bundling a different version of
-  `@superset-ui/core` should be rebuilt and tested against the host's version.
-  Webpack emits a version-mismatch warning at runtime rather than failing.
+- **`@superset-ui/core` is now offered to extensions through Module
+  Federation.** The host provides it in the share scope and
+  `superset-extensions init` declares it, so a newly scaffolded extension
+  resolves it to the host's copy. That is what makes `SupersetClient` usable
+  from an extension -- a bundled copy is never configured, so calls through it
+  go out without a CSRF token -- and what keeps the registries in that
+  package, which hold state in module-level closures, from silently splitting
+  in two. An extension built before this keeps bundling its own copy and is
+  unaffected; to use the host's it must add `@superset-ui/core` to the
+  `shared` block of its own webpack config, since Module Federation consumes
+  the share scope only for modules the remote declares.
 
 - **Impala SQL Lab stops no longer call the coordinator's HTTP cancel.** A SQL
   Lab stop on Impala is delivered to the worker that is polling the query, which

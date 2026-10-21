@@ -23,7 +23,6 @@ import { t } from '@apache-superset/core/translation';
 import { Loading } from '@superset-ui/core/components';
 import { findPageByPath, resolvePage, usePages } from 'src/core/pages';
 import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
-import { stripAppRoot } from 'src/utils/navigationUtils';
 import { ErrorAlert } from 'src/components/ErrorMessage/ErrorAlert';
 
 /**
@@ -59,7 +58,10 @@ export default function ExtensionPage() {
     };
   }, []);
 
-  const page = findPageByPath(stripAppRoot(pathname));
+  // `useLocation` reports a path the router has already stripped of the app
+  // root; stripping again would eat a real first segment wherever a page
+  // path begins with the same one.
+  const page = findPageByPath(pathname);
 
   if (page && !page.permitted) {
     // The server has already refused a cold load of this path with 403; this

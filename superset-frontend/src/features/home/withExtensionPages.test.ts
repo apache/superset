@@ -71,3 +71,18 @@ test('a page whose permission the server did not report is shown', () => {
 test('the host menu is returned untouched when nothing is contributed', () => {
   expect(withExtensionPages(menu as never, [])).toBe(menu);
 });
+
+test('a page labelled like a host entry does not collide with its key', () => {
+  // `name` is the React key. The label is the extension author's to choose,
+  // so a page labelled "Charts" would duplicate the host's own entry key.
+  const result = withExtensionPages(
+    [{ label: 'Charts', name: 'Charts', url: '/chart/list/' }] as never,
+    [page({ nav: { label: 'Charts' }, path: '/review-charts' })],
+  );
+
+  expect(result[1]).toMatchObject({ label: 'Charts', url: '/review-charts' });
+  expect(result.map(item => (item as { name: string }).name)).toEqual([
+    'Charts',
+    'extension:/review-charts',
+  ]);
+});

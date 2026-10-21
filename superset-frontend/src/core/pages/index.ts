@@ -44,7 +44,6 @@ import type { pages as pagesApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
 import { ErrorBoundary } from 'src/components/ErrorBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
-import { stripAppRoot } from 'src/utils/navigationUtils';
 import { Disposable } from '../models';
 import { createEventEmitter } from '../utils';
 
@@ -194,7 +193,15 @@ export const usePages = (): ResolvedPage[] =>
 
 /** The page registered for a path, or undefined when nothing claims it. */
 export const findPageByPath = (path: string): ResolvedPage | undefined =>
-  snapshot.find(page => page.path === path || path.startsWith(`${page.path}/`));
+  // Longest match, not the first registered. `/reports` and
+  // `/reports/archive` can both claim `/reports/archive`, and taking the
+  // first leaves the deeper page unreachable whenever it happens to be
+  // registered second -- which is load order, not anything an author
+  // controls. The server resolves the same way, because Werkzeug prefers the
+  // rule with more static segments.
+  snapshot
+    .filter(page => path === page.path || path.startsWith(`${page.path}/`))
+    .sort((a, b) => b.path.length - a.path.length)[0];
 
 /**
  * The root path of the page currently rendering.
@@ -221,7 +228,11 @@ export const useSubPath: typeof pagesApi.useSubPath = () => {
   if (!root) {
     return '/';
   }
-  const stripped = stripAppRoot(pathname);
+  // `useLocation` reports a path the router has already stripped of the app
+  // root, so stripping again is wrong rather than merely redundant: it would
+  // eat a real first segment wherever a page path happens to begin with the
+  // same one, leaving the page unable to read its own sub-path.
+  const stripped = pathname;
   const sub = stripped.startsWith(root) ? stripped.slice(root.length) : '';
   return sub.startsWith('/') ? sub : `/${sub}`;
 };

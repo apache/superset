@@ -19,6 +19,7 @@
 
 import React from 'react';
 import { logging } from '@apache-superset/core/utils';
+import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import {
   findPageByPath,
   getPages,
@@ -236,7 +237,45 @@ test('a path no extension claims matches nothing', () => {
 });
 
 test('resolvePage falls back to a placeholder for an unknown id', () => {
-  expect(resolvePage('acme.tools:/missing')).toBeTruthy();
+  // `toBeTruthy` passed for any element at all, including the real page --
+  // it asserted nothing about the fallback it names.
+  const element = resolvePage('acme.tools:/missing');
+
+  expect(element.type).toBe(ExtensionPlaceholder);
+  expect(element.props).toMatchObject({ id: 'acme.tools:/missing' });
+});
+
+test('resolvePage renders a registered page under an error boundary', () => {
+  disposables.push(
+    register('acme.tools', { path: '/review-queue', name: 'Queue' }),
+  );
+
+  const element = resolvePage('acme.tools:/review-queue');
+
+  expect(element.type).not.toBe(ExtensionPlaceholder);
+  // Keyed so a page that throws does not leave its error over the next one.
+  expect(element.key).toBe('acme.tools:/review-queue');
+});
+
+test('the deepest page claiming a path wins, whatever the registration order', () => {
+  // `/reports` and `/reports/archive` both claim `/reports/archive`. Taking
+  // the first registered would leave the deeper page unreachable, decided by
+  // load order rather than by anything its author controls.
+  disposables.push(
+    register('acme.tools', { path: '/reports', name: 'Reports' }, [
+      { path: '/reports' },
+      { path: '/reports/archive' },
+    ]),
+    register('acme.tools', { path: '/reports/archive', name: 'Archive' }, [
+      { path: '/reports' },
+      { path: '/reports/archive' },
+    ]),
+  );
+
+  expect(findPageByPath('/reports')?.name).toBe('Reports');
+  expect(findPageByPath('/reports/archive')?.name).toBe('Archive');
+  expect(findPageByPath('/reports/archive/2024')?.name).toBe('Archive');
+  expect(findPageByPath('/reports/other')?.name).toBe('Reports');
 });
 
 test('a page the user may not open is still registered, marked unpermitted', () => {
