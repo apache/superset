@@ -101,7 +101,7 @@ export function transformCanPreview(
  * it: PostgreSQL's `TEXT[]`, and the `ARRAY<...>` / `ARRAY(...)` / `Array(...)`
  * spellings.
  */
-const ARRAY_TYPE_RE = /(\[\s*\d*\s*\])+\s*$|^\s*ARRAY\b/i;
+const ARRAY_TYPE_RE = /(\[[^\S\r\n]*[0-9]*[^\S\r\n]*\])+\s*$|^\s*ARRAY\b/i;
 
 /**
  * Whether the mapping will actually mirror anything.
