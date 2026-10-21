@@ -19,7 +19,9 @@
 
 import { withExtensionPages, withExtensionSettings } from './Menu';
 
-const menu = [{ label: 'Dashboards', name: 'Dashboards', url: '/dashboard/list/' }];
+const menu = [
+  { label: 'Dashboards', name: 'Dashboards', url: '/dashboard/list/' },
+];
 
 const page = (over: Record<string, unknown> = {}) => ({
   name: 'Review queue',
@@ -93,7 +95,9 @@ describe('withExtensionSettings', () => {
     {
       name: 'Manage',
       label: 'Manage',
-      childs: [{ label: 'CSS Templates', name: 'CssTemplate', url: '/csstemplate/' }],
+      childs: [
+        { label: 'CSS Templates', name: 'CssTemplate', url: '/csstemplate/' },
+      ],
     },
     { name: 'Security', label: 'Security', childs: [] },
   ];
@@ -139,7 +143,10 @@ describe('withExtensionSettings', () => {
 
   test('a page the user may not open is left out', () => {
     const result = withExtensionSettings(settings as never, [
-      page({ nav: { label: 'Change review', category: 'Manage' }, permitted: false }),
+      page({
+        nav: { label: 'Change review', category: 'Manage' },
+        permitted: false,
+      }),
     ]);
 
     expect(result.find(g => g.name === 'Manage')?.childs).toHaveLength(1);
