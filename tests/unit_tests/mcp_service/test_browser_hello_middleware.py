@@ -27,7 +27,7 @@ from starlette.applications import Starlette
 from starlette.middleware import Middleware
 from starlette.requests import Request
 from starlette.responses import PlainTextResponse, Response
-from starlette.routing import Route
+from starlette.routing import Mount, Route
 from starlette.testclient import TestClient
 
 from superset.mcp_service.jwt_verifier import BrowserHelloMiddleware
@@ -55,18 +55,21 @@ async def _route(request: Request) -> Response:
     return PlainTextResponse(f"route {request.url.path}")
 
 
-def _build_client(mcp_path: str | None = None) -> TestClient:
+def _build_app(mcp_path: str | None = None) -> Starlette:
     routes = [Route(mcp_path or "/mcp", _mcp_endpoint, methods=["GET", "POST"])] + [
         Route(path, _route, methods=["GET", "HEAD"])
         for path in PASSTHROUGH_PATHS_TO_TEST
     ]
-    app = Starlette(
+    return Starlette(
         routes=routes,
         middleware=[
             Middleware(BrowserHelloMiddleware, auth_enabled=True, mcp_path=mcp_path)
         ],
     )
-    return TestClient(app)
+
+
+def _build_client(mcp_path: str | None = None) -> TestClient:
+    return TestClient(_build_app(mcp_path))
 
 
 def test_browser_get_on_mcp_endpoint_returns_hello_page() -> None:
@@ -112,3 +115,12 @@ def test_custom_mcp_path_is_respected() -> None:
     )
     response = client.get("/authorize", headers={"accept": BROWSER_ACCEPT})
     assert response.text == "route /authorize"
+
+
+def test_app_mounted_under_prefix_matches_route_path() -> None:
+    client = TestClient(Starlette(routes=[Mount("/prefix", app=_build_app())]))
+    response = client.get("/prefix/mcp", headers={"accept": BROWSER_ACCEPT})
+    assert response.status_code == 200
+    assert HELLO_MARKER in response.content
+    response = client.get("/prefix/authorize", headers={"accept": BROWSER_ACCEPT})
+    assert response.text == "route /prefix/authorize"

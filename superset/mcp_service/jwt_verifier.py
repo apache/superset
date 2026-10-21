@@ -43,6 +43,7 @@ from fastmcp.server.auth.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from mcp.server.auth.middleware.auth_context import AuthContextMiddleware
 from mcp.server.auth.middleware.bearer_auth import BearerAuthBackend
+from starlette._utils import get_route_path
 from starlette.authentication import AuthenticationError
 from starlette.middleware import Middleware
 from starlette.middleware.authentication import AuthenticationMiddleware
@@ -331,7 +332,9 @@ class BrowserHelloMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         if (
             request.method in ("GET", "HEAD")
-            and _normalize_path(request.url.path) == self._mcp_path
+            # Match BrowserHelloMiddleware only on _mcp_path, to not override
+            # e.g. /authorize endpoint
+            and _normalize_path(get_route_path(request.scope)) == self._mcp_path
             and _prefers_browser_html(request)
         ):
             return HTMLResponse(content=self._html, status_code=200)
