@@ -19,7 +19,9 @@
 
 import importlib
 import inspect
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
+from types import ModuleType
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -40,7 +42,7 @@ from superset.models.slice import Slice
 from superset.subjects.models import chart_editors, chart_viewers, Subject
 
 # The package re-exports the tool function under the module's name.
-tool_module = importlib.import_module(
+tool_module: ModuleType = importlib.import_module(
     "superset.mcp_service.dashboard.tool.generate_dashboard"
 )
 
@@ -117,7 +119,9 @@ async def test_generate_dashboard_chart_access_relationship_reads(
             is_valid=True, dataset_id=1, dataset_name="allowed", warnings=[], error=None
         ),
     )
-    build_layout = tool_module._create_dashboard_layout
+    build_layout: Callable[[list[Any]], dict[str, Any]] = (
+        tool_module._create_dashboard_layout
+    )
 
     def layout_then_stop(charts: list[Slice]) -> None:
         """Read the charts as the real layout step does, then stop the tool."""
@@ -164,7 +168,7 @@ async def test_generate_dashboard_chart_access_relationship_reads(
 
     # Admins never read the relationships; editors read only editors; viewers
     # and the denied caller read editors and viewers once per checked chart.
-    per_chart = {"admin": 0, "editor": 1, "viewer": 2, "denied": 2}[access]
+    per_chart: int = {"admin": 0, "editor": 1, "viewer": 2, "denied": 2}[access]
     assert len(statements) <= per_chart * chart_count, (
         f"{chart_count} charts: {len(statements)} relationship SELECTs"
     )
