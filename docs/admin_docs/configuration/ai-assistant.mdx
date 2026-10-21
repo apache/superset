@@ -16,6 +16,10 @@ Superset ships **no model provider and talks to no model vendor by default**.
 The feature is disabled, and even when enabled it returns `404` until you point
 it at a provider you control. Nothing is sent anywhere until you configure it.
 
+Conversation ages show time since the last activity. The API includes an explicit
+UTC offset in conversation and message timestamps so browsers in different time
+zones interpret the same instant.
+
 ## Enabling it
 
 Two things are required: the feature flag, and a provider.

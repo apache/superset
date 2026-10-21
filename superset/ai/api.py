@@ -28,6 +28,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import Generator
+from datetime import timezone
 from typing import Any, cast
 
 from flask import current_app, request, Response, stream_with_context
@@ -957,15 +958,19 @@ def _tail_event_bus(run_id: str) -> Generator[str, None, None]:
 
 
 def _thread_dict(thread: Any) -> dict[str, Any]:
-    """Serialise a conversation for the API."""
+    """Serialise server-local audit timestamps as explicit UTC for the API."""
     return {
         "uuid": str(thread.uuid),
         "title": thread.title,
         "status": thread.status,
         "agent_key": thread.agent_key,
         "message_count": thread.message_count,
-        "created_on": thread.created_on.isoformat() if thread.created_on else None,
-        "changed_on": thread.changed_on.isoformat() if thread.changed_on else None,
+        "created_on": thread.created_on.astimezone(timezone.utc).isoformat()
+        if thread.created_on
+        else None,
+        "changed_on": thread.changed_on.astimezone(timezone.utc).isoformat()
+        if thread.changed_on
+        else None,
     }
 
 
@@ -983,7 +988,9 @@ def _message_dict(message: Any, liked: bool | None = None) -> dict[str, Any]:
         "role": message.role,
         "content": message.content,
         "status": message.status,
-        "created_on": message.created_on.isoformat() if message.created_on else None,
+        "created_on": message.created_on.astimezone(timezone.utc).isoformat()
+        if message.created_on
+        else None,
         "extra": message.extra,
         "liked": liked,
     }
