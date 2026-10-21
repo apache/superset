@@ -31,7 +31,7 @@ export function isGrainedLevel(
   column: QueryFormColumn,
   temporalColumnsLookup: Record<string, boolean> | undefined,
   granularitySqla: string | undefined,
-): column is string {
+): boolean {
   return (
     isPhysicalColumn(column) &&
     (!!temporalColumnsLookup?.[column] || granularitySqla === column)
@@ -50,6 +50,7 @@ function applyTimeGrain(
   const mapped = columns.map(column => {
     if (
       timeGrain &&
+      isPhysicalColumn(column) &&
       isGrainedLevel(
         column,
         formData.temporal_columns_lookup,
