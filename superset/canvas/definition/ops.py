@@ -53,7 +53,10 @@ from superset.canvas.definition.schemas import (
     SetSettingsOp,
     SETTINGS_ID,
 )
-from superset.canvas.definition.validation import normalize_definition
+from superset.canvas.definition.validation import (
+    DefinitionValidationError,
+    normalize_definition,
+)
 
 
 class FieldGroup(str, Enum):
@@ -406,13 +409,29 @@ def apply_operations(
     # validated where they were written; the rest of the canvas keeps its
     # stored form even if a widget changed since.
     touches = [touch for op in applied for touch in op.touched]
-    return (
-        normalize_definition(
+    try:
+        definition = normalize_definition(
             applier.canvas,
             widget_types,
             resolver,
             strict_nodes={touch.node_id for touch in touches},
             props_nodes={t.node_id for t in touches if t.group == FieldGroup.PROPS},
-        ),
-        applied,
-    )
+        )
+    except DefinitionValidationError as ex:
+        ex.operation = _culprit(ex, applied)
+        raise
+    return definition, applied
+
+
+def _culprit(
+    error: DefinitionValidationError, applied: list[AppliedOperation]
+) -> int | None:
+    """The last operation that touched the node of the first issue."""
+    parts = error.issues[0].path.split("/") if error.issues else []
+    if len(parts) < 3 or parts[1] != "nodes":
+        return None
+    node_id = parts[2].replace("~1", "/").replace("~0", "~")
+    for index in reversed(range(len(applied))):
+        if any(touch.node_id == node_id for touch in applied[index].touched):
+            return index
+    return None

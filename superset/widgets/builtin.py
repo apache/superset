@@ -357,7 +357,7 @@ class FilterBar(Widget):
 class Tabs(Widget):
     controls_class = TabsControls
     behavior = WidgetBehavior(container=True, accepted_children=frozenset({"tab"}))
-    ui = WidgetUi(default_size=(24, 12))
+    ui = WidgetUi(default_size=(24, 12), chrome_rows=1)
 
 
 @widget(

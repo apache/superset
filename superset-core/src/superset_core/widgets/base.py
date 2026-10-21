@@ -60,6 +60,41 @@ logger = logging.getLogger(__name__)
 PropsMigrator = Callable[[dict[str, Any]], dict[str, Any]]
 
 
+def _unknown_keys(
+    model: BaseModel, raw: Any, loc: tuple[str, ...] = ()
+) -> list[dict[str, Any]]:
+    """
+    Keys in ``raw`` that ``model``, as parsed from it, doesn't declare.
+
+    Pydantic ignores undeclared fields by default, so a misspelled or invented
+    prop would be stored and silently do nothing.
+    """
+    if not isinstance(raw, dict) or model.model_config.get("extra") == "allow":
+        return []
+    fields = type(model).model_fields
+    known = {name: name for name in fields} | {
+        field.alias: name for name, field in fields.items() if field.alias
+    }
+    errors = [
+        {"loc": [*loc, key], "message": "Unknown field"}
+        for key in raw
+        if key not in known
+    ]
+    for key, value in raw.items():
+        if key not in known:
+            continue
+        parsed = getattr(model, known[key])
+        if isinstance(parsed, BaseModel):
+            errors.extend(_unknown_keys(parsed, value, (*loc, key)))
+        elif isinstance(parsed, list) and isinstance(value, list):
+            for index, (item, raw_item) in enumerate(zip(parsed, value, strict=False)):
+                if isinstance(item, BaseModel):
+                    errors.extend(
+                        _unknown_keys(item, raw_item, (*loc, key, str(index)))
+                    )
+    return errors
+
+
 class PropsVersionError(ValueError):
     """Stored props this server can't bring to the widget's schema version."""
 
@@ -206,7 +241,7 @@ class Widget:
         if control_values is None:
             return []
         try:
-            cls.controls_class.model_validate(control_values)
+            parsed = cls.controls_class.model_validate(control_values)
         except ValidationError as ex:
             return [
                 {
@@ -215,4 +250,4 @@ class Widget:
                 }
                 for error in ex.errors()
             ]
-        return []
+        return _unknown_keys(parsed, control_values)
