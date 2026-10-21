@@ -57,3 +57,25 @@ test('echarts forecast should add label map to verbose map correctly', () => {
       'Total Count, User Account, Testing count, User Account, 1 week ago',
   });
 });
+
+test('replaces a multi-word label as a whole phrase, not word-by-word', () => {
+  // A time-compare label like "1 week ago" is itself a verboseMap entry
+  // here. Splitting the compound key on spaces (the previous approach)
+  // would check "1", "week" and "ago" separately against the full label
+  // and never match it.
+  const result = addLabelMapToVerboseMap(
+    {
+      'testing_count, 1 week ago': ['testing_count', '1 week ago'],
+    },
+    {
+      testing_count: 'Testing count',
+      '1 week ago': '1 week ago (time shift)',
+    },
+  );
+
+  expect(result).toEqual({
+    testing_count: 'Testing count',
+    '1 week ago': '1 week ago (time shift)',
+    'testing_count, 1 week ago': 'Testing count, 1 week ago (time shift)',
+  });
+});

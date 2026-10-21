@@ -43,50 +43,6 @@ const escapeRegex = (value: string) =>
   value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
- * Replaces a label inside a compound key only if it appears as a complete
- * word/token and contains at least one alphabetic character.
- *
- * @param key - The source string (typically a compound field name)
- * @param label - The label to search for as a standalone token
- * @param replacement - The human-readable value to replace the label with
- * @returns The transformed key if a valid match exists, otherwise the original key
- */
-const replaceLabelIfExists = (
-  key: string,
-  label: string,
-  replacement: string,
-) => {
-  /**
-   * Logic:
-   *
-   * This function is intentionally stricter than a simple substring replace:
-   * - The label must NOT be part of a larger word (e.g. "account" will NOT match
-   *   "testing_account").
-   * - Underscores (`_`) are treated as part of the word.
-   * - Numeric-only matches are ignored (e.g. "12" will NOT match "123").
-   *
-   * If the label is found, only the matched portion is replaced; otherwise,
-   * the original key is returned unchanged.
-   *
-   * Examples:
-   * - replaceLabelIfExists("testing_account 123", "testing_account", "Account")
-   *   → "Account 123"
-   * - replaceLabelIfExists("testing_account 123", "account", "Account")
-   *   → "testing_account 123"
-   * - replaceLabelIfExists("123", "12", "X")
-   *   → "123"
-   */
-
-  if (key === label) {
-    return replacement;
-  }
-
-  const escapedLabel = escapeRegex(label);
-  const regex = new RegExp(`(?<!\\w)${escapedLabel}(?!\\w)`, 'g');
-  return regex.test(key) ? key.replace(regex, replacement) : key;
-};
-
-/**
  * Enriches the verbose map by creating human-readable versions of compound field names.
  *
  * @param label_map — a mapping of compound keys to arrays of component labels (e.g., { "revenue_total_usd": ["revenue", "total", "usd"] })
@@ -105,12 +61,19 @@ export const addLabelMapToVerboseMap = (
    * `verboseMap`, producing display-friendly versions of the compound keys.
    *
    * Replacement behavior:
-   * - Each compound key is processed word-by-word (split on spaces).
    * - Only labels that exist in `verboseMap` are considered.
-   * - Each word is replaced at most once, using `replaceLabelIfExists`, which:
-   *   - Matches only full tokens (no partial matches).
-   *   - Treats underscores (`_`) as part of a token.
-   *   - Is case-sensitive.
+   * - Every match is found in a single pass over the whole key, using one
+   *   combined regex alternation of all its labels (longest first, so a
+   *   multi-word label like "1 week ago" is matched as a whole phrase
+   *   rather than, say, just "ago"). Scanning word-by-word instead (the
+   *   previous approach) could never match a multi-word label at all,
+   *   since no single space-delimited word equals the whole phrase.
+   *   Matching everything in one pass over the original string also means
+   *   a label's own replacement text is never re-scanned by a later label
+   *   in the same key.
+   * - Each match must be a complete token: it must NOT be part of a larger
+   *   word (e.g. "account" will NOT match "testing_account"), with
+   *   underscores (`_`) treated as part of the word. Case-sensitive.
    * - Labels not found in `verboseMap` are left unchanged.
    *
    * The original `verboseMap` is preserved and extended with the newly generated
@@ -147,24 +110,20 @@ export const addLabelMapToVerboseMap = (
           {},
         );
 
-      const newKey = key
-        .split(' ')
-        .map(word => {
-          for (const label of Object.keys(newLabelMap)) {
-            const newWord = replaceLabelIfExists(
-              word,
-              label,
-              newLabelMap[label],
+      const labelsToReplace = Object.keys(newLabelMap).sort(
+        (a, b) => b.length - a.length,
+      );
+
+      const newKey =
+        labelsToReplace.length === 0
+          ? key
+          : key.replace(
+              new RegExp(
+                `(?<!\\w)(?:${labelsToReplace.map(escapeRegex).join('|')})(?!\\w)`,
+                'g',
+              ),
+              matched => newLabelMap[matched],
             );
-
-            if (newWord !== word) {
-              return newWord;
-            }
-          }
-
-          return word;
-        })
-        .join(' ');
 
       newVerboseMap[key] = newKey;
     }
