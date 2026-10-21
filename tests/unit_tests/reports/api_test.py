@@ -17,13 +17,46 @@
 from typing import Any
 from unittest.mock import patch
 
+import pytest
 import rison
 
+from superset.reports.api import ReportScheduleRestApi
+from superset.utils import json
 from superset.utils.slack import (
     SlackChannelListingClientError,
     SlackChannelListingError,
 )
 from tests.unit_tests.conftest import with_feature_flags
+
+
+@pytest.mark.parametrize("payload", [[], None])
+@with_feature_flags(ALERT_REPORTS=True)
+def test_configuration_rejects_non_object_json(
+    payload: Any, mocker: Any, client: Any, full_api_access: None
+) -> None:
+    """Malformed configuration bodies produce validation errors, not server errors."""
+    mocker.patch("superset.reports.api.security_manager.is_admin", return_value=True)
+    update = mocker.patch("superset.reports.api.UpdateReportConfigCommand")
+
+    response = client.put(
+        "/api/v1/report/configuration/",
+        data=json.dumps(payload),
+        content_type="application/json",
+    )
+
+    assert response.status_code == 400
+    update.assert_not_called()
+
+
+def test_executor_related_user_search_requires_admin(mocker: Any) -> None:
+    """The executor picker must not expose user e-mails to report readers."""
+    api = object.__new__(ReportScheduleRestApi)
+    forbidden = mocker.patch.object(api, "response_403", return_value="forbidden")
+    mocker.patch("superset.reports.api.security_manager.is_admin", return_value=False)
+
+    assert api.ensure_access_list_write_access("run_as") == "forbidden"
+    assert api.ensure_access_list_write_access("run_alert_query_as") == "forbidden"
+    assert forbidden.call_count == 2
 
 
 @with_feature_flags(ALERT_REPORTS=True)

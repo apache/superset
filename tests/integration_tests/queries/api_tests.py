@@ -549,7 +549,6 @@ class TestQueryApi(SupersetTestCase):
         data = json.loads(rv.data.decode("utf-8"))
         assert data["message"] == "Query with client_id foo2 not found"
 
-    # @mock.patch("superset.sql_lab.cancel_query")
     def test_stop_query(self):
         """
         Handles stop query when the DB engine spec does not
@@ -566,6 +565,7 @@ class TestQueryApi(SupersetTestCase):
             select_sql="SELECT col1, col2 from table1",
             executed_sql="SELECT col1, col2 from table1 LIMIT 100",
             changed_on=datetime.utcnow() - timedelta(days=1),
+            status=QueryStatus.RUNNING,
         )
         self.login(ADMIN_USERNAME)
         rv = self.client.post(
@@ -579,3 +579,30 @@ class TestQueryApi(SupersetTestCase):
         assert data["result"] == "OK"
         db.session.delete(query1)
         db.session.commit()
+
+    def test_stop_query_already_finished(self) -> None:
+        """Return the completed query rather than reporting a successful stop."""
+        self.login(ADMIN_USERNAME)
+        query = self.insert_query(
+            get_example_database().id,
+            self.get_user("admin").id,
+            "done-stop",
+            sql="SELECT 1",
+            status=QueryStatus.SUCCESS,
+        )
+        try:
+            response = self.client.post(
+                "/api/v1/query/stop",
+                json={"client_id": query.client_id},
+            )
+
+            assert response.status_code == 422
+            assert response.json == {
+                "message": "Could not cancel query",
+                "query": query.to_dict(),
+            }
+            db.session.refresh(query)
+            assert query.status == QueryStatus.SUCCESS
+        finally:
+            db.session.delete(query)
+            db.session.commit()

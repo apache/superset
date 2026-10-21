@@ -48,6 +48,7 @@ import {
   normalizeColumnConfigKeys,
   getKnownColumnConfigKeys,
   resolveHeaderGroups,
+  toTotalsAggregate,
 } from '@superset-ui/chart-controls';
 import isEqualColumns from './utils/isEqualColumns';
 import { BASIC_COLOR_FORMATTERS_ROW_KEY } from './consts';
@@ -614,6 +615,7 @@ const transformProps = (
     header_groups: headerGroups = [],
     allow_rearrange_columns: allowRearrangeColumns = true,
     allow_render_html: allowRenderHtml = true,
+    json_in_cell: jsonInCell = false,
     zebra_striping: zebraStriping = false,
   } = formData;
 
@@ -959,6 +961,7 @@ const transformProps = (
     emitCrossFilters,
     allowRearrangeColumns,
     allowRenderHtml,
+    jsonInCell: Boolean(jsonInCell),
     slice_id,
     serverPagination,
     rowCount,
@@ -973,6 +976,7 @@ const transformProps = (
     isUsingTimeComparison,
     colorPositiveNegative,
     totals,
+    totalsAggregate: toTotalsAggregate(formData.totals_aggregate),
     showTotals,
     columnColorFormatters,
     basicColorColumnFormatters,

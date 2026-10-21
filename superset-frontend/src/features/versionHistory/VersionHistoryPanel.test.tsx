@@ -21,6 +21,7 @@ import {
   screen,
   selectOption,
   userEvent,
+  within,
 } from 'spec/helpers/testing-library';
 import type {
   ActivityRecord,
@@ -250,9 +251,9 @@ test('previewing a change row in an older dashboard group calls onPreview', asyn
   expect(props.onPreview).toHaveBeenCalledWith(older);
 });
 
-test('an active search never mis-tags the newest match as Current', () => {
+test('an active search never treats the newest match as the live version', async () => {
   // The search filtered out the true newest save; the visible newest match
-  // is an older version and must not be treated as Current.
+  // is an older version and keeps the actions of a historical save.
   const trueNewest = group({ transactionId: 99, versionUuid: 'v-99' });
   const olderMatch = group({ transactionId: 5, versionUuid: 'v-5' });
   const props = defaultProps([olderMatch]);
@@ -260,18 +261,83 @@ test('an active search never mis-tags the newest match as Current', () => {
   props.activity = activity([olderMatch], { newestGroup: trueNewest });
   render(<VersionHistoryPanel {...props} />);
 
-  expect(screen.queryByText('Current')).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('button', { name: 'More actions' }));
+  expect(await screen.findByText('Restore this version')).toBeInTheDocument();
 });
 
-test('the newest save shows a Current tag and older saves do not', () => {
+test('the live save is a dated row without a Current tag, still not restorable', async () => {
+  // The design marks the current state only in the "Current version"
+  // section; a "Current" tag on the newest dated row duplicated it. The
+  // newest save is still the live state: no restore, only Open as new.
   const { newest, older } = dashboardPair();
   const props = defaultProps([newest, older], 'dashboard');
   render(<VersionHistoryPanel {...props} />);
 
-  expect(screen.getAllByText('Current')).toHaveLength(1);
+  expect(screen.queryByText('Current')).not.toBeInTheDocument();
   const groups = screen.getAllByTestId('version-history-save-group');
-  expect(groups[0]).toHaveTextContent('Current');
-  expect(groups[1]).not.toHaveTextContent('Current');
+  expect(groups).toHaveLength(2);
+  expect(within(groups[0]).getByText('Latest save')).toBeVisible();
+  expect(within(groups[1]).queryByText('Latest save')).not.toBeInTheDocument();
+  await userEvent.click(
+    screen.getAllByRole('button', { name: 'More actions' })[0],
+  );
+  expect(await screen.findByText('Open as new dashboard')).toBeInTheDocument();
+  expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+});
+
+test('with a Current version section, it alone marks the current state', async () => {
+  const { newest, older } = dashboardPair();
+  const props = defaultProps([newest, older], 'dashboard');
+  const groupBackgrounds = () =>
+    screen
+      .getAllByTestId('version-history-save-group')
+      .map(el => getComputedStyle(el).backgroundColor);
+
+  const { rerender } = render(<VersionHistoryPanel {...props} />);
+  const [activeBg, restingBg] = groupBackgrounds();
+  expect(activeBg).not.toBe(restingBg);
+  const currentHeader = screen.getByRole('button', { current: true });
+  currentHeader.focus();
+  expect(currentHeader).toHaveFocus();
+  expect(currentHeader).toHaveAttribute('tabindex', '0');
+  expect(
+    screen.getAllByTestId('version-history-save-group')[0],
+  ).not.toHaveAttribute('aria-current');
+
+  // Unsaved edits show the section; the live dated row is no longer lit.
+  const sessionEntries = [
+    {
+      label: 'Unsaved dashboard edits',
+      controlName: 'dashboard',
+      ts: 0,
+      user: null,
+    },
+  ];
+  rerender(<VersionHistoryPanel {...props} sessionEntries={sessionEntries} />);
+  expect(
+    screen.getByRole('button', { name: 'Current version' }),
+  ).toBeInTheDocument();
+  expect(groupBackgrounds()).toEqual([restingBg, restingBg]);
+  expect(screen.queryByText('Current')).not.toBeInTheDocument();
+  expect(screen.getByText('Latest save')).toBeVisible();
+  expect(
+    screen.queryByRole('button', { current: true }),
+  ).not.toBeInTheDocument();
+  expect(
+    screen
+      .getAllByTestId('version-history-save-group')
+      .filter(el => el.hasAttribute('aria-current')),
+  ).toHaveLength(0);
+
+  // A preview still moves the single highlight to the previewed save.
+  rerender(
+    <VersionHistoryPanel
+      {...props}
+      sessionEntries={sessionEntries}
+      previewedTransactionId={older.transactionId}
+    />,
+  );
+  expect(groupBackgrounds()).toEqual([restingBg, activeBg]);
 });
 
 test('previewing a change row in the current version exits an active preview', async () => {
@@ -373,6 +439,33 @@ test('the include filter calls back with the selected scope', async () => {
   expect(props.onIncludeChange).toHaveBeenCalledWith('related');
 });
 
+test.each([
+  ['chart', 'This chart only'],
+  ['dashboard', 'This dashboard only'],
+] as const)(
+  'the %s panel stacks search and scope filter, each on a full-width row',
+  (entityType, selfScopeLabel) => {
+    // Half of the 320px panel is too narrow for the scope labels in the
+    // control and in its option list (the list matches the control's
+    // width). jsdom has no layout, so this pins the stacking that gives each
+    // control the full row; truncation itself is checked visually.
+    const props = defaultProps([group()], entityType);
+    props.include = 'self';
+    render(<VersionHistoryPanel {...props} />);
+
+    const controls = screen.getByTestId('version-history-controls');
+    expect(controls).toContainElement(
+      screen.getByRole('textbox', { name: 'Search actions' }),
+    );
+    expect(controls).toContainElement(
+      screen.getByRole('combobox', { name: 'Filter version history' }),
+    );
+    expect(controls).toHaveStyleRule('flex-direction', 'column');
+    expect(controls).toHaveStyleRule('align-items', 'stretch');
+    expect(within(controls).getByTitle(selfScopeLabel)).toBeInTheDocument();
+  },
+);
+
 test('an empty timeline shows the no-history empty state', () => {
   const props = defaultProps([]);
   render(<VersionHistoryPanel {...props} />);
@@ -413,6 +506,38 @@ test('related rows link to the entity unless it was deleted', () => {
     screen.queryByRole('button', { name: 'Trend' }),
   ).not.toBeInTheDocument();
   expect(screen.getByText(/\(deleted\)/)).toBeInTheDocument();
+});
+
+test('a related row spanning several kinds of change gets a neutral linked headline', () => {
+  // Server order: newest sequence first, so the metric record leads.
+  const sales = {
+    source: 'related' as const,
+    entity_kind: 'dataset' as const,
+    entity_name: 'Sales',
+    entity_uuid: 'ds-1',
+    transaction_id: 40,
+  };
+  const props = defaultProps(
+    buildTimeline([
+      record({
+        ...sales,
+        kind: 'metric',
+        summary: 'Dataset metric changed: Sales',
+      }),
+      record({
+        ...sales,
+        kind: 'column',
+        summary: 'Dataset column changed: Sales',
+      }),
+      record({ ...sales, kind: 'field', summary: 'Dataset updated: Sales' }),
+    ]),
+  );
+  props.onOpenRelated = jest.fn();
+  render(<VersionHistoryPanel {...props} />);
+
+  expect(screen.getByRole('button', { name: 'Sales' })).toBeInTheDocument();
+  expect(screen.getByText(/Dataset updated:/)).toBeInTheDocument();
+  expect(screen.queryByText(/metric changed/)).not.toBeInTheDocument();
 });
 
 test('same-transaction related cascades roll up into one pluralized row', async () => {
