@@ -347,7 +347,7 @@ def test_detect_column_format_runs_unmodified_sql_first(
 
     captured_sql: list[str] = []
 
-    def capture_sql(sql: str, schema: str) -> pd.DataFrame:
+    def capture_sql(sql: str, catalog: str | None, schema: str) -> pd.DataFrame:
         captured_sql.append(sql)
         return sample_data
 
@@ -368,7 +368,7 @@ def test_detect_column_format_retries_with_bounded_read_on_read_limit(
 
     captured_sql: list[str] = []
 
-    def reject_then_succeed(sql: str, schema: str) -> pd.DataFrame:
+    def reject_then_succeed(sql: str, catalog: str | None, schema: str) -> pd.DataFrame:
         captured_sql.append(sql)
         if "SETTINGS" not in sql:
             raise Exception(  # noqa: TRY002
@@ -420,7 +420,7 @@ def test_detect_column_format_failed_retry_surfaces_original_error(
     rejecting in-query SETTINGS), the WARNING carries the original read-limit
     error, not the retry failure."""
 
-    def reject_both(sql: str, schema: str) -> pd.DataFrame:
+    def reject_both(sql: str, catalog: str | None, schema: str) -> pd.DataFrame:
         if "SETTINGS" in sql:
             raise Exception(  # noqa: TRY002
                 "Code: 164. DB::Exception: Cannot modify 'read_overflow_mode' "

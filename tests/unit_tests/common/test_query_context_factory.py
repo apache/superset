@@ -793,6 +793,7 @@ class TestQueryContextFactory:
         query_object.granularity = None
         query_object.from_dttm = datetime(2023, 1, 1)
         query_object.to_dttm = None
+        query_object.time_range = None
         query_object.columns = [
             {
                 "sqlExpression": "duration * 0.05",
@@ -857,6 +858,7 @@ class TestQueryContextFactory:
         query_object.granularity = None
         query_object.from_dttm = datetime(2023, 1, 1)
         query_object.to_dttm = None
+        query_object.time_range = None
         query_object.columns = [
             {
                 "sqlExpression": "duration * 0.05",
@@ -890,6 +892,7 @@ class TestQueryContextFactory:
         query_object.granularity = None
         query_object.from_dttm = datetime(2023, 1, 1)
         query_object.to_dttm = None
+        query_object.time_range = None
         query_object.columns = [
             {
                 "sqlExpression": "duration * 0.05",
@@ -924,6 +927,7 @@ class TestQueryContextFactory:
         query_object.granularity = None
         query_object.from_dttm = datetime(2023, 1, 1)
         query_object.to_dttm = None
+        query_object.time_range = None
         query_object.columns = [
             {
                 "sqlExpression": "duration * 0.05",
