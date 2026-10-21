@@ -34,7 +34,7 @@ from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
 from superset.versioning.restore import ChartPurgedDuringRestoreError, RestoreResult
 
-logger = logging.getLogger(__name__)
+logger: logging.Logger = logging.getLogger(__name__)
 
 
 class RestoreDashboardVersionCommand(BaseRestoreVersionCommand):

@@ -1015,6 +1015,7 @@ class TestDashboardRestoreConcurrentPurge(SupersetTestCase, InsertChartMixin):
             if dashboard_id is not None:
                 db.session.delete(db.session.get(Dashboard, dashboard_id))
             chart_id: int
+            leftover: Slice | None
             with skip_visibility_filter(db.session, Slice):
                 for chart_id in (kept_id, purged_id):
                     if (leftover := db.session.get(Slice, chart_id)) is not None:
