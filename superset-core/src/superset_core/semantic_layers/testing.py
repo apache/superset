@@ -132,7 +132,7 @@ class SemanticProviderConformance:
                 for item in query.filters or set()
             )
         elif case == "or":
-            assert any(isinstance(item, OrFilter) for item in query.filters or set())
+            _assert_normalized_or_witness(query)
         elif case == "order_limit":
             assert query.order
             assert query.limit is not None
@@ -189,7 +189,9 @@ class SemanticProviderConformance:
         semantic_view: SemanticView,
         semantic_capability_cases: Mapping[str, tuple[SemanticQuery, pa.Table]],
     ) -> None:
-        """Every advertised feature has its own result-level witness."""
+        """Exercise each representable advertised feature independently."""
+        if feature == SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS:
+            pytest.skip("ADHOC_COLUMN_EXPRESSIONS: no SDK query shape yet")
         if feature not in semantic_view.features:
             pytest.skip(f"Provider does not advertise {feature.value}")
         query: SemanticQuery
@@ -211,10 +213,6 @@ class SemanticProviderConformance:
             assert query.group_limit is not None
             if feature == SemanticViewFeature.GROUP_OTHERS:
                 assert query.group_limit.group_others
-        elif feature == SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS:
-            assert any(
-                isinstance(member, AdhocExpression) for member in query.dimensions
-            ), "ADHOC_COLUMN_EXPRESSIONS requires an AdhocExpression dimension"
         elif feature == SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY:
             assert any(
                 isinstance(member, AdhocExpression) for member, _ in query.order or []
@@ -237,7 +235,9 @@ class SemanticProviderConformance:
         semantic_change_catalog()
         second: SemanticView = semantic_make_view("generation-b")
         after: tuple[set[str], set[tuple[str, str | None]]] = _catalog(second)
-        assert after != before
+        assert before[0] <= after[0], "Generation change must retain existing members"
+        assert before[1] <= after[1], "Generation change must retain existing members"
+        assert after != before, "Catalog change fixture must add a member"
         assert second.metadata_cache_token in {None, "generation-b"}
         # A captured view must never claim a later discovery token.
         assert first.metadata_cache_token in {None, "generation-a"}
@@ -266,6 +266,42 @@ class SemanticProviderConformance:
             check=False,
         )
         assert completed.returncode == 0, completed.stdout + completed.stderr
+
+
+def _assert_normalized_or_witness(query: SemanticQuery) -> None:
+    """Require the host's mixed-IN/NULL group and an outer comparison."""
+    groups: list[OrFilter] = [
+        item for item in query.filters or set() if isinstance(item, OrFilter)
+    ]
+    assert len(groups) == 1, "or fixture requires one normalized IN/NULL group"
+    group: OrFilter = groups[0]
+    membership: list[Filter] = [
+        leaf for leaf in group.filters if leaf.operator == Operator.IN
+    ]
+    nulls: list[Filter] = [
+        leaf for leaf in group.filters if leaf.operator == Operator.IS_NULL
+    ]
+    assert len(group.filters) == 2, "or fixture requires IN and IS_NULL leaves"
+    assert len(membership) == 1, "or fixture requires IN and IS_NULL leaves"
+    assert len(nulls) == 1, "or fixture requires IN and IS_NULL leaves"
+    selected: Filter = membership[0]
+    assert selected.column is not None, "or fixture leaves must select the same member"
+    assert selected.column == nulls[0].column, (
+        "or fixture leaves must select the same member"
+    )
+    assert isinstance(selected.value, frozenset), "or fixture IN requires a frozenset"
+    assert len(selected.value) >= 2, (
+        "or fixture IN requires at least two non-NULL values"
+    )
+    assert None not in selected.value, (
+        "or fixture IN requires at least two non-NULL values"
+    )
+    assert any(
+        isinstance(item, Filter)
+        and item.type == selected.type
+        and item.operator not in {Operator.IS_NULL, Operator.IS_NOT_NULL}
+        for item in query.filters or set()
+    ), "or fixture requires an outer AND comparison"
 
 
 def _assert_result_equal(actual: pa.Table, expected: pa.Table) -> None:

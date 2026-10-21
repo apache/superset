@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import replace
 from datetime import date
 from functools import partial
@@ -29,6 +29,7 @@ from superset_core.semantic_layers.testing import SemanticProviderConformance
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
+    FilterExpression,
     Grains,
     Metric,
     Operator,
@@ -83,14 +84,24 @@ def semantic_query_cases(
     )
     total: Metric = next(iter(semantic_view.get_metrics()))
     null: Filter = Filter(PredicateType.WHERE, category, Operator.IS_NULL, None)
-    equals: Filter = Filter(PredicateType.WHERE, category, Operator.EQUALS, "A")
+    membership: Filter = Filter(
+        PredicateType.WHERE, category, Operator.IN, frozenset({"A", "B"})
+    )
+    occurred: Dimension = next(
+        d
+        for d in semantic_view.get_dimensions()
+        if d.name == "occurred" and d.grain is None
+    )
+    start: Filter = Filter(
+        PredicateType.WHERE, occurred, Operator.GREATER_THAN_OR_EQUAL, date(2026, 2, 1)
+    )
     return {
         "identity": (
             SemanticQuery([total], [category], order=[(total, OrderDirection.ASC)]),
             pa.table(
                 {
                     "category": pa.array([None, "A", "B"], type=pa.string()),
-                    "total": [3, 7, 8],
+                    "total": [4, 7, 8],
                 }
             ),
         ),
@@ -101,13 +112,13 @@ def semantic_query_cases(
                     "occurred": pa.array(
                         [date(2026, 1, 1), date(2026, 2, 1)], type=pa.date32()
                     ),
-                    "total": [5, 13],
+                    "total": [5, 14],
                 }
             ),
         ),
         "null": (
             SemanticQuery([total], [category], filters={null}),
-            pa.table({"category": pa.array([None], type=pa.string()), "total": [3]}),
+            pa.table({"category": pa.array([None], type=pa.string()), "total": [4]}),
         ),
         "not_null": (
             SemanticQuery(
@@ -124,11 +135,14 @@ def semantic_query_cases(
             SemanticQuery(
                 [total],
                 [category],
-                filters={OrFilter(frozenset({null, equals}))},
+                filters={OrFilter(frozenset({null, membership})), start},
                 order=[(total, OrderDirection.ASC)],
             ),
             pa.table(
-                {"category": pa.array([None, "A"], type=pa.string()), "total": [3, 7]}
+                {
+                    "category": pa.array([None, "A", "B"], type=pa.string()),
+                    "total": [1, 5, 8],
+                }
             ),
         ),
         "order_limit": (
@@ -349,7 +363,6 @@ def test_fault_lane_rejects_programming_errors(error_type: type[Exception]) -> N
 @pytest.mark.parametrize(
     "feature",
     [
-        SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS,
         SemanticViewFeature.ADHOC_EXPRESSIONS_IN_ORDERBY,
     ],
 )
@@ -398,7 +411,7 @@ def test_query_comparison_preserves_typed_ordered_values(
             1, "total", expected.column("total").cast(pa.float64())
         )
     elif variant == "value":
-        actual = expected.set_column(1, "total", pa.array([3, 7, 99]))
+        actual = expected.set_column(1, "total", pa.array([4, 7, 99]))
     elif variant == "order":
         actual = expected.take([2, 1, 0])
     else:
@@ -408,7 +421,190 @@ def test_query_comparison_preserves_typed_ordered_values(
         return SemanticResult(requests=[], results=actual)
 
     monkeypatch.setattr(semantic_view, "get_table", get_table)
-    with pytest.raises(AssertionError):
+    diagnostic: str = {
+        "type": "total: expected",
+        "value": "total: expected",
+        "order": "category: expected",
+        "duplicate": "duplicate result columns",
+    }[variant]
+    with pytest.raises(AssertionError, match=diagnostic):
         SemanticProviderConformance().test_query_outputs(
             "identity", semantic_view, {"identity": (query, expected)}
+        )
+
+
+@pytest.mark.parametrize("group_first", [False, True])
+@pytest.mark.parametrize(
+    "mutation", ["drop_parentheses", "drop_comparisons", "one_in_value"]
+)
+def test_or_witness_rejects_provider_mutations(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    group_first: bool,
+) -> None:
+    """Real SQLite results must expose lost grouping, predicates and IN values."""
+    import conformance_provider
+
+    predicate: Callable[[FilterExpression, list[object]], str] = (
+        conformance_provider._predicate
+    )
+    get_table: Callable[[SemanticQuery], SemanticResult] = semantic_view.get_table
+
+    def mutated_predicate(
+        expression: FilterExpression, parameters: list[object]
+    ) -> str:
+        if (
+            mutation == "one_in_value"
+            and isinstance(expression, Filter)
+            and expression.operator == Operator.IN
+        ):
+            assert isinstance(expression.value, frozenset)
+            expression = replace(
+                expression, value=frozenset({next(iter(expression.value))})
+            )
+        rendered: str = predicate(expression, parameters)
+        if mutation == "drop_parentheses" and isinstance(expression, OrFilter):
+            return rendered[1:-1]
+        return rendered
+
+    class OrderedFilters(set[FilterExpression]):
+        """Exercise both legal orders of the top-level conjunction."""
+
+        def __iter__(self) -> Iterator[FilterExpression]:
+            return iter(
+                sorted(
+                    super().__iter__(),
+                    key=lambda item: isinstance(item, OrFilter),
+                    reverse=group_first,
+                )
+            )
+
+    def mutated_table(query: SemanticQuery) -> SemanticResult:
+        query = replace(query, filters=OrderedFilters(query.filters or set()))
+        if mutation == "drop_comparisons":
+            query = replace(
+                query,
+                filters={
+                    item
+                    for item in query.filters or set()
+                    if isinstance(item, OrFilter)
+                    or item.operator in {Operator.IS_NULL, Operator.IS_NOT_NULL}
+                },
+            )
+        return get_table(query)
+
+    monkeypatch.setattr(conformance_provider, "_predicate", mutated_predicate)
+    monkeypatch.setattr(semantic_view, "get_table", mutated_table)
+    with pytest.raises(AssertionError, match="expected"):
+        SemanticProviderConformance().test_query_outputs(
+            "or", semantic_view, semantic_query_cases
+        )
+
+
+def test_adhoc_column_lane_skips_without_an_sdk_shape(
+    semantic_view: "QueryView",
+) -> None:
+    """Advertising a feature cannot require a query that violates SDK typing."""
+    semantic_view.features = frozenset({SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS})
+    with pytest.raises(pytest.skip.Exception, match="no SDK query shape yet"):
+        SemanticProviderConformance().test_advertised_capabilities(
+            SemanticViewFeature.ADHOC_COLUMN_EXPRESSIONS, semantic_view, {}
+        )
+
+
+@pytest.mark.parametrize("mutation", ["empty", "shrunken", "replaced"])
+def test_generation_rejects_lost_catalog_members(
+    backend: "Backend",
+    semantic_change_catalog: Callable[[], None],
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+) -> None:
+    """A changed catalog must retain existing members as the fixture adds one."""
+    from conformance_provider import QueryView
+
+    def make(token: str) -> SemanticView:
+        view: QueryView = QueryView(backend, token)
+        dimensions: set[Dimension] = view.get_dimensions()
+        if backend.revision:
+
+            def broken_dimensions() -> set[Dimension]:
+                if mutation == "empty":
+                    return set()
+                if mutation == "shrunken":
+                    return {
+                        dimension
+                        for dimension in dimensions
+                        if dimension.name != "category"
+                    }
+                return {Dimension("replacement", "replacement", pa.string())}
+
+            monkeypatch.setattr(view, "get_dimensions", broken_dimensions)
+            if mutation == "empty":
+
+                def broken_metrics() -> set[Metric]:
+                    return set()
+
+                monkeypatch.setattr(view, "get_metrics", broken_metrics)
+        return view
+
+    with pytest.raises(AssertionError, match="retain existing members"):
+        SemanticProviderConformance().test_metadata_generation(
+            make, semantic_change_catalog
+        )
+
+
+@pytest.mark.parametrize(
+    ("mutation", "diagnostic"),
+    [
+        ("no_outer", "outer AND comparison"),
+        ("equals", "IN and IS_NULL leaves"),
+        ("one_value", "at least two non-NULL values"),
+        ("null_value", "at least two non-NULL values"),
+    ],
+)
+def test_or_lane_rejects_non_host_fixture_shapes(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    mutation: str,
+    diagnostic: str,
+) -> None:
+    """Fixture validation rejects weak witnesses before provider execution."""
+    query: SemanticQuery
+    expected: pa.Table
+    query, expected = semantic_query_cases["or"]
+    group: OrFilter = next(
+        item for item in query.filters or set() if isinstance(item, OrFilter)
+    )
+    outer: set[FilterExpression] = {
+        item for item in query.filters or set() if isinstance(item, Filter)
+    }
+    if mutation == "no_outer":
+        outer = set()
+    else:
+        selected: Filter = next(
+            leaf for leaf in group.filters if leaf.operator == Operator.IN
+        )
+        replacement: Filter
+        if mutation == "equals":
+            replacement = replace(selected, operator=Operator.EQUALS, value="A")
+        else:
+            replacement = replace(
+                selected,
+                value=frozenset({"A"})
+                if mutation == "one_value"
+                else frozenset({"A", None}),
+            )
+        group = OrFilter((group.filters - {selected}) | {replacement})
+    query = replace(query, filters={group, *outer})
+
+    def must_not_execute(query: SemanticQuery) -> SemanticResult:
+        raise AssertionError("invalid fixture reached provider execution")
+
+    monkeypatch.setattr(semantic_view, "get_table", must_not_execute)
+    with pytest.raises(AssertionError, match=diagnostic):
+        SemanticProviderConformance().test_query_outputs(
+            "or", semantic_view, {"or": (query, expected)}
         )

@@ -54,7 +54,7 @@ separate integration tests.
 | `semantic_reloaded_view` | A separately constructed view of the same catalog and identity. |
 | `semantic_query_cases` | Mapping from each required case below to `(SemanticQuery, expected_arrow_table)`. Expected results must be independently calculated, not obtained from the provider under test. |
 | `semantic_error_cases` | Mapping from `method:kind` to a no-argument callable that executes the actual provider method against a controlled backend outcome. Methods: `get_table`, `get_values`, `get_row_count`; kinds: `refusal`, `fault`, `incomplete`, `unverified`. Do not supply closures that simply raise the expected SDK exception. |
-| `semantic_capability_cases` | One `(query, expected_table)` per advertised feature value, exercising the feature. Use a positive offset and limit for `ROW_OFFSET`; use an actual group limit for `GROUP_LIMIT`/`GROUP_OTHERS`, an `AdhocExpression` dimension for `ADHOC_COLUMN_EXPRESSIONS`, and an `AdhocExpression` order key for `ADHOC_EXPRESSIONS_IN_ORDERBY`. Features run as separate parametrized cases; unadvertised features are skipped. |
+| `semantic_capability_cases` | One `(query, expected_table)` per advertised feature value, exercising the feature. Use a positive offset and limit for `ROW_OFFSET`; use an actual group limit for `GROUP_LIMIT`/`GROUP_OTHERS`, an `AdhocExpression` order key for `ADHOC_EXPRESSIONS_IN_ORDERBY`. Features run as separate parametrized cases; unadvertised features are skipped. `ADHOC_COLUMN_EXPRESSIONS` is always skipped with "no SDK query shape yet": `SemanticQuery.dimensions` accepts only `Dimension`, and the host rejects ad-hoc dimensions. No fixture entry is required for that feature; its skip is unverified coverage, not a passing capability check. |
 | `semantic_make_view` | Callable taking an opaque string token, constructing/discovering a view through the provider's binding path. Adapt the factory of your supported SDK version here. An uncached test adapter may construct a view directly; cached providers must exercise the actual binding/discovery path. |
 | `semantic_change_catalog` | No-argument callable changing the controlled source catalog: add a visible member on every call, without clearing provider caches. |
 | `semantic_provider_class` | `(importable_module_name, class_name)` of the layer for an isolated import and static-schema check. Dependencies must already be installed. |
@@ -63,7 +63,14 @@ Required query cases are `identity`, `grain`, `null`, `not_null`, `or`, and
 `order_limit`. Use member names distinct from private IDs and display labels.
 Use a grain-bearing dimension with data whose aggregation distinguishes the selected grain from raw values. Multiple grain variants for one name are allowed, not required.
 NULL and grouped-OR fixtures must select NULL and non-NULL branches observably;
-combine the OR with an outer AND when the provider supports the selected predicate.
+the `or` case must use the host-normalized shape: one `OrFilter` containing
+`IN frozenset({value_a, value_b, ...})` (at least two non-NULL values) and
+`IS_NULL` for the same member, combined with an outer AND comparison in the same
+predicate stage. Seed data so both IN values and the NULL branch contribute,
+and removing the parentheses or dropping the outer comparison changes the result.
+The SQLite example uses a February lower bound, with A and NULL rows on both sides
+of that bound: the correct totals are NULL=1, A=5, B=8. This distinguishes either
+ordering of the outer AND and the OR group.
 Seed more result rows than the limit, in an order that differs from the requested
 sort. The suite compares exact Arrow column names, types, values and row order,
 without prescribing column order or field nullability.
@@ -77,8 +84,11 @@ The catalog check detects duplicate metric names, duplicate dimension name/grain
 pairs, metric/dimension name collisions, and unstable selection names across
 reloads. It does not make private IDs or display labels into selection keys.
 The metadata test changes the source between two string-token generations.
-It checks catalog freshness and that a captured token is never
-relabeled; uncached legacy views can continue to report `None`.
+The change fixture must retain every existing metric and dimension name/grain
+pair and add at least one member; an empty, shrunken or unchanged second catalog
+fails. For views that echo a token, the test checks that the first view never
+claims the later generation. Legacy views can report `None`; freshness is still
+checked, but token relabeling cannot be verified for those views.
 
 The error lane asserts closed SDK refusal/completeness categories, not HTTP
 status codes, host exception types or presentation messages. Fault cases reject

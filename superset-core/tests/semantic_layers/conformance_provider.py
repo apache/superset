@@ -66,6 +66,7 @@ class Backend:
                 [
                     ("B", "2026-02-04", 8),
                     (None, "2026-01-03", 3),
+                    (None, "2026-02-06", 1),
                     ("A", "2026-02-05", 5),
                     ("A", "2026-01-02", 2),
                 ],
@@ -98,9 +99,10 @@ class QueryView(ExampleView):
             ),
             Dimension("private-day", "occurred", pa.date32()),
             Dimension("private-month", "occurred", pa.date32(), grain=Grains.MONTH),
-            Dimension(
-                f"private-{self.revision}", f"revision_{self.revision}", pa.string()
-            ),
+            *{
+                Dimension(f"private-{revision}", f"revision_{revision}", pa.string())
+                for revision in range(self.revision + 1)
+            },
         }
 
     def get_metrics(self) -> set[Metric]:
@@ -189,12 +191,31 @@ def _predicate(expression: FilterExpression, parameters: list[object]) -> str:
             )
             + ")"
         )
+    if expression.column is not None and expression.column.name == "occurred":
+        if expression.operator == Operator.GREATER_THAN_OR_EQUAL and isinstance(
+            expression.value, date
+        ):
+            parameters.append(expression.value.isoformat())
+            return "occurred >= ?"
+        raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
     if expression.column is None or expression.column.name != "category":
         raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
     if expression.operator == Operator.IS_NULL:
         return "category IS NULL"
     if expression.operator == Operator.IS_NOT_NULL:
         return "category IS NOT NULL"
+    if (
+        expression.operator == Operator.IN
+        and isinstance(expression.value, frozenset)
+        and expression.value
+    ):
+        values: list[str] = sorted(
+            value for value in expression.value if isinstance(value, str)
+        )
+        if len(values) != len(expression.value):
+            raise SemanticQueryRejectedError(SemanticQueryErrorCode.INVALID_FILTER)
+        parameters.extend(values)
+        return "category IN (" + ", ".join("?" for _ in expression.value) + ")"
     if expression.operator == Operator.EQUALS and expression.value is not None:
         parameters.append(expression.value)
         return "category = ?"
