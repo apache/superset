@@ -26,7 +26,7 @@ def test_user_info_view_uses_accessible_userinfo_permission() -> None:
     """Settings → Info must not require Admin-only can_read on User/user."""
     assert UserInfoView.class_permission_name == "UserInfo"
     # FAB's @permission_name("userinfo") yields permission can_userinfo.
-    assert getattr(UserInfoView.list, "_permission_name") == "userinfo"
+    assert UserInfoView.list._permission_name == "userinfo"
 
 
 def test_can_userinfo_on_user_info_is_accessible_to_all(app_context: None) -> None:
