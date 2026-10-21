@@ -371,6 +371,8 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
 # connection, and query construction. The identifying fields the dashboard
 # needs to render its charts are kept. This is a stricter version of the
 # narrowing DashboardDatasetSchema.post_dump already applies to guest users.
+# ``chart_display_labels`` is deliberately absent: it is authorized per member
+# chart when built and carries label strings only, never the dataset's schema.
 DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
     "metadata_error",
     "sql",

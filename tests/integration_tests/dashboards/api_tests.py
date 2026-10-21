@@ -18,7 +18,7 @@
 """Unit tests for Superset"""
 
 import uuid
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from contextlib import contextmanager
 from datetime import datetime, timedelta
 from io import BytesIO
@@ -42,7 +42,7 @@ import yaml
 
 from flask import g
 from freezegun import freeze_time
-from sqlalchemy import and_
+from sqlalchemy import and_, event
 from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.orm.exc import StaleDataError
 from superset import db, security_manager  # noqa: F401
@@ -400,6 +400,462 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 assert excluded_key not in dataset
             # The identifying fields the dashboard needs to render are kept.
             assert {"id", "uid", "table_name", "type"} <= set(dataset)
+
+    WORLD_HEALTH_LABELS = {"country_name": "Country", "sum__SP_POP_TOTL": "Population"}
+
+    @contextmanager
+    def _world_health_display_labels(self) -> Iterator[dict[str, int]]:
+        """Label one saved dimension and one saved metric of world_health.
+
+        Yields the shared dataset id under ``table_id`` and each chart id by
+        name. Every world_health chart is built on that one dataset.
+        """
+        from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+
+        dashboard = Dashboard.get("world_health")
+        ids = {slc.slice_name: slc.id for slc in dashboard.slices}
+        table = db.session.get(SqlaTable, dashboard.slices[0].datasource_id)
+        assert {slc.datasource_id for slc in dashboard.slices} == {table.id}
+        column = next(col for col in table.columns if col.column_name == "country_name")
+        metric = next(
+            (m for m in table.metrics if m.metric_name == "sum__SP_POP_TOTL"), None
+        )
+        added_metric = metric is None
+        if metric is None:
+            metric = SqlMetric(
+                metric_name="sum__SP_POP_TOTL", expression="SUM(SP_POP_TOTL)"
+            )
+            table.metrics.append(metric)
+        previous = (column.verbose_name, metric.verbose_name)
+        column.verbose_name = self.WORLD_HEALTH_LABELS["country_name"]
+        metric.verbose_name = self.WORLD_HEALTH_LABELS["sum__SP_POP_TOTL"]
+        db.session.commit()
+        column_id, metric_id = column.id, metric.id
+        try:
+            yield {"table_id": table.id, **ids}
+        finally:
+            db.session.get(TableColumn, column_id).verbose_name = previous[0]
+            metric = db.session.get(SqlMetric, metric_id)
+            if added_metric:
+                db.session.delete(metric)
+            else:
+                metric.verbose_name = previous[1]
+            db.session.commit()
+
+    def _world_health_dataset(self, response: Any, table_id: int) -> dict[str, Any]:
+        assert response.status_code == 200
+        data = json.loads(response.data.decode("utf-8"))
+        [dataset] = [item for item in data["result"] if item["id"] == table_id]
+        return dataset
+
+    def _assert_world_health_labels(
+        self, labels: dict[str, Any], ids: dict[str, int]
+    ) -> None:
+        """Check configured stored names and the example's authored adhoc label."""
+        for chart_name in ("Most Populated Countries", "Growth Rate"):
+            assert labels[str(ids[chart_name])] == self.WORLD_HEALTH_LABELS
+        for chart_id, chart_labels in labels.items():
+            assert chart_id in {str(chart_id) for chart_id in ids.values()}
+            allowed = dict(self.WORLD_HEALTH_LABELS)
+            if chart_id in {str(ids["% Rural"]), str(ids["Rural Breakdown"])}:
+                allowed["Rural Population"] = "Rural Population"
+            assert chart_labels.items() <= allowed.items()
+
+    @contextmanager
+    def _without_world_health_authored_labels(self) -> Iterator[None]:
+        """Temporarily remove the example's custom labels for the empty baseline."""
+        from superset.models.slice import Slice
+
+        def disable_custom_labels(value: Any) -> Any:
+            """Retain saved expressions while marking their labels as generated."""
+            if isinstance(value, dict):
+                return {
+                    key: False
+                    if key == "hasCustomLabel"
+                    else disable_custom_labels(item)
+                    for key, item in value.items()
+                }
+            if isinstance(value, list):
+                return [disable_custom_labels(item) for item in value]
+            return value
+
+        dashboard = Dashboard.get("world_health")
+        previous = {
+            chart.id: (chart.params, chart.query_context) for chart in dashboard.slices
+        }
+        for chart in dashboard.slices:
+            chart.params = json.dumps(disable_custom_labels(json.loads(chart.params)))
+            if chart.query_context:
+                chart.query_context = json.dumps(
+                    disable_custom_labels(json.loads(chart.query_context))
+                )
+        db.session.commit()
+        try:
+            yield
+        finally:
+            for chart_id, values in previous.items():
+                chart = db.session.get(Slice, chart_id)
+                chart.params, chart.query_context = values
+            db.session.commit()
+
+    @parameterized.expand(
+        [
+            ("table", {"all_columns": ["country_name"]}, {"country_name": "Country"}),
+            (
+                "pivot_table_v2",
+                {"groupbyRows": ["country_name"], "metrics": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "echarts_timeseries_line",
+                {"x_axis": "country_name", "metrics": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "mixed_timeseries",
+                {"groupby_b": ["country_name"], "metrics_b": ["sum__SP_POP_TOTL"]},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "big_number_total",
+                {"metric": "sum__SP_POP_TOTL"},
+                {"sum__SP_POP_TOTL": "Population"},
+            ),
+            (
+                "pie",
+                {"groupby": ["country_name"], "metric": "sum__SP_POP_TOTL"},
+                WORLD_HEALTH_LABELS,
+            ),
+            (
+                "bubble",
+                {"entity": "country_name", "x": "sum__SP_POP_TOTL"},
+                WORLD_HEALTH_LABELS,
+            ),
+        ]
+    )
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_visualizations(
+        self, viz_type: str, controls: dict[str, Any], expected: dict[str, str]
+    ) -> None:
+        """A real embedded request labels each visualization's persisted controls."""
+        from superset.models.slice import Slice
+
+        with self._world_health_display_labels() as ids:
+            chart_id = ids["Most Populated Countries"]
+            chart = db.session.get(Slice, chart_id)
+            previous = chart.params, chart.query_context, chart.viz_type
+            chart.params = json.dumps({"viz_type": viz_type, **controls})
+            chart.query_context = None
+            chart.viz_type = viz_type
+            db.session.commit()
+            try:
+                response = self._get_world_health_datasets_as_guest()
+                dataset = self._world_health_dataset(response, ids["table_id"])
+                assert dataset["chart_display_labels"][str(chart_id)] == expected
+                assert "verbose_map" not in dataset
+                assert "columns" not in dataset
+                assert "metrics" not in dataset
+            finally:
+                chart = db.session.get(Slice, chart_id)
+                chart.params, chart.query_context, chart.viz_type = previous
+                db.session.commit()
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels(self) -> None:
+        """Saved dimensions and metrics with configured labels are listed per
+        chart, alongside the verbose map a full-access caller already gets."""
+        with self._world_health_display_labels() as ids:
+            self.login(ADMIN_USERNAME)
+            response = self.get_assert_metric(
+                "api/v1/dashboard/world_health/datasets", "get_datasets"
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        self._assert_world_health_labels(dataset["chart_display_labels"], ids)
+        assert dataset["verbose_map"]["country_name"] == "Country"
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @patch("superset.dashboards.api.security_manager.can_access_datasource")
+    def test_get_dashboard_datasets_chart_display_labels_without_datasource_access(
+        self, can_access_datasource_mock: MagicMock
+    ) -> None:
+        """Chart labels survive the narrowing that strips dataset metadata."""
+        can_access_datasource_mock.return_value = False
+        with self._world_health_display_labels() as ids:
+            self.login(ADMIN_USERNAME)
+            response = self.get_assert_metric(
+                "api/v1/dashboard/world_health/datasets", "get_datasets"
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        self._assert_world_health_labels(dataset["chart_display_labels"], ids)
+        for excluded_key in ("verbose_map", "columns", "column_names", "metrics"):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_follow_chart_access(
+        self,
+    ) -> None:
+        """Only member charts that pass the chart access check contribute."""
+        with self._world_health_display_labels() as ids:
+            allowed_id = ids["Most Populated Countries"]
+            self.login(ADMIN_USERNAME)
+            with patch(
+                "superset.models.dashboard.security_manager.can_access_chart",
+                side_effect=lambda chart: chart.id == allowed_id,
+            ):
+                response = self.get_assert_metric(
+                    "api/v1/dashboard/world_health/datasets", "get_datasets"
+                )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        assert dataset["chart_display_labels"] == {
+            str(allowed_id): self.WORLD_HEALTH_LABELS
+        }
+
+    def _world_health_guest_request(
+        self,
+        datasets: list[int] | None = None,
+        dashboard_ref: str | None = None,
+    ) -> Callable[[], Any]:
+        """Return a world_health datasets request with a real guest token."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+        embedded = EmbeddedDashboardDAO.upsert(dashboard, ["superset.example"])
+        db.session.commit()
+        token = security_manager.create_guest_access_token(
+            {"username": "labels_guest"},
+            [
+                {
+                    "type": GuestTokenResourceType.DASHBOARD,
+                    "id": dashboard_ref or str(embedded.uuid),
+                }
+            ],
+            [],
+            datasets=datasets,
+        )
+        uri = f"api/v1/dashboard/{dashboard.id}/datasets"
+        headers = {
+            current_app.config["GUEST_TOKEN_HEADER_NAME"]: token.decode("utf-8")
+            if isinstance(token, bytes)
+            else token
+        }
+
+        def request() -> Any:
+            with self.client as client:
+                response = client.get(uri, headers=headers)
+                assert isinstance(g.user, GuestUser)
+            return response
+
+        return request
+
+    def _get_world_health_datasets_as_guest(
+        self,
+        datasets: list[int] | None = None,
+        dashboard_ref: str | None = None,
+    ) -> Any:
+        """Request world_health datasets with a real embedded guest token."""
+        return self._world_health_guest_request(datasets, dashboard_ref)()
+
+    @staticmethod
+    @contextmanager
+    def _count_metadata_queries() -> Iterator[list[str]]:
+        """Record every statement sent to the metadata database."""
+        statements: list[str] = []
+
+        def record(*args: Any) -> None:
+            statements.append(args[2])
+
+        event.listen(db.engine, "before_cursor_execute", record)
+        try:
+            yield statements
+        finally:
+            event.remove(db.engine, "before_cursor_execute", record)
+
+    def _datasets_query_counts(
+        self, request: Callable[[], Any]
+    ) -> tuple[int, int, dict[str, Any]]:
+        """Count queries without and with chart display labels.
+
+        Returns the count with the label step bypassed, the count with it, and
+        the labelled response body. A first request warms per-process caches.
+        """
+        assert request().status_code == 200
+        with patch.object(
+            Dashboard, "_with_chart_display_labels", lambda self, *args: args[2]
+        ):
+            with self._count_metadata_queries() as baseline:
+                assert request().status_code == 200
+        with self._count_metadata_queries() as statements:
+            response = request()
+        assert response.status_code == 200
+        return len(baseline), len(statements), json.loads(response.data)
+
+    @staticmethod
+    def _labelled_chart_count(data: dict[str, Any]) -> int:
+        return sum(
+            len(dataset.get("chart_display_labels", {})) for dataset in data["result"]
+        )
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_query_count(
+        self,
+    ) -> None:
+        """Labels add no metadata queries for an embedded guest, however many
+        charts carry them: the guest grant is decided once, not per chart."""
+        with self._world_health_display_labels():
+            request = self._world_health_guest_request()
+            baseline, labelled, data = self._datasets_query_counts(request)
+
+        assert self._labelled_chart_count(data) >= 2
+        assert labelled == baseline
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_query_count(self) -> None:
+        """For a non-guest, labels cost nothing when no chart has one, and at
+        most one chart-access prefetch plus a small per-chart check otherwise."""
+        dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+        dashboard.published = True
+        db.session.commit()
+        self.login(ALPHA_USERNAME)
+
+        def request() -> Any:
+            return self.client.get("api/v1/dashboard/world_health/datasets")
+
+        with (
+            self._without_world_health_authored_labels(),
+            patch.object(
+                DashboardDAO,
+                "prefetch_chart_access",
+                wraps=DashboardDAO.prefetch_chart_access,
+            ) as prefetch,
+        ):
+            baseline, unlabelled, data = self._datasets_query_counts(request)
+        assert self._labelled_chart_count(data) == 0
+        assert unlabelled == baseline
+        prefetch.assert_not_called()
+
+        with (
+            self._world_health_display_labels(),
+            patch.object(
+                DashboardDAO,
+                "prefetch_chart_access",
+                wraps=DashboardDAO.prefetch_chart_access,
+            ) as prefetch,
+        ):
+            baseline, labelled, data = self._datasets_query_counts(request)
+        # Once per labelled request (warm-up and measured), never per chart.
+        assert prefetch.call_count == 2
+        charts = self._labelled_chart_count(data)
+        assert charts >= 2
+        # prefetch_chart_access is 3 statements; each chart check measured 1.
+        assert labelled - baseline <= 3 + 2 * charts
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    def test_get_dashboard_datasets_chart_display_labels_dashboard_viewer(self) -> None:
+        """A dashboard viewer without dataset access gets labels only for the
+        member charts it may view. A chart restricted to another viewer and
+        charts that rely on dataset access contribute nothing, although they
+        share the same dataset."""
+        from superset.subjects.utils import get_or_create_user_subject
+
+        gamma_id = security_manager.find_user(GAMMA_USERNAME).id
+        admin_id = security_manager.find_user(ADMIN_USERNAME).id
+        with self._world_health_display_labels() as ids:
+            allowed_id = ids["Most Populated Countries"]
+            restricted_id = ids["Growth Rate"]
+            dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
+            gamma_subject = get_or_create_user_subject(gamma_id)
+            admin_subject = get_or_create_user_subject(admin_id)
+            dashboard.published = True
+            dashboard.viewers = [gamma_subject]
+            db.session.get(Slice, allowed_id).viewers = [gamma_subject]
+            db.session.get(Slice, restricted_id).viewers = [admin_subject]
+            db.session.commit()
+            try:
+                self.login(GAMMA_USERNAME)
+                response = self.get_assert_metric(
+                    "api/v1/dashboard/world_health/datasets", "get_datasets"
+                )
+                dataset = self._world_health_dataset(response, ids["table_id"])
+            finally:
+                for chart_id in (allowed_id, restricted_id):
+                    db.session.get(Slice, chart_id).viewers = []
+                db.session.query(Dashboard).filter_by(
+                    slug="world_health"
+                ).one().viewers = []
+                db.session.commit()
+
+        assert dataset["chart_display_labels"] == {
+            str(allowed_id): self.WORLD_HEALTH_LABELS
+        }
+        for excluded_key in ("verbose_map", "columns", "column_names", "metrics"):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_as_guest(self) -> None:
+        """A real embedded guest gets the authorized labels and every redaction."""
+        with self._world_health_display_labels() as ids:
+            response = self._get_world_health_datasets_as_guest()
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        self._assert_world_health_labels(dataset["chart_display_labels"], ids)
+        for excluded_key in (
+            "sql",
+            "select_star",
+            "fetch_values_predicate",
+            "template_params",
+            "params",
+            "perm",
+            "edit_url",
+            "database",
+            "parent",
+            "editors",
+            "columns",
+            "column_names",
+            "column_types",
+            "metrics",
+            "verbose_map",
+            "order_by_choices",
+            "main_dttm_col",
+            "granularity_sqla",
+            "time_grain_sqla",
+        ):
+            assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_dataset_allowlist(
+        self,
+    ) -> None:
+        """A guest whose dataset allowlist excludes the charts' dataset gets no
+        labels for them, while the dataset entry itself stays narrowed."""
+        with self._world_health_display_labels() as ids:
+            response = self._get_world_health_datasets_as_guest(
+                datasets=[ids["table_id"] + 100_000]
+            )
+            dataset = self._world_health_dataset(response, ids["table_id"])
+
+        assert "chart_display_labels" not in dataset
+        assert "verbose_map" not in dataset
+        assert "Population" not in response.data.decode("utf-8")
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_chart_display_labels_guest_wrong_dashboard(
+        self,
+    ) -> None:
+        """A guest token for another dashboard is refused before any payload."""
+        with self._world_health_display_labels():
+            response = self._get_world_health_datasets_as_guest(
+                dashboard_ref=str(uuid.uuid4())
+            )
+
+        # The guest dashboard filter hides it, as for any dashboard not granted.
+        assert response.status_code == 404
+        assert "Population" not in response.data.decode("utf-8")
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.utils.log.logger")

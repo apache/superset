@@ -219,6 +219,79 @@ COLUMN_FORM_DATA_PARAMS = [
     "series",
 ]
 
+# Display controls exclude filter and sort dependencies, which still belong in
+# the full-access dataset payload but must not contribute chart display labels.
+DISPLAY_METRIC_LIST_PARAMS = (
+    "metrics",
+    "metrics_b",
+    "percent_metrics",
+    "tooltip_metrics",
+)
+DISPLAY_METRIC_PARAMS = (
+    "metric",
+    "metric_2",
+    "secondary_metric",
+    "size",
+    "x",
+    "y",
+    "left_metric",
+    "right_metric",
+)
+DISPLAY_COLUMN_LIST_PARAMS = (
+    "all_columns",
+    "columns",
+    "groupby",
+    "groupby_b",
+    "groupbyRows",
+    "groupbyColumns",
+    "series_columns",
+    "tooltip_columns",
+)
+DISPLAY_COLUMN_PARAMS = (
+    "all_columns_x",
+    "all_columns_y",
+    "entity",
+    "series",
+    "x_axis",
+    "source",
+    "target",
+    "source_category",
+    "target_category",
+    "column",
+    "start_time",
+    "end_time",
+    "y_axis",
+    "dimension",
+)
+
+
+def _authored_display_label(reference: dict[str, Any]) -> str | None:
+    """Return an explicitly authored adhoc label without interpreting SQL."""
+    label = reference.get("label")
+    if (
+        reference.get("hasCustomLabel") is True
+        and isinstance(label, str)
+        and label.strip()
+    ):
+        return label
+    return None
+
+
+def _physical_display_column(reference: dict[str, Any]) -> str | None:
+    """Recognize only explicit, exact physical-column references."""
+    label = reference.get("label")
+    if (
+        (
+            reference.get("isColumnReference") is True
+            or reference.get("columnType") == "BASE_AXIS"
+        )
+        and isinstance(label, str)
+        and label.strip()
+        and reference.get("sqlExpression") == label
+    ):
+        return label
+    return None
+
 
 class DatasourceKind(StrEnum):
     VIRTUAL = "virtual"
@@ -652,6 +725,74 @@ class BaseDatasource(
 
         return column_names or None
 
+    @staticmethod
+    def _query_display_references(
+        query_context: str | None,
+    ) -> tuple[list[str | dict[str, Any]], list[str | dict[str, Any]]]:
+        """Collect only raw query output references, never query dependencies."""
+        columns: list[str | dict[str, Any]] = []
+        metrics: list[str | dict[str, Any]] = []
+        try:
+            payload = json.loads(query_context or "{}")
+        except (TypeError, ValueError):
+            return columns, metrics
+        if not isinstance(payload, dict) or not isinstance(
+            queries := payload.get("queries"), list
+        ):
+            return columns, metrics
+        for query in queries:
+            if not isinstance(query, dict):
+                continue
+            for name, target in (
+                ("columns", columns),
+                ("groupby", columns),
+                ("metrics", metrics),
+            ):
+                if isinstance(references := query.get(name), list):
+                    target.extend(
+                        item for item in references if isinstance(item, (str, dict))
+                    )
+        return columns, metrics
+
+    @classmethod
+    def _slice_display_references(
+        cls, slc: Slice
+    ) -> tuple[list[str | dict[str, Any]], list[str | dict[str, Any]]]:
+        """Collect saved display columns and metrics, preserving adhoc objects.
+
+        Query columns and metrics cover plugin-specific display controls. Form
+        controls also cover charts saved without a query context. Filter, sort,
+        granularity and expression-internal dependencies are never traversed.
+        """
+        try:
+            form_data = json.loads(slc.params or "{}")
+        except (TypeError, ValueError):
+            return [], []
+        if not isinstance(form_data, dict):
+            return [], []
+        columns: list[str | dict[str, Any]] = []
+        metrics: list[str | dict[str, Any]] = []
+        for target, list_params, single_params in (
+            (columns, DISPLAY_COLUMN_LIST_PARAMS, DISPLAY_COLUMN_PARAMS),
+            (metrics, DISPLAY_METRIC_LIST_PARAMS, DISPLAY_METRIC_PARAMS),
+        ):
+            for name in list_params:
+                if isinstance(references := form_data.get(name), list):
+                    target.extend(
+                        item for item in references if isinstance(item, (str, dict))
+                    )
+            for name in single_params:
+                if isinstance(value := form_data.get(name), (str, dict)):
+                    target.append(value)
+
+        query_columns, query_metrics = cls._query_display_references(slc.query_context)
+        columns.extend(query_columns)
+        # Tooltip contents are explicit display references. Passing no currency
+        # column excludes the query-only currency-formatting dependency.
+        columns.extend(sorted(cls._extract_form_data_columns(form_data, None, False)))
+        metrics.extend(query_metrics)
+        return columns, metrics
+
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
         self, slices: list[Slice]
     ) -> dict[str, Any]:
@@ -665,6 +806,7 @@ class BaseDatasource(
         data = cast(dict[str, Any], self.data)
         metric_names = set()
         column_names = set()
+        authored_labels: dict[str, str] = {}
         for slc in slices:
             form_data = slc.form_data
             # pull out all required metrics from the form_data
@@ -708,6 +850,24 @@ class BaseDatasource(
                 ]
                 column_names.update(_columns)
 
+            # Share display dependencies with the restricted chart-label path,
+            # retaining all existing full-access metadata dependencies above.
+            display_columns, display_metrics = self._slice_display_references(slc)
+            for references, names in (
+                (display_columns, column_names),
+                (display_metrics, metric_names),
+            ):
+                for reference in references:
+                    if isinstance(reference, str):
+                        names.add(reference)
+                    elif label := _authored_display_label(reference):
+                        authored_labels.setdefault(label, label)
+            for reference in display_columns:
+                if isinstance(reference, dict) and (
+                    column_name := _physical_display_column(reference)
+                ):
+                    column_names.add(column_name)
+
         filtered_metrics = [
             metric
             for metric in data["metrics"]
@@ -742,7 +902,9 @@ class BaseDatasource(
             }
         )
         verbose_map.update(all_columns)
-        data["verbose_map"] = verbose_map
+        # Dataset labels take precedence when an authored label collides with
+        # a saved field name, matching the dashboard frontend's merge order.
+        data["verbose_map"] = {**authored_labels, **verbose_map}
         data["column_names"] = set(all_columns.values()) | set(self.column_names)
 
         return data

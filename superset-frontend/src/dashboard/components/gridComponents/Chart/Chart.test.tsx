@@ -1200,3 +1200,32 @@ test('a hidden chart does not adopt a prop update, and adopts it once revealed',
   rerender(<Chart {...props} isComponentVisible isInView />);
   expect(capturedChartContainerProps.isInView).toBe(true);
 });
+
+test('passes only the current chart display labels to ChartContainer', () => {
+  const datasourceId = chartQueries[queryId].form_data.datasource;
+  const datasource = {
+    ...mockDatasource['7__table'],
+    verbose_map: undefined,
+    chart_display_labels: {
+      [queryId]: { country_name: 'Country', sum__num: 'Population' },
+      [queryId + 1]: { other_column: 'Other chart' },
+    },
+  };
+  setup({}, { datasources: { [datasourceId]: datasource } });
+
+  expect(capturedChartContainerProps.datasource).toEqual({
+    ...datasource,
+    verbose_map: { country_name: 'Country', sum__num: 'Population' },
+  });
+  expect(datasource.verbose_map).toBeUndefined();
+  expect(capturedChartContainerProps.formData).toEqual(
+    expect.objectContaining({ datasource: datasourceId }),
+  );
+});
+
+test('preserves the datasource reference when no chart display labels are present', () => {
+  setup();
+  expect(capturedChartContainerProps.datasource).toBe(
+    mockDatasource['7__table'],
+  );
+});

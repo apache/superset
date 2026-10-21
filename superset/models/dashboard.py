@@ -43,7 +43,12 @@ from sqlalchemy.sql.elements import BinaryExpression
 from superset_core.common.models import Dashboard as CoreDashboard
 
 from superset import db, is_feature_enabled, security_manager
-from superset.connectors.sqla.models import BaseDatasource, SqlaTable
+from superset.connectors.sqla.models import (
+    _authored_display_label,
+    _physical_display_column,
+    BaseDatasource,
+    SqlaTable,
+)
 from superset.daos.datasource import Datasource, DatasourceDAO
 from superset.models.helpers import (
     AuditMixinNullable,
@@ -176,6 +181,105 @@ dashboard_slices = Table(
     ),
     sqla.Index("ix_dashboard_slices_slice_id", "slice_id"),
 )
+
+
+def _configured_display_label(value: Any) -> str | None:
+    """Return a configured label, or ``None`` to keep the raw-name fallback."""
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def _authored_adhoc_label(item: dict[str, Any]) -> str | None:
+    """Return an adhoc column/metric label only when its author set it.
+
+    A generated adhoc label can repeat the item's SQL expression or aggregated
+    physical column, so it is never echoed; the client derives that same text
+    from the chart's own form data.
+    """
+    return _authored_display_label(item)
+
+
+def saved_chart_display_labels(datasource: SqlaTable, chart: Slice) -> dict[str, str]:
+    """Map a chart's saved dimension/metric IDs to their configured labels.
+
+    Display references come from saved form data and query context. Raw names
+    resolve against the dataset's stored column and saved-metric
+    ``verbose_name`` attributes, and an entry is omitted when no label is
+    configured. Expressions are never parsed: columns appearing only inside an
+    expression, aggregate or filter, and every unused dataset field, are
+    excluded. No external metadata is discovered.
+
+    :param datasource: The chart's SQLAlchemy dataset
+    :param chart: A chart whose datasource is ``datasource``
+    :returns: Raw field/metric ID to display label, strings only
+    """
+    column_labels: dict[Any, Any] = {
+        column.column_name: column.verbose_name for column in datasource.columns
+    }
+    metric_labels: dict[Any, Any] = {
+        metric.metric_name: metric.verbose_name for metric in datasource.metrics
+    }
+    labels: dict[str, str] = {}
+    # pylint: disable=protected-access
+    columns, metrics = datasource._slice_display_references(chart)
+    for references, stored_labels in (
+        (columns, column_labels),
+        (metrics, metric_labels),
+    ):
+        for reference in references:
+            if isinstance(reference, str):
+                if label := _configured_display_label(stored_labels.get(reference)):
+                    labels.setdefault(reference, label)
+            elif isinstance(reference, dict):
+                if (
+                    stored_labels is column_labels
+                    and (column_name := _physical_display_column(reference))
+                    and (
+                        label := _configured_display_label(
+                            column_labels.get(column_name)
+                        )
+                    )
+                ):
+                    labels.setdefault(column_name, label)
+                elif label := _authored_adhoc_label(reference):
+                    labels.setdefault(label, label)
+    return labels
+
+
+class _ChartLabelAccess:  # pylint: disable=too-few-public-methods
+    """Decide which member charts of one dashboard may contribute labels.
+
+    Lives for a single ``datasets_trimmed_for_slices`` call, so nothing is
+    cached across requests. Nothing is evaluated until a chart actually has
+    labels, so dashboards without configured labels pay no extra queries.
+    """
+
+    def __init__(self, dashboard: Dashboard) -> None:
+        self._dashboard = dashboard
+        self._is_guest: bool | None = None
+        self._guest_granted = False
+
+    def allows(self, chart: Slice) -> bool:
+        """Whether ``chart``, a member on its own SQLAlchemy dataset, may label.
+
+        :param chart: A member chart of the dashboard
+        :returns: Whether the current user may see the chart's labels
+        """
+        if self._is_guest is None:
+            self._is_guest = bool(security_manager.is_guest_user())
+            if self._is_guest:
+                # The dashboard lookup already enforces this; never let a
+                # token for another dashboard read labels via a shared chart.
+                self._guest_granted = security_manager.has_guest_access(self._dashboard)
+            else:
+                # pylint: disable=import-outside-toplevel
+                from superset.daos.dashboard import DashboardDAO
+
+                DashboardDAO.prefetch_chart_access(self._dashboard)
+        return security_manager.can_access_dashboard_chart_labels(
+            self._dashboard,
+            chart,
+            guest_dashboard_access=self._guest_granted if self._is_guest else None,
+        )
 
 
 class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExportMixin):
@@ -431,6 +535,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
             slices_by_datasource[(slc.datasource_type, slc.datasource_id)].add(slc)
 
         result: list[tuple[BaseDatasource | SemanticView, dict[str, Any]]] = []
+        label_access = _ChartLabelAccess(self)
 
         for _, slices in slices_by_datasource.items():
             # Resolve once per typed datasource, retaining eager-loaded tables.
@@ -488,9 +593,68 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                         type(ex).__name__,
                     )
                     continue
-                result.append((datasource, payload))
+                result.append(
+                    (
+                        datasource,
+                        self._with_chart_display_labels(
+                            datasource, slices, payload, label_access
+                        ),
+                    )
+                )
 
         return result
+
+    def _with_chart_display_labels(
+        self,
+        datasource: BaseDatasource | SemanticView,
+        slices: set[Slice],
+        payload: dict[str, Any],
+        access: _ChartLabelAccess,
+    ) -> dict[str, Any]:
+        """Add display labels of this dashboard's accessible member charts.
+
+        Only SQLAlchemy datasets get ``chart_display_labels``, and only this
+        dashboard's own member charts on ``datasource`` that the caller may
+        access contribute, each limited to its saved dimensions and metrics.
+        Nothing is taken from the request. The map is independent of datasource
+        access, which still narrows the rest of the payload, so a caller without
+        that access sees authorized chart labels only. The key is omitted when
+        no label is authorized.
+
+        :param datasource: The datasource shared by ``slices``
+        :param slices: Member charts of this dashboard on ``datasource``
+        :param payload: The trimmed datasource payload, updated in place
+        :param access: This request's chart authorization for labels
+        :returns: ``payload``
+        """
+        if not isinstance(datasource, SqlaTable):
+            return payload
+
+        labels: dict[str, dict[str, str]] = {}
+        for chart in sorted(slices, key=lambda slc: slc.id or 0):
+            if (
+                chart.id is None
+                or chart.datasource_type != utils.DatasourceType.TABLE
+                or chart.datasource_id != datasource.id
+            ):
+                continue
+            # Building the labels reads stored metadata only, so the access
+            # check runs just for charts that would contribute an entry.
+            chart_labels = saved_chart_display_labels(datasource, chart)
+            # A raw ID can collide with another chart's saved field or authored
+            # label. Omit conflicting labels rather than expose a different
+            # field's display name or disagree with the full-access payload.
+            verbose_map = payload.get("verbose_map", {})
+            chart_labels = {
+                name: label
+                for name, label in chart_labels.items()
+                if verbose_map.get(name) == label
+            }
+            if chart_labels and access.allows(chart):
+                labels[str(chart.id)] = chart_labels
+        if labels:
+            payload["chart_display_labels"] = labels
+        return payload
 
     @property
     def params(self) -> str:

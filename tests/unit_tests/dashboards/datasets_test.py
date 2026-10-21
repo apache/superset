@@ -17,8 +17,10 @@
 
 """Dashboard datasource payload regression tests."""
 
+import uuid
 from collections.abc import Iterator
-from typing import Any
+from contextlib import contextmanager
+from typing import Any, Callable, NamedTuple
 from unittest.mock import MagicMock, patch, PropertyMock
 
 import pyarrow as pa
@@ -26,14 +28,32 @@ import pytest
 from flask import g
 from superset_core.semantic_layers.types import Dimension, Grains
 
-from superset.connectors.sqla.models import BaseDatasource, SqlaTable
-from superset.dashboards.api import DashboardRestApi
+from superset import security_manager
+from superset.connectors.sqla.models import (
+    BaseDatasource,
+    SqlaTable,
+    SqlMetric,
+    TableColumn,
+)
+from superset.dashboards.api import (
+    DASHBOARD_DATASET_INACCESSIBLE_FIELDS,
+    DashboardRestApi,
+)
 from superset.dashboards.schemas import DashboardDatasetSchema
+from superset.extensions import feature_flag_manager
 from superset.models.core import Database
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, saved_chart_display_labels
+from superset.models.embedded_dashboard import EmbeddedDashboard
 from superset.models.slice import Slice
-from superset.security.guest_token import GuestToken, GuestUser
+from superset.security.guest_token import (
+    GuestToken,
+    GuestTokenResourceType,
+    GuestUser,
+)
 from superset.semantic_layers.models import SemanticView
+from superset.subjects.models import Subject
+from superset.subjects.types import SubjectType
+from superset.utils import json
 
 pytestmark: pytest.MarkDecorator = pytest.mark.usefixtures("semantic_layers_enabled")
 
@@ -440,3 +460,1013 @@ def test_dashboard_datasets_isolate_ambiguous_view(
     else:
         assert "metadata_error" not in datasets["2__semantic_view"]
         implementation.get_dimensions.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# Authorized chart display labels (``chart_display_labels``)
+# ---------------------------------------------------------------------------
+
+DASHBOARD_UUID: str = "4a4b1d5c-0ae8-4c4f-9e8d-2b8f3a0c1d11"
+OTHER_DASHBOARD_UUID: str = "9f0c6c55-7d43-4b45-a3f0-6f3d1c2b7e22"
+SENSITIVE_LABELS: tuple[str, ...] = ("Metro area", "Margin", "Cost center")
+GUEST_REDACTED_FIELDS: tuple[str, ...] = (
+    "database",
+    "parent",
+    "semantic_view_features",
+    "editors",
+    "sql",
+    "select_star",
+    "perm",
+    "edit_url",
+    "fetch_values_predicate",
+    "template_params",
+)
+
+
+def _labelled_table(table_id: int = 7) -> SqlaTable:
+    """A dataset with labelled, unlabelled and unused columns and metrics."""
+    return SqlaTable(
+        id=table_id,
+        table_name=f"sales_{table_id}",
+        database=Database(id=1, database_name="Warehouse", sqlalchemy_uri="sqlite://"),
+        columns=[
+            TableColumn(column_name="region", verbose_name="Region", type="TEXT"),
+            TableColumn(column_name="metro", verbose_name="Metro area", type="TEXT"),
+            TableColumn(column_name="venue", verbose_name=None, type="TEXT"),
+            TableColumn(
+                column_name="cost_center", verbose_name="Cost center", type="TEXT"
+            ),
+        ],
+        metrics=[
+            SqlMetric(
+                metric_name="revenue", expression="SUM(amount)", verbose_name="Revenue"
+            ),
+            SqlMetric(
+                metric_name="venues",
+                expression="COUNT(DISTINCT venue)",
+                verbose_name="   ",
+            ),
+            SqlMetric(
+                metric_name="margin", expression="SUM(margin)", verbose_name="Margin"
+            ),
+        ],
+    )
+
+
+def _chart(chart_id: int, table: SqlaTable, **params: Any) -> Slice:
+    """A saved member chart on ``table``."""
+    chart: Slice = Slice(
+        id=chart_id,
+        slice_name=f"Chart {chart_id}",
+        datasource_id=table.id,
+        datasource_type="table",
+        viz_type="ag-grid-pivot-table",
+        params=json.dumps(params),
+    )
+    chart.table = table
+    return chart
+
+
+def _viewer(subject_id: int) -> Subject:
+    """An explicit chart viewer subject."""
+    return Subject(id=subject_id, label=f"Viewer {subject_id}", type=SubjectType.USER)
+
+
+def _embedded_dashboard(dashboard_id: int, slices: list[Slice]) -> Dashboard:
+    """A dashboard embedded under ``DASHBOARD_UUID``."""
+    return Dashboard(
+        id=dashboard_id,
+        slices=slices,
+        embedded=[EmbeddedDashboard(uuid=uuid.UUID(DASHBOARD_UUID))],
+    )
+
+
+def _guest(dashboard_ref: str, datasets: list[int] | None = None) -> GuestUser:
+    """A real guest principal whose token grants one dashboard."""
+    token: GuestToken = {
+        "iat": 0,
+        "exp": 9999999999,
+        "user": {"username": "embedded-guest"},
+        "resources": [{"type": GuestTokenResourceType.DASHBOARD, "id": dashboard_ref}],
+        "rls_rules": [],
+    }
+    if datasets is not None:
+        token["datasets"] = datasets
+    return GuestUser(token, roles=[])
+
+
+@contextmanager
+def _as_guest(guest: GuestUser) -> Iterator[None]:
+    """Act as an embedded guest holding no standalone datasource grant.
+
+    Chart and dashboard access run through the real security manager; only the
+    datasource grant the token never carries is pinned to its real outcome.
+    """
+    previous: Callable[[str, bool], bool] | None = (
+        feature_flag_manager._is_feature_enabled_func
+    )
+
+    def resolve(name: str, default: bool) -> bool:
+        if name == "EMBEDDED_SUPERSET":
+            return True
+        return previous(name, default) if previous else default
+
+    with (
+        patch.object(feature_flag_manager, "_is_feature_enabled_func", resolve),
+        patch.object(g, "user", guest, create=True),
+        patch(
+            "superset.models.dashboard.security_manager.get_guest_user_from_request",
+            return_value=guest,
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.can_access_datasource",
+            return_value=False,
+        ),
+    ):
+        yield
+
+
+@contextmanager
+def _as_regular_user(
+    *,
+    admin: bool = False,
+    can_access_datasource: bool = True,
+    viewer_of: Callable[[Any], bool] = lambda resource: False,
+) -> Iterator[None]:
+    """Act as a non-guest principal with the given grants."""
+    with (
+        patch(
+            "superset.models.dashboard.security_manager.is_guest_user",
+            return_value=False,
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.is_admin", return_value=admin
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.is_editor",
+            return_value=admin,
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.is_viewer",
+            side_effect=lambda resource: admin or viewer_of(resource),
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.can_access_datasource",
+            return_value=can_access_datasource,
+        ),
+    ):
+        yield
+
+
+class _DatasetsCall(NamedTuple):
+    response: Any
+    prefetch: MagicMock
+    chart_checks: MagicMock
+
+
+def _get_datasets(client: Any, dashboard: Dashboard) -> _DatasetsCall:
+    """Request the datasets endpoint by UUID, which loads the dashboard and then
+    runs the real dashboard access check before any payload is built.
+
+    Records the chart-access prefetch and every (real) per-chart access check.
+    """
+    chart_access = security_manager.can_access_chart
+    with (
+        patch.object(Dashboard, "get", return_value=dashboard),
+        patch("superset.daos.dashboard.DashboardDAO.prefetch_chart_access") as prefetch,
+        patch(
+            "superset.models.dashboard.security_manager.can_access_chart",
+            wraps=security_manager.can_access_chart,
+        ) as chart_checks,
+    ):
+        # A recording wrapper preserves the underlying authorization implementation.
+        chart_checks.__func__ = getattr(chart_access, "__func__", None)
+        response: Any = client.get(f"/api/v1/dashboard/{DASHBOARD_UUID}/datasets")
+    return _DatasetsCall(response, prefetch, chart_checks)
+
+
+def _checked_chart_ids(call: _DatasetsCall) -> set[int]:
+    return {args.args[0].id for args in call.chart_checks.call_args_list}
+
+
+def _assert_string_labels(labels: dict[str, Any]) -> None:
+    for chart_id, chart_labels in labels.items():
+        assert isinstance(chart_id, str)
+        assert chart_labels
+        for raw_id, label in chart_labels.items():
+            assert isinstance(raw_id, str)
+            assert isinstance(label, str)
+
+
+def test_saved_chart_display_labels_allowlist_saved_fields() -> None:
+    """Only saved dimensions/metrics with configured labels are emitted."""
+    table: SqlaTable = _labelled_table()
+    chart: Slice = _chart(
+        11,
+        table,
+        groupby=[
+            "region",
+            "venue",
+            {
+                "label": "Region bucket",
+                "sqlExpression": "UPPER(cost_center)",
+                "expressionType": "SQL",
+                "hasCustomLabel": True,
+            },
+            {
+                "label": "LOWER(metro)",
+                "sqlExpression": "LOWER(metro)",
+                "expressionType": "SQL",
+            },
+        ],
+        metrics=[
+            "revenue",
+            "venues",
+            "not_a_saved_metric",
+            {
+                "expressionType": "SIMPLE",
+                "aggregate": "MAX",
+                "column": {"column_name": "metro", "verbose_name": "Metro area"},
+                "label": "MAX(metro)",
+                "hasCustomLabel": False,
+            },
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(margin) / COUNT(*)",
+                "label": "Average margin",
+                "hasCustomLabel": True,
+            },
+        ],
+        adhoc_filters=[
+            {
+                "clause": "WHERE",
+                "subject": "cost_center",
+                "operator": "==",
+                "comparator": "Sales",
+                "expressionType": "SIMPLE",
+            }
+        ],
+        # Saved pivot axes outside the configured dimensions are not labels.
+        pivot_table_state={
+            "rowGroup": {"groupColIds": ["region", "cost_center"]},
+            "pivot": {"pivotMode": True, "pivotColIds": ["metro"]},
+        },
+        # Comparison headers derive from the base metric label client-side.
+        time_compare=["1 year ago"],
+        comparison_type="percentage",
+        order_by_cols=["metro"],
+        timeseries_limit_metric="margin",
+    )
+
+    labels: dict[str, str] = saved_chart_display_labels(table, chart)
+
+    assert labels == {
+        "region": "Region",
+        "Region bucket": "Region bucket",
+        "revenue": "Revenue",
+        "Average margin": "Average margin",
+    }
+    _assert_string_labels({"11": labels})
+
+
+@pytest.mark.parametrize(
+    "params, expected",
+    [
+        (None, {}),
+        ("", {}),
+        ("not json", {}),
+        ("null", {}),
+        ('"region"', {}),
+        ('["region"]', {}),
+        (
+            '{"groupby": "region", "metrics": "revenue"}',
+            {},
+        ),
+        ('{"groupby": {"region": 1}, "metrics": 5}', {}),
+        (
+            '{"groupby": [null, 3, ["region"], {"label": 5, "hasCustomLabel": true},'
+            ' {"label": "", "hasCustomLabel": true}],'
+            ' "metrics": [{"label": "x", "hasCustomLabel": "true"},'
+            ' {"label": "  ", "hasCustomLabel": true}, {"metric_name": "revenue"}]}',
+            {},
+        ),
+    ],
+)
+def test_saved_chart_display_labels_tolerate_malformed_params(
+    params: str | None, expected: dict[str, str]
+) -> None:
+    """Malformed saved params never raise and never invent labels."""
+    table: SqlaTable = _labelled_table()
+    chart: Slice = _chart(11, table)
+    chart.params = params
+
+    assert saved_chart_display_labels(table, chart) == expected
+
+
+def test_saved_chart_display_labels_require_string_verbose_names() -> None:
+    """Non-string stored labels fall back to the raw name."""
+    table: SqlaTable = _labelled_table()
+    table.columns[0].verbose_name = 5
+    table.metrics[0].verbose_name = ["Revenue"]
+    chart: Slice = _chart(11, table, groupby=["region"], metrics=["revenue"])
+
+    assert saved_chart_display_labels(table, chart) == {}
+
+
+def test_dashboard_datasets_full_access_keeps_verbose_map_and_labels(
+    client: Any, full_api_access: None
+) -> None:
+    """A full-access principal keeps the verbose map and also gets labels."""
+    table: SqlaTable = _labelled_table()
+    chart: Slice = _chart(
+        11, table, groupby=["region", "metro", "venue"], metrics=["revenue"]
+    )
+    dashboard: Dashboard = Dashboard(id=17, slices=[chart])
+
+    with _as_regular_user(admin=True):
+        call: _DatasetsCall = _get_datasets(client, dashboard)
+
+    response: Any = call.response
+    assert response.status_code == 200
+    call.prefetch.assert_called_once_with(dashboard)
+    assert _checked_chart_ids(call) == {11}
+    [dataset] = response.json["result"]
+    assert dataset["verbose_map"]["metro"] == "Metro area"
+    assert dataset["columns"]
+    assert dataset["chart_display_labels"] == {
+        "11": {"region": "Region", "metro": "Metro area", "revenue": "Revenue"}
+    }
+    _assert_string_labels(dataset["chart_display_labels"])
+
+
+def test_dashboard_datasets_dashboard_only_principal_gets_authorized_labels(
+    client: Any, full_api_access: None
+) -> None:
+    """Labels follow per-chart access, not dataset access or other dashboards.
+
+    Two member charts share one dataset; the second names another viewer (an
+    explicit chart ACL denial). A third chart on the same dataset that the
+    caller can view belongs to a different dashboard.
+    """
+    table: SqlaTable = _labelled_table()
+    allowed: Slice = _chart(11, table, groupby=["region"], metrics=["revenue"])
+    allowed.viewers = [_viewer(1)]
+    denied: Slice = _chart(12, table, groupby=["metro"], metrics=["margin"])
+    denied.viewers = [_viewer(2)]
+    outside: Slice = _chart(13, table, groupby=["cost_center"], metrics=["margin"])
+    outside.viewers = [_viewer(1)]
+    Dashboard(id=18, slices=[outside])
+    dashboard: Dashboard = Dashboard(
+        id=17, slices=[allowed, denied], published=True, viewers=[_viewer(1)]
+    )
+
+    with _as_regular_user(
+        can_access_datasource=False,
+        viewer_of=lambda resource: resource in (dashboard, allowed, outside),
+    ):
+        assert security_manager.can_access_chart(outside)
+        assert not security_manager.can_access_chart(denied)
+        call: _DatasetsCall = _get_datasets(client, dashboard)
+
+    response: Any = call.response
+    assert response.status_code == 200
+    # One lazy prefetch, then the real check for each labelled member chart.
+    call.prefetch.assert_called_once_with(dashboard)
+    assert _checked_chart_ids(call) == {11, 12}
+    [dataset] = response.json["result"]
+    assert dataset["chart_display_labels"] == {
+        "11": {"region": "Region", "revenue": "Revenue"}
+    }
+    for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
+        assert key not in dataset
+    body: str = response.get_data(as_text=True)
+    for label in SENSITIVE_LABELS:
+        assert label not in body
+    for raw_id in ('"metro"', '"margin"', '"cost_center"', '"12"', '"13"'):
+        assert raw_id not in body
+
+
+def test_dashboard_datasets_omit_labels_when_none_configured(
+    client: Any, full_api_access: None
+) -> None:
+    """No configured labels, or no accessible chart, means no field at all."""
+    table: SqlaTable = _labelled_table()
+    unlabelled: Slice = _chart(11, table, groupby=["venue"], metrics=["venues"])
+    denied: Slice = _chart(12, table, groupby=["region"], metrics=["revenue"])
+    denied.viewers = [_viewer(2)]
+    dashboard: Dashboard = Dashboard(
+        id=17, slices=[unlabelled, denied], published=True, viewers=[_viewer(1)]
+    )
+
+    with _as_regular_user(
+        can_access_datasource=False,
+        viewer_of=lambda resource: resource in (dashboard, unlabelled),
+    ):
+        call: _DatasetsCall = _get_datasets(client, dashboard)
+
+    response: Any = call.response
+    assert response.status_code == 200
+    assert _checked_chart_ids(call) == {12}
+    [dataset] = response.json["result"]
+    assert "chart_display_labels" not in dataset
+    assert "verbose_map" not in dataset
+
+
+@pytest.mark.parametrize("principal", ["admin", "dashboard_viewer", "guest"])
+def test_dashboard_datasets_without_labels_skip_access_work(
+    client: Any, full_api_access: None, principal: str
+) -> None:
+    """Dashboards without configured labels pay for no access checks."""
+    table: SqlaTable = _labelled_table()
+    chart: Slice = _chart(11, table, groupby=["venue"], metrics=["venues"])
+    chart.viewers = [_viewer(1)]
+    dashboard: Dashboard = _embedded_dashboard(17, [chart])
+    dashboard.published = True
+    dashboard.viewers = [_viewer(1)]
+
+    with (
+        _as_guest(_guest(DASHBOARD_UUID))
+        if principal == "guest"
+        else _as_regular_user(
+            admin=principal == "admin",
+            can_access_datasource=False,
+            viewer_of=lambda resource: resource in (dashboard, chart),
+        )
+    ):
+        call: _DatasetsCall = _get_datasets(client, dashboard)
+
+    assert call.response.status_code == 200
+    [dataset] = call.response.json["result"]
+    assert "chart_display_labels" not in dataset
+    call.prefetch.assert_not_called()
+    call.chart_checks.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "allowlist, expected",
+    [
+        (
+            None,
+            {
+                "sales_7": {"11": {"region": "Region", "revenue": "Revenue"}},
+                "sales_8": {"21": {"metro": "Metro area", "revenue": "Revenue"}},
+            },
+        ),
+        ([7], {"sales_7": {"11": {"region": "Region", "revenue": "Revenue"}}}),
+        ([], {}),
+        (["7"], {}),
+    ],
+)
+def test_dashboard_datasets_guest_labels_follow_token(
+    client: Any,
+    full_api_access: None,
+    allowlist: list[Any] | None,
+    expected: dict[str, dict[str, dict[str, str]]],
+) -> None:
+    """A real guest gets labels for granted charts only, with all redaction."""
+    table: SqlaTable = _labelled_table(7)
+    excluded_table: SqlaTable = _labelled_table(8)
+    allowed: Slice = _chart(11, table, groupby=["region"], metrics=["revenue"])
+    excluded: Slice = _chart(21, excluded_table, groupby=["metro"], metrics=["revenue"])
+    dashboard: Dashboard = _embedded_dashboard(17, [allowed, excluded])
+
+    with _as_guest(_guest(DASHBOARD_UUID, allowlist)):
+        call: _DatasetsCall = _get_datasets(client, dashboard)
+        # The guest path decides without the per-chart check, and decides
+        # exactly as that check would for these member charts.
+        chart_access: set[str] = {
+            str(chart.id)
+            for chart in (allowed, excluded)
+            if security_manager.can_access_chart(chart)
+        }
+
+    response: Any = call.response
+    assert response.status_code == 200
+    call.prefetch.assert_not_called()
+    call.chart_checks.assert_not_called()
+    assert chart_access == {
+        chart_id for labels in expected.values() for chart_id in labels
+    }
+    datasets: dict[str, dict[str, Any]] = {
+        item["table_name"]: item for item in response.json["result"]
+    }
+    assert set(datasets) == {"sales_7", "sales_8"}
+    for name, dataset in datasets.items():
+        assert dataset.get("chart_display_labels") == expected.get(name)
+        for key in (*DASHBOARD_DATASET_INACCESSIBLE_FIELDS, *GUEST_REDACTED_FIELDS):
+            assert key not in dataset
+    if "sales_8" not in expected:
+        assert "Metro area" not in response.get_data(as_text=True)
+
+
+def test_dashboard_datasets_guest_allowlist_applies_to_chart_viewer_grants(
+    client: Any, full_api_access: None
+) -> None:
+    """An explicit chart viewer grant admits the chart, not excluded metadata."""
+    table: SqlaTable = _labelled_table(7)
+    viewed: Slice = _chart(11, table, groupby=["region"], metrics=["revenue"])
+    viewed.viewers = [_viewer(1)]
+    dashboard: Dashboard = _embedded_dashboard(17, [viewed])
+
+    with (
+        _as_guest(_guest(DASHBOARD_UUID, [8])),
+        patch(
+            "superset.models.dashboard.security_manager.is_viewer",
+            side_effect=lambda resource: resource is viewed,
+        ),
+    ):
+        assert security_manager.can_access_chart(viewed)
+        call: _DatasetsCall = _get_datasets(client, dashboard)
+
+    response: Any = call.response
+    assert response.status_code == 200
+    call.chart_checks.assert_not_called()
+    [dataset] = response.json["result"]
+    assert "chart_display_labels" not in dataset
+    assert "Region" not in response.get_data(as_text=True)
+
+
+def test_dashboard_datasets_guest_token_for_other_dashboard_is_denied(
+    client: Any, full_api_access: None
+) -> None:
+    """A token for another dashboard gets no payload, nor labels via the model."""
+    table: SqlaTable = _labelled_table()
+    shared: Slice = _chart(11, table, groupby=["region"], metrics=["revenue"])
+    dashboard: Dashboard = _embedded_dashboard(17, [shared])
+    Dashboard(
+        id=18,
+        slices=[shared],
+        embedded=[EmbeddedDashboard(uuid=uuid.UUID(OTHER_DASHBOARD_UUID))],
+    )
+
+    with _as_guest(_guest(OTHER_DASHBOARD_UUID)):
+        response: Any = _get_datasets(client, dashboard).response
+        # The shared chart is reachable through the token's own dashboard, so
+        # only the requested dashboard's grant keeps its labels out.
+        assert security_manager.can_access_chart(shared)
+        datasets: list[tuple[BaseDatasource | SemanticView, dict[str, Any]]] = (
+            dashboard.datasets_trimmed_for_slices()
+        )
+
+    assert response.status_code == 403
+    assert "Region" not in response.get_data(as_text=True)
+    assert len(datasets) == 1
+    assert "chart_display_labels" not in datasets[0][1]
+
+
+@pytest.mark.parametrize("semantic_access", [True, False])
+def test_chart_display_labels_are_sqla_only_with_colliding_ids(
+    semantic_view: SemanticView, semantic_access: bool
+) -> None:
+    """A same-id semantic view never gets labels nor, if denied, a provider."""
+    table: SqlaTable = _labelled_table(semantic_view.id)
+    table_chart: Slice = _chart(11, table, groupby=["region"], metrics=["revenue"])
+    semantic_chart: Slice = Slice(
+        id=12,
+        datasource_id=semantic_view.id,
+        datasource_type="semantic_view",
+        params=json.dumps({"groupby": ["category"], "metrics": ["revenue"]}),
+    )
+    semantic_chart.semantic_view = semantic_view
+    dashboard: Dashboard = Dashboard(slices=[table_chart, semantic_chart])
+    provider: MagicMock = MagicMock()
+    implementation: PropertyMock
+    with (
+        _as_regular_user(admin=True),
+        patch(
+            "superset.models.dashboard.security_manager.can_access_datasource",
+            side_effect=lambda datasource: datasource is table or semantic_access,
+        ),
+        patch.object(
+            SemanticView,
+            "implementation",
+            new_callable=PropertyMock,
+            return_value=provider,
+        ) as implementation,
+        patch.object(
+            SemanticView,
+            "data_for_slices",
+            return_value={"id": semantic_view.id, "type": "semantic_view"},
+        ),
+    ):
+        datasets: list[tuple[BaseDatasource | SemanticView, dict[str, Any]]] = (
+            dashboard.datasets_trimmed_for_slices()
+        )
+
+    payloads: dict[tuple[str, int], dict[str, Any]] = {
+        (datasource.type, datasource.id): payload for datasource, payload in datasets
+    }
+    assert payloads[("table", semantic_view.id)]["chart_display_labels"] == {
+        "11": {"region": "Region", "revenue": "Revenue"}
+    }
+    assert "chart_display_labels" not in payloads[("semantic_view", semantic_view.id)]
+    if not semantic_access:
+        implementation.assert_not_called()
+        assert provider.mock_calls == []
+
+
+@pytest.mark.parametrize("is_guest", [True, False])
+def test_chart_display_labels_survive_narrowing_that_strips_metadata(
+    is_guest: bool,
+) -> None:
+    """The string-only label map is whitelisted; dataset metadata is not."""
+    table: SqlaTable = _labelled_table()
+    labels: dict[str, dict[str, str]] = {"11": {"region": "Region"}}
+    payload: dict[str, Any] = {
+        "id": table.id,
+        "uid": f"{table.id}__table",
+        "type": "table",
+        "table_name": table.table_name,
+        "metadata_error": "error",
+        "sql": "SELECT secret FROM t",
+        "select_star": "SELECT *",
+        "fetch_values_predicate": "1 = 1",
+        "template_params": "{}",
+        "params": "{}",
+        "perm": "[Warehouse].[t]",
+        "edit_url": "/edit",
+        "database": {"id": 1, "name": "Warehouse"},
+        "parent": {"name": "Warehouse"},
+        "semantic_view_features": ["feature"],
+        "columns": [{"column_name": "metro"}],
+        "column_names": ["metro"],
+        "column_types": [1],
+        "metrics": [{"metric_name": "margin"}],
+        "verbose_map": {"metro": "Metro area"},
+        "order_by_choices": [["metro", "metro"]],
+        "main_dttm_col": "ds",
+        "granularity_sqla": [["ds", "ds"]],
+        "time_grain_sqla": [["P1D", "Day"]],
+        "editors": [],
+        "chart_display_labels": labels,
+    }
+    with (
+        patch(
+            "superset.dashboards.api.security_manager.can_access_datasource",
+            return_value=False,
+        ),
+        patch(
+            "superset.dashboards.schemas.security_manager.is_guest_user",
+            return_value=is_guest,
+        ),
+    ):
+        serialized: dict[str, Any] = DashboardRestApi()._serialize_dashboard_dataset(
+            table, payload
+        )
+
+    assert serialized["chart_display_labels"] == labels
+    for key in DASHBOARD_DATASET_INACCESSIBLE_FIELDS:
+        assert key not in serialized
+    if is_guest:
+        for key in GUEST_REDACTED_FIELDS:
+            assert key not in serialized
+    assert "Metro area" not in json.dumps(serialized)
+
+
+def test_inaccessible_fields_keep_every_entry_and_exclude_labels() -> None:
+    """Whitelisting labels must not shrink the dataset redaction list."""
+    assert set(DASHBOARD_DATASET_INACCESSIBLE_FIELDS) == {
+        "metadata_error",
+        "sql",
+        "select_star",
+        "fetch_values_predicate",
+        "template_params",
+        "params",
+        "perm",
+        "edit_url",
+        "database",
+        "parent",
+        "semantic_view_features",
+        "columns",
+        "column_names",
+        "column_types",
+        "metrics",
+        "verbose_map",
+        "order_by_choices",
+        "main_dttm_col",
+        "granularity_sqla",
+        "time_grain_sqla",
+    }
+    assert "chart_display_labels" not in DASHBOARD_DATASET_INACCESSIBLE_FIELDS
+
+
+@pytest.mark.parametrize(
+    "viz_type, params, expected",
+    [
+        ("table", {"all_columns": ["region"]}, {"region": "Region"}),
+        (
+            "table",
+            {
+                "groupby": ["region"],
+                "metrics": ["revenue"],
+                "percent_metrics": ["margin"],
+            },
+            {"region": "Region", "revenue": "Revenue", "margin": "Margin"},
+        ),
+        (
+            "pivot_table_v2",
+            {
+                "groupbyRows": ["region"],
+                "groupbyColumns": ["metro"],
+                "metrics": ["revenue"],
+            },
+            {"region": "Region", "metro": "Metro area", "revenue": "Revenue"},
+        ),
+        (
+            "echarts_timeseries_line",
+            {"x_axis": "region", "groupby": ["metro"], "metrics": ["revenue"]},
+            {"region": "Region", "metro": "Metro area", "revenue": "Revenue"},
+        ),
+        (
+            "mixed_timeseries",
+            {"metrics_b": ["revenue"], "groupby_b": ["region"]},
+            {"region": "Region", "revenue": "Revenue"},
+        ),
+        ("big_number", {"metric": "revenue"}, {"revenue": "Revenue"}),
+        (
+            "pie",
+            {"groupby": ["region"], "metric": "revenue"},
+            {"region": "Region", "revenue": "Revenue"},
+        ),
+        (
+            "bubble",
+            {
+                "entity": "region",
+                "series": "metro",
+                "x": "revenue",
+                "y": "margin",
+                "size": "revenue",
+            },
+            {
+                "region": "Region",
+                "metro": "Metro area",
+                "revenue": "Revenue",
+                "margin": "Margin",
+            },
+        ),
+        (
+            "point-cluster-map",
+            {"all_columns_x": "region", "all_columns_y": "metro"},
+            {"region": "Region", "metro": "Metro area"},
+        ),
+        (
+            "sankey",
+            {"source": "region", "target": "metro"},
+            {"region": "Region", "metro": "Metro area"},
+        ),
+        ("histogram", {"column": "region"}, {"region": "Region"}),
+        (
+            "echarts_timeseries_line",
+            {"series_columns": ["region"], "tooltip_metrics": ["revenue"]},
+            {"region": "Region", "revenue": "Revenue"},
+        ),
+    ],
+)
+@pytest.mark.parametrize("with_query_context", [False, True])
+def test_chart_display_labels_cover_visualization_controls(
+    viz_type: str,
+    params: dict[str, Any],
+    expected: dict[str, str],
+    with_query_context: bool,
+) -> None:
+    """Displayed fields have full-access parity without filter or sort metadata."""
+    table = _labelled_table()
+    table.metrics.append(
+        SqlMetric(
+            metric_name="sorting_metric",
+            expression="COUNT(*)",
+            verbose_name="Sort label",
+        )
+    )
+    chart = _chart(
+        11,
+        table,
+        **params,
+        adhoc_filters=[{"clause": "WHERE", "subject": "cost_center"}],
+        filter_configs=[{"column": "cost_center"}],
+        order_by_cols=["cost_center"],
+        timeseries_limit_metric="sorting_metric",
+        series_limit_metric="sorting_metric",
+    )
+    chart.viz_type = viz_type
+    if with_query_context:
+        chart.query_context = json.dumps(
+            {
+                "queries": [
+                    {
+                        "columns": [
+                            key for key in expected if key in {"region", "metro"}
+                        ],
+                        "metrics": [
+                            key for key in expected if key in {"revenue", "margin"}
+                        ],
+                        "filters": [{"col": "cost_center"}],
+                        "orderby": [["cost_center", True]],
+                        "granularity": "cost_center",
+                    }
+                ]
+            }
+        )
+    labels = saved_chart_display_labels(table, chart)
+    assert labels == expected
+    verbose_map = table.data_for_slices([chart])["verbose_map"]
+    assert all(verbose_map.get(key) == label for key, label in labels.items())
+    assert "cost_center" not in labels
+    assert "sorting_metric" not in labels
+
+
+@pytest.mark.parametrize("reference_kind", ["BASE_AXIS", "column_reference"])
+@pytest.mark.parametrize("exact", [True, False])
+def test_chart_display_labels_only_resolve_exact_physical_references(
+    reference_kind: str, exact: bool
+) -> None:
+    """Physical axis wrappers resolve only when expression and label match."""
+    table = _labelled_table()
+    reference = {
+        "label": "region",
+        "sqlExpression": "region" if exact else "UPPER(region)",
+        "expressionType": "SQL",
+        "hasCustomLabel": False,
+    }
+    if reference_kind == "BASE_AXIS":
+        reference["columnType"] = "BASE_AXIS"
+    else:
+        reference["isColumnReference"] = True
+    chart = _chart(11, table, x_axis=reference)
+    assert saved_chart_display_labels(table, chart) == (
+        {"region": "Region"} if exact else {}
+    )
+
+
+@pytest.mark.parametrize(
+    "query_context",
+    [
+        None,
+        "",
+        "invalid",
+        "null",
+        "[]",
+        '{"queries": null}',
+        '{"queries": [null, 5]}',
+        '{"queries": [{"columns": "metro", "metrics": "margin"}]}',
+    ],
+)
+def test_chart_display_labels_tolerate_malformed_query_context(
+    query_context: str | None,
+) -> None:
+    """Malformed cached queries do not prevent valid saved controls being labelled."""
+    table = _labelled_table()
+    chart = _chart(11, table, groupby=["region"], metrics=["revenue"])
+    chart.query_context = query_context
+    assert saved_chart_display_labels(table, chart) == {
+        "region": "Region",
+        "revenue": "Revenue",
+    }
+
+
+def test_chart_display_labels_custom_adhoc_parity() -> None:
+    """Authored expression labels occur unchanged in the full-access verbose map."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        groupby=[
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "UPPER(cost_center)",
+                "label": "Cost grouping",
+                "hasCustomLabel": True,
+            }
+        ],
+        metrics=[
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "SUM(margin)",
+                "label": "Total margin",
+                "hasCustomLabel": True,
+            }
+        ],
+    )
+    labels = saved_chart_display_labels(table, chart)
+    assert labels == {"Cost grouping": "Cost grouping", "Total margin": "Total margin"}
+    verbose_map = table.data_for_slices([chart])["verbose_map"]
+    assert all(verbose_map[key] == value for key, value in labels.items())
+    assert "cost_center" not in labels
+    assert "margin" not in labels
+
+
+def test_chart_display_labels_preserve_column_metric_collision_precedence(
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """A shared identifier cannot supply a different label than the full response."""
+    table = _labelled_table()
+    table.metrics.append(
+        SqlMetric(
+            metric_name="region", expression="COUNT(*)", verbose_name="Region count"
+        )
+    )
+    column_chart = _chart(11, table, groupby=["region"])
+    metric_chart = _chart(12, table, metrics=["region"])
+    dashboard = Dashboard(id=17, slices=[column_chart, metric_chart])
+    with _as_regular_user(admin=True):
+        response = _get_datasets(client, dashboard).response
+    assert response.status_code == 200
+    [dataset] = response.json["result"]
+    assert dataset["verbose_map"]["region"] == "Region"
+    assert dataset["chart_display_labels"] == {"11": {"region": "Region"}}
+
+
+@pytest.mark.parametrize("overridden_method", ["can_access_chart", "raise_for_access"])
+def test_chart_display_labels_honor_existing_custom_guest_authorization(
+    app_context: None,
+    overridden_method: str,
+) -> None:
+    """Existing custom chart restrictions remain effective for embedded labels."""
+    from superset.exceptions import SupersetSecurityException
+
+    table = _labelled_table()
+    chart = _chart(11, table, groupby=["region"])
+    dashboard = _embedded_dashboard(17, [chart])
+    with _as_guest(_guest(DASHBOARD_UUID)):
+        assert security_manager.can_access_dashboard_chart_labels(dashboard, chart)
+        kwargs: dict[str, Any] = (
+            {"return_value": False}
+            if overridden_method == "can_access_chart"
+            else {
+                "side_effect": SupersetSecurityException(
+                    security_manager.get_dashboard_access_error_object(dashboard)
+                )
+            }
+        )
+        with patch.object(
+            security_manager, overridden_method, **kwargs
+        ) as custom_check:
+            assert not security_manager.can_access_dashboard_chart_labels(
+                dashboard, chart
+            )
+        custom_check.assert_called_once()
+
+
+def test_chart_display_labels_read_raw_query_context_references() -> None:
+    """Saved queries contribute displayed fields without parsing expressions."""
+    table = _labelled_table()
+    chart = _chart(11, table, groupby=["region"])
+    chart.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": [
+                        "metro",
+                        {
+                            "sqlExpression": "UPPER(cost_center)",
+                            "label": "Cost grouping",
+                            "hasCustomLabel": True,
+                        },
+                    ],
+                    "groupby": ["region"],
+                    "metrics": [
+                        "revenue",
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": "SUM(margin)",
+                            "label": "SUM(margin)",
+                            "hasCustomLabel": False,
+                        },
+                    ],
+                    "filters": [{"col": "cost_center"}],
+                    "orderby": [["margin", False]],
+                }
+            ]
+        }
+    )
+    labels = saved_chart_display_labels(table, chart)
+    assert labels == {
+        "region": "Region",
+        "metro": "Metro area",
+        "Cost grouping": "Cost grouping",
+        "revenue": "Revenue",
+    }
+    verbose_map = table.data_for_slices([chart])["verbose_map"]
+    assert all(verbose_map[key] == value for key, value in labels.items())
+
+
+def test_chart_display_labels_include_explicit_tooltip_columns() -> None:
+    """Tooltip display fields are labelled without exposing malformed contents."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        dimension="region",
+        tooltip_contents=[
+            "metro",
+            {"item_type": "column", "column_name": "region"},
+            {"item_type": "html", "column_name": "cost_center"},
+            {"item_type": "column", "column_name": ["cost_center"]},
+            None,
+        ],
+    )
+    assert saved_chart_display_labels(table, chart) == {
+        "region": "Region",
+        "metro": "Metro area",
+    }

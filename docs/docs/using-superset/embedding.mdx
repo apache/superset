@@ -59,6 +59,28 @@ embedDashboard({
 
 `fetchGuestToken` must return a **guest token** obtained from your server by calling Superset's `/api/v1/security/guest_token/` endpoint with a service account. Do not call this endpoint from client-side code.
 
+## Chart display names
+
+Dashboard charts and cross-filter chips use configured column and metric display
+names even when a viewer cannot access the underlying SQL dataset directly. This
+also applies to embedded guests. Set a column or saved metric's verbose name in
+the dataset editor, or supply a custom label in the chart editor. Fields without
+a configured display name keep their original names.
+
+The dashboard datasets API supplies these names in `chart_display_labels`, keyed
+by chart ID and then by field or metric identifier. Each entry contains only
+labels referenced by an accessible chart on that dashboard. Filter-only fields,
+sort-only fields, expression internals, and unrelated dataset metadata are
+excluded. Guest tokens must authorize the dashboard and, when a `datasets`
+allowlist is present, the SQL dataset. Semantic views do not supply this map.
+
+Custom security managers can specialize
+`can_access_dashboard_chart_labels(dashboard, chart, *, guest_dashboard_access=None)`
+to restrict label access. The default implementation also honors existing
+`can_access_chart` and `raise_for_access` overrides. For the built-in security
+manager, guest checks reuse the dashboard grant without repeating chart access
+queries.
+
 ---
 
 ## Callbacks

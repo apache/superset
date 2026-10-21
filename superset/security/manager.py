@@ -2756,6 +2756,45 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
 
         return True
 
+    def can_access_dashboard_chart_labels(
+        self,
+        dashboard: "Dashboard",
+        chart: "Slice",
+        *,
+        guest_dashboard_access: bool | None = None,
+    ) -> bool:
+        """Authorize a member chart's configured display labels.
+
+        Guests must hold a grant for this exact dashboard and satisfy their
+        token's dataset allowlist. With the built-in chart checks these imply
+        the embedded-chart grant, avoiding per-chart metadata queries. Existing
+        custom chart-access overrides still run and may restrict that grant.
+
+        :param dashboard: The dashboard whose member chart supplies the labels
+        :param chart: A member chart on its matching SQLAlchemy dataset
+        :param guest_dashboard_access: Request-local result of has_guest_access;
+            callers may supply it to reuse the same dashboard decision
+        :returns: Whether the caller may receive the chart's display labels
+        """
+        if not self.is_guest_user():
+            return self.can_access_chart(chart)
+
+        if guest_dashboard_access is None:
+            guest_dashboard_access = self.has_guest_access(dashboard)
+        if not guest_dashboard_access or not self._guest_token_allows_dataset(
+            chart.datasource_id
+        ):
+            return False
+
+        if (
+            getattr(self.can_access_chart, "__func__", None)
+            is SupersetSecurityManager.can_access_chart
+            and getattr(self.raise_for_access, "__func__", None)
+            is SupersetSecurityManager.raise_for_access
+        ):
+            return True
+        return self.can_access_chart(chart)
+
     def get_dashboard_access_error_object(  # pylint: disable=invalid-name
         self,
         dashboard: "Dashboard",  # pylint: disable=unused-argument
