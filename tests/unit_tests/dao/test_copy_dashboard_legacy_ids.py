@@ -27,6 +27,7 @@ from superset import db
 from superset.commands.chart.restore import RestoreChartCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import DashboardDAO
+from superset.mcp_service.dashboard.schemas import DuplicateDashboardRequest
 from superset.mcp_service.dashboard.tool.duplicate_dashboard import _build_copy_payload
 from superset.models.dashboard import Dashboard
 from superset.models.slice import Slice
@@ -94,11 +95,14 @@ def test_copy_normalizes_legacy_chart_ids(session: Session, legacy_form: str) ->
 
 
 @pytest.mark.parametrize("fresh_collection", [False, True])
-@pytest.mark.parametrize("duplicate_slices", [False, True])
+@pytest.mark.parametrize("duplicate_slices", [False, True, None])
 @pytest.mark.parametrize("mcp_payload", [False, True])
 @with_feature_flags(SOFT_DELETE=True)
 def test_copy_archived_slot_policy_and_restore(
-    session: Session, fresh_collection: bool, duplicate_slices: bool, mcp_payload: bool
+    session: Session,
+    fresh_collection: bool,
+    duplicate_slices: bool | None,
+    mcp_payload: bool,
 ) -> None:
     """Archived originals reattach to the source, never to a chart-cloning copy."""
     Dashboard.metadata.create_all(session.get_bind())
@@ -142,16 +146,30 @@ def test_copy_archived_slot_policy_and_restore(
     source_layout: str = source.position_json
     source_metadata: str = source.json_metadata
     source_ids: set[int] = {live.id, archived.id}
+    request = DuplicateDashboardRequest.model_validate(
+        {
+            "dashboard_id": source.id,
+            "dashboard_title": "copy",
+            **(
+                {"duplicate_slices": duplicate_slices}
+                if duplicate_slices is not None
+                else {}
+            ),
+        }
+    )
+    if duplicate_slices is None:
+        assert request.duplicate_slices is True
+    copy_charts: bool = request.duplicate_slices
     db.session.flush()
     if fresh_collection:
         db.session.expire(source, ["slices"])
     payload: dict[str, Any] = {
         "dashboard_title": "copy",
-        "duplicate_slices": duplicate_slices,
+        "duplicate_slices": copy_charts,
         "json_metadata": json.dumps({"positions": positions}),
     }
     if mcp_payload:
-        payload = _build_copy_payload(source, "copy", duplicate_slices)[0]
+        payload = _build_copy_payload(source, "copy", copy_charts)[0]
     mock_g: MagicMock
     with (
         patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
@@ -164,7 +182,7 @@ def test_copy_archived_slot_policy_and_restore(
         )
     copy_layout: str = copied.position_json
     node: dict[str, Any] = copied.position["ARCHIVED"]
-    if duplicate_slices:
+    if copy_charts:
         assert node == {
             "id": "ARCHIVED",
             "type": "MARKDOWN",
@@ -202,7 +220,7 @@ def test_copy_archived_slot_policy_and_restore(
     assert source.position_json == source_layout
     assert source.json_metadata == source_metadata
     assert copied.position_json == copy_layout
-    if duplicate_slices:
+    if copy_charts:
         assert archived.id not in {chart.id for chart in copied.slices}
         assert copied.id not in {dashboard.id for dashboard in archived.dashboards}
         # Saving the copy again must not reconstruct a hidden archived link.
