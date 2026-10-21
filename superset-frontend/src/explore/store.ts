@@ -136,30 +136,27 @@ export function handleDeprecatedControls(
 
   // #42910: on request, migrate the legacy Gauge `interval_color_indices`
   // (comma-separated, 1-indexed positions into `color_scheme`) into real hex
-  // colors stored by `interval_colors`, which replaced it. Defaults to off
-  // (unlike the comparison_color_scheme migration above): unlike that
-  // control, `interval_color_indices` is never dropped from `form_data` by
-  // an unrelated save -- it isn't a registered control, but `form_data` is
-  // persisted as a plain object, not rebuilt from registered controls, so
-  // an untouched legacy string survives save as-is. Eagerly resolving it
-  // merely from opening the chart (the old default here) froze it into
-  // literal colors on the *first* unrelated resave too, silently breaking a
-  // dashboard override of this chart's `color_scheme` applied afterward --
-  // the exact hazard the dashboard hydration path below was already written
-  // to avoid, just not for this path. `IntervalColorsControl` already shows
-  // the resolved colors for display on its own (see its own
-  // `legacyIntervalColorIndices` prop), so the indices stay palette-relative
-  // and keep following the effective palette until the user actually edits
-  // an interval color, which is the only point this needs to be literal.
+  // colors stored by `interval_colors`, which replaced it. Defaults to off,
+  // unlike the comparison_color_scheme migration above: the Gauge control
+  // panel keeps `interval_color_indices` registered as a hidden control, so
+  // Explore (which builds the chart's query and save form data from
+  // registered controls) still hands an untouched legacy string to the
+  // renderer and keeps it on save, where it stays palette-relative. Eagerly
+  // freezing it into literal colors merely from opening the chart would
+  // silently break a dashboard override of this chart's `color_scheme`
+  // applied afterward -- the exact hazard the dashboard hydration path
+  // below was already written to avoid. `IntervalColorsControl` shows the
+  // resolved colors for display on its own (see its
+  // `legacyIntervalColorIndices` prop), and only the user's first edit of
+  // an interval color makes them literal.
   if (
     resolveLegacyGaugeColors &&
     formData.viz_type === VizType.Gauge &&
     formData.interval_color_indices &&
     (!formData.interval_colors || formData.interval_colors.length === 0)
   ) {
-    const bounds = parseIntervalBounds(formData.intervals);
     const resolved = resolveLegacyIntervalColors(
-      bounds,
+      parseIntervalBounds(formData.intervals).length,
       formData.interval_color_indices,
       formData.color_scheme,
     );

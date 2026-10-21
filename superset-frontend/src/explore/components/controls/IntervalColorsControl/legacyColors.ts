@@ -32,14 +32,13 @@ export const parseIntervalBounds = (intervals?: string): number[] =>
 /**
  * Resolves the legacy `interval_color_indices` control (comma-separated,
  * 1-indexed positions into the chosen categorical color scheme) into real
- * hex colors, positionally matched to `bounds`. Shared by the control panel
- * (display-only fallback while a legacy chart is being edited) and by
- * `handleDeprecatedControls` (which migrates the value into `interval_colors`
- * on load, since `interval_color_indices` is no longer a registered control
- * and would otherwise be silently dropped on the next save).
+ * hex colors, one per interval band (`boundCount` entries). Shared by the
+ * control panel (display-only fallback while a legacy chart is being edited)
+ * and by `handleDeprecatedControls` (which, on request, migrates the value
+ * into `interval_colors`).
  */
 export const resolveLegacyIntervalColors = (
-  bounds: number[],
+  boundCount: number,
   legacyIntervalColorIndices: string | undefined,
   colorScheme: string | undefined,
 ): string[] => {
@@ -73,13 +72,13 @@ export const resolveLegacyIntervalColors = (
   // band unresolved so such charts keep rendering through the renderer's own
   // legacy path.
   if (indices.some(index => index > schemeColors.length)) {
-    return bounds.map(() => '');
+    return Array.from({ length: boundCount }, () => '');
   }
   // Bounds without an explicit legacy index keep their positional color,
   // exactly as the Gauge renderer does (`colors[idx]`). Indices below 1 are
   // not valid 1-indexed positions: the renderer yields `undefined` for them
   // and falls back to that same positional color, so this does too.
-  return bounds.map((_, index) => {
+  return Array.from({ length: boundCount }, (_, index) => {
     const legacyIndex = indices[index];
     if (schemeColors.length === 0) return '';
     if (Number.isFinite(legacyIndex) && legacyIndex >= 1) {

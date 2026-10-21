@@ -66,6 +66,16 @@ const ComparisonValue = styled.div<PopKPIComparisonValueStyleProps>`
   `}
 `;
 
+// Styled (like `SymbolWrapper` below) rather than a `css` prop so the
+// resolved color is a real style rule on the element, which keeps it
+// observable in component tests.
+const ArrowIndicator = styled.span<{ indicatorColor: string }>`
+  ${({ theme, indicatorColor }) => `
+    color: ${indicatorColor};
+    margin-left: ${theme.sizeUnit}px;
+  `}
+`;
+
 const SymbolWrapper = styled.span<PopKPIComparisonSymbolStyleProps>`
   ${({ theme, backgroundColor, textColor }) => `
     background-color: ${backgroundColor};
@@ -186,17 +196,10 @@ export default function PopKPI(props: PopKPIProps) {
   const comparisonColorValue =
     percentDifferenceNumber > 0 ? resolvedIncreaseColor : resolvedDecreaseColor;
 
-  const getArrowIndicatorColor = () => {
-    if (!comparisonColorEnabled || percentDifferenceNumber === 0) {
-      return theme.colorTextTertiary;
-    }
-    return getComparisonColorTokens(comparisonColorValue, theme).text;
-  };
-
-  const arrowIndicatorStyle = css`
-    color: ${getArrowIndicatorColor()};
-    margin-left: ${theme.sizeUnit}px;
-  `;
+  const arrowIndicatorColor =
+    !comparisonColorEnabled || percentDifferenceNumber === 0
+      ? theme.colorTextTertiary
+      : getComparisonColorTokens(comparisonColorValue, theme).text;
 
   const defaultBackgroundColor = theme.colorBgContainer;
   const defaultTextColor = theme.colorTextTertiary;
@@ -289,9 +292,9 @@ export default function PopKPI(props: PopKPIProps) {
         <div css={bigValueContainerStyles}>
           {bigNumber}
           {percentDifferenceNumber !== 0 && (
-            <span css={arrowIndicatorStyle}>
+            <ArrowIndicator indicatorColor={arrowIndicatorColor}>
               {percentDifferenceNumber > 0 ? '↑' : '↓'}
-            </span>
+            </ArrowIndicator>
           )}
         </div>
         {subtitle && (

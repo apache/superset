@@ -55,27 +55,38 @@ export default function IntervalColorsControl({
   // which would otherwise shift colors to the wrong bound once the blank is
   // filled back in -- same hazard `BulletRangeColorsControl` guards against.
   const boundsComplete = isRangesInputComplete(intervals);
-  // See the identical guard in `BulletRangeColorsControl`: while `intervals`
-  // ends in the one tolerated trailing blank (the last bound is being
-  // retyped), `bounds` is transiently one entry short. Writing a color at
-  // that moment must not truncate the array to that shorter length, or the
-  // color for the bound being retyped is permanently lost.
-  const writeLength = hasTrailingBlankToken(intervals)
-    ? Math.max(bounds.length, value?.length ?? 0)
-    : bounds.length;
-  const legacyColors = resolveLegacyColors(
-    bounds,
-    legacyIntervalColorIndices,
-    colorScheme,
-  );
-  const schemeColors =
-    getCategoricalSchemeRegistry().get(colorScheme)?.colors ?? [];
-
   // Once `interval_colors` is populated the renderer ignores the legacy
   // indices and falls back to the scheme's positional color for any missing
   // entry, so the display must do the same to avoid persisting a different
   // color into an untouched band.
   const hasExplicitColors = Array.isArray(value) && value.length > 0;
+  // See the identical guard in `BulletRangeColorsControl`: while `intervals`
+  // ends in the one tolerated trailing blank (the last bound is being
+  // retyped), `bounds` is transiently one entry short. Writing a color at
+  // that moment must not truncate the array to that shorter length, or the
+  // color for the bound being retyped is permanently lost. For a legacy
+  // chart with no explicit colors yet, the legacy indices are the only
+  // record of how many bands there were, so they set that floor too;
+  // otherwise the first color edit in this window would persist a shorter
+  // explicit array, and the bound being retyped would come back with the
+  // positional scheme color instead of its legacy one.
+  const legacyIndexCount = legacyIntervalColorIndices?.trim()
+    ? legacyIntervalColorIndices.split(',').length
+    : 0;
+  const writeLength = hasTrailingBlankToken(intervals)
+    ? Math.max(
+        bounds.length,
+        value?.length ?? 0,
+        hasExplicitColors ? 0 : legacyIndexCount,
+      )
+    : bounds.length;
+  const legacyColors = resolveLegacyColors(
+    writeLength,
+    legacyIntervalColorIndices,
+    colorScheme,
+  );
+  const schemeColors =
+    getCategoricalSchemeRegistry().get(colorScheme)?.colors ?? [];
   const colorAt = (index: number): string =>
     value?.[index] ||
     (hasExplicitColors ? '' : legacyColors[index]) ||
