@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import logging
+import re
 from typing import Callable
 
 from flask import abort, current_app, Flask, g, render_template
@@ -22,7 +23,7 @@ from flask_appbuilder import expose
 from flask_appbuilder.security.decorators import has_access, permission_name
 from superset_core.extensions.types import Manifest, Page
 from werkzeug.exceptions import MethodNotAllowed, NotFound
-from werkzeug.routing import RequestRedirect
+from werkzeug.routing import PathConverter, RequestRedirect, Rule
 
 from superset.constants import (
     EXTENSION_VIEW_MENU_PREFIX,
@@ -130,46 +131,152 @@ def _make_page_view(extension_id: str, page: Page) -> Callable[..., FlaskRespons
 
 
 def _segments(path: str) -> list[str]:
-    """A rule or page path as its path segments, ignoring trailing slashes."""
+    """A page path as its path segments, ignoring trailing slashes."""
     return [segment for segment in path.split("/") if segment]
 
 
-def _rule_reaches_into(page_path: str, rule_path: str) -> bool:
-    """Whether ``rule_path`` can serve a URL at or beneath ``page_path``.
+def _rule_segments(rule: Rule) -> list[tuple[str, list[str]]] | None:
+    """Each segment of a rule as its static text and its converter arguments.
 
-    Compared segment by segment, because a converter matches text that does
-    not resemble it. Comparing the templates as strings misses the case this
-    exists for: ``/api/v1/datasource/<datasource_type>/...`` does not start
-    with ``/api/v1/datasource/table/``, yet it answers
-    ``/api/v1/datasource/table/42``. A page at ``/api/v1/datasource/table``
-    would be accepted by a string comparison and would then take that request,
-    answering the app shell with HTTP 200 where a JSON API belongs.
+    Read from the rule's own parse rather than by splitting its text, because
+    a converter need not occupy a whole segment. ``/plugin/v<int:version>``
+    splits into a segment ``v<int:version>``, which no comparison against
+    ``v1`` recognises as dynamic -- and the page would then take
+    ``/plugin/v1/data`` from it.
 
-    A ``path`` converter spans every remaining segment, so a rule carrying one
-    above the page's depth reaches the whole subtree.
+    Returns ``None`` when the rule cannot be read, so the caller falls back to
+    comparing text. That over-refuses, which is the safe direction.
+    """
+    try:
+        trace = rule._trace  # noqa: SLF001
+    except AttributeError:  # pragma: no cover - guards a Werkzeug change
+        return None
 
-    A page owns its path and everything beneath it exclusively, so any rule
-    reaching into that subtree is a conflict -- even one Werkzeug's precedence
-    would have resolved in the host's favour. The alternative is to reimplement
-    that precedence here and be wrong about it in a way nobody notices;
-    "this path is already in use, pick another" is a better error than a route
-    that works until the arithmetic shifts.
+    segments: list[tuple[str, list[str]]] = []
+    literals: list[str] = []
+    arguments: list[str] = []
+    started = False
+
+    for is_dynamic, data in trace:
+        if not is_dynamic and data == "|":
+            continue
+        if not is_dynamic and data == "/":
+            if started:
+                segments.append(("".join(literals), arguments))
+            literals, arguments = [], []
+            started = True
+            continue
+        if is_dynamic:
+            arguments.append(data)
+        else:
+            literals.append(data)
+
+    if started:
+        segments.append(("".join(literals), arguments))
+
+    # A trailing slash leaves an empty final segment; it denotes no position.
+    return [segment for segment in segments if segment[0] or segment[1]]
+
+
+def _converter_can_match(rule: Rule, argument: str, text: str) -> bool:
+    """Whether a converter could ever match this literal segment.
+
+    Asked of the converter's own pattern, so it holds for the custom ones
+    Superset registers as well as Werkzeug's. Anything unreadable is treated
+    as able to match, which keeps an unfamiliar converter on the refusing
+    side.
+    """
+    converter = getattr(rule, "_converters", {}).get(argument)
+    pattern = getattr(converter, "regex", None)
+    if not pattern:
+        return True
+    try:
+        return re.fullmatch(pattern, text) is not None
+    except re.error:  # pragma: no cover - a converter with a broken pattern
+        return True
+
+
+def _is_path_converter(rule: Rule, argument: str) -> bool:
+    converter = getattr(rule, "_converters", {}).get(argument)
+    return isinstance(converter, PathConverter)
+
+
+def _text_reaches_into(page_path: str, rule_path: str) -> bool:
+    """The fallback when a rule's parse cannot be read: compare the text.
+
+    Treats any segment containing ``<`` as dynamic, which is coarse in both
+    directions but never accepts a page a converter could reach.
     """
     page_parts = _segments(page_path)
     rule_parts = _segments(rule_path)
-
     for index, page_part in enumerate(page_parts):
         if index >= len(rule_parts):
-            # The rule ran out of segments without a `path` converter, so it
-            # serves URLs above the page rather than inside it.
             return False
         rule_part = rule_parts[index]
-        if rule_part.startswith("<"):
-            if rule_part.startswith("<path:"):
+        if "<" in rule_part:
+            if "<path:" in rule_part:
                 return True
             continue
         if rule_part != page_part:
             return False
+    return True
+
+
+def _rule_reaches_into(page_path: str, rule: Rule) -> bool:
+    """Whether ``rule`` can serve a URL at or beneath ``page_path``.
+
+    Compared segment by segment, because a converter matches text that does
+    not resemble it. Comparing templates as strings misses the case this
+    exists for: ``/api/v1/datasource/<datasource_type>/...`` does not start
+    with ``/api/v1/datasource/table/``, yet it answers
+    ``/api/v1/datasource/table/42``. A page at ``/api/v1/datasource/table``
+    accepted by a string comparison would then take that request, answering
+    the app shell with HTTP 200 where a JSON API belongs.
+
+    A ``path`` converter spans every remaining segment, so a rule carrying one
+    above the page's depth reaches the whole subtree.
+
+    Where a segment is exactly one converter, its own pattern decides: an
+    ``<int:slice_id>`` can never match ``review``, so a page at
+    ``/slice/review`` does not conflict with ``/slice/<int:slice_id>/``.
+    Refusing it would cost paths that can never collide and widen the set of
+    pages a future core route breaks. A segment mixing text and a converter is
+    treated as able to match, since proving otherwise would mean composing the
+    pattern with the surrounding text for no practical gain.
+
+    Otherwise a page owns its subtree exclusively, so any rule reaching into
+    it is a conflict -- including one Werkzeug's precedence would have
+    resolved in the host's favour. Reimplementing that precedence here would
+    be wrong in a way nobody notices, and "this path is in use, pick another"
+    is a better error than a route that works until the arithmetic shifts.
+    """
+    rule_parts = _rule_segments(rule)
+    if rule_parts is None:
+        return _text_reaches_into(page_path, rule.rule)
+
+    for index, page_part in enumerate(_segments(page_path)):
+        if index >= len(rule_parts):
+            # The rule ran out of segments without a `path` converter, so it
+            # serves URLs above the page rather than inside it.
+            return False
+
+        literal, arguments = rule_parts[index]
+
+        if not arguments:
+            if literal != page_part:
+                return False
+            continue
+
+        if any(_is_path_converter(rule, argument) for argument in arguments):
+            return True
+
+        if literal or len(arguments) > 1:
+            # Mixed segment: assume it could match.
+            continue
+
+        if not _converter_can_match(rule, arguments[0], page_part):
+            return False
+
     return True
 
 
@@ -202,7 +309,7 @@ def _first_claimant(app: Flask, path: str) -> str | None:
         return endpoint
 
     for rule in app.url_map.iter_rules():
-        if _rule_reaches_into(path, rule.rule):
+        if _rule_reaches_into(path, rule):
             return f"{rule.endpoint} (at {rule.rule}, which this page would shadow)"
 
     return None
@@ -211,14 +318,24 @@ def _first_claimant(app: Flask, path: str) -> str | None:
 def _permission_problem(permission: str | None) -> str | None:
     """Why this permission cannot be used for a page, or None.
 
-    Superset reserves four permission names for object-level access, and
-    decides what the Admin role holds by excluding exactly those. A page
-    naming one would have its Admin grant stripped the next time
-    ``superset init`` ran, leaving a page nobody could open and nothing in
-    the logs to say why.
+    Two sets of names carry meaning in Superset's role predicates, and a page
+    naming one gets that meaning rather than the one it asked for.
 
-    Unlike a route, this set is small, fixed and owned by Superset's own
-    security model, so refusing names from it is a rule that stays true.
+    ``OBJECT_SPEC_PERMISSIONS`` is how ``_is_admin_pvm`` decides what Admin
+    holds, by excluding exactly those. A page naming one would have its Admin
+    grant stripped the next time ``superset init`` ran, leaving a page nobody
+    could open and nothing in the logs to say why.
+
+    ``ACCESSIBLE_PERMS`` is worse, because it defeats the restriction
+    entirely. Both ``_is_alpha_pvm`` and ``_is_gamma_pvm`` end in
+    ``... or self._is_accessible_to_all(pvm)``, evaluated *after* the
+    ``_is_admin_only`` test that keeps extension permissions off those roles.
+    A page declaring ``can_userinfo`` therefore lands on stock Gamma however
+    the view menu is named -- the same defect the view-menu prefix was added
+    to fix, reached through the other override set.
+
+    Unlike a route, both sets are small, fixed and owned by Superset's own
+    security model, so refusing names from them is a rule that stays true.
     """
     if permission is None:
         return None
@@ -230,6 +347,11 @@ def _permission_problem(permission: str | None) -> str | None:
             f"'{permission}' is reserved by Superset for object-level access "
             f"and cannot be used for a page"
         )
+    if permission in SupersetSecurityManager.ACCESSIBLE_PERMS:
+        return (
+            f"'{permission}' is reserved by Superset as a permission every "
+            f"role holds, so a page declaring it would be open to everyone"
+        )
     return None
 
 
@@ -238,9 +360,14 @@ def register_extension_pages(app: Flask, manifest: Manifest) -> None:
 
     Called once per extension during initialisation, after operator
     blueprints, the FAB auth views and every core view are already in the URL
-    map -- so the check below sees the complete set of routes this deployment
-    actually serves, not a list of the ones that existed when the extension
-    was written.
+    map -- so the check below reads the routes this deployment actually
+    serves rather than a list of the ones that existed when the extension was
+    written.
+
+    It sees what is in the map at that moment, which is not quite everything:
+    a blueprint registered later, by an extension loaded after this one or by
+    code running after initialisation, is not there to be found. Extensions
+    are checked in load order, so the first to claim a path keeps it.
 
     Re-running it on every boot is the point. A route Superset only registers
     under some configurations -- ``/oauth-authorized/<provider>`` exists only
@@ -367,7 +494,7 @@ def _grant_to_admin(permission: str, extension_id: str) -> None:
         )
 
 
-def ensure_page_permissions(manifest: Manifest) -> None:
+def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
     """Create the permissions this extension's pages require, and grant Admin.
 
     Created when the extension loads rather than by ``superset init``, because
@@ -388,10 +515,15 @@ def ensure_page_permissions(manifest: Manifest) -> None:
     """
     from superset import security_manager
 
+    # Only pages that actually got a rule. A refused page is not reachable,
+    # so creating its permission would leave a row -- and an Admin grant --
+    # for a page that does not exist, which an administrator then has to
+    # reason about in the Roles screen.
+    registered = set(registered_page_paths(app, manifest.id))
     required = {
         page.permission
         for page in manifest.contributions.pages
-        if page.permission is not None
+        if page.permission is not None and page.path in registered
     }
     for permission in sorted(required):
         try:
