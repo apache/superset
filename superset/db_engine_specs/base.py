@@ -709,6 +709,17 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # engines where sqlglot generation is not faithful).
     rls_method = RLSMethod.AS_SUBQUERY
 
+    @classmethod
+    def get_rls_method(cls) -> RLSMethod:
+        """
+        Returns the RLS method to be used for this engine.
+
+        Thin accessor kept for callers outside ``superset.utils.rls`` (e.g. the
+        MCP dashboard-scope-SQL path) that call this as a method rather than
+        reading the ``rls_method`` class attribute directly.
+        """
+        return cls.rls_method
+
     # Is the DB engine spec able to change the default schema? This requires implementing  # noqa: E501
     # a custom `adjust_engine_params` method.
     supports_dynamic_schema = False
