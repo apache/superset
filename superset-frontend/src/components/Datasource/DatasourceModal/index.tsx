@@ -172,12 +172,6 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     };
   }, [datasource.id, etag, show]);
   const baselineSql = seededSql ?? datasource.sql;
-  // A physical dataset has no SQL, and the API reports that as `null` while the
-  // editor normalises it to `''` on every change -- so a raw `!==` reads the
-  // first edit of a physical dataset as a SQL change, offers to sync its
-  // columns from a query that does not exist, and pre-ticks the offer. The two
-  // spellings of "no SQL" are the same state.
-  const sqlChanged = (baselineSql ?? '') !== (currentDatasource.sql ?? '');
 
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
@@ -358,7 +352,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 here may affect other charts
                 in undesirable ways.`)}
         />
-        {sqlChanged && (
+        {baselineSql !== currentDatasource.sql && (
           <div
             css={theme => ({
               marginBottom: theme.marginMD,
@@ -392,15 +386,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         {t('Are you sure you want to save and apply changes?')}
       </div>
     ),
-    [sqlChanged, syncColumns],
+    [currentDatasource.sql, baselineSql, syncColumns],
   );
 
   useEffect(() => {
-    // No `else`: an owner who unticks the box stays unticked.
-    if (sqlChanged) {
+    if (baselineSql !== currentDatasource.sql) {
       setSyncColumns(true);
     }
-  }, [sqlChanged]);
+  }, [baselineSql, currentDatasource.sql]);
 
   const onClickSave = () => {
     setConfirmModalOpen(true);

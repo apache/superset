@@ -207,6 +207,39 @@ export default function CRUDCollection({
     [onChange],
   );
 
+  const changeCollection = useCallback(
+    (
+      newCollection: Record<PropertyKey, CollectionItem>,
+      currentCollectionArray: CollectionItem[],
+    ) => {
+      // Preserve existing order instead of recreating from Object.keys()
+      const existingIds = new Set(currentCollectionArray.map(item => item.id));
+      const newCollectionArray: CollectionItem[] = [];
+
+      // First pass: preserve existing order and update items
+      for (const existingItem of currentCollectionArray) {
+        if (newCollection[existingItem.id]) {
+          newCollectionArray.push(newCollection[existingItem.id]);
+        }
+      }
+
+      // Second pass: add new items
+      for (const item of Object.values(newCollection)) {
+        if (!existingIds.has(item.id)) {
+          newCollectionArray.push(item);
+        }
+      }
+
+      setCollection(newCollection);
+      setCollectionArray(newCollectionArray);
+
+      if (onChange) {
+        onChange(newCollectionArray);
+      }
+    },
+    [onChange],
+  );
+
   const deleteItem = useCallback(
     (id: string | number) => {
       setCollection(prevCollection => {
@@ -262,49 +295,15 @@ export default function CRUDCollection({
 
   const onFieldsetChange = useCallback(
     (item: CollectionItem) => {
-      // Functional updaters, like every other mutator here -- and for a
-      // sharper reason than consistency. A fieldset's edits are committed on a
-      // debounce, and each expanded row renders its own `Fieldset`, so the
-      // collection a closure captured at the keystroke is older than the real
-      // one by the time the timer fires. Writing that snapshot back as an
-      // absolute value reverted whatever a *different* row had committed in
-      // between: edit one column's value transform and another's description
-      // within a debounce interval and one of the two was silently lost.
-      //
-      // Both structures, not just the array: `onSortChange` restores the
-      // pre-sort order by reading `collection[id]`, so a keyed entry left
-      // behind here would resurface as a stale row the moment a sort is
-      // cleared.
-      //
-      // `onChange` inside an updater is impure and double-fires under
-      // StrictMode in development -- as it already does in `onCellChange`,
-      // `deleteItem` and `onAddItem`, so matching them beats inventing a
-      // fourth shape here.
-      setCollection(prevCollection => ({
-        ...prevCollection,
-        [item.id]: item,
-      }));
-
-      setCollectionArray(prevCollectionArray => {
-        // A fieldset only ever edits a row that already exists; the append is
-        // a safety net, and mapping in place is also what preserves order,
-        // which the previous two-pass rebuild was doing by hand.
-        const newCollectionArray = prevCollectionArray.some(
-          existing => existing.id === item.id,
-        )
-          ? prevCollectionArray.map(existing =>
-              existing.id === item.id ? item : existing,
-            )
-          : [...prevCollectionArray, item];
-
-        if (onChange) {
-          onChange(newCollectionArray);
-        }
-
-        return newCollectionArray;
-      });
+      changeCollection(
+        {
+          ...collection,
+          [item.id]: item,
+        },
+        collectionArray,
+      );
     },
-    [onChange],
+    [changeCollection, collection, collectionArray],
   );
 
   const getLabel = useCallback(

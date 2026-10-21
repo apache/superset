@@ -251,15 +251,6 @@ reattached to a reachable container by layout repair.
   instead; the response sets `managed_externally: true`. Read-only tools and
   certification inspection are unaffected.
 
-- Refreshing a dataset's columns from its source -- the "Sync columns from
-  source" button, and a `PUT /api/v1/dataset/<id>?override_columns=true` --
-  no longer resets **Is dimension** and **Is filterable** on columns that
-  already exist. Those two flags were set unconditionally on every column the
-  source reported, so a save that synced columns reverted whatever the dataset
-  owner had chosen for them. A newly discovered column still arrives with both
-  enabled. A deployment that relied on a resync to restore those defaults has
-  to set them explicitly.
-
 - `DISALLOWED_SQL_FUNCTIONS` now names the whole PostgreSQL XML family, plus the
   two full-text search functions that share its blind spot. Seven shapes were
   missing -- `schema_to_xml`, `schema_to_xmlschema`,
