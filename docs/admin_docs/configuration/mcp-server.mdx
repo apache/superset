@@ -153,7 +153,7 @@ returns their union. Unknown fields such as `owned_by_me` are validation errors.
 
 Each chart in `get_dashboard_data` includes `fetch_row_limit`, `sample_rows_limit`
 and a `completeness_note`. Example rows are not the full population. Histogram
-bins can be computed after the input row limit, so one output row with
+bins and box-plot statistics can be computed after the input row limit, so one output row with
 `truncated=false` does not prove that all source rows were included. Check the
 saved chart configuration and source aggregates before interpreting distributions.
 

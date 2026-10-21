@@ -541,3 +541,49 @@ def test_histogram_sample_exposes_input_fetch_limit(chart_type: str) -> None:
     assert summary.truncated is False
     assert summary.completeness_note is not None
     assert "do not establish full-population" in summary.completeness_note
+
+
+@pytest.mark.parametrize("fetch_row_limit", [3, 500])
+@pytest.mark.parametrize("has_query_results", [False, True])
+def test_box_plot_sample_exposes_input_fetch_limit(
+    fetch_row_limit: int, has_query_results: bool
+) -> None:
+    """Collapsed box-plot statistics cannot prove input retrieval coverage."""
+    from superset.mcp_service.dashboard.schemas import GetDashboardDataRequest
+    from superset.mcp_service.dashboard.tool.get_dashboard_data import (
+        _summarize_chart_data,
+    )
+
+    rows = [{"AVG(val)__count": 3, "AVG(val)__max": 249.5}]
+    result = _chart_data(
+        1,
+        "Distribution",
+        viz="box_plot",
+        rows=rows,
+        query_results=(
+            [
+                ChartQueryResult(
+                    query_index=0,
+                    columns=list(rows[0]),
+                    data=rows,
+                    row_count=1,
+                    total_rows=1,
+                )
+            ]
+            if has_query_results
+            else None
+        ),
+    )
+    summary = _summarize_chart_data(
+        result,
+        None,
+        GetDashboardDataRequest(identifier=1, fetch_row_limit=fetch_row_limit),
+    )
+
+    assert summary.fetch_row_limit == fetch_row_limit
+    assert summary.row_count == summary.total_rows == 1
+    assert summary.truncated is False
+    assert summary.completeness_note is not None
+    assert "do not establish full-population" in summary.completeness_note
+    assert "fetch_row_limit" in summary.completeness_note
+    assert "Histogram bins" not in summary.completeness_note

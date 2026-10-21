@@ -135,11 +135,12 @@ def _summarize_chart_data(
         fetch_row_limit=request.fetch_row_limit,
         sample_rows_limit=request.sample_rows,
         completeness_note=(
-            "Histogram bins may be computed from input rows capped by fetch_row_limit. "
+            "Distribution statistics may be computed from input rows capped by "
+            "fetch_row_limit. "
             "A single output row and truncated=false do not establish full-population "
             "coverage or a defect in the saved chart. Verify the saved configuration "
             "and source aggregates before making a distribution claim."
-            if result.chart_type in {"histogram", "histogram_v2"}
+            if result.chart_type in {"histogram", "histogram_v2", "box_plot"}
             else "sample_data contains example rows only; use row_count, total_rows "
             "and truncated to assess retrieval coverage."
         ),
