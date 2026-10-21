@@ -770,7 +770,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """A dashboard viewer without dataset access gets labels only for the
         member charts it may view. A chart restricted to another viewer and
         charts that rely on dataset access contribute nothing, although they
-        share the same dataset."""
+        share the same dataset. Authorization adds one relationship prefetch for
+        all candidate charts, including denied charts.
+        """
         from superset.subjects.utils import get_or_create_user_subject
 
         gamma_id = security_manager.find_user(GAMMA_USERNAME).id
@@ -788,10 +790,47 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.commit()
             try:
                 self.login(GAMMA_USERNAME)
-                response = self.get_assert_metric(
-                    "api/v1/dashboard/world_health/datasets", "get_datasets"
-                )
-                dataset = self._world_health_dataset(response, ids["table_id"])
+                with (
+                    patch.object(
+                        DashboardDAO,
+                        "prefetch_chart_access",
+                        wraps=DashboardDAO.prefetch_chart_access,
+                    ) as prefetch,
+                    patch.object(
+                        security_manager,
+                        "can_access_dashboard_chart_labels",
+                        wraps=security_manager.can_access_dashboard_chart_labels,
+                    ) as chart_access,
+                    patch.object(
+                        security_manager,
+                        "can_access_datasource",
+                        wraps=security_manager.can_access_datasource,
+                    ) as datasource_access,
+                ):
+
+                    def request() -> Any:
+                        """Keep counters for the final measured request only."""
+                        prefetch.reset_mock()
+                        chart_access.reset_mock()
+                        datasource_access.reset_mock()
+                        return self.get_assert_metric(
+                            "api/v1/dashboard/world_health/datasets", "get_datasets"
+                        )
+
+                    baseline, labelled, data = self._datasets_query_counts(request)
+                    prefetch.assert_called_once()
+                    datasource_access.assert_called_once()
+                    checked_ids = {
+                        call.args[1].id for call in chart_access.call_args_list
+                    }
+                    assert {allowed_id, restricted_id} <= checked_ids
+                    assert len(checked_ids) >= 9
+                    # The chart rows plus their editors and viewers cost three
+                    # queries total; there is no per-candidate permission query.
+                    assert labelled <= baseline + 3
+                [dataset] = [
+                    item for item in data["result"] if item["id"] == ids["table_id"]
+                ]
             finally:
                 for chart_id in (allowed_id, restricted_id):
                     db.session.get(Slice, chart_id).viewers = []

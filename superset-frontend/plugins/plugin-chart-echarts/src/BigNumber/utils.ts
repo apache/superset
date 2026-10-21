@@ -60,11 +60,13 @@ export function getOriginalLabel(
 
   if (isSavedMetric(metric)) {
     const metricEntry = metrics.find(m => m.metric_name === metric);
+    if (metricEntry) {
+      return metricEntry.verbose_name || metric;
+    }
     const verboseName = Object.prototype.hasOwnProperty.call(verboseMap, metric)
       ? verboseMap[metric]
       : undefined;
     return (
-      metricEntry?.verbose_name ||
       (typeof verboseName === 'string' ? verboseName : undefined) ||
       metric ||
       'Unknown Metric'

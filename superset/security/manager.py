@@ -2762,6 +2762,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         chart: "Slice",
         *,
         guest_dashboard_access: bool | None = None,
+        datasource_access: bool | None = None,
     ) -> bool:
         """Authorize a member chart's configured display labels.
 
@@ -2769,11 +2770,16 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         token's dataset allowlist. With the built-in chart checks these imply
         the embedded-chart grant, avoiding per-chart metadata queries. Existing
         custom chart-access overrides still run and may restrict that grant.
+        For non-guests without datasource access, the built-in chart checks
+        need only the chart's prefetched editors and viewers. Custom checks and
+        configured access bypasses retain the full chart authorization path.
 
         :param dashboard: The dashboard whose member chart supplies the labels
         :param chart: A member chart on its matching SQLAlchemy dataset
         :param guest_dashboard_access: Request-local result of has_guest_access;
             callers may supply it to reuse the same dashboard decision
+        :param datasource_access: Request-local result of can_access_datasource
+            for this chart's dataset; False avoids repeating a failed check
         :returns: Whether the caller may receive the chart's display labels
         """
         if (
@@ -2782,7 +2788,22 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ):
             return False
 
+        stock_chart_access = (
+            getattr(self.can_access_chart, "__func__", None) is STOCK_CAN_ACCESS_CHART
+            and getattr(self.raise_for_access, "__func__", None)
+            is STOCK_RAISE_FOR_ACCESS
+        )
         if not self.is_guest_user():
+            if (
+                datasource_access is False
+                and stock_chart_access
+                and not current_app.config.get("EXTRA_RAISE_FOR_ACCESS_BYPASS")
+            ):
+                return (
+                    self.is_admin()
+                    or self.is_editor(chart)
+                    or (bool(chart.viewers) and self.is_viewer(chart))
+                )
             return self.can_access_chart(chart)
 
         if guest_dashboard_access is None:
@@ -2792,11 +2813,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         ):
             return False
 
-        if (
-            getattr(self.can_access_chart, "__func__", None) is STOCK_CAN_ACCESS_CHART
-            and getattr(self.raise_for_access, "__func__", None)
-            is STOCK_RAISE_FOR_ACCESS
-        ):
+        if stock_chart_access:
             return True
         return self.can_access_chart(chart)
 

@@ -772,9 +772,13 @@ class BaseDatasource(
         form_data: dict[str, Any], viz_type: str | None
     ) -> dict[str, Any]:
         """Exclude table controls retained while their query mode is hidden."""
-        if viz_type not in ("table", "ag-grid-table"):
+        if viz_type not in ("table", "ag-grid-table", "handlebars"):
             return form_data
         mode = form_data.get("query_mode")
+        if viz_type == "handlebars" and mode not in ("raw", "aggregate"):
+            # Handlebars' extractQueryFields retains both modes when unspecified.
+            params: tuple[str, ...] = ("all_columns", "columns", "groupby", "metrics")
+            return {name: form_data[name] for name in params if name in form_data}
         if mode not in ("raw", "aggregate"):
             # Match both table plugins' getQueryMode for legacy saved charts.
             mode = "raw" if form_data.get("all_columns") else "aggregate"
@@ -783,7 +787,12 @@ class BaseDatasource(
             if mode == "raw"
             else ("groupby", "metrics", "percent_metrics")
         )
-        return {name: form_data[name] for name in params if name in form_data}
+        return {
+            name: form_data[name]
+            for name in params
+            if name in form_data
+            and (viz_type != "handlebars" or name != "percent_metrics")
+        }
 
     @classmethod
     def _form_display_references(
@@ -822,6 +831,15 @@ class BaseDatasource(
         columns.extend(sorted(cls._extract_form_data_columns(form_data, None, False)))
         return columns, metrics
 
+    @staticmethod
+    def _saved_display_form_data(slc: Slice) -> dict[str, Any]:
+        """Read saved display controls without model-derived form-data overrides."""
+        try:
+            form_data = json.loads(slc.params or "{}")
+        except (TypeError, ValueError):
+            return {}
+        return form_data if isinstance(form_data, dict) else {}
+
     @classmethod
     def _slice_display_references(cls, slc: Slice) -> ChartDisplayReferences:
         """Collect label references from editor-controlled, active saved controls.
@@ -830,12 +848,7 @@ class BaseDatasource(
         Filter, sort, granularity and expression-internal dependencies are not
         display controls, even when plugins include them in query outputs.
         """
-        try:
-            form_data = json.loads(slc.params or "{}")
-        except (TypeError, ValueError):
-            return [], []
-        if not isinstance(form_data, dict):
-            return [], []
+        form_data = cls._saved_display_form_data(slc)
         viz_type = slc.viz_type or form_data.get("viz_type")
         return cls._form_display_references(
             cls._active_display_form_data(form_data, viz_type), viz_type
@@ -901,7 +914,8 @@ class BaseDatasource(
             # Full-access metadata retains hidden controls and query-only
             # dependencies; only active saved controls authorize chart labels.
             display_columns, display_metrics = self._form_display_references(
-                form_data, slc.viz_type
+                form_data,
+                slc.viz_type or self._saved_display_form_data(slc).get("viz_type"),
             )
             query_columns, query_metrics = self._query_output_references(
                 slc.query_context

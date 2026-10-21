@@ -621,32 +621,29 @@ def _as_regular_user(
 class _DatasetsCall(NamedTuple):
     response: Any
     prefetch: MagicMock
-    chart_checks: MagicMock
+    label_checks: MagicMock
 
 
 def _get_datasets(client: Any, dashboard: Dashboard) -> _DatasetsCall:
     """Request the datasets endpoint by UUID, which loads the dashboard and then
     runs the real dashboard access check before any payload is built.
 
-    Records the chart-access prefetch and every (real) per-chart access check.
+    Records the chart-access prefetch and every real per-chart label access check.
     """
-    chart_access = security_manager.can_access_chart
     with (
         patch.object(Dashboard, "get", return_value=dashboard),
         patch("superset.daos.dashboard.DashboardDAO.prefetch_chart_access") as prefetch,
         patch(
-            "superset.models.dashboard.security_manager.can_access_chart",
-            wraps=security_manager.can_access_chart,
-        ) as chart_checks,
+            "superset.models.dashboard.security_manager.can_access_dashboard_chart_labels",
+            wraps=security_manager.can_access_dashboard_chart_labels,
+        ) as label_checks,
     ):
-        # A recording wrapper preserves the underlying authorization implementation.
-        chart_checks.__func__ = getattr(chart_access, "__func__", None)
         response: Any = client.get(f"/api/v1/dashboard/{DASHBOARD_UUID}/datasets")
-    return _DatasetsCall(response, prefetch, chart_checks)
+    return _DatasetsCall(response, prefetch, label_checks)
 
 
 def _checked_chart_ids(call: _DatasetsCall) -> set[int]:
-    return {args.args[0].id for args in call.chart_checks.call_args_list}
+    return {args.args[1].id for args in call.label_checks.call_args_list}
 
 
 def _assert_string_labels(labels: dict[str, Any]) -> None:
@@ -796,7 +793,7 @@ def test_dashboard_datasets_full_access_keeps_verbose_map_without_label_work(
     response: Any = call.response
     assert response.status_code == 200
     call.prefetch.assert_not_called()
-    call.chart_checks.assert_not_called()
+    call.label_checks.assert_not_called()
     index_labels.assert_not_called()
     chart_labels.assert_not_called()
     [dataset] = response.json["result"]
@@ -969,7 +966,7 @@ def test_dashboard_datasets_without_labels_skip_access_work(
     [dataset] = call.response.json["result"]
     assert "chart_display_labels" not in dataset
     call.prefetch.assert_not_called()
-    call.chart_checks.assert_not_called()
+    call.label_checks.assert_not_called()
 
 
 @pytest.mark.parametrize(
@@ -1013,7 +1010,7 @@ def test_dashboard_datasets_guest_labels_follow_token(
     response: Any = call.response
     assert response.status_code == 200
     call.prefetch.assert_not_called()
-    call.chart_checks.assert_not_called()
+    assert _checked_chart_ids(call) == {11, 21}
     assert chart_access == {
         chart_id for labels in expected.values() for chart_id in labels
     }
@@ -1050,7 +1047,7 @@ def test_dashboard_datasets_guest_allowlist_applies_to_chart_viewer_grants(
 
     response: Any = call.response
     assert response.status_code == 200
-    call.chart_checks.assert_not_called()
+    assert _checked_chart_ids(call) == {11}
     [dataset] = response.json["result"]
     assert "chart_display_labels" not in dataset
     assert "Region" not in response.get_data(as_text=True)
@@ -1633,7 +1630,7 @@ def test_chart_display_labels_exclude_butterfly_sort_only_query_metrics(
     assert sort_metric in table.data_for_slices([chart])["verbose_map"]
 
 
-@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table", "handlebars"])
 @pytest.mark.parametrize("mode", ["aggregate", "raw", None, "invalid"])
 @pytest.mark.parametrize("all_columns", [["metro", "cost_center"], [], None])
 def test_chart_display_labels_exclude_hidden_table_controls(
@@ -1661,13 +1658,21 @@ def test_chart_display_labels_exclude_hidden_table_controls(
             ]
         }
     )
-    is_raw = mode == "raw" or (mode not in ("aggregate", "raw") and bool(all_columns))
+    is_raw = mode == "raw" or (
+        viz_type != "handlebars"
+        and mode not in ("aggregate", "raw")
+        and bool(all_columns)
+    )
     if is_raw:
         expected = (
             {"metro": "Metro area", "cost_center": "Cost center"} if all_columns else {}
         )
     else:
-        expected = {"region": "Region", "revenue": "Revenue", "margin": "Margin"}
+        expected = {"region": "Region", "revenue": "Revenue"}
+        if viz_type != "handlebars":
+            expected["margin"] = "Margin"
+        elif mode not in ("aggregate", "raw") and all_columns:
+            expected.update({"metro": "Metro area", "cost_center": "Cost center"})
     assert saved_chart_display_labels(table, chart) == expected
     assert set(table.data_for_slices([chart])["verbose_map"]) >= {
         "metro",
@@ -1676,6 +1681,32 @@ def test_chart_display_labels_exclude_hidden_table_controls(
         "revenue",
         "margin",
     }
+
+
+@pytest.mark.parametrize("model_viz_type", [None, "tree_chart", "table"])
+def test_chart_display_labels_share_saved_viz_type_resolution(
+    model_viz_type: str | None,
+) -> None:
+    """Metadata and labels share the model viz type and its saved-form fallback."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        viz_type="tree_chart",
+        id="region",
+        parent="metro",
+        name="region",
+    )
+    chart.viz_type = model_viz_type
+    expected = (
+        {} if model_viz_type == "table" else {"region": "Region", "metro": "Metro area"}
+    )
+    assert saved_chart_display_labels(table, chart) == expected
+    verbose_map = table.data_for_slices([chart])["verbose_map"]
+    assert {name: verbose_map[name] for name in expected} == expected
+    if model_viz_type == "table":
+        assert "region" not in verbose_map
+        assert "metro" not in verbose_map
 
 
 def test_chart_display_labels_keep_metadata_ids_outside_tree_controls() -> None:

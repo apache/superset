@@ -76,13 +76,30 @@ test.each(transforms)(
   },
 );
 
-test('uses the verbose map when a saved metric has no verbose name', () => {
+test.each([undefined, ''])(
+  'preserves the raw saved metric when its verbose name is %s',
+  verboseName => {
+    expect(
+      getOriginalLabel(
+        'count',
+        [
+          {
+            metric_name: 'count',
+            uuid: 'metric-uuid',
+            verbose_name: verboseName,
+          },
+        ],
+        { count: 'Row count' },
+      ),
+    ).toBe('count');
+  },
+);
+
+test('uses the verbose map when the saved metric metadata is absent', () => {
   expect(
-    getOriginalLabel(
-      'sum__SP_POP_TOTL',
-      [{ metric_name: 'sum__SP_POP_TOTL', uuid: 'metric-uuid' }],
-      { sum__SP_POP_TOTL: 'Population' },
-    ),
+    getOriginalLabel('sum__SP_POP_TOTL', [], {
+      sum__SP_POP_TOTL: 'Population',
+    }),
   ).toBe('Population');
 });
 
@@ -90,6 +107,42 @@ test.each(['sum__SP_POP_TOTL', 'constructor', '__proto__', 'toString'])(
   'falls back to the raw saved metric %s without a display label',
   metric => {
     expect(getOriginalLabel(metric)).toBe(metric);
+  },
+);
+
+test.each(transforms)(
+  '%s preserves an unlabelled saved metric beside a labelled column with the same name',
+  (name, transformProps) => {
+    const data = [{ count: 1000, __timestamp: 0 }];
+    const chartProps = new ChartProps({
+      datasource: {
+        metrics: [{ metric_name: 'count' }],
+        columns: [{ column_name: 'count', verbose_name: 'Row count' }],
+        verbose_map: { count: 'Row count' },
+      },
+      formData: {
+        datasource: '1__table',
+        viz_type: VizType.BigNumber,
+        metric: 'count',
+        show_metric_name: true,
+        x_axis: '__timestamp',
+        y_axis_format: '.0f',
+      },
+      queriesData: [{ data }],
+      theme: supersetTheme,
+    });
+
+    const result = transformProps(
+      chartProps as unknown as BigNumberTotalChartProps &
+        BigNumberWithTrendlineChartProps,
+    );
+
+    expect(result.metricName).toBe('count');
+    expect(result.bigNumber).toEqual(
+      name === 'period over period' ? '1000' : 1000,
+    );
+    expect(chartProps.queriesData[0].data).toEqual(data);
+    expect(chartProps.rawFormData.metric).toBe('count');
   },
 );
 

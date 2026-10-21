@@ -387,8 +387,8 @@ class DashboardDatasetSchema(Schema):
             "description": "Display labels keyed by member chart ID, then by the "
             "raw column or metric ID that chart uses. Only charts the caller can "
             "access and labels configured for their saved dimensions and metrics "
-            "are included; omitted when there are none or the caller has "
-            "datasource access and already receives verbose_map."
+            "are included; omitted for semantic views, when there are none, or "
+            "when the caller has datasource access and already receives verbose_map."
         },
     )
     time_grain_sqla = fields.List(fields.List(fields.Str()))

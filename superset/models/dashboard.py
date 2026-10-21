@@ -227,10 +227,9 @@ def saved_chart_display_labels(
     Display references come from active saved form controls. Viewer-writable
     query context cannot add labels. Raw names resolve against the dataset's
     stored column and saved-metric ``verbose_name`` attributes. An entry is
-    omitted when no label is
-    configured. Expressions are never parsed: columns appearing only inside an
-    expression, aggregate or filter, and every unused dataset field, are
-    excluded. No external metadata is discovered.
+    omitted when no label is configured. Expressions are never parsed: columns
+    appearing only inside an expression, aggregate or filter, and every unused
+    dataset field, are excluded. No external metadata is discovered.
 
     :param datasource: The chart's SQLAlchemy dataset
     :param chart: A chart whose datasource is ``datasource``
@@ -269,8 +268,8 @@ class _ChartLabelAccess:  # pylint: disable=too-few-public-methods
     """Decide which member charts of one dashboard may contribute labels.
 
     Lives for a single ``datasets_trimmed_for_slices`` call, so nothing is
-    cached across requests. Nothing is evaluated until a chart actually has
-    labels, so dashboards without configured labels pay no extra queries.
+    cached across requests. Chart authorization runs only when a chart has a
+    configured dataset label or an authored adhoc label to contribute.
     """
 
     def __init__(self, dashboard: Dashboard) -> None:
@@ -278,10 +277,11 @@ class _ChartLabelAccess:  # pylint: disable=too-few-public-methods
         self._is_guest: bool | None = None
         self._guest_granted = False
 
-    def allows(self, chart: Slice) -> bool:
+    def allows(self, chart: Slice, *, datasource_access: bool) -> bool:
         """Whether ``chart``, a member on its own SQLAlchemy dataset, may label.
 
         :param chart: A member chart of the dashboard
+        :param datasource_access: This request's check for the chart's dataset
         :returns: Whether the current user may see the chart's labels
         """
         if self._is_guest is None:
@@ -299,6 +299,7 @@ class _ChartLabelAccess:  # pylint: disable=too-few-public-methods
             self._dashboard,
             chart,
             guest_dashboard_access=self._guest_granted if self._is_guest else None,
+            datasource_access=datasource_access,
         )
 
 
@@ -696,7 +697,7 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                 for name, label in chart_labels.items()
                 if verbose_map.get(name) == label
             }
-            if chart_labels and access.allows(chart):
+            if chart_labels and access.allows(chart, datasource_access=False):
                 labels[str(chart.id)] = chart_labels
         if labels:
             payload["chart_display_labels"] = labels
