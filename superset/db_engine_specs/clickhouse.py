@@ -710,12 +710,24 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
     # trip: `has_query_id_before_execute` (the base default) runs this before
     # the statement is sent, so the id is threaded into `execute_with_cursor`
     # below in time to be passed to the driver.
+    #
+    # Only `execute_with_cursor` does that threading. The GTF chart-data path
+    # (`Database.get_df`) dispatches through the base `execute()` instead,
+    # which never forwards a `settings` kwarg, so an id minted for that path
+    # would never reach the driver -- `cancel_query`'s later `KILL QUERY
+    # WHERE query_id = ...` would have nothing real to kill, and its "nothing
+    # to confirm" fallback would then report a cancel that never happened.
+    # `superset.tasks.query_cancel._CancellationQuery` stubs `query.id` as
+    # `None` for exactly this case so engines can decline gracefully; do
+    # that here rather than minting an id this engine can't actually use.
     @classmethod
     def get_cancel_query_id(  # pylint: disable=unused-argument
         cls,
         cursor: Any,
         query: Query,
     ) -> str | None:
+        if query.id is None:
+            return None
         return str(uuid.uuid4())
 
     @classmethod

@@ -780,11 +780,37 @@ def test_get_cancel_query_id_mints_a_uuid_without_a_round_trip() -> None:
     )
     from superset.models.sql_lab import Query
 
+    query = Query()
+    query.id = 1
     cursor_mock = Mock()
-    cancel_query_id = spec.get_cancel_query_id(cursor_mock, Query())
+    cancel_query_id = spec.get_cancel_query_id(cursor_mock, query)
 
     assert cancel_query_id is not None
     assert uuid.UUID(cancel_query_id).version == 4
+    cursor_mock.execute.assert_not_called()
+
+
+def test_get_cancel_query_id_declines_for_the_gtf_chart_data_stub() -> None:
+    """
+    `superset.tasks.query_cancel._CancellationQuery` stubs `query.id` as
+    `None` for the GTF chart-data path, which dispatches through the base
+    `execute()` rather than `execute_with_cursor` and so never forwards a
+    `settings` kwarg. An id minted for that path would never reach the
+    driver, so `cancel_query`'s `KILL QUERY WHERE query_id = ...` would have
+    nothing real to kill and would still report success via its "nothing to
+    confirm" fallback -- worse than the pre-existing, honest non-cancellable
+    behavior. Decline by returning `None` instead.
+    """
+    from superset.db_engine_specs.clickhouse import (  # noqa: N813
+        ClickHouseConnectEngineSpec as spec,
+    )
+    from superset.models.sql_lab import Query
+
+    cursor_mock = Mock()
+    query = Query()
+    assert query.id is None
+
+    assert spec.get_cancel_query_id(cursor_mock, query) is None
     cursor_mock.execute.assert_not_called()
 
 
