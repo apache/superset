@@ -108,7 +108,14 @@ def install_fake_oceanbase_py(monkeypatch: pytest.MonkeyPatch) -> Any:
             return []
 
     datatype_module = python_types.ModuleType("oceanbase_py.sqlalchemy.datatype")
-    datatype_module.parse_sql_type = lambda native_type: native_type  # type: ignore[attr-defined]
+    parsed_types: list[str] = []
+
+    def parse_sql_type(native_type: str) -> types.TypeEngine:
+        parsed_types.append(native_type)
+        return types.INTEGER()
+
+    datatype_module.parse_sql_type = parse_sql_type  # type: ignore[attr-defined]
+    datatype_module.parsed_types = parsed_types  # type: ignore[attr-defined]
 
     dialect_module = python_types.ModuleType("oceanbase_py.sqlalchemy.dialect")
     dialect_module.OceanBaseDialect = FakeOceanBaseDialect  # type: ignore[attr-defined]
@@ -249,9 +256,14 @@ def test_monkeypatch_get_columns_uses_exec_driver_sql(
 
     columns = dialect.get_columns(connection, "pilot_types")
 
-    assert columns == [
-        {"name": "id", "type": "int", "nullable": False, "default": None}
-    ]
+    assert len(columns) == 1
+    assert isinstance(columns[0]["type"], types.INTEGER)
+    assert {k: v for k, v in columns[0].items() if k != "type"} == {
+        "name": "id",
+        "nullable": False,
+        "default": None,
+    }
+    assert sys.modules["oceanbase_py.sqlalchemy.datatype"].parsed_types == ["int"]
     connection.exec_driver_sql.assert_any_call(
         "SHOW COLUMNS FROM `test_schema`.`pilot_types`"
     )
