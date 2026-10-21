@@ -28,13 +28,13 @@ import {
   Select,
   AsyncSelect,
 } from '@superset-ui/core/components';
-import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import { FormValues, GroupModalProps } from './types';
 import {
   createGroup,
   fetchUserOptions,
   toUserSelectOption,
   updateGroup,
+  USER_OPTION_FILTER_PROPS,
 } from './utils';
 
 function GroupListModal({
@@ -152,9 +152,9 @@ function GroupListModal({
           options={(filterValue, page, pageSize) =>
             fetchUserOptions(filterValue, page, pageSize, addDangerToast)
           }
-          // The server matches on email too; re-filter on the option's
-          // plain-text name and email rather than its React label.
-          optionFilterProps={SUBJECT_OPTION_FILTER_PROPS}
+          // The server matches on username and email too; re-filter on the
+          // option's plain-text name, email and username, not its React label.
+          optionFilterProps={USER_OPTION_FILTER_PROPS}
         />
       </FormItem>
     </FormModal>

@@ -21,6 +21,7 @@ import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import {
   SUBJECT_DETAIL_PROP,
+  SUBJECT_OPTION_FILTER_PROPS,
   SUBJECT_TEXT_LABEL_PROP,
   SubjectSelectLabel,
 } from 'src/features/subjects/SubjectSelectLabel';
@@ -32,14 +33,27 @@ type UserRecord = { id: number; email?: string } & Parameters<
 >[0];
 
 /**
+ * Option props AsyncSelect's client-side re-filter should match against for
+ * user options: the display name, the email and the username. These mirror
+ * the columns the server-side `user_all_text` filter searches, so a user the
+ * server matched is never hidden by the picker.
+ */
+export const USER_OPTION_FILTER_PROPS = [
+  ...SUBJECT_OPTION_FILTER_PROPS,
+  'username',
+];
+
+/**
  * Build a select option for a user picker.
  *
  * The option shows the email under the display name, like the subject-based
  * owner pickers do, so that a server-side match on email is visible to the
- * person searching. Plain-text copies of both lines are attached under the
- * subject filter props so AsyncSelect's client-side re-filter can match them
- * (a React label is otherwise filtered as an empty string), and under `title`
- * so ListView can serialize the chosen option's label into the URL.
+ * person searching. Plain-text copies of both lines, plus the username, are
+ * attached under the `USER_OPTION_FILTER_PROPS` keys so AsyncSelect's
+ * client-side re-filter can match them (a React label is otherwise filtered
+ * as an empty string), and the display name under `title` so ListView can
+ * serialize the chosen option's label into the URL. The username is not
+ * rendered, so a username match surfaces the user without explaining why.
  */
 export const toUserSelectOption = (user: UserRecord) => {
   const textLabel = getUserDisplayLabel(user);
@@ -49,6 +63,7 @@ export const toUserSelectOption = (user: UserRecord) => {
     title: textLabel,
     [SUBJECT_TEXT_LABEL_PROP]: textLabel,
     [SUBJECT_DETAIL_PROP]: user.email,
+    username: user.username,
   };
 };
 

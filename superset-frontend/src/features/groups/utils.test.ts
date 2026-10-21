@@ -19,7 +19,11 @@
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
 import { render, screen } from 'spec/helpers/testing-library';
-import { fetchUserOptions, toUserSelectOption } from './utils';
+import {
+  fetchUserOptions,
+  toUserSelectOption,
+  USER_OPTION_FILTER_PROPS,
+} from './utils';
 
 type GetResponse = Awaited<ReturnType<typeof SupersetClient.get>>;
 
@@ -70,6 +74,7 @@ test('fetchUserOptions sends the search term as a server-side filter', async () 
         title: 'Jane Smith',
         textLabel: 'Jane Smith',
         subjectDetail: 'jane@example.com',
+        username: 'jsmith',
       },
     ],
     totalCount: 1,
@@ -108,7 +113,13 @@ test.each([
       order_direction: 'asc',
     });
     expect(result).toEqual({
-      data: [expect.objectContaining({ value: 1, title: 'admin' })],
+      data: [
+        expect.objectContaining({
+          value: 1,
+          title: 'admin',
+          username: 'admin',
+        }),
+      ],
       totalCount: 250,
     });
   },
@@ -144,7 +155,30 @@ test('toUserSelectOption shows the email under the display name', () => {
     title: 'Jane Smith',
     textLabel: 'Jane Smith',
     subjectDetail: 'jane@example.com',
+    username: 'jsmith',
   });
+});
+
+test('USER_OPTION_FILTER_PROPS covers every column the server search matches', () => {
+  // The server-side user_all_text filter matches name, email and username.
+  // Each must be a plain-text prop on the option, or AsyncSelect's client-side
+  // re-filter hides a user the server returned.
+  const option = toUserSelectOption({
+    id: 7,
+    username: 'jsmith',
+    first_name: 'Jane',
+    last_name: 'Smith',
+    email: 'jane@example.com',
+  });
+
+  expect(USER_OPTION_FILTER_PROPS).toEqual([
+    'textLabel',
+    'subjectDetail',
+    'username',
+  ]);
+  expect(
+    USER_OPTION_FILTER_PROPS.map(prop => option[prop as keyof typeof option]),
+  ).toEqual(['Jane Smith', 'jane@example.com', 'jsmith']);
 });
 
 test('toUserSelectOption falls back to the username and omits a missing email', () => {

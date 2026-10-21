@@ -82,3 +82,45 @@ test('Users picker shows a user matched by email with the email under their name
   expect(await dropdown.findByText('Jane Smith')).toBeInTheDocument();
   expect(dropdown.getByText('jane@example.com')).toBeInTheDocument();
 });
+
+test('Users picker shows a user matched by username even though neither line shows it', async () => {
+  // The server matches username, but the option shows only the display name
+  // and email. The client-side re-filter must also check the username prop,
+  // or a user found by an opaque SSO username is hidden.
+  jest
+    .mocked(fetchUserOptions)
+    .mockImplementation(async (filterValue: string) =>
+      filterValue === '00f09b2e'
+        ? {
+            data: [
+              toUserSelectOption({
+                id: 8,
+                username: '00f09b2e-f4fb-48a3-80fc-53ccd9528021',
+                first_name: 'Bob',
+                last_name: 'Jones',
+                email: 'bob.jones@corp.example.org',
+              }),
+            ],
+            totalCount: 1,
+          }
+        : { data: [], totalCount: 1 },
+    );
+
+  render(<GroupListAddModal {...props} />);
+  const combobox = screen.getByRole('combobox', { name: /users/i });
+  await waitFor(() => userEvent.click(combobox));
+  await userEvent.type(combobox, '00f09b2e', { delay: 10 });
+
+  await waitFor(() =>
+    expect(fetchUserOptions).toHaveBeenCalledWith(
+      '00f09b2e',
+      expect.anything(),
+      expect.anything(),
+      expect.anything(),
+    ),
+  );
+  const dropdown = within(document.querySelector('.ant-select-dropdown-list')!);
+  expect(await dropdown.findByText('Bob Jones')).toBeInTheDocument();
+  expect(dropdown.getByText('bob.jones@corp.example.org')).toBeInTheDocument();
+  expect(dropdown.queryByText(/00f09b2e/)).not.toBeInTheDocument();
+});
