@@ -75,6 +75,7 @@ def _search(session: Session, value: str) -> list[str]:
         ("Bob Jo", ["00f09b2e-f4fb-48a3-80fc-53ccd9528021"]),
         ("corp.example", ["00f09b2e-f4fb-48a3-80fc-53ccd9528021"]),
         ("00f09b2e", ["00f09b2e-f4fb-48a3-80fc-53ccd9528021"]),
+        ("  jane ", ["jsmith"]),
         ("nobody", []),
     ],
 )
@@ -87,19 +88,67 @@ def test_user_search_filter_matches(
     assert _search(session, value) == expected
 
 
-def test_user_search_filter_empty_value_returns_query_unchanged(
-    session: Session,
+@pytest.mark.parametrize(
+    "value, expected",
+    [
+        ("svc_reporting", ["svc_reporting"]),
+        ("svc_", ["svc_reporting"]),
+        ("_", ["svc_reporting"]),
+        ("%", []),
+        ("\\", []),
+        ("jane%", []),
+    ],
+)
+def test_user_search_filter_treats_like_metacharacters_literally(
+    session: Session, value: str, expected: list[str]
 ) -> None:
     """
-    An empty search leaves the query unfiltered.
+    ``%``, ``_`` and ``\\`` in the search term are matched literally, so a
+    lone wildcard character cannot turn the search into "match everyone".
     """
-    filter_ = UserSearchFilter("username", SQLAInterface(User))
-    query = session.query(User)
-    assert filter_.apply(query, "") is query
+    assert _search(session, value) == expected
 
 
-def test_superset_user_api_registers_user_search_filter() -> None:
+@pytest.mark.parametrize("value", ["", "   "])
+def test_user_search_filter_blank_value_matches_everyone(
+    session: Session, value: str
+) -> None:
     """
-    The users list API exposes the search filter on the username column.
+    A blank search term is a "contains nothing" match: every user qualifies.
+
+    The frontend omits the filter entirely when the input is blank, so this
+    only matters for direct API callers, where it mirrors FAB's ``ct``
+    operator.
     """
-    assert SupersetUserApi.search_filters == {"username": [UserSearchFilter]}
+    assert _search(session, value) == [
+        "00f09b2e-f4fb-48a3-80fc-53ccd9528021",
+        "jsmith",
+        "svc_reporting",
+    ]
+
+
+def test_user_search_filter_none_matches_nobody(session: Session) -> None:
+    """
+    ``None`` matches no rows, mirroring SQL's ``x LIKE NULL`` and the DAO
+    LIKE operators, rather than degrading into an unfiltered listing.
+    """
+    assert _search(session, None) == []  # type: ignore[arg-type]
+
+
+def test_superset_user_api_wires_user_search_filter() -> None:
+    """
+    A ``user_all_text`` filter on ``username`` resolves through FAB's wiring.
+
+    FAB only attaches ``search_filters[col]`` when ``col`` is one of the API's
+    ``search_columns``, so this goes through the same ``Filters`` object the
+    list endpoint uses rather than asserting the class attribute alone.
+    """
+    api = SupersetUserApi()
+    filters = api._filters  # pylint: disable=protected-access
+    assert UserSearchFilter in filters.get_search_filters()["username"]
+
+    filters.rest_add_filters(
+        [{"col": "username", "opr": "user_all_text", "value": "jane"}]
+    )
+    assert isinstance(filters.filters[0], UserSearchFilter)
+    assert filters.values == ["jane"]

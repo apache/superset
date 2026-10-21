@@ -22,6 +22,8 @@ import rison from 'rison';
 import { getUserDisplayLabel } from 'src/features/users/utils';
 import { FormValues } from './types';
 
+type UserOption = { id: number } & Parameters<typeof getUserDisplayLabel>[0];
+
 export const createGroup = async (values: FormValues) => {
   await SupersetClient.post({
     endpoint: '/api/v1/security/groups/',
@@ -47,14 +49,13 @@ export const fetchUserOptions = async (
   pageSize: number,
   addDangerToast: (msg: string) => void,
 ) => {
+  // The ListView filter path passes the raw input, so trim here to keep both
+  // callers from sending a whitespace-only search.
+  const searchTerm = filterValue.trim();
   const query = rison.encode({
-    ...(filterValue
-      ? {
-          filters: [
-            { col: 'username', opr: 'user_all_text', value: filterValue },
-          ],
-        }
-      : {}),
+    filters: searchTerm
+      ? [{ col: 'username', opr: 'user_all_text', value: searchTerm }]
+      : [],
     page,
     page_size: pageSize,
     order_column: 'username',
@@ -66,10 +67,10 @@ export const fetchUserOptions = async (
       endpoint: `/api/v1/security/users/?q=${query}`,
     });
 
-    const results = response.json?.result || [];
+    const results: UserOption[] = response.json?.result || [];
 
     return {
-      data: results.map((user: any) => ({
+      data: results.map(user => ({
         value: user.id,
         label: getUserDisplayLabel(user),
       })),

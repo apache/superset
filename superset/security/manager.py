@@ -69,7 +69,15 @@ from flask_jwt_extended import get_jwt_identity, verify_jwt_in_request
 from flask_jwt_extended.exceptions import NoAuthorizationError
 from flask_login import AnonymousUserMixin, LoginManager
 from jwt.api_jwt import _jwt_global_obj
-from sqlalchemy import and_, func as sa_func, inspect, or_, select, Table as SQLATable
+from sqlalchemy import (
+    and_,
+    false,
+    func as sa_func,
+    inspect,
+    or_,
+    select,
+    Table as SQLATable,
+)
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.orm import joinedload
 from sqlalchemy.orm.exc import MultipleResultsFound
@@ -518,16 +526,27 @@ class UserSearchFilter(BaseFilter):  # pylint: disable=too-few-public-methods
     arg_name = "user_all_text"
 
     def apply(self, query: SqlaQuery, value: Any) -> SqlaQuery:
-        if not value:
-            return query
-        ilike_value = f"%{value}%"
+        # pylint: disable=import-outside-toplevel
+        from superset.daos.base import _escape_like
+
+        # Mirror the DAO LIKE operators: ``x ILIKE NULL`` matches no rows, so
+        # a ``None`` value must never degrade into a match-everything pattern.
+        if value is None:
+            return query.filter(false())
+        # Surrounding whitespace is never meaningful in a name search, and the
+        # ListView filter path sends the raw input, so trim it here. LIKE
+        # metacharacters (percent, underscore, backslash) are escaped so they
+        # match literally instead of acting as wildcards.
+        ilike_value = f"%{_escape_like(str(value).strip())}%"
         return query.filter(
             or_(
-                User.username.ilike(ilike_value),
-                User.first_name.ilike(ilike_value),
-                User.last_name.ilike(ilike_value),
-                (User.first_name + " " + User.last_name).ilike(ilike_value),
-                User.email.ilike(ilike_value),
+                User.username.ilike(ilike_value, escape="\\"),
+                User.first_name.ilike(ilike_value, escape="\\"),
+                User.last_name.ilike(ilike_value, escape="\\"),
+                (User.first_name + " " + User.last_name).ilike(
+                    ilike_value, escape="\\"
+                ),
+                User.email.ilike(ilike_value, escape="\\"),
             )
         )
 

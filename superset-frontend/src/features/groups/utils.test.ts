@@ -61,22 +61,43 @@ test('fetchUserOptions sends the search term as a server-side filter', async () 
   });
 });
 
-test('fetchUserOptions omits filters when there is no search term', async () => {
-  mockUsersResponse([{ id: 1, username: 'admin' }], 250);
+test('fetchUserOptions trims the search term before sending it', async () => {
+  mockUsersResponse([]);
 
-  const result = await fetchUserOptions('', 2, 100, jest.fn());
+  await fetchUserOptions('  jane ', 0, 100, jest.fn());
 
   expect(decodeQuery()).toEqual({
-    page: 2,
+    filters: [{ col: 'username', opr: 'user_all_text', value: 'jane' }],
+    page: 0,
     page_size: 100,
     order_column: 'username',
     order_direction: 'asc',
   });
-  expect(result).toEqual({
-    data: [{ value: 1, label: 'admin' }],
-    totalCount: 250,
-  });
 });
+
+test.each([
+  ['an empty', ''],
+  ['a whitespace-only', '   '],
+])(
+  'fetchUserOptions sends no filters for %s search term',
+  async (_label, filterValue) => {
+    mockUsersResponse([{ id: 1, username: 'admin' }], 250);
+
+    const result = await fetchUserOptions(filterValue, 2, 100, jest.fn());
+
+    expect(decodeQuery()).toEqual({
+      filters: [],
+      page: 2,
+      page_size: 100,
+      order_column: 'username',
+      order_direction: 'asc',
+    });
+    expect(result).toEqual({
+      data: [{ value: 1, label: 'admin' }],
+      totalCount: 250,
+    });
+  },
+);
 
 test('fetchUserOptions shows a toast and returns no options on error', async () => {
   getMock.mockRejectedValue(new Error('boom'));
