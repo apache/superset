@@ -24,6 +24,12 @@ assists people when migrating to a new version.
 
 ## Next
 
+- Refreshing a dataset's columns from its source (the "Sync columns from
+  source" button, or `PUT /api/v1/dataset/<id>?override_columns=true`) no
+  longer resets **Is dimension** and **Is filterable** on existing columns.
+  Newly discovered columns still arrive with both enabled; a deployment that
+  relied on a resync to restore those defaults must set them explicitly.
+
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
   metrics, including two SUM metrics. Metric-specific values and totals remain
