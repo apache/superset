@@ -2232,8 +2232,12 @@ class ResponseSizeGuardMiddleware(Middleware):
                     actual_bytes,
                     self.png_max_bytes,
                 )
+                # Hop off the transport loop for the metadata write, as the
+                # text-path audit does: the loop must never wait on a pooled
+                # connection that a tool worker may be holding.
                 try:
-                    event_logger.log(
+                    await run_in_metadata_thread(
+                        event_logger.log,
                         user_id=get_user_id(),
                         action="mcp_response_size_exceeded",
                         dashboard_id=None,
