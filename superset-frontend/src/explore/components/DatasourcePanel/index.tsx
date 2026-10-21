@@ -308,7 +308,7 @@ export default function DataSourcePanel({
             </StyledInfoboxWrapper>
           )}
           <AutoSizer
-            ChildComponent={({ height }) => (
+            renderProp={({ height }) => (
               <DatasourceItems
                 width={width - BORDER_WIDTH}
                 height={height ?? 0}

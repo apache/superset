@@ -794,7 +794,7 @@ const ResultSet = ({
               `}
             >
               <AutoSizer
-                ChildComponent={({ height }) => (
+                renderProp={({ height }) => (
                   <ResultTable {...tableProps} height={height ?? 0} />
                 )}
               />

@@ -637,7 +637,7 @@ export default function FoldersEditor({
             strategy={verticalListSortingStrategy}
           >
             <AutoSizer
-              ChildComponent={({ height, width }) => (
+              renderProp={({ height, width }) => (
                 <VirtualizedTreeList
                   width={width ?? 0}
                   height={height ?? 0}

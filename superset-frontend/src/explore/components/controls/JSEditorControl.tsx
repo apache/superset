@@ -76,7 +76,7 @@ export default function JSEditorControl({
       <ControlHeader {...headerProps} />
       <Container>
         <AutoSizer
-          Child={({ width }) => (
+          renderProp={({ width }) => (
             <EditorHost
               id="echart-js-editor"
               value={value ?? ''}

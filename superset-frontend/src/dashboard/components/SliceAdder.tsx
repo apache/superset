@@ -466,7 +466,7 @@ function SliceAdder({
       {!isLoading && filteredSlices.length > 0 && (
         <ChartList>
           <AutoSizer
-            ChildComponent={({ height, width }) => (
+            renderProp={({ height, width }) => (
               <List
                 style={{ width, height, maxHeight: height }}
                 rowCount={filteredSlices.length}
