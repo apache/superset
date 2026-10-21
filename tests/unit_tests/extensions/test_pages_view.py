@@ -887,3 +887,47 @@ def test_the_rule_parse_werkzeug_exposes_is_the_shape_we_read() -> None:
         ("data", []),
     ]
     assert "version" in getattr(rule, "_converters", {})
+
+
+def test_permission_syncing_can_be_switched_off(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """For a deployment that must not write to the metadata database at start.
+
+    Pages still register and are still enforced; the permissions have to
+    exist already.
+    """
+    app.config["EXTENSIONS_SYNC_PAGE_PERMISSIONS"] = False
+
+    register_extension_pages(app, manifest("/a", permission="can_review"))
+    with app.app_context():
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
+
+    assert security.created == []
+    assert security.admin_role.permissions == []
+    # The page itself is unaffected.
+    assert "/a" in paths_in(app)
+
+
+def test_a_settled_deployment_does_not_look_up_the_role(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """Every worker runs this at every start, so the quiet path stays quiet.
+
+    Once a role holds the permission there is nothing to do, and finding that
+    out should not cost a second lookup per permission per worker.
+    """
+    security.existing.add(("can_review", VIEW_MENU))
+    security.admin_role.permissions.append(("can_review", VIEW_MENU))
+    looked_up: list[str] = []
+    security.find_role = lambda name: (  # type: ignore[assignment]
+        looked_up.append(name),
+        security.roles.get(name),
+    )[1]
+
+    register_extension_pages(app, manifest("/a", permission="can_review"))
+    with app.app_context():
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
+
+    assert security.created == []
+    assert looked_up == []

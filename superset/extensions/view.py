@@ -451,7 +451,7 @@ def registered_page_paths(app: Flask, extension_id: str) -> list[str]:
     ]
 
 
-def _grant_to_admin(permission: str, extension_id: str) -> None:
+def _grant_to_admin(permission: str, extension_id: str, pvm: object) -> None:
     """Give the Admin role a page permission, if it does not already hold it.
 
     Not a policy this invents. ``sync_role_definitions`` builds the Admin
@@ -481,22 +481,18 @@ def _grant_to_admin(permission: str, extension_id: str) -> None:
     """
     from superset import security_manager
 
+    if getattr(pvm, "role", None):
+        # Held by something -- Admin, or a role the operator chose instead.
+        # Checked before looking up the role, so the ordinary boot, where a
+        # role already holds every permission, reads nothing further.
+        return
+
     role_name = current_app.config.get("AUTH_ROLE_ADMIN", "Admin")
     role = security_manager.find_role(role_name)
     if role is None:
         logger.warning(
             "No '%s' role to grant '%s' on '%s' to", role_name, permission, extension_id
         )
-        return
-
-    pvm = security_manager.find_permission_view_menu(
-        permission, _view_menu(extension_id)
-    )
-    if pvm is None:
-        return
-
-    if getattr(pvm, "role", None):
-        # Held by something -- Admin, or a role the operator chose instead.
         return
 
     # Idempotent and self-committing in FAB. An ordinary boot does no write,
@@ -529,6 +525,12 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
     already written. The permission check itself reads the database per
     request, so a worker that lost the race still enforces correctly.
     """
+    if not current_app.config.get("EXTENSIONS_SYNC_PAGE_PERMISSIONS", True):
+        # The operator provisions these out of band, or the metadata database
+        # must not be written during start. Pages still load, and the checks
+        # that enforce them still read whatever permissions exist.
+        return
+
     from superset import security_manager
 
     # Only pages that actually got a rule. A refused page is not reachable,
@@ -556,7 +558,12 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
             # that never happened -- no Admin role yet, a lost create race, a
             # failure partway -- is repaired rather than missing forever.
             # `_grant_to_admin` declines once any role holds it.
-            _grant_to_admin(permission, manifest.id)
+            # Re-read rather than reusing the lookup above, which may have
+            # been None before the create. Passed in so the grant does not
+            # repeat it.
+            pvm = security_manager.find_permission_view_menu(permission, view_menu)
+            if pvm is not None:
+                _grant_to_admin(permission, manifest.id, pvm)
         except Exception:  # pylint: disable=broad-except
             # Most often a concurrent worker inserting the same row.
             logger.warning(

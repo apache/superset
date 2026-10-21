@@ -42,7 +42,7 @@ import React, {
 import { useHistory, useLocation } from 'react-router-dom';
 import type { pages as pagesApi } from '@apache-superset/core';
 import { logging } from '@apache-superset/core/utils';
-import { ErrorBoundary } from 'src/components/ErrorBoundary';
+import PageBoundary from './PageBoundary';
 import ExtensionPlaceholder from 'src/extensions/ExtensionPlaceholder';
 import { Disposable } from '../models';
 import { createEventEmitter } from '../utils';
@@ -264,13 +264,12 @@ export const resolvePage = (id: string): React.ReactElement => {
   if (!entry) {
     return React.createElement(ExtensionPlaceholder, { id });
   }
-  // Keyed by page id so switching pages remounts the boundary.
-  // `ErrorBoundary` keeps its caught error in state and offers no way to
-  // clear it, so without a key a page that threw once would keep rendering
-  // its error over every other extension page the user navigated to.
+  // `PageBoundary` keys itself by page id, so one page's crash cannot follow
+  // the user to another, and offers a retry and a reset on moving within the
+  // page -- neither of which `ErrorBoundary` can do on its own.
   return React.createElement(
-    ErrorBoundary,
-    { key: id },
+    PageBoundary,
+    { key: id, id },
     React.createElement(
       PageRootContext.Provider,
       { value: entry.page.path },

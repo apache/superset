@@ -129,6 +129,110 @@ chat.registerChat(
 
 See [Chat](./extension-points/chat.md) for implementation details.
 
+### Pages
+
+Extensions can add a page of their own: a whole screen at its own URL, as
+opposed to a view that occupies a slot inside a screen Superset already ships.
+
+A page is declared in `extension.json` and registered in code. Both halves are
+needed. The declaration is what the server reads to register a URL rule, so
+that loading the page's URL directly works; the registration supplies the
+component to render there.
+
+```json
+{
+  "contributions": {
+    "pages": [
+      {
+        "path": "/review-queue",
+        "name": "Review queue",
+        "nav": { "label": "Review queue" },
+        "permission": "can_review"
+      }
+    ]
+  }
+}
+```
+
+```typescript
+import { pages } from '@apache-superset/core';
+import ReviewQueue from './ReviewQueue';
+
+pages.registerPage(
+  { path: '/review-queue', name: 'Review queue' },
+  ReviewQueue,
+);
+```
+
+#### Choosing a path
+
+The path is yours to choose, but it is not yours to take. On every start,
+Superset checks each declared path against the routes that deployment actually
+serves — its own screens and APIs, any blueprints the operator has registered,
+and pages other extensions have already claimed. A path that is taken is
+refused: the page is not registered, the server log names what holds the path,
+and the rest of the extension loads normally.
+
+Pick something specific. A page owns its path **and everything beneath it**, so
+`/review-queue` also answers `/review-queue/42/edit`. Short, generic paths are
+the ones most likely to collide with a future Superset release.
+
+Paths are lowercase segments with a leading slash and no trailing slash:
+`/review-queue`, `/acme/reports`. No parameters — a page routes within itself
+on the client.
+
+#### Routing inside a page
+
+Because a page owns everything beneath its path, it can have more than one
+screen. Two hooks read the host's router:
+
+```typescript
+const subPath = pages.useSubPath();   // '/42/edit' at /review-queue/42/edit
+const navigate = pages.useNavigate();
+
+navigate('/42');  // -> /review-queue/42, a client-side transition
+navigate('/');    // back to the page root
+```
+
+`navigate` takes a path relative to the page, so a page never writes its own
+URL. These exist because `react-router-dom` is not shared with extensions: an
+extension importing it would get a second copy with its own React context, and
+`useLocation()` would throw.
+
+#### Appearing in the navigation bar
+
+Add `nav` and the page gets a top-level entry, labelled `nav.label` or the
+page's `name`. Omit `nav` for a page reached from somewhere the extension
+renders itself — a button on one of its own screens — and the page stays
+reachable by URL.
+
+#### Restricting access
+
+Name a `permission` and only users holding it may open the page; anyone else
+gets 403 and sees no navigation entry. Superset creates the permission when
+the extension loads and shows it in **Settings → List Roles** as, for example,
+`can review on extension:acme.tools`, ready to grant to any role. The Admin
+role receives it automatically, unless some role already holds it.
+
+Omit `permission` and the page is open to any signed-in user.
+
+A few names are reserved, because Superset's own role rules already give them
+meaning: `database_access`, `catalog_access`, `schema_access`,
+`datasource_access`, `can_userinfo` and `can_recent_activity`. A page naming
+one is refused at startup.
+
+The permission gates the page itself. Anything the page then calls — Superset's
+APIs, or your extension's own — is authorised separately, so a page is not a
+way to widen what a user can reach.
+
+#### Using Superset's API from a page
+
+`@superset-ui/core` is shared with extensions, so `SupersetClient` works with
+the host's configuration, including CSRF tokens on writes. Extensions
+scaffolded by `superset-extensions init` declare the share already; an older
+extension needs `@superset-ui/core` added to the `shared` block of its webpack
+config to use the host's copy rather than bundling its own.
+
 ## Backend
 
 Backend contribution types allow extensions to extend Superset's server-side capabilities. Backend contributions are registered at startup via classes and functions imported from the auto-discovered `entrypoint.py` file.
