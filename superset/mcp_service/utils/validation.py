@@ -190,7 +190,7 @@ def _schema_location(schema: dict[str, Any], location: tuple[str | int, ...]) ->
     is declared elsewhere in the schema.
     """
     nodes = [schema]
-    parts = []
+    parts: list[str] = []
     for index, part in enumerate(location[:8]):
         children: list[dict[str, Any]] = []
         for node in _schema_nodes(schema, nodes):
