@@ -209,11 +209,9 @@ const { useBreakpoint } = Grid;
  * `nav` is therefore added here, client-side, so that a contributed page has
  * somewhere a user could find it at all.
  *
- * Entries sit at the top level. Nesting one under an existing group is the
- * obvious next want -- an admin screen belongs under Settings > Manage --
- * but those groups live in the `settings` menu rather than this one, so it
- * is left out until it can be done properly rather than shipped as an
- * option that silently does nothing.
+ * A page without `nav.category` sits at the top level. One that names a
+ * category goes into that group of the Settings menu instead, which is
+ * where an administrative screen belongs -- see `withExtensionSettings`.
  */
 export function withExtensionPages(
   menu: MenuObjectProps[],
@@ -228,7 +226,9 @@ export function withExtensionPages(
   // the server answers 403 for it, so an entry here would only advertise a
   // dead end. The page stays registered, so a direct link still explains
   // itself rather than rendering nothing.
-  const contributed = pages.filter(page => page.nav && page.permitted !== false);
+  const contributed = pages.filter(
+    page => page.nav && !page.nav.category && page.permitted !== false,
+  );
   if (!contributed.length) {
     return menu;
   }
@@ -248,6 +248,56 @@ export function withExtensionPages(
         }) as unknown as MenuObjectProps,
     ),
   ];
+}
+
+/**
+ * Places a contributed page inside a group of the Settings menu.
+ *
+ * `MenuWrapper` splits the FAB menu into the top navbar and `settings` by
+ * group name -- Data, Security and Manage -- so a page that belongs under
+ * Settings cannot be appended to the navbar list and reach it. It has to
+ * join the group's own children, which is what this does.
+ *
+ * A group the host did not render is not invented: FAB builds Manage only
+ * when the user may see something in it, and a group conjured here would be
+ * one the rest of Superset does not agree exists. The page keeps its URL
+ * either way; it is the entry that is missing.
+ */
+export function withExtensionSettings(
+  settings: MenuObjectProps[],
+  pages: {
+    name: string;
+    path: string;
+    nav?: { label?: string; category?: string };
+    permitted?: boolean;
+  }[],
+): MenuObjectProps[] {
+  const contributed = pages.filter(
+    page => page.nav?.category && page.permitted !== false,
+  );
+  if (!contributed.length) {
+    return settings;
+  }
+
+  return settings.map(group => {
+    const mine = contributed.filter(page => page.nav?.category === group.name);
+    if (!mine.length) {
+      return group;
+    }
+    return {
+      ...group,
+      childs: [
+        ...(group.childs ?? []),
+        ...mine.map(page => ({
+          label: page.nav?.label ?? page.name,
+          // The React key, as for the navbar entries: the label is the
+          // author's to choose and could collide with a host item.
+          name: `extension:${page.path}`,
+          url: page.path,
+        })),
+      ],
+    };
+  });
 }
 
 export function Menu({
@@ -535,7 +585,7 @@ export function Menu({
         <Col md={8} xs={isMobile ? 4 : 24}>
           <RightMenu
             align={isMd || isMobile ? 'flex-end' : 'flex-start'}
-            settings={settings}
+            settings={withExtensionSettings(settings, contributedPages)}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
             environmentTag={environmentTag}
