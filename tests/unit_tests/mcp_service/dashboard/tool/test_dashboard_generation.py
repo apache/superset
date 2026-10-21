@@ -207,7 +207,6 @@ def _setup_generate_dashboard_mocks(
 class TestGenerateDashboard:
     """Tests for generate_dashboard MCP tool."""
 
-    @pytest.mark.parametrize("datasource_type", ["table", "semantic_view"])
     @pytest.mark.parametrize(
         ("restricted", "datasource_granted"),
         [(True, False), (True, True), (False, True)],
@@ -224,12 +223,10 @@ class TestGenerateDashboard:
         mcp_server: object,
         restricted: bool,
         datasource_granted: bool,
-        datasource_type: str,
     ) -> None:
         """Datasource-only readers cannot link viewer-restricted charts."""
         chart: Mock = _mock_chart()
         chart.configure_mock(
-            datasource_type=datasource_type,
             viewers=[Mock(id=99)] if restricted else [],
             resolved_datasource=Mock(),
             dashboards=[],

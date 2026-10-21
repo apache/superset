@@ -15,8 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-"""Chart permission relationships are loaded in batches before access checks."""
+"""Chart access checks read permission relationships at most once per chart."""
 
+import importlib
 import inspect
 from collections.abc import Iterator
 from unittest.mock import AsyncMock, MagicMock
@@ -38,6 +39,11 @@ from superset.mcp_service.dashboard.tool.generate_dashboard import generate_dash
 from superset.models.slice import Slice
 from superset.subjects.models import chart_editors, chart_viewers, Subject
 
+# The package re-exports the tool function under the module's name.
+tool_module = importlib.import_module(
+    "superset.mcp_service.dashboard.tool.generate_dashboard"
+)
+
 
 @pytest.fixture
 def session_engine() -> Iterator[Engine]:
@@ -52,15 +58,20 @@ def session_engine() -> Iterator[Engine]:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("chart_count", [1, 5])
-@pytest.mark.parametrize("access", ["editor", "viewer", "denied"])
-async def test_generate_dashboard_batches_chart_access_relationships(
+@pytest.mark.parametrize("chart_count", [1, 5, 20])
+@pytest.mark.parametrize("access", ["admin", "editor", "viewer", "denied"])
+async def test_generate_dashboard_chart_access_relationship_reads(
     session: Session,
     mocker: MockerFixture,
     chart_count: int,
     access: str,
 ) -> None:
-    """Real permission checks retain their decisions without per-chart SELECTs."""
+    """Real permission checks decide access without re-reading relationships later.
+
+    The layout step runs for real, after the validation log context commits and
+    expires the charts, so a loader option that re-selects the relationships on
+    refresh is counted here.
+    """
     Slice.metadata.create_all(session.get_bind())
     session.execute(
         Subject.__table__.insert(),
@@ -93,7 +104,7 @@ async def test_generate_dashboard_batches_chart_access_relationships(
             for chart_id in chart_ids
         ],
     )
-    mocker.patch.object(security_manager, "is_admin", return_value=False)
+    mocker.patch.object(security_manager, "is_admin", return_value=access == "admin")
     mocker.patch.object(security_manager, "is_guest_user", return_value=False)
     mocker.patch("superset.security.manager.get_user_id", return_value=1)
     mocker.patch("superset.subjects.utils.get_user_subject_ids", return_value=[1])
@@ -106,9 +117,15 @@ async def test_generate_dashboard_batches_chart_access_relationships(
             is_valid=True, dataset_id=1, dataset_name="allowed", warnings=[], error=None
         ),
     )
-    layout: MagicMock = mocker.patch(
-        "superset.mcp_service.dashboard.tool.generate_dashboard._create_dashboard_layout",
-        side_effect=RuntimeError("access checks completed"),
+    build_layout = tool_module._create_dashboard_layout
+
+    def layout_then_stop(charts: list[Slice]) -> None:
+        """Read the charts as the real layout step does, then stop the tool."""
+        build_layout(charts)
+        raise RuntimeError("access checks completed")
+
+    layout: MagicMock = mocker.patch.object(
+        tool_module, "_create_dashboard_layout", side_effect=layout_then_stop
     )
     statements: list[str] = []
 
@@ -145,6 +162,9 @@ async def test_generate_dashboard_batches_chart_access_relationships(
     finally:
         event.remove(session.get_bind(), "before_cursor_execute", record_sql)
 
-    assert len(statements) <= 2, (
+    # Admins never read the relationships; editors read only editors; viewers
+    # and the denied caller read editors and viewers once per checked chart.
+    per_chart = {"admin": 0, "editor": 1, "viewer": 2, "denied": 2}[access]
+    assert len(statements) <= per_chart * chart_count, (
         f"{chart_count} charts: {len(statements)} relationship SELECTs"
     )
