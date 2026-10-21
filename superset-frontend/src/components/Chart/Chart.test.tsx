@@ -230,7 +230,15 @@ const previousResponse = [{ data: [{ value: 1 }] }] as Parameters<
 >[0]['queriesResponse'];
 
 test('keeps a dashboard chart on screen under the spinner while it refreshes', () => {
-  render(
+  const { rerender } = render(
+    <Chart
+      {...baseProps}
+      dashboardId={17}
+      chartStatus="rendered"
+      queriesResponse={previousResponse}
+    />,
+  );
+  rerender(
     <Chart
       {...baseProps}
       dashboardId={17}

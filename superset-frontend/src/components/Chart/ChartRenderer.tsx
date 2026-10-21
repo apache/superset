@@ -125,6 +125,8 @@ export interface ChartRendererProps {
   chartAlert?: string;
   chartStatus?: ChartStatus | null;
   queriesResponse?: QueryData[] | null;
+  // The form data queriesResponse was queried with, when it is known.
+  responseFormData?: QueryFormData;
   triggerQuery?: boolean;
   chartIsStale?: boolean;
   addFilter?: (
@@ -233,6 +235,7 @@ function ChartRendererComponent({
     chartAlert,
     chartStatus,
     queriesResponse,
+    responseFormData,
     chartIsStale,
     ownState,
     filterState,
@@ -316,22 +319,11 @@ function ChartRendererComponent({
     resultsReady ||
     (isRefreshing && hasValidPreviousData(queriesResponse, vizType));
 
-  // The form data each response was queried with. A filter change updates
-  // formData as soon as the new query starts, so the previous response is
-  // drawn with its own form data until the new one lands.
-  const responseFormDataRef = useRef({
-    queriesResponse,
-    formData: currentFormData,
-  });
-  if (responseFormDataRef.current.queriesResponse !== queriesResponse) {
-    responseFormDataRef.current = {
-      queriesResponse,
-      formData: currentFormData,
-    };
-  }
-  const renderedFormData = isRefreshing
-    ? responseFormDataRef.current.formData
-    : currentFormData;
+  // A filter change updates formData as soon as the new query starts, so the
+  // previous response is drawn with the form data it was queried with until
+  // the new one lands.
+  const renderedFormData =
+    (isRefreshing && responseFormData) || currentFormData;
 
   // Clone queriesResponse to protect against plugin mutation of Redux state.
   // Gate on `hasRenderableResults` so the deep clone doesn't run for every

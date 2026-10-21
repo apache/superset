@@ -221,6 +221,24 @@ function Chart({
   // Update on each render to accurately track render duration
   renderStartTimeRef.current = Logger.getTimestamp();
 
+  // The form data the response in the store was queried with. A filter change
+  // updates formData as soon as the new query starts, so a chart kept on screen
+  // draws the previous response with its own form data until the new one
+  // lands. This lives here rather than in ChartRenderer, which unmounts while a
+  // virtualized chart is out of view. A chart mounted while its query is
+  // already in flight can't tell which form data that response belongs to.
+  const responseFormDataRef = useRef<{
+    queriesResponse: typeof queriesResponse;
+    formData: QueryFormData | undefined;
+  }>({
+    queriesResponse,
+    formData: chartStatus === 'loading' ? undefined : formData,
+  });
+  if (responseFormDataRef.current.queriesResponse !== queriesResponse) {
+    responseFormDataRef.current = { queriesResponse, formData };
+  }
+  const responseFormData = responseFormDataRef.current.formData;
+
   const shouldRenderChart = useCallback(
     () =>
       isInView ||
@@ -375,6 +393,7 @@ function Chart({
             chartAlert={chartAlert}
             chartStatus={chartStatus}
             queriesResponse={queriesResponse}
+            responseFormData={responseFormData}
             triggerQuery={triggerQuery}
             chartIsStale={chartIsStale}
             addFilter={addFilter}
@@ -418,6 +437,7 @@ function Chart({
       ownState,
       postTransformProps,
       queriesResponse,
+      responseFormData,
       setControlValue,
       shouldRenderChart,
       suppressLoadingSpinner,
@@ -440,6 +460,7 @@ function Chart({
   const keepChartOnScreen =
     isLoading &&
     !!dashboardId &&
+    responseFormData !== undefined &&
     hasValidPreviousData(queriesResponse, formData.viz_type || vizType);
 
   if (datasource?.metadata_error) {

@@ -18,7 +18,14 @@
  */
 import { useEffect } from 'react';
 import { act, render, screen } from 'spec/helpers/testing-library';
-import { ChartMetadata, ChartPlugin, QueryData } from '@superset-ui/core';
+import {
+  ChartMetadata,
+  ChartPlugin,
+  FeatureFlag,
+  QueryData,
+} from '@superset-ui/core';
+import Chart from 'src/components/Chart/Chart';
+import type { Actions } from 'src/components/Chart/Chart';
 import ChartRenderer, {
   ChartRendererProps,
 } from 'src/components/Chart/ChartRenderer';
@@ -198,24 +205,40 @@ test('keeps a dashboard chart on screen while a manual refresh query is in fligh
   expect(await screen.findByText(/value=2/)).toBeInTheDocument();
 });
 
+// A dashboard filter change, such as a Dynamic Group By, updates formData as
+// soon as the new query starts. The previous rows don't match it. Chart tracks
+// which form data the response in the store was queried with.
+const labelledFormData = (label: string) =>
+  ({
+    datasource: '1__table',
+    viz_type: VIZ_TYPE,
+    label,
+  }) as ChartRendererProps['formData'];
+
+const dashboardChartProps = {
+  chartId: 1,
+  dashboardId: 17,
+  width: 600,
+  height: 400,
+  vizType: VIZ_TYPE,
+  setControlValue: jest.fn(),
+  actions: {
+    chartRenderingSucceeded: jest.fn(),
+    chartRenderingFailed: jest.fn(),
+    logEvent: jest.fn(),
+    postChartFormData: jest.fn(),
+  } as unknown as Actions,
+};
+
 test('draws the previous data with the form data it was queried with', async () => {
-  // A dashboard filter change, such as a Dynamic Group By, updates formData
-  // as soon as the new query starts. The previous rows don't match it.
-  const formData = (label: string) =>
-    ({
-      datasource: '1__table',
-      viz_type: VIZ_TYPE,
-      label,
-    }) as ChartRendererProps['formData'];
   // The store keeps the same response object until the new one lands.
   const previous = queriesResponse(1);
   const { rerender } = render(
-    <ChartRenderer
-      {...props({
-        chartStatus: 'rendered',
-        formData: formData('before'),
-        queriesResponse: previous,
-      })}
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={labelledFormData('before')}
+      queriesResponse={previous}
     />,
   );
   expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
@@ -223,12 +246,11 @@ test('draws the previous data with the form data it was queried with', async () 
   );
 
   rerender(
-    <ChartRenderer
-      {...props({
-        chartStatus: 'loading',
-        formData: formData('after'),
-        queriesResponse: previous,
-      })}
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="loading"
+      formData={labelledFormData('after')}
+      queriesResponse={previous}
     />,
   );
   expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
@@ -236,15 +258,78 @@ test('draws the previous data with the form data it was queried with', async () 
   );
 
   rerender(
-    <ChartRenderer
-      {...props({
-        chartStatus: 'success',
-        formData: formData('after'),
-        queriesResponse: queriesResponse(2),
-      })}
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="success"
+      formData={labelledFormData('after')}
+      queriesResponse={queriesResponse(2)}
     />,
   );
   expect(await screen.findByText('value=2 label=after')).toBeInTheDocument();
+});
+
+test('draws the previous data with its own form data when a virtualized chart scrolls back into view', async () => {
+  const previousFlags = window.featureFlags;
+  window.featureFlags = {
+    ...previousFlags,
+    [FeatureFlag.DashboardVirtualization]: true,
+  };
+  try {
+    const previous = queriesResponse(1);
+    const { rerender } = render(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="rendered"
+        formData={labelledFormData('before')}
+        queriesResponse={previous}
+      />,
+    );
+    await screen.findByTestId('refresh-test-chart');
+
+    // Out of view, ChartRenderer unmounts while the filter change starts the
+    // new query.
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        isInView={false}
+        chartStatus="loading"
+        formData={labelledFormData('after')}
+        queriesResponse={previous}
+      />,
+    );
+    expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
+
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="loading"
+        formData={labelledFormData('after')}
+        queriesResponse={previous}
+      />,
+    );
+    expect(await screen.findByTestId('refresh-test-chart')).toHaveTextContent(
+      'value=1 label=before',
+    );
+  } finally {
+    window.featureFlags = previousFlags;
+  }
+});
+
+test('shows the regular spinner for a dashboard chart mounted while its query is in flight', async () => {
+  // Nothing tells this chart which form data the response in the store was
+  // queried with, so it can't draw that response.
+  render(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="loading"
+      formData={labelledFormData('after')}
+      queriesResponse={queriesResponse(1)}
+    />,
+  );
+  await waitForChartLoad();
+
+  expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
+  expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
 });
 
 test('hides the chart while its query is in flight in Explore', async () => {
