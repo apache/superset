@@ -2769,12 +2769,19 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
             else _format_bullet_number(model.y_axis_format, value)
         )
 
-    def legend_color(name: str) -> dict[str, Any]:
-        return {
+    def legend_color(name: str, color: str = "") -> dict[str, Any]:
+        encoding: dict[str, Any] = {
             "datum": name,
             "type": "nominal",
             "legend": {"title": None} if model.show_legend else None,
         }
+        if color:
+            # Pin a custom color through this layer's own color scale
+            # (`resolve.scale.color` is independent per layer) rather than a
+            # fixed `{"value": color}`, which would bypass the legend-bearing
+            # encoding and silently drop the range's legend entry.
+            encoding["scale"] = {"domain": [name], "range": [color]}
+        return encoding
 
     label_field = _unique_bullet_derived_field(values, "__mcp_bullet_threshold_label")
     value_field = _unique_bullet_derived_field(
@@ -2837,15 +2844,13 @@ def _generate_bullet_vega_lite_preview(  # noqa: C901
                     # A custom `range_colors` entry wins; otherwise fall back
                     # to the default categorical legend coloring exactly as
                     # before this control existed, so a Bullet chart saved
-                    # without `range_colors` previews unchanged.
-                    "color": (
-                        {"value": color}
-                        if color
-                        else legend_color(
-                            (f"{label}: " if label else "")
-                            + "≤ "
-                            + _format_bullet_number(model.y_axis_format, threshold)
-                        )
+                    # without `range_colors` previews unchanged. Either way
+                    # the range keeps its legend entry.
+                    "color": legend_color(
+                        (f"{label}: " if label else "")
+                        + "≤ "
+                        + _format_bullet_number(model.y_axis_format, threshold),
+                        color,
                     ),
                     "tooltip": threshold_tooltip,
                 },

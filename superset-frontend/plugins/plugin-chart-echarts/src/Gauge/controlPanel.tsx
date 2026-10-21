@@ -279,6 +279,22 @@ const config: ControlPanelConfig = {
         ],
         [
           {
+            // Legacy 1-indexed positions into `color_scheme`, replaced by
+            // `interval_colors` below. Explore builds the chart's query and
+            // save form data from registered controls only, so this stays
+            // registered (hidden) to keep an untouched legacy chart
+            // rendering and saving with its original palette-relative
+            // colors. The renderer ignores it once `interval_colors` is
+            // populated by the first edit in the control below.
+            name: 'interval_color_indices',
+            config: {
+              type: 'HiddenControl',
+              hidden: true,
+            },
+          },
+        ],
+        [
+          {
             name: 'interval_colors',
             config: {
               type: 'IntervalColorsControl',
@@ -291,12 +307,12 @@ const config: ControlPanelConfig = {
               shouldMapStateToProps: () => true,
               mapStateToProps: (state: ControlPanelState) => ({
                 intervals: state?.controls?.intervals?.value as string,
-                // `interval_color_indices` is no longer a registered control
-                // (replaced by this one), so it never appears under
-                // `state.controls`. Read it from the raw persisted
-                // `form_data` instead, where legacy charts still carry it.
-                legacyIntervalColorIndices: state?.form_data
-                  ?.interval_color_indices as string,
+                // The hidden legacy control above carries the persisted
+                // `interval_color_indices`; fall back to the raw `form_data`
+                // for any state built without it.
+                legacyIntervalColorIndices: (state?.controls
+                  ?.interval_color_indices?.value ??
+                  state?.form_data?.interval_color_indices) as string,
                 colorScheme: state?.controls?.color_scheme?.value as string,
               }),
             },

@@ -98,10 +98,11 @@ test('resolves legacy interval_color_indices against the color scheme for displa
   expect(screen.getByText('#2CA02C')).toBeInTheDocument();
 });
 
-test('disables editing while intervals has a blank token between numbers', () => {
+test('disables editing while intervals has a blank token between numbers', async () => {
+  const onChange = jest.fn();
   render(
     <IntervalColorsControl
-      onChange={jest.fn()}
+      onChange={onChange}
       intervals="20,,60"
       colorScheme="testScheme"
     />,
@@ -109,9 +110,19 @@ test('disables editing while intervals has a blank token between numbers', () =>
 
   // The blank middle token means the list is still being edited; don't
   // allow commits that would misalign colors once the blank is filled in.
-  document.querySelectorAll('.ant-color-picker-trigger').forEach(trigger => {
+  // Pin the row count first so the per-row assertions can't pass vacuously.
+  const triggers = document.querySelectorAll('.ant-color-picker-trigger');
+  expect(triggers).toHaveLength(2);
+  triggers.forEach(trigger => {
     expect(trigger).toHaveClass('ant-color-picker-trigger-disabled');
   });
+
+  // A change attempt on a disabled picker must neither open it nor commit.
+  await userEvent.click(triggers[0]);
+  expect(
+    document.querySelector('.ant-color-picker-presets-color'),
+  ).not.toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
 });
 
 test('explicit value takes precedence over legacy indices', () => {
@@ -221,6 +232,41 @@ test('a partial explicit value falls back to the positional scheme color, not le
 
   // Editing row 0 must not silently persist the legacy color for row 1.
   expect(onChange).toHaveBeenCalledWith(['#ff7f0e', '#ff7f0e']);
+});
+
+test('keeps every legacy band color while the last interval bound is being retyped', async () => {
+  // Same trailing-blank window as below, but for a legacy chart that has no
+  // explicit `interval_colors` yet: bounds "20,40,60" with legacy indices
+  // "3,2,1", then the user erases "60" and edits the first color while
+  // `intervals` reads "20,40,". The legacy indices are the only record of
+  // the third band at that moment, so the write must still cover it with
+  // its legacy color (index 1 -> scheme[0]); otherwise a two-entry explicit
+  // array would be persisted and, once "60" is typed back in, the third
+  // band would flip to the positional scheme color instead.
+  const onChange = jest.fn();
+  render(
+    <IntervalColorsControl
+      onChange={onChange}
+      intervals="20,40,"
+      legacyIntervalColorIndices="3,2,1"
+      colorScheme="testScheme"
+    />,
+  );
+
+  const triggers = document.querySelectorAll('.ant-color-picker-trigger');
+  expect(triggers).toHaveLength(2);
+
+  await userEvent.click(triggers[0]);
+  await waitFor(() => {
+    expect(
+      document.querySelector('.ant-color-picker-presets-color'),
+    ).toBeInTheDocument();
+  });
+
+  const presets = document.querySelectorAll('.ant-color-picker-presets-color');
+  await userEvent.click(presets[2]);
+
+  expect(onChange).toHaveBeenCalledWith(['#2ca02c', '#ff7f0e', '#1f77b4']);
 });
 
 test('calls onChange with the full color array when a row color is picked', async () => {

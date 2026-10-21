@@ -2243,8 +2243,44 @@ def test_bullet_vega_preview_honors_range_colors() -> None:
     assert len(range_layers) == 2
     # Ranges are drawn largest-threshold-first (descending), so the first
     # layer is the "up to 100" band and the second is "up to 50".
-    assert range_layers[0]["encoding"]["color"] == {"value": "#00ff00"}
-    assert range_layers[1]["encoding"]["color"] == {"value": "#ff0000"}
+    assert range_layers[0]["encoding"]["color"]["scale"]["range"] == ["#00ff00"]
+    assert range_layers[1]["encoding"]["color"]["scale"]["range"] == ["#ff0000"]
+    # The custom color rides on the same legend-bearing `datum` encoding an
+    # uncolored range uses, never a fixed `value` that would skip the legend.
+    for layer in range_layers:
+        color = layer["encoding"]["color"]
+        assert "value" not in color
+        assert color["scale"]["domain"] == [color["datum"]]
+
+
+def test_bullet_vega_preview_custom_range_colors_keep_legend_entries() -> None:
+    """A custom `range_colors` entry must not cost the range its legend
+    entry: with `show_legend` on, every range still carries the same legend
+    config as the metric bar and an uncolored range would."""
+    specification = _generate_vega_lite_preview_from_data(
+        [{"Revenue": 75}],
+        {
+            "viz_type": "bullet",
+            "metric": "Revenue",
+            "ranges": "50,100",
+            "range_labels": "Low,High",
+            "show_legend": True,
+            "range_colors": ["#ff0000", "#00ff00"],
+        },
+    ).specification
+    range_layers = [
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "rect"
+    ]
+    bar_layer = next(
+        layer for layer in specification["layer"] if layer["mark"]["type"] == "bar"
+    )
+    assert bar_layer["encoding"]["color"]["legend"] == {"title": None}
+    assert [layer["encoding"]["color"]["datum"] for layer in range_layers] == [
+        "High: ≤ 100",
+        "Low: ≤ 50",
+    ]
+    for layer in range_layers:
+        assert layer["encoding"]["color"]["legend"] == {"title": None}
 
 
 def test_bullet_vega_preview_falls_back_to_legend_color_without_range_colors() -> None:

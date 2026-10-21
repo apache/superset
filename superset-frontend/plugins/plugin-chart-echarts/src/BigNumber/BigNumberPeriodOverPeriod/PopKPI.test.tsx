@@ -17,6 +17,7 @@
  * under the License.
  */
 import { render, screen } from 'spec/helpers/testing-library';
+import { supersetTheme } from '@apache-superset/core/theme';
 import PopKPI from './PopKPI';
 import { PopKPIProps } from './types';
 
@@ -63,19 +64,27 @@ test('renders the down arrow when the metric decreased', () => {
   expect(screen.getByText('-20')).toBeInTheDocument();
 });
 
-// The precise color resolution (legacy `comparisonColorScheme` fallback,
-// custom hex precedence, the neutral disabled state) is covered by pure
-// unit tests against `resolveComparisonColorKeys` / `getComparisonColorTokens`
-// in utils.test.ts, since emotion's `css` prop styles aren't reliably
-// observable through jsdom's computed styles. These tests instead confirm
-// PopKPI renders without crashing across the same prop combinations.
-test('renders without crashing with only the legacy comparisonColorScheme (backward compatibility)', () => {
+// `resolveComparisonColorKeys` / `getComparisonColorTokens` are unit-tested
+// in utils.test.ts; these confirm PopKPI actually wires their result into
+// the arrow indicator and the comparison pills, so dropping that wiring
+// (and silently falling back to the legacy colors) fails here.
+test('applies the legacy comparisonColorScheme to the arrow and comparison pills (backward compatibility)', () => {
   render(<PopKPI {...baseProps} comparisonColorScheme="Red" />);
 
-  expect(screen.getByText('↑')).toBeInTheDocument();
+  // 'Red' reverses the scheme: an increase paints with the error tokens.
+  expect(screen.getByText('↑')).toHaveStyleRule(
+    'color',
+    supersetTheme.colorError,
+  );
+  const deltaPill = screen.getByText('△');
+  expect(deltaPill).toHaveStyleRule('color', supersetTheme.colorErrorText);
+  expect(deltaPill).toHaveStyleRule(
+    'background-color',
+    supersetTheme.colorErrorBg,
+  );
 });
 
-test('renders without crashing with a custom increaseColor hex', () => {
+test('a custom increaseColor hex wins over the legacy comparisonColorScheme', () => {
   render(
     <PopKPI
       {...baseProps}
@@ -84,10 +93,18 @@ test('renders without crashing with a custom increaseColor hex', () => {
     />,
   );
 
-  expect(screen.getByText('↑')).toBeInTheDocument();
+  expect(screen.getByText('↑')).toHaveStyleRule('color', '#336699');
+  const deltaPill = screen.getByText('△');
+  expect(deltaPill).toHaveStyleRule('color', '#336699');
+  expect(deltaPill).toHaveStyleRule('background-color', '#3366991A');
+  // The "previous value" pill never takes the comparison color.
+  expect(screen.getByText('#')).toHaveStyleRule(
+    'color',
+    supersetTheme.colorTextTertiary,
+  );
 });
 
-test('renders without crashing when comparisonColorEnabled is false', () => {
+test('falls back to neutral styling when comparisonColorEnabled is false', () => {
   render(
     <PopKPI
       {...baseProps}
@@ -96,7 +113,16 @@ test('renders without crashing when comparisonColorEnabled is false', () => {
     />,
   );
 
-  expect(screen.getByText('↑')).toBeInTheDocument();
+  expect(screen.getByText('↑')).toHaveStyleRule(
+    'color',
+    supersetTheme.colorTextTertiary,
+  );
+  const deltaPill = screen.getByText('△');
+  expect(deltaPill).toHaveStyleRule('color', supersetTheme.colorTextTertiary);
+  expect(deltaPill).toHaveStyleRule(
+    'background-color',
+    supersetTheme.colorBgContainer,
+  );
 });
 
 test('no arrow renders when there is no difference', () => {
