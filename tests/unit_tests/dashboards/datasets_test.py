@@ -297,7 +297,15 @@ def test_dashboard_datasets_provider_discovery_fault_logs_no_detail(
         return_value=provider,
     ):
         assert dashboard.datasets_trimmed_for_slices() == []
-    assert "ValueError" in caplog.text
+    # The view, layer and real exception type share one record, so concurrent
+    # failures can be told apart.
+    assert any(
+        f"operation={method}" in record.getMessage()
+        and f"view_id={semantic_view.id}" in record.getMessage()
+        and f"layer_uuid={semantic_view.semantic_layer_uuid}" in record.getMessage()
+        and "error=ValueError" in record.getMessage()
+        for record in caplog.records
+    )
     assert "secret-provider-url" not in caplog.text
     assert all(record.exc_info is None for record in caplog.records)
 

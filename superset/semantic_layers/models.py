@@ -68,8 +68,11 @@ from superset.semantic_layers.dimension_resolution import (
     resolve_dimensions,
 )
 from superset.semantic_layers.exceptions import (
-    discover_semantic_metadata,
+    discover_dimensions,
+    discover_metrics,
+    DiscoveryTarget,
     execute_semantic_query,
+    provider_code,
     SemanticLayerQueryRejectedError,
 )
 from superset.semantic_layers.execution import configured_namespace, SemanticBindingMemo
@@ -423,7 +426,8 @@ class SemanticView(AuditMixinNullable, Model):
         configuration: dict[str, Any] = json.loads(self.configuration)
         key: tuple[str, str] = (self.name, json.dumps(configuration, sort_keys=True))
         if key not in views:
-            views[key] = layer.get_semantic_view(self.name, configuration)
+            with provider_code():
+                views[key] = layer.get_semantic_view(self.name, configuration)
         return views[key]
 
     # =========================================================================
@@ -609,11 +613,13 @@ class SemanticView(AuditMixinNullable, Model):
 
     def _provider_metrics(self) -> set[Metric]:
         """Read the provider's metrics, classifying faults as backend errors."""
-        return discover_semantic_metadata(lambda: self.implementation.get_metrics())
+        return discover_metrics(lambda: self.implementation, DiscoveryTarget.of(self))
 
     def _provider_dimensions(self) -> set[Dimension]:
         """Read the provider's dimensions, classifying faults as backend errors."""
-        return discover_semantic_metadata(lambda: self.implementation.get_dimensions())
+        return discover_dimensions(
+            lambda: self.implementation, DiscoveryTarget.of(self)
+        )
 
     @property
     def metrics(self) -> list[MetricMetadata]:

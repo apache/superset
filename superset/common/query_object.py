@@ -458,21 +458,22 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                     # computed while non-dimension predicates were discarded.
                     # avoid circular import: mapper imports QueryObject.
                     from superset.semantic_layers.exceptions import (
-                        discover_semantic_metadata,
+                        discover_dimensions,
+                        discover_metrics,
+                        DiscoveryTarget,
                     )
                     from superset.semantic_layers.mapper import validate_filter_columns
 
+                    target: DiscoveryTarget = DiscoveryTarget.of(self.datasource)
                     dimension_names: set[str] = {
                         dimension.name
-                        for dimension in discover_semantic_metadata(
-                            implementation.get_dimensions
+                        for dimension in discover_dimensions(
+                            lambda: implementation, target
                         )
                     }
                     metric_names: set[str] = {
                         metric.name
-                        for metric in discover_semantic_metadata(
-                            implementation.get_metrics
-                        )
+                        for metric in discover_metrics(lambda: implementation, target)
                     }
                     validate_filter_columns(self.filter, dimension_names, metric_names)
             self._validate_there_are_no_missing_series()

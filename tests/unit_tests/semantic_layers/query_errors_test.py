@@ -17,6 +17,7 @@
 
 import logging
 import traceback
+import uuid
 from collections.abc import Callable
 from datetime import date, datetime
 from typing import Any, cast
@@ -26,6 +27,7 @@ import pyarrow as pa
 import pytest
 from flask.testing import FlaskClient
 from pytest_mock import MockerFixture
+from superset_core.semantic_layers.context import ExecutionMethod
 from superset_core.semantic_layers.errors import SemanticQueryRejectedError
 from superset_core.semantic_layers.types import Dimension, Metric, SemanticResult
 from superset_core.semantic_layers.view import SemanticView as ProviderView
@@ -46,7 +48,10 @@ from superset.semantic_layers.mapper import (
     SemanticQueryInputError,
     ValidatedQueryObject,
 )
-from superset.semantic_layers.models import SemanticView
+from superset.semantic_layers.models import (
+    SemanticLayer as SemanticLayerModel,
+    SemanticView,
+)
 from superset.tasks.async_queries import execute_chart_query
 
 
@@ -145,6 +150,7 @@ def test_mapper_refusal_returns_400(
 def test_mapper_metadata_fault_is_backend_error(
     app_context: None,
     date_view: MagicMock,
+    caplog: pytest.LogCaptureFixture,
     method: str,
 ) -> None:
     """The mapper reports provider metadata faults as backend errors."""
@@ -161,22 +167,24 @@ def test_mapper_metadata_fault_is_backend_error(
     assert captured.value.__cause__ is None
     assert "metadata fault" not in "".join(traceback.format_exception(captured.value))
     date_view.get_table.assert_not_called()
+    assert f"operation={method} view_id=7 " in caplog.text
 
 
 def test_discovery_preserves_host_validation(
     app_context: None, caplog: pytest.LogCaptureFixture
 ) -> None:
     """A host validation error is not reclassified as a provider fault."""
-    from superset.semantic_layers.exceptions import discover_semantic_metadata
+    from superset.semantic_layers.exceptions import discover_metrics, DiscoveryTarget
 
     failure: QueryObjectValidationError = QueryObjectValidationError("invalid query")
-    discovery: MagicMock = MagicMock(side_effect=failure)
+    view: MagicMock = MagicMock(spec=ProviderView)
+    view.get_metrics.side_effect = failure
     captured: pytest.ExceptionInfo[QueryObjectValidationError]
     with pytest.raises(QueryObjectValidationError) as captured:
-        discover_semantic_metadata(discovery)
+        discover_metrics(lambda: view, DiscoveryTarget(view_id=7, layer_uuid=None))
 
     assert captured.value is failure
-    discovery.assert_called_once_with()
+    view.get_metrics.assert_called_once_with()
     assert "Semantic provider metadata discovery failed" not in caplog.text
 
 
@@ -252,9 +260,12 @@ def test_metadata_discovery_fault_http(
         and record.levelno == logging.ERROR
     ]
     assert len(records) == 1
-    assert records[0].getMessage() == (
-        "Semantic provider metadata discovery failed: ValueError"
-    )
+    message: str = records[0].getMessage()
+    assert message.startswith("Semantic provider metadata discovery failed:")
+    assert f"operation={method}" in message
+    assert "view_id=7" in message
+    assert "error=ValueError" in message
+    assert "private-provider" not in caplog.text
     assert records[0].exc_info is None
 
 
@@ -290,34 +301,212 @@ def test_host_metadata_reads_classify_discovery_faults(
     assert "private-provider" not in caplog.text
 
 
-@pytest.mark.parametrize(
-    "read",
-    [
-        lambda view: view.get_time_grains(),
-        lambda view: view.has_drill_by_columns(["ORDER_DATE"]),
-        lambda view: view.get_compatible_metrics([], []),
-        lambda view: view.get_compatible_dimensions([], []),
-    ],
-)
-def test_host_metadata_reads_classify_binding_faults(
-    app_context: None,
-    mocker: MockerFixture,
+LAYER_UUID: uuid.UUID = uuid.UUID("87654321-4321-8765-4321-876543218765")
+
+DISCOVERY_READS: list[Callable[[SemanticView], object]] = [
+    lambda view: view.get_time_grains(),
+    lambda view: view.has_drill_by_columns(["ORDER_DATE"]),
+    lambda view: view.get_compatible_metrics([], []),
+    lambda view: view.get_compatible_dimensions([], []),
+]
+
+
+def failing_provider_call(*args: Any, **kwargs: Any) -> None:
+    """Stand in for provider code whose exception text must stay out of logs."""
+    raise ValueError("private-provider-detail")
+
+
+def discovery_records(caplog: pytest.LogCaptureFixture) -> list[logging.LogRecord]:
+    return [
+        record
+        for record in caplog.records
+        if record.name == "superset.semantic_layers.exceptions"
+        and record.levelno == logging.ERROR
+    ]
+
+
+@pytest.fixture
+def provider_class(app_context: None, mocker: MockerFixture) -> MagicMock:
+    """Register a provider class so binding runs through the real host path."""
+    mocker.patch(
+        "superset.semantic_layers.execution.semantic_namespace", return_value="test"
+    )
+    provider: MagicMock = MagicMock(
+        supported_execution_methods={ExecutionMethod.CONNECTION}
+    )
+    provider_view: MagicMock = (
+        provider.from_configuration.return_value.get_semantic_view.return_value
+    )
+    provider_view.get_dimensions.return_value = set()
+    provider_view.get_metrics.return_value = set()
+    mocker.patch.dict("superset.semantic_layers.models.registry", {"fixture": provider})
+    return provider
+
+
+@pytest.fixture
+def bound_view(provider_class: MagicMock) -> SemanticView:
+    """A view whose implementation is bound by the host, not patched."""
+    return SemanticView(
+        id=7,
+        name="Orders",
+        configuration="{}",
+        semantic_layer_uuid=LAYER_UUID,
+        semantic_layer=SemanticLayerModel(
+            uuid=LAYER_UUID, type="fixture", configuration="{}"
+        ),
+    )
+
+
+@pytest.mark.parametrize("operation", ["get_metrics", "get_dimensions"])
+def test_provider_discovery_fault_log_identifies_view(
+    bound_view: SemanticView,
+    provider_class: MagicMock,
     caplog: pytest.LogCaptureFixture,
+    operation: str,
+) -> None:
+    """One record names the view, layer, operation and type, with frames only."""
+    provider_view: MagicMock = (
+        provider_class.from_configuration.return_value.get_semantic_view.return_value
+    )
+    getattr(provider_view, operation).side_effect = failing_provider_call
+    with pytest.raises(SemanticLayerExecutionError):
+        _ = bound_view.data
+    records: list[logging.LogRecord] = discovery_records(caplog)
+    assert len(records) == 1
+    message: str = records[0].getMessage()
+    assert message.startswith("Semantic provider metadata discovery failed:")
+    assert f"operation={operation}" in message
+    assert "view_id=7" in message
+    assert f"layer_uuid={LAYER_UUID}" in message
+    assert "error=ValueError" in message
+    # The provider's frames are logged so the fault can be located.
+    assert "failing_provider_call" in message
+    # The entry point that read the metadata is named.
+    assert "Called from:" in message
+    assert "in data" in message
+    assert "private-provider" not in caplog.text
+    assert records[0].exc_info is None
+
+
+@pytest.mark.parametrize("read", DISCOVERY_READS)
+@pytest.mark.parametrize("stage", ["from_configuration", "get_semantic_view"])
+def test_host_metadata_reads_classify_binding_faults(
+    bound_view: SemanticView,
+    provider_class: MagicMock,
+    caplog: pytest.LogCaptureFixture,
+    stage: str,
     read: Callable[[SemanticView], object],
 ) -> None:
-    """Binding the provider is part of discovery and is classified the same way."""
-    mocker.patch.object(
-        SemanticView,
-        "implementation",
-        new_callable=PropertyMock,
-        side_effect=ValueError("private-provider-binding"),
-    )
-    view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
+    """Provider faults while binding are classified and logged as provider faults."""
+    if stage == "from_configuration":
+        provider_class.from_configuration.side_effect = failing_provider_call
+    else:
+        provider_class.from_configuration.return_value.get_semantic_view.side_effect = (
+            failing_provider_call
+        )
     captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
     with pytest.raises(SemanticLayerExecutionError) as captured:
-        read(view)
+        read(bound_view)
     assert captured.value.__cause__ is None
+    records: list[logging.LogRecord] = discovery_records(caplog)
+    assert len(records) == 1
+    message: str = records[0].getMessage()
+    assert message.startswith("Semantic provider metadata discovery failed:")
+    assert "view_id=7" in message
+    assert "failing_provider_call" in message
     assert "private-provider" not in caplog.text
+
+
+def corrupt_configuration(view: SemanticView) -> None:
+    view.configuration = "{not json"
+
+
+def unregistered_layer_type(view: SemanticView) -> None:
+    view.semantic_layer.type = "not-registered"
+
+
+@pytest.mark.parametrize(
+    "corrupt,expected",
+    [
+        (corrupt_configuration, "JSONDecodeError"),
+        (unregistered_layer_type, "KeyError"),
+    ],
+)
+def test_host_fault_during_discovery_is_logged_as_host_fault(
+    bound_view: SemanticView,
+    caplog: pytest.LogCaptureFixture,
+    corrupt: Callable[[SemanticView], None],
+    expected: str,
+) -> None:
+    """Superset faults while binding keep their traceback and a distinct label."""
+    corrupt(bound_view)
+    captured: pytest.ExceptionInfo[SemanticLayerExecutionError]
+    with pytest.raises(SemanticLayerExecutionError) as captured:
+        bound_view.get_time_grains()
+    # The client sees the same generic backend error as for a provider fault.
+    assert captured.value.status == 500
+    assert captured.value.__cause__ is None
+    records: list[logging.LogRecord] = discovery_records(caplog)
+    assert len(records) == 1
+    message: str = records[0].getMessage()
+    assert message.startswith(
+        "Semantic view metadata discovery failed in Superset, not the provider:"
+    )
+    assert "view_id=7" in message
+    assert f"layer_uuid={LAYER_UUID}" in message
+    assert f"error={expected}" in message
+    assert "superset/semantic_layers/" in message
+    assert f"{expected}:" in message
+    # The entry point that read the metadata is named.
+    assert "in get_time_grains" in message
+
+
+def test_host_fault_does_not_log_the_provider_fault_it_was_handling(
+    bound_view: SemanticView,
+    caplog: pytest.LogCaptureFixture,
+    mocker: MockerFixture,
+) -> None:
+    """A Superset fault raised while handling a provider fault omits its text."""
+
+    def fail_in_context(*args: Any, **kwargs: Any) -> None:
+        try:
+            failing_provider_call()
+        except ValueError:
+            raise RuntimeError("host fault")  # noqa: B904
+
+    # Host code raising while it handles a provider exception (implicit context).
+    mocker.patch.object(
+        SemanticView, "_capture_metadata_generation", side_effect=fail_in_context
+    )
+    with pytest.raises(SemanticLayerExecutionError):
+        bound_view.get_time_grains()
+    message: str = discovery_records(caplog)[0].getMessage()
+    assert message.startswith("Semantic view metadata discovery failed in Superset")
+    assert "RuntimeError: host fault" in message
+    assert "private-provider" not in caplog.text
+
+
+class FrozenProviderError(Exception):
+    """A provider exception that refuses new attributes."""
+
+    def __setattr__(self, name: str, value: object) -> None:
+        if not name.startswith("__"):
+            raise AttributeError(name)
+        super().__setattr__(name, value)
+
+
+def test_provider_exception_refusing_attributes_is_not_replaced(
+    provider_class: MagicMock,
+) -> None:
+    """Tagging never replaces the provider's own exception."""
+    from superset.semantic_layers.exceptions import provider_code
+
+    failure: FrozenProviderError = FrozenProviderError("private-provider-detail")
+    captured: pytest.ExceptionInfo[FrozenProviderError]
+    with pytest.raises(FrozenProviderError) as captured:
+        with provider_code():
+            raise failure
+    assert captured.value is failure
 
 
 @pytest.mark.parametrize(

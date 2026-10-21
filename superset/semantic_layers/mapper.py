@@ -83,7 +83,9 @@ from superset.semantic_layers.dimension_resolution import (
     resolve_dimensions,
 )
 from superset.semantic_layers.exceptions import (
-    discover_semantic_metadata,
+    discover_dimensions,
+    discover_metrics,
+    DiscoveryTarget,
     execute_semantic_query,
 )
 from superset.semantic_layers.members import members_by_key
@@ -243,10 +245,10 @@ class _ViewMetadata:
     dimensions: tuple[Dimension, ...]
 
     @classmethod
-    def from_view(cls, view: SemanticView) -> "_ViewMetadata":
+    def from_view(cls, view: SemanticView, target: DiscoveryTarget) -> "_ViewMetadata":
         return cls(
-            tuple(discover_semantic_metadata(view.get_metrics)),
-            tuple(discover_semantic_metadata(view.get_dimensions)),
+            tuple(discover_metrics(lambda: view, target)),
+            tuple(discover_dimensions(lambda: view, target)),
         )
 
 
@@ -481,8 +483,9 @@ def map_semantic_result_to_query_result(
         for dimension in (
             metadata.dimensions
             if metadata is not None
-            else discover_semantic_metadata(
-                lambda: query_object.datasource.implementation.get_dimensions()
+            else discover_dimensions(
+                lambda: query_object.datasource.implementation,
+                DiscoveryTarget.of(query_object.datasource),
             )
         )
     }
@@ -547,7 +550,8 @@ def _normalize_column(column: str | AdhocColumn, dimension_names: set[str]) -> s
 def map_query_object(query_object: ValidatedQueryObject) -> list[SemanticQuery]:
     """Map a query using a fresh observation of the provider's metadata."""
     metadata: _ViewMetadata = _ViewMetadata.from_view(
-        query_object.datasource.implementation
+        query_object.datasource.implementation,
+        DiscoveryTarget.of(query_object.datasource),
     )
     return _map_query_object(query_object, metadata)
 
@@ -1408,7 +1412,7 @@ def _validation_metadata(query_object: ValidatedQueryObject) -> _ViewMetadata:
     view.validate_selection_version(
         query_object.extras.get("semantic_selection_version")
     )
-    return _ViewMetadata.from_view(view)
+    return _ViewMetadata.from_view(view, DiscoveryTarget.of(query_object.datasource))
 
 
 def _validate_query_object(
