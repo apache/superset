@@ -37,7 +37,10 @@ from superset.common.chart_data_timing import (
 )
 from superset.common.db_query_status import QueryStatus
 from superset.common.grouping_sets import grouping_marker_label
-from superset.common.query_actions import get_query_results_with_timing
+from superset.common.query_actions import (
+    get_query_results_with_timing,
+    prepare_query_object,
+)
 from superset.common.utils.query_cache_manager import QueryCacheManager
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import CACHE_DISABLED_TIMEOUT, CacheRegion
@@ -586,7 +589,11 @@ class QueryContextProcessor:
         a saved query context nor a resolvable datasource, or any error while
         deriving the scope would otherwise collapse an authorized and a
         denied requester onto one shared identity, letting the latter read
-        the former's warmed payload. The caller fetches live instead.
+        the former's warmed payload. The caller fetches live instead. A
+        referenced chart whose own caching is disabled
+        (``CACHE_DISABLED_TIMEOUT``) is ``None`` too: its rows are never
+        shared through its own cache, so they must not be shared through the
+        host chart's annotation entry either.
 
         ``access`` keeps a user denied the referenced chart's datasource from
         reading an authorized user's cached payload. When the chart has a
@@ -600,11 +607,14 @@ class QueryContextProcessor:
         context-free check and collapse onto the same denied scope as a
         genuinely unauthorized requester, letting the latter read the
         former's cached payload. ``data_key`` is the annotation chart's own
-        query cache key(s) — derived from the same, override-applied query
-        objects actually executed (see :meth:`_apply_annotation_overrides`),
-        so it captures the datasource version, RLS clauses, and any per-user
+        query cache key(s) — derived from the same, override-applied and
+        result-type-prepared query objects actually executed (see
+        :meth:`_apply_annotation_overrides` and
+        :func:`~superset.common.query_actions.prepare_query_object`), so it
+        captures the datasource version, RLS clauses, and any per-user
         Jinja/virtual-dataset RLS material exactly as the live fetch would,
-        including material an override only introduces at a finer grain.
+        including material an override only introduces at a finer grain or
+        that a samples query's cleared metrics only expose at execution.
         Reusing this logic avoids re-deriving it and automatically inherits
         any future correctness fixes made there.
         """
@@ -623,6 +633,11 @@ class QueryContextProcessor:
             # targets a valid dataset, and the live fetch would still work.
             annotation_query_context = chart.get_query_context()
             if annotation_query_context is not None:
+                if (
+                    annotation_query_context.get_cache_timeout()
+                    == CACHE_DISABLED_TIMEOUT
+                ):
+                    return None
                 self._apply_annotation_overrides(annotation_query_context, layer)
                 try:
                     annotation_query_context.raise_for_access()
@@ -632,9 +647,15 @@ class QueryContextProcessor:
                 # A denied requester never reads or writes a cached payload,
                 # so skip deriving a data identity (which can render the
                 # dataset's Jinja) for a resource they cannot access.
+                # Keyed on the query object the fetch will execute: a samples
+                # or drill-detail result type rewrites the saved query (e.g.
+                # clears its metrics) before running it, and that can change
+                # the per-user Jinja material the key has to carry.
                 data_key: Any = (
                     [
-                        annotation_query_context.query_cache_key(query_object)
+                        annotation_query_context.query_cache_key(
+                            prepare_query_object(annotation_query_context, query_object)
+                        )
                         for query_object in annotation_query_context.queries
                     ]
                     if access
@@ -649,6 +670,11 @@ class QueryContextProcessor:
                 # chart.
                 datasource = chart.resolved_datasource
                 if datasource is None:
+                    return None
+                if CACHE_DISABLED_TIMEOUT in (
+                    chart.cache_timeout,
+                    datasource.cache_timeout,
+                ):
                     return None
                 access = security_manager.can_access_datasource(datasource)
                 data_key = security_manager.get_rls_cache_key(datasource)

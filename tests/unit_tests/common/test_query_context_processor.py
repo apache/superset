@@ -34,9 +34,11 @@ from superset.common.query_context_processor import (
     QueryContextProcessor,
 )
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.exceptions import (
     CacheLoadError,
     QueryObjectValidationError,
+    QueryObjectValidationMessage,
     SupersetSecurityException,
 )
 from superset.utils import json as superset_json
@@ -262,6 +264,66 @@ def test_annotation_source_scope_reuses_referenced_chart_cache_key(
         scope = processor._annotation_source_scope({"value": 1})
     assert scope == {"access": True, "data_key": ["referenced-chart-key"]}
     mock_query_context.query_cache_key.assert_called_once_with(mock_query_object)
+
+
+def test_annotation_source_scope_keys_on_result_type_prepared_query(
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
+) -> None:
+    """A referenced chart saved with a samples result type executes a
+    rewritten query (metrics cleared, every column selected), so its key
+    must be derived from that prepared query, not the saved one -- a Jinja
+    clause that only renders user-specific material without metrics would
+    otherwise give two viewers one key over different rows."""
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.columns = []
+    saved_query = QueryObject(
+        datasource=mock_datasource, metrics=["count"], columns=["col1"]
+    )
+    mock_query_context = MagicMock()
+    mock_query_context.result_type = ChartDataResultType.SAMPLES
+    mock_query_context.queries = [saved_query]
+    mock_query_context.query_cache_key.side_effect = (
+        lambda query_object: f"metrics={query_object.metrics}"
+    )
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+
+    scope = processor._annotation_source_scope({"value": 1})
+
+    assert scope is not None
+    assert scope["data_key"] == ["metrics=None"]
+    # The saved query object itself is left as the live fetch expects it.
+    assert saved_query.metrics == ["count"]
+
+
+def test_annotation_source_scope_none_when_referenced_chart_cache_disabled(
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
+) -> None:
+    """A referenced chart that opted out of caching never shares its rows
+    through its own cache, so its annotation payload must not be cached
+    (and so shared between viewers) under the host chart's TTL either."""
+    mock_query_context = MagicMock()
+    mock_query_context.get_cache_timeout.return_value = CACHE_DISABLED_TIMEOUT
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+
+    assert processor._annotation_source_scope({"value": 1}) is None
+    mock_query_context.raise_for_access.assert_not_called()
+
+
+def test_annotation_source_scope_none_when_fallback_datasource_cache_disabled(
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
+) -> None:
+    """Same opt-out on the datasource-fallback path (no saved query context)."""
+    mock_annotation_chart.get_query_context.return_value = None
+    mock_annotation_chart.cache_timeout = None
+    mock_annotation_chart.resolved_datasource.cache_timeout = CACHE_DISABLED_TIMEOUT
+    with patch(
+        "superset.common.query_context_processor.security_manager",
+        new_callable=MagicMock,
+    ) as security_manager:
+        assert processor._annotation_source_scope({"value": 1}) is None
+    security_manager.can_access_datasource.assert_not_called()
 
 
 def test_annotation_source_scope_uses_live_fetch_authorization(
@@ -3967,6 +4029,7 @@ def _run_annotated_payload(
     cache: MagicMock,
     *,
     force_cached: bool = False,
+    cache_timeout: int = 3600,
 ) -> Any:
     with (
         patch(
@@ -3975,7 +4038,7 @@ def _run_annotated_payload(
         patch.object(query_obj, "validate", return_value=None),
         patch.object(processor, "query_cache_key", return_value="df-key"),
         patch.object(processor, "annotation_cache_key", return_value="ann-key"),
-        patch.object(processor, "get_cache_timeout", return_value=3600),
+        patch.object(processor, "get_cache_timeout", return_value=cache_timeout),
     ):
         mock_cache_manager.get.return_value = cache
         return processor.get_df_payload_result(query_obj, force_cached=force_cached)
@@ -4006,20 +4069,41 @@ def test_get_df_payload_result_force_cached_misses_without_annotation_entry() ->
 
 
 def test_get_df_payload_result_annotation_failure_marks_payload_failed() -> None:
-    """An annotation error on a good dataframe fails the payload."""
+    """An annotation error on a good dataframe fails the payload, keeping the
+    validation type (and its cause) so ``ChartDataCommand`` answers 400 rather
+    than reporting an ordinary query failure."""
     processor, query_obj, cache = _annotated_payload_fixture()
+    error = QueryObjectValidationError("annotation boom")
     with (
         patch("superset.common.query_context_processor.cache_manager") as cm,
-        patch.object(
-            processor,
-            "get_annotation_data",
-            side_effect=QueryObjectValidationError("annotation boom"),
-        ),
+        patch.object(processor, "get_annotation_data", side_effect=error),
     ):
         cm.data_cache.get.return_value = None
         result = _run_annotated_payload(processor, query_obj, cache)
     assert cache.status == QueryStatus.FAILED
     assert result.payload["error"] == "annotation boom"
+    assert isinstance(result.payload["error"], QueryObjectValidationMessage)
+    assert result.payload["error"].cause is error
+
+
+def test_get_df_payload_result_cache_disabled_refetches_annotations() -> None:
+    """With caching disabled on the chart (``CACHE_DISABLED_TIMEOUT``), a
+    previously warmed annotation entry is never read: the annotation fetch
+    runs live and its result is what the payload carries."""
+    processor, query_obj, cache = _annotated_payload_fixture()
+    with (
+        patch("superset.common.query_context_processor.cache_manager") as cm,
+        patch.object(
+            processor, "get_annotation_data", return_value={"live": 1}
+        ) as mock_live,
+    ):
+        cm.data_cache.get.return_value = {"annotation_data": {"stale": 1}}
+        result = _run_annotated_payload(
+            processor, query_obj, cache, cache_timeout=CACHE_DISABLED_TIMEOUT
+        )
+    mock_live.assert_called_once_with(query_obj)
+    cm.data_cache.get.assert_not_called()
+    assert result.payload["annotation_data"] == {"live": 1}
 
 
 def test_get_df_payload_result_completeness_error_escapes_annotation_fetch() -> None:
@@ -4056,6 +4140,35 @@ def test_get_df_payload_result_times_annotation_fetch_as_data_acquisition() -> N
         result = _run_annotated_payload(processor, query_obj, cache)
     assert result.timing.data_acquisition_ns is not None
     assert result.timing.data_acquisition_ns >= 10_000_000
+
+
+def test_get_df_payload_result_sums_dataframe_and_annotation_acquisition() -> None:
+    """On a dataframe cache miss, ``data_acquisition_ns`` is the dataframe
+    fetch *plus* the annotation fetch, not one replacing the other."""
+    processor, query_obj, cache = _annotated_payload_fixture()
+    cache.is_loaded = False
+    clock = {"ns": 0}
+
+    def fetch_dataframe(_: Any) -> MagicMock:
+        clock["ns"] += 30
+        return MagicMock()
+
+    def fetch_annotations(**_: Any) -> dict[str, Any]:
+        clock["ns"] += 20
+        return {}
+
+    with (
+        patch(
+            "superset.common.query_context_processor.time.perf_counter_ns",
+            side_effect=lambda: clock["ns"],
+        ),
+        patch.object(processor, "get_query_result", side_effect=fetch_dataframe),
+        patch.object(
+            processor, "_get_annotation_data_cached", side_effect=fetch_annotations
+        ),
+    ):
+        result = _run_annotated_payload(processor, query_obj, cache)
+    assert result.timing.data_acquisition_ns == 50
 
 
 @pytest.mark.parametrize("persisted", [True, False])

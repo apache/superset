@@ -179,6 +179,31 @@ def test_capture_ignores_cursor_from_a_different_database() -> None:
     ctx.set_cancellation.assert_not_called()
 
 
+def test_notify_cursor_routes_by_database_through_the_real_seam() -> None:
+    """Driven through ``notify_cursor`` (the seam ``get_raw_connection`` calls)
+    rather than the sink directly: the task's own database registers the abort
+    handler exactly once, another database's cursor registers nothing."""
+    from superset.tasks.async_queries import _capture_query_cancellation
+
+    ctx = MagicMock()
+    qc = _query_context("42")
+    own_database = qc.datasource.database
+    other_database = MagicMock()
+    other_database.id = own_database.id + 1
+    with (
+        patch("superset.tasks.async_queries.get_context", return_value=ctx),
+        patch("superset.tasks.async_queries.current_app"),
+    ):
+        with _capture_query_cancellation(qc):
+            notify_cursor(MagicMock(), other_database)
+            ctx.on_abort.assert_not_called()
+            notify_cursor(MagicMock(), own_database)
+            notify_cursor(MagicMock(), own_database)
+
+    ctx.on_abort.assert_called_once()
+    ctx.set_cancellation.assert_called_once_with(own_database.id, "42")
+
+
 def test_capture_skips_abort_handler_when_engine_has_no_cancel_id() -> None:
     from superset.tasks.async_queries import _capture_query_cancellation
 
