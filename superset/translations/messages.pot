@@ -13693,6 +13693,10 @@ msgid "The %s"
 msgstr ""
 
 #, python-format
+msgid "The %s command failed."
+msgstr ""
+
+#, python-format
 msgid "The %s linked to this chart may have been deleted."
 msgstr ""
 
