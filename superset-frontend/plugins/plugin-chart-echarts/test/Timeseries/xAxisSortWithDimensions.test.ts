@@ -29,6 +29,7 @@ import {
   EchartsTimeseriesFormData,
   EchartsTimeseriesSeriesType,
 } from '../../src/Timeseries/types';
+import { StackControlsValue } from '../../src/constants';
 import { createEchartsTimeseriesTestChartProps } from '../helpers';
 
 // A bar chart of COUNT(*) per genre, split by platform, with the axis sorted
@@ -708,6 +709,11 @@ test('excludes forecast-derived columns from a sort-only metric sum', () => {
     ],
   });
   const series = transformProps(chartProps).echartOptions.series as Series[];
+  // The sort-only metric's forecast column stays hidden: it is neither
+  // rendered as a series nor counted in the stacked totals.
+  expect(series.map(({ name }) => name)).not.toContain(
+    'SUM(na_sales), US__yhat',
+  );
   // SUM(na_sales) totals excluding the forecast column: Puzzle 30, Action
   // 8, Sports 2. Including the forecast column would instead put Sports
   // first (2000 + 2 = 2002).
@@ -850,4 +856,248 @@ test('keeps a NULL x-axis value last when sorting by the x-axis column', () => {
     ).axisOrder;
   expect(sortBy(true)).toEqual(['A', 'B', '<NULL>']);
   expect(sortBy(false)).toEqual(['B', 'A', '<NULL>']);
+});
+
+test('keeps a displayed series visible when its dimension value reads like the sort-only metric', () => {
+  // One dimension with `truncate_metric`: the displayed column for the
+  // dimension value `SUM(na_sales)` is a bare 1-part tuple, while the
+  // sort-only metric's own columns carry the metric prefix. Matching on the
+  // bare label alone would hide the displayed series and fold it into the
+  // sort key.
+  const collisionRows: DataRecord[] = [
+    {
+      genre: 'X',
+      'SUM(na_sales)': 100,
+      Y: 1,
+      'SUM(na_sales), SUM(na_sales)': 1,
+      'SUM(na_sales), Y': 0,
+    },
+    {
+      genre: 'Z',
+      'SUM(na_sales)': 1,
+      Y: 1,
+      'SUM(na_sales), SUM(na_sales)': 10,
+      'SUM(na_sales), Y': 0,
+    },
+  ];
+  const collisionLabelMap = {
+    genre: ['genre'],
+    'SUM(na_sales)': ['SUM(na_sales)'],
+    Y: ['Y'],
+    'SUM(na_sales), SUM(na_sales)': ['SUM(na_sales)', 'SUM(na_sales)'],
+    'SUM(na_sales), Y': ['SUM(na_sales)', 'Y'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['platform'],
+      timeseries_limit_metric: naSales,
+      truncate_metric: true,
+      x_axis_sort: 'SUM(na_sales)',
+      xAxisSort: 'SUM(na_sales)',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: collisionRows,
+        label_map: collisionLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+  expect(series.map(({ name }) => name).sort()).toEqual(['SUM(na_sales)', 'Y']);
+  // Hidden totals: Z 10, X 1. The displayed `SUM(na_sales)` column (X 100)
+  // must not leak into the sort key.
+  series.forEach(entry => {
+    expect(entry.data.map(([genre]) => genre)).toEqual(['Z', 'X']);
+  });
+});
+
+test('keeps a hidden sort metric labeled like a comparison series hidden', () => {
+  // A sort-only metric whose own label is `sales, 1 year ago` is a bare
+  // column, not a derived comparison series of `sales`, and it stays hidden.
+  const salesMetric: QueryFormMetric = {
+    expressionType: 'SQL',
+    sqlExpression: 'SUM(sales)',
+    label: 'sales, 1 year ago',
+  };
+  const compareRows: DataRecord[] = [
+    { genre: 'A', count: 5, 'count, 1 year ago': 4, 'sales, 1 year ago': 1 },
+    { genre: 'B', count: 6, 'count, 1 year ago': 5, 'sales, 1 year ago': 10 },
+  ];
+  const compareLabelMap = {
+    genre: ['genre'],
+    count: ['count'],
+    'count, 1 year ago': ['count, 1 year ago'],
+    'sales, 1 year ago': ['sales, 1 year ago'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: [],
+      timeseries_limit_metric: salesMetric,
+      comparison_type: 'values',
+      comparisonType: 'values',
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      x_axis_sort: 'sales, 1 year ago',
+      xAxisSort: 'sales, 1 year ago',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: compareRows,
+        label_map: compareLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as Series[];
+  expect(series.map(({ name }) => name)).not.toContain('sales, 1 year ago');
+});
+
+test('stacks per region with one displayed metric, a hidden sort metric and a comparison', () => {
+  // The comparison tuples keep the metric-offset prefix
+  // (`['count, 1 year ago', region]`) while the displayed column is
+  // truncated to `[region]`, so the dimension index cannot be derived from
+  // the metric count.
+  const stackRows: DataRecord[] = [
+    {
+      genre: 'A',
+      East: 5,
+      West: 7,
+      'count, 1 year ago, East': 4,
+      'count, 1 year ago, West': 6,
+      'SUM(na_sales), East': 1,
+      'SUM(na_sales), West': 1,
+    },
+    {
+      genre: 'B',
+      East: 6,
+      West: 8,
+      'count, 1 year ago, East': 5,
+      'count, 1 year ago, West': 7,
+      'SUM(na_sales), East': 10,
+      'SUM(na_sales), West': 10,
+    },
+  ];
+  const stackLabelMap = {
+    genre: ['genre'],
+    East: ['East'],
+    West: ['West'],
+    'count, 1 year ago, East': ['count, 1 year ago', 'East'],
+    'count, 1 year ago, West': ['count, 1 year ago', 'West'],
+    'SUM(na_sales), East': ['SUM(na_sales)', 'East'],
+    'SUM(na_sales), West': ['SUM(na_sales)', 'West'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['count'],
+      groupby: ['region'],
+      timeseries_limit_metric: naSales,
+      truncate_metric: true,
+      comparison_type: 'values',
+      comparisonType: 'values',
+      time_compare: ['1 year ago'],
+      timeCompare: ['1 year ago'],
+      stack: StackControlsValue.Stack,
+      stackDimension: 'region',
+      x_axis_sort: 'SUM(na_sales)',
+      xAxisSort: 'SUM(na_sales)',
+      x_axis_sort_asc: false,
+      xAxisSortAsc: false,
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: stackRows,
+        label_map: stackLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as (Series & {
+    stack?: string;
+  })[];
+  const stackIds = Object.fromEntries(
+    series.map(({ name, stack }) => [name, stack]),
+  );
+  expect(stackIds).toEqual({
+    East: 'East',
+    West: 'West',
+    'count, 1 year ago, East': 'East',
+    'count, 1 year ago, West': 'West',
+  });
+  series.forEach(entry => {
+    expect(entry.data.map(([genre]) => genre)).toEqual(['B', 'A']);
+  });
+});
+
+test('skips per-dimension stacking when the stack dimension is no longer grouped', () => {
+  const staleRows: DataRecord[] = [
+    { genre: 'A', 'sales, East': 10, 'profit, East': 20 },
+  ];
+  const staleLabelMap = {
+    genre: ['genre'],
+    'sales, East': ['sales', 'East'],
+    'profit, East': ['profit', 'East'],
+  };
+  const chartProps = createEchartsTimeseriesTestChartProps<
+    EchartsTimeseriesFormData,
+    EchartsTimeseriesChartProps
+  >({
+    defaultFormData: DEFAULT_FORM_DATA,
+    defaultVizType: 'echarts_timeseries_bar',
+    formData: {
+      colorScheme: 'bnbColors',
+      seriesType: EchartsTimeseriesSeriesType.Bar,
+      x_axis: 'genre',
+      xAxis: 'genre',
+      metrics: ['sales', 'profit'],
+      groupby: ['region'],
+      stack: StackControlsValue.Stack,
+      stackDimension: 'dept',
+    } as Partial<EchartsTimeseriesFormData>,
+    queriesData: [
+      {
+        ...queriesData[0],
+        data: staleRows,
+        label_map: staleLabelMap,
+      } as unknown as ChartDataResponseResult,
+    ],
+  });
+  const series = transformProps(chartProps).echartOptions.series as (Series & {
+    stack?: string;
+  })[];
+  expect(series.length).toBe(2);
+  expect(new Set(series.map(({ stack }) => stack)).size).toBe(1);
 });

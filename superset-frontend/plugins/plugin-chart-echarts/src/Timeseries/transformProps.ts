@@ -522,7 +522,13 @@ export default function transformProps(
     label === sizeMetricLabel
       ? []
       : [
-          verboseMap[label] ?? label,
+          // with dimensions the data is pivoted, so a sort-only metric has no
+          // bare column of its own; a bare key whose label-map tuple is a
+          // plain dimension tuple is a displayed series whose dimension value
+          // happens to read like the metric label and must stay visible
+          ...(groupBy.length > 0 && labelMap[label]?.length === groupBy.length
+            ? []
+            : [verboseMap[label] ?? label]),
           // forecast columns of a sort-only metric stay hidden too, even
           // though the sort key itself ignores them
           ...pivotedColumnsOf(label, { includeForecast: true }),
@@ -604,8 +610,14 @@ export default function transformProps(
       groupBy.length === 0 && !dataColumns.has(metricLabel)
         ? ensureIsArray(timeCompare).map(offset => `${metricLabel}, ${offset}`)
         : [];
+    // With dimensions the metric has no bare column of its own, so a bare key
+    // whose tuple is a plain dimension tuple is a displayed series whose
+    // dimension value reads like the metric label; summing it in would let a
+    // displayed value drive the sort.
+    const baseColumnIsDimensionTuple =
+      groupBy.length > 0 && labelMap[baseColumn]?.length === groupBy.length;
     const sumOfColumns = [
-      baseColumn,
+      ...(baseColumnIsDimensionTuple ? [] : [baseColumn]),
       ...pivotedColumnsOf(xAxisSort),
       ...truncatedMetricColumns,
       ...comparisonColumnsOf(baseColumn),
@@ -1334,7 +1346,7 @@ export default function transformProps(
     chartProps.rawFormData.groupby
   ) {
     for (const s of series) {
-      if (s.id) {
+      if (s.id && idxSelectedDimension >= 0) {
         const columnsArr = labelMap[s.id];
         const metricPartCount = Math.max(
           0,
