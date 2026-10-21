@@ -325,8 +325,15 @@ Three details govern the behavior:
   rather than hide — so the callable is invoked with `None` and decides for itself.
 - Both hooks feed `ChartFilter` and `DashboardAccessFilter`, which are also the DAO base
   filters. One entry therefore covers list views, `find_by_ids` — and so exports — and
-  related-field lookups together. A withheld dashboard is also absent from a direct read by
-  UUID, which reaches it through a branch that skips the base filter.
+  related-field lookups together, plus the REST detail endpoints: a withheld dashboard is
+  absent from `/api/v1/dashboard/<id>` and from `/api/v1/dashboard/<uuid>`, which reaches it
+  through a branch that skips the base filter.
+
+An exclusion shapes what a principal is *offered*; it is not an access check. Superset
+decides whether a principal may read a given asset in `raise_for_access`, so a deployment
+that needs an asset to be unreadable rather than merely unlisted enforces that there,
+through a custom security manager. The two are complementary: the check makes the asset
+unreadable, the exclusion keeps it out of the places it would otherwise be offered.
 
 The `report_target_charts` and `report_target_dashboards` keys are a narrower variant, consulted
 only where a scheduled report's target is chosen or validated. A report is rendered by whichever

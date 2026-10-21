@@ -190,7 +190,11 @@ def test_report_target_chart_filter_uses_its_own_exclusion_key(
     from superset.reports.filters import ReportTargetChartFilter
 
     query = MagicMock()
-    mock_exclusions.return_value = query
+    # Deliberately a different object: returning ``query`` unchanged would let a
+    # dropped ``query = ...`` assignment pass this test while excluded targets
+    # reappeared in the picker.
+    narrowed = MagicMock(name="narrowed_query")
+    mock_exclusions.return_value = narrowed
 
     with patch.object(ChartFilter, "apply", return_value="delegated") as mock_parent:
         f = ReportTargetChartFilter("id", MagicMock())
@@ -198,8 +202,8 @@ def test_report_target_chart_filter_uses_its_own_exclusion_key(
 
     # The ordinary "charts" key must not be what narrows a report target list.
     assert mock_exclusions.call_args.args[1] == "report_target_charts"
-    # ...and the parent's rules still run, on the narrowed query.
-    mock_parent.assert_called_once_with(query, None)
+    # ...and the parent's rules run on the *narrowed* query, not the original.
+    mock_parent.assert_called_once_with(narrowed, None)
 
 
 @patch("superset.reports.filters.apply_extra_access_exclusions")
@@ -210,7 +214,8 @@ def test_report_target_dashboard_filter_uses_its_own_exclusion_key(
     from superset.reports.filters import ReportTargetDashboardFilter
 
     query = MagicMock()
-    mock_exclusions.return_value = query
+    narrowed = MagicMock(name="narrowed_query")
+    mock_exclusions.return_value = narrowed
 
     with patch.object(
         DashboardAccessFilter, "apply", return_value="delegated"
@@ -219,4 +224,4 @@ def test_report_target_dashboard_filter_uses_its_own_exclusion_key(
         assert f.apply(query, None) == "delegated"
 
     assert mock_exclusions.call_args.args[1] == "report_target_dashboards"
-    mock_parent.assert_called_once_with(query, None)
+    mock_parent.assert_called_once_with(narrowed, None)

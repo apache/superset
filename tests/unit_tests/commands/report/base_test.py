@@ -529,3 +529,73 @@ def test_an_update_omitting_the_target_passes_when_not_withheld(
     exceptions: list[Any] = []
     cmd.validate_chart_dashboard(exceptions, update=True)
     assert exceptions == []
+
+
+def test_deactivating_a_report_on_a_withheld_target_is_allowed(
+    mocker: MockerFixture,
+) -> None:
+    """Pausing must never be refused.
+
+    Refusing it traps the owner: they can neither pause the report nor stop the
+    scheduler selecting it, so the withheld asset keeps being delivered. That is
+    strictly worse than not checking at all.
+    """
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": False}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=True)
+
+    exceptions: list[Any] = []
+    cmd.validate_chart_dashboard(exceptions, update=True)
+
+    assert exceptions == []
+    excluded.assert_not_called()
+
+
+def test_an_already_paused_report_may_be_edited(mocker: MockerFixture) -> None:
+    """The check guards delivery, not editing."""
+    excluded = mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        return_value=True,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"crontab": "0 9 * * *"}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=False)
+
+    exceptions: list[Any] = []
+    cmd.validate_chart_dashboard(exceptions, update=True)
+
+    assert exceptions == []
+    excluded.assert_not_called()
+
+
+def test_the_stored_target_asks_both_exclusion_keys(
+    mocker: MockerFixture,
+) -> None:
+    """A submitted target reaches the ordinary key through ``find_by_id``.
+
+    So a stored target asking only ``report_target_*`` would accept what
+    resubmitting the same id refuses.
+    """
+    from superset.commands.report.exceptions import ReportScheduleForbiddenError
+
+    # Withheld by the ordinary key only.
+    def only_ordinary(key: str, _id: int) -> bool:
+        return key == "dashboards"
+
+    mocker.patch(
+        "superset.commands.report.base.is_excluded_by_extra_access",
+        side_effect=only_ordinary,
+    )
+
+    cmd = BaseReportScheduleCommand()
+    cmd._properties = {"active": True}
+    cmd._model = mocker.MagicMock(chart_id=None, dashboard_id=9, active=False)
+
+    with pytest.raises(ReportScheduleForbiddenError):
+        cmd.validate_chart_dashboard([], update=True)

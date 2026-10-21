@@ -230,20 +230,50 @@ class BaseReportScheduleCommand(BaseCommand):
                 exceptions.append(ReportScheduleEitherChartOrDashboardError())
                 return
 
-            # The stored target has to answer the same question as a submitted
-            # one. Without this, an update that omits the target -- activating a
-            # paused report, say -- resumes a schedule whose asset has since
-            # been withheld, while resubmitting that same asset is refused.
-            effective_kind, effective_id = (
-                ("chart", effective_chart)
-                if effective_chart
-                else ("dashboard", effective_dashboard)
+            self._check_stored_target_access(
+                model, effective_chart, effective_dashboard
             )
-            target_id = getattr(effective_id, "id", effective_id)
-            if isinstance(target_id, int) and is_excluded_by_extra_access(
-                f"report_target_{effective_kind}s", target_id
-            ):
-                raise ReportScheduleForbiddenError()
+
+    def _check_stored_target_access(
+        self,
+        model: Any,
+        effective_chart: Any,
+        effective_dashboard: Any,
+    ) -> None:
+        """Ask of a stored target what is asked of a submitted one.
+
+        Without this, activating a paused report resumes a schedule whose asset
+        has since been withheld, while resubmitting that same asset is refused.
+
+        Only when the result is a *scheduled* report, though. What this guards is
+        delivery, not editing: refusing a request that leaves the report inactive
+        would trap its owner, who could then neither pause the report nor stop
+        the scheduler selecting it -- strictly worse than not checking at all.
+        """
+        effective_active = self._properties.get(
+            "active", getattr(model, "active", True)
+        )
+        if not effective_active:
+            return
+
+        kind, target = (
+            ("chart", effective_chart)
+            if effective_chart
+            else ("dashboard", effective_dashboard)
+        )
+        target_id = getattr(target, "id", target)
+        if not isinstance(target_id, int):
+            return
+
+        # Both keys: a submitted target reaches the ordinary one through
+        # ``find_by_id``'s base filter and the report-target one through
+        # ``_check_object_access``, so a stored target asking only the latter
+        # would accept what resubmitting it refuses.
+        if any(
+            is_excluded_by_extra_access(key, target_id)
+            for key in (f"report_target_{kind}s", f"{kind}s")
+        ):
+            raise ReportScheduleForbiddenError()
 
     def _validate_report_extra(  # noqa: C901
         self, exceptions: list[ValidationError]

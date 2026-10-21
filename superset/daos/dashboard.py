@@ -424,10 +424,9 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # just get dashboard if it's uuid
             dashboard = Dashboard.get(id_or_slug)
             # This branch skips ``base_filter``, so an
-            # ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` entry -- which reaches the
-            # id branch below through that filter -- would not apply here, and
-            # the same dashboard would be absent by id while readable by uuid.
-            # Withheld means withheld whichever identifier names it.
+            # ``EXTRA_ACCESS_QUERY_EXCLUSIONS`` entry -- which reaches the id
+            # branch below through it -- would otherwise leave the same
+            # dashboard absent by id and readable by uuid.
             if dashboard and is_excluded_by_extra_access("dashboards", dashboard.id):
                 raise DashboardNotFoundError()
         else:
