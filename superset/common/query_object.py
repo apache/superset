@@ -772,6 +772,27 @@ class QueryObject:  # pylint: disable=too-many-instance-attributes
                 options = post_process.get("options", {})
                 if operation == "resample":
                     options = self._resolve_resample_options(options)
+                # Bind before calling so that a stored option set that does not
+                # fit the operation (e.g. a missing required option) is reported
+                # as a validation error, while a TypeError raised from inside the
+                # operation itself still propagates unchanged.
+                try:
+                    signature = inspect.signature(func)
+                except (TypeError, ValueError):
+                    # Some callables expose no signature; skip the pre-check.
+                    signature = None
+                try:
+                    if signature is not None:
+                        signature.bind(df, **options)
+                except TypeError as ex:
+                    raise InvalidPostProcessingError(
+                        _(
+                            "Invalid options for post processing operation "
+                            "%(operation)s: %(error)s",
+                            operation=operation,
+                            error=str(ex),
+                        )
+                    ) from ex
                 df = func(df, **options)
             return df
 

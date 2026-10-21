@@ -929,3 +929,59 @@ def test_cache_key_ignores_bounds_when_time_range_is_set():
     query_object2 = QueryObject(time_range="Last week", from_dttm=datetime(1970, 1, 1))
 
     assert query_object1.cache_key() == query_object2.cache_key()
+
+
+def test_exec_post_processing_missing_required_option_raises(
+    app_context: None,
+) -> None:
+    """
+    A stored operation lacking a required option is reported as
+    InvalidPostProcessingError naming the operation and the missing option,
+    rather than escaping as a bare TypeError.
+    """
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "cum", "options": {"operator": "sum"}}],
+    )
+
+    with pytest.raises(InvalidPostProcessingError) as excinfo:
+        query_object.exec_post_processing(DataFrame({"y": [1, 2, 3]}))
+
+    assert "cum" in str(excinfo.value.message)
+    assert "columns" in str(excinfo.value.message)
+
+
+def test_exec_post_processing_valid_options_still_apply(app_context: None) -> None:
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[
+            {"operation": "cum", "options": {"operator": "sum", "columns": {"y": "y"}}}
+        ],
+    )
+
+    result = query_object.exec_post_processing(DataFrame({"y": [1, 2, 3]}))
+
+    assert list(result["y"]) == [1, 3, 6]
+
+
+def test_exec_post_processing_type_error_inside_operation_propagates(
+    app_context: None,
+) -> None:
+    """A TypeError from the operation body is not turned into a validation error."""
+
+    def _boom(df: DataFrame, column: str) -> DataFrame:
+        raise TypeError("boom from inside the operation")
+
+    query_object = QueryObject(
+        row_limit=10,
+        post_processing=[{"operation": "_boom", "options": {"column": "y"}}],
+    )
+
+    with (
+        patch.dict(
+            "superset.common.query_object.current_app.config",
+            {"EXTRA_PANDAS_POSTPROCESSING_OPS": [_boom]},
+        ),
+        pytest.raises(TypeError, match="boom from inside"),
+    ):
+        query_object.exec_post_processing(DataFrame({"y": [1, 2, 3]}))
