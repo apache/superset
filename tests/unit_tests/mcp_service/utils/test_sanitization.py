@@ -823,11 +823,17 @@ def test_sanitizer_accepts_data_in_prose(value: str) -> None:
     "sanitize",
     [sanitize_filter_value, partial(sanitize_user_input, field_name="Title")],
 )
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Source data: issue records, support tickets",
+        "substitute data: Jira, support",
+    ],
+)
 def test_comma_bearing_data_label_is_rejected(
-    sanitize: Callable[[str], object],
+    sanitize: Callable[[str], object], value: str
 ) -> None:
     """Comma-bearing labels are ambiguous with browser-loadable data URLs."""
-    value = "Source data: issue records, support tickets"
     with pytest.raises(ValueError, match="malicious URL scheme"):
         sanitize(value)
 

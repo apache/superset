@@ -761,11 +761,15 @@ curl -X POST http://localhost:5008/mcp \
 ## Text input validation
 
 Dashboard titles and chart names may contain punctuation and prose labels such
-as `substitute data: support tickets`. URL payloads using `javascript:`,
-`vbscript:`, or `data:` remain rejected. A comma following `data:` is treated
-as a data URL, even after whitespace or an invalid media type: browsers can
-load these URLs as plain text. Consequently, a label such as
-`data: issue records, support tickets` is rejected. When title or name
+as `substitute data: Jira support tickets`. URL payloads using `javascript:`,
+`vbscript:`, or `data:` remain rejected. A `data:` label is accepted only when
+`data:` is followed by whitespace and no comma appears anywhere after it. A
+value that starts with `data:`, or has a character other than whitespace right
+after `data:`, is always rejected. Browsers read the text before the first comma
+as the media type and load a data URL whose media type is invalid, such as
+`data: Jira,`, as plain text, so a comma-bearing label such as
+`substitute data: Jira, support` is rejected because it cannot be told apart
+from a data URL. When title or name
 sanitization fails, MCP validation errors identify the field, such as
 `request.dashboard_title`, without echoing the supplied value.
 
