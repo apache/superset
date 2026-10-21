@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import importlib
 import sys
 import types as python_types
 from typing import Any, Optional
@@ -65,16 +66,15 @@ def test_get_column_spec(
     assert_column_spec(spec, native_type, sqla_type, attrs, generic_type, is_dttm)
 
 
-@pytest.fixture
-def oceanbase_dialect(monkeypatch: pytest.MonkeyPatch) -> type:
+def install_fake_oceanbase_py(monkeypatch: pytest.MonkeyPatch) -> Any:
     """
     Stub a minimal ``oceanbase_py`` package replicating the real dialect's
-    bugs (``Connection.execute(raw_string)``, no not-found handling), then
-    run ``OceanBaseEngineSpec``'s ``monkeypatch_dialect()`` against it.
+    bugs (``Connection.execute(raw_string)``, no not-found handling) into
+    ``sys.modules`` and return its (not yet patched) dialect class.
 
-    This exercises the actual patch logic without needing the real driver
-    installed -- it pins ``sqlalchemy<2``, incompatible with this repo's own
-    pin, so it's never part of the base dev environment (see
+    This lets the tests exercise the actual patch logic without needing the
+    real driver installed -- it pins ``sqlalchemy<2``, incompatible with this
+    repo's own pin, so it's never part of the base dev environment (see
     ``requirements/development.in``); CI installs it standalone, with
     ``--no-deps``, only for the dedicated nightly testcontainers job.
     """
@@ -128,10 +128,48 @@ def oceanbase_dialect(monkeypatch: pytest.MonkeyPatch) -> type:
     }.items():
         monkeypatch.setitem(sys.modules, name, module)
 
+    return FakeOceanBaseDialect
+
+
+@pytest.fixture
+def oceanbase_dialect(monkeypatch: pytest.MonkeyPatch) -> type:
+    """
+    The fake dialect with ``monkeypatch_dialect()`` run against it.
+    """
+    fake_dialect = install_fake_oceanbase_py(monkeypatch)
+
     from superset.db_engine_specs.oceanbase import monkeypatch_dialect
 
     monkeypatch_dialect()
-    return FakeOceanBaseDialect
+    return fake_dialect
+
+
+def test_monkeypatch_is_applied_at_import_time(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    Nothing in the app calls ``monkeypatch_dialect()`` explicitly: real
+    imports (and the testcontainers suite) rely on the module-level call at
+    the bottom of ``superset.db_engine_specs.oceanbase``. Re-import the
+    module with the fake driver in place and check the dialect comes out
+    patched without this test ever calling ``monkeypatch_dialect()`` itself.
+    """
+    fake_dialect = install_fake_oceanbase_py(monkeypatch)
+    unpatched_has_table = fake_dialect.has_table
+    unpatched_get_columns = fake_dialect.get_columns
+
+    monkeypatch.delitem(sys.modules, "superset.db_engine_specs.oceanbase")
+    reimported = importlib.import_module("superset.db_engine_specs.oceanbase")
+
+    assert fake_dialect.has_table is not unpatched_has_table
+    assert fake_dialect.get_columns is not unpatched_get_columns
+    assert fake_dialect.has_table.__module__ == reimported.__name__
+    assert fake_dialect.get_columns.__module__ == reimported.__name__
+
+    connection = MagicMock()
+    connection.exec_driver_sql.return_value.first.return_value = ("id",)
+    assert fake_dialect().has_table(connection, "pilot_types") is True
+    connection.execute.assert_not_called()
 
 
 def test_monkeypatch_has_table_uses_exec_driver_sql(
