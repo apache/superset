@@ -25,7 +25,6 @@ In order to do that, we reproduce the post-processing in Python for these chart 
 """
 
 import logging
-import math
 from collections.abc import Callable
 from decimal import Decimal
 from functools import partial
@@ -848,11 +847,16 @@ def is_small_number(value: Any) -> bool:
     ``formatColumnValue`` in ``plugin-chart-table`` switches formatter when
     ``Math.abs(value) < 1``, which only applies to numbers; booleans are not
     numbers there.
+
+    The type check is not only about matching that: the percent metric branch
+    is the one caller that does not test ``is_numeric_dtype`` first, so a
+    percent metric column carrying a null or a text value reaches here, and
+    ``float`` would raise on both. NaN and infinity need no check of their own,
+    since ``abs`` leaves them outside the comparison just as ``Math.abs`` does.
     """
     if isinstance(value, bool) or not isinstance(value, (int, float, Decimal)):
         return False
-    number = float(value)
-    return not math.isnan(number) and not math.isinf(number) and abs(number) < 1
+    return abs(float(value)) < 1
 
 
 def format_column(

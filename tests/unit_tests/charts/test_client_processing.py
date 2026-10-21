@@ -2577,13 +2577,16 @@ def test_table_small_number_format_without_a_normal_format() -> None:
     }
     assert table(df, form_data)["ratio"].tolist() == ["5.2%", "1.2k"]
 
-    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 12.5}})
+    # 1200.0 separates the two: SMART_NUMBER renders it ``1.2k`` while an
+    # unformatted cell prints ``1200``. A value such as 12.5 reads the same
+    # either way and would not show the difference.
+    df = pd.DataFrame.from_dict({"ratio": {0: 0.0523, 1: 1200.0}})
     form_data = {
         "viz_type": "table",
         "metrics": [],
         "column_config": {"ratio": {"d3SmallNumberFormat": ".1%"}},
     }
-    assert table(df, form_data)["ratio"].tolist() == ["5.2%", "12.5"]
+    assert table(df, form_data)["ratio"].tolist() == ["5.2%", "1200"]
 
 
 def test_table_small_number_format_uses_the_column_config_currency() -> None:
@@ -2629,6 +2632,33 @@ def test_table_small_number_format_drops_a_dollar_for_a_cleared_currency() -> No
     formatted = table(df, form_data)
 
     assert formatted["amount"].tolist() == ["0.50", "12.50"]
+
+
+def test_table_small_number_format_of_only_a_dollar_falls_back() -> None:
+    """
+    A small-number format that is nothing but ``$`` lands on the default.
+
+    ``CurrencyFormatter.format`` calls ``getNumberFormatter`` with
+    ``getNormalizedD3Format()``, which strips every ``$``, and the registry
+    answers an empty id with its ``defaultKey``, SMART_NUMBER. Leaving the
+    format empty instead would skip the small-number branch and give the cell
+    the column's normal format.
+    """
+    df = pd.DataFrame.from_dict({"amount": {0: 0.5, 1: 12.5}})
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["amount"],
+        "column_config": {
+            "amount": {
+                "d3NumberFormat": ",.2f",
+                "d3SmallNumberFormat": "$",
+                "currencyFormat": {"symbol": "", "symbolPosition": "prefix"},
+            }
+        },
+    }
+
+    # SMART_NUMBER gives ``0.5``; the column's own ``,.2f`` would give ``0.50``.
+    assert table(df, form_data)["amount"].tolist() == ["0.5", "12.50"]
 
 
 def test_table_small_number_format_keeps_a_dollar_without_a_currency_config() -> None:
@@ -2685,6 +2715,39 @@ def test_table_small_number_format_drops_a_dollar_with_a_currency_context() -> N
     formatted = table(df, form_data, datasource, detected_currency="USD")
 
     assert formatted["amount"].tolist() == ["0.50", "12.50"]
+
+
+@pytest.mark.parametrize(
+    ("value", "expected"),
+    [
+        pytest.param(None, "", id="null"),
+        pytest.param("n/a", "n/a", id="text"),
+        pytest.param(float("nan"), "", id="nan"),
+    ],
+)
+def test_table_small_number_format_on_a_non_numeric_percent_metric(
+    value: Any, expected: str
+) -> None:
+    """
+    A percent metric cell that is not a number is carried through.
+
+    The percent metric branch is the one that does not test
+    ``is_numeric_dtype`` first, so these values reach the small-number
+    predicate. Handing them to ``float`` raises ``TypeError`` for a null and
+    ``ValueError`` for text, which would be a failed report rather than a
+    misformatted cell.
+    """
+    # Built as object dtype on purpose: ``from_dict`` would turn the null into
+    # a ``nan`` in a float column, and the value has to arrive as it is for the
+    # type check to be the thing under test.
+    df = pd.DataFrame({"%share": pd.Series([value, 0.5], dtype=object)})
+    form_data = {
+        "viz_type": "table",
+        "percent_metrics": ["share"],
+        "column_config": {"%share": {"d3SmallNumberFormat": ".1%"}},
+    }
+
+    assert table(df, form_data)["%share"].tolist() == [expected, "50.0%"]
 
 
 def test_table_small_number_format_on_a_percent_metric() -> None:
