@@ -450,7 +450,10 @@ def cancel_chart_query_for_user(client_id: str) -> bool:
     if not handle:
         return False
 
-    database = DatabaseDAO.find_by_id(handle["database_id"])
+    # The handle is user-scoped and only written by an already-authorized run,
+    # so the database filter (which hides it for all_datasource_access users
+    # without per-database grants) must not block cancellation.
+    database = DatabaseDAO.find_by_id(handle["database_id"], skip_base_filter=True)
     if database is None:
         return False
 
