@@ -440,6 +440,34 @@ def _big_number_headline(
     )
 
 
+def _with_query_post_processing(response: ChartData, query_context: Any) -> ChartData:
+    """Carry each executed query's operations to the composed dashboard summary.
+
+    Use the context passed to the command, not the saved chart's viz type or
+    form data: saved, rebuilt and mixed queries can run different pipelines.
+    Private metadata survives response preflight without enlarging the wire payload.
+    """
+    response._query_post_processing = [
+        [
+            str(step["operation"])
+            for step in getattr(query, "post_processing", None) or []
+            if isinstance(step, dict)
+            and step.get("operation")
+            # A pivot without groupby columns preserves one row per index value.
+            and not (
+                step["operation"] == "pivot"
+                and not (step.get("options") or {}).get("columns")
+            )
+        ]
+        for query in getattr(query_context, "queries", None) or []
+    ]
+    response._query_row_limits = [
+        getattr(query, "row_limit", None)
+        for query in getattr(query_context, "queries", None) or []
+    ]
+    return response
+
+
 def _build_query_results(
     query_results: list[dict[str, Any]], limit: int | None
 ) -> list[ChartQueryResult] | None:
@@ -1232,7 +1260,7 @@ async def _get_chart_data(  # noqa: C901
                 performance=performance,
                 cache_status=cache_status,
             )
-            return response
+            return _with_query_post_processing(response, query_context)
 
         except (OAuth2RedirectError, OAuth2Error):
             # OAuth errors subclass SupersetException and would otherwise be
@@ -1480,7 +1508,7 @@ async def _query_from_form_data(  # noqa: C901
             performance=performance,
             cache_status=cache_status,
         )
-        return response
+        return _with_query_post_processing(response, query_context)
 
     except (OAuth2RedirectError, OAuth2Error):
         # OAuth errors subclass SupersetException; re-raise so the caller's
