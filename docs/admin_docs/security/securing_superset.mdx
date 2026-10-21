@@ -183,13 +183,14 @@ https://superset.apache.org/admin-docs/configuration/configuring-superset/#rotat
 | --------------------------------- | ------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------------------- |
 | `SUPERSET_SECRET_KEY`             | Signs session cookies; key material for encrypting stored DB credentials (Fernet/AES) | Forged sessions (auth bypass / privilege escalation); decryption of exfiltrated metadata-DB secrets | Quarterly + post-incident                 |
 | `GUEST_TOKEN_JWT_SECRET`          | Signs embedded-dashboard guest tokens                                                 | Forged guest tokens → unauthorized dashboard/data access                                            | Quarterly + post-incident                 |
-| `GLOBAL_ASYNC_QUERIES_JWT_SECRET` | Signs the async-query channel JWT                                                     | Forged async-query tokens                                                                           | Quarterly + post-incident                 |
+| `WEBSOCKET_JWT_SECRET`            | Signs the realtime websocket channel JWT cookie                                       | Forged websocket tokens → unauthorized realtime notifications                                       | Quarterly + post-incident                 |
 | SMTP password                     | Outbound email for alerts & reports                                                   | Email relay abuse / spoofing                                                                        | Per organizational policy + post-incident |
 | Database connection passwords     | Access to analytical databases and the metadata DB                                    | Direct database access                                                                              | Per organizational policy + post-incident |
 
 Notes:
 
-- Rotating `GUEST_TOKEN_JWT_SECRET` or `GLOBAL_ASYNC_QUERIES_JWT_SECRET` invalidates outstanding tokens of that type; schedule rotations accordingly.
+- Rotating `GUEST_TOKEN_JWT_SECRET` or `WEBSOCKET_JWT_SECRET` invalidates outstanding tokens of that type; schedule rotations accordingly.
+- `WEBSOCKET_JWT_SECRET` can be rotated without disconnecting live sockets: set the outgoing value as `PREVIOUS_JWT_SECRET` on the websocket server so it keeps verifying old cookies, then remove it once they have aged out.
 - After a suspected compromise, rotate **all** of the above, not only `SUPERSET_SECRET_KEY`.
 - Keep the register under change control so new secrets introduced by future features are added to the rotation schedule.
 

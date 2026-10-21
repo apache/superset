@@ -38,7 +38,6 @@ from superset.mcp_service.common.pagination_schemas import (
     PaginatedResponse,
 )
 from superset.mcp_service.utils.response_utils import humanize_timestamp
-from superset.mcp_service.utils.sanitization import sanitize_for_llm_context
 
 
 class ThemeFilter(ColumnOperator):
@@ -169,45 +168,20 @@ class CreateThemeResponse(BaseModel):
     error_type: str | None = Field(None, description="Type of error if creation failed")
 
 
-def _sanitize_theme_info_for_llm_context(theme_info: ThemeInfo) -> ThemeInfo:
-    """Wrap user-controlled theme fields before LLM exposure.
-
-    ``theme_name`` is user-supplied free text. ``json_data`` is structured
-    configuration, but its token values (font families, URLs, arbitrary antd
-    tokens) are equally user-controlled and pass ``is_valid_theme`` /
-    ``sanitize_theme_tokens`` untouched, so the whole JSON string is wrapped
-    as one untrusted block — the JSON stays parseable inside the delimiters,
-    and embedded delimiter tokens are escaped so a hostile value cannot close
-    the wrapper early.
-    """
-    payload = theme_info.model_dump(mode="python")
-    payload["theme_name"] = sanitize_for_llm_context(
-        payload.get("theme_name"),
-        field_path=("theme_name",),
-    )
-    payload["json_data"] = sanitize_for_llm_context(
-        payload.get("json_data"),
-        field_path=("json_data",),
-    )
-    return ThemeInfo(**payload)
-
-
 def serialize_theme_object(theme: Any) -> ThemeInfo | None:
     if not theme:
         return None
 
-    return _sanitize_theme_info_for_llm_context(
-        ThemeInfo(
-            id=getattr(theme, "id", None),
-            theme_name=getattr(theme, "theme_name", None),
-            json_data=getattr(theme, "json_data", None),
-            uuid=str(uuid) if (uuid := getattr(theme, "uuid", None)) else None,
-            is_system=getattr(theme, "is_system", None),
-            is_system_default=getattr(theme, "is_system_default", None),
-            is_system_dark=getattr(theme, "is_system_dark", None),
-            changed_on=getattr(theme, "changed_on", None),
-            changed_on_humanized=humanize_timestamp(getattr(theme, "changed_on", None)),
-            created_on=getattr(theme, "created_on", None),
-            created_on_humanized=humanize_timestamp(getattr(theme, "created_on", None)),
-        )
+    return ThemeInfo(
+        id=getattr(theme, "id", None),
+        theme_name=getattr(theme, "theme_name", None),
+        json_data=getattr(theme, "json_data", None),
+        uuid=str(uuid) if (uuid := getattr(theme, "uuid", None)) else None,
+        is_system=getattr(theme, "is_system", None),
+        is_system_default=getattr(theme, "is_system_default", None),
+        is_system_dark=getattr(theme, "is_system_dark", None),
+        changed_on=getattr(theme, "changed_on", None),
+        changed_on_humanized=humanize_timestamp(getattr(theme, "changed_on", None)),
+        created_on=getattr(theme, "created_on", None),
+        created_on_humanized=humanize_timestamp(getattr(theme, "created_on", None)),
     )

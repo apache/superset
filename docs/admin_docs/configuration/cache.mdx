@@ -7,6 +7,42 @@ version: 1
 
 # Caching
 
+## Semantic containment cache
+
+`SEMANTIC_LAYER_CONTAINMENT_CACHE` is experimental and default-off. Enabling
+the flag alone is insufficient: enable `SEMANTIC_LAYERS`, use a provider that
+explicitly delegates containment caching, and configure persistent shared
+`DATA_CACHE_CONFIG` plus Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every
+web and worker process. The default `NullCache` data backend disables containment.
+
+See the [semantic containment setup and validation guide](/developer-docs/extensions/contribution-types#semantic-result-containment-caching)
+for the two-backend example, supported backends, timeout semantics, emitted
+metrics and concurrency limitations. Restart every web/worker process after
+configuration changes and verify the effective-state metric before a canary.
+The reader fence uses identity format `v4` and matches a per-write nonce in each
+descriptor/result pair. Existing `v3` entries become cold misses; they need no
+manual deletion. During a mixed-version rollout, old workers still use the old
+unfenced path, so finish the web/worker rollout before validating the fence.
+Monitor `semantic_cache.containment.fence_reject` alongside misses and coordination
+failures during forced-refresh testing: rejected pairs must fall back to another
+valid candidate or the provider, never serve the stale writer's mismatched value.
+Pruning removes invalid descriptors after rechecking the current pair and leaves
+payloads to their configured TTL. Preserve the validation hold until the
+split-store process-pause scenario and provider-result comparisons pass.
+
+Filtering and rollup preserve nullable integer, decimal and timestamp values;
+unsupported conversions or overflowing aggregates fall back to the provider.
+The ORM view's nonempty host-supplied `metadata_cache_token` participates in
+containment identity. Missing, empty, or invalid host tokens bypass containment
+and execute the provider, even if older entries exist. A provider's optional token
+cannot substitute for the host generation. Containment requires the host metadata
+cache-generation binding; no metadata-refresh adapter is required.
+
+To roll back, disable `SEMANTIC_LAYER_CONTAINMENT_CACHE`, restart every process,
+and confirm `semantic_cache.containment.enabled` is zero and provider queries
+continue. This best-effort cache's fallback behavior does not change the other
+cache backends' availability requirements below.
+
 :::note
 When a cache backend is configured, Superset expects it to remain available. Operations will
 fail if the configured backend becomes unavailable rather than silently degrading. This
@@ -75,6 +111,74 @@ value defined in `DATA_CACHE_CONFIG`.
 
 Note, that by setting the cache timeout to `-1`, caching for charting data can be disabled, either
 per chart, dataset or database, or by default if set in `DATA_CACHE_CONFIG`.
+
+The datasource column-values and compatibility endpoints skip cache reads and writes when
+their effective timeout is `-1`. They use the datasource timeout (for SQL datasets, falling
+back to the database timeout), then the **top-level** `CACHE_DEFAULT_TIMEOUT` when that value
+is unset or zero. They do not use `DATA_CACHE_CONFIG["CACHE_DEFAULT_TIMEOUT"]` for this
+fallback, so setting only that nested default to `-1` does not disable these endpoints.
+With caching disabled, each request fetches fresh values or compatibility results from the source.
+
+This bypass does not delete existing entries. Earlier versions could write entries without
+expiry on Redis while the timeout was `-1`; column-value entries can become readable again
+when caching is re-enabled unless the datasource has been edited. Compatibility keys include
+the datasource modification time, matching column-value keys. Adding this key component makes
+older compatibility entries unreachable and causes a one-time cache miss for compatibility lists.
+Before re-enabling, invalidate affected `col_values:` entries through your deployment's
+cache-management tooling. Obsolete `compatible:` entries can also be removed to reclaim space.
+Account for your configured cache-key prefix when managing either kind of entry.
+
+Native filter option queries (the dropdown values for native filters) go through this same
+chart-data cache, but their freshness needs often differ from regular chart queries, especially for
+datasets whose visible values change frequently, including RLS-constrained datasets. Set
+`NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT` in `superset_config.py` to give these queries a dedicated
+timeout, checked before the chart/dataset/database chain and the `DATA_CACHE_CONFIG` default above:
+
+```python
+NATIVE_FILTER_OPTIONS_CACHE_TIMEOUT = 60  # seconds
+```
+
+- `None` (default): native filter option queries fall through to the normal
+  chart/dataset/database/`DATA_CACHE_CONFIG` resolution chain.
+- `-1`: disables caching for native filter option queries entirely.
+- `0`: passed directly to the cache backend; behavior is backend-specific, so use `-1` if the intent
+  is to disable caching.
+- A positive integer: cache native filter option queries for that many seconds.
+
+This setting only applies to requests detected as native filter option queries. It takes precedence
+over the per-chart/dataset/database timeouts, but not over an explicit per-request
+`custom_cache_timeout` override (e.g. "Force refresh").
+
+## Async Query Result Cache TTL
+
+When [Global Async Queries](/admin-docs/configuration/configuring-superset#feature-flags) is
+enabled, a chart-data request that runs asynchronously does not return the result inline. Instead the
+query executes on a background task that **writes the result to the data cache**, and the browser
+then re-issues the same request to read that result back out of the cache once the task succeeds.
+
+This read-back is what makes the result-cache TTL matter for correctness, not just performance: if
+the effective TTL is shorter than the full async round trip (task execution + the client's poll
+interval + the re-fetch), the entry can be **evicted before the client reads it**, leaving the chart
+stuck re-running instead of loading. To prevent this, async requests floor their result-cache TTL to
+`GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL` (seconds, default `300` — five minutes):
+
+```python
+GLOBAL_ASYNC_QUERIES_MIN_CACHE_TTL = 300  # seconds
+```
+
+How the floor interacts with the timeouts above:
+
+- It applies **only to async execution**. Synchronous `/chart/data` requests keep their normal
+  chart/dataset/database/`DATA_CACHE_CONFIG` timeout even when Global Async Queries is enabled.
+- A **longer** effective TTL from that chain is kept as-is — the floor only raises TTLs that are
+  shorter than it.
+- A TTL of `0` ("cache forever") is left untouched.
+
+Tuning guidance: raise this value if your workload's async round trip can exceed five minutes (very
+long-running queries or slow warehouses), otherwise those charts may intermittently fail to load. Be
+aware of the trade-off — because the floor can raise an async result's TTL above a shorter cache
+retention policy, it keeps async results in the cache longer and modestly increases cache
+(Redis/Valkey) usage. Do not lower it below your worst-case async round trip.
 
 ## Limiting Cached Result Size
 
@@ -189,7 +293,9 @@ FEATURE_FLAGS = {
 }
 ```
 
-By default thumbnails are rendered per user, and will fall back to the Selenium user for anonymous users.
+By default thumbnails are rendered as the user who requests them. Anonymous requests have no user
+to render as, so they get no thumbnail unless you add a fallback executor, for example
+`THUMBNAIL_EXECUTORS = [ExecutorType.CURRENT_USER, FixedExecutor("admin")]`.
 To always render thumbnails as a fixed user (`admin` in this example), use the following configuration:
 
 ```python
@@ -234,7 +340,7 @@ THUMBNAIL_CACHE_CONFIG = init_thumbnail_cache
 ```
 
 Using the above example cache keys for dashboards will be `superset_thumb__dashboard__{ID}`. You can
-override the base URL for Selenium using:
+override the base URL that the headless browser uses to reach Superset using:
 
 ```
 WEBDRIVER_BASEURL = "https://superset.company.com"
@@ -259,20 +365,39 @@ CACHE_WARMUP_EXECUTORS = [FixedExecutor("admin")]
 Use a dedicated read-only service account here rather than a personal admin account, so that
 thumbnail rendering and cache warmup tasks don't fail if a specific user's credentials change.
 
-Additional Selenium WebDriver configuration can be set using `WEBDRIVER_CONFIGURATION`. You can
-implement a custom function to authenticate Selenium. The default function uses the `flask-login`
-session cookie. Here's an example of a custom function signature:
+Thumbnails are rendered with Playwright and a headless Chromium browser. Extra Chromium launch
+arguments can be set using `WEBDRIVER_OPTION_ARGS`. You can implement a custom function to
+authenticate the Playwright browser context. The default function uses the `flask-login` session
+cookie. A custom function replaces that default, so it must authenticate as `user` itself.
+Here's an example of a custom function:
 
 ```python
-def auth_driver(driver: WebDriver, user: "User") -> WebDriver:
-    pass
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from flask_appbuilder.security.sqla.models import User
+    from playwright.sync_api import BrowserContext
+
+
+def auth_browser_context(
+    browser_context: "BrowserContext", user: "User"
+) -> "BrowserContext":
+    # This replaces Superset's default session-cookie login, so it must
+    # authenticate as `user` itself. For example, send a bearer token:
+    # `get_token_for_user` is a placeholder for your own token lookup.
+    token = get_token_for_user(user)
+    browser_context.set_extra_http_headers({"Authorization": f"Bearer {token}"})
+    return browser_context
 ```
 
 Then on configuration:
 
 ```
-WEBDRIVER_AUTH_FUNC = auth_driver
+WEBDRIVER_AUTH_FUNC = auth_browser_context
 ```
+
+To replace the authentication logic entirely, subclass `superset.utils.machine_auth.MachineAuthProvider`,
+override `authenticate_browser_context()`, and set `MACHINE_AUTH_PROVIDER_CLASS` to the fully-qualified dotted path of your class (for example, `"myapp.auth.MyMachineAuthProvider"`).
 
 ## ETag Support for Thumbnails
 
@@ -295,13 +420,24 @@ high-performance distributed operations. This configuration enables:
 
 - **Distributed locking**: Moves lock operations from the metadata database to Redis, improving
   performance and reducing metastore load
-- **Real-time event notifications**: Enables instant pub/sub messaging for task abort signals and
-  completion notifications instead of polling-based approaches
+- **Event-driven notifications**: Task completion and abort signals are delivered over Redis
+  **Streams**, so waiters (sync join-and-wait, task-dependency DAGs, abort listeners) wake when a
+  signal lands instead of polling the metadata database. Because stream entries are persisted, a
+  waiter that reads slightly late, reconnects, or fails over still receives the signal. Without this
+  backend, these operations poll the metadata database instead.
 
 :::note
-This requires Redis or Valkey specifically—it uses Redis-specific features (pub/sub, `SET NX EX`)
-that are not available in general Flask-Caching backends.
+This requires Redis or Valkey specifically—it uses Redis-specific features (Streams, pub/sub,
+`SET NX EX`) that are not available in general Flask-Caching backends.
 :::
+
+Each signal stream keeps only its latest entry and is given a TTL, so signal streams for tasks that
+are never awaited do not accumulate in Redis/Valkey. Set the retention window with
+`DISTRIBUTED_COORDINATION_SIGNAL_TTL` (seconds, default 24 hours):
+
+```python
+DISTRIBUTED_COORDINATION_SIGNAL_TTL = 24 * 60 * 60
+```
 
 ### Configuration
 
@@ -345,9 +481,8 @@ DISTRIBUTED_COORDINATION_CONFIG = {
 }
 ```
 
-By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` (as well as
-`GLOBAL_ASYNC_QUERIES_CACHE_BACKEND`, which uses the same `RedisCache`/`RedisSentinelCache`
-backend) have no socket timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
+By default, connections opened for `DISTRIBUTED_COORDINATION_CONFIG` have no socket
+timeout. This can be overridden with `CACHE_REDIS_SOCKET_TIMEOUT` and
 `CACHE_REDIS_SOCKET_CONNECT_TIMEOUT`, both in seconds:
 
 ```python

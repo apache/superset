@@ -15,7 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from collections import Counter
-from typing import Any
+from typing import Any, cast
 
 from flask import redirect, request, url_for
 from flask_appbuilder import expose, permission_name
@@ -29,19 +29,27 @@ from superset import db, event_logger, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetForbiddenError,
     DatasetNotFoundError,
+    get_template_render_error_msg,
+    TEMPLATE_RENDER_ERRORS,
 )
 from superset.connectors.sqla.models import SqlaTable
 from superset.connectors.sqla.utils import get_physical_table_metadata
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
-from superset.daos.datasource import DatasourceDAO
+from superset.daos.datasource import Datasource as DatasourceModel, DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.exceptions import SupersetException, SupersetSecurityException
 from superset.models.core import Database
+from superset.models.helpers import (
+    parse_template_params,
+    template_params_equivalent,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.utils.core import DatasourceType
+from superset.utils.error_sanitization import redact_sensitive_query_fields
 from superset.views.base import api, BaseSupersetView, deprecated, json_error_response
 from superset.views.datasource.schemas import (
     ExternalMetadataParams,
@@ -53,6 +61,214 @@ from superset.views.datasource.schemas import (
 from superset.views.datasource.utils import get_samples
 from superset.views.error_handling import handle_api_exception
 from superset.views.utils import sanitize_datasource_data
+
+# Datasource types whose ``datasource_id`` refers to a dataset row.
+_DATASET_TYPES = frozenset({DatasourceType.TABLE.value, DatasourceType.DATASET.value})
+
+
+def _load_dataset_for_samples(
+    view: BaseSupersetView, params: dict[str, Any]
+) -> tuple[DatasourceModel | None, FlaskResponse | None]:
+    """Pre-fetch and access-check the dataset for an authenticated request.
+
+    Only dataset-backed types are pre-fetched. Non-table types (query,
+    saved_query) use a different access model; passing them to
+    ``raise_for_access(datasource=...)`` would check the wrong attributes,
+    so ``get_samples()`` handles the lookup for those types.
+
+    Returns ``(dataset, None)`` on success and ``(None, error_response)``
+    when the caller should return the error response.
+    """
+    if params["datasource_type"] not in _DATASET_TYPES:
+        return None, None
+    try:
+        dataset = DatasourceDAO.get_datasource(
+            datasource_type=params["datasource_type"],
+            database_id_or_uuid=params["datasource_id"],
+        )
+    except (DatasourceNotFound, DatasourceTypeNotSupportedError):
+        return None, view.response_404()
+    try:
+        security_manager.raise_for_access(datasource=dataset)
+    except SupersetSecurityException:
+        return None, json_error_response(_("Forbidden"), status=403)
+    return dataset, None
+
+
+def _repoints_table(
+    datasource: DatasourceModel,
+    database_changed: bool,
+    requested_sql: str | None,
+    requested_table: Table,
+) -> bool:
+    """
+    Would the request point ``datasource`` at a different physical table?
+
+    Moving to another database connection always does, whatever the target
+    looks like. Within one connection, a virtual dataset's ``table_name`` is a
+    label rather than a pointer, as in
+    ``UpdateDatasetCommand._validate_dataset_source``, so dropping the SQL
+    binds that label to a real table: a repoint even when the label is
+    unchanged.
+    """
+    # Ahead of the dataset check on purpose: a move to another connection is
+    # a repoint whatever the datasource is, and must not go unchecked.
+    if database_changed:
+        return True
+    if not isinstance(datasource, SqlaTable) or requested_sql:
+        return False
+    if datasource.is_virtual:
+        return True
+    # Compared field by field because ``Table.__eq__`` compares the ``str``
+    # rendering, which drops empty parts and so conflates distinct targets.
+    return (requested_table.table, requested_table.schema, requested_table.catalog) != (
+        datasource.table_name,
+        datasource.schema or None,
+        datasource.catalog or None,
+    )
+
+
+def _repoints_sql(
+    datasource: DatasourceModel,
+    database_changed: bool,
+    requested_sql: str | None,
+    requested_table: Table,
+    raw_template_params: str | None,
+) -> bool:
+    """
+    Would the request change what the SQL on ``datasource`` reads?
+
+    Supplying ``sql`` aims the dataset at whatever that SQL reads, converting
+    a physical dataset on the way. Unchanged SQL still lands somewhere new
+    when the connection, catalog or schema it resolves unqualified names
+    against moves, or when the ``template_params`` that render a templated
+    ``FROM`` change -- the same triggers as
+    ``UpdateDatasetCommand._validate_sql_access``. An identical params value
+    (the editor echoes it back) is never a change, even a legacy non-object
+    one; otherwise they are compared as execution reads them.
+    """
+    if not isinstance(datasource, SqlaTable) or not requested_sql:
+        return False
+    params_changed = raw_template_params != datasource.template_params and (
+        not template_params_equivalent(raw_template_params, datasource.template_params)
+    )
+    return (
+        database_changed
+        or requested_sql != datasource.sql
+        or (requested_table.schema, requested_table.catalog)
+        != (datasource.schema or None, datasource.catalog or None)
+        or params_changed
+    )
+
+
+def _requested_target(
+    datasource_dict: dict[str, Any],
+) -> tuple[str | None, Table, str | None]:
+    """The SQL and table a save aims the dataset at.
+
+    ``update_from_object`` applies an omitted key as ``None``, so the request
+    body alone describes the target: no stored value feeds into it. The body
+    is free-form JSON, so each field is type-checked here, since the access
+    checks below parse these values and only a string survives that.
+
+    Raises ``ValueError`` naming the offending field.
+    """
+
+    def string(field: str) -> str | None:
+        value = datasource_dict.get(field)
+        if value is not None and not isinstance(value, str):
+            raise ValueError(field)
+        return value
+
+    return (
+        string("sql"),
+        Table(
+            # ``Table`` is annotated for a table that exists, but an omitted
+            # ``table_name`` lands as ``None`` and has to be compared as one.
+            cast(str, string("table_name")),
+            string("schema") or None,
+            string("catalog") or None,
+        ),
+        string("template_params"),
+    )
+
+
+def _authorize_repoint(
+    datasource: DatasourceModel,
+    database_id: int,
+    database_changed: bool,
+    requested_sql: str | None,
+    requested_table: Table,
+    raw_template_params: str | None,
+) -> FlaskResponse | None:
+    """Authorise the target a save aims ``datasource`` at.
+
+    Editorship of the dataset alone is not sufficient to repoint it. Ports
+    ``UpdateDatasetCommand``'s table and SQL checks, which are independent:
+    one save can do both, and each needs its own ``raise_for_access`` call
+    because passing ``sql`` builds an ephemeral query that supersedes
+    ``table``.
+
+    Returns an error response when the target cannot be resolved, and ``None``
+    once the target is authorised or the save does not repoint at all.
+    """
+    repoints_table = _repoints_table(
+        datasource, database_changed, requested_sql, requested_table
+    )
+    repoints_sql = _repoints_sql(
+        datasource,
+        database_changed,
+        requested_sql,
+        requested_table,
+        raw_template_params,
+    )
+    if not (repoints_table or repoints_sql):
+        return None
+
+    target_database = (
+        DatasetDAO.get_database_by_id(database_id)
+        if database_changed
+        else datasource.database
+    )
+    if target_database is None:
+        return json_error_response(_("Database not found."), status=422)
+    try:
+        if repoints_table:
+            security_manager.raise_for_access(
+                database=target_database,
+                table=requested_table,
+                allow_editorship=False,
+            )
+        if repoints_sql:
+            # Only rendered on an actual repoint, so an unreadable value here
+            # is a genuine change we cannot authorize -- reject it rather than
+            # 500 (a metadata-only echo of a legacy value never reaches this).
+            try:
+                template_params = parse_template_params(raw_template_params)
+            except ValueError:
+                return json_error_response(
+                    _("Template parameters must be a valid JSON object."),
+                    status=422,
+                )
+            security_manager.raise_for_access(
+                database=target_database,
+                sql=requested_sql,
+                catalog=requested_table.catalog,
+                schema=requested_table.schema,
+                # Render with the submitted params so a templated FROM is
+                # authorized as the table it actually resolves to, minus the
+                # names the processor consumes structurally (so the render
+                # matches execution).
+                template_params=template_params_for_access_check(template_params),
+                allow_editorship=False,
+            )
+    except SupersetSecurityException as ex:
+        raise DatasetForbiddenError() from ex
+    except TEMPLATE_RENDER_ERRORS as ex:
+        # SQL that can't be rendered with the submitted params can't be
+        # authorized: refuse it as invalid input rather than a 500.
+        return json_error_response(get_template_render_error_msg(ex), status=422)
+    return None
 
 
 class Datasource(BaseSupersetView):
@@ -89,25 +305,28 @@ class Datasource(BaseSupersetView):
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
 
-        if database_id != orm_datasource.database_id:
-            new_database = DatasetDAO.get_database_by_id(database_id)
-            if new_database is None:
-                return json_error_response(_("Database not found."), status=422)
-            try:
-                security_manager.raise_for_access(
-                    database=new_database,
-                    # Check access against the table/schema/catalog the
-                    # request is repointing to, not the dataset's current
-                    # values -- update_from_object (below) applies whatever
-                    # table_name/schema/catalog the request supplies.
-                    table=Table(
-                        datasource_dict.get("table_name", orm_datasource.table_name),
-                        datasource_dict.get("schema", orm_datasource.schema),
-                        datasource_dict.get("catalog", orm_datasource.catalog),
-                    ),
-                )
-            except SupersetSecurityException as ex:
-                raise DatasetForbiddenError() from ex
+        database_changed = database_id != orm_datasource.database_id
+        try:
+            requested_sql, requested_table, raw_template_params = _requested_target(
+                datasource_dict
+            )
+        except ValueError as ex:
+            return json_error_response(
+                _("The `%(field)s` field must be a string.", field=str(ex)),
+                status=422,
+            )
+
+        if error := _authorize_repoint(
+            orm_datasource,
+            database_id,
+            database_changed,
+            requested_sql,
+            requested_table,
+            raw_template_params,
+        ):
+            return error
+
+        if database_changed:
             orm_datasource.database_id = database_id
 
         duplicates = [
@@ -223,26 +442,17 @@ class Datasource(BaseSupersetView):
         except ValidationError as err:
             return json_error_response(err.messages, status=400)
 
-        # Refuse early for datasource types that don't model raw rows
-        # (e.g. semantic views, which only expose pre-defined metrics and
-        # dimensions). Without this gate the request would still go through
-        # the standard query pipeline and fail with an opaque 500.
-        # ``supports_samples`` defaults to True for any datasource class that
-        # doesn't explicitly opt out, so SqlaTable/Query/SavedQuery continue
-        # to work without needing the attribute declared on each class.
-        ds_class = DatasourceDAO.sources.get(
-            DatasourceType(params["datasource_type"]),
-        )
-        if ds_class is not None and not getattr(ds_class, "supports_samples", True):
-            return json_error_response(
-                _("Samples are not available for this datasource type."),
-                status=400,
-            )
-
         dashboard_id = None
         if security_manager.is_guest_user():
             if not params["dashboard_id"]:
                 return json_error_response(_("Forbidden"), status=403)
+            # Guest drill access is only defined for dataset-backed charts.
+            # Refuse other datasource types before the DatasetDAO lookup:
+            # ``datasource_id`` values for those types live in unrelated id
+            # spaces, so the lookup below would validate whichever unrelated
+            # SqlaTable happens to share the integer id.
+            if params["datasource_type"] not in _DATASET_TYPES:
+                return self.response_404()
             dashboard_id = params["dashboard_id"]
             dataset = DatasetDAO.find_by_id(
                 params["datasource_id"], skip_base_filter=True
@@ -256,27 +466,24 @@ class Datasource(BaseSupersetView):
             ):
                 return json_error_response(_("Forbidden"), status=403)
         else:
-            # Pre-fetch and access-check only for table-type datasources.
-            # Non-table types (query, saved_query) use a different access model;
-            # passing them to raise_for_access(datasource=...) would check the
-            # wrong attributes. Let get_samples() handle the lookup for those types.
-            if params["datasource_type"] in {
-                DatasourceType.TABLE.value,
-                DatasourceType.DATASET.value,
-            }:
-                try:
-                    dataset = DatasourceDAO.get_datasource(
-                        datasource_type=params["datasource_type"],
-                        database_id_or_uuid=params["datasource_id"],
-                    )
-                except (DatasourceNotFound, DatasourceTypeNotSupportedError):
-                    return self.response_404()
-                try:
-                    security_manager.raise_for_access(datasource=dataset)
-                except SupersetSecurityException:
-                    return json_error_response(_("Forbidden"), status=403)
-            else:
-                dataset = None
+            dataset, error_response = _load_dataset_for_samples(self, params)
+            if error_response is not None:
+                return error_response
+
+        # Refuse datasource types that don't model raw rows only after the
+        # authorization checks above, keeping authorization-before-capability
+        # ordering: guests get 403/404 from the guest branch, while
+        # authenticated users hit this purely type-level gate (a 400 that is a
+        # function of the requested ``datasource_type`` alone -- no per-object
+        # lookup happens for non-table types, by design).
+        ds_class = DatasourceDAO.sources.get(
+            DatasourceType(params["datasource_type"]),
+        )
+        if ds_class is not None and not ds_class.supports_samples:
+            return json_error_response(
+                _("Samples are not available for this datasource type."),
+                status=400,
+            )
 
         rv = get_samples(
             datasource_type=params["datasource_type"],
@@ -288,6 +495,13 @@ class Datasource(BaseSupersetView):
             datasource=dataset,
             dashboard_id=dashboard_id,
         )
+        # Drill to detail is available to embedded guests (see the guest branch
+        # above), and the samples payload carries the generated SQL under
+        # ``query``. Apply the same guest redaction as ``/api/v1/chart/data``
+        # (CVE-2025-55673, gated on "can view query on Dashboard" since #43151)
+        # so the SQL is not disclosed to a guest whose role lacks that
+        # permission.
+        redact_sensitive_query_fields([rv])
         return self.json_response({"result": rv})
 
 

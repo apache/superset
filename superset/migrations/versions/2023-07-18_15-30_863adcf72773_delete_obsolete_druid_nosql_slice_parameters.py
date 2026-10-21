@@ -48,7 +48,7 @@ class Slice(Base):
 
 def upgrade():  # noqa: C901
     bind = op.get_bind()
-    session = db.Session(bind=bind, future=True)
+    session = db.Session(bind=bind)
 
     for slc in session.query(Slice).all():
         if slc.params:

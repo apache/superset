@@ -18,6 +18,7 @@
  */
 
 import { useCallback, useMemo, useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import { Alert } from '@apache-superset/core/components';
@@ -56,6 +57,12 @@ import { hasConflictingAlgorithm } from 'src/features/themes/utils';
 import { QueryObjectColumns } from 'src/views/CRUD/types';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { useConfirmModal } from 'src/hooks/useConfirmModal';
+import { SubjectPile } from 'src/features/subjects/SubjectPile';
+import {
+  isUserAdmin,
+  isUserEditorOrAdmin,
+} from 'src/dashboard/util/permissionUtils';
+import { UserWithPermissionsAndRoles } from 'src/types/bootstrapTypes';
 import {
   setSystemDefaultTheme,
   setSystemDarkTheme,
@@ -113,8 +120,15 @@ function ThemesList({
     refreshData,
     toggleBulkSelect,
   } = useListViewResource<ThemeObject>('theme', t('Themes'), addDangerToast);
-  const { setTemporaryTheme, hasDevOverride, getAppliedThemeId } =
-    useThemeContext();
+  const currentUser = useSelector<any, UserWithPermissionsAndRoles>(
+    state => state.user,
+  );
+  const {
+    setTemporaryTheme,
+    hasDevOverride,
+    getAppliedThemeId,
+    refreshSystemThemes,
+  } = useThemeContext();
   const [themeModalOpen, setThemeModalOpen] = useState<boolean>(false);
   const [currentTheme, setCurrentTheme] = useState<ThemeObject | null>(null);
   const [preparingExport, setPreparingExport] = useState<boolean>(false);
@@ -298,6 +312,10 @@ function ThemesList({
             addSuccessToast(
               t('"%s" is now the system default theme', theme.theme_name),
             );
+            // Re-apply the new system theme live in the background. Not awaited
+            // (and non-throwing) so a slow /system request never blocks the
+            // confirm modal from closing, the list refresh, or the toast.
+            refreshSystemThemes();
           } catch (err: any) {
             addDangerToast(
               t('Failed to set system default theme: %s', err.message),
@@ -306,7 +324,13 @@ function ThemesList({
         },
       });
     },
-    [showConfirm, refreshData, addSuccessToast, addDangerToast],
+    [
+      showConfirm,
+      refreshData,
+      refreshSystemThemes,
+      addSuccessToast,
+      addDangerToast,
+    ],
   );
 
   const handleSetSystemDark = useCallback(
@@ -337,6 +361,10 @@ function ThemesList({
             addSuccessToast(
               t('"%s" is now the system dark theme', theme.theme_name),
             );
+            // Re-apply the new system theme live in the background. Not awaited
+            // (and non-throwing) so a slow /system request never blocks the
+            // confirm modal from closing, the list refresh, or the toast.
+            refreshSystemThemes();
           } catch (err: any) {
             addDangerToast(
               t('Failed to set system dark theme: %s', err.message),
@@ -345,7 +373,13 @@ function ThemesList({
         },
       });
     },
-    [showConfirm, refreshData, addSuccessToast, addDangerToast],
+    [
+      showConfirm,
+      refreshData,
+      refreshSystemThemes,
+      addSuccessToast,
+      addDangerToast,
+    ],
   );
 
   const handleUnsetSystemDefault = useCallback(() => {
@@ -359,6 +393,10 @@ function ThemesList({
           await unsetSystemDefaultTheme();
           refreshData();
           addSuccessToast(t('System default theme removed'));
+          // Revert to the fallback theme live in the background. Not awaited
+          // (and non-throwing) so a slow /system request never blocks the
+          // confirm modal from closing, the list refresh, or the toast.
+          refreshSystemThemes();
         } catch (err: any) {
           addDangerToast(
             t('Failed to remove system default theme: %s', err.message),
@@ -366,7 +404,13 @@ function ThemesList({
         }
       },
     });
-  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
+  }, [
+    showConfirm,
+    refreshData,
+    refreshSystemThemes,
+    addSuccessToast,
+    addDangerToast,
+  ]);
 
   const handleUnsetSystemDark = useCallback(() => {
     showConfirm({
@@ -379,6 +423,10 @@ function ThemesList({
           await unsetSystemDarkTheme();
           refreshData();
           addSuccessToast(t('System dark theme removed'));
+          // Revert to the fallback theme live in the background. Not awaited
+          // (and non-throwing) so a slow /system request never blocks the
+          // confirm modal from closing, the list refresh, or the toast.
+          refreshSystemThemes();
         } catch (err: any) {
           addDangerToast(
             t('Failed to remove system dark theme: %s', err.message),
@@ -386,7 +434,13 @@ function ThemesList({
         }
       },
     });
-  }, [showConfirm, refreshData, addSuccessToast, addDangerToast]);
+  }, [
+    showConfirm,
+    refreshData,
+    refreshSystemThemes,
+    addSuccessToast,
+    addDangerToast,
+  ]);
 
   const initialSort = [{ id: 'theme_name', desc: true }];
   const columns = useMemo(
@@ -450,6 +504,17 @@ function ThemesList({
         id: 'changed_on_delta_humanized',
       },
       {
+        Cell: ({
+          row: {
+            original: { editors = [] },
+          },
+        }: any) => <SubjectPile subjects={editors} />,
+        Header: t('Editors'),
+        accessor: 'editors',
+        disableSortBy: true,
+        id: 'editors',
+      },
+      {
         Cell: ({ row: { original } }: any) => {
           const handleEdit = () => handleThemeEdit(original);
           const handleDelete = () => {
@@ -466,13 +531,33 @@ function ThemesList({
           const handleApply = () => handleThemeApply(original);
           const handleExport = () => handleBulkThemeExport([original]);
 
+          // A user may edit or delete a non-system theme only if they are an
+          // editor (or an admin), including editorship granted indirectly
+          // via EXTRA_EDITORS_RESOLVER. The active system default/dark theme
+          // slot may only be edited or deleted by an admin, even by a user
+          // who is otherwise an editor of that theme, matching the server's
+          // UpdateThemeCommand/DeleteThemeCommand checks. Everyone else gets
+          // a read-only view.
+          const isProtectedSystemTheme = Boolean(
+            original.is_system_default || original.is_system_dark,
+          );
+          const canManageTheme =
+            !original.is_system &&
+            (isProtectedSystemTheme
+              ? isUserAdmin(currentUser)
+              : isUserEditorOrAdmin(
+                  currentUser,
+                  original.editors,
+                  original.extra_editors,
+                ));
+
           const actions = [
             canEdit
               ? {
                   label: 'edit-action',
-                  tooltip: original.is_system ? t('View') : t('Edit'),
+                  tooltip: canManageTheme ? t('Edit') : t('View'),
                   placement: 'bottom',
-                  icon: original.is_system ? 'EyeOutlined' : 'EditOutlined',
+                  icon: canManageTheme ? 'EditOutlined' : 'EyeOutlined',
                   onClick: handleEdit,
                 }
               : null,
@@ -530,7 +615,7 @@ function ThemesList({
                   onClick: () => handleUnsetSystemDark(),
                 }
               : null,
-            canDelete && !original.is_system
+            canDelete && canManageTheme
               ? {
                   label: 'delete-action',
                   tooltip: t('Delete theme'),
@@ -562,6 +647,7 @@ function ThemesList({
       canDelete,
       canApply,
       canExport,
+      currentUser,
       hasDevOverride,
       appliedThemeId,
       canSetSystemThemes,
@@ -658,7 +744,16 @@ function ThemesList({
       <ThemeModal
         addDangerToast={addDangerToast}
         theme={currentTheme}
-        onThemeAdd={() => refreshData()}
+        onThemeAdd={async () => {
+          // Refresh the list row first so it is decoupled from the live
+          // re-apply below (a slow /system request must not block it).
+          refreshData();
+          // If the edited theme is the current system default/dark, re-apply it
+          // live so JSON edits take effect without a full page reload.
+          if (currentTheme?.is_system_default || currentTheme?.is_system_dark) {
+            await refreshSystemThemes();
+          }
+        }}
         onThemeApply={handleThemeModalApply}
         onHide={() => setThemeModalOpen(false)}
         show={themeModalOpen}

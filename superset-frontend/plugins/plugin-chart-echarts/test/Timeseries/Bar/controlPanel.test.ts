@@ -16,14 +16,21 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ControlPanelsContainerProps } from '@superset-ui/chart-controls/types';
+import {
+  ControlPanelsContainerProps,
+  ControlPanelState,
+  isCustomControlItem,
+} from '@superset-ui/chart-controls/types';
 import { GenericDataType } from '@apache-superset/core/common';
 import controlPanel from '../../../src/Timeseries/Regular/Bar/controlPanel';
 import {
   StackControlOptionsWithoutStream,
   StackControlsValue,
 } from '../../../src/constants';
-import { OrientationType } from '../../../src/Timeseries/types';
+import {
+  BarValueLabelPosition,
+  OrientationType,
+} from '../../../src/Timeseries/types';
 
 const config = controlPanel;
 
@@ -130,6 +137,41 @@ test('should have proper form data overrides', () => {
 test('should include stack control in the panel', () => {
   const stackControl = getControl('stack');
   expect(stackControl).toBeDefined();
+});
+
+test('should expose Auto and manual value label positions for Bar charts', () => {
+  const valueLabelPositionControl = getControl(
+    'value_label_position',
+  ) as unknown as {
+    config: {
+      choices: [BarValueLabelPosition, string][];
+      default: BarValueLabelPosition;
+      visibility: (props: ControlPanelsContainerProps) => boolean;
+    };
+  };
+
+  expect(valueLabelPositionControl.config.default).toBe(
+    BarValueLabelPosition.OutsideEnd,
+  );
+  expect(
+    valueLabelPositionControl.config.choices.map(([value]) => value),
+  ).toEqual([
+    BarValueLabelPosition.Auto,
+    BarValueLabelPosition.InsideEnd,
+    BarValueLabelPosition.OutsideEnd,
+    BarValueLabelPosition.InsideCenter,
+    BarValueLabelPosition.InsideBase,
+  ]);
+  expect(
+    valueLabelPositionControl.config.visibility({
+      controls: { show_value: { value: true } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(true);
+  expect(
+    valueLabelPositionControl.config.visibility({
+      controls: { show_value: { value: false } },
+    } as unknown as ControlPanelsContainerProps),
+  ).toBe(false);
 });
 
 test('should use StackControlOptionsWithoutStream for stack control', () => {
@@ -292,3 +334,59 @@ test('x_axis_time_format should be hidden for numeric columns', () => {
     false,
   );
 });
+
+const logControls = config.controlPanelSections
+  .flatMap(section => (section && section.controlSetRows) || [])
+  .flat()
+  .filter(isCustomControlItem)
+  .filter(control => control.name === 'logAxis');
+
+test.each([OrientationType.Vertical, OrientationType.Horizontal])(
+  'prevents logarithmic selection while %s bars are stacked, and restores it when cleared',
+  orientation => {
+    expect(logControls).toHaveLength(2);
+    const state = {
+      controls: {
+        orientation: { value: orientation },
+        stack: { value: StackControlsValue.Stack },
+        logAxis: { value: false },
+      },
+    } as unknown as ControlPanelsContainerProps;
+    expect(
+      logControls.map(control => control.config.visibility!(state, {})),
+    ).toEqual([false, false]);
+    state.controls.stack.value = null;
+    expect(
+      logControls.filter(control => control.config.visibility!(state, {})),
+    ).toHaveLength(1);
+    state.controls.stack.value = StackControlsValue.Stack;
+    state.controls.logAxis.value = true;
+    // A saved chart with both settings must retain a route to turn log mode off.
+    expect(
+      logControls.filter(control => control.config.visibility!(state, {})),
+    ).toHaveLength(1);
+  },
+);
+
+test.each<[boolean, StackControlsValue | null, boolean]>([
+  [true, null, true],
+  [false, null, false],
+  [true, StackControlsValue.Stack, false],
+  [false, StackControlsValue.Stack, false],
+])(
+  'stack control with log=%s and stack=%s is disabled=%s',
+  (logAxis, stack, disabled) => {
+    const state = {
+      controls: { logAxis: { value: logAxis }, stack: { value: stack } },
+    } as unknown as ControlPanelState;
+    expect(
+      config.controlOverrides!.stack!.mapStateToProps!(state, {
+        type: 'SelectControl',
+        value: stack,
+      }),
+    ).toMatchObject({
+      disabled,
+      warning: logAxis ? expect.any(String) : null,
+    });
+  },
+);

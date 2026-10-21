@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 import gzip
+import io
 import ipaddress
 import logging
 import os
@@ -28,6 +29,7 @@ from urllib.request import HTTPRedirectHandler
 
 import pandas as pd
 from flask import current_app as app
+from jinja2.exceptions import TemplateError
 from pandas.errors import OutOfBoundsDatetime
 from sqlalchemy import BigInteger, Boolean, Date, DateTime, Float, String, Text
 from sqlalchemy.exc import MultipleResultsFound
@@ -37,16 +39,27 @@ from superset import db, security_manager
 from superset.commands.dataset.exceptions import (
     DatasetAccessDeniedError,
     DatasetForbiddenDataURI,
+    get_template_render_error_msg,
     MultiCatalogDisabledValidationError,
+    TEMPLATE_RENDER_ERRORS,
 )
 from superset.commands.exceptions import ImportFailedError
-from superset.commands.importers.v1.utils import find_existing_for_import
+from superset.commands.importers.exceptions import IncorrectFormatError
+from superset.commands.importers.v1.utils import (
+    find_existing_by_import_identity,
+    find_existing_for_import,
+)
 from superset.connectors.sqla.models import SqlaTable
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.dataset import DatasetDAO
-from superset.exceptions import SupersetSecurityException
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
-from superset.models.helpers import ChildMultipleResultsFound
+from superset.models.helpers import (
+    ChildMultipleResultsFound,
+    parse_template_params,
+    template_params_equivalent,
+    template_params_for_access_check,
+)
 from superset.sql.parse import Table
 from superset.utils import json
 from superset.utils.core import get_user
@@ -242,6 +255,144 @@ def validate_catalog(config: dict[str, Any]) -> None:
         raise MultiCatalogDisabledValidationError()
 
 
+def _readable_template_params(value: Any) -> dict[str, Any] | None:
+    """Template params as execution will read them, or ``None`` if it can't.
+
+    A config's params arrive as a dict, which the import stores as
+    ``json.dumps(value)`` (see ``JSON_KEYS``) and execution reads back with
+    ``json_to_dict``. That round trip can change values (``json_to_dict``
+    rewrites ``", }"`` even inside a string; ``NaN`` and dates serialize
+    differently), so a dict is put through the same round trip before it is
+    compared or rendered.
+
+    ``None`` never equals readable params, so unreadable params always count
+    as a change, and the binding check below refuses to render with them.
+    """
+    try:
+        if isinstance(value, dict):
+            value = json.dumps(value)
+        return parse_template_params(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _raise_for_import_binding_access(
+    config: dict[str, Any], existing: SqlaTable | None
+) -> None:
+    """Authorize the table binding a dataset import will apply.
+
+    Runs BEFORE ``import_from_dict`` mutates the row, against the *requested*
+    (``config``) binding rather than the stored dataset: the per-table lookup
+    would otherwise resolve the dataset being imported itself (whose ``perm``
+    is schema-blind), letting a ``datasource_access`` holder repoint it to
+    another schema and read it through chart-data. ``allow_editorship=False``
+    means editorship of a same-named dataset is not accepted -- defining or
+    repointing a dataset over a table requires real data access to that
+    table. Skipped when the binding is unchanged (a metadata-only re-import is
+    not a repoint), matching ``UpdateDatasetCommand``.
+    """
+    database = db.session.query(Database).filter_by(id=config["database_id"]).first()
+    if database is None:
+        # A missing database is reported downstream by import_from_dict; there
+        # is no table binding to authorize here.
+        return
+
+    # Resolve the requested binding by MERGING the config over the stored row:
+    # an overwrite only applies the keys the upload carries, so an omitted
+    # field keeps its stored value. Resolving in isolation would mis-authorize
+    # (e.g. omitted ``sql`` -> treat a virtual dataset as physical; omitted
+    # ``template_params`` -> render against ``{}`` while the stored params are
+    # kept).
+    requested_sql = (
+        config["sql"] if "sql" in config else (existing.sql if existing else None)
+    ) or None
+    requested_table_name = config.get("table_name") or (
+        existing.table_name if existing else None
+    )
+    requested_schema = config.get("schema", existing.schema if existing else None)
+    requested_catalog = config.get("catalog", existing.catalog if existing else None)
+    stored_params = (
+        _readable_template_params(existing.template_params) if existing else {}
+    )
+    if "template_params" in config:
+        requested_params = _readable_template_params(config["template_params"])
+        # Re-importing the value already stored is not a change, even when it
+        # is a legacy non-object value (``import_from_dict`` stores it as
+        # ``json.dumps(config[...])``), matching UpdateDatasetCommand's echo
+        # handling. Otherwise compared type-sensitively the way execution reads
+        # them: ``1`` and ``true`` differ even though the dicts are
+        # Python-equal; an unreadable value that is a real change fails closed.
+        config_stored_form = (
+            json.dumps(config["template_params"])
+            if config["template_params"] is not None
+            else None
+        )
+        params_unchanged = (
+            existing is not None and config_stored_form == existing.template_params
+        ) or (
+            requested_params is not None
+            and stored_params is not None
+            and template_params_equivalent(requested_params, stored_params)
+        )
+    else:
+        requested_params = stored_params
+        params_unchanged = True
+
+    if existing is not None and (
+        config["database_id"] == existing.database_id
+        and requested_sql == (existing.sql or None)
+        # A virtual dataset's table_name is only a label -- its SQL is the
+        # binding -- so renaming one is not a repoint, as with PUT and
+        # ``/datasource/save/``.
+        and (bool(requested_sql) or requested_table_name == existing.table_name)
+        and requested_schema == existing.schema
+        and requested_catalog == existing.catalog
+        and params_unchanged
+    ):
+        # Binding unchanged -- a metadata-only re-import, not a repoint.
+        # The database and template_params are part of the binding: an
+        # overwrite that keeps table/schema/catalog/sql but points at a
+        # different database, or changes the params a templated FROM renders
+        # against, still repoints the dataset and must be re-authorized
+        # (matching UpdateDatasetCommand).
+        return
+
+    if requested_sql:
+        if requested_params is None:
+            # Execution would read these params differently than any access
+            # decision made here could, so fail closed as a bad payload.
+            raise IncorrectFormatError("Invalid template_params: must be a JSON object")
+        try:
+            security_manager.raise_for_access(
+                database=database,
+                sql=requested_sql,
+                # Empty strings would qualify table names against a nonexistent
+                # catalog/schema, so they are normalized to None.
+                catalog=requested_catalog or None,
+                schema=requested_schema or None,
+                template_params=template_params_for_access_check(requested_params),
+                allow_editorship=False,
+            )
+        except TEMPLATE_RENDER_ERRORS as ex:
+            # SQL that can't be rendered with its params can't be
+            # access-checked: fail closed as a bad payload, not a 500.
+            raise IncorrectFormatError(
+                f"Invalid SQL: {get_template_render_error_msg(ex)}"
+            ) from ex
+    elif isinstance(requested_table_name, str):
+        # A physical dataset always carries a table_name (the import schema
+        # requires it); the guard also narrows the type for the check below.
+        security_manager.raise_for_access(
+            database=database,
+            table=Table(
+                requested_table_name,
+                requested_schema or None,
+                requested_catalog or None,
+            ),
+            allow_editorship=False,
+        )
+
+
 def import_dataset(  # noqa: C901
     config: dict[str, Any],
     overwrite: bool = False,
@@ -292,7 +443,15 @@ def import_dataset(  # noqa: C901
     # implicit-restore re-import is a clean replacement, not a merge.
     is_soft_deleted_match = False
 
-    if existing := find_existing_for_import(SqlaTable, config["uuid"]):
+    existing = find_existing_for_import(SqlaTable, config["uuid"])
+    if not existing and can_write:
+        # A fresh UUID over the (database, catalog, schema, table) identity of
+        # an existing dataset is still matched-and-updated by
+        # ``import_from_dict``, so resolving only the UUID would leave that
+        # update ungated. Resolve the identity the same way the import will.
+        # (Soft-deleted twins are handled in the create branch further down.)
+        existing = find_existing_by_import_identity(SqlaTable, config)
+    if existing:
         if existing.deleted_at is not None:
             # RESTORE path — re-importing a soft-deleted UUID is an implicit
             # restore-with-update, a distinct operation from overwriting an
@@ -453,6 +612,19 @@ def import_dataset(  # noqa: C901
     # untrusted user imports validate the catalog, like the access checks below.
     if not ignore_permissions:
         validate_catalog(config)
+        # Authorize the table binding the import will apply BEFORE the row is
+        # mutated, against the requested config values (see
+        # ``_raise_for_import_binding_access``).
+        try:
+            _raise_for_import_binding_access(config, existing)
+        except SupersetSecurityException as ex:
+            raise DatasetAccessDeniedError() from ex
+        # SQL that can't be parsed or rendered can't be access-checked, so fail
+        # closed, but as an invalid payload (422) rather than an access denial.
+        except SupersetParseError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex.error.message}") from ex
+        except TemplateError as ex:
+            raise IncorrectFormatError(f"Invalid SQL: {ex}") from ex
 
     # TODO (betodealmeida): move this logic to import_from_dict
     config = config.copy()
@@ -519,10 +691,8 @@ def import_dataset(  # noqa: C901
         # raise so the operator can resolve the legacy-NULL-schema
         # ambiguity before re-uploading.
         if is_soft_deleted_match:
-            # ``is_soft_deleted_match`` is only ever set inside the
-            # ``if existing := ...`` walrus block, so ``existing`` is
-            # guaranteed non-None here. The assert pins the invariant
-            # for mypy.
+            # Set only inside the ``if existing:`` block above; the assert
+            # pins that invariant for mypy.
             assert existing is not None
             existing.deleted_at = original_deleted_at
             db.session.flush()
@@ -533,40 +703,57 @@ def import_dataset(  # noqa: C901
                 "manually before retrying."
             ) from ex
         # On the non-soft-deleted overwrite path the legacy contract
-        # holds: return the existing row unmodified. Bypasses the
-        # visibility filter so a soft-deleted duplicate can be located
-        # too — without the bypass the listener would hide the row and
-        # the ``.one()`` would raise NoResultFound, masking the
-        # original MultipleResultsFound.
-        dataset = (
-            db.session.query(SqlaTable)
-            .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
-            .filter_by(uuid=config["uuid"])
-            .one()
-        )
+        # holds: return the existing row unmodified. Prefer the row already
+        # resolved above — on an identity match the incoming uuid belongs to
+        # no row at all, so looking it up again would raise NoResultFound and
+        # mask the original MultipleResultsFound. Falling back to the uuid
+        # lookup bypasses the visibility filter so a soft-deleted duplicate
+        # can still be located, for the same reason.
+        dataset = existing
+        if dataset is None:
+            dataset = (
+                db.session.query(SqlaTable)
+                .execution_options(**{SKIP_VISIBILITY_FILTER_CLASSES: {SqlaTable}})
+                .filter_by(uuid=config["uuid"])
+                .one()
+            )
 
     if dataset.id is None:
         db.session.flush()
 
     if not ignore_permissions:
+        # Object-level access to the dataset itself (editor/owner, #20382). A
+        # change to the table binding this dataset points at was authorized
+        # before the row was mutated, in ``_raise_for_import_binding_access``
+        # above.
         try:
             security_manager.raise_for_access(datasource=dataset)
         except SupersetSecurityException as ex:
             raise DatasetAccessDeniedError() from ex
 
-    try:
-        table_exists = dataset.database.has_table(
-            Table(dataset.table_name, dataset.schema, dataset.catalog),
-        )
-    except Exception:  # pylint: disable=broad-except
-        # MySQL doesn't play nice with GSheets table names
-        logger.warning(
-            "Couldn't check if table %s exists, assuming it does", dataset.table_name
-        )
-        table_exists = True
+    # `has_table` opens a live connection to the target database to run a
+    # schema-introspection query. Its result is only ever consulted below to
+    # decide whether to call `load_data`, which itself is a no-op unless
+    # `data_uri` is set - so for imports that don't carry inline data (the
+    # common case when bulk-importing dataset *metadata*, e.g. hundreds of
+    # datasets at once), this was an unconditional, unnecessary round trip
+    # to every target database on every single dataset, and a major
+    # contributor to bulk imports timing out.
+    if data_uri:
+        try:
+            table_exists = dataset.database.has_table(
+                Table(dataset.table_name, dataset.schema, dataset.catalog),
+            )
+        except Exception:  # pylint: disable=broad-except
+            # MySQL doesn't play nice with GSheets table names
+            logger.warning(
+                "Couldn't check if table %s exists, assuming it does",
+                dataset.table_name,
+            )
+            table_exists = True
 
-    if data_uri and (not table_exists or force_data):
-        load_data(data_uri, dataset, dataset.database)
+        if not table_exists or force_data:
+            load_data(data_uri, dataset, dataset.database)
 
     if user:
         from superset.subjects.utils import get_user_subject
@@ -611,6 +798,29 @@ def _convert_temporal_columns(df: pd.DataFrame, dtype: dict[str, Any]) -> None:
                 df[column_name] = converted
 
 
+def _read_bounded(stream: Any, max_bytes: int) -> io.BytesIO:
+    """
+    Read ``stream`` into memory, failing once more than ``max_bytes`` bytes
+    have been produced.
+
+    Bounds both the raw download and gzip decompression amplification for
+    dataset data URIs: the ``.gz`` path had no analogue of
+    ``check_is_safe_zip`` and allowed unbounded expansion from a small
+    payload.
+    """
+    buffer = io.BytesIO()
+    while chunk := stream.read(1024 * 1024):
+        # Both http.client responses and gzip.open() yield bytes; a handful
+        # of tests substitute a text stream, so normalize either shape.
+        if isinstance(chunk, str):
+            chunk = chunk.encode("utf-8")
+        buffer.write(chunk)
+        if buffer.tell() > max_bytes:
+            raise ImportFailedError("Data URI payload exceeds the maximum allowed size")
+    buffer.seek(0)
+    return buffer
+
+
 def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
     """
     Load data from a data URI into a dataset.
@@ -637,9 +847,15 @@ def load_data(data_uri: str, dataset: SqlaTable, database: Database) -> None:
         handlers.extend([_PeerValidatingHTTPHandler, _PeerValidatingHTTPSHandler])
     opener = request.build_opener(*handlers)
     data = opener.open(data_uri)  # pylint: disable=consider-using-with  # noqa: S310
+    # Cap the bytes materialized from the download, before and after gzip
+    # decompression (same per-file knob as ZIP bundle uploads): a gzip
+    # stream can carry oversized headers, trailing data, or additional
+    # members that would otherwise let the raw (compressed) download exceed
+    # the limit even when the decompressed CSV stays within it.
+    max_bytes = app.config["ZIPPED_FILE_MAX_SIZE"]
     if data_uri.endswith(".gz"):
-        data = gzip.open(data)
-    df = pd.read_csv(data, encoding="utf-8")
+        data = gzip.open(_read_bounded(data, max_bytes))
+    df = pd.read_csv(_read_bounded(data, max_bytes), encoding="utf-8")
     dtype = get_dtype(df, dataset)
 
     _convert_temporal_columns(df, dtype)

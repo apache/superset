@@ -550,6 +550,12 @@ export interface ThemeContextType {
   canDetectOSPreference: () => boolean;
   createDashboardThemeProvider: (themeId: string) => Promise<Theme | null>;
   getAppliedThemeId: () => number | null;
+  /**
+   * Re-reads the persisted system default/dark themes from the server and
+   * re-applies them live, so changes made on the Themes admin page take effect
+   * without a full page reload.
+   */
+  refreshSystemThemes: () => Promise<void>;
 }
 
 /**

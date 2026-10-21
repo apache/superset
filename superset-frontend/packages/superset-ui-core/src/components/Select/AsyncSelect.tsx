@@ -46,7 +46,6 @@ import {
 } from 'antd/es/select';
 import { debounce, isEqual, uniq } from 'lodash-es';
 import { Constants, Icons } from '@superset-ui/core/components';
-import { Space } from '../Space';
 import {
   getValue,
   hasOption,
@@ -401,6 +400,10 @@ const AsyncSelect = forwardRef(
     const fetchPage = useMemo(
       () => (search: string, page: number) => {
         setPage(page);
+        // A previous fetch may have left an error on screen. Clear it before
+        // any early return so a page served from cache, or from an already
+        // complete option set, is not shown next to a stale error.
+        setError('');
         if (allValuesLoaded) {
           setIsLoading(false);
           return;
@@ -486,7 +489,19 @@ const AsyncSelect = forwardRef(
               setTotalCount(totalCount);
             }
           })
-          .catch(internalOnError)
+          .catch((response: Response) => {
+            // Mirror the results guard above: a failure belonging to a search
+            // the user has since moved on from must not replace the outcome
+            // of the fetch that superseded it. Base fetches (search === '')
+            // are exempt exactly as their results are — they maintain the
+            // accumulator and allValuesLoaded, so their failures must stay
+            // visible even when they land mid-search. The consumer's onError
+            // is skipped along with the banner for superseded searches.
+            if (search && inputValueRef.current !== search) {
+              return undefined;
+            }
+            return internalOnError(response);
+          })
           .finally(() => {
             inFlightFetchesRef.current = Math.max(
               0,
@@ -888,7 +903,7 @@ const AsyncSelect = forwardRef(
           }
           onClear={handleClear}
           options={fullSelectOptions}
-          optionRender={option => <Space>{option.label || option.value}</Space>}
+          optionRender={option => option.label || option.value}
           placeholder={placeholder}
           showSearch={shouldShowSearch}
           tokenSeparators={quoteAwareTokenSeparators}

@@ -20,10 +20,43 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from superset.utils.cache_manager import (
+    CacheManager,
     configurable_hash_method,
     ConfigurableHashMethod,
     SupersetCache,
 )
+
+
+class _OwnerTokenBackend:
+    def acquire_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        return True
+
+    def release_owner_token(self, key: str, owner_token: str) -> bool:
+        return True
+
+    def refresh_owner_token(
+        self,
+        key: str,
+        owner_token: str,
+        lease_seconds: int,
+    ) -> bool:
+        return True
+
+
+def test_semantic_coordination_exposes_only_typed_capability() -> None:
+    manager: CacheManager = CacheManager()
+    supported: _OwnerTokenBackend = _OwnerTokenBackend()
+    manager._distributed_coordination = supported  # type: ignore[assignment]
+
+    assert manager.semantic_cache_coordination is supported
+
+    manager._distributed_coordination = MagicMock(spec=["publish"])
+    assert manager.semantic_cache_coordination is None
 
 
 def test_configurable_hash_method_uses_sha256():
@@ -129,7 +162,7 @@ def test_superset_cache_memoize_make_cache_key_uses_configurable_hash():
         "_memoize_make_cache_key",
         return_value=lambda *args, **kwargs: "cache_key",
     ) as mock_make_key:
-        cache._memoize_make_cache_key(make_name=None, timeout=300)
+        cache._memoize_make_cache_key(make_name=None)
 
         mock_make_key.assert_called_once()
         call_kwargs = mock_make_key.call_args[1]
@@ -145,9 +178,7 @@ def test_superset_cache_memoize_make_cache_key_allows_explicit_hash():
         "_memoize_make_cache_key",
         return_value=lambda *args, **kwargs: "cache_key",
     ) as mock_make_key:
-        cache._memoize_make_cache_key(
-            make_name=None, timeout=300, hash_method=hashlib.md5
-        )
+        cache._memoize_make_cache_key(make_name=None, hash_method=hashlib.md5)
 
         mock_make_key.assert_called_once()
         call_kwargs = mock_make_key.call_args[1]

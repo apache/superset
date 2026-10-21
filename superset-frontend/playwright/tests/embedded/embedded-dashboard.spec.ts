@@ -17,11 +17,7 @@
  * under the License.
  */
 
-import { test, expect, Browser, BrowserContext, Page } from '@playwright/test';
-import { createServer, IncomingMessage, ServerResponse, Server } from 'http';
-import { AddressInfo, Socket } from 'net';
-import { readFileSync, existsSync } from 'fs';
-import { join } from 'path';
+import { test, expect, Page } from '@playwright/test';
 import {
   apiEnableEmbedding,
   getAccessToken,
@@ -29,116 +25,13 @@ import {
 } from '../../helpers/api/embedded';
 import { getDashboardBySlug } from '../../helpers/api/dashboard';
 import { EmbeddedPage } from '../../pages/EmbeddedPage';
-
-/**
- * Superset domain (Flask server) — set by CI or defaults to local dev
- */
-const SUPERSET_DOMAIN = (() => {
-  const url = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:8088';
-  return url.replace(/\/+$/, '');
-})();
-
-const SUPERSET_BASE_URL = SUPERSET_DOMAIN.endsWith('/')
-  ? SUPERSET_DOMAIN
-  : `${SUPERSET_DOMAIN}/`;
-
-/**
- * Path to the SDK bundle built from superset-embedded-sdk/
- */
-const SDK_BUNDLE_PATH = join(
-  __dirname,
-  '../../../../superset-embedded-sdk/bundle/index.js',
-);
-
-/**
- * Path to the embedded test app static files
- */
-const EMBED_APP_DIR = join(__dirname, '../../embedded-app');
-
-/**
- * Create a minimal static file server for the embedded test app.
- * Serves only a fixed allowlist of routes — the test app references just
- * its index.html and the SDK bundle, so anything else is 404.
- */
-const INDEX_HTML_PATH = join(EMBED_APP_DIR, 'index.html');
-
-interface EmbedAppServer {
-  server: Server;
-  url: string;
-  close: () => Promise<void>;
-}
-
-/**
- * Start the static test app on an OS-assigned ephemeral port. Tracks open
- * sockets so close() doesn't hang on iframe keep-alive connections, and so
- * different workers/retries never collide on a fixed port.
- */
-async function startEmbedAppServer(): Promise<EmbedAppServer> {
-  const sockets = new Set<Socket>();
-  const server = createServer((req: IncomingMessage, res: ServerResponse) => {
-    const urlPath = req.url?.split('?')[0] || '/';
-
-    if (urlPath === '/sdk/index.js') {
-      if (!existsSync(SDK_BUNDLE_PATH)) {
-        res.writeHead(404);
-        res.end(
-          'SDK bundle not found. Run: cd superset-embedded-sdk && npm ci && npm run build',
-        );
-        return;
-      }
-      res.writeHead(200, { 'Content-Type': 'text/javascript' });
-      res.end(readFileSync(SDK_BUNDLE_PATH));
-      return;
-    }
-
-    if (urlPath === '/' || urlPath === '/index.html') {
-      res.writeHead(200, { 'Content-Type': 'text/html' });
-      res.end(readFileSync(INDEX_HTML_PATH));
-      return;
-    }
-
-    res.writeHead(404);
-    res.end('Not found');
-  });
-
-  server.on('connection', socket => {
-    sockets.add(socket);
-    socket.once('close', () => sockets.delete(socket));
-  });
-
-  await new Promise<void>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      server.removeListener('error', reject);
-      resolve();
-    });
-  });
-
-  const address = server.address() as AddressInfo;
-  const url = `http://127.0.0.1:${address.port}`;
-
-  return {
-    server,
-    url,
-    close: () =>
-      new Promise<void>(resolve => {
-        for (const socket of sockets) socket.destroy();
-        sockets.clear();
-        server.close(() => resolve());
-      }),
-  };
-}
-
-/**
- * Create a browser context authenticated as admin for API-only work
- * (enabling embedding, restoring config). Caller is responsible for closing.
- */
-function createAdminContext(browser: Browser): Promise<BrowserContext> {
-  return browser.newContext({
-    storageState: 'playwright/.auth/user.json',
-    baseURL: SUPERSET_BASE_URL,
-  });
-}
+import {
+  EmbedAppServer,
+  SUPERSET_DOMAIN,
+  createAdminContext,
+  skipUnlessSdkBundleBuilt,
+  startEmbedAppServer,
+} from '../../helpers/embeddedAppServer';
 
 // ─── Test Suite ────────────────────────────────────────────────────────────
 
@@ -176,11 +69,7 @@ test.describe('Embedded Dashboard E2E', () => {
   }
 
   test.beforeAll(async ({ browser }) => {
-    // Skip all tests if the SDK bundle hasn't been built
-    test.skip(
-      !existsSync(SDK_BUNDLE_PATH),
-      'Embedded SDK bundle not found. Build it with: cd superset-embedded-sdk && npm ci && npm run build',
-    );
+    skipUnlessSdkBundleBuilt();
 
     appServer = await startEmbedAppServer();
 

@@ -63,6 +63,7 @@ export default function transformProps(
     currencyFormat,
     subheader,
     subheaderFontSize,
+    headerAlignment,
   } = formData;
   const refs: Refs = {};
   const {
@@ -143,5 +144,6 @@ export default function transformProps(
     metricName: originalLabel,
     showMetricName,
     metricNameFontSize,
+    headerAlignment,
   };
 }

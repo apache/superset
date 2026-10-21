@@ -26,6 +26,12 @@ from superset.utils.pandas_postprocessing.utils import (
     validate_column_args,
 )
 
+# Upper bound on integer window sizes, matching the documented schema range
+# (1-10000). ``window`` arrives through the post-processing ``options`` dict,
+# which is not schema-validated; a huge integer window combined with
+# ``win_type`` makes scipy allocate a weights array proportional to it.
+MAX_ROLLING_WINDOW = 10_000
+
 
 @validate_column_args("columns")
 def rolling(  # pylint: disable=too-many-arguments
@@ -67,6 +73,15 @@ def rolling(  # pylint: disable=too-many-arguments
         raise InvalidPostProcessingError(_("Undefined window for rolling operation"))
     if window == 0:
         raise InvalidPostProcessingError(_("Window must be > 0"))
+    # Offset-string windows (e.g. "2D") are bounded by the data span and are
+    # left to pandas to validate; only integer windows are capped.
+    if isinstance(window, int) and window > MAX_ROLLING_WINDOW:
+        raise InvalidPostProcessingError(
+            _(
+                "Window must not exceed %(max)s",
+                max=MAX_ROLLING_WINDOW,
+            )
+        )
 
     kwargs["window"] = window
     if min_periods is not None:

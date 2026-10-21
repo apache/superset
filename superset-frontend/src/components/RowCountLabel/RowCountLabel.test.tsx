@@ -20,27 +20,27 @@ import { render, screen, userEvent } from 'spec/helpers/testing-library';
 
 import RowCountLabel from '.';
 
-test('RowCountLabel renders singular result', () => {
+test('RowCountLabel renders singular result', async () => {
   render(<RowCountLabel rowcount={1} limit={100} />);
   const expectedText = '1 row';
   expect(screen.getByText(expectedText)).toBeInTheDocument();
-  userEvent.hover(screen.getByText(expectedText));
+  await userEvent.hover(screen.getByText(expectedText));
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
-test('RowCountLabel renders plural result', () => {
+test('RowCountLabel renders plural result', async () => {
   render(<RowCountLabel rowcount={2} limit={100} />);
   const expectedText = '2 rows';
   expect(screen.getByText(expectedText)).toBeInTheDocument();
-  userEvent.hover(screen.getByText(expectedText));
+  await userEvent.hover(screen.getByText(expectedText));
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
-test('RowCountLabel renders formatted result', () => {
+test('RowCountLabel renders formatted result', async () => {
   render(<RowCountLabel rowcount={1000} limit={10000} />);
   const expectedText = '1k rows';
   expect(screen.getByText(expectedText)).toBeInTheDocument();
-  userEvent.hover(screen.getByText(expectedText));
+  await userEvent.hover(screen.getByText(expectedText));
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });
 
@@ -48,15 +48,31 @@ test('RowCountLabel renders limit with danger and tooltip', async () => {
   render(<RowCountLabel rowcount={100} limit={100} />);
   const expectedText = '100 rows';
   expect(screen.getByText(expectedText)).toBeInTheDocument();
-  userEvent.hover(screen.getByText(expectedText));
+  await userEvent.hover(screen.getByText(expectedText));
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toHaveTextContent('The row limit');
 });
 
-test('RowCountLabel renders loading', () => {
+test('RowCountLabel uses a caller-provided limitReachedMessage instead of the default', async () => {
+  render(
+    <RowCountLabel
+      rowcount={100}
+      limit={100}
+      limitReachedMessage="Custom limit message"
+    />,
+  );
+  const expectedText = '100 rows';
+  expect(screen.getByText(expectedText)).toBeInTheDocument();
+  await userEvent.hover(screen.getByText(expectedText));
+  const tooltip = await screen.findByRole('tooltip');
+  expect(tooltip).toHaveTextContent('Custom limit message');
+  expect(tooltip).not.toHaveTextContent('The row limit set for the chart');
+});
+
+test('RowCountLabel renders loading', async () => {
   render(<RowCountLabel loading />);
   const expectedText = 'Loading...';
   expect(screen.getByText(expectedText)).toBeInTheDocument();
-  userEvent.hover(screen.getByText(expectedText));
+  await userEvent.hover(screen.getByText(expectedText));
   expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
 });

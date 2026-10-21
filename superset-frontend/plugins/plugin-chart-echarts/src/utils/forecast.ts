@@ -60,6 +60,21 @@ export const extractForecastSeriesContexts = (
     {} as { [key: string]: ForecastSeriesEnum[] },
   );
 
+/**
+ * Collapses raw ECharts series ids onto the names used to key tooltip rows.
+ *
+ * Tooltip values are grouped by forecast-stripped name, so any ordering derived
+ * from the raw series ids has to be expressed in the same terms before it can be
+ * matched against them. This matters beyond real Prophet output: a metric simply
+ * labelled `ci__yhat_lower` collapses to `ci` exactly like a forecast bound
+ * does, and a chart whose every series carries such a suffix has no id that
+ * survives the comparison untouched.
+ */
+export const collapseForecastKeys = (seriesIds: string[]): string[] =>
+  Array.from(
+    new Set(seriesIds.map(id => extractForecastSeriesContext(id).name)),
+  );
+
 export const extractForecastValuesFromTooltipParams = (
   params: any[],
   isHorizontal = false,

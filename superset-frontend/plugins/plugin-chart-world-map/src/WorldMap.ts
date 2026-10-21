@@ -31,6 +31,7 @@ import { ColorBy } from './utils';
 
 interface WorldMapDataEntry {
   country: string;
+  sourceValue?: string;
   code: string;
   latitude: number;
   longitude: number;
@@ -80,10 +81,24 @@ interface DatamapSource {
   country?: string;
 }
 
+/**
+ * Escape HTML special characters to prevent XSS attacks. Popup templates are
+ * assigned to the hover element via innerHTML by the datamaps library, and
+ * formatter output can echo a creator-controlled format string verbatim
+ * (see createD3NumberFormatter's invalid-format fallback), so both the name
+ * and the formatted value must be treated as untrusted text.
+ */
+function escapeHtml(text: string): string {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
 const propTypes = {
   data: PropTypes.arrayOf(
     PropTypes.shape({
       country: PropTypes.string,
+      sourceValue: PropTypes.string,
       code: PropTypes.string,
       latitude: PropTypes.number,
       longitude: PropTypes.number,
@@ -174,11 +189,15 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     mapData[d.country] = d;
   });
 
+  /** Resolve the dataset value shared by cross-filter and drill actions. */
+  const getCountryValue = (key: string) =>
+    mapData[key]?.sourceValue ??
+    (countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code);
+
   const getCrossFilterDataMask = (source: DatamapSource) => {
     const selected = Object.values(filterState.selectedValues || {});
     const key = source.id || source.country;
-    const country =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
+    const country = getCountryValue(key);
 
     if (!country) {
       return undefined;
@@ -231,8 +250,7 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
     const pointerEvent = d3.event;
     pointerEvent.preventDefault();
     const key = source.id || source.country;
-    const val =
-      countryFieldtype === 'name' ? mapData[key]?.name : mapData[key]?.code;
+    const val = getCountryValue(key);
     let drillToDetailFilters;
     let drillByFilters;
     if (val) {
@@ -279,9 +297,9 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       highlightBorderWidth: 1,
       popupTemplate: (geo, d) =>
         d &&
-        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
-          d.m1,
-        )}</div>`,
+        `<div class="hoverinfo"><strong>${escapeHtml(
+          d.name,
+        )}</strong><br>${escapeHtml(String(formatter(d.m1)))}</div>`,
     },
     bubblesConfig: {
       borderWidth: 1,
@@ -290,9 +308,9 @@ function WorldMap(element: HTMLElement, props: WorldMapProps): void {
       popupOnHover: !inContextMenu,
       radius: null,
       popupTemplate: (geo, d) =>
-        `<div class="hoverinfo"><strong>${d.name}</strong><br>${formatter(
-          d.m2,
-        )}</div>`,
+        `<div class="hoverinfo"><strong>${escapeHtml(
+          d.name,
+        )}</strong><br>${escapeHtml(String(formatter(d.m2)))}</div>`,
       fillOpacity: 0.5,
       animate: true,
       highlightOnHover: !inContextMenu,

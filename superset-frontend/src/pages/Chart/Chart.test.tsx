@@ -37,6 +37,7 @@ import { useUnsavedChangesPrompt } from 'src/hooks/useUnsavedChangesPrompt';
 import { getParsedExploreURLParams } from 'src/explore/exploreUtils/getParsedExploreURLParams';
 import { toChartStateHistoryState } from 'src/explore/exploreUtils/exploreHistory';
 import * as exploreActions from 'src/explore/actions/exploreActions';
+import * as hydrateExploreActions from 'src/explore/actions/hydrateExplore';
 import * as messageToastActions from 'src/components/MessageToasts/actions';
 import ChartPage from '.';
 
@@ -100,21 +101,18 @@ describe('ChartPage', () => {
     );
   });
 
-  test('displays the dataset name and error when it is prohibited', async () => {
+  test('displays an error when the dataset is prohibited', async () => {
     const chartApiRoute = `glob:*/api/v1/chart/*`;
     const exploreApiRoute = 'glob:*/api/v1/explore/*';
-    const expectedDatasourceName = 'failed datasource name';
     (getParsedExploreURLParams as jest.Mock).mockReturnValue(
       new Map([['datasource_id', 1]]),
     );
     fetchMock.get(exploreApiRoute, () => {
       class Extra {
-        datasource = 123;
-
-        datasource_name = expectedDatasourceName;
+        is_access_denial = true;
       }
       class SupersetSecurityError {
-        message = 'You do not have a permission to the table';
+        message = 'You do not have permission to access this datasource';
 
         extra = new Extra();
       }
@@ -129,10 +127,7 @@ describe('ChartPage', () => {
     await waitFor(
       () =>
         expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
-          JSON.stringify({ datasource_name: expectedDatasourceName }).slice(
-            1,
-            -1,
-          ),
+          'is_access_denial',
         ),
       {
         timeout: 5000,
@@ -155,10 +150,10 @@ describe('ChartPage', () => {
 
     fetchMock.get(exploreApiRoute, () => {
       class Extra {
-        datasource = 123;
+        is_access_denial = true;
       }
       class SupersetSecurityError {
-        message = 'You do not have a permission to the table';
+        message = 'You do not have permission to access this datasource';
 
         extra = new Extra();
       }
@@ -187,10 +182,178 @@ describe('ChartPage', () => {
     ).toBeGreaterThanOrEqual(1);
     expect(getByTestId('mock-explore-chart-panel')).toBeInTheDocument();
     expect(getByTestId('mock-explore-chart-panel')).toHaveTextContent(
-      JSON.stringify({ datasource: 123 }).slice(1, -1),
+      'is_access_denial',
     );
     expect(getByText(expectedChartName)).toBeInTheDocument();
   });
+
+  test('keeps the request-access path for an API that predates is_access_denial', async () => {
+    // During a rolling deploy this frontend can hit an older API pod, whose
+    // denial payload carries `datasource` but not the `is_access_denial` flag.
+    const expectedChartId = 7;
+    const expectedChartName = 'Unauthorized dataset owned chart name';
+    (getParsedExploreURLParams as jest.Mock).mockReturnValue(
+      new Map([['slice_id', expectedChartId]]),
+    );
+    const chartApiRoute = `glob:*/api/v1/chart/${expectedChartId}`;
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+
+    fetchMock.get(exploreApiRoute, () => {
+      class Extra {
+        datasource = 123;
+
+        datasource_name = 'Quarterly Sales';
+      }
+      class SupersetSecurityError {
+        message = 'You do not have a permission to the table';
+
+        extra = new Extra();
+      }
+      throw new SupersetSecurityError();
+    });
+    fetchMock.get(chartApiRoute, {
+      result: {
+        id: expectedChartId,
+        slice_name: expectedChartName,
+        url: 'chartid',
+      },
+    });
+    const { getByTestId, getByText } = render(<ChartPage />, {
+      useRouter: true,
+      useRedux: true,
+      useDnd: true,
+    });
+    await waitFor(
+      () => expect(fetchMock.callHistory.calls(chartApiRoute).length).toBe(1),
+      { timeout: 5000 },
+    );
+    expect(getByText(expectedChartName)).toBeInTheDocument();
+    // the legacy payload still must not name the dataset in Explore's state
+    expect(getByTestId('mock-explore-chart-panel')).not.toHaveTextContent(
+      'Quarterly Sales',
+    );
+  });
+
+  test('omits the datasource identity the chart api returns', async () => {
+    // `GET /api/v1/chart/<id>` is granted to any chart viewer regardless of
+    // dataset access, and its payload names the dataset. On the denial path
+    // that identity must not reach Explore's state.
+    const expectedChartId = 7;
+    (getParsedExploreURLParams as jest.Mock).mockReturnValue(
+      new Map([['slice_id', expectedChartId]]),
+    );
+    const chartApiRoute = `glob:*/api/v1/chart/${expectedChartId}`;
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+
+    fetchMock.get(exploreApiRoute, () => {
+      class Extra {
+        is_access_denial = true;
+      }
+      class SupersetSecurityError {
+        message = 'You do not have permission to access this datasource';
+
+        extra = new Extra();
+      }
+      throw new SupersetSecurityError();
+    });
+    fetchMock.get(chartApiRoute, {
+      result: {
+        id: expectedChartId,
+        slice_name: 'Unauthorized dataset owned chart name',
+        url: 'chartid',
+        datasource_id: 123,
+        datasource_type: 'table',
+        datasource_name_text: 'public.quarterly_sales',
+        datasource_url: '/explore/?datasource_type=table&datasource_id=123',
+        datasource_uuid: 'a1b2c3d4-0000-0000-0000-000000000000',
+        // params/query_context embed the denied dataset's columns and the
+        // literal values its filters compare against
+        params: JSON.stringify({
+          datasource: '123__table',
+          groupby: ['secret_customer_column'],
+        }),
+        query_context: JSON.stringify({
+          datasource: { id: 123, type: 'table' },
+          queries: [{ filters: [{ col: 'region', val: 'EMEA-confidential' }] }],
+        }),
+      },
+    });
+    const { getByTestId } = render(<ChartPage />, {
+      useRouter: true,
+      useRedux: true,
+      useDnd: true,
+    });
+    await waitFor(
+      () => expect(fetchMock.callHistory.calls(chartApiRoute).length).toBe(1),
+      { timeout: 5000 },
+    );
+    const panel = getByTestId('mock-explore-chart-panel');
+    await waitFor(() => expect(panel).toHaveTextContent('is_access_denial'));
+    expect(panel).not.toHaveTextContent('public.quarterly_sales');
+    expect(panel).not.toHaveTextContent('datasource_name_text');
+    expect(panel).not.toHaveTextContent('datasource_url');
+    expect(panel).not.toHaveTextContent('datasource_uuid');
+    expect(panel).not.toHaveTextContent('secret_customer_column');
+    expect(panel).not.toHaveTextContent('EMEA-confidential');
+  });
+
+  test('does not hydrate explore when unmount aborts the chart metadata request', async () => {
+    const expectedChartId = 7;
+    (getParsedExploreURLParams as jest.Mock).mockReturnValue(
+      new Map([['slice_id', expectedChartId]]),
+    );
+    const chartApiRoute = `glob:*/api/v1/chart/${expectedChartId}`;
+    const exploreApiRoute = 'glob:*/api/v1/explore/*';
+
+    fetchMock.get(exploreApiRoute, () => {
+      class Extra {
+        is_access_denial = true;
+      }
+      class SupersetSecurityError {
+        message = 'You do not have permission to access this datasource';
+
+        extra = new Extra();
+      }
+      throw new SupersetSecurityError();
+    });
+
+    // hold the chart request open so the unmount lands mid-flight
+    let settleChart: (value: unknown) => void;
+    const chartPromise = new Promise(resolve => {
+      settleChart = resolve;
+    });
+    fetchMock.get(chartApiRoute, () => chartPromise);
+
+    const hydrateExploreSpy = jest.spyOn(
+      hydrateExploreActions,
+      'hydrateExplore',
+    );
+    const { unmount } = render(<ChartPage />, {
+      useRouter: true,
+      useRedux: true,
+      useDnd: true,
+    });
+    await waitFor(
+      () => expect(fetchMock.callHistory.calls(chartApiRoute).length).toBe(1),
+      { timeout: 5000 },
+    );
+
+    hydrateExploreSpy.mockClear();
+    unmount();
+    await act(async () => {
+      settleChart!({
+        result: { id: expectedChartId, slice_name: 'name', url: 'chartid' },
+      });
+      // the abort rejection reaches the handler only after fetch-retry has
+      // exhausted its 3 x 1s attempts
+      await new Promise(resolve => {
+        setTimeout(resolve, 4000);
+      });
+    });
+    expect(hydrateExploreSpy).not.toHaveBeenCalled();
+
+    hydrateExploreSpy.mockRestore();
+  }, 20000);
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('with dashboardContextFormData', () => {
@@ -223,7 +386,7 @@ describe('ChartPage', () => {
       window.history.pushState(
         {},
         '',
-        `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+        `/explore/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
       const { getByTestId } = render(<ChartPage />, {
         useRouter: true,
@@ -261,13 +424,13 @@ describe('ChartPage', () => {
       window.history.pushState(
         {},
         '',
-        `/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
+        `/explore/?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
       );
       const { getByTestId } = render(
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.dashboardPageId.name}=${dashboardPageId}`,
               state: { saveAction: 'overwrite' },
             }}
@@ -324,7 +487,7 @@ describe('ChartPage', () => {
       });
       render(
         <>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
           <ChartPage />
         </>,
         {
@@ -382,7 +545,7 @@ describe('ChartPage', () => {
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
               state: toChartStateHistoryState({
                 ...formData,
@@ -392,7 +555,7 @@ describe('ChartPage', () => {
           >
             Change the chart
           </Link>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
           <ChartPage />
         </>,
         { useRouter: true, useRedux: true, useDnd: true },
@@ -433,14 +596,14 @@ describe('ChartPage', () => {
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.sliceId.name}=99`,
               state: toChartStateHistoryState({ ...formData, slice_id: 99 }),
             }}
           >
             Another chart
           </Link>
-          <Link to="/?slice_id=100">Navigate away</Link>
+          <Link to="/explore/?slice_id=100">Navigate away</Link>
           <ChartPage />
         </>,
         { useRouter: true, useRedux: true, useDnd: true },
@@ -477,14 +640,14 @@ describe('ChartPage', () => {
         <>
           <Link
             to={{
-              pathname: '/',
+              pathname: '/explore/',
               search: `?${URL_PARAMS.sliceId.name}=${formData.slice_id}`,
               state: toChartStateHistoryState(formData),
             }}
           >
             Change the chart
           </Link>
-          <Link to="/?slice_id=99">Navigate away</Link>
+          <Link to="/explore/?slice_id=99">Navigate away</Link>
           <ChartPage />
         </>,
         { useRouter: true, useRedux: true, useDnd: true, store },
@@ -506,6 +669,32 @@ describe('ChartPage', () => {
       });
       window.history.back();
       await waitFor(() => expect(loads()).toBe(1));
+    });
+
+    test('does not re-fetch explore data when navigating to a dashboard', async () => {
+      const exploreApiRoute = 'glob:*/api/v1/explore/*';
+      const exploreFormData = getExploreFormData({
+        viz_type: VizType.Table,
+        show_cell_bars: true,
+      });
+      fetchMock.get(exploreApiRoute, {
+        result: { dataset: { id: 1 }, form_data: exploreFormData },
+      });
+      render(
+        <>
+          <Link to="/dashboard/5/">Go to dashboard</Link>
+          <ChartPage />
+        </>,
+        { useRouter: true, useRedux: true, useDnd: true },
+      );
+      await waitFor(() =>
+        expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1),
+      );
+
+      fireEvent.click(screen.getByText('Go to dashboard'));
+
+      await new Promise(resolve => setTimeout(resolve, 0));
+      expect(fetchMock.callHistory.calls(exploreApiRoute).length).toBe(1);
     });
   });
 
@@ -559,7 +748,7 @@ describe('ChartPage', () => {
 
     render(
       <>
-        <Link to="/?slice_id=99">Navigate</Link>
+        <Link to="/explore/?slice_id=99">Navigate</Link>
         <ChartPage />
       </>,
       {

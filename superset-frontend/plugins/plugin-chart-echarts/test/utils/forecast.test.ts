@@ -23,6 +23,7 @@ import {
 } from '@superset-ui/core';
 import { SeriesOption } from 'echarts';
 import {
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
@@ -462,5 +463,37 @@ describe('formatForecastTooltipSeries truncation', () => {
       truncation: 'start',
     });
     expect(cell).toBe(`${marker}cpu`);
+  });
+});
+
+describe('collapseForecastKeys', () => {
+  test('leaves plain observation series untouched and in order', () => {
+    expect(collapseForecastKeys(['foo', 'bar'])).toEqual(['foo', 'bar']);
+  });
+
+  test('folds a forecast bundle down to a single key', () => {
+    expect(
+      collapseForecastKeys([
+        'foo',
+        'foo__yhat',
+        'foo__yhat_lower',
+        'foo__yhat_upper',
+      ]),
+    ).toEqual(['foo']);
+  });
+
+  test('keeps a key for metrics whose labels are entirely forecast suffixes', () => {
+    // Charts can carry metrics literally labelled `ci__yhat*` with no plain
+    // observation series. Callers match these against forecast-stripped keys,
+    // so an uncollapsed id here would match nothing and drop every row.
+    expect(
+      collapseForecastKeys(['ci__yhat', 'ci__yhat_lower', 'ci__yhat_upper']),
+    ).toEqual(['ci']);
+  });
+
+  test('preserves the incoming order of distinct series', () => {
+    expect(
+      collapseForecastKeys(['b__yhat_lower', 'a__yhat', 'b__yhat']),
+    ).toEqual(['b', 'a']);
   });
 });

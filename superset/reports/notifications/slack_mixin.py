@@ -103,7 +103,7 @@ Error: %(text)s
                 attempt=retry_attempt,
                 max=retry_max_attempts,
                 remaining=retries_remaining,
-                text=text,
+                text=__("Contact the report owner for error details."),
             )
         if retry_max_attempts is not None:
             return __(
@@ -118,7 +118,7 @@ Error: %(text)s
                 name=name,
                 description=description,
                 max=retry_max_attempts,
-                text=text,
+                text=__("Contact the report owner for error details."),
             )
         return __(
             """*%(name)s*
@@ -129,7 +129,7 @@ Error: %(text)s
     """,
             name=name,
             description=description,
-            text=text,
+            text=__("Contact the report owner for error details."),
         )
 
     def _get_body(self, content: NotificationContent) -> str:
@@ -174,7 +174,7 @@ Error: %(text)s
             truncated_df = pd.concat(
                 [truncated_df, truncated_row.to_frame().T], ignore_index=True
             )
-            tabulated = df.to_markdown()
+            tabulated = truncated_df.to_markdown()
             table = f"```\n{tabulated}\n```\n\n(table was truncated)"
             message = self._message_template(table=table, content=content)
             if len(message) > MAXIMUM_MESSAGE_SIZE:
@@ -184,7 +184,7 @@ Error: %(text)s
                 truncated_df = pd.concat(
                     [truncated_df, truncated_row.to_frame().T], ignore_index=True
                 )
-                tabulated = df.to_markdown()
+                tabulated = truncated_df.to_markdown()
                 table = (
                     f"```\n{tabulated}\n```\n\n(table was truncated)"
                     if len(truncated_df) > 0
