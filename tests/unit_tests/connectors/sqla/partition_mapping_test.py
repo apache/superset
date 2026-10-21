@@ -2860,7 +2860,7 @@ def test_a_verdict_stored_before_the_all_null_rule_is_not_read(app: Flask) -> No
 
         evaluate_transform(database, None, None, transform, [1790850600])
 
-        assert database.get_df.called
+        assert cast(MagicMock, database.get_df).called
         assert known_mirror_verdict(database, None, None, transform) is False
 
 

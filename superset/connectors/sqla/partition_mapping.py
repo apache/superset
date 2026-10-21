@@ -563,7 +563,9 @@ def _native_generic_type(
 #: A declared type naming an array: PostgreSQL's ``TEXT[]`` / ``INTEGER[][]``
 #: / ``int[3]``, and the ``ARRAY<...>`` / ``ARRAY(...)`` / ``Array(...)``
 #: spellings of Hive, Spark, Trino, BigQuery and ClickHouse.
-_ARRAY_TYPE_RE = re.compile(r"(\[\s*\d*\s*\])+\s*$|^\s*ARRAY\b", re.IGNORECASE)
+#: The bracket body is written so no two runs can match the same blanks:
+#: ``\s*\d*\s*`` backtracks polynomially on a long run of spaces.
+_ARRAY_TYPE_RE = re.compile(r"(?:\[\s*(?:\d+\s*)?\])+\s*$|^\s*ARRAY\b", re.IGNORECASE)
 
 
 def declares_array_type(column_type: str | None) -> bool:

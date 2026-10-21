@@ -101,7 +101,7 @@ export function transformCanPreview(
  * it: PostgreSQL's `TEXT[]`, and the `ARRAY<...>` / `ARRAY(...)` / `Array(...)`
  * spellings.
  */
-const ARRAY_TYPE_RE = /(\[[^\S\r\n]*[0-9]*[^\S\r\n]*\])+\s*$|^\s*ARRAY\b/i;
+const ARRAY_TYPE_RE = /(?:\[\s*(?:\d+\s*)?\])+\s*$|^\s*ARRAY\b/i;
 
 /**
  * Whether the mapping will actually mirror anything.
@@ -298,6 +298,17 @@ export function partitionRowState(
 }
 
 /**
+ * Declared types the engine renders a datetime for on its own.
+ *
+ * `python_date_format` only reaches the comparison when the engine's
+ * `convert_dttm` answers nothing (`dttm_sql_literal`), which is the case for a
+ * column flagged temporal whose *declared* type is not. A real `TIMESTAMP`
+ * column carrying a format still compares the engine's own literal, so it
+ * keeps the ISO sample.
+ */
+const TEMPORAL_TYPE_RE = /DATE|TIME|TIMESTAMP|DATETIME/i;
+
+/**
  * The transform to pre-fill when a column becomes the mapped one.
  *
  * Only temporal columns get one, and only when the engine supplies it:
@@ -357,17 +368,6 @@ const DATE_SAMPLE = '2026-01-15 00:00:00';
 
 /** Declared types that keep a time of day: TIMESTAMP, DATETIME, TIME. */
 const TIME_OF_DAY_TYPE_RE = /TIME/i;
-
-/**
- * Declared types the engine renders a datetime for on its own.
- *
- * `python_date_format` only reaches the comparison when the engine's
- * `convert_dttm` answers nothing (`dttm_sql_literal`), which is the case for a
- * column flagged temporal whose *declared* type is not. A real `TIMESTAMP`
- * column carrying a format still compares the engine's own literal, so it
- * keeps the ISO sample.
- */
-const TEMPORAL_TYPE_RE = /DATE|TIME|TIMESTAMP|DATETIME/i;
 
 /**
  * Each `strftime` directive's value for the sample instant.

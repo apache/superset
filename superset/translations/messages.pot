@@ -934,6 +934,9 @@ msgstr ""
 msgid "A SQL expression evaluated against the engine, with :value standing for the filter bound being mirrored."
 msgstr ""
 
+msgid "A SQL expression using :value"
+msgstr ""
+
 msgid "A Slack channel is required for Slack recipients"
 msgstr ""
 
@@ -6252,6 +6255,10 @@ msgid "Equal Date Sizes"
 msgstr ""
 
 msgid "Equal to (=)"
+msgstr ""
+
+#, python-format
+msgid "Equality and list filters on %(mapped)s will automatically apply an equivalent filter to %(partition)s. Time ranges and other range filters are not mirrored until \"Transform preserves ordering\" is on."
 msgstr ""
 
 msgid "Equals"
@@ -15256,6 +15263,9 @@ msgstr ""
 msgid "This dataset is managed externally, and can't be edited in Superset"
 msgstr ""
 
+msgid "This dataset is partitioned. Listing filter values without a time range reads every partition, so a time range is set by default. Clear it to list values from all time."
+msgstr ""
+
 msgid "This defines the element to be plotted on the chart"
 msgstr ""
 
@@ -18459,9 +18469,6 @@ msgid "top"
 msgstr ""
 
 msgid "undo"
-msgstr ""
-
-msgid "unix_timestamp(:value)"
 msgstr ""
 
 msgid "unknown type icon"
