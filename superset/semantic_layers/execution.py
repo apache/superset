@@ -31,6 +31,7 @@ from sqlalchemy import select
 from sqlalchemy.engine import Connection, Engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import object_session, Session
+from sqlalchemy.pool import SingletonThreadPool, StaticPool
 from sqlalchemy.sql import Select
 from superset_core.semantic_layers.context import (
     ExecutionMethod,
@@ -114,9 +115,20 @@ def metadata_namespace(connection: Connection) -> str:
             "before starting a SQLite transaction"
         )
     engine: Engine = connection.engine
+    if connection.dialect.name == "sqlite" and isinstance(
+        engine.pool, (SingletonThreadPool, StaticPool)
+    ):
+        # These pools share the caller's connection; recreating them loses an
+        # in-memory store. The transaction guard above protects caller writes.
+        return _install_namespace(engine)
     # A separate pool preserves the configured connection creator/on-connect
     # hooks without waiting for capacity held by this caller in the original pool.
-    bootstrap: Engine = Engine(engine.pool.recreate(), engine.dialect, engine.url)
+    bootstrap: Engine = Engine(
+        engine.pool.recreate(),
+        engine.dialect,
+        engine.url,
+        execution_options=engine.get_execution_options(),
+    )
     try:
         return _install_namespace(bootstrap)
     finally:

@@ -17,9 +17,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Hashable, Iterator
 from datetime import timedelta
 from pathlib import Path
+from sqlite3 import Connection as SQLiteConnection
 from typing import Any
 from unittest.mock import MagicMock
 from uuid import UUID
@@ -32,7 +33,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy import create_engine, event, func, select
 from sqlalchemy.engine import Engine, make_url
 from sqlalchemy.orm import Session
-from sqlalchemy.pool import NullPool, QueuePool
+from sqlalchemy.pool import NullPool, QueuePool, SingletonThreadPool, StaticPool
 
 from superset.charts.data.api import ChartDataRestApi
 from superset.commands.chart.data.get_data_command import ChartDataCommand
@@ -343,5 +344,79 @@ def test_missing_identity_with_sqlite_write_fails_without_committing(
         _install_namespace(engine)
         with Session(engine) as session:
             assert context_for_session(session).datasource.get_extra_cache_keys({})
+    finally:
+        engine.dispose()
+
+
+@pytest.mark.parametrize("poolclass", [SingletonThreadPool, StaticPool])
+def test_missing_identity_in_memory_preserves_store(
+    namespace_app: Flask, poolclass: type[SingletonThreadPool] | type[StaticPool]
+) -> None:
+    """First use retains the in-memory store and does not flush caller objects."""
+    engine: Engine = create_engine("sqlite://", poolclass=poolclass)
+    try:
+        KeyValueEntry.__table__.create(engine)
+        with Session(engine) as writer:
+            writer.connection().execute(
+                KeyValueEntry.__table__.insert().values(
+                    uuid=UUID(int=20),
+                    resource=KeyValueResource.SEMANTIC_EXECUTION.value,
+                    value=JsonKeyValueCodec().encode({"pending": True}),
+                )
+            )
+            with pytest.raises(
+                ValueError, match="before starting a SQLite transaction"
+            ):
+                context_for_session(writer).datasource.get_extra_cache_keys({})
+            writer.rollback()
+        with Session(engine) as session:
+            assert session.scalar(select(func.count()).select_from(KeyValueEntry)) == 0
+            context: QueryContext = context_for_session(session)
+            generation: Hashable = context.datasource.get_extra_cache_keys({})[0]
+            assert generation
+            assert isinstance(context.datasource, SemanticView)
+            assert context.datasource.semantic_layer in session.new
+            session.rollback()
+        with Session(engine) as reader:
+            assert reader.scalar(select(func.count()).select_from(KeyValueEntry)) == 1
+            assert (
+                context_for_session(reader).datasource.get_extra_cache_keys({})[0]
+                == generation
+            )
+    finally:
+        engine.dispose()
+
+
+def test_missing_identity_uses_metadata_schema(
+    namespace_app: Flask, tmp_path: Path
+) -> None:
+    """Bootstrap writes the configured schema, never an available default table."""
+    engine: Engine = create_engine(f"sqlite:///{tmp_path / 'main.db'}")
+
+    def attach_schema(connection: SQLiteConnection, record: object) -> None:
+        connection.execute(
+            "ATTACH DATABASE ? AS tenant", (str(tmp_path / "tenant.db"),)
+        )
+
+    event.listen(engine, "connect", attach_schema)
+    tenant: Engine = engine.execution_options(schema_translate_map={None: "tenant"})
+    try:
+        KeyValueEntry.__table__.create(engine)
+        KeyValueEntry.__table__.create(tenant)
+        with Session(tenant) as session:
+            generation: Hashable = context_for_session(
+                session
+            ).datasource.get_extra_cache_keys({})[0]
+        with Session(tenant) as reader:
+            assert reader.scalar(select(func.count()).select_from(KeyValueEntry)) == 1
+            assert (
+                context_for_session(reader).datasource.get_extra_cache_keys({})[0]
+                == generation
+            )
+        with Session(engine) as default_schema:
+            assert (
+                default_schema.scalar(select(func.count()).select_from(KeyValueEntry))
+                == 0
+            )
     finally:
         engine.dispose()
