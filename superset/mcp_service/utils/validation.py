@@ -18,6 +18,7 @@
 """Bounded, input-free diagnostics for MCP argument validation."""
 
 from collections.abc import Iterator
+from functools import lru_cache
 from typing import Any
 
 from fastmcp.exceptions import ValidationError as FastMCPValidationError
@@ -35,6 +36,14 @@ _REASONS = {
     "unsafe_text": (
         "Contains disallowed content (HTML, script or data: URL, event handler, "
         "or SQL keyword); a 'data:' label must not be followed by a comma"
+    ),
+    "empty_text": "Text must not be empty",
+    "empty_certification_text": (
+        'No content remains after sanitization; pass an explicit empty string ("") '
+        "to clear the field"
+    ),
+    "bullet_label_comma": (
+        "Bullet labels cannot contain commas; use labels without commas"
     ),
     "missing_argument": "Field required",
     "missing_keyword_only_argument": "Field required",
@@ -104,6 +113,75 @@ def _schema_nodes(
                 )
 
 
+@lru_cache(maxsize=1)
+def _chart_config_diagnostic_schema() -> dict[str, Any]:
+    """Keep full chart field metadata server-side for compact tool schemas."""
+    from pydantic import TypeAdapter
+
+    from superset.mcp_service.chart.schemas import ChartConfig
+
+    return TypeAdapter(ChartConfig).json_schema()
+
+
+@lru_cache(maxsize=1)
+def _chart_config_union_marker() -> str | None:
+    """Obtain Pydantic's server-generated outer union label, without parsing it.
+
+    Update requests accept both the tagged chart union and a partial Treemap
+    config. Pydantic inserts an additional branch label into their locations.
+    A constant invalid discriminator identifies that label across versions.
+    """
+    from pydantic import TypeAdapter
+
+    from superset.mcp_service.chart.schemas import UpdateChartRequest
+
+    adapter = TypeAdapter(UpdateChartRequest.model_fields["config"].annotation)
+    try:
+        adapter.validate_python({"chart_type": "__diagnostic_unknown__"})
+    except ValidationError as error:
+        for item in error.errors(include_input=False, include_context=False):
+            if item["type"] == "union_tag_invalid" and len(item["loc"]) == 1:
+                marker = item["loc"][0]
+                return marker if isinstance(marker, str) else None
+    return None
+
+
+def _compact_chart_location(
+    node: dict[str, Any], location: tuple[str | int, ...]
+) -> str | None:
+    """Resolve only the exact server-owned compact chart schema and known tags."""
+    if (
+        node.get("required") != ["chart_type"]
+        or node.get("additionalProperties") is not True
+    ):
+        return None
+    from superset.mcp_service.chart.schemas import CHART_CONFIG_REFERENCE_SCHEMA
+
+    if (
+        {
+            key: value
+            for key, value in node.items()
+            if key not in {"description", "title"}
+        }
+        != CHART_CONFIG_REFERENCE_SCHEMA
+        or not location
+        or not isinstance(location[0], str)
+    ):
+        return None
+    if location[0] == _chart_config_union_marker():
+        location = location[1:]
+    if not location or not isinstance(location[0], str):
+        return None
+    schema = _chart_config_diagnostic_schema()
+    reference = schema.get("discriminator", {}).get("mapping", {}).get(location[0])
+    if not isinstance(reference, str) or not reference.startswith("#/$defs/"):
+        return None
+    # The tag is Pydantic's union branch marker, not an input field. Resolve
+    # subsequent fields against that branch, never against arbitrary dict keys.
+    branch_schema = {"$ref": reference, "$defs": schema.get("$defs", {})}
+    return _schema_location(branch_schema, location[1:])
+
+
 def _schema_location(schema: dict[str, Any], location: tuple[str | int, ...]) -> str:
     """Expose only declared fields and array indices along the schema path.
 
@@ -113,9 +191,12 @@ def _schema_location(schema: dict[str, Any], location: tuple[str | int, ...]) ->
     """
     nodes = [schema]
     parts = []
-    for part in location[:8]:
+    for index, part in enumerate(location[:8]):
         children: list[dict[str, Any]] = []
         for node in _schema_nodes(schema, nodes):
+            chart_location = _compact_chart_location(node, location[index:8])
+            if chart_location is not None:
+                return ".".join([*parts, chart_location])
             child: Any = None
             if isinstance(part, str):
                 properties = node.get("properties")

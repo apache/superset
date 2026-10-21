@@ -1428,6 +1428,17 @@ names do not make nonnumeric values eligible.
 - In development mode, ensure `MCP_DEV_USERNAME` maps to a user with appropriate roles (e.g., Admin)
 - Check `superset/security/manager.py` for the specific permission tuples required by each tool domain (e.g., `("can_execute_sql_query", "SQLLab")`)
 
+### Rejected text fields
+
+Text-sanitization errors identify the rejected field and provide a fixed reason
+without echoing its value. This applies to titles, certification text, chart
+column names and labels, filter values, temporal and Gantt sort columns, Bullet
+labels, and time-range or comparison-period text. A `data:` label followed by a
+comma is rejected as a possible data URL; rewrite the label without `data:` or
+without the comma. Bullet labels cannot contain commas at all because their
+frontend controls use comma-separated values. Empty certification text must be
+cleared with an explicit empty string rather than text that sanitizes to nothing.
+
 ### Response too large
 
 Two independent limits can reject a large result. Check the error type to tell them apart:

@@ -83,6 +83,7 @@ from pydantic import (
     model_validator,
 )
 from pydantic.json_schema import SkipJsonSchema
+from pydantic_core import PydanticCustomError
 
 from superset.semantic_layers.access import is_semantic_layers_enabled
 
@@ -1377,9 +1378,10 @@ class ManageDashboardCertificationRequest(BaseModel):
             # Empty string means "clear the field", so an input that
             # sanitizes down to nothing (HTML-only or whitespace-only) must
             # not silently erase an existing certification.
-            raise ValueError(
+            raise PydanticCustomError(
+                "empty_certification_text",
                 "certified_by has no content left after sanitization; pass "
-                'an explicit empty string ("") to clear the field.'
+                'an explicit empty string ("") to clear the field.',
             )
         return sanitized
 
@@ -1395,10 +1397,11 @@ class ManageDashboardCertificationRequest(BaseModel):
         )
         if not sanitized:
             # Same guard as certified_by: only an explicit "" may clear.
-            raise ValueError(
+            raise PydanticCustomError(
+                "empty_certification_text",
                 "certification_details has no content left after "
                 'sanitization; pass an explicit empty string ("") to clear '
-                "the field."
+                "the field.",
             )
         return sanitized
 

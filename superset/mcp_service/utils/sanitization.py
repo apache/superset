@@ -33,6 +33,7 @@ import html
 import re
 
 import nh3
+from pydantic_core import PydanticCustomError
 
 
 def _strip_html_tags(value: str) -> str:
@@ -107,7 +108,9 @@ def _check_dangerous_url_scheme(value: str, field_name: str) -> None:
     data_scheme = _WHITESPACE_DATA_SCHEME_RE.search(value)
     has_data_payload = data_scheme is not None and value.rfind(",") >= data_scheme.end()
     if _DANGEROUS_URL_SCHEME_RE.search(value) or has_data_payload:
-        raise ValueError(f"{field_name} contains potentially malicious URL scheme")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially malicious URL scheme"
+        )
 
 
 def _check_dangerous_stored_procedures(value: str, field_name: str) -> None:
@@ -115,7 +118,10 @@ def _check_dangerous_stored_procedures(value: str, field_name: str) -> None:
     ``sp_executesql``."""
     v_lower = value.lower()
     if "xp_cmdshell" in v_lower or "sp_executesql" in v_lower:
-        raise ValueError(f"{field_name} contains potentially malicious SQL procedures.")
+        raise PydanticCustomError(
+            "unsafe_text",
+            f"{field_name} contains potentially malicious SQL procedures.",
+        )
 
 
 def _check_dangerous_patterns(value: str, field_name: str) -> None:
@@ -137,7 +143,9 @@ def _check_dangerous_patterns(value: str, field_name: str) -> None:
     # NOTE: this regex false-positives on SQL like ``monthly = 12`` (matches
     # ``on``+``thly``+``=``); ``sanitize_sql_expression`` skips this check.
     if re.search(r"on\w+\s*=", value, re.IGNORECASE):
-        raise ValueError(f"{field_name} contains potentially malicious event handler")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially malicious event handler"
+        )
 
 
 def _check_sql_patterns(value: str, field_name: str) -> None:
@@ -157,15 +165,22 @@ def _check_sql_patterns(value: str, field_name: str) -> None:
         value,
         re.IGNORECASE,
     ):
-        raise ValueError(f"{field_name} contains potentially unsafe SQL keywords")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially unsafe SQL keywords"
+        )
 
     # Check for shell metacharacters and SQL comments
     if re.search(r"[;|&$`]|--", value):
-        raise ValueError(f"{field_name} contains potentially unsafe characters")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially unsafe characters"
+        )
 
     # Check for SQL comment start
     if "/*" in value:
-        raise ValueError(f"{field_name} contains potentially unsafe SQL comment syntax")
+        raise PydanticCustomError(
+            "unsafe_text",
+            f"{field_name} contains potentially unsafe SQL comment syntax",
+        )
 
 
 def _remove_dangerous_unicode(value: str) -> str:
@@ -247,20 +262,21 @@ def sanitize_user_input(
     if value is None:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     value = value.strip()
 
     if not value:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     # Length check first to prevent ReDoS attacks
     if len(value) > max_length:
-        raise ValueError(
+        raise PydanticCustomError(
+            "string_too_long",
             f"{field_name} too long ({len(value)} characters). "
-            f"Maximum allowed length is {max_length} characters."
+            f"Maximum allowed length is {max_length} characters.",
         )
 
     # Remove dangerous Unicode characters BEFORE any check so zero-widths
@@ -275,7 +291,7 @@ def sanitize_user_input(
     if not value:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     # Strip all HTML tags using nh3. This decodes HTML entities internally
     # (see _strip_html_tags), which can turn an entity-encoded zero-width
@@ -326,9 +342,10 @@ def sanitize_filter_value(
 
     # Length check first
     if len(value) > max_length:
-        raise ValueError(
+        raise PydanticCustomError(
+            "string_too_long",
             f"Filter value too long ({len(value)} characters). "
-            f"Maximum allowed length is {max_length} characters."
+            f"Maximum allowed length is {max_length} characters.",
         )
 
     # Remove dangerous Unicode characters BEFORE any check so zero-widths
@@ -360,19 +377,24 @@ def sanitize_filter_value(
     ]
     for pattern in sql_patterns:
         if re.search(pattern, value, re.IGNORECASE):
-            raise ValueError(
-                "Filter value contains potentially malicious SQL patterns."
+            raise PydanticCustomError(
+                "unsafe_text",
+                "Filter value contains potentially malicious SQL patterns.",
             )
 
     # Check for shell metacharacters that could indicate injection attempts
     # Note: We allow '&' alone as it's common in text ("A & B") and is only
     # dangerous in shell contexts, not in database queries
     if re.search(r"[;|`$()]", value):
-        raise ValueError("Filter value contains potentially unsafe shell characters.")
+        raise PydanticCustomError(
+            "unsafe_text", "Filter value contains potentially unsafe shell characters."
+        )
 
     # Check for hex encoding
     if re.search(r"\\x[0-9a-fA-F]{2}", value):
-        raise ValueError("Filter value contains hex encoding which is not allowed.")
+        raise PydanticCustomError(
+            "unsafe_text", "Filter value contains hex encoding which is not allowed."
+        )
 
     return value
 
@@ -409,18 +431,19 @@ def sanitize_sql_expression(  # noqa: C901
     if value is None:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     value = value.strip()
     if not value:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     if len(value) > max_length:
-        raise ValueError(
+        raise PydanticCustomError(
+            "string_too_long",
             f"{field_name} too long ({len(value)} characters). "
-            f"Maximum allowed length is {max_length} characters."
+            f"Maximum allowed length is {max_length} characters.",
         )
 
     # Strip zero-widths, then decode entities, then strip again: decoding
@@ -444,25 +467,30 @@ def sanitize_sql_expression(  # noqa: C901
     if not value:
         if allow_empty:
             return None
-        raise ValueError(f"{field_name} cannot be empty")
+        raise PydanticCustomError("empty_text", f"{field_name} cannot be empty")
 
     if _HTML_TAG_LIKE_RE.search(value):
-        raise ValueError(
+        raise PydanticCustomError(
+            "unsafe_text",
             f"{field_name} contains an HTML tag-like construct "
-            f"(SQL expressions cannot embed HTML)"
+            f"(SQL expressions cannot embed HTML)",
         )
 
     if ";" in value:
-        raise ValueError(
-            f"{field_name} contains ';' — statement stacking is not allowed"
+        raise PydanticCustomError(
+            "unsafe_text",
+            f"{field_name} contains ';' — statement stacking is not allowed",
         )
     if "--" in value or "/*" in value or "*/" in value:
-        raise ValueError(f"{field_name} contains SQL comment syntax")
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains SQL comment syntax"
+        )
 
     if _SQL_EXPR_DDL_DML_RE.search(value):
-        raise ValueError(
+        raise PydanticCustomError(
+            "unsafe_text",
             f"{field_name} contains a disallowed SQL keyword "
-            f"(DDL/DML statements are not permitted in metrics)"
+            f"(DDL/DML statements are not permitted in metrics)",
         )
 
     _check_dangerous_stored_procedures(value, field_name)

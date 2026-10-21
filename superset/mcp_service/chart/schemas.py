@@ -886,7 +886,7 @@ class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
 
 class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     name: str | None = Field(
         None,
@@ -1058,7 +1058,7 @@ LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
 class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     column: str = Field(
         ...,
@@ -1178,7 +1178,7 @@ class SortByConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 class GanttSortByConfig(UnknownFieldCheckMixin):
     """One physical-column ordering applied before Gantt rendering."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     column: str = Field(
         ...,
@@ -4605,9 +4605,10 @@ class BulletChartConfig(BaseChartConfig):
         result: list[str] = []
         for label in labels:
             if "," in label:
-                raise ValueError(
+                raise PydanticCustomError(
+                    "bullet_label_comma",
                     "Bullet labels cannot contain commas because the frontend "
-                    "comma-separated controls have no escaping"
+                    "comma-separated controls have no escaping",
                 )
             if label == "":
                 result.append("")
