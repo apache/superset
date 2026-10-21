@@ -66,17 +66,25 @@ def _coerce_dataset_id(raw_dataset_id: Any) -> Optional[int]:
 
 
 def dashboard_dataset_ids(metadata: dict[str, Any]) -> set[int]:
-    """Dataset ids a dashboard's native filters and display controls target."""
-    return {
-        dataset_id
+    """Dataset ids a dashboard's native filters and display controls target.
+
+    A semantic-view target's ``datasetId`` names a view, not a table, so it is
+    left out here, as ``export_dashboard_references`` leaves it out for tables.
+    """
+    targets = [
+        target
         for native_filter in metadata.get("native_filter_configuration", [])
         for target in native_filter.get("targets", [])
-        if (dataset_id := _coerce_dataset_id(target.get("datasetId"))) is not None
-    } | {
-        dataset_id
+    ] + [
+        target
         for customization in metadata.get("chart_customization_config") or []
         for target in customization.get("targets") or []
-        if (dataset_id := _coerce_dataset_id(target.get("datasetId"))) is not None
+    ]
+    return {
+        dataset_id
+        for target in targets
+        if target.get("datasourceType") in (None, "table")
+        and (dataset_id := _coerce_dataset_id(target.get("datasetId"))) is not None
     }
 
 

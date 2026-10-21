@@ -24,7 +24,7 @@ import yaml
 from superset import security_manager
 from superset.commands.annotation_layer.export import ExportAnnotationLayersCommand
 from superset.commands.base import BaseCommand
-from superset.commands.chart.export import ExportChartsCommand, find_chart_dataset
+from superset.commands.chart.export import ExportChartsCommand
 from superset.commands.dashboard.export import (
     dashboard_dataset_ids,
     ExportDashboardsCommand,
@@ -38,6 +38,7 @@ from superset.daos.chart import ChartDAO
 from superset.daos.dashboard import DashboardDAO
 from superset.daos.dataset import DatasetDAO
 from superset.utils import json
+from superset.utils.core import DatasourceType
 from superset.utils.dict_import_export import EXPORT_VERSION
 
 METADATA_FILE_NAME = "metadata.yaml"
@@ -127,24 +128,30 @@ class ExportAssetsCommand(BaseCommand):
         leaves the trash out. A chart or a native filter whose dataset is in the
         trash still writes its ``dataset_uuid`` / ``datasetUuid``, and the import
         resolves those from the bundle, so those datasets are exported as well.
-        The DAO base filter still applies to every lookup.
+
+        Every id goes through one lookup with the DAO base filter. A chart's
+        ``Slice.table`` relationship is loaded without it, and a dataset the user
+        cannot read would make ``ExportDatasetsCommand.validate()`` fail the whole
+        export.
         """
-        referenced = {
-            dataset.id
+        candidate_ids = {
+            chart.datasource_id
             for chart in ChartDAO.find_by_ids(chart_ids)
-            if (dataset := find_chart_dataset(chart)) is not None
+            if chart.datasource_type == DatasourceType.TABLE
+            and chart.datasource_id is not None
         }
-        filter_ids: set[int] = set()
         for dashboard in DashboardDAO.find_by_ids(dashboard_ids):
             try:
                 metadata = json.loads(dashboard.json_metadata or "{}")
             except (TypeError, json.JSONDecodeError):
                 continue
-            filter_ids |= dashboard_dataset_ids(metadata)
-        referenced |= {
+            # A stored null or list parses, but names no targets
+            if isinstance(metadata, dict):
+                candidate_ids |= dashboard_dataset_ids(metadata)
+        referenced = {
             dataset.id
             for dataset in DatasetDAO.find_by_ids(
-                list(filter_ids), skip_visibility_filter=True
+                list(candidate_ids), skip_visibility_filter=True
             )
         }
         return sorted(referenced - set(dataset_ids))

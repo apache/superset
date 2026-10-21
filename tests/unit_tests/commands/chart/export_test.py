@@ -407,6 +407,92 @@ def test_assets_export_carries_the_soft_deleted_datasets_it_references(
     )
 
 
+def test_assets_export_leaves_out_a_live_dataset_the_user_cannot_read(
+    app_context: None,
+    chart_editor_without_dataset_access: User,
+    chart_on_dataset: Slice,
+) -> None:
+    """A chart's dataset counts only if the DAO base filter lets the user read it.
+
+    ``Slice.table`` is loaded without that filter, so the chart named a live
+    dataset the user holds no grant on, and ``ExportDatasetsCommand.validate()``
+    then failed the whole export with ``DatasetNotFoundError``.
+    """
+    _next_request()
+
+    assert (
+        ExportAssetsCommand._referenced_trashed_dataset_ids(
+            [chart_on_dataset.id], [], []
+        )
+        == []
+    )
+
+
+@pytest.mark.usefixtures("permissive_security")
+def test_assets_export_reads_dashboards_whose_metadata_is_not_an_object(
+    app_context: None,
+    chart_on_dataset: Slice,
+) -> None:
+    """A stored ``null`` or ``[]`` parses, and must not stop the other dashboards."""
+    dataset = chart_on_dataset.table
+    target = {"datasetId": dataset.id, "column": {"name": "ds"}}
+    dashboards = [
+        Dashboard(dashboard_title="null", json_metadata="null"),
+        Dashboard(dashboard_title="list", json_metadata="[]"),
+        Dashboard(
+            dashboard_title="filters",
+            json_metadata=json.dumps(
+                {"native_filter_configuration": [{"id": "F-1", "targets": [target]}]}
+            ),
+        ),
+    ]
+    db.session.add_all(dashboards)
+    db.session.flush()
+    DatasetDAO.delete([dataset])
+    db.session.flush()
+    _next_request()
+
+    assert ExportAssetsCommand._referenced_trashed_dataset_ids(
+        [], [dashboard.id for dashboard in dashboards], []
+    ) == [dataset.id]
+
+
+@pytest.mark.usefixtures("permissive_security")
+@pytest.mark.parametrize(
+    ("datasource_type", "expected"),
+    [("semantic_view", False), ("table", True), (None, True)],
+)
+def test_assets_export_does_not_read_a_semantic_view_target_as_a_table(
+    app_context: None,
+    chart_on_dataset: Slice,
+    datasource_type: str | None,
+    expected: bool,
+) -> None:
+    """A semantic-view target's ``datasetId`` names a view; a trashed table that
+    shares the number is not bundled for it."""
+    dataset = chart_on_dataset.table
+    target: dict[str, object] = {"datasetId": dataset.id, "column": {"name": "ds"}}
+    if datasource_type is not None:
+        target["datasourceType"] = datasource_type
+    dashboard = Dashboard(
+        dashboard_title="filters",
+        json_metadata=json.dumps(
+            {"native_filter_configuration": [{"id": "F-1", "targets": [target]}]}
+        ),
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+    DatasetDAO.delete([dataset])
+    db.session.flush()
+    _next_request()
+
+    referenced = ExportAssetsCommand._referenced_trashed_dataset_ids(
+        [], [dashboard.id], []
+    )
+
+    assert referenced == ([dataset.id] if expected else [])
+
+
 @pytest.mark.usefixtures("permissive_security")
 def test_export_chart_omits_dataset_uuid_when_dataset_is_gone(
     app_context: None,
