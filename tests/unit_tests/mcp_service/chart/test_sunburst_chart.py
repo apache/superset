@@ -5582,3 +5582,110 @@ def test_sunburst_docs_warn_about_nonfinite_metric_normalization() -> None:
     assert "normalized to null and then to zero" in section
     assert "overflowing aggregate can therefore appear as zero" in section
     assert "infinite metric values remain invalid" not in section
+
+
+# Form data as Explore saves a Sunburst with a monthly grain: the grain lives in
+# the Sunburst time grain control and the hidden ``temporal_columns_lookup``
+# marks the temporal level. Explore drops ``granularity_sqla`` because the
+# Sunburst panel has no control for it.
+_EXPLORE_SAVED_GRAINED_SUNBURST: dict[str, object] = {
+    "viz_type": "sunburst_v2",
+    "columns": ["order_date", "region"],
+    "metric": {"label": "Sales", "expressionType": "SQL", "sqlExpression": "1"},
+    "time_grain_sqla": "P1M",
+    "temporal_columns_lookup": {"order_date": True},
+}
+
+_GRAINED_ORDER_DATE: dict[str, object] = {
+    "timeGrain": "P1M",
+    "columnType": "BASE_AXIS",
+    "sqlExpression": "order_date",
+    "label": "order_date",
+    "expressionType": "SQL",
+    "isColumnReference": True,
+}
+
+
+def test_shared_query_builder_grains_explore_saved_temporal_level() -> None:
+    query = build_query_context_from_form_data(
+        deepcopy(_EXPLORE_SAVED_GRAINED_SUNBURST),
+        {"id": 7, "type": "table"},
+        viz_type="sunburst_v2",
+    )["queries"][0]
+
+    assert query["columns"] == [_GRAINED_ORDER_DATE, "region"]
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+    assert "granularity" not in query
+
+    # The same chart saved without a grain keeps its temporal level raw.
+    ungrained = deepcopy(_EXPLORE_SAVED_GRAINED_SUNBURST)
+    del ungrained["time_grain_sqla"]
+    raw_query = build_query_context_from_form_data(
+        ungrained, {"id": 7, "type": "table"}, viz_type="sunburst_v2"
+    )["queries"][0]
+    assert raw_query["columns"] == ["order_date", "region"]
+    assert "time_grain_sqla" not in (raw_query.get("extras") or {})
+
+
+def test_shared_query_builder_grains_mcp_saved_temporal_level() -> None:
+    form_data = map_config_to_form_data(
+        _config(
+            hierarchy=[{"name": "order_date"}, {"name": "region"}],
+            temporal_column="order_date",
+            time_grain="P1M",
+        )
+    )
+    query = build_query_context_from_form_data(
+        form_data, {"id": 7, "type": "table"}, viz_type="sunburst_v2"
+    )["queries"][0]
+
+    assert query["columns"] == [_GRAINED_ORDER_DATE, "region"]
+    assert query["granularity"] == "order_date"
+    assert query["extras"]["time_grain_sqla"] == "P1M"
+
+
+def test_shared_query_builder_drops_grain_without_temporal_level() -> None:
+    form_data = {
+        **deepcopy(_EXPLORE_SAVED_GRAINED_SUNBURST),
+        "columns": ["region", "country"],
+    }
+    query = build_query_context_from_form_data(
+        form_data, {"id": 7, "type": "table"}, viz_type="sunburst_v2"
+    )["queries"][0]
+
+    assert query["columns"] == ["region", "country"]
+    assert "time_grain_sqla" not in (query.get("extras") or {})
+
+
+def test_temporal_state_accepts_explore_saved_grain() -> None:
+    from superset.mcp_service.chart.sunburst import validate_sunburst_temporal_state
+
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema="analytics",
+        database_name="main",
+        available_columns=[
+            {"name": name, "type": "DOUBLE", "is_temporal": name == "order_date"}
+            for name in ("region", "order_date")
+        ],
+    )
+
+    assert (
+        validate_sunburst_temporal_state(_EXPLORE_SAVED_GRAINED_SUNBURST, context)
+        is None
+    )
+    # The lookup only names a subject; the dataset must still confirm it.
+    lying_lookup = {
+        **_EXPLORE_SAVED_GRAINED_SUNBURST,
+        "columns": ["region"],
+        "temporal_columns_lookup": {"region": True},
+    }
+    error = validate_sunburst_temporal_state(lying_lookup, context)
+    assert error is not None
+    assert error.error_code == "NON_TEMPORAL_COLUMN"
+    # A grain with no temporal subject at all is still rejected.
+    orphan = {**_EXPLORE_SAVED_GRAINED_SUNBURST, "temporal_columns_lookup": {}}
+    error = validate_sunburst_temporal_state(orphan, context)
+    assert error is not None
+    assert error.error_code == "INVALID_TEMPORAL_STATE"

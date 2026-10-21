@@ -1330,6 +1330,85 @@ def test_map_query_object_picks_grain_variant_matching_user_selection(
     }  # day for order_date, None for category
 
 
+def _sunburst_semantic_query(
+    datasource: MagicMock, columns: list[str], **query_kwargs: Any
+) -> ValidatedQueryObject:
+    """
+    The query a Sunburst saved from Explore sends to a semantic view, built by
+    the shared Sunburst query builder from its daily-grained form data.
+    """
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    [query] = build_query_objects_from_form_data(
+        {
+            "viz_type": "sunburst_v2",
+            "columns": columns,
+            "metric": "total_sales",
+            "time_grain_sqla": "P1D",
+            "temporal_columns_lookup": {"order_date": True},
+        }
+    )
+    return ValidatedQueryObject(
+        datasource=datasource,
+        metrics=query["metrics"],
+        columns=query["columns"],
+        extras=query.get("extras") or {},
+        **query_kwargs,
+    )
+
+
+def test_sunburst_grained_level_and_cross_filter_on_semantic_view(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Sunburst's grained temporal level reaches the semantic view as a column
+    reference at the saved grain, and a cross-filter on one of its levels keeps a
+    plain dimension name that the filter validator accepts.
+    """
+    datasource = _make_grain_variant_datasource(
+        mocker, granularity_dim_grain=Grains.DAY
+    )
+    query_object = _sunburst_semantic_query(
+        datasource,
+        ["order_date", "category"],
+        filters=[{"col": "category", "op": "IN", "val": ["toys"]}],
+    )
+    assert query_object.columns[0] == {
+        "timeGrain": "P1D",
+        "columnType": "BASE_AXIS",
+        "sqlExpression": "order_date",
+        "label": "order_date",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+    }
+
+    assert validate_query_object(query_object)
+    [semantic_query] = map_query_object(query_object)
+    grains = {dim.name: dim.grain for dim in semantic_query.dimensions}
+    assert grains == {"order_date": Grains.DAY, "category": None}
+    assert {filter_.column.name for filter_ in semantic_query.filters} == {"category"}
+
+
+def test_sunburst_dormant_grain_on_categorical_levels_on_semantic_view(
+    mocker: MockerFixture,
+) -> None:
+    """
+    A Sunburst whose levels are all categorical drops its dormant grain instead
+    of sending one the semantic view would reject for having no time column.
+    """
+    datasource = _make_grain_variant_datasource(
+        mocker, granularity_dim_grain=Grains.DAY
+    )
+    query_object = _sunburst_semantic_query(datasource, ["category"])
+
+    assert "time_grain_sqla" not in query_object.extras
+    assert validate_query_object(query_object)
+    [semantic_query] = map_query_object(query_object)
+    assert [dim.name for dim in semantic_query.dimensions] == ["category"]
+
+
 def test_map_query_object_picks_raw_variant_when_no_grain_selected(
     mocker: MockerFixture,
 ) -> None:

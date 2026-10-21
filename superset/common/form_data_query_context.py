@@ -604,6 +604,50 @@ def _temporalized_columns(form_data: dict[str, Any], columns: list[Any]) -> list
     return result
 
 
+def _sunburst_temporal_grain(form_data: dict[str, Any], query: dict[str, Any]) -> None:
+    """Mirror Sunburst buildQuery: grain only its temporal hierarchy levels.
+
+    Each temporal level becomes the BASE_AXIS column reference
+    ``normalizeTimeColumn`` emits for a physical x-axis. A grain with neither a
+    temporal level nor a legacy ``granularity`` subject is dormant and is
+    dropped, since semantic views reject a grain that has no time column.
+    """
+    extras = dict(query.get("extras") or {})
+    time_grain = extras.get("time_grain_sqla")
+    temporal_lookup = form_data.get("temporal_columns_lookup") or {}
+    grained = False
+    columns: list[Any] = []
+    for column in _as_list(query.get("columns")):
+        if (
+            time_grain
+            and isinstance(column, str)
+            and (
+                temporal_lookup.get(column)
+                or form_data.get("granularity_sqla") == column
+            )
+        ):
+            grained = True
+            columns.append(
+                {
+                    "timeGrain": time_grain,
+                    "columnType": "BASE_AXIS",
+                    "sqlExpression": column,
+                    "label": column,
+                    "expressionType": "SQL",
+                    "isColumnReference": True,
+                }
+            )
+        else:
+            columns.append(column)
+    query["columns"] = columns
+    if not grained and not query.get("granularity") and "time_grain_sqla" in extras:
+        del extras["time_grain_sqla"]
+        if extras:
+            query["extras"] = extras
+        else:
+            query.pop("extras", None)
+
+
 def _box_temporalized_columns(
     form_data: dict[str, Any], columns: list[Any]
 ) -> list[Any]:
@@ -1671,6 +1715,7 @@ def build_query_objects_from_form_data(  # noqa: C901
     elif effective_viz == "treemap_v2":
         _treemap_query(form_data, query)
     elif effective_viz == "sunburst_v2":
+        _sunburst_temporal_grain(form_data, query)
         if not form_data.get("sort_by_metric"):
             query["orderby"] = []
         elif form_data.get("metric") is not None:
