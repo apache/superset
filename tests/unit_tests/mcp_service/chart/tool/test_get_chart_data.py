@@ -4128,7 +4128,10 @@ def _patch_empty_filter_semantic_chart(monkeypatch: pytest.MonkeyPatch) -> Magic
         )
     }
     view: SemanticView = SemanticView(id=7, name="Orders", configuration="{}")
-    view.__dict__["implementation"] = provider
+    # `implementation` is a plain (non-settable) property resolved through
+    # `SemanticBindingMemo`, not a `cached_property` the instance `__dict__`
+    # can pre-populate -- patch the class property itself instead.
+    monkeypatch.setattr(SemanticView, "implementation", property(lambda self: provider))
 
     chart: MagicMock = MagicMock()
     chart.id = 1
@@ -5720,6 +5723,9 @@ async def test_rebuilt_table_data_does_not_use_saved_server_pagination(
     assert query["row_limit"] == limit
     assert not query.get("is_rowcount")
     assert query["row_offset"] == 0
+    if path != "unsaved":
+        assert chart.params == json.dumps(form_data)
+        assert chart.query_context is None
     if response_format == "csv":
         assert len(wire["csv_data"].splitlines()) == 101
     elif response_format == "json":
