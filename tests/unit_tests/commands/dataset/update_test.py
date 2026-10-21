@@ -1985,7 +1985,14 @@ def test_a_jinja_transform_is_still_rejected(mocker: MockerFixture) -> None:
     Jinja is a blocking issue of its own, reported before the gate is reached.
     """
     mocker.patch("superset.commands.dataset.update.validate_stored_expression")
-    command = _mapping_command(mocker, "unix_timestamp({{ current_user_id() }})")
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties["columns"] = [
+        {
+            "column_name": "event_time",
+            "partition_value_transform": "unix_timestamp({{ current_user_id() }})",
+        },
+        {"column_name": "dt_epoch"},
+    ]
 
     exceptions: list[ValidationError] = []
     command._validate_partition_mapping(exceptions)
@@ -2036,24 +2043,22 @@ def test_a_self_mapping_is_rejected_while_the_feature_is_on(
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=False)
-def test_no_mapping_validation_runs_while_the_feature_is_off(
+def test_a_mapping_the_request_breaks_is_rejected_while_the_feature_is_off(
     mocker: MockerFixture,
 ) -> None:
     """
-    With the flag off nothing mirrors, so a stored mapping can never be
-    consumed. Rejecting the save over it would hand the owner a validation
-    error they have no way to act on -- and every path that reads a mapping is
-    gated the same way.
+    Reading a mapping is gated on the flag; storing one is not. Skipped while
+    the flag was off, this let a PUT store a mapping no flag-on save accepts,
+    and the first flag-on save -- whatever it changed -- was refused over it.
     """
-    gate = mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
     command = _mapping_command(mocker, "unix_timestamp(:value)")
     command._properties["partition_mapped_column"] = "dt_epoch"
 
     exceptions: list[ValidationError] = []
     command._validate_partition_mapping(exceptions)
 
-    assert exceptions == []
-    gate.assert_not_called()
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
 
 
 @with_feature_flags(PARTITION_FILTER_MAPPING=True)
@@ -2132,3 +2137,99 @@ def test_a_self_mapping_is_still_rejected_alongside_a_column_payload(
     command._validate_partition_mapping(exceptions)
 
     assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@pytest.mark.parametrize(
+    "stored",
+    [
+        {"partition_column": "no_such_column"},
+        {"partition_mapped_column": "no_such_column"},
+        {"transform": "rand() + 0 * :value"},
+    ],
+    ids=["dangling-partition", "dangling-mapped", "non-deterministic"],
+)
+@pytest.mark.parametrize(
+    "request_properties",
+    [{"description": "x"}, {"metrics": [{"metric_name": "cnt"}]}],
+    ids=["description-only", "metrics-only"],
+)
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_unrelated_save_survives_a_mapping_broken_in_storage(
+    mocker: MockerFixture,
+    stored: dict[str, str],
+    request_properties: dict[str, Any],
+) -> None:
+    """
+    A mapping stored broken -- while this check was flag-gated, or by a path
+    that never ran it -- is not the request's doing. Refusing the request over
+    it made every later save fail, including one that says nothing about the
+    mapping and gives the owner no field to fix.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker,
+        stored.get("transform", "unix_timestamp(:value)"),
+        partition_mapped_column=stored.get("partition_mapped_column"),
+    )
+    if "partition_column" in stored:
+        cast(Any, command._model).partition_column = stored["partition_column"]
+    command._properties.update(request_properties)
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_new_problem_is_still_refused_alongside_a_stored_one(
+    mocker: MockerFixture,
+) -> None:
+    """Forgiving what storage already has does not forgive what the request adds."""
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="no_such_column"
+    )
+    command._properties["partition_column"] = "also_missing"
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_the_editor_echo_after_a_rename_validates_against_the_new_name(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The editor renames a column in place and sends the stored mapping back
+    unchanged. Validated as sent, the old name is not among the columns and the
+    save is refused; the reference has to follow the rename first.
+    """
+    mocker.patch("superset.commands.dataset.update.validate_stored_expression")
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_mapped_column="event_time"
+    )
+    mapped, partition = cast(Any, command._model).columns
+    mapped.id, partition.id = 10, 11
+    command._properties.update(
+        {
+            "partition_column": "dt_epoch",
+            "partition_mapped_column": "event_time",
+            "columns": [
+                {
+                    "id": 10,
+                    "column_name": "event_ts",
+                    "partition_value_transform": "unix_timestamp(:value)",
+                },
+                {"id": 11, "column_name": "dt_epoch"},
+            ],
+        }
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
+    assert command._properties["partition_mapped_column"] == "event_ts"

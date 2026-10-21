@@ -35,6 +35,7 @@ from superset.connectors.sqla.models import (
 from superset.connectors.sqla.partition_mapping import (
     drop_unmapped_value_transforms,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
+    follow_partition_column_renames,
 )
 from superset.constants import EPOCH_FORMATS
 from superset.daos.base import BaseDAO, ColumnOperator, ColumnOperatorEnum
@@ -452,6 +453,12 @@ class DatasetDAO(BaseDAO[SqlaTable]):
         delete_metric_ids removes only explicitly selected metrics, without
         replacing or replaying the remaining metrics.
         """
+        # Before anything reads the mapping: every pass below compares the
+        # mapping's names against the surviving columns, so a rename it has not
+        # followed looks exactly like a deletion.
+        if item is not None and attributes:
+            attributes = follow_partition_column_renames(item, attributes)
+
         # Snapshot the keys: the column and metric branches below `pop` theirs
         # out of `attributes`, so by the time the partition-mapping cleanup runs
         # the dict no longer says what the request contained.

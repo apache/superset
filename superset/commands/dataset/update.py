@@ -51,6 +51,7 @@ from superset.commands.dataset.exceptions import (
 from superset.commands.utils import compute_subjects, raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable, validate_stored_expression
 from superset.connectors.sqla.partition_mapping import (
+    follow_partition_column_renames,
     is_unfinished,
     stored_expression_error,
     validate_partition_mapping,
@@ -518,15 +519,27 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         query -- and it is not a hole for templating, because Jinja in a
         transform is already a Tier-1 blocking issue of its own.
 
-        Every path that *reads* a mapping is gated on the feature flag, so this
-        one is too: with the flag off nothing mirrors, and rejecting a save over
-        a mapping that can never be consumed would be a validation error the
-        owner has no way to act on.
-        """
-        if not is_feature_enabled("PARTITION_FILTER_MAPPING"):
-            return
+        Not gated on the feature flag. Reading a mapping is, but storing one is
+        not: with this check skipped while the flag was off, a PUT could store a
+        reference to a column the dataset does not have, or a transform no
+        flag-on save would accept, and nothing complained until the flag went on.
 
+        And only what *this request* gets wrong is refused. A problem the stored
+        mapping already has -- written before this check, or by a path that
+        never ran it -- is not the request's doing, and refusing the request
+        over it made every later save fail, including a description-only one
+        that says nothing about the mapping and gives the owner no field to fix.
+        That is also what keeps the ungated check harmless on a deployment that
+        never turns the flag on: an editor that echoes the stored mapping back
+        unchanged never trips it.
+        """
         self._model = cast(SqlaTable, self._model)
+
+        # Before anything below reads the names: a rename the mapping has not
+        # followed reads as a reference to a column that is gone.
+        self._properties = follow_partition_column_renames(
+            self._model, self._properties
+        )
 
         columns = self._properties.get("columns")
         column_names = (
@@ -576,6 +589,7 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         effective_mapped_column = partition_mapped_column or main_dttm_col
         transform = self._effective_transform(columns, effective_mapped_column)
 
+        stored_issues = self._stored_mapping_issues(database.backend)
         for issue in validate_partition_mapping(
             column_names=column_names,
             partition_column=partition_column,
@@ -584,7 +598,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             transform=transform,
             engine=database.backend,
         ):
-            if issue.blocking:
+            if issue.blocking and (issue.field, str(issue.message)) not in (
+                stored_issues
+            ):
                 exceptions.append(
                     ValidationError(str(issue.message), field_name=issue.field)
                 )
@@ -595,7 +611,11 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         # parse, so asking it would refuse the save mid-keystroke. Narrower
         # than "parses as a single expression": a set-operation or a
         # multi-statement transform fails that too, and has to reach this gate.
-        if transform and not is_unfinished(transform, database.backend):
+        if (
+            transform
+            and not self._is_stored_transform(transform, database, catalog, schema)
+            and not is_unfinished(transform, database.backend)
+        ):
             # `stored_expression_error` rather than `validate_stored_expression`
             # alone, which it already includes: it is the gate preview, import
             # and the legacy save path all use, and running a narrower one here
@@ -607,6 +627,57 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                 exceptions.append(
                     ValidationError(reason, field_name="partition_value_transform")
                 )
+
+    def _stored_mapping_issues(self, engine: str) -> set[tuple[str, str]]:
+        """
+        The blocking issues the stored mapping already has, as (field, message).
+
+        What `_validate_partition_mapping` forgives: an issue that is here too
+        was not introduced by the request, so refusing the request over it
+        would only make the dataset unsaveable.
+        """
+        model = cast(SqlaTable, self._model)
+        if not model.partition_column:
+            return set()
+        return {
+            (issue.field, str(issue.message))
+            for issue in validate_partition_mapping(
+                column_names={column.column_name for column in model.columns},
+                partition_column=model.partition_column,
+                partition_mapped_column=model.partition_mapped_column,
+                main_dttm_col=model.main_dttm_col,
+                transform=self._effective_transform(
+                    None, model.partition_mapped_column or model.main_dttm_col
+                ),
+                engine=engine,
+            )
+            if issue.blocking
+        }
+
+    def _is_stored_transform(
+        self,
+        transform: str,
+        database: Database,
+        catalog: str | None,
+        schema: str | None,
+    ) -> bool:
+        """
+        Whether `transform` is the stored one, against the same source.
+
+        The expression gate depends on where the transform runs as well as on
+        its text, so moving the dataset re-asks it even for an unchanged
+        transform.
+        """
+        model = cast(SqlaTable, self._model)
+        stored = self._effective_transform(
+            None, model.partition_mapped_column or model.main_dttm_col
+        )
+        return (
+            transform == stored
+            and database.id == model.database_id
+            and catalog == model.catalog
+            and schema == model.schema
+        )
 
     def _effective_transform(
         self,
