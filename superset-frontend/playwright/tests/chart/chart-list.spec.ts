@@ -26,7 +26,7 @@ import {
 import { Toast } from '../../components/core';
 import { apiGetChart, ENDPOINTS } from '../../helpers/api/chart';
 import { createTestChart } from './chart-test-helpers';
-import { interceptGet, waitForPut } from '../../helpers/api/intercepts';
+import { waitForGet, waitForPut } from '../../helpers/api/intercepts';
 import {
   expectDeleted,
   expectStatusOneOf,
@@ -178,14 +178,14 @@ test('should export a chart as a zip file', async ({
   });
 
   // Set up API response intercept for export endpoint
-  const exportResponsePromise = interceptGet(page, ENDPOINTS.CHART_EXPORT);
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.CHART_EXPORT);
 
   // Click export action button
   await chartListPage.clickExportAction(chartName);
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'charts',
     expectedNames: [chartName],
   });
@@ -367,7 +367,7 @@ test('should bulk export multiple charts', async ({
   // Set up API response intercept BEFORE the click that triggers it.
   // Exports of multiple charts can take longer than 30s under load,
   // so use SLOW_TEST instead of the default test-timeout-bound budget.
-  const exportResponsePromise = interceptGet(page, ENDPOINTS.CHART_EXPORT, {
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.CHART_EXPORT, {
     timeout: TIMEOUT.SLOW_TEST,
   });
 
@@ -376,7 +376,7 @@ test('should bulk export multiple charts', async ({
 
   // Wait for export API response and validate zip contains both charts
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'charts',
     minCount: 2,
     expectedNames: [chart1.name, chart2.name],

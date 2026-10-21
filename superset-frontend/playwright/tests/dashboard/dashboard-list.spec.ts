@@ -31,7 +31,7 @@ import {
   ENDPOINTS,
 } from '../../helpers/api/dashboard';
 import { createTestDashboard } from './dashboard-test-helpers';
-import { interceptGet, waitForPost } from '../../helpers/api/intercepts';
+import { waitForGet, waitForPost } from '../../helpers/api/intercepts';
 import {
   expectDeleted,
   expectStatusOneOf,
@@ -133,14 +133,14 @@ test('should export a dashboard as a zip file', async ({
   });
 
   // Set up API response intercept for export endpoint
-  const exportResponsePromise = interceptGet(page, ENDPOINTS.DASHBOARD_EXPORT);
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.DASHBOARD_EXPORT);
 
   // Click export action button
   await dashboardListPage.clickExportAction(dashboardName);
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'dashboards',
     expectedNames: [dashboardName],
   });
@@ -262,7 +262,7 @@ test('should bulk export multiple dashboards', async ({
   // Set up API response intercept BEFORE the click that triggers it.
   // Exports of multiple dashboards can take longer than 30s under load,
   // so use SLOW_TEST instead of the default test-timeout-bound budget.
-  const exportResponsePromise = interceptGet(page, ENDPOINTS.DASHBOARD_EXPORT, {
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.DASHBOARD_EXPORT, {
     timeout: TIMEOUT.SLOW_TEST,
   });
 
@@ -271,7 +271,7 @@ test('should bulk export multiple dashboards', async ({
 
   // Wait for export API response and validate zip contains both dashboards
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'dashboards',
     minCount: 2,
     expectedNames: [dashboard1.name, dashboard2.name],

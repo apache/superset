@@ -39,7 +39,7 @@ import {
 import { createTestDataset } from './dataset-test-helpers';
 import { isFeatureEnabled } from '../../helpers/featureFlags';
 import {
-  interceptGet,
+  waitForGet,
   waitForPost,
   waitForPut,
 } from '../../helpers/api/intercepts';
@@ -253,14 +253,14 @@ test('should export a dataset as a zip file', async ({
   // Note: We intercept the API response instead of relying on download events because
   // Superset uses blob downloads (createObjectURL) which don't trigger Playwright's
   // download event consistently, especially in app-prefix configurations.
-  const exportResponsePromise = interceptGet(page, ENDPOINTS.DATASET_EXPORT);
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.DATASET_EXPORT);
 
   // Click export action button
   await datasetListPage.clickExportAction(datasetName);
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'datasets',
     contentDispositionPattern: /filename=.*dataset_export.*\.zip/,
   });
@@ -309,7 +309,7 @@ test('should export multiple datasets via bulk select action', async ({
   // Set up API response intercept BEFORE the click that triggers it.
   // Exports of multiple datasets can take longer than 30s under load,
   // so use SLOW_TEST instead of the default test-timeout-bound budget.
-  const exportResponsePromise = interceptGet(page, ENDPOINTS.DATASET_EXPORT, {
+  const exportResponsePromise = waitForGet(page, ENDPOINTS.DATASET_EXPORT, {
     timeout: TIMEOUT.SLOW_TEST,
   });
 
@@ -318,7 +318,7 @@ test('should export multiple datasets via bulk select action', async ({
 
   // Wait for export API response and validate zip contains multiple datasets
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'datasets',
     minCount: 2,
   });
