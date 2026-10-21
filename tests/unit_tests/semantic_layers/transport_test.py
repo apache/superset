@@ -333,6 +333,7 @@ def public_tls(
     key: Path
     cert, key = _certificate(tmp_path, "public.example.test")
     context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(cert, key)
     resolved: list[str] = []
     real_resolve: Any = socket.getaddrinfo
@@ -1275,6 +1276,7 @@ def test_internal_tls_honors_environment_ca_without_proxy(
     key: Path
     cert, key = _certificate(tmp_path, "localhost")
     context: ssl.SSLContext = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+    context.minimum_version = ssl.TLSVersion.TLSv1_2
     context.load_cert_chain(cert, key)
     monkeypatch.delenv("REQUESTS_CA_BUNDLE", raising=False)
     monkeypatch.delenv("CURL_CA_BUNDLE", raising=False)
