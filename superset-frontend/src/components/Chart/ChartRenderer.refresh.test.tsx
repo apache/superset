@@ -102,22 +102,26 @@ const waitForChartLoad = () =>
     await new Promise(resolve => setTimeout(resolve, 0));
   });
 
-const props = (overrides: Partial<ChartRendererProps>): ChartRendererProps => ({
-  chartId: 1,
-  datasource: {} as ChartRendererProps['datasource'],
-  formData: { viz_type: VIZ_TYPE } as ChartRendererProps['formData'],
-  vizType: VIZ_TYPE,
-  source: ChartSource.Dashboard,
-  width: 600,
-  height: 400,
-  actions: {
-    chartRenderingSucceeded: jest.fn(),
-    chartRenderingFailed: jest.fn(),
-    logEvent: jest.fn(),
-  } as unknown as ChartRendererProps['actions'],
-  queriesResponse: queriesResponse(1),
-  ...overrides,
-});
+// Chart passes the form data the response in the store was queried with.
+const props = (overrides: Partial<ChartRendererProps>): ChartRendererProps => {
+  const merged: ChartRendererProps = {
+    chartId: 1,
+    datasource: {} as ChartRendererProps['datasource'],
+    formData: { viz_type: VIZ_TYPE } as ChartRendererProps['formData'],
+    vizType: VIZ_TYPE,
+    source: ChartSource.Dashboard,
+    width: 600,
+    height: 400,
+    actions: {
+      chartRenderingSucceeded: jest.fn(),
+      chartRenderingFailed: jest.fn(),
+      logEvent: jest.fn(),
+    } as unknown as ChartRendererProps['actions'],
+    queriesResponse: queriesResponse(1),
+    ...overrides,
+  };
+  return { responseFormData: merged.formData, ...merged };
+};
 
 test('keeps the chart on screen while an auto-refresh query is in flight', async () => {
   const { rerender } = render(
@@ -331,6 +335,81 @@ test('shows the regular spinner for a dashboard chart mounted while its query is
   expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
   expect(screen.getByText('Waiting on database...')).toBeInTheDocument();
 });
+
+test('keeps a self-fetching dashboard chart mounted under the spinner through a manual refresh', async () => {
+  const chartProps = {
+    ...dashboardChartProps,
+    vizType: SELF_FETCHING_VIZ_TYPE,
+    formData: {
+      datasource: '1__table',
+      viz_type: SELF_FETCHING_VIZ_TYPE,
+    } as ChartRendererProps['formData'],
+  };
+  const { rerender } = render(
+    <Chart {...chartProps} chartStatus="rendered" queriesResponse={[]} />,
+  );
+  await screen.findByTestId('self-fetching-test-chart');
+
+  rerender(
+    <Chart {...chartProps} chartStatus="loading" queriesResponse={[]} />,
+  );
+  expect(screen.getByTestId('self-fetching-test-chart')).toBeInTheDocument();
+  expect(screen.getByRole('status')).toBeInTheDocument();
+  expect(screen.queryByText('Waiting on database...')).not.toBeInTheDocument();
+
+  rerender(
+    <Chart {...chartProps} chartStatus="success" queriesResponse={[]} />,
+  );
+  expect(screen.getByTestId('self-fetching-test-chart')).toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  // A remount would make the chart load all of its data again.
+  expect(selfFetchingChartMounted).toHaveBeenCalledTimes(1);
+});
+
+// A plugin that throws while rendering leaves its response in the store with
+// no query error, and only the chart status and alert record the failure.
+test.each([
+  ['a manual refresh', false],
+  ['an auto-refresh', true],
+])(
+  'does not draw a response that failed to render again during %s',
+  async (_, suppressLoadingSpinner) => {
+    const previous = queriesResponse(1);
+    const { rerender } = render(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="rendered"
+        formData={labelledFormData('before')}
+        queriesResponse={previous}
+      />,
+    );
+    await screen.findByTestId('refresh-test-chart');
+
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="failed"
+        chartAlert="An error occurred while rendering the visualization"
+        formData={labelledFormData('before')}
+        queriesResponse={previous}
+      />,
+    );
+    expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
+
+    rerender(
+      <Chart
+        {...dashboardChartProps}
+        chartStatus="loading"
+        formData={labelledFormData('before')}
+        queriesResponse={previous}
+        suppressLoadingSpinner={suppressLoadingSpinner}
+      />,
+    );
+    await waitForChartLoad();
+
+    expect(screen.queryByTestId('refresh-test-chart')).not.toBeInTheDocument();
+  },
+);
 
 test('hides the chart while its query is in flight in Explore', async () => {
   const { rerender } = render(

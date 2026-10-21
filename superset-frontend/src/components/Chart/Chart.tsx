@@ -227,6 +227,8 @@ function Chart({
   // lands. This lives here rather than in ChartRenderer, which unmounts while a
   // virtualized chart is out of view. A chart mounted while its query is
   // already in flight can't tell which form data that response belongs to.
+  // A response that failed to render keeps no form data either: drawn again
+  // while the retry is in flight, it would fail the same way.
   const responseFormDataRef = useRef<{
     queriesResponse: typeof queriesResponse;
     formData: QueryFormData | undefined;
@@ -236,6 +238,9 @@ function Chart({
   });
   if (responseFormDataRef.current.queriesResponse !== queriesResponse) {
     responseFormDataRef.current = { queriesResponse, formData };
+  }
+  if (chartStatus === 'failed') {
+    responseFormDataRef.current.formData = undefined;
   }
   const responseFormData = responseFormDataRef.current.formData;
 
@@ -461,7 +466,11 @@ function Chart({
     isLoading &&
     !!dashboardId &&
     responseFormData !== undefined &&
-    hasValidPreviousData(queriesResponse, formData.viz_type || vizType);
+    hasValidPreviousData(
+      queriesResponse,
+      responseFormData,
+      formData.viz_type || vizType,
+    );
 
   if (datasource?.metadata_error) {
     return (

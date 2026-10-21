@@ -44,8 +44,10 @@ import {
   AgGridChartState,
   ContextMenuFilters,
   DataRecordFilters,
+  isMatrixifyEnabled,
+  type MatrixifyFormData,
+  type Hooks,
 } from '@superset-ui/core';
-import type { Hooks } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -125,7 +127,9 @@ export interface ChartRendererProps {
   chartAlert?: string;
   chartStatus?: ChartStatus | null;
   queriesResponse?: QueryData[] | null;
-  // The form data queriesResponse was queried with, when it is known.
+  // The form data queriesResponse was queried with, when it is known and the
+  // response can be drawn again. Without it a previous response is never
+  // drawn while a new query is in flight.
   responseFormData?: QueryFormData;
   triggerQuery?: boolean;
   chartIsStale?: boolean;
@@ -185,8 +189,14 @@ interface ChartHooks extends AsyncChartHooks {
  */
 export function hasValidPreviousData(
   queriesResponse: QueryData[] | null | undefined,
+  formData: QueryFormData,
   vizType: string,
 ): boolean {
+  // A Matrixify grid ignores the response: each cell fetches its own data when
+  // it mounts. Kept on screen, the cells would never pick up the refresh.
+  if (isMatrixifyEnabled(formData as MatrixifyFormData)) {
+    return false;
+  }
   // A failed load leaves its errored response in the store, and the next
   // CHART_UPDATE_STARTED clears chartAlert but not queriesResponse. Checking
   // the response itself keeps that stale error from being drawn as chart data
@@ -317,7 +327,9 @@ function ChartRendererComponent({
       source === ChartSource.Dashboard);
   const hasRenderableResults =
     resultsReady ||
-    (isRefreshing && hasValidPreviousData(queriesResponse, vizType));
+    (isRefreshing &&
+      responseFormData !== undefined &&
+      hasValidPreviousData(queriesResponse, responseFormData, vizType));
 
   // A filter change updates formData as soon as the new query starts, so the
   // previous response is drawn with the form data it was queried with until

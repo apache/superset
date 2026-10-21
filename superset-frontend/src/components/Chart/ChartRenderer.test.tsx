@@ -419,6 +419,7 @@ test('renders chart during loading when suppressLoadingSpinner has valid data', 
     chartAlert: undefined,
     suppressLoadingSpinner: true,
     queriesResponse: [{ data: [{ value: 1 }] }],
+    responseFormData: requiredProps.formData,
   };
 
   const { getByTestId } = render(<ChartRenderer {...props} />);
@@ -441,6 +442,7 @@ test('renders a dashboard chart during loading when the spinner is not suppresse
     chartAlert: undefined,
     suppressLoadingSpinner: false,
     queriesResponse: [{ data: [{ value: 1 }] }],
+    responseFormData: requiredProps.formData,
   };
 
   const { getByTestId } = render(<ChartRenderer {...props} />);
@@ -448,6 +450,40 @@ test('renders a dashboard chart during loading when the spinner is not suppresse
     'data-is-refreshing',
     'true',
   );
+});
+
+test('does not render a previous response whose form data is unknown', () => {
+  // Chart withholds the form data when the response failed to render or the
+  // chart mounted while its query was already in flight.
+  const props = {
+    ...requiredProps,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
+});
+
+test('does not keep a Matrixify chart on screen while it refreshes', () => {
+  const formData = {
+    ...requiredProps.formData,
+    matrixify_enable: true,
+    matrixify_mode_rows: 'metrics',
+    matrixify_rows: [{ label: 'count' }],
+  } as unknown as ChartRendererProps['formData'];
+  const props = {
+    ...requiredProps,
+    formData,
+    chartStatus: 'loading' as const,
+    chartAlert: undefined,
+    queriesResponse: [{ data: [{ value: 1 }] }],
+    responseFormData: formData,
+  };
+
+  const { queryByTestId } = render(<ChartRenderer {...props} />);
+  expect(queryByTestId('mock-super-chart')).not.toBeInTheDocument();
 });
 
 test('does not render an Explore chart during loading', () => {
