@@ -1077,6 +1077,7 @@ class TestUpdateChartNameOnly:
     @patch("superset.daos.chart.ChartDAO.find_by_id", new_callable=Mock)
     @patch("superset.db.session")
     @pytest.mark.asyncio
+    @pytest.mark.parametrize("sanitized", [False, True])
     async def test_name_only_update_success(
         self,
         mock_db_session,
@@ -1084,6 +1085,7 @@ class TestUpdateChartNameOnly:
         mock_update_cmd_cls,
         mock_check_access,
         mcp_server,
+        sanitized: bool,
     ):
         """Successful name-only update (identifier + chart_name, no config)."""
         mock_chart = Mock()
@@ -1110,13 +1112,18 @@ class TestUpdateChartNameOnly:
 
         request = {
             "identifier": 1,
-            "chart_name": "Renamed Chart",
+            "chart_name": "Renamed Chart <img src=x>" if sanitized else "Renamed Chart",
             "generate_preview": False,
         }
 
         async with Client(mcp) as client:
             result = await client.call_tool("update_chart", {"request": request})
 
+            if sanitized:
+                assert any(
+                    "sanitization" in warning
+                    for warning in result.structured_content["warnings"]
+                )
             assert result.structured_content["success"] is True
             assert result.structured_content["chart"]["slice_name"] == "Renamed Chart"
             assert result.structured_content["chart"]["is_unsaved_state"] is False

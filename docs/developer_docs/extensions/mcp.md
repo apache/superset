@@ -587,3 +587,17 @@ governance concern from layout/theme/metadata edits.
 
 - **[Development](./development.md)** - Project structure, APIs, and dev workflow
 - **[Security](./security.md)** - Security best practices for extensions
+
+## Object-name validation
+
+MCP object names must fit their persisted model columns: chart and dataset names
+and theme names allow 250 characters, dashboard titles allow 500, saved-query
+labels and SQL Lab tab titles allow 256, and dashboard slugs allow 255.
+For fields that trim whitespace, length validation applies after trimming.
+Theme names retain their whitespace and count it toward the limit.
+
+Blank saved-query labels and explicit blank dashboard renames return
+`Text must not be empty`, matching required dataset names and duplicated dashboard
+titles. Omit an update field to retain the existing value.
+Chart creation and updates reject names reduced entirely to disallowed content;
+partial sanitization returns a warning alongside the normalized name.

@@ -140,7 +140,7 @@ class CreateThemeRequest(BaseModel):
 
     theme_name: Annotated[
         str,
-        Field(description="Human-readable name for the theme"),
+        Field(description="Human-readable name for the theme", max_length=250),
     ]
     json_data: Annotated[
         dict[str, Any] | str,

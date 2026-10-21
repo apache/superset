@@ -671,7 +671,7 @@ _REQUIRED_NAME_CASES: list[tuple[str, dict[str, Any], str, list[str | None]]] = 
         "save_sql_query",
         {"database_id": 1, "sql": "select 1"},
         "label",
-        [" \t\n"],
+        ["", " \t\n"],
     ),
 ]
 
@@ -735,3 +735,176 @@ def test_chart_name_model_column_boundary(
             model.model_validate({**payload, "chart_name": "x" * length})
         assert exc.value.errors()[0]["type"] == "string_too_long"
         assert exc.value.errors()[0]["loc"] == ("chart_name",)
+
+
+@pytest.mark.parametrize(
+    "model,payload",
+    [
+        (
+            GenerateChartRequest,
+            {
+                "dataset_id": 1,
+                "config": {"chart_type": "table", "columns": [{"name": "a"}]},
+            },
+        ),
+        (UpdateChartRequest, {"identifier": 1}),
+    ],
+)
+@pytest.mark.parametrize("alias", ["chart_name", "name", "title", "slice_name"])
+@pytest.mark.parametrize("length", [250, 251])
+def test_padded_chart_name_boundary(
+    model: type[BaseModel], payload: dict[str, Any], alias: str, length: int
+) -> None:
+    """Validate the trimmed chart name against the model column boundary."""
+    value = "  " + "x" * length + "  "
+    if length == 250:
+        assert (
+            model.model_validate({**payload, alias: value}).chart_name == "x" * length
+        )
+    else:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, alias: value})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+
+
+@pytest.mark.parametrize("length", [250, 251, 310])
+def test_theme_name_model_column_boundary(length: int) -> None:
+    """Theme creation must respect its persisted name column."""
+    from superset.models.core import Theme
+
+    assert Theme.__table__.c.theme_name.type.length == 250
+    if length == 250:
+        assert (
+            CreateThemeRequest(theme_name="x" * length, json_data={}).theme_name
+            == "x" * length
+        )
+    else:
+        with pytest.raises(ValidationError) as exc:
+            CreateThemeRequest(theme_name="x" * length, json_data={})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("alias", ["dashboard_title", "title", "name"])
+@pytest.mark.parametrize("value", ["", " \t\n"])
+async def test_update_dashboard_blank_title_wire_reason(alias: str, value: str) -> None:
+    """Reject blank renames rather than reporting a title that was not saved."""
+    async with Client(make_title_server()) as client:
+        result = await client.call_tool_mcp(
+            "update_dashboard", {"request": {"identifier": 1, alias: value}}
+        )
+    assert result.isError is True
+    assert "request.dashboard_title: Text must not be empty" in result.content[0].text
+
+
+@pytest.mark.parametrize("alias", ["chart_name", "name", "title", "slice_name"])
+@pytest.mark.parametrize("script_only", [True, False])
+def test_update_chart_sanitization_matches_generate(
+    alias: str, script_only: bool
+) -> None:
+    """Update rejects stripped-only names and warns on partially stripped names."""
+    if script_only:
+        with pytest.raises(ValidationError) as exc:
+            UpdateChartRequest.model_validate(
+                {"identifier": 1, alias: "<script>alert(1)</script>"}
+            )
+        assert exc.value.errors()[0]["type"] == "unsafe_text"
+        assert exc.value.errors()[0]["loc"] == ("chart_name",)
+        return
+    request = UpdateChartRequest.model_validate(
+        {
+            "identifier": 1,
+            alias: "Weekly KPIs <img src=x onerror=alert(1)>",
+            "sanitization_warnings": ["untrusted"],
+        }
+    )
+    assert request.chart_name == "Weekly KPIs"
+    assert len(request.sanitization_warnings) == 1
+    assert "untrusted" not in request.sanitization_warnings
+    assert "sanitization_warnings" not in json.dumps(
+        UpdateChartRequest.model_json_schema()
+    )
+
+
+def test_duplicate_dataset_error_is_readable() -> None:
+    """Duplicate errors use a plain string and preserve display-name characters."""
+    from superset.commands.dataset.exceptions import DatasetExistsValidationError
+    from superset.sql.parse import Table
+
+    name = "Sales “Q3” & Growth"
+    error = DatasetExistsValidationError(
+        Table(name, schema="my schema", catalog="my catalog")
+    )
+    assert error.normalized_messages() == {
+        "table": [f"Dataset my catalog.my schema.{name} already exists"]
+    }
+    assert type(error.messages[0]) is str
+
+
+@pytest.mark.parametrize(
+    "kind,limit", [("dataset", 250), ("saved_query", 256), ("tab", 256)]
+)
+@pytest.mark.parametrize("extra", [0, 1])
+def test_padded_sibling_name_boundary(kind: str, limit: int, extra: int) -> None:
+    """Persisted names that trim must check the length after trimming."""
+    from superset.mcp_service.sql_lab.schemas import OpenSqlLabRequest
+
+    cases: dict[str, tuple[type[BaseModel], dict[str, Any], str]] = {
+        "dataset": (
+            CreateVirtualDatasetRequest,
+            {"database_id": 1, "sql": "select 1"},
+            "dataset_name",
+        ),
+        "saved_query": (
+            SaveSqlQueryRequest,
+            {"database_id": 1, "sql": "select 1"},
+            "label",
+        ),
+        "tab": (OpenSqlLabRequest, {"database_id": 1}, "title"),
+    }
+    model, payload, field = cases[kind]
+    value = "x" * (limit + extra)
+    if not extra:
+        assert (
+            getattr(model.model_validate({**payload, field: f"  {value}  "}), field)
+            == value
+        )
+    else:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, field: f"  {value}  "})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+
+
+@pytest.mark.parametrize(
+    "model,payload",
+    [
+        (GenerateDashboardRequest, {"chart_ids": [1]}),
+        (UpdateDashboardRequest, {"identifier": 1}),
+        (DuplicateDashboardRequest, {"dashboard_id": 1}),
+    ],
+)
+@pytest.mark.parametrize("alias", ["dashboard_title", "title", "name"])
+@pytest.mark.parametrize("length", [500, 501])
+def test_padded_dashboard_title_boundary(
+    model: type[BaseModel], payload: dict[str, Any], alias: str, length: int
+) -> None:
+    """Dashboard aliases check the trimmed title against the column cap."""
+    if length == 500:
+        assert (
+            model.model_validate(
+                {**payload, alias: "  " + "x" * length + "  "}
+            ).dashboard_title
+            == "x" * length
+        )
+    else:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, alias: "  " + "x" * length + "  "})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+
+
+def test_padded_dashboard_slug_boundary() -> None:
+    """Update slug normalization precedes its persisted column limit."""
+    request = UpdateDashboardRequest(identifier=1, slug="  " + "x" * 255 + "  ")
+    assert request.slug == "x" * 255
+    with pytest.raises(ValidationError):
+        UpdateDashboardRequest(identifier=1, slug="  " + "x" * 256 + "  ")

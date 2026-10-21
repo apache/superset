@@ -925,7 +925,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
     the REST API) without a full re-create.
     """
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     identifier: int | str = Field(
         ...,
@@ -1055,6 +1055,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
                     "(HTML/script/URL schemes) and was removed entirely by "
                     "sanitization. Provide a dashboard_title with plain text."
                 )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1067,15 +1068,17 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
     @classmethod
     def sanitize_dashboard_title(cls, v: str | None) -> str | None:
         """Sanitize dashboard title to prevent XSS."""
-        if v is None or v == "":
+        if v is None:
             return v
+        if not v.strip():
+            raise PydanticCustomError("empty_text", "dashboard_title cannot be empty")
         return sanitize_user_input(
-            v, "Dashboard title", max_length=500, allow_empty=True
+            v, "Dashboard title", max_length=500, allow_empty=False
         )
 
-    @field_validator("slug")
+    @field_validator("slug", mode="before")
     @classmethod
-    def normalize_slug(cls, v: str | None) -> str | None:
+    def normalize_slug(cls, v: object) -> object:
         """Normalize the slug to match the REST DashboardPutSchema contract.
 
         Mirrors ``BaseDashboardSchema.post_load``: strip, replace spaces with
@@ -1086,7 +1089,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
         REST schema behavior. Raises ``ValueError`` when a non-whitespace input
         normalizes to empty (e.g. ``"!!!"``), preventing accidental slug clearing.
         """
-        if not v:
+        if not isinstance(v, str) or not v:
             return v
         stripped = v.strip()
         if not stripped:

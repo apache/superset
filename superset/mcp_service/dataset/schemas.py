@@ -617,19 +617,14 @@ class CreateVirtualDatasetRequest(BaseModel):
     @field_validator("dataset_name", mode="before")
     @classmethod
     def dataset_name_must_not_be_empty(cls, v: object) -> object:
-        """Reject blank names with a typed reason before length validation."""
+        """Trim names and reject blanks before checking their length."""
         if isinstance(v, str):
             if not v.strip():
                 raise PydanticCustomError(
                     "empty_text", "dataset_name must not be empty"
                 )
+            return v.strip()
         return v
-
-    @field_validator("dataset_name")
-    @classmethod
-    def strip_dataset_name(cls, v: str) -> str:
-        """Trim valid names after checking the raw input length."""
-        return v.strip()
 
 
 class CreateVirtualDatasetResponse(BaseModel):

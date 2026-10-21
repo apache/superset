@@ -6320,24 +6320,14 @@ class ChartTargetMixin(BaseModel):
         return self
 
 
-class GenerateChartRequest(
-    ChartRequestNormalizerMixin, ChartTargetMixin, QueryCacheControl
-):
-    model_config = ConfigDict(populate_by_name=True)
+class ChartNameMixin(BaseModel):
+    """Share chart-name normalization and server-only sanitization notices."""
 
-    config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
-        ..., description=CHART_CONFIG_DESCRIPTION
-    )
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
         max_length=250,
         validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
-    )
-    save_chart: bool = Field(default=False, description="Save permanently in Superset")
-    generate_preview: bool = True
-    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
-        default_factory=lambda: ["url"],
     )
     sanitization_warnings: SkipJsonSchema[List[str]] = Field(
         default_factory=list,
@@ -6386,6 +6376,7 @@ class GenerateChartRequest(
                     "sanitization. Provide a chart_name with plain text, or "
                     "omit it to auto-generate one."
                 )
+        data[key] = sanitized
         if was_modified:
             data["sanitization_warnings"].append(
                 "chart_name was modified during sanitization to remove "
@@ -6399,6 +6390,21 @@ class GenerateChartRequest(
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
         return sanitize_user_input(v, "Chart name", max_length=250, allow_empty=True)
+
+
+class GenerateChartRequest(
+    ChartRequestNormalizerMixin, ChartTargetMixin, QueryCacheControl, ChartNameMixin
+):
+    model_config = ConfigDict(populate_by_name=True)
+
+    config: Annotated[ChartConfig, chart_config_reference_schema()] = Field(
+        ..., description=CHART_CONFIG_DESCRIPTION
+    )
+    save_chart: bool = Field(default=False, description="Save permanently in Superset")
+    generate_preview: bool = True
+    preview_formats: List[Literal["url", "ascii", "vega_lite", "table"]] = Field(
+        default_factory=lambda: ["url"],
+    )
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -6442,7 +6448,10 @@ class GenerateExploreLinkRequest(
 
 
 class UpdateChartRequest(
-    ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
+    ChartRequestNormalizerMixin,
+    OmittedMeansUnchanged,
+    QueryCacheControl,
+    ChartNameMixin,
 ):
     model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
@@ -6467,12 +6476,6 @@ class UpdateChartRequest(
             "column and metric. Use this instead of config.columns when adding "
             "columns to an existing table chart."
         ),
-    )
-    chart_name: str | None = Field(
-        None,
-        description="Auto-generates if omitted",
-        max_length=250,
-        validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     dataset_id: int | None = Field(
         None,
@@ -6532,12 +6535,6 @@ class UpdateChartRequest(
         if self.add_columns == []:
             raise ValueError("'add_columns' must contain at least one column")
         return self
-
-    @field_validator("chart_name")
-    @classmethod
-    def sanitize_chart_name(cls, v: str | None) -> str | None:
-        """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=250, allow_empty=True)
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):
