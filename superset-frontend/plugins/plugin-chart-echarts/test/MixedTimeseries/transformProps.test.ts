@@ -2031,4 +2031,41 @@ describe('truncateMetric / truncateMetricB', () => {
     // The metric is still dropped - only the query suffix is added back.
     expect(seriesNames).not.toContain('sum__num, boy (Query A)');
   });
+
+  test('keeps every dimension when a single metric has multiple groupby columns', () => {
+    const multiDimLabelMap = {
+      ds: ['ds'],
+      'boy, CA': ['boy', 'CA'],
+      'girl, NY': ['girl', 'NY'],
+    };
+    const rows = [
+      { 'boy, CA': 1, 'girl, NY': 2, ds: 599616000000 },
+      { 'boy, CA': 3, 'girl, NY': 4, ds: 599916000000 },
+    ];
+    const multiDimQueries = [
+      createTestQueryData(rows, { label_map: multiDimLabelMap }),
+      createTestQueryData(rows, { label_map: multiDimLabelMap }),
+    ];
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: multiDimQueries,
+      formData: {
+        ...formData,
+        groupby: ['gender', 'state'],
+        groupbyB: ['gender', 'state'],
+        truncateMetric: true,
+        truncateMetricB: true,
+      },
+      queriesData: multiDimQueries,
+    });
+    const seriesNames = (
+      transformProps(chartProps).echartOptions.series as SeriesOption[]
+    ).map(s => s.name);
+
+    expect(seriesNames).toContain('boy, CA');
+    expect(seriesNames).toContain('girl, NY');
+  });
 });

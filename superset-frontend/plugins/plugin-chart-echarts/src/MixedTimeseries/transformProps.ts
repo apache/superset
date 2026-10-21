@@ -548,14 +548,13 @@ export default function transformProps(
 
     if (truncateMetric && groupby.length > 0) {
       // Drop the metric part entirely and show only the groupby/dimension
-      // values, same metric-vs-dimension split the branch below uses: the
-      // label-map tuple is [metric, ...dimensions] when it has more than
-      // one entry, otherwise the whole tuple is the dimension (no metric
-      // index at all). Still apply the query-identifier suffix when asked
+      // values. The label-map tuple is [metric, ...dimensions] only when the
+      // query has more than one metric; with a single metric the whole
+      // tuple is dimensions. Still apply the query-identifier suffix when asked
       // for, or Query A and Query B become indistinguishable whenever they
       // share a groupby value (#38451).
       const groupbyValues =
-        labelMapValues && labelMapValues.length > 1
+        labelMapValues && ensureIsArray(metrics).length > 1
           ? labelMapValues.slice(1)
           : (labelMapValues ?? []);
       const truncatedName =
@@ -672,14 +671,13 @@ export default function transformProps(
 
     if (truncateMetricB && groupbyB.length > 0) {
       // Drop the metric part entirely and show only the groupby/dimension
-      // values, same metric-vs-dimension split the branch below uses: the
-      // label-map tuple is [metric, ...dimensions] when it has more than
-      // one entry, otherwise the whole tuple is the dimension (no metric
-      // index at all). Still apply the query-identifier suffix when asked
+      // values. The label-map tuple is [metric, ...dimensions] only when the
+      // query has more than one metric; with a single metric the whole
+      // tuple is dimensions. Still apply the query-identifier suffix when asked
       // for, or Query A and Query B become indistinguishable whenever they
       // share a groupby value (#38451).
       const groupbyValues =
-        labelMapValuesB && labelMapValuesB.length > 1
+        labelMapValuesB && ensureIsArray(metricsB).length > 1
           ? labelMapValuesB.slice(1)
           : (labelMapValuesB ?? []);
       const truncatedName =
