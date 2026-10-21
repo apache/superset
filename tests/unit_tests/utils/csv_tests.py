@@ -321,11 +321,15 @@ def test_df_to_escaped_csv_escapes_multiindex_labels_and_axis_names():
     Axis names are a separate attribute from the labels, so ``rename`` alone
     leaves them untouched while pandas still writes them out as header cells.
     A pivoted group-by puts a warehouse-controlled column name there.
+
+    Both levels carry a hostile label, since a pivot on two dimensions can put
+    one in either. Escaping only the innermost would leave the outer one in the
+    first column of the file.
     """
     df = pd.DataFrame(
         data={"v": [1, 2]},
         index=pd.MultiIndex.from_tuples(
-            [("a", '=cmd|" /C calc"!A0'), ("b", "safe")],
+            [("=SUM(1+1)", '=cmd|" /C calc"!A0'), ("b", "safe")],
             names=["level", "+name"],
         ),
     )
@@ -334,9 +338,11 @@ def test_df_to_escaped_csv_escapes_multiindex_labels_and_axis_names():
 
     # Header row carries the escaped axis name.
     assert rows[0] == "level,'+name,v"
+    # The outer level label is escaped in the first field.
+    assert rows[1].split(",")[0] == "'=SUM(1+1)"
     # The inner level label is escaped, pipes included.
     assert "'=cmd" in rows[1]
-    assert rows[2].endswith("safe,2")
+    assert rows[2] == "b,safe,2"
 
 
 def test_df_to_escaped_csv_escapes_column_axis_names():
@@ -357,6 +363,30 @@ def test_df_to_escaped_csv_escapes_column_axis_names():
 
     assert rows[0] == "'=axis,outer"
     assert rows[1] == "'+inner,v"
+
+
+def test_df_to_escaped_csv_escapes_colliding_index_labels():
+    """
+    Two labels can escape to the same text, and the export still works.
+
+    ``escape_value`` is not injective: it prepends a quote, so a warehouse
+    returning both ``=a`` and ``'=a`` in one row dimension has them both land
+    on ``'=a``. Rebuilding a MultiIndex through ``set_levels`` rejects that
+    with ``ValueError: Level values must be unique``, which would turn a CSV
+    export into a 500, so the index is rebuilt from the level values instead,
+    where repeated labels are ordinary.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=a", "x"), ("'=a", "y")], names=["dim", "other"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,other,v\n'=a,x,1\n'=a,y,2\n"
+    )
 
 
 def test_df_to_escaped_csv_keeps_a_numeric_index_dtype():
