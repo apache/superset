@@ -128,6 +128,57 @@ test('an active mapping states which column mirrors onto which', () => {
   ).toBeInTheDocument();
 });
 
+test('without "preserves ordering" the banner does not promise the time range', () => {
+  // Range operators only mirror under an order-preserving transform, so the
+  // time range -- the filter owners care about most -- gets no partition
+  // filter, and the banner must say so rather than promise every filter.
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={MAPPED_COLUMNS}
+      allColumns={MAPPED_COLUMNS}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByText(
+      /Time ranges and other range filters are not mirrored until "Transform preserves ordering" is on/,
+    ),
+  ).toBeInTheDocument();
+});
+
+test('with "preserves ordering" the banner promises every filter', () => {
+  const orderedColumns = MAPPED_COLUMNS.map(column =>
+    column.column_name === 'event_time'
+      ? { ...column, partition_transform_is_monotonic: true }
+      : column,
+  );
+  render(
+    <PartitionColumnFields
+      datasource={{
+        main_dttm_col: 'event_time',
+        partition_column: 'dt_epoch',
+      }}
+      columns={orderedColumns}
+      allColumns={orderedColumns}
+      onPartitionColumnChange={jest.fn()}
+      onNavigateToColumn={jest.fn()}
+    />,
+  );
+
+  expect(
+    screen.getByText(/^Filters on event_time will automatically apply/),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByText(/range filters are not mirrored/),
+  ).not.toBeInTheDocument();
+});
+
 test('the banner stops claiming a mirror the preview refused', () => {
   // Every check this section can make is static, and `no_such_fn(:value)`
   // clears all of them -- it parses, it has a `:value`, it is not Jinja. The
