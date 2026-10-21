@@ -445,3 +445,31 @@ export function relatedHeadline(
   // the sentence it lands in, and many languages require that.
   return record.summary || t('Item updated: %s', entityDisplayName(record));
 }
+
+/**
+ * The one save group that carries the "you are here" highlight, if any.
+ *
+ * A historical preview takes it. Otherwise the live group takes it, unless
+ * the "Current version" section is shown: per the design, that section then
+ * marks the current state, and the live group is a dated row like any other.
+ */
+export function selectHighlightedTransactionId({
+  previewedTransactionId,
+  currentTransactionId,
+  currentShownInSection,
+}: {
+  previewedTransactionId: number | null;
+  currentTransactionId: number | null;
+  currentShownInSection: boolean;
+}): number | null {
+  if (
+    previewedTransactionId != null &&
+    previewedTransactionId !== currentTransactionId
+  ) {
+    return previewedTransactionId;
+  }
+  if (currentShownInSection) {
+    return null;
+  }
+  return currentTransactionId;
+}

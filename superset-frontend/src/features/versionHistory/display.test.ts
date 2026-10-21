@@ -23,6 +23,7 @@ import {
   formatVersionDateTimeShort,
   formatVersionMonthDay,
   groupHeadline,
+  selectHighlightedTransactionId,
   relatedHeadline,
 } from './display';
 import type { ActivityRecord, SaveGroup } from './types';
@@ -493,3 +494,30 @@ test('the creation label wins over every other headline rule', () => {
     ),
   ).toBe('Imported');
 });
+
+test.each([
+  // [previewed, current, currentShownInSection, expected]
+  [7, 20, false, 7],
+  [7, 20, true, 7],
+  [null, 20, false, 20],
+  [null, 20, true, null],
+  [20, 20, false, 20],
+  [20, 20, true, null],
+  [null, null, false, null],
+])(
+  'highlights previewed=%s current=%s (section shown: %s) -> %s',
+  (
+    previewedTransactionId,
+    currentTransactionId,
+    currentShownInSection,
+    expected,
+  ) => {
+    expect(
+      selectHighlightedTransactionId({
+        previewedTransactionId,
+        currentTransactionId,
+        currentShownInSection,
+      }),
+    ).toBe(expected);
+  },
+);
