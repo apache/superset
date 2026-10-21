@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-16 15:10-0400\n"
+"POT-Creation-Date: 2026-10-21 12:32-0700\n"
 "PO-Revision-Date: 2021-11-16 17:33+0100\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: fr\n"
@@ -1351,6 +1351,9 @@ msgstr "Pracuje"
 msgid "About"
 msgstr "O programie"
 
+msgid "Accept"
+msgstr ""
+
 #, fuzzy
 msgid "Access"
 msgstr "sukces"
@@ -1848,6 +1851,9 @@ msgstr "Agregacja"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Agregacja"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3835,6 +3841,12 @@ msgstr "Zmiana tego wykresu jest zabroniona"
 msgid "Changing this semantic view is forbidden"
 msgstr "Zmiana tego zestawu danych jest zabroniona"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "Zmiana tego zestawu danych jest zabroniona"
@@ -3993,6 +4005,10 @@ msgstr "Tytuł wykresu"
 #, fuzzy
 msgid "Chart type"
 msgstr "Tytuł wykresu"
+
+#, python-format
+msgid "Chart updated: %s"
+msgstr ""
 
 #, fuzzy
 msgid "Chart was saved but could not be added to the selected tab."
@@ -5229,9 +5245,26 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 #, fuzzy
 msgid "Count"
 msgstr "Liczba"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 #, fuzzy
 msgid "Country"
@@ -5779,6 +5812,10 @@ msgstr "Tytuł pulpitu nawigacyjnego"
 msgid "Dashboard updated %s"
 msgstr "Ostatnia aktualizacja %s"
 
+#, python-format
+msgid "Dashboard updated: %s"
+msgstr ""
+
 #, fuzzy
 msgid "Dashboard usage"
 msgstr "Użycie pulpitu nawigacyjnego"
@@ -6042,6 +6079,10 @@ msgstr ""
 #, python-format
 msgid "Dataset schema is invalid, caused by: %(error)s"
 msgstr "Schemat zestawu danych jest nieprawidłowy: %(error)s"
+
+#, python-format
+msgid "Dataset updated: %s"
+msgstr ""
 
 #, python-format
 msgid "Dataset used by %s chart updated: %s"
@@ -8290,6 +8331,10 @@ msgstr "Niepowodzenie"
 msgid "Failed at retrieving results"
 msgstr "Nie udało się pobrać wyników"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8624,7 +8669,13 @@ msgstr "Filtruj wykresy"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -10278,6 +10329,9 @@ msgstr "Ostatni rok"
 msgid "Lat"
 msgstr "płaski"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Szerokość geograficzna"
 
@@ -10577,6 +10631,9 @@ msgstr "Numer podziału"
 #, fuzzy
 msgid "List Roles"
 msgstr "Lista ról"
+
+msgid "List Unique Values"
+msgstr ""
 
 #, fuzzy
 msgid "List Users"
@@ -10998,6 +11055,9 @@ msgstr "Średnia wartości w określonym okresie"
 
 msgid "Mean values"
 msgstr "Średnie wartości"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -15515,6 +15575,12 @@ msgstr "Widoki semantyczne"
 msgid "Semantic cache"
 msgstr ""
 
+#, python-format
+msgid ""
+"Semantic dimension '%(name)s' has ambiguous variants for grain "
+"'%(grain)s'. Use one dimension per name and grain."
+msgstr ""
+
 #, fuzzy
 msgid "Semantic layer"
 msgstr "Warstwa adnotacji"
@@ -15990,13 +16056,12 @@ msgstr "Pokaż znacznik czasu"
 msgid "Show column headers"
 msgstr "Etykieta nagłówka kolumny."
 
+msgid "Show column summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show columns subtotal"
 msgstr "Pokaż sumy częściowe kolumn"
-
-#, fuzzy
-msgid "Show columns total"
-msgstr "Pokaż sumę kolumn"
 
 #, fuzzy
 msgid "Show empty columns"
@@ -16085,12 +16150,12 @@ msgstr "Zobacz szczegóły zapytania"
 msgid "Show row labels"
 msgstr "Pokaż etykiety"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "Pokaż sumy częściowe wierszy"
-
-msgid "Show rows total"
-msgstr "Pokaż sumę wierszy"
 
 msgid "Show series values on the chart"
 msgstr "Pokaż wartości serii na wykresie"
@@ -16352,6 +16417,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Niektóre wymagane filtry na innych kartach mają wartości i nie zostaną "
 "wyczyszczone"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -16898,6 +16966,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Suma"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "Suma wartości w określonym okresie"
 
@@ -17272,6 +17349,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "Parametry szablonu"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
@@ -18575,6 +18655,9 @@ msgstr "Wartości nakładają się na inne wartości punktów przerwania"
 msgid "The version of the service"
 msgstr "Wybierz udział w sumie"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "Pokaż wartość na górze słupka"
@@ -19109,6 +19192,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -19484,6 +19570,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -20752,6 +20845,13 @@ msgstr ""
 "czasu"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -20760,6 +20860,9 @@ msgstr ""
 #, fuzzy
 msgid "Use gradient"
 msgstr "Jednostka czasu"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Użyj miar jako grupy najwyższego poziomu dla kolumn lub wierszy"
@@ -22440,6 +22543,11 @@ msgstr "Twoje zapytanie zostało zaktualizowane"
 
 msgid "Your report could not be deleted"
 msgstr "Twój raport nie mógł zostać usunięty"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy
