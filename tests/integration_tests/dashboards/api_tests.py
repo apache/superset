@@ -61,6 +61,7 @@ from superset.exceptions import (
 )
 from superset.security.guest_token import GuestTokenResourceType, GuestUser
 from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.models.core import FavStar, FavStarClassName
 from superset.reports.models import ReportSchedule, ReportScheduleType
 from superset.models.slice import Slice
@@ -5444,15 +5445,22 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @contextmanager
     def _layout_access_fixture(self) -> Iterator[dict[str, int]]:
         """A dashboard Gamma edits, whose member chart Gamma cannot read,
-        plus a chart Gamma owns, an unrelated chart Gamma cannot read, and
+        plus a chart Gamma owns, an unrelated chart Gamma cannot read, a
+        chart Gamma reads through a granted dataset but does not edit, and
         an archived member."""
         from superset.connectors.sqla.models import SqlaTable
         from superset.models.helpers import skip_visibility_filter
 
         admin: User = self.get_user(ADMIN_USERNAME)
         gamma: User = self.get_user(GAMMA_USERNAME)
-        dataset_id: int = (
-            db.session.query(SqlaTable.id).order_by(SqlaTable.id).first()[0]
+        datasets: list[SqlaTable] = (
+            db.session.query(SqlaTable).order_by(SqlaTable.id).limit(2).all()
+        )
+        dataset_id: int = datasets[0].id
+        granted: SqlaTable = datasets[1]
+        self.grant_role_access_to_table(granted, "Gamma")
+        readable: Slice = self.insert_chart(
+            "layout-access-readable", [admin.id], granted.id
         )
         member: Slice = self.insert_chart(
             "layout-access-member", [admin.id], dataset_id
@@ -5473,6 +5481,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             "archived": archived.id,
             "own": own.id,
             "foreign": foreign.id,
+            "readable": readable.id,
         }
         archived.deleted_at = datetime.now()
         db.session.commit()
@@ -5480,6 +5489,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             yield ids
         finally:
             db.session.rollback()
+            self.revoke_role_access_to_table("Gamma", granted)
             with skip_visibility_filter(db.session, Slice):
                 for dash in db.session.query(Dashboard).filter(
                     Dashboard.dashboard_title.like("layout-access%")
@@ -5505,7 +5515,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @parameterized.expand(
         [
-            ("existing_and_readable", ("member", "archived", "own"), 200),
+            ("existing_and_own", ("member", "archived", "own"), 200),
+            ("readable_not_edited", ("member", "archived", "readable"), 200),
             ("unreadable_new_chart", ("member", "archived", "foreign"), 422),
         ]
     )
@@ -5530,7 +5541,8 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
     @parameterized.expand(
         [
             ("source_members", ("member", "archived"), 200),
-            ("readable_chart", ("own",), 200),
+            ("own_chart", ("own",), 200),
+            ("readable_not_edited", ("readable",), 200),
             ("unreadable_new_chart", ("member", "foreign"), 422),
         ]
     )
@@ -5562,6 +5574,69 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                     "dashboard": rv.json["result"]["id"],
                 }
                 assert self._member_names(copied_ids) == set(layout)
+
+    @patch.object(UpdateDashboardCommand, "_send_deactivated_report_email")
+    def test_update_dashboard_layout_chart_access_rejects_before_side_effects(
+        self, send_email: MagicMock
+    ) -> None:
+        """PUT refuses an unreadable layout chart before it deactivates the
+        reports on a removed tab or native filter, or emails their owners."""
+        with self._layout_access_fixture() as ids:
+            dashboard: Dashboard = db.session.get(Dashboard, ids["dashboard"])
+            stored_metadata: str = json.dumps(
+                {"native_filter_configuration": [{"id": "NATIVE_FILTER-kept"}]}
+            )
+            stored_position: str = json.dumps(
+                {
+                    "ROOT_ID": {"id": "ROOT_ID", "type": "ROOT", "children": ["TABS"]},
+                    "TABS": {"id": "TABS", "type": "TABS", "children": ["TAB-kept"]},
+                    "TAB-kept": {"id": "TAB-kept", "type": "TAB", "children": []},
+                }
+            )
+            dashboard.json_metadata = stored_metadata
+            dashboard.position_json = stored_position
+            report: ReportSchedule = ReportSchedule(
+                type=ReportScheduleType.REPORT,
+                name="layout-access-report",
+                crontab="0 9 * * *",
+                dashboard=dashboard,
+                extra=json.dumps(
+                    {
+                        "dashboard": {
+                            "activeTabs": ["TAB-kept"],
+                            "nativeFilters": [{"nativeFilterId": "NATIVE_FILTER-kept"}],
+                        }
+                    }
+                ),
+            )
+            db.session.add(report)
+            db.session.commit()
+            report_id: int = report.id
+            try:
+                self.login(GAMMA_USERNAME)
+                positions: dict[str, Any] = self._chart_layout(
+                    ids["member"], ids["archived"], ids["foreign"]
+                )
+                rv: TestResponse = self.client.put(
+                    f"/api/v1/dashboard/{ids['dashboard']}",
+                    json={
+                        "position_json": json.dumps(positions),
+                        "json_metadata": json.dumps(
+                            {"positions": positions, "native_filter_configuration": []}
+                        ),
+                    },
+                )
+                assert rv.status_code == 422, rv.data
+                send_email.assert_not_called()
+                assert self._member_names(ids) == {"member", "archived"}
+                dashboard = db.session.get(Dashboard, ids["dashboard"])
+                assert dashboard.json_metadata == stored_metadata
+                assert dashboard.position_json == stored_position
+                assert db.session.get(ReportSchedule, report_id).active is True
+            finally:
+                db.session.rollback()
+                db.session.delete(db.session.get(ReportSchedule, report_id))
+                db.session.commit()
 
     @staticmethod
     def _member_names(ids: dict[str, int]) -> set[str]:

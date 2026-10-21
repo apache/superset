@@ -325,11 +325,19 @@ def _raise_for_unreadable_new_charts(
     Dashboard membership feeds the datasource grant for dashboard viewers, so
     a layout must not be a way to attach a chart the caller has no access to.
     """
+    candidates: list[Slice] = [
+        chart for chart in charts if chart.id not in allowed_chart_ids
+    ]
+    if candidates and not security_manager.is_admin():
+        # The access check reads each chart's editors and viewers; load them
+        # in two queries rather than two lazy loads per chart.
+        db.session.query(Slice).options(
+            lazyload("*"),
+            selectinload(Slice.editors),
+            selectinload(Slice.viewers),
+        ).filter(Slice.id.in_([chart.id for chart in candidates])).all()
     denied: list[int] = sorted(
-        chart.id
-        for chart in charts
-        if chart.id not in allowed_chart_ids
-        and not security_manager.can_access_chart(chart)
+        chart.id for chart in candidates if not security_manager.can_access_chart(chart)
     )
     if denied:
         raise DashboardLayoutInvalidError(
@@ -520,6 +528,28 @@ class DashboardDAO(BaseDAO[Dashboard]):
                 )
             )
         ).all()
+
+    @staticmethod
+    def validate_layout_chart_access(
+        dashboard: Dashboard, positions: dict[str, Any]
+    ) -> None:
+        """Refuse *positions* if it adds a chart the caller cannot read.
+
+        ``set_dash_metadata`` runs the same check; this lets a command refuse
+        the layout before any of its own side effects.
+        """
+        _reject_malformed_chart_nodes(positions)
+        chart_id: int | None
+        chart_ids: list[int] = [
+            chart_id
+            for value in positions.values()
+            if (chart_id := _layout_chart_id(value)) is not None
+        ]
+        with skip_visibility_filter(db.session, Slice):
+            charts: list[Slice] = (
+                db.session.query(Slice).filter(Slice.id.in_(chart_ids)).all()
+            )
+            _raise_for_unreadable_new_charts(charts, _member_chart_ids(dashboard.id))
 
     @staticmethod
     def get_datasets_for_dashboard(id_or_slug: str) -> list[tuple[Any, dict[str, Any]]]:
