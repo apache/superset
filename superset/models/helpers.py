@@ -653,6 +653,78 @@ def json_to_dict(json_str: str) -> dict[Any, Any]:
     return {}
 
 
+def parse_template_params(value: str | dict[str, Any] | None) -> dict[str, Any]:
+    """
+    Read a dataset's ``template_params`` the way query execution does.
+
+    Execution merges ``json_to_dict(template_params)`` into the Jinja context,
+    so authorizing what a templated SQL reads must parse with that same
+    function to see the same values. Anything other than a JSON object is
+    rejected rather than coerced: execution would read such a value
+    differently (``dict.update`` also accepts a list of key/value pairs), so
+    no access decision based on it could be trusted.
+
+    :raises ValueError: if ``value`` is neither empty nor a JSON object
+    """
+    if isinstance(value, dict):
+        return value
+    if not value:
+        return {}
+    if not isinstance(value, str):
+        raise ValueError("Template parameters must be a JSON object")
+    params = json_to_dict(value)
+    if not isinstance(params, dict):
+        raise ValueError("Template parameters must be a JSON object")
+    return params
+
+
+def _canonical_template_params(value: str | dict[str, Any] | None) -> str | None:
+    """Canonical JSON for ``template_params``, or ``None`` if unreadable.
+
+    Serializing the parsed value makes the comparison type-sensitive the way
+    Jinja is -- ``1``, ``true`` and ``1.0`` are distinct even though Python
+    considers the dicts equal -- while ``sort_keys`` keeps it insensitive to
+    key order and whitespace.
+    """
+    try:
+        return json.dumps(parse_template_params(value), sort_keys=True)
+    except ValueError:
+        return None
+
+
+def template_params_equivalent(
+    left: str | dict[str, Any] | None,
+    right: str | dict[str, Any] | None,
+) -> bool:
+    """Whether two ``template_params`` render the same values.
+
+    Compared as execution reads them (see ``parse_template_params``), so
+    re-serialized JSON with the same values is equivalent, but values of
+    different JSON types are not. An unreadable value on either side is never
+    equivalent, so callers re-authorize rather than skip (fail closed).
+    """
+    left_canonical = _canonical_template_params(left)
+    return left_canonical is not None and left_canonical == _canonical_template_params(
+        right
+    )
+
+
+def template_params_for_access_check(params: dict[str, Any]) -> dict[str, Any]:
+    """Drop names the template processor consumes structurally.
+
+    A define/repoint access check renders the SQL with the submitted
+    ``template_params``; the names in ``RESERVED_TEMPLATE_PARAM_NAMES`` are
+    taken by the processor as constructor arguments rather than exposed as
+    Jinja variables, so execution never sees them in the render context.
+    Dropping them here keeps the authorized render matching the executed one.
+    """
+    from superset.jinja_context import (  # pylint: disable=import-outside-toplevel
+        RESERVED_TEMPLATE_PARAM_NAMES,
+    )
+
+    return {k: v for k, v in params.items() if k not in RESERVED_TEMPLATE_PARAM_NAMES}
+
+
 UUID_NATIVE_TYPE_RE: re.Pattern[str] = re.compile(
     r"\b(uuid|uniqueidentifier)\b", re.IGNORECASE
 )
@@ -679,6 +751,32 @@ def parse_array_literal(value: Any) -> list[Any]:
             if isinstance(parsed, (list, tuple)):
                 return list(parsed)
     return [value]
+
+
+def keep_null_rows(
+    sqla_col: Any,
+    negated_cond: Any,
+    db_engine_spec: builtins.type[BaseEngineSpec],
+) -> Any:
+    """
+    Make a negated predicate keep the rows where ``sqla_col`` is NULL.
+
+    SQL three-valued logic evaluates ``NULL != 'a'``, ``NULL NOT LIKE 'a%'`` and
+    similar negations to NULL, which a WHERE clause treats as false, so a bare
+    negated filter would also drop NULL rows although it only names the values to
+    exclude. The NULL check is built through the engine spec so engines with their
+    own NULL syntax are honored, and it must be given the column the filter names
+    (before any string cast applied for pattern matching).
+
+    :param sqla_col: the filtered column expression
+    :param negated_cond: the negated predicate built for ``sqla_col``
+    :param db_engine_spec: engine spec of the database being queried
+    :return: ``sqla_col IS NULL OR negated_cond``
+    """
+    return or_(
+        db_engine_spec.handle_null_filter(sqla_col, utils.FilterOperator.IS_NULL),
+        negated_cond,
+    )
 
 
 def coerce_array_values(
@@ -738,9 +836,20 @@ def convert_uuids(obj: Any) -> Any:
 
 
 class UUIDMixin:  # pylint: disable=too-few-public-methods
-    uuid = sa.Column(
-        UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
-    )
+    # A plain `uuid = sa.Column(...)` class attribute resolves to `Any` (or
+    # the raw `Column[Any]` descriptor) under mypy unless the whole class
+    # hierarchy happens to be loaded together in the same run -- so a
+    # scoped, per-PR mypy check silently lets an unnarrowed `.uuid` read
+    # through even though the column is nullable, and only a full-repo
+    # sweep catches the mismatch later (see #44789 and its predecessors
+    # #44394/#44424/#44648). The `@declared_attr` + explicit `Mapped[...]`
+    # return annotation used by `created_by_fk`/`changed_by_fk` above makes
+    # the type deterministic regardless of what else mypy is checking.
+    @declared_attr
+    def uuid(self) -> Mapped[Optional[uuid.UUID]]:  # pylint: disable=arguments-renamed
+        return sa.Column(
+            UUIDType(binary=True), primary_key=False, unique=True, default=uuid.uuid4
+        )
 
     @validates("uuid")
     def _coerce_uuid(self, key: str, value: Any) -> Any:  # noqa: ARG002
@@ -1609,6 +1718,7 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         from_dttm: Optional[datetime] = None,
         to_dttm: Optional[datetime] = None,
         sql_shifted_temporal_labels: set[str] | None = None,
+        semantic_cache_status: Optional[str] = None,
     ) -> None:
         self.df = df
         self.query = query
@@ -1622,6 +1732,8 @@ class QueryResult:  # pylint: disable=too-few-public-methods
         self.from_dttm = from_dttm
         self.to_dttm = to_dttm
         self.sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
+        # A ``SemanticCacheStatus`` value, or None for non-semantic sources.
+        self.semantic_cache_status: Optional[str] = semantic_cache_status
         self.sql_rowcount = len(self.df.index) if not self.df.empty else 0
 
 
@@ -1688,17 +1800,59 @@ class CertificationMixin:
     def is_certified(self) -> bool:
         return bool(self.get_extra_dict().get("certification"))
 
+    @is_certified.setter
+    def is_certified(self, value: Optional[bool]) -> None:
+        if value is False:
+            self._update_extra(lambda extra: extra.pop("certification", None))
+
     @property
     def certified_by(self) -> Optional[str]:
         return self.get_extra_dict().get("certification", {}).get("certified_by")
+
+    @certified_by.setter
+    def certified_by(self, value: Optional[str]) -> None:
+        self._update_certification("certified_by", value)
 
     @property
     def certification_details(self) -> Optional[str]:
         return self.get_extra_dict().get("certification", {}).get("details")
 
+    @certification_details.setter
+    def certification_details(self, value: Optional[str]) -> None:
+        self._update_certification("details", value)
+
     @property
     def warning_markdown(self) -> Optional[str]:
         return self.get_extra_dict().get("warning_markdown")
+
+    @warning_markdown.setter
+    def warning_markdown(self, value: Optional[str]) -> None:
+        def update(extra: dict[str, Any]) -> None:
+            if value:
+                extra["warning_markdown"] = value
+            else:
+                extra.pop("warning_markdown", None)
+
+        self._update_extra(update)
+
+    def _update_extra(self, update: Callable[[dict[str, Any]], None]) -> None:
+        extra = dict(self.get_extra_dict())
+        update(extra)
+        self.extra = json.dumps(extra)
+
+    def _update_certification(self, key: str, value: Optional[str]) -> None:
+        def update(extra: dict[str, Any]) -> None:
+            certification = dict(extra.get("certification") or {})
+            if value:
+                certification[key] = value
+            else:
+                certification.pop(key, None)
+            if certification:
+                extra["certification"] = certification
+            else:
+                extra.pop("certification", None)
+
+        self._update_extra(update)
 
 
 def clone_model(
@@ -2635,7 +2789,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if getattr(self, "enforce_numerical_metrics", True):
             dataframe_utils.df_metrics_to_num(df, query_object)
 
-        df.replace([np.inf, -np.inf], np.nan, inplace=True)
+        # ``mask`` + ``infer_objects`` rather than ``replace``, which emits a
+        # FutureWarning about deprecated silent downcasting on object columns.
+        df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
 
         return df
 
@@ -2683,6 +2839,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df = query_object.exec_post_processing(df)
             except InvalidPostProcessingError as ex:
                 raise QueryObjectValidationError(ex.message) from ex
+            except (TypeError, pd.errors.DataError) as ex:
+                raise QueryObjectValidationError(str(ex)) from ex
 
         # Update result with processed data
         result.df = df
@@ -4068,15 +4226,18 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
             elif value is not None:
                 value = handle_temporal_value(value)
             if target_generic_type == utils.GenericDataType.BOOLEAN:
-                return utils.cast_to_boolean(value)
+                boolean_value = utils.cast_to_boolean(value)
+                if db_engine_spec is not None:
+                    return db_engine_spec.coerce_boolean_for_sql(boolean_value)
+                return boolean_value
             return value
 
         if isinstance(values, (list, tuple)):
-            values = [handle_single_value(v) for v in values]  # type: ignore
+            values = [handle_single_value(v) for v in values]
         else:
             values = handle_single_value(values)
         if is_list_target and not isinstance(values, (tuple, list)):
-            values = [values]  # type: ignore
+            values = [values]
         elif not is_list_target and isinstance(values, (tuple, list)):
             values = values[0] if values else None
         return values
@@ -5314,6 +5475,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_engine_spec=db_engine_spec,
                     db_extra=self.db_extra,
                 )
+                if op in {
+                    utils.FilterOperator.IN,
+                    utils.FilterOperator.NOT_IN,
+                } and not isinstance(eq, (tuple, list)):
+                    # A missing or null value (``val`` absent or ``None``)
+                    # leaves ``eq`` as ``None``. Reject it before any branch
+                    # (advanced data types, array columns, plain IN) uses it,
+                    # rather than dropping the filter, which would widen the
+                    # results.
+                    raise QueryObjectValidationError(
+                        _(
+                            "Filter value is required for the IN / NOT IN "
+                            "operator on column %(column)s",
+                            column=get_column_name(flt_col),
+                        )
+                    )
 
                 # Get ADVANCED_DATA_TYPES from config when needed
                 ADVANCED_DATA_TYPES = app.config.get("ADVANCED_DATA_TYPES", {})  # noqa: N806
@@ -5339,11 +5516,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _(bus_resp["error_message"])
                         )
 
-                    target_clause_list.append(
-                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
-                            sqla_col, op, bus_resp["values"]
+                    translated_filter = ADVANCED_DATA_TYPES[
+                        col_advanced_data_type
+                    ].translate_filter(sqla_col, op, bus_resp["values"])
+                    # Negations keep NULL rows unless the operand itself is NULL,
+                    # which a plugin may translate on its own (``IS NOT NULL``).
+                    if (op == utils.FilterOperator.NOT_EQUALS and eq is not None) or (
+                        op == utils.FilterOperator.NOT_IN
+                        and isinstance(eq, (list, tuple))
+                        and all(value is not None for value in eq)
+                    ):
+                        translated_filter = keep_null_rows(
+                            sqla_col, translated_filter, db_engine_spec
                         )
-                    )
+                    target_clause_list.append(translated_filter)
                 elif is_multivalue_col and op in {
                     utils.FilterOperator.EQUALS,
                     utils.FilterOperator.NOT_EQUALS,
@@ -5364,11 +5550,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 parse_array_literal(val), array_element_type
                             )
                         )
-                        cond = (
-                            sqla_col != literal
-                            if op == utils.FilterOperator.NOT_EQUALS
-                            else sqla_col == literal
-                        )
+                        if op == utils.FilterOperator.NOT_EQUALS:
+                            cond = keep_null_rows(
+                                sqla_col, sqla_col != literal, db_engine_spec
+                            )
+                        else:
+                            cond = sqla_col == literal
                     else:
                         candidates: list[Any] = (
                             list(val) if isinstance(val, (list, tuple)) else [val]
@@ -5385,7 +5572,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             ]
                         )
                         if op == utils.FilterOperator.NOT_IN:
-                            cond = ~cond
+                            cond = keep_null_rows(sqla_col, ~cond, db_engine_spec)
                     target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IN,
@@ -5394,6 +5581,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     # CONTAINS_ANY/CONTAINS_ALL also produce a list ``eq`` (they
                     # are in ``is_list_target``), but are element-level array ops
                     # handled by their own branch below — not IN.
+                    # Non-list values were rejected right after
+                    # ``filter_values_handler`` above.
                     assert isinstance(eq, (tuple, list))
                     if len(eq) == 0:
                         raise QueryObjectValidationError(
@@ -5514,9 +5703,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.GREATER_THAN_OR_EQUALS,
                         utils.FilterOperator.LESS_THAN_OR_EQUALS,
                     }:
-                        target_clause_list.append(
-                            db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
+                        comparison = db_engine_spec.handle_comparison_filter(
+                            sqla_col, op, eq
                         )
+                        # ``!= NULL`` already means IS NOT NULL; any other operand
+                        # only excludes its own value, so NULL rows stay.
+                        if op == utils.FilterOperator.NOT_EQUALS and eq is not None:
+                            comparison = keep_null_rows(
+                                sqla_col, comparison, db_engine_spec
+                            )
+                        target_clause_list.append(comparison)
                     elif op in {
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
@@ -5529,6 +5725,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             target_generic_type != GenericDataType.STRING
                             or is_uuid_native_type(col_type)
                         )
+                        # NULL rows are identified on the column itself, not on
+                        # its string cast.
+                        null_check_col = sqla_col
                         if needs_string_cast_for_like:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
@@ -5537,9 +5736,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         elif op == utils.FilterOperator.ILIKE:
                             target_clause_list.append(sqla_col.ilike(eq))
                         elif op == utils.FilterOperator.NOT_LIKE:
-                            target_clause_list.append(sqla_col.not_like(eq))
+                            target_clause_list.append(
+                                keep_null_rows(
+                                    null_check_col,
+                                    sqla_col.not_like(eq),
+                                    db_engine_spec,
+                                )
+                            )
                         else:
-                            target_clause_list.append(sqla_col.not_ilike(eq))
+                            target_clause_list.append(
+                                keep_null_rows(
+                                    null_check_col,
+                                    sqla_col.not_ilike(eq),
+                                    db_engine_spec,
+                                )
+                            )
                     elif op in {
                         utils.FilterOperator.CONTAINS_ANY,
                         utils.FilterOperator.CONTAINS_ALL,

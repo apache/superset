@@ -72,6 +72,7 @@ import {
   OpacityEnum,
   StackControlsValue,
   TIMESERIES_CONSTANTS,
+  X_AXIS_CROSS_FILTER_SOURCE,
 } from '../constants';
 
 const AUTO_LABEL_FIT_RATIO = 0.8;
@@ -470,10 +471,11 @@ export function transformSeries(
   const isConfidenceBand =
     forecastSeries.type === ForecastSeriesEnum.ForecastLower ||
     forecastSeries.type === ForecastSeriesEnum.ForecastUpper;
-  // When cross-filtering by X-axis (no dimensions), selectedValues contains
-  // X-axis values rather than series names, so skip series-level dimming.
+  // When cross-filtering by X-axis, selectedValues contains X-axis values
+  // rather than series names, so skip series-level dimming.
   const isFiltered =
     opts.hasDimensions !== false &&
+    filterState?.crossFilterSource !== X_AXIS_CROSS_FILTER_SOURCE &&
     filterState?.selectedValues &&
     !filterState?.selectedValues.includes(name);
   const opacity = isFiltered
