@@ -465,6 +465,33 @@ test.each([403, 400, 500])(
 );
 
 test.each([
+  { status: 500, text: 'Internal Server Error' },
+  { status: 599, text: 'Query cost check failed.' },
+])(
+  'HTTP $status without an error message reports "$text" and never executes',
+  async ({ status, text }) => {
+    const h = setup();
+    fetchMock.modifyRoute('warning-check', {
+      response: { status, body: {} },
+    });
+    h.start();
+    await waitFor(() => expect(h.result.current.checking).toBe(false));
+    expect(h.executions()).toHaveLength(0);
+    expect(h.result.current.confirmation).toBeUndefined();
+    expect(h.reducer).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        type: ADD_TOAST,
+        payload: expect.objectContaining({
+          toastType: ToastType.Danger,
+          text,
+        }),
+      }),
+    );
+  },
+);
+
+test.each([
   'warning flag',
   'estimate flag',
   'estimation',

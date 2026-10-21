@@ -1571,6 +1571,9 @@ def test_expand_nested_columns_keeps_user_alias() -> None:
         ("1.5", "PRECISE", False, "unavailable"),
         (True, "PRECISE", False, "unavailable"),
         (-1, "PRECISE", False, "unavailable"),
+        pytest.param(
+            "9" * 5000, "PRECISE", False, "unavailable", id="exceeds-int-digit-limit"
+        ),
     ],
 )
 def test_warning_dry_run_uses_execution_client_and_raw_statistics(
@@ -1777,6 +1780,24 @@ def test_warning_dry_run_malformed_metadata_is_unavailable(statistics: object) -
     )
 
 
+def test_warning_dry_run_non_mapping_job_resource_is_unavailable(
+    mocker: MockerFixture,
+) -> None:
+    """A job without a resource mapping cannot prove a bound."""
+    from google.auth.credentials import AnonymousCredentials
+    from google.cloud.bigquery import Client, QueryJob
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    client = Client(project="project", credentials=AnonymousCredentials())
+    job = QueryJob("dry-run", "SELECT 1", client)
+    mocker.patch.object(job, "_properties", None)
+    assert (
+        BigQueryEngineSpec._query_cost_warning_estimate(job).compare(100)
+        == "unavailable"
+    )
+
+
 @pytest.mark.parametrize("sql", ["SELECT 1; SELECT 2", "CREATE TABLE t AS SELECT 1"])
 def test_warning_dry_run_unsupported_script_does_not_contact_bigquery(
     mocker: MockerFixture, sql: str
@@ -1792,3 +1813,31 @@ def test_warning_dry_run_unsupported_script_does_not_contact_bigquery(
         is None
     )
     database.get_raw_connection.assert_not_called()
+
+
+@pytest.mark.parametrize("bigquery_driver", [False, True])
+def test_warning_dry_run_without_driver_client_does_not_contact_bigquery(
+    mocker: MockerFixture, bigquery_driver: bool
+) -> None:
+    """Only the BigQuery DB-API connection's own SDK client may run the dry run."""
+    from google.cloud.bigquery.dbapi import Connection
+
+    from superset.db_engine_specs.bigquery import BigQueryEngineSpec
+
+    driver_connection = (
+        mocker.MagicMock(spec=Connection, _client=object())
+        if bigquery_driver
+        else object()
+    )
+    database = mocker.MagicMock()
+    database.get_raw_connection.return_value.__enter__.return_value = SimpleNamespace(
+        driver_connection=driver_connection
+    )
+    assert (
+        BigQueryEngineSpec.estimate_query_cost_for_warning(
+            database, "project", "dataset", "SELECT 1"
+        ).compare(100)
+        == "unavailable"
+    )
+    database.get_raw_connection.assert_called_once()
+    database.mutate_sql_based_on_config.assert_not_called()

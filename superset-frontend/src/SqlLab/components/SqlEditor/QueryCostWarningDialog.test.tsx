@@ -50,6 +50,18 @@ test('shows exact large byte values and bound accuracy with explicit actions', (
   expect(onContinue).toHaveBeenCalledTimes(1);
 });
 
+test('upper-bound byte estimates identify their accuracy', () => {
+  const { getByText, queryByText } = render(
+    <QueryCostWarningDialog
+      estimate={{ ...estimate, accuracy: 'UPPER_BOUND' }}
+      onCancel={() => {}}
+      onContinue={() => {}}
+    />,
+  );
+  expect(getByText(/upper bound/)).toBeInTheDocument();
+  expect(queryByText(/lower bound/)).not.toBeInTheDocument();
+});
+
 test('unavailable planner cost shows its reason and Run without estimate', () => {
   const { getByText, getByRole } = render(
     <QueryCostWarningDialog

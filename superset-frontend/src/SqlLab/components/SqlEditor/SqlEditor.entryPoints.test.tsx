@@ -40,6 +40,7 @@ import {
 } from 'src/SqlLab/actions/sqlLab';
 import type { QueryEditor, SqlLabRootState } from 'src/SqlLab/types';
 import { clearQueryEditors } from 'src/SqlLab/utils/reduxStateToLocalStorageHelper';
+import { detectOS } from 'src/utils/common';
 import SqlEditor from '.';
 import TabbedSqlEditors from '../TabbedSqlEditors';
 
@@ -433,6 +434,34 @@ test('history rerun exposes loading and cancellation, and ignores a late check',
     finish({ result: { ...warning, status: 'within_threshold' } });
     await fetchMock.callHistory.flush(true);
   });
+  expect(executions()).toHaveLength(0);
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+});
+
+test('the stop shortcut cancels a pending check and ignores its late result', async () => {
+  let finish: (body: object) => void = () => {};
+  const pending = new Promise<object>(resolve => {
+    finish = resolve;
+  });
+  fetchMock.modifyRoute('check', { response: () => pending });
+  setup('SELECT 1');
+  const editor = screen.getByRole('textbox', { name: 'SQL editor' });
+  fireEvent.keyDown(editor, { key: 'Enter', ctrlKey: true });
+  expect(
+    await screen.findByRole('button', { name: /Checking cost/ }),
+  ).toBeDisabled();
+  fireEvent.keyDown(editor, {
+    key: detectOS() === 'MacOS' ? 'x' : 'e',
+    ctrlKey: true,
+  });
+  expect(
+    screen.queryByRole('button', { name: /Checking cost/ }),
+  ).not.toBeInTheDocument();
+  await act(async () => {
+    finish({ result: { ...warning, status: 'within_threshold' } });
+    await fetchMock.callHistory.flush(true);
+  });
+  expect(estimates()).toHaveLength(1);
   expect(executions()).toHaveLength(0);
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 });

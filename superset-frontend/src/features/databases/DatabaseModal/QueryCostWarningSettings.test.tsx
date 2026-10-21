@@ -246,6 +246,34 @@ test('PostgreSQL accepts decimals and explains its relative planner cost', () =>
   expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
 });
 
+test.each(['0', '-1'])(
+  'PostgreSQL rejects a non-positive planner cost threshold (%s)',
+  input => {
+    render(
+      <SettingsHarness
+        engine="postgresql"
+        metric="total_cost"
+        extra={{
+          cost_estimate_enabled: true,
+          query_cost_warning: {
+            enabled: true,
+            metric: 'total_cost',
+            threshold: 12.5,
+          },
+        }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Save' })).toBeEnabled();
+    const amount = screen.getByLabelText('Warning threshold (planner cost)');
+    fireEvent.change(amount, { target: { value: input } });
+    expect(
+      screen.getByText('Enter a positive, finite warning threshold.'),
+    ).toBeInTheDocument();
+    expect(savedExtra().query_cost_warning).not.toHaveProperty('threshold');
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
+  },
+);
+
 test.each([
   null,
   { enabled: 'invalid', metric: 'bytes_processed', threshold: 10 },
