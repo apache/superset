@@ -100,6 +100,14 @@ def test_sanitization_warnings_are_server_only(
         ),
     ],
 )
+@pytest.mark.parametrize(
+    "title",
+    [
+        "[DEMO] Service Desk - Executive Summary "
+        "(substitute data: Jira support tickets)",
+        "Service Desk (substitute data: Jira, support tickets)",
+    ],
+)
 def test_title_accepts_data_in_prose(
     model: type[
         GenerateChartRequest
@@ -109,12 +117,9 @@ def test_title_accepts_data_in_prose(
     ],
     payload: dict[str, Any],
     field: str,
+    title: str,
 ) -> None:
     """A colon in prose is not a data URL scheme."""
-    title = (
-        "[DEMO] Service Desk - Executive Summary "
-        "(substitute data: Jira support tickets)"
-    )
     request = model.model_validate({**payload, field: title})
     assert getattr(request, field) == title
     assert request.sanitization_warnings == []

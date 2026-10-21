@@ -766,6 +766,12 @@ def test_escape_like_empty_string():
         "d&#97;ta:text/html,payload",
         "da\u200bta:text/html,payload",
         "java&#8203;script:alert(1)",
+        "See data:\u00a0text/html,payload",
+        "See data:\u3000image/svg+xml;base64,cGF5bG9hZA==",
+        "See data: text&sol;html,payload",
+        "See data: ;base64,cGF5bG9hZA==",
+        "See data:  ,payload",
+        "See data: Jira, then data: text/html,payload",
     ],
 )
 def test_url_scheme_payloads_remain_rejected(value: str) -> None:
@@ -776,10 +782,15 @@ def test_url_scheme_payloads_remain_rejected(value: str) -> None:
         sanitize_filter_value(value)
 
 
-def test_sanitizer_accepts_data_in_prose() -> None:
-    """Whitespace after a prose colon must not look like a data URL."""
-    value = (
+@pytest.mark.parametrize(
+    "value",
+    [
         "[DEMO] Service Desk - Executive Summary "
-        "(substitute data: Jira support tickets)"
-    )
+        "(substitute data: Jira support tickets)",
+        "substitute data: Jira, support tickets",
+        "Source data: Zendesk, Jira and ServiceNow",
+    ],
+)
+def test_sanitizer_accepts_data_in_prose(value: str) -> None:
+    """A prose label after "data:" is not a data URL, even before a comma."""
     assert sanitize_user_input(value, "Title") == value

@@ -77,11 +77,13 @@ def _strip_html_tags(value: str) -> str:
 
 
 # Script schemes remain forbidden regardless of payload whitespace. A data URL
-# starts a value or has an adjacent or comma-delimited payload, even after spaces;
-# a prose label such as "substitute data: support tickets" is not a URL.
+# starts a value, has an adjacent payload, or, after whitespace, has a blank or
+# MIME-like segment (containing "/", ";" or "%") before its comma. A prose label
+# such as "substitute data: Jira, support tickets" has none and is not a URL.
+# Each alternative scans a segment once, so matching stays linear.
 _DANGEROUS_URL_SCHEME_RE = re.compile(
     r"\b(javascript|vbscript):|^\s*data:|\bdata:(?=\S|$)"
-    r"|\bdata:\s+[^,]*,",
+    r"|\bdata:\s(?:[^,/;%]*[/;%][^,]*|\s*),",
     re.IGNORECASE,
 )
 
