@@ -51,6 +51,9 @@ dependencies = [
     "typing-extensions>=4.0.0",
 ]
 
+[project.optional-dependencies]
+testing = ["pytest"]
+
 [project.urls]
 Homepage = "https://superset.apache.org/"
 Documentation = "https://superset.apache.org/docs/"
