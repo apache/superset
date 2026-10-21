@@ -4139,6 +4139,9 @@ msgstr "Zavrieť editor fariebných hranic"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Zavrieť kartu"
 
@@ -8545,10 +8548,10 @@ msgstr "Skryje čáru pre časovou radu"
 msgid "Hierarchy"
 msgstr "Hierarchie"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9818,10 +9821,10 @@ msgstr "Zemepisná dĺžka a šírka"
 msgid "Longitude of default viewport"
 msgstr "Zemepisná dĺžka predvoleného zobrazenie"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11318,9 +11321,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Nepriehľadnosť, očekává hodnoty mezi 0 a 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Otvoriť kartu Zdroje dat"
 
@@ -11356,6 +11356,9 @@ msgstr "Otvoriť v SQL Labu"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Otvoriť v SQL Labu"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Otvoriť dotaz v SQL Labu"
