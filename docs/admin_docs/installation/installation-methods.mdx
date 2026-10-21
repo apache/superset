@@ -25,7 +25,7 @@ You manage a superset-config.py file and a docker-compose.yml file. Docker Compo
 
 You will need to back up your metadata DB. That could mean backing up the service running as a Docker container and its volume; ideally you are running Postgres as a service outside of that container and backing up that service.
 
-You will also need to extend the Superset docker image. The default image (e.g. the `latest` and `<version>` tags) includes the drivers for a Postgres or MySQL metadata database and the headless browser needed for Alerts & Reports, but you'll still need to install the driver for your data warehouse.
+You will also need to extend the Superset docker image. Beginning in 7.0.0, the default image (e.g. the `latest` and `<version>` tags) includes the drivers for a Postgres or MySQL metadata database and the headless browser needed for Alerts & Reports, but you'll still need to install the driver for your data warehouse.
 
 Ideally you will build your own image of Superset that extends the default image, adding what your deployment needs. See [Building your own production Docker image](/admin-docs/installation/docker-builds/#building-your-own-production-docker-image).
 
