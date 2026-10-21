@@ -324,13 +324,6 @@ class DeadlineScheduler:
             bound.sockets.clear()
             self._condition.notify()
 
-    def drain(self) -> None:
-        """Release all owned descriptors after isolated tests finish."""
-        with self._condition:
-            for bound in tuple(self._tokens):
-                self._expire(bound)
-                self.close(bound)
-
     @staticmethod
     def _expire(bound: _Deadline) -> None:
         bound.expired = True
