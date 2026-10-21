@@ -75,3 +75,32 @@ def test_login_page_without_flash_messages(client) -> None:
     assert response.status_code == 200
     data = unescape(response.data.decode())
     assert '"auth_messages":[]' in data.replace(" ", "")
+
+
+def test_log_beacon_from_login_page_returns_401(client) -> None:
+    """An anonymous ``/log/`` beacon gets a 401, not a redirect to ``/login/``."""
+    assert client.get("/login/").status_code == 200
+
+    response = client.post(
+        "/log/?explode=events",
+        data={"events": '[{"source": "spa", "path": "/login/"}]'},
+    )
+
+    assert response.status_code == 401
+    assert "Location" not in response.headers
+
+
+def test_log_beacon_from_login_page_leaves_session_untouched(client) -> None:
+    """The beacon must not rewrite the session cookie of the login page.
+
+    A new ``Set-Cookie`` here can land after the one that stores the OAuth
+    state and drop it, failing the login with ``mismatching_state``.
+    """
+    assert client.get("/login/").status_code == 200
+
+    response = client.post("/log/?explode=events", data={"events": "[]"})
+
+    assert response.status_code == 401
+    assert "Set-Cookie" not in response.headers
+    with client.session_transaction() as session:
+        assert "_flashes" not in session
