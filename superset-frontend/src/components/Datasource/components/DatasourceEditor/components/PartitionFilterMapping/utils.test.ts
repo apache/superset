@@ -611,6 +611,27 @@ test('a temporal column stored as a number or as text gets no pre-fill', () => {
   ).toBe('unix_timestamp(:value)');
 });
 
+test('a mapping onto an array partition column is never active', () => {
+  // SC-128852: the banner said filters would apply to `region_keys TEXT[]`,
+  // which no mirror can compare against.
+  const datasource = {
+    main_dttm_col: 'event_time',
+    partition_column: 'region_keys',
+    partition_mapped_column: 'region',
+  };
+  const columns = (partitionType: string) => [
+    {
+      column_name: 'region',
+      type: 'TEXT',
+      partition_value_transform: ':value',
+    },
+    { column_name: 'region_keys', type: partitionType },
+  ];
+  expect(mappingIsActive(datasource, columns('TEXT'))).toBe(true);
+  expect(mappingIsActive(datasource, columns('TEXT[]'))).toBe(false);
+  expect(mappingIsActive(datasource, columns('ARRAY<STRING>'))).toBe(false);
+});
+
 test('an engine with no default offers no pre-fill', () => {
   // `unix_timestamp(:value)` would not parse on Postgres, and a wrong default
   // is worse than none.

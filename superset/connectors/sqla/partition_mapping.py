@@ -1159,6 +1159,13 @@ def resolve_partition_mapping(datasource: SqlaTable) -> PartitionMapping | None:
         # Self-mapping: the mirrored predicate would duplicate the original.
         return None
 
+    # An array holds no scalar a transform could return, so no mirror onto it
+    # can ever compare. Refused for the mapping rather than only per value, so
+    # the Explore glyph stops promising one: a probe of ``:value`` succeeds and
+    # records a working transform, and only the later type gate declined.
+    if declares_array_type(columns_by_name[partition_column].type):
+        return None
+
     mapped_column = columns_by_name[mapped_column_name]
     transform = getattr(mapped_column, "partition_value_transform", None)
     if not is_transform_active(transform, datasource.database.backend):

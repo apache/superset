@@ -581,6 +581,34 @@ def test_resolve_returns_none_when_the_feature_flag_is_off(app: Flask) -> None:
             assert resolve_partition_mapping(table) is None
 
 
+def test_an_array_partition_column_resolves_no_mapping(app: Flask) -> None:
+    """
+    SC-128852, page 3: with only the per-value refusal the chart stopped
+    failing, but the glyph stayed lit -- the probe of ``:value`` succeeds and
+    records a working transform. An array partition column can never take a
+    mirror, so the mapping itself is refused, and the summary the glyph reads
+    reports it inactive.
+    """
+    table = _mapped_table(
+        partition_column="region_keys",
+        mapped_column="country",
+        partition_mapped_column="country",
+        transform=":value",
+    )
+    region_keys = TableColumn(column_name="region_keys", type="VARCHAR")
+    table.columns.append(region_keys)
+    with app.app_context():
+        # The same mapping onto a scalar column is live, so what follows is the
+        # array type's doing and nothing else's.
+        assert resolve_partition_mapping(table) is not None
+
+        region_keys.type = "TEXT[]"
+        assert resolve_partition_mapping(table) is None
+        summary = table.partition_filter_mapping_summary
+        assert summary is not None
+        assert summary["active"] is False
+
+
 def test_resolve_returns_none_without_a_partition_column(app: Flask) -> None:
     table = _mapped_table()
     table.partition_column = None

@@ -3163,8 +3163,9 @@ def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
     instead of losing its pruning, which is the one outcome this feature may
     not have.
 
-    `probed_value_type_error` refuses it for the *column*, since an array holds
-    no scalar at all and there is no result that could compare. The mapped
+    It is refused for the *mapping*, since an array holds no scalar at all and
+    there is no result that could compare: `resolve_partition_mapping` declines
+    it before any probe, so the warehouse is not asked either. The mapped
     column is numeric here because `equality_mirrors_safely` withdraws ``=`` on
     a text column under ClickHouse anyway, which would mask the gate under test.
     """
@@ -3195,9 +3196,9 @@ def test_an_array_partition_column_gets_no_mirror(app: Flask) -> None:
                     ],
                 )
 
-    # The probe is reached -- the decline is the type gate's, not an earlier
-    # one's -- and nothing is mirrored onto the array.
-    assert probe.called
+    # Declined before the probe -- no round trip for a mapping that can never
+    # mirror -- and nothing is mirrored onto the array.
+    assert not probe.called
     assert "region_keys" not in sql
     # The filter itself is untouched: the query is still correct, it just reads
     # every partition.

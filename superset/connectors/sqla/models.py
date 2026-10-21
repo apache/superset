@@ -72,6 +72,7 @@ from superset_core.common.models import Dataset as CoreDataset
 from superset import db, is_feature_enabled, security_manager
 from superset.common.db_query_status import QueryStatus
 from superset.connectors.sqla.partition_mapping import (
+    declares_array_type,
     equality_mirrors_safely,
     FEATURE_FLAG as PARTITION_FILTER_MAPPING_FLAG,
     has_active_advanced_data_type,
@@ -2059,6 +2060,7 @@ class SqlaTable(
         transform = mapped_column.partition_value_transform if mapped_column else None
         active = bool(
             self.partition_column in columns_by_name
+            and not declares_array_type(columns_by_name[self.partition_column].type)
             and mapped_column is not None
             and mapped_column_name != self.partition_column
             and is_transform_active(transform, self.database.backend)

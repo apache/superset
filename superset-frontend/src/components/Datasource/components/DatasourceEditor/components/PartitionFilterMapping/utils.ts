@@ -97,6 +97,13 @@ export function transformCanPreview(
 }
 
 /**
+ * A declared type naming an array, as the server's `declares_array_type` reads
+ * it: PostgreSQL's `TEXT[]`, and the `ARRAY<...>` / `ARRAY(...)` / `Array(...)`
+ * spellings.
+ */
+const ARRAY_TYPE_RE = /(\[\s*\d*\s*\])+\s*$|^\s*ARRAY\b/i;
+
+/**
  * Whether the mapping will actually mirror anything.
  *
  * Drives the choice between the green "filters will automatically apply"
@@ -118,6 +125,15 @@ export function mappingIsActive(
 ): boolean {
   const mappedColumnName = resolveMappedColumn(datasource);
   if (!mappedColumnName || mappedColumnName === datasource.partition_column) {
+    return false;
+  }
+  // An array partition column can never take a mirror: there is no scalar a
+  // transform could return that compares. The server refuses the mapping the
+  // same way (`declares_array_type`), so the banner must not promise one.
+  const partitionColumn = columns.find(
+    column => column.column_name === datasource.partition_column,
+  );
+  if (partitionColumn?.type && ARRAY_TYPE_RE.test(partitionColumn.type)) {
     return false;
   }
   const mappedColumn = columns.find(
