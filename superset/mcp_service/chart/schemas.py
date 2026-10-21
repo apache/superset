@@ -6344,7 +6344,7 @@ class ChartNameMixin(BaseModel):
     def _detect_chart_name_sanitization(cls, data: Any) -> Any:
         """Record a warning when chart_name sanitization alters user input.
 
-        Runs before the ``chart_name`` field validator strips HTML, so we
+        Sanitizes once before field constraints are applied, so we
         can compare the caller's raw input against the sanitizer output
         and tell the tool whether to notify the caller. Empty-after-
         sanitization is rejected with a ValueError so the caller gets a
@@ -6369,6 +6369,8 @@ class ChartNameMixin(BaseModel):
             sanitized, was_modified = sanitize_user_input_with_changes(
                 raw, "Chart name", max_length=250, allow_empty=True
             )
+            if isinstance(sanitized, str):
+                sanitized = sanitized.strip()
             if was_modified and not sanitized:
                 raise ValueError(
                     "chart_name contained only disallowed content "
@@ -6387,9 +6389,9 @@ class ChartNameMixin(BaseModel):
 
     @field_validator("chart_name")
     @classmethod
-    def sanitize_chart_name(cls, v: str | None) -> str | None:
-        """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=250, allow_empty=True)
+    def normalize_blank_chart_name(cls, v: str | None) -> str | None:
+        """Keep the optional-name fallback; nonblank names are sanitized above."""
+        return v if v and v.strip() else None
 
 
 class GenerateChartRequest(

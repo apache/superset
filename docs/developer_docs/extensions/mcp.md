@@ -28,6 +28,15 @@ under the License.
 
 Model Context Protocol (MCP) integration allows extensions to register custom AI agent capabilities that integrate seamlessly with Superset's MCP service. Extensions can provide both **tools** (executable functions) and **prompts** (interactive guidance) that AI agents can discover and use.
 
+## Chart and dashboard titles
+
+MCP chart names and dashboard titles preserve literal comparisons such as
+`Users aged <30`, `Revenue <$1M`, and `Love <3 charts`. HTML tags are stripped;
+script-only names and dangerous URL schemes are rejected. A title altered by
+sanitization includes a warning. Names are sanitized once before persistence,
+so entity-encoded input cannot silently become an auto-generated name through
+a second sanitization pass.
+
 ## Chart dataset changes
 
 The built-in `update_chart` tool requires a complete `config` when rebinding

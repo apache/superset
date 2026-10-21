@@ -2427,3 +2427,28 @@ class TestGenerateDashboardCreatorGroups:
                 )
 
         assert mock_dashboard.viewers == [viewer]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("title", ["Users aged <30", "Revenue <$1M", "Love <3 charts"])
+async def test_generate_dashboard_literal_less_than_storage_round_trip(
+    title: str, mcp_server: object
+) -> None:
+    """Dashboard creation and readback preserve non-tag less-than text."""
+    dashboard = _mock_dashboard(id=10, title="Old")
+    with (
+        patch("superset.models.dashboard.Dashboard") as model,
+        patch("superset.daos.dashboard.DashboardDAO.find_by_id") as find,
+        patch("superset.db.session") as session,
+    ):
+        _setup_generate_dashboard_mocks(
+            session, find, model, [_mock_chart()], dashboard
+        )
+        async with Client(mcp_server) as client:
+            result = await client.call_tool(
+                "generate_dashboard",
+                {"request": {"chart_ids": [1], "dashboard_title": title}},
+            )
+    assert dashboard.dashboard_title == title
+    assert result.structured_content["error"] is None
+    assert result.structured_content["dashboard"]["dashboard_title"] == title

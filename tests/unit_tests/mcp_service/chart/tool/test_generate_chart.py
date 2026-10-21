@@ -705,6 +705,7 @@ async def _generate_saved_chart(
     refetch: Any,
     compile_result: CompileResult | None = None,
     config: Any = None,
+    chart_name: str | None = None,
 ) -> tuple[Any, _DetachableSlice, Mock]:
     """Run generate_chart(save_chart=True) with a chart that detaches on commit.
 
@@ -713,6 +714,7 @@ async def _generate_saved_chart(
     """
     request = GenerateChartRequest(
         dataset_id="1",
+        chart_name=chart_name,
         config=config
         or TableChartConfig(chart_type="table", columns=[ColumnRef(name="region")]),
         save_chart=True,
@@ -734,7 +736,16 @@ async def _generate_saved_chart(
     # The instance is detached right after the commit, before any of the reads
     # that build the response.
     session.refresh.side_effect = lambda _chart: chart.detach()
-    create_command = Mock(return_value=Mock(run=Mock(return_value=chart)))
+
+    command_instance = Mock(run=Mock(return_value=chart))
+
+    def create(payload: dict[str, Any]) -> Mock:
+        """Emulate storing the name passed to the create command."""
+        if chart_name is not None:
+            chart._values["slice_name"] = payload["slice_name"]
+        return command_instance
+
+    create_command = Mock(return_value=command_instance, side_effect=create)
 
     with (
         patch(
@@ -1162,3 +1173,16 @@ async def test_generate_saved_chart_retains_id_after_response_size_failure() -> 
     assert result.chart.id == 42
     assert result.form_data == {}
     assert result.warnings
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("title", ["Users aged <30", "Revenue <$1M", "Love <3 charts"])
+async def test_generate_chart_literal_less_than_storage_round_trip(title: str) -> None:
+    """The create command and readback retain literal non-tag less-than signs."""
+    result, _, create = await _generate_saved_chart(
+        refetch=Mock(side_effect=SQLAlchemyError("use captured stored scalars")),
+        chart_name=title,
+    )
+    assert create.call_args.args[0]["slice_name"] == title
+    assert result.success is True
+    assert result.chart.slice_name == title

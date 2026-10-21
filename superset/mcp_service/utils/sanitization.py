@@ -43,9 +43,9 @@ def _strip_html_tags(value: str) -> str:
     Decodes all layers of HTML entity encoding BEFORE passing to nh3,
     so entity-encoded tags (e.g., ``&lt;script&gt;``) are decoded into
     real tags that nh3 can detect and strip. After nh3 removes all tags,
-    we only restore ``&amp;`` back to ``&`` (not a full html.unescape)
-    to preserve ampersands in display text without risking XSS from
-    re-introducing angle brackets or other HTML-significant characters.
+    we restore ampersands and less-than signs that cannot start HTML tags.
+    Tag-opening angle brackets remain escaped; a full html.unescape here
+    could reconstruct markup from text joined by tag removal.
 
     Args:
         value: The input string that may contain HTML
@@ -70,11 +70,13 @@ def _strip_html_tags(value: str) -> str:
     # url_schemes=set() blocks all URL schemes in any remaining attributes
     cleaned = nh3.clean(decoded, tags=set(), url_schemes=set())
 
-    # Only restore &amp; → & to preserve ampersands in display text (e.g. "A & B").
-    # Do NOT use html.unescape() here: nh3 may pass through HTML entities from
-    # the input (e.g. &lt;script&gt;), and a full unescape would re-introduce
-    # raw angle brackets, creating an XSS vector.
-    return cleaned.replace("&amp;", "&")
+    # HTML tag-open states require an ASCII letter, slash, bang or question
+    # mark. Preserve literal comparisons like <30 and <$1M, but never decode
+    # a tag opener reconstructed by stripping intervening markup.
+    # Normalize removable characters before deciding whether a bracket is safe;
+    # otherwise a later Unicode strip could turn <\u200bscript into markup.
+    cleaned = _remove_dangerous_unicode(cleaned)
+    return re.sub(r"&lt;(?![A-Za-z/!?])", "<", cleaned).replace("&amp;", "&")
 
 
 def _scheme_pattern(scheme: str) -> str:

@@ -908,3 +908,233 @@ def test_padded_dashboard_slug_boundary() -> None:
     assert request.slug == "x" * 255
     with pytest.raises(ValidationError):
         UpdateDashboardRequest(identifier=1, slug="  " + "x" * 256 + "  ")
+
+
+_TITLE_SANITIZATION_CASES = [
+    (
+        GenerateChartRequest,
+        {
+            "dataset_id": 1,
+            "config": {"chart_type": "table", "columns": [{"name": "a"}]},
+        },
+        "chart_name",
+    ),
+    (UpdateChartRequest, {"identifier": 1}, "chart_name"),
+    (GenerateDashboardRequest, {"chart_ids": [1]}, "dashboard_title"),
+    (UpdateDashboardRequest, {"identifier": 1}, "dashboard_title"),
+    (DuplicateDashboardRequest, {"dashboard_id": 1}, "dashboard_title"),
+]
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize(
+    "value",
+    ["Users aged <30", "Revenue <$1M", "Love <3 charts", "Users aged <30 & “VIP” 📈"],
+)
+def test_literal_less_than_title_round_trip(
+    model: type[BaseModel], payload: dict[str, Any], field: str, value: str
+) -> None:
+    """Non-tag less-than signs survive validation and JSON readback unchanged."""
+    request = model.model_validate({**payload, field: value})
+    assert getattr(request, field) == value
+    assert request.sanitization_warnings == []
+    assert json.loads(request.model_dump_json())[field] == value
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize(
+    "value", ["&#x3c;&#x3c;</b>x", "&amp;lt;</script>click= <b>📈"]
+)
+def test_title_sanitized_once(
+    model: type[BaseModel], payload: dict[str, Any], field: str, value: str
+) -> None:
+    """Persist the single sanitizer result, never a second-pass empty fallback."""
+    from unittest.mock import patch
+
+    from superset.mcp_service.utils.sanitization import sanitize_user_input
+
+    expected = sanitize_user_input(value, "Title", max_length=500, allow_empty=True)
+    assert expected
+    with (
+        patch(
+            "superset.mcp_service.utils.sanitization.sanitize_user_input",
+            wraps=sanitize_user_input,
+        ) as sanitize,
+        patch("superset.mcp_service.chart.schemas.sanitize_user_input", sanitize),
+        patch("superset.mcp_service.dashboard.schemas.sanitize_user_input", sanitize),
+    ):
+        request = model.model_validate({**payload, field: value})
+    calls = [
+        c
+        for c in sanitize.call_args_list
+        if c.args[1] in ("Chart name", "Dashboard title")
+    ]
+    assert len(calls) == 1
+    assert getattr(request, field) == expected
+    assert len(request.sanitization_warnings) == 1
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+def test_empty_sanitized_title_never_uses_fallback(
+    model: type[BaseModel], payload: dict[str, Any], field: str
+) -> None:
+    """Encoded script-only names retain the existing disallowed-content reason."""
+    with pytest.raises(ValidationError) as exc:
+        model.model_validate({**payload, field: "&amp;lt;script>alert(1)</script>"})
+    assert exc.value.errors()[0]["loc"] == (field,)
+    assert exc.value.errors()[0]["type"] == "unsafe_text"
+
+
+@pytest.mark.parametrize(
+    "model,payload,field",
+    [
+        (ManageDashboardCertificationRequest, {"identifier": 1}, "certified_by"),
+        (
+            ManageDashboardCertificationRequest,
+            {"identifier": 1},
+            "certification_details",
+        ),
+        (BaseChartConfig, {}, "temporal_column"),
+        (ColumnRef, {}, "name"),
+        (ColumnRef, {"name": "amount"}, "label"),
+        (FilterConfig, {"op": "=", "value": "safe"}, "column"),
+        (FilterConfig, {"column": "region", "op": "="}, "value"),
+        (GanttSortByConfig, {}, "column"),
+        (
+            SunburstChartConfig,
+            {
+                "hierarchy": [{"name": "region"}],
+                "metric": {"name": "amount", "aggregate": "SUM"},
+            },
+            "time_range",
+        ),
+        (
+            InteractivePivotChartConfig,
+            {
+                "rows": [{"name": "region"}],
+                "metrics": [{"name": "amount", "aggregate": "SUM"}],
+            },
+            "comparison_period",
+        ),
+        (
+            BulletChartConfig,
+            {"metric": {"name": "amount", "aggregate": "SUM"}},
+            "time_range",
+        ),
+        (
+            BulletChartConfig,
+            {"metric": {"name": "amount", "aggregate": "SUM"}},
+            "range_labels",
+        ),
+        (
+            BulletChartConfig,
+            {"metric": {"name": "amount", "aggregate": "SUM"}},
+            "marker_labels",
+        ),
+        (
+            BulletChartConfig,
+            {"metric": {"name": "amount", "aggregate": "SUM"}},
+            "marker_line_labels",
+        ),
+    ],
+)
+@pytest.mark.parametrize(
+    "value", ["Users aged <30", "&#x3c;&#x3c;</b>x", "&amp;lt;</script>click= <b>📈"]
+)
+def test_sibling_fields_use_single_sanitizer_result(
+    model: type[BaseModel], payload: dict[str, Any], field: str, value: str
+) -> None:
+    """Shared-sanitizer siblings preserve comparisons and never re-sanitize output."""
+    from superset.mcp_service.utils.sanitization import sanitize_user_input
+
+    if model is InteractivePivotChartConfig:
+        payload = {**payload, "comparison_type": "values"}
+    sql_identifier = field in ("column", "temporal_column", "name")
+    expected: str | int | float | None
+    try:
+        if model is FilterConfig and field == "value":
+            from superset.mcp_service.utils.sanitization import sanitize_filter_value
+
+            expected = sanitize_filter_value(value)
+        else:
+            expected = sanitize_user_input(
+                value,
+                "Value",
+                max_length=500,
+                check_sql_keywords=sql_identifier,
+                allow_empty=True,
+            )
+    except ValueError:
+        # SQL identifiers intentionally reject ampersands in the encoded result.
+        with pytest.raises(ValidationError):
+            model.model_validate({**payload, field: value})
+        return
+    is_list = field.endswith("_labels")
+    request = model.model_validate({**payload, field: [value] if is_list else value})
+    assert getattr(request, field) == ([expected] if is_list else expected)
+
+
+@pytest.mark.parametrize(
+    "model,payload,field",
+    [
+        (
+            CreateVirtualDatasetRequest,
+            {"database_id": 1, "sql": "select 1"},
+            "dataset_name",
+        ),
+        (UpdateDatasetRequest, {"dataset_id": 1}, "table_name"),
+        (
+            CreateDatasetMetricRequest,
+            {"dataset_id": 1, "expression": "SUM(x)"},
+            "metric_name",
+        ),
+        (UpdateDatasetMetricRequest, {"dataset_id": 1, "metric": 1}, "metric_name"),
+        (CreateThemeRequest, {"json_data": {}}, "theme_name"),
+        (SaveSqlQueryRequest, {"database_id": 1, "sql": "select 1"}, "label"),
+        (
+            CreateVirtualDatasetRequest,
+            {"database_id": 1, "sql": "select 1", "dataset_name": "ds"},
+            "description",
+        ),
+        (UpdateDatasetRequest, {"dataset_id": 1}, "description"),
+        (
+            SaveSqlQueryRequest,
+            {"database_id": 1, "sql": "select 1", "label": "query"},
+            "description",
+        ),
+        (UpdateDashboardRequest, {"identifier": 1}, "description"),
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "&#x3c;&#x3c;</b>x",
+        "&amp;lt;</script>click= <b>📈",
+    ],
+)
+def test_unsanitized_sibling_names_remain_literal(
+    model: type[BaseModel], payload: dict[str, Any], field: str, value: str
+) -> None:
+    """Non-sanitizer paths retain their existing literal identifier/text contract."""
+    request = model.model_validate({**payload, field: value})
+    assert getattr(request, field) == value
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "&#x3c;&#x3c;</b>x",
+        "&amp;lt;</script>click= <b>📈",
+    ],
+)
+def test_sql_lab_title_remains_literal(value: str) -> None:
+    """SQL Lab tab titles trim whitespace without HTML sanitization."""
+    from superset.mcp_service.sql_lab.schemas import OpenSqlLabRequest
+
+    assert OpenSqlLabRequest(database_id=1, title=value).title == value

@@ -903,3 +903,35 @@ def test_data_label_followed_by_control_whitespace_is_preserved(
     """Whitespace after a comma-free data: label may be a tab or line break."""
     value = f"Substitute data:{separator}Jira support tickets"
     assert sanitize(value) == value.replace("\r\n", "\n")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "5 < 10",
+        "A < B",
+        "A <",
+        "A <> B",
+    ],
+)
+def test_strip_html_tags_preserves_non_tag_less_than(value: str) -> None:
+    """Preserve display text without decoding tag-opening brackets."""
+    assert _strip_html_tags(value) == value.replace(">", "&gt;")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "&lt;</b>script>alert(1)",
+        "&lt;&#8203;script>alert(1)",
+        "&lt;</b>img src=x onerror=alert(1)",
+    ],
+)
+def test_strip_html_tags_does_not_reconstruct_tag_openers(value: str) -> None:
+    """Removed tags or invisible characters must not reveal raw markup."""
+    result = _strip_html_tags(value)
+    assert "<script" not in result
+    assert "<img" not in result
