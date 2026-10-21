@@ -17,17 +17,19 @@
  * under the License.
  */
 import { buildQueryContext, QueryFormData } from '@superset-ui/core';
-import { uniqueMetrics } from '../utils/metricBounds';
 
 export default function buildQuery(formData: QueryFormData) {
-  const { metric, min_metric, max_metric, sort_by_metric } = formData;
-  return buildQueryContext(formData, baseQueryObject => [
-    {
-      ...baseQueryObject,
-      // bound metrics are queried alongside the value so every group row
-      // carries its own min/max
-      metrics: uniqueMetrics(metric, min_metric, max_metric),
-      ...(sort_by_metric && { orderby: [[metric, false]] }),
-    },
-  ]);
+  const { metric, sort_by_metric } = formData;
+  return buildQueryContext(formData, {
+    // bound metrics are queried alongside the value so every group row
+    // carries its own min/max; aliasing them to `metrics` lets the base
+    // query object collect them and drop duplicates by label
+    queryFields: { min_metric: 'metrics', max_metric: 'metrics' },
+    buildQuery: baseQueryObject => [
+      {
+        ...baseQueryObject,
+        ...(sort_by_metric && { orderby: [[metric, false]] }),
+      },
+    ],
+  });
 }

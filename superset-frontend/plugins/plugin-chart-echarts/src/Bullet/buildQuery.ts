@@ -22,7 +22,6 @@ import {
   QueryFormData,
   QueryObject,
 } from '@superset-ui/core';
-import { uniqueMetrics } from '../utils/metricBounds';
 
 /**
  * A single ungrouped aggregate of the selected metric, mirroring the query
@@ -30,26 +29,30 @@ import { uniqueMetrics } from '../utils/metricBounds';
  * in the same query.
  */
 export default function buildQuery(formData: QueryFormData) {
-  const { metric, groupby, target_metric, marker_line_metric } = formData;
-  return buildQueryContext(formData, baseQueryObject => {
-    const queries: QueryObject[] = [
-      {
-        ...baseQueryObject,
-        columns: ensureIsArray(groupby),
-        metrics: uniqueMetrics(metric, target_metric),
-      },
-    ];
-    // The chart-wide marker line is aggregated over all rows in its own
-    // query rather than combined from per-group values, so non-additive
-    // metrics (averages, ratios, distinct counts) stay correct.
-    if (marker_line_metric) {
-      queries.push({
-        ...baseQueryObject,
-        columns: [],
-        metrics: [marker_line_metric],
-        orderby: [],
-      });
-    }
-    return queries;
+  const { groupby, marker_line_metric } = formData;
+  return buildQueryContext(formData, {
+    // aliasing the target to `metrics` lets the base query object collect it
+    // next to the measure and drop duplicates by label
+    queryFields: { target_metric: 'metrics' },
+    buildQuery: baseQueryObject => {
+      const queries: QueryObject[] = [
+        {
+          ...baseQueryObject,
+          columns: ensureIsArray(groupby),
+        },
+      ];
+      // The chart-wide marker line is aggregated over all rows in its own
+      // query rather than combined from per-group values, so non-additive
+      // metrics (averages, ratios, distinct counts) stay correct.
+      if (marker_line_metric) {
+        queries.push({
+          ...baseQueryObject,
+          columns: [],
+          metrics: [marker_line_metric],
+          orderby: [],
+        });
+      }
+      return queries;
+    },
   });
 }

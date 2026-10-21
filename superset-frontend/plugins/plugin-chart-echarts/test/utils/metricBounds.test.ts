@@ -17,11 +17,7 @@
  * under the License.
  */
 import { AdhocMetric } from '@superset-ui/core';
-import {
-  getMetricValue,
-  resolveBound,
-  uniqueMetrics,
-} from '../../src/utils/metricBounds';
+import { getMetricValue, resolveBound } from '../../src/utils/metricBounds';
 
 const sumQuota: AdhocMetric = {
   expressionType: 'SIMPLE',
@@ -57,10 +53,4 @@ test('getMetricValue reads saved and adhoc metrics by label', () => {
   expect(getMetricValue(row, null)).toBeUndefined();
   expect(getMetricValue(undefined, 'total_quota')).toBeUndefined();
   expect(getMetricValue({ x: 'abc' }, 'x')).toBeUndefined();
-});
-
-test('uniqueMetrics drops unset metrics and duplicates by label', () => {
-  expect(
-    uniqueMetrics('count', null, undefined, sumQuota, { ...sumQuota }),
-  ).toEqual(['count', sumQuota]);
 });

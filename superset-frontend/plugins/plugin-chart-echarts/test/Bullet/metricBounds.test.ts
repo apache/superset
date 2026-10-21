@@ -56,6 +56,11 @@ test('buildQuery adds the target metric to the grouped query', () => {
   expect(queries[0].metrics).toEqual(['sales', 'quota']);
 });
 
+test('buildQuery queries a target that equals the measure only once', () => {
+  const [query] = buildQuery({ ...formData, target_metric: 'sales' }).queries;
+  expect(query.metrics).toEqual(['sales']);
+});
+
 test('buildQuery computes the marker line metric in a second, ungrouped query', () => {
   const { queries } = buildQuery({
     ...formData,

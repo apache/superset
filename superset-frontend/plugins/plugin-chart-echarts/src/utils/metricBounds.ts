@@ -16,11 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  getMetricLabel,
-  QueryFormMetric,
-  removeDuplicates,
-} from '@superset-ui/core';
+import { getMetricLabel, QueryFormMetric } from '@superset-ui/core';
 import { CustomControlItem, sharedControls } from '@superset-ui/chart-controls';
 
 /**
@@ -42,18 +38,6 @@ export const boundMetricControl = (
     validators: [],
   },
 });
-
-/**
- * Metrics to query, skipping unset ones and collapsing metrics that share a
- * label, since the label is the result column name.
- */
-export const uniqueMetrics = (
-  ...metrics: (QueryFormMetric | null | undefined)[]
-): QueryFormMetric[] =>
-  removeDuplicates(
-    metrics.filter((metric): metric is QueryFormMetric => !!metric),
-    getMetricLabel,
-  );
 
 /** The finite numeric value of a metric in a result row, if any. */
 export function getMetricValue(
