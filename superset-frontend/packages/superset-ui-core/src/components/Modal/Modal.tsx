@@ -224,12 +224,12 @@ const defaultResizableConfig = (hideFooter: boolean | undefined) => ({
   minWidth: RESIZABLE_MIN_WIDTH,
   enable: {
     bottom: true,
-    bottomLeft: true,
+    bottomLeft: false,
     bottomRight: true,
-    left: true,
-    top: true,
-    topLeft: true,
-    topRight: true,
+    left: false,
+    top: false,
+    topLeft: false,
+    topRight: false,
     right: true,
   },
 });

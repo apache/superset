@@ -46,29 +46,29 @@ describe('mergeResizableConfig', () => {
     expect(config.defaultSize).toEqual({ width: 'auto', height: '75vh' });
     expect(config.enable).toEqual({
       bottom: true,
-      bottomLeft: true,
+      bottomLeft: false,
       bottomRight: true,
-      left: true,
-      top: true,
-      topLeft: true,
-      topRight: true,
+      left: false,
+      top: false,
+      topLeft: false,
+      topRight: false,
       right: true,
     });
   });
 
   test('allows explicit enable overrides', () => {
     const config = mergeResizableConfig(undefined, {
-      enable: { top: false },
+      enable: { top: true },
     });
 
     expect(config.enable).toEqual({
       bottom: true,
-      bottomLeft: true,
+      bottomLeft: false,
       bottomRight: true,
-      left: true,
-      top: false,
-      topLeft: true,
-      topRight: true,
+      left: false,
+      top: true,
+      topLeft: false,
+      topRight: false,
       right: true,
     });
   });
@@ -81,7 +81,7 @@ describe('mergeResizableConfig', () => {
 });
 
 describe('Modal resizable', () => {
-  test('renders all default handles when caller config is partial', () => {
+  test('renders only the default handles when caller config is partial', () => {
     const handleComponent = {
       top: <span data-test="resize-handle-top" />,
       right: <span data-test="resize-handle-right" />,
@@ -111,11 +111,17 @@ describe('Modal resizable', () => {
     expect(
       screen.getByTestId('resize-handle-bottom-right'),
     ).toBeInTheDocument();
-    expect(screen.getByTestId('resize-handle-top')).toBeInTheDocument();
-    expect(screen.getByTestId('resize-handle-left')).toBeInTheDocument();
-    expect(screen.getByTestId('resize-handle-top-right')).toBeInTheDocument();
-    expect(screen.getByTestId('resize-handle-bottom-left')).toBeInTheDocument();
-    expect(screen.getByTestId('resize-handle-top-left')).toBeInTheDocument();
+    expect(screen.queryByTestId('resize-handle-top')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('resize-handle-left')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('resize-handle-top-right'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('resize-handle-bottom-left'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('resize-handle-top-left'),
+    ).not.toBeInTheDocument();
   });
 });
 

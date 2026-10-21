@@ -131,12 +131,12 @@ describe('Modal resizable config', () => {
 
     expect(enable).toEqual({
       bottom: true,
-      bottomLeft: true,
+      bottomLeft: false,
       bottomRight: true,
-      left: true,
-      top: true,
-      topLeft: true,
-      topRight: true,
+      left: false,
+      top: false,
+      topLeft: false,
+      topRight: false,
       right: true,
     });
   });
@@ -150,12 +150,12 @@ describe('Modal resizable config', () => {
 
     expect(enable).toEqual({
       bottom: true,
-      bottomLeft: true,
+      bottomLeft: false,
       bottomRight: true,
-      left: true,
-      top: true,
-      topLeft: true,
-      topRight: true,
+      left: false,
+      top: false,
+      topLeft: false,
+      topRight: false,
       right: true,
     });
   });
@@ -196,10 +196,10 @@ describe('Modal resizable config', () => {
       screen.getByTestId('mock-resizable').getAttribute('data-enable') || '{}',
     );
 
-    // enable should be the defaults since caller didn't provide one
+    // enable should remain restricted to the defaults since caller omitted it
     expect(enable.bottom).toBe(true);
     expect(enable.right).toBe(true);
-    expect(enable.top).toBe(true);
+    expect(enable.top).toBe(false);
   });
 });
 
