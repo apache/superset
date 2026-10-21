@@ -126,6 +126,9 @@ class CreateSemanticViewCommand(BaseCommand):
             raise SemanticViewInvalidError(
                 _("The view configuration must be a JSON object.")
             )
+        # Refuse known duplicates before spending a provider lookup on them, so a
+        # resent batch reaches its remaining views within the bulk time budget.
+        self._validate_uniqueness(name, layer_uuid, configuration)
         try:
             view: SemanticViewABC | None = layer.implementation.get_semantic_view(
                 name, configuration
@@ -151,6 +154,13 @@ class CreateSemanticViewCommand(BaseCommand):
                 )
             ) from None
 
+        # Check again after the lookup to keep the check-to-insert window short.
+        self._validate_uniqueness(name, layer_uuid, configuration)
+
+    @staticmethod
+    def _validate_uniqueness(
+        name: str, layer_uuid: str, configuration: dict[str, Any]
+    ) -> None:
         if not SemanticViewDAO.validate_uniqueness(name, layer_uuid, configuration):
             raise ValueError(
                 f"Semantic view '{name}' already exists for this layer"

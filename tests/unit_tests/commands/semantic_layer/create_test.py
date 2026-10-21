@@ -224,8 +224,9 @@ def test_create_semantic_view_success(mocker: MockerFixture) -> None:
     ).run()
 
     assert result == mock_model
-    dao_view.validate_uniqueness.assert_called_once_with(
-        "orders", "layer-uuid", {"db": "prod"}
+    assert (
+        dao_view.validate_uniqueness.call_args_list
+        == [mocker.call("orders", "layer-uuid", {"db": "prod"})] * 2
     )
 
 
@@ -344,6 +345,9 @@ def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:
             }
         ).run()
 
+    mock_layer.implementation.get_semantic_view.assert_not_called()
+    dao_view.create.assert_not_called()
+
 
 def test_create_semantic_view_forbidden(mocker: MockerFixture) -> None:
     """Test CreateSemanticViewCommand raises when the caller may not modify
@@ -456,10 +460,10 @@ def test_create_semantic_view_non_creator_non_editor_forbidden(
 
 
 @pytest.mark.parametrize("configuration", [{"db": "prod"}, '{"db": "prod"}', {}])
-def test_create_semantic_view_lookup_before_uniqueness(
+def test_create_semantic_view_uniqueness_around_lookup(
     mocker: MockerFixture, configuration: dict[str, Any] | str
 ) -> None:
-    """Use persisted-view lookup semantics before checking uniqueness."""
+    """Check uniqueness before the lookup and again just before the insert."""
     from superset.commands.semantic_layer.create import CreateSemanticViewCommand
 
     layer: MagicMock = MagicMock()
@@ -490,7 +494,12 @@ def test_create_semantic_view_lookup_before_uniqueness(
         ).run()
         is dao.create.return_value
     )
-    assert [entry[0] for entry in calls.mock_calls] == ["lookup", "unique", "create"]
+    assert [entry[0] for entry in calls.mock_calls] == [
+        "unique",
+        "lookup",
+        "unique",
+        "create",
+    ]
     layer.implementation.get_semantic_view.assert_called_once_with(
         "orders", {} if configuration == {} else {"db": "prod"}
     )
@@ -548,7 +557,7 @@ def test_create_semantic_view_lookup_failure(
             "Semantic view lookup produced no view for layer layer-uuid, view orders"
         ]
         assert caplog.records[0].levelno == logging.INFO
-    dao.validate_uniqueness.assert_not_called()
+    dao.validate_uniqueness.assert_called_once()
     dao.create.assert_not_called()
 
 

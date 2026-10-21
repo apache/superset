@@ -2497,7 +2497,8 @@ def test_post_semantic_view_fails_remaining_views_after_deadline(
     new_model.name = "view_0"
 
     def slow_lookup() -> MagicMock:
-        clock["now"] += 11.0
+        # Land exactly on the deadline: a view starting then is not looked up.
+        clock["now"] += 10.0
         return new_model
 
     mock_command = mocker.patch(
@@ -2552,6 +2553,79 @@ def test_post_semantic_view_all_views_timed_out(
     errors = response.json["result"]["errors"]
     assert [error["error_type"] for error in errors] == ["TIMEOUT", "TIMEOUT"]
     mock_command.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "app",
+    [
+        {
+            "FEATURE_FLAGS": {"SEMANTIC_LAYERS": True},
+            "SEMANTIC_VIEW_BULK_CREATE_TIMEOUT": 10,
+        }
+    ],
+    indirect=True,
+)
+def test_post_semantic_view_retry_after_timeout_adds_remaining_views(
+    client: FlaskClient,
+    full_api_access: None,
+    mocker: MockerFixture,
+) -> None:
+    """Resending a timed-out batch spends the budget only on views not yet added."""
+    clock = {"now": 0.0}
+    mock_time = mocker.patch("superset.semantic_layers.api.time")
+    mock_time.monotonic.side_effect = lambda: clock["now"]
+
+    def slow_lookup(name: str, configuration: dict[str, Any]) -> MagicMock:
+        clock["now"] += 6.0
+        return MagicMock()
+
+    layer: MagicMock = MagicMock()
+    layer.implementation.get_semantic_view.side_effect = slow_lookup
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    existing: set[str] = set()
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO"
+    )
+    dao.validate_uniqueness.side_effect = lambda name, *_: name not in existing
+
+    def create(attributes: dict[str, Any]) -> MagicMock:
+        existing.add(attributes["name"])
+        model = MagicMock()
+        model.uuid = uuid_lib.uuid4()
+        model.name = attributes["name"]
+        return model
+
+    dao.create.side_effect = create
+    batch = _bulk_views(3)
+
+    first: TestResponse = client.post("/api/v1/semantic_view/", json=batch)
+
+    assert first.status_code == 201
+    assert first.json is not None
+    assert [view["name"] for view in first.json["result"]["created"]] == [
+        "view_0",
+        "view_1",
+    ]
+    assert [error["name"] for error in first.json["result"]["errors"]] == ["view_2"]
+
+    retry: TestResponse = client.post("/api/v1/semantic_view/", json=batch)
+
+    assert retry.status_code == 201
+    assert retry.json is not None
+    assert [view["name"] for view in retry.json["result"]["created"]] == ["view_2"]
+    assert [error.get("error_type") for error in retry.json["result"]["errors"]] == [
+        None,
+        None,
+    ]
+    assert existing == {"view_0", "view_1", "view_2"}
+    assert layer.implementation.get_semantic_view.call_count == 3
 
 
 # =============================================================================
@@ -3549,6 +3623,9 @@ def test_post_semantic_view_provider_validation(
     assert "secret" not in response.get_data(as_text=True)
     assert "secret" not in caplog.text
     dao.create.assert_not_called()
-    layer.implementation.get_semantic_view.assert_called_once_with(
-        "orders", {"db": "prod"}
-    )
+    if unique:
+        layer.implementation.get_semantic_view.assert_called_once_with(
+            "orders", {"db": "prod"}
+        )
+    else:
+        layer.implementation.get_semantic_view.assert_not_called()

@@ -75,4 +75,6 @@ The budget is checked before each lookup, so a lookup already running is limited
 only by the semantic layer's own timeouts; keep the budget well below the web
 server and proxy timeouts so the response arrives. Views not checked in time are reported
 with the `TIMEOUT` error type and can be retried in another request; views added
-before the budget ran out stay added.
+before the budget ran out stay added. Views that already exist are refused before
+their lookup, so resending the whole request spends the budget only on the views
+that are still missing.
