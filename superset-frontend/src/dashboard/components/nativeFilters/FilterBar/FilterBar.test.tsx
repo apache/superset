@@ -42,7 +42,6 @@ import { FILTER_BAR_TEST_ID } from './utils';
 import FilterBar from '.';
 import { FILTERS_CONFIG_MODAL_TEST_ID } from '../FiltersConfigModal/FiltersConfigModal';
 import * as dataMaskActions from 'src/dataMask/actions';
-import { setCrossFiltersEnabled } from 'src/dashboard/actions/dashboardInfo';
 
 jest.useFakeTimers({ advanceTimers: true });
 
@@ -1702,6 +1701,14 @@ test('FilterBar applies a time range selected for a filter without an applied en
 
 test('FilterBar drops the selected time range when cross-filtering is disabled', async () => {
   mockTimeRangeRequests();
+  // The settings toggle saves the new value through the dashboard PUT API.
+  const updateDashboardApi = jest.fn().mockResolvedValue({
+    result: {
+      json_metadata: JSON.stringify({ cross_filters_enabled: false }),
+    },
+    last_modified_time: 1,
+  });
+  mockedMakeApi.mockReturnValue(updateDashboardApi);
   const store = renderTimeFilterBar(
     {
       [TIME_FILTER_ID]: createDataMask(TIME_FILTER_ID, 'Last week', {
@@ -1717,12 +1724,20 @@ test('FilterBar drops the selected time range when cross-filtering is disabled',
 
   expect(screen.getByText('Last week')).toBeInTheDocument();
 
+  // Turn cross-filtering off through the filter bar settings menu, the same
+  // way a user does, so the production code path clears the data masks.
+  await userEvent.click(screen.getByRole('button', { name: 'setting' }));
+  await userEvent.click(screen.getByText('Enable cross-filtering'));
   await act(async () => {
-    store.dispatch(dataMaskActions.clearDataMaskState());
-    store.dispatch(setCrossFiltersEnabled(false));
     jest.advanceTimersByTime(300);
   });
 
+  expect(updateDashboardApi).toHaveBeenCalledWith({
+    json_metadata: expect.stringContaining('"cross_filters_enabled":false'),
+  });
+  expect(
+    (store.getState() as RootState).dashboardInfo.crossFiltersEnabled,
+  ).toBe(false);
   expect(getAppliedTimeMask(store)).toBeUndefined();
   expect(screen.queryByText('Last week')).not.toBeInTheDocument();
 });
