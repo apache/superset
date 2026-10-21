@@ -96,9 +96,11 @@ from superset.mcp_service.chart.schemas import (
     XYChartConfig,
 )
 from superset.mcp_service.chart.sunburst import (
+    apply_sunburst_hierarchy_time_grain,
     normalize_and_validate_sunburst_result_data,
     normalize_sunburst_form_data_references,
     resolve_sunburst_result_roles,
+    restore_sunburst_hierarchy_time_grain,
 )
 from superset.mcp_service.chart.tool.generate_chart import generate_chart
 from superset.mcp_service.chart.tool.get_chart_data import get_chart_data
@@ -5852,3 +5854,91 @@ def test_native_raw_temporal_level_does_not_invent_a_grain(
     assert map_config_to_form_data(config)["columns"] == (
         [_grained("order_date", "P1M"), "ship_date"] if monthly_level else ["ship_date"]
     )
+
+
+def _grain_dataset_context() -> DatasetContext:
+    return DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[
+            {"name": "Region", "type": "VARCHAR"},
+            {"name": "OrderDate", "type": "TIMESTAMP", "is_temporal": True},
+            {"name": "ShipDate", "type": "TIMESTAMP", "is_temporal": True},
+        ],
+        available_metrics=[{"name": "SavedSales", "expression": "SUM(sales)"}],
+    )
+
+
+def test_normalize_recovers_temporal_pair_from_explore_saved_grain() -> None:
+    """Explore saves the grain only on the level; normalize restores the pair."""
+    saved = {
+        "viz_type": "sunburst_v2",
+        "columns": [_grained("orderdate", "P1M"), "region"],
+        "metric": "SavedSales",
+    }
+
+    normalized = normalize_sunburst_form_data_references(
+        saved, _grain_dataset_context()
+    )
+
+    assert normalized["granularity_sqla"] == "OrderDate"
+    assert normalized["time_grain_sqla"] == "P1M"
+    assert normalized["columns"] == [_grained("OrderDate", "P1M"), "Region"]
+    assert "granularity_sqla" not in saved
+
+
+def test_normalize_canonicalizes_grained_level_name_and_keeps_its_grain() -> None:
+    """The level label and expression take the dataset's spelling."""
+    saved = {
+        "viz_type": "sunburst_v2",
+        "columns": [_grained("orderdate", "P1Y"), "region"],
+        "metric": "SavedSales",
+        "granularity_sqla": "orderdate",
+        "time_grain_sqla": "P1Y",
+    }
+
+    normalized = normalize_sunburst_form_data_references(
+        saved, _grain_dataset_context()
+    )
+
+    assert normalized["columns"] == [_grained("OrderDate", "P1Y"), "Region"]
+
+
+def test_two_grained_levels_are_not_collapsed_to_one_temporal_pair() -> None:
+    """Several grained levels cannot be a single pair, so each keeps its grain."""
+    columns = [_grained("orderdate", "P1M"), _grained("shipdate", "P1D")]
+    saved: dict[str, Any] = {
+        "viz_type": "sunburst_v2",
+        "columns": deepcopy(columns),
+        "metric": "SavedSales",
+    }
+
+    restore_sunburst_hierarchy_time_grain(saved)
+    assert "granularity_sqla" not in saved
+    assert "time_grain_sqla" not in saved
+    assert saved["columns"] == columns
+
+    normalized = normalize_sunburst_form_data_references(
+        saved, _grain_dataset_context()
+    )
+    assert "granularity_sqla" not in normalized
+    assert "time_grain_sqla" not in normalized
+    assert normalized["columns"] == [
+        _grained("OrderDate", "P1M"),
+        _grained("ShipDate", "P1D"),
+    ]
+
+
+def test_hierarchy_grain_without_a_temporal_pair_is_left_in_place() -> None:
+    """With no top-level pair the level's own grain is the only record of it."""
+    columns = [_grained("OrderDate", "P1M"), "Region"]
+
+    assert apply_sunburst_hierarchy_time_grain({"columns": deepcopy(columns)}) == {
+        "columns": columns
+    }
+    # Once either key is present the pair is authoritative and replaces the grain.
+    assert apply_sunburst_hierarchy_time_grain(
+        {"columns": deepcopy(columns), "time_grain_sqla": None}
+    )["columns"] == ["OrderDate", "Region"]

@@ -70,7 +70,6 @@ from superset.mcp_service.chart.schemas import (
 )
 from superset.mcp_service.chart.sunburst import (
     apply_sunburst_hierarchy_time_grain,
-    grained_column_reference,
     restore_sunburst_hierarchy_time_grain,
 )
 from superset.mcp_service.chart.validation.dataset_validator import (
@@ -2693,11 +2692,6 @@ def finalize_sunburst_update_form_data(  # noqa: C901
     )
     if explicit_temporal_clear:
         merged = _scrub_temporal_form_data(merged)
-        if isinstance(merged.get("columns"), list):
-            merged["columns"] = [
-                grained_column_reference(column) or column
-                for column in merged["columns"]
-            ]
 
     # Merge the temporal subject and grain as one final-state control pair.
     temporal_set = "temporal_column" in fields_set
