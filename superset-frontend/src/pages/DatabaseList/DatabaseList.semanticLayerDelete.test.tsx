@@ -137,7 +137,12 @@ const setupMocks = ({
   }
   fetchMock.delete(
     DELETE_ROUTE,
-    deleteError ? { status: 409, body: { message: deleteError } } : {},
+    deleteError
+      ? {
+          status: 409,
+          body: { message: deleteError, total: 25, archived_count: 3 },
+        }
+      : {},
   );
 };
 
@@ -202,6 +207,7 @@ test('delete confirmation warns about cascade-deleting dependent views by count 
   renderDatabaseList();
 
   const dialog = await openDeleteModal();
+  expect(dialog).not.toHaveTextContent('Deletion is blocked');
 
   expect(
     within(dialog).getByText(
@@ -455,11 +461,24 @@ test('layer delete displays the counted dependency conflict', async () => {
     'DELETE',
   );
   await userEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
-  await waitFor(() =>
-    expect(addDangerToast).toHaveBeenCalledWith(
-      `There was an issue deleting Demo Semantic Layer: ${reason}`,
-    ),
+  const alert = await within(dialog).findByRole('alert');
+  expect(alert).toHaveTextContent('25 dependent assets');
+  expect(alert).toHaveTextContent('3 archived');
+  expect(
+    within(alert).getByRole('link', { name: 'Recently Archived' }),
+  ).toHaveAttribute('href', '/archived/');
+  expect(within(dialog).getByTestId('delete-modal-input')).toHaveValue(
+    'DELETE',
   );
+  expect(addDangerToast).not.toHaveBeenCalled();
+  await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+  await openDeleteModal();
+  expect(
+    within(screen.getByRole('dialog')).queryByRole('alert'),
+  ).not.toBeInTheDocument();
+  expect(
+    within(screen.getByRole('dialog')).getByTestId('delete-modal-input'),
+  ).toHaveValue('');
 });
 
 test('confirming the modal deletes the semantic layer', async () => {

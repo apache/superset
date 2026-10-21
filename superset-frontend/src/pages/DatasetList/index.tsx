@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Alert } from '@apache-superset/core/components';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
+  getClientErrorObject,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
@@ -628,6 +630,13 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     null,
   );
 
+  const [svDeleteError, setSVDeleteError] = useState<{
+    error: string;
+    total?: number;
+    archived_count?: number;
+  } | null>(null);
+  const [svDeleting, setSVDeleting] = useState(false);
+  const svDeleteRequest = useRef(0);
   const [svCurrentlyDeleting, setSvCurrentlyDeleting] =
     useState<Dataset | null>(null);
 
@@ -817,26 +826,36 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
   );
 
   const handleSemanticViewDelete = (sv: Dataset) => {
+    svDeleteRequest.current += 1;
+    setSVDeleteError(null);
+    setSVDeleting(false);
     setSvCurrentlyDeleting(sv);
   };
 
-  const handleSemanticViewDeleteConfirm = () => {
+  const handleSemanticViewDeleteConfirm = async () => {
     if (!svCurrentlyDeleting) return;
     const { id, table_name: tableName } = svCurrentlyDeleting;
-    SupersetClient.delete({
-      endpoint: `/api/v1/semantic_view/${id}`,
-    }).then(
-      () => {
-        setSvCurrentlyDeleting(null);
-        refreshData();
-        addSuccessToast(t('Deleted: %s', tableName));
-      },
-      createErrorHandler(errMsg =>
+    svDeleteRequest.current += 1;
+    const request = svDeleteRequest.current;
+    setSVDeleting(true);
+    try {
+      await SupersetClient.delete({ endpoint: `/api/v1/semantic_view/${id}` });
+      refreshData();
+      addSuccessToast(t('Deleted: %s', tableName));
+      if (request === svDeleteRequest.current) setSvCurrentlyDeleting(null);
+    } catch (error) {
+      const parsed = await getClientErrorObject(error);
+      if (request !== svDeleteRequest.current) return;
+      if (parsed.status === 409) {
+        setSVDeleteError(parsed);
+      } else {
         addDangerToast(
-          t('There was an issue deleting %s: %s', tableName, errMsg),
-        ),
-      ),
-    );
+          t('There was an issue deleting %s: %s', tableName, parsed.error),
+        );
+      }
+    } finally {
+      if (request === svDeleteRequest.current) setSVDeleting(false);
+    }
   };
 
   const columns = useMemo(
@@ -1592,6 +1611,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       )}
       {svCurrentlyDeleting && (
         <DeleteModal
+          preserveConfirmationOnConfirm
+          loading={svDeleting}
           description={
             <>
               <p>
@@ -1600,15 +1621,34 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                   svCurrentlyDeleting.table_name,
                 )}
               </p>
-              <p>
-                {t(
-                  'Deletion is blocked while any assets depend on this view, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.',
-                )}
-              </p>
+              {svDeleteError && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message={
+                    <>
+                      {typeof svDeleteError.total === 'number' &&
+                      typeof svDeleteError.archived_count === 'number'
+                        ? t(
+                            'Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting.',
+                            svDeleteError.total,
+                            svDeleteError.archived_count,
+                          )
+                        : svDeleteError.error}{' '}
+                      <a href={ensureAppRoot('/archived/')}>
+                        {t('Recently Archived')}
+                      </a>
+                    </>
+                  }
+                />
+              )}
             </>
           }
           onConfirm={handleSemanticViewDeleteConfirm}
-          onHide={() => setSvCurrentlyDeleting(null)}
+          onHide={() => {
+            svDeleteRequest.current += 1;
+            setSvCurrentlyDeleting(null);
+          }}
           open
           title={t('Delete Semantic View?')}
         />

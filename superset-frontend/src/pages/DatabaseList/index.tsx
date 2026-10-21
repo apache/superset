@@ -16,10 +16,12 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { Alert } from '@apache-superset/core/components';
 import { t, tn } from '@apache-superset/core/translation';
 import {
   getExtensionsRegistry,
   SupersetClient,
+  getClientErrorObject,
   isFeatureEnabled,
   FeatureFlag,
 } from '@superset-ui/core';
@@ -422,6 +424,13 @@ function DatabaseList({
   const [slCurrentlyEditing, setSlCurrentlyEditing] = useState<string | null>(
     null,
   );
+  const [slDeleteError, setSLDeleteError] = useState<{
+    error: string;
+    total?: number;
+    archived_count?: number;
+  } | null>(null);
+  const [slDeleting, setSLDeleting] = useState(false);
+  const slDeleteRequest = useRef(0);
   const [slDeletePreview, setSlDeletePreview] =
     useState<SemanticLayerDeletePreview | null>(null);
 
@@ -481,6 +490,9 @@ function DatabaseList({
   const slDeleteLookupRef = useRef(0);
   const openSemanticLayerDeleteModal = useCallback((item: ConnectionItem) => {
     slDeleteLookupRef.current += 1;
+    slDeleteRequest.current += 1;
+    setSLDeleteError(null);
+    setSLDeleting(false);
     const lookupId = slDeleteLookupRef.current;
     setSlDeletePreview({ status: 'loading', item });
     return SupersetClient.get({
@@ -786,21 +798,34 @@ function DatabaseList({
 
   const initialSort = [{ id: 'changed_on_delta_humanized', desc: true }];
 
-  function handleSemanticLayerDelete(item: ConnectionItem) {
-    SupersetClient.delete({
-      endpoint: `/api/v1/semantic_layer/${item.uuid}`,
-    }).then(
-      () => {
-        refreshData();
-        addSuccessToast(t('Deleted: %s', item.database_name));
-        setSlDeletePreview(null);
-      },
-      createErrorHandler(errMsg =>
+  async function handleSemanticLayerDelete(item: ConnectionItem) {
+    slDeleteRequest.current += 1;
+    const request = slDeleteRequest.current;
+    setSLDeleting(true);
+    try {
+      await SupersetClient.delete({
+        endpoint: `/api/v1/semantic_layer/${item.uuid}`,
+      });
+      refreshData();
+      addSuccessToast(t('Deleted: %s', item.database_name));
+      if (request === slDeleteRequest.current) setSlDeletePreview(null);
+    } catch (error) {
+      const parsed = await getClientErrorObject(error);
+      if (request !== slDeleteRequest.current) return;
+      if (parsed.status === 409) {
+        setSLDeleteError(parsed);
+      } else {
         addDangerToast(
-          t('There was an issue deleting %s: %s', item.database_name, errMsg),
-        ),
-      ),
-    );
+          t(
+            'There was an issue deleting %s: %s',
+            item.database_name,
+            parsed.error,
+          ),
+        );
+      }
+    } finally {
+      if (request === slDeleteRequest.current) setSLDeleting(false);
+    }
   }
 
   const columns = useMemo(
@@ -1180,6 +1205,8 @@ function DatabaseList({
       />
       {slDeletePreview && slDeletePreview.status !== 'loading' && (
         <DeleteModal
+          preserveConfirmationOnConfirm
+          loading={slDeleting}
           description={
             <>
               <p>
@@ -1187,20 +1214,36 @@ function DatabaseList({
                 <b>{slDeletePreview.item.database_name}</b>?
               </p>
               <SemanticLayerCascadeWarning preview={slDeletePreview} />
-              {(slDeletePreview.status === 'failed' ||
-                slDeletePreview.dependentViewCount > 0) && (
-                <p>
-                  {t(
-                    'Deletion is blocked while any assets depend on these views, including archived assets. Remove or repoint them first. Use Recently Archived to restore and repoint archived assets, or delete them permanently, or ask an admin for help.',
-                  )}
-                </p>
+              {slDeleteError && (
+                <Alert
+                  type="error"
+                  showIcon
+                  message={
+                    <>
+                      {typeof slDeleteError.total === 'number' &&
+                      typeof slDeleteError.archived_count === 'number'
+                        ? t(
+                            'Deletion is blocked by %s dependent assets (%s archived). Remove or repoint them before deleting.',
+                            slDeleteError.total,
+                            slDeleteError.archived_count,
+                          )
+                        : slDeleteError.error}{' '}
+                      <a href={ensureAppRoot('/archived/')}>
+                        {t('Recently Archived')}
+                      </a>
+                    </>
+                  }
+                />
               )}
             </>
           }
           onConfirm={() => {
             handleSemanticLayerDelete(slDeletePreview.item);
           }}
-          onHide={() => setSlDeletePreview(null)}
+          onHide={() => {
+            slDeleteRequest.current += 1;
+            setSlDeletePreview(null);
+          }}
           open
           title={
             <ModalTitleWithIcon

@@ -18284,24 +18284,16 @@ msgid ""
 msgstr ""
 
 msgid ""
-"Deletion is blocked while any assets depend on these views, including "
-"archived assets. Remove or repoint them first. Use Recently Archived to "
-"restore and repoint archived assets, or delete them permanently, or ask an "
-"admin for help."
-msgstr ""
-
-msgid ""
-"Deletion is blocked while any assets depend on this view, including archived"
-" assets. Remove or repoint them first. Use Recently Archived to restore and "
-"repoint archived assets, or delete them permanently, or ask an admin for "
-"help."
-msgstr ""
-
-msgid ""
 "Go to Recently Archived to restore and repoint archived assets, or delete "
 "them permanently, or ask an admin for help."
 msgstr ""
 
 msgid ""
 "This semantic layer has no dependent semantic views. This cannot be undone."
+msgstr ""
+
+#, python-format
+msgid ""
+"Deletion is blocked by %s dependent assets (%s archived). Remove or repoint "
+"them before deleting."
 msgstr ""
