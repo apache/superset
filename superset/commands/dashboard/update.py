@@ -216,6 +216,8 @@ class UpdateDashboardCommand(UpdateMixin, BaseCommand):
         """Refuse a layout chart the caller cannot read before ``run``
         deactivates reports and emails their owners."""
         assert self._model is not None
+        json_metadata: str | None
+        positions: object
         if json_metadata := self._properties.get("json_metadata"):
             metadata: object = json.loads(json_metadata)
             if isinstance(metadata, dict) and isinstance(
