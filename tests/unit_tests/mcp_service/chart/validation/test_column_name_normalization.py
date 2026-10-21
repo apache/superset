@@ -35,6 +35,7 @@ from superset.mcp_service.chart.schemas import (
     FilterConfig,
     GenerateChartRequest,
     PivotTableChartConfig,
+    SortByConfig,
     TableChartConfig,
     TableColumnConfig,
     XYChartConfig,
@@ -228,6 +229,26 @@ class TestNormalizeColumnNames:
         assert normalized.y[0].name == "Sales"
         assert normalized.filters is not None
         assert normalized.filters[0].column == "ProductLine"
+
+    @patch.object(DatasetValidator, "_get_dataset_context")
+    def test_normalize_xy_chart_config_with_sort_by(
+        self, mock_get_context, mock_dataset_context: DatasetContext
+    ) -> None:
+        """Test normalization of XY chart config with sort_by."""
+        mock_get_context.return_value = mock_dataset_context
+
+        config = XYChartConfig(
+            chart_type="xy",
+            x=ColumnRef(name="orderdate"),
+            y=[ColumnRef(name="sales", aggregate="SUM")],
+            kind="bar",
+            sort_by="productline",
+        )
+
+        normalized = DatasetValidator.normalize_column_names(config, dataset_id=18)
+
+        assert isinstance(normalized.sort_by, SortByConfig)
+        assert normalized.sort_by.column == "ProductLine"
 
     @patch.object(DatasetValidator, "_get_dataset_context")
     def test_normalize_table_chart_config(
@@ -846,6 +867,11 @@ class TestValidateSavedMetrics:
         assert not is_valid
         assert error is not None
         assert error.error_code == "INVALID_SAVED_METRIC"
+        # Uses the saved-metric template, so the message names a metric (not a
+        # column) and the metric list has no "Did you mean" wrapper around it.
+        assert error.message == "Saved metric 'nonexistent_metric' not found in dataset"
+        assert "Available saved metrics: TotalRevenue" in error.suggestions
+        assert all(not s.startswith("Did you mean:") for s in error.suggestions)
 
 
 class TestGetCanonicalMetricName:

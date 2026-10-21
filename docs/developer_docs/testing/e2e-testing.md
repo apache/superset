@@ -24,11 +24,9 @@ under the License.
 
 # End-to-End Testing
 
-Apache Superset uses Playwright for end-to-end testing, migrating from the legacy Cypress tests.
+Apache Superset uses Playwright for end-to-end testing.
 
 ## Running Tests
-
-### Playwright (Recommended)
 
 ```bash
 cd superset-frontend
@@ -51,16 +49,6 @@ npm run playwright:headed
 # Debug specific test file
 npm run playwright:debug tests/auth/login.spec.ts
 # or: npx playwright test --debug tests/auth/login.spec.ts
-```
-
-### Cypress (Deprecated)
-
-Cypress tests are being migrated to Playwright. For legacy tests:
-
-```bash
-cd superset-frontend/cypress-base
-npm run cypress-run-chrome    # Headless
-npm run cypress-debug         # Interactive UI
 ```
 
 ## Project Architecture
@@ -179,10 +167,10 @@ All debugging artifacts are available in the HTML report for easy analysis.
 
 ## Configuration
 
-- **Config**: `playwright.config.ts` - matches Cypress settings
+- **Config**: `playwright.config.ts`
 - **Base URL**: `http://localhost:8088` (assumes Superset running)
 - **Browsers**: Chrome only for Phase 1 (YAGNI)
-- **Retries**: 2 in CI, 0 locally (matches Cypress)
+- **Retries**: 2 in CI, 0 locally
 
 ## Contributing Guidelines
 
@@ -206,16 +194,6 @@ All debugging artifacts are available in the HTML report for easy analysis.
 2. **Import shared constants** from `utils/urls.ts`
 3. **Actions and queries only** - no assertions
 4. **Use existing components** for DOM interactions
-
-## Migration from Cypress
-
-When porting Cypress tests:
-
-1. **Port the logic**, not the implementation
-2. **Use page objects** instead of inline selectors
-3. **Replace `cy.intercept/cy.wait`** with `page.waitForRequest()`
-4. **Use shared constants** from `utils/urls.ts`
-5. **Follow the established patterns** shown in `tests/auth/login.spec.ts`
 
 ## Best Practices
 

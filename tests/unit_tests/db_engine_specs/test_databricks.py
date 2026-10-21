@@ -20,23 +20,36 @@ from datetime import datetime
 from importlib import import_module
 from importlib.metadata import PackageNotFoundError, requires
 from typing import Any, Optional
+from unittest.mock import MagicMock
 from urllib.parse import parse_qs, urlparse
 
 import pytest
 from packaging.requirements import Requirement
 from pytest_mock import MockerFixture
-from sqlalchemy import __version__ as sqlalchemy_version, create_engine, text
+from sqlalchemy import (
+    __version__ as sqlalchemy_version,
+    Boolean,
+    Column,
+    create_engine,
+    literal_column,
+    text,
+)
 from sqlalchemy.engine.url import make_url
+from sqlalchemy.sql.elements import ColumnElement
 
-from superset.db_engine_specs.base import OAuth2State
+from superset.db_engine_specs.base import BaseEngineSpec, OAuth2State
 from superset.db_engine_specs.databricks import (
+    DatabricksBaseEngineSpec,
+    DatabricksHiveEngineSpec,
     DatabricksNativeEngineSpec,
     DatabricksPythonConnectorEngineSpec,
 )
+from superset.db_engine_specs.spark import SparkEngineSpec
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error, OAuth2RedirectError
 from superset.superset_typing import OAuth2ClientConfig
 from superset.utils import json
+from superset.utils.core import FilterOperator
 from superset.utils.oauth2 import decode_oauth2_state
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -509,6 +522,48 @@ def test_needs_oauth2_matches_oauth2_redirect_error(
     assert spec.needs_oauth2(ex) is True
 
 
+class _ConnectorRequestError(Exception):
+    """Stand-in for ``databricks.sql.exc.RequestError`` (message + context)."""
+
+    def __init__(self, message: str, context: dict[str, Any]) -> None:
+        super().__init__(message)
+        self.context = context
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+@pytest.mark.parametrize(
+    "http_code, expected",
+    [(401, True), ("401", True), (403, False), (None, False)],
+)
+def test_needs_oauth2_detects_http_401_from_the_connector(
+    mocker: MockerFixture,
+    spec: Any,
+    http_code: Any,
+    expected: bool,
+) -> None:
+    """
+    A rejected bearer token fails with HTTP 401 and a message that matches no
+    signal ("Credential was not sent or was of an unsupported type for this
+    API"); the connector's structured ``http-code`` triggers the re-auth, also
+    when SQLAlchemy wraps the error. 403 (a missing permission) does not.
+    """
+    g = mocker.patch("superset.db_engine_specs.databricks.g")
+    g.user = mocker.MagicMock()
+    error = _ConnectorRequestError(
+        "Error during request to server: : Credential was not sent or was of an "
+        "unsupported type for this API.",
+        {"method": "OpenSession", "http-code": http_code},
+    )
+    wrapped = mocker.MagicMock(orig=error)
+    wrapped.__str__ = lambda self: str(error)
+
+    assert spec.needs_oauth2(error) is expected
+    assert spec.needs_oauth2(wrapped) is expected
+
+
 def test_impersonate_user_with_token(mocker: MockerFixture) -> None:
     """
     Test impersonate_user method with OAuth2 token for DatabricksNativeEngineSpec.
@@ -695,6 +750,163 @@ def test_update_params_merges_when_no_oauth2_client_info(
         "http_headers": [["X-Custom", "value"]],
         "_tls_verify_hostname": True,
     }
+
+
+def test_update_params_merges_connect_args(mocker: MockerFixture) -> None:
+    """
+    Secure ``connect_args`` (e.g. OAuth M2M credentials) are merged key by key
+    into the ``connect_args`` from ``extra`` instead of replacing them.
+    """
+    database: MagicMock = mocker.MagicMock()
+    database.impersonate_user = False
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"oauth_client_id": "sp", "oauth_client_secret": "secret"}}
+    )
+    params: dict[str, Any] = {
+        "connect_args": {
+            "_user_agent_entry": "Apache Superset",
+            "session_configuration": {"TIMEZONE": "Asia/Kolkata"},
+        }
+    }
+
+    DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
+        database, params
+    )
+
+    assert params == {
+        "connect_args": {
+            "_user_agent_entry": "Apache Superset",
+            "session_configuration": {"TIMEZONE": "Asia/Kolkata"},
+            "oauth_client_id": "sp",
+            "oauth_client_secret": "secret",
+        }
+    }
+
+
+def test_update_params_impersonation_keeps_only_the_user_token(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With impersonation, a shared credential in the secure extra (or in
+    ``extra``) must not replace the user's OAuth2 token set by
+    ``impersonate_user``.
+    """
+    database: MagicMock = mocker.MagicMock()
+    database.impersonate_user = True
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"access_token": "shared-pat", "http_path": "/sql/1"}}
+    )
+    engine_kwargs: dict[str, Any] = {
+        "connect_args": {"access_token": "extra-pat", "oauth_client_secret": "s"}
+    }
+
+    # Same order as ``Database._get_sqla_engine``.
+    _, engine_kwargs = DatabricksPythonConnectorEngineSpec.impersonate_user(
+        database=database,
+        username="user1",
+        user_token="user-token",  # noqa: S106
+        url=make_url("databricks://token:extra-pat@host:443?http_path=/sql/1"),
+        engine_kwargs=engine_kwargs,
+    )
+    DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
+        database, engine_kwargs
+    )
+
+    assert engine_kwargs == {
+        "connect_args": {"access_token": "user-token", "http_path": "/sql/1"}
+    }
+
+
+def test_impersonate_user_drops_shared_credentials_without_secure_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    Shared credentials in ``extra`` are dropped even when the database has no
+    secure extra (e.g. OAuth2 configured through ``DATABASE_OAUTH2_CLIENTS``),
+    so only the user's token reaches the connector.
+    """
+    database: MagicMock = mocker.MagicMock()
+    database.impersonate_user = True
+    database.encrypted_extra = None
+    engine_kwargs: dict[str, Any] = {
+        "connect_args": {
+            "_user_agent_entry": "Apache Superset",
+            "auth_type": "databricks-oauth",
+            "oauth_client_id": "sp",
+            "oauth_client_secret": "secret",
+        }
+    }
+
+    url, engine_kwargs = DatabricksPythonConnectorEngineSpec.impersonate_user(
+        database=database,
+        username="user1",
+        user_token="user-oauth-token",  # noqa: S106
+        url=make_url("databricks://token:@host:443?http_path=/sql/1"),
+        engine_kwargs=engine_kwargs,
+    )
+    DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
+        database, engine_kwargs
+    )
+
+    assert url.password == "user-oauth-token"  # noqa: S105
+    assert engine_kwargs == {"connect_args": {"_user_agent_entry": "Apache Superset"}}
+
+
+@pytest.mark.parametrize(
+    "spec",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+def test_start_oauth2_dance_requires_impersonation(
+    mocker: MockerFixture,
+    spec: Any,
+) -> None:
+    """
+    Without impersonation the user's token is never used, so an auth failure
+    (e.g. a revoked shared token) does not send the user through an
+    authorization prompt; the caller raises the original error instead.
+    """
+    base_start = mocker.patch.object(BaseEngineSpec, "start_oauth2_dance")
+    database: MagicMock = mocker.MagicMock()
+    database.impersonate_user = False
+
+    spec.start_oauth2_dance(database)
+    base_start.assert_not_called()
+
+    database.impersonate_user = True
+    spec.start_oauth2_dance(database)
+    base_start.assert_called_once_with(database)
+
+
+def test_impersonation_with_shared_token_only_in_secure_extra(
+    mocker: MockerFixture,
+) -> None:
+    """
+    With the shared token only in the secure extra, the Python connector still
+    authenticates as the user: ``impersonate_user`` puts the user's token in the
+    URL password, which the dialect uses as ``access_token``, and the shared
+    token is dropped rather than overriding it.
+    """
+    database: MagicMock = mocker.MagicMock()
+    database.impersonate_user = True
+    database.encrypted_extra = json.dumps(
+        {"connect_args": {"access_token": "shared-pat"}}
+    )
+    engine_kwargs: dict[str, Any] = {"connect_args": {"http_path": "/sql/1"}}
+
+    # Same order as ``Database._get_sqla_engine``.
+    url, engine_kwargs = DatabricksPythonConnectorEngineSpec.impersonate_user(
+        database=database,
+        username="user1",
+        user_token="user-oauth-token",  # noqa: S106
+        url=make_url("databricks://token:@host:443?http_path=/sql/1"),
+        engine_kwargs=engine_kwargs,
+    )
+    DatabricksPythonConnectorEngineSpec.update_params_from_encrypted_extra(
+        database, engine_kwargs
+    )
+
+    assert url.password == "user-oauth-token"  # noqa: S105
+    assert engine_kwargs["connect_args"] == {"http_path": "/sql/1"}
 
 
 def test_update_params_invalid_encrypted_extra_raises(mocker: MockerFixture) -> None:
@@ -1198,3 +1410,239 @@ def test_get_engine_spec_unrecognized_driver_prefers_python_connector() -> None:
         get_engine_spec("databricks", "databricks-sql-python")
         is DatabricksPythonConnectorEngineSpec
     )
+
+
+def test_monkeypatch_dialect_leaves_shared_colspecs_alone(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """
+    The Databricks string patch must not reach dialects outside the Hive family.
+
+    PyHive's HiveDialect inherits SQLAlchemy's shared ``DefaultDialect.colspecs``;
+    writing to it changed String/Unicode/Text/Enum handling for every dialect that
+    does not define its own ``colspecs``.
+    """
+    import enum
+
+    import sqlalchemy as sa
+    from sqlalchemy.engine.default import DefaultDialect
+
+    pyhive = pytest.importorskip("pyhive.sqlalchemy_hive")
+
+    from superset.db_engine_specs.databricks import monkeypatch_dialect
+
+    class Color(enum.Enum):
+        red = "red"
+
+    class OtherDialect(DefaultDialect):
+        """A dialect that relies on the shared colspecs."""
+
+    monkeypatch.setattr(pyhive.HiveDialect, "colspecs", pyhive.HiveDialect.colspecs)
+    monkeypatch_dialect()  # also ran when the module was imported
+
+    assert sa.String not in DefaultDialect.colspecs
+    other = OtherDialect()
+    assert type(sa.Unicode(5).dialect_impl(other)) is sa.Unicode
+    assert type(sa.Text().dialect_impl(other)) is sa.Text
+
+    hive = pyhive.HiveDialect
+    assert hive.colspecs is not DefaultDialect.colspecs
+    assert hive.colspecs[sa.String].__name__ == "ContextAwareStringType"
+    for dialect in (other, hive()):
+        impl = sa.Enum(Color).dialect_impl(dialect)
+        assert impl.result_processor(dialect, None)("red") is Color.red
+
+
+def test_monkeypatch_dialect_preserves_hive_databricks_escaping(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The isolated mapping still escapes Hive-based Databricks literals."""
+    import sqlalchemy as sa
+
+    pyhive = pytest.importorskip("pyhive.sqlalchemy_hive")
+    pytest.importorskip("databricks.sql")
+
+    from pyhive.sqlalchemy_hive import HiveDialect
+
+    from superset.db_engine_specs.databricks import monkeypatch_dialect
+
+    class DatabricksDialect(HiveDialect):
+        """Represent the legacy Hive-based Databricks dialect."""
+
+    monkeypatch.setattr(pyhive.HiveDialect, "colspecs", pyhive.HiveDialect.colspecs)
+    monkeypatch_dialect()
+
+    assert (
+        str(
+            sa.literal("O'Hara").compile(
+                dialect=DatabricksDialect(), compile_kwargs={"literal_binds": True}
+            )
+        )
+        == r"'O\'Hara'"
+    )
+
+
+def test_use_equality_for_boolean_filters_property() -> None:
+    """
+    Test that Databricks engine specs enable use_equality_for_boolean_filters.
+    Databricks SQL applies strict type checking: comparing a boolean column
+    against an integer or a driver-rendered boolean bind fails with
+    DATATYPE_MISMATCH (see #36765), so boolean filters use equality against
+    explicit boolean keywords.
+    """
+    assert DatabricksBaseEngineSpec.use_equality_for_boolean_filters is True
+    assert DatabricksNativeEngineSpec.use_equality_for_boolean_filters is True
+    assert DatabricksPythonConnectorEngineSpec.use_equality_for_boolean_filters is True
+    assert DatabricksHiveEngineSpec.use_equality_for_boolean_filters is True
+    assert SparkEngineSpec.use_equality_for_boolean_filters is True
+
+
+@pytest.mark.parametrize(
+    "engine_spec",
+    [
+        DatabricksBaseEngineSpec,
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+        DatabricksHiveEngineSpec,
+        SparkEngineSpec,
+    ],
+    ids=[
+        "databricks_base",
+        "databricks_native",
+        "databricks_python_connector",
+        "databricks_hive",
+        "spark",
+    ],
+)
+def test_coerce_boolean_for_sql_emits_boolean_keywords(
+    engine_spec: type[BaseEngineSpec],
+) -> None:
+    """
+    Test that boolean filter values are coerced to SQLAlchemy true()/false()
+    expressions on every Databricks and Spark spec, so the compiled SQL always
+    contains the TRUE/FALSE keywords and the values never reach the driver as
+    bind parameters (which pyhive renders as 0/1, see #36765).
+    """
+    true_value = engine_spec.coerce_boolean_for_sql(True)
+    assert isinstance(true_value, ColumnElement)
+    assert str(true_value.compile(compile_kwargs={"literal_binds": True})) == "true"
+
+    false_value = engine_spec.coerce_boolean_for_sql(False)
+    assert isinstance(false_value, ColumnElement)
+    assert str(false_value.compile(compile_kwargs={"literal_binds": True})) == "false"
+
+    assert engine_spec.coerce_boolean_for_sql(None) is None
+
+
+@pytest.mark.parametrize(
+    "engine_spec",
+    [
+        DatabricksBaseEngineSpec,
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+        DatabricksHiveEngineSpec,
+        SparkEngineSpec,
+    ],
+    ids=[
+        "databricks_base",
+        "databricks_native",
+        "databricks_python_connector",
+        "databricks_hive",
+        "spark",
+    ],
+)
+@pytest.mark.parametrize(
+    "filter_operator,expected",
+    [
+        (FilterOperator.IS_TRUE, "is_test_user = true"),
+        (FilterOperator.IS_FALSE, "is_test_user = false"),
+    ],
+)
+def test_handle_boolean_filter_compiles_boolean_keywords(
+    engine_spec: type[BaseEngineSpec],
+    filter_operator: FilterOperator,
+    expected: str,
+) -> None:
+    """
+    Test that handle_boolean_filter produces an equality comparison against an
+    explicit boolean keyword, with no bind parameters left for the driver to
+    render as integers.
+    """
+    bool_col = Column("is_test_user", Boolean)
+    result = engine_spec.handle_boolean_filter(
+        bool_col,
+        filter_operator,
+        filter_operator == FilterOperator.IS_TRUE,
+    )
+    compiled = result.compile()
+    assert str(compiled) == expected
+    assert compiled.params == {}
+
+
+def test_handle_boolean_filter_computed_column_compilation() -> None:
+    """
+    Test that handle_boolean_filter compiles properly on computed boolean
+    expressions.
+    """
+    computed_col = literal_column("(total_amount > 100)")
+    for engine_spec in (
+        DatabricksBaseEngineSpec,
+        DatabricksNativeEngineSpec,
+        DatabricksPythonConnectorEngineSpec,
+        DatabricksHiveEngineSpec,
+        SparkEngineSpec,
+    ):
+        result = engine_spec.handle_boolean_filter(
+            computed_col, FilterOperator.IS_TRUE, True
+        )
+        assert (
+            str(result.compile(compile_kwargs={"literal_binds": True}))
+            == "(total_amount > 100) = true"
+        )
+
+
+@pytest.mark.parametrize(
+    "spec_cls",
+    [DatabricksNativeEngineSpec, DatabricksPythonConnectorEngineSpec],
+)
+@pytest.mark.parametrize(
+    ("aggregate", "expected_sql"),
+    [
+        ("MEDIAN", "median(sales)"),
+        ("STDDEV_SAMP", "stddev_samp(sales)"),
+        ("VAR_SAMP", "var_samp(sales)"),
+    ],
+)
+def test_extended_aggregation_func_compiles_expected_sql(
+    spec_cls: type[DatabricksBaseEngineSpec], aggregate: str, expected_sql: str
+) -> None:
+    """
+    Verified against the Databricks SQL function reference
+    (docs.databricks.com/aws/en/sql/language-manual/functions/{median,
+    stddev_samp,var_samp}), not a live instance: all three are plain,
+    dialect-agnostic function calls (unlike Postgres's MEDIAN, which needs
+    percentile_cont/WITHIN GROUP), so there is no dialect-specific SQL
+    construct to compile here.
+    """
+    from sqlalchemy.sql import column
+
+    func = spec_cls.get_extended_aggregation_func(aggregate)
+    assert func is not None
+
+    compiled = str(
+        func(column("sales")).compile(compile_kwargs={"literal_binds": True})
+    )
+    assert compiled == expected_sql
+
+
+def test_databricks_hive_spec_shares_extended_aggregations() -> None:
+    """
+    Interactive Clusters (``DatabricksHiveEngineSpec``) run Spark SQL too, so
+    the same native aggregates apply -- confirming this spec does NOT fall
+    back to the inherited, unimplemented ``HiveEngineSpec``/``PrestoEngineSpec``
+    default (an empty dict, i.e. "not supported on this database").
+    """
+    from superset.db_engine_specs.databricks import DatabricksHiveEngineSpec
+
+    for aggregate in ("MEDIAN", "STDDEV_SAMP", "VAR_SAMP"):
+        assert DatabricksHiveEngineSpec.get_extended_aggregation_func(aggregate)

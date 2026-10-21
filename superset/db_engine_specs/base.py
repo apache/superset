@@ -283,6 +283,7 @@ class CompatibleDatabase(TypedDict, total=False):
     name: str
     description: str
     logo: str
+    logo_dark: str
     homepage_url: str
     pypi_packages: list[str]
     connection_string: str
@@ -322,6 +323,13 @@ AURORA_DATA_API_KNOWN_INCOMPATIBILITIES: list[KnownIncompatibility] = [
     }
 ]
 
+# EPOCH_FORMATS keys resolve to a f"{pdf}_to_dttm" classmethod, except
+# "epoch_s": its method predates "epoch_ms"/"epoch_us" and kept the shorter
+# legacy name `epoch_to_dttm`. Only exceptions to the naming convention
+# belong here; a new EPOCH_FORMATS entry that follows the convention needs
+# no matching entry in this dict.
+_EPOCH_METHOD_ALIASES = {"epoch_s": "epoch_to_dttm"}
+
 
 class DBEngineSpecMetadata(TypedDict, total=False):
     """
@@ -335,6 +343,7 @@ class DBEngineSpecMetadata(TypedDict, total=False):
     # Basic information
     description: str
     logo: str  # Filename in docs/static/img/databases/ or full URL
+    logo_dark: str  # Optional dark-theme variant; falls back to logo
     homepage_url: str
     docs_url: str
     sqlalchemy_docs_url: str
@@ -752,6 +761,12 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
     # is determined only after the specific query is executed and it will update
     # the `cancel_query` value in the `extra` field of the `query` object
     has_query_id_before_execute = True
+
+    # Can another thread read ``get_cancel_query_id`` from the live cursor
+    # while ``execute`` is still blocked? Clients that block until results are
+    # ready (e.g. Trino's) expose the id only then, which lets an execution
+    # owner cancel a query whose caller has given up.
+    has_query_id_during_execute = False
 
     @classmethod
     def apply_sampling_read_limit_override(cls, sql: str) -> str | None:
@@ -1384,12 +1399,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
 
         # if epoch, translate to DATE using db specific conf
         if pdf in EPOCH_FORMATS:
-            epoch_to_dttm = {
-                "epoch_s": cls.epoch_to_dttm,
-                "epoch_ms": cls.epoch_ms_to_dttm,
-                "epoch_us": cls.epoch_us_to_dttm,
-            }[pdf]
-            time_expr = time_expr.replace("{col}", epoch_to_dttm())
+            # "epoch_s" predates "epoch_ms"/"epoch_us" and kept the shorter
+            # legacy method name; every other format follows f"{pdf}_to_dttm",
+            # so adding a new EPOCH_FORMATS entry needs no second edit here.
+            method_name = _EPOCH_METHOD_ALIASES.get(pdf, f"{pdf}_to_dttm")
+            time_expr = time_expr.replace("{col}", getattr(cls, method_name)())
         elif pdf == "%Y":
             # a bare four-digit year (e.g. the `year` column on the `video_game_sales`
             # example dataset) has no native date type to lean on; without this the
@@ -1888,6 +1902,24 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         return None
 
     @classmethod
+    def coerce_boolean_for_sql(cls, value: bool | None) -> Any:
+        """
+        Convert a Python boolean to the value used when building SQL filter
+        expressions for boolean columns.
+
+        Most engines accept Python booleans, but some drivers render them as
+        integer literals (0/1), which strict engines like Databricks reject
+        with a DATATYPE_MISMATCH error when the value is compared against a
+        boolean column (#36765). Override this in engine specs whose drivers
+        misrender Python booleans, returning an expression that compiles to an
+        explicit boolean literal (e.g. sqlalchemy.true()/false()).
+
+        :param value: Boolean value (True, False, or None)
+        :return: Value suitable for the engine's filter expressions
+        """
+        return value
+
+    @classmethod
     def handle_boolean_filter(
         cls, sqla_col: Any, op: str, value: bool
     ) -> BinaryExpression:
@@ -1903,6 +1935,7 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         :param value: Boolean value (True or False)
         :return: SQLAlchemy expression for the boolean filter
         """
+        value = cls.coerce_boolean_for_sql(value)
         if cls.use_equality_for_boolean_filters:
             return sqla_col == value
         else:
@@ -2751,6 +2784,20 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         """
         return None
 
+    @classmethod
+    def expand_nested_columns(
+        cls,
+        cursor: Any,
+        columns: list[ResultSetColumnType],
+    ) -> list[ResultSetColumnType]:
+        """
+        Add one column per nested field (e.g. STRUCT members) to the columns
+        inferred from ``cursor.description`` by ``get_columns_description``, so
+        virtual datasets get the dotted columns the inspector returns for
+        physical tables. The default returns ``columns`` unchanged.
+        """
+        return columns
+
     @staticmethod
     def pyodbc_rows_to_tuples(data: list[Any]) -> list[tuple[Any, ...]]:
         """
@@ -2969,6 +3016,9 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
         cancelation request has been received. For those cases, the db engine spec
         can record the cancelation intent so that the query can either be stopped
         prior to execution, or canceled once the query id is acquired.
+
+        Only stage changes on the query; do not flush or commit here. The caller
+        persists them with a guarded stop so a concurrent terminal result wins.
         """
         return None
 

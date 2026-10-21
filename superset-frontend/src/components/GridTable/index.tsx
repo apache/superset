@@ -19,7 +19,12 @@
 import { useCallback, useMemo } from 'react';
 import { css, useTheme } from '@apache-superset/core/theme';
 import { ThemedAgGridReact } from '@superset-ui/core/components';
-import type { CellKeyDownEvent, Column, GridOptions } from 'ag-grid-community';
+import type {
+  CellKeyDownEvent,
+  Column,
+  GridOptions,
+  ValueGetterParams,
+} from 'ag-grid-community';
 import type { AgGridReactProps } from 'ag-grid-react';
 
 import copyTextToClipboard from 'src/utils/copy';
@@ -85,7 +90,8 @@ export function GridTable<RecordType extends object>({
       [
         {
           field: PIVOT_COL_ID,
-          valueGetter: 'node.rowIndex+1',
+          valueGetter: (params: ValueGetterParams) =>
+            (params.node?.rowIndex ?? 0) + 1,
           cellClass: 'row-number-col',
           cellStyle: {
             backgroundColor: theme.colorFillTertiary,
@@ -153,6 +159,13 @@ export function GridTable<RecordType extends object>({
     [rowHeight, headerHeight],
   );
 
+  // ag-grid paints its sticky header and pinned containers with the data
+  // background, so it must be opaque or scrolled rows show through them.
+  const gridThemeOverrides = useMemo(
+    () => ({ backgroundColor: theme.colorBgContainer, ...themeOverrides }),
+    [theme.colorBgContainer, themeOverrides],
+  );
+
   return (
     <div
       css={css`
@@ -201,7 +214,7 @@ export function GridTable<RecordType extends object>({
         components={gridComponents}
         gridOptions={gridOptions}
         onCellKeyDown={onKeyDown}
-        themeOverrides={themeOverrides}
+        themeOverrides={gridThemeOverrides}
       />
     </div>
   );

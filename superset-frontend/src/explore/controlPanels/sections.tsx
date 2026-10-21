@@ -28,6 +28,13 @@ export const datasourceAndVizType: ControlPanelSectionConfig = {
     ['viz_type'],
     [
       {
+        name: 'semantic_selection_version',
+        config: {
+          type: 'HiddenControl',
+          hidden: true,
+        },
+      },
+      {
         name: 'slice_id',
         config: {
           type: 'HiddenControl',
