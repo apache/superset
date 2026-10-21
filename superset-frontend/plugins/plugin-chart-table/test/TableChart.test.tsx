@@ -2855,6 +2855,79 @@ describe('plugin-chart-table', () => {
       expect(activePage).toHaveTextContent('2');
     });
 
+    // The pagination footer height is measured via `clientHeight` and
+    // subtracted from the scrollable body height, so the default `<ul>`
+    // margins must be reset or the body shrinks and leaves empty space.
+    test('resets the default list margins on the client-side pagination bar', () => {
+      const data30 = Array.from({ length: 30 }, (_, i) => ({
+        name: `User ${i + 1}`,
+        sum__num: (i + 1) * 100,
+      }));
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          page_length: 10,
+          metrics: ['sum__num'],
+          groupby: ['name'],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['name', 'sum__num'],
+            coltypes: [GenericDataType.String, GenericDataType.Numeric],
+            data: data30,
+          },
+        ],
+      });
+
+      const { container } = render(
+        <ProviderWrapper>
+          <TableChart {...props} sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      const paginationList = container.querySelector(
+        '.dt-pagination .pagination',
+      );
+      expect(paginationList).not.toBeNull();
+      const style = getComputedStyle(paginationList as HTMLElement);
+      expect(style.marginTop).toBe('0px');
+      expect(style.marginBottom).toBe('0px');
+    });
+
+    test('resets the default list margins on the server-side pagination bar', () => {
+      const props = transformProps({
+        ...testData.basic,
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          server_pagination: true,
+          server_page_length: 10,
+        },
+        queriesData: [
+          testData.basic.queriesData[0],
+          {
+            ...testData.basic.queriesData[0],
+            data: [{ rowcount: 100 }],
+          },
+        ],
+      });
+
+      const { container } = render(
+        <ProviderWrapper>
+          <TableChart {...props} sticky={false} />
+        </ProviderWrapper>,
+      );
+
+      const paginationList = container.querySelector(
+        '.dt-pagination .pagination',
+      );
+      expect(paginationList).not.toBeNull();
+      const style = getComputedStyle(paginationList as HTMLElement);
+      expect(style.marginTop).toBe('0px');
+      expect(style.marginBottom).toBe('0px');
+    });
+
     test('should build columnLabelToNameMap for adhoc columns with custom labels', () => {
       const result = transformProps({
         ...testData.basic,
