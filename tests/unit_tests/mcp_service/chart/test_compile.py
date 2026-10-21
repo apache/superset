@@ -1267,8 +1267,12 @@ def _annotation_compile_result(
     *,
     dataset_engine_spec: Any,
     annotation_engine_spec: Any | None = None,
+    other_annotation_engine_spec: Any | None = None,
 ) -> Any:
-    """Compile a chart whose single line annotation chart fails.
+    """Compile a chart whose first line annotation chart fails.
+
+    ``other_annotation_engine_spec`` adds a second, healthy annotation chart on
+    another engine, so the exception alone does not say which engine failed.
 
     ``annotation_failure`` is either the annotation query's payload error text or
     an exception raised while the annotation chart builds its payload.
@@ -1292,13 +1296,21 @@ def _annotation_compile_result(
         chart.datasource = None
     else:
         chart.datasource.database.db_engine_spec = annotation_engine_spec
-    mocker.patch("superset.daos.chart.ChartDAO.find_by_id", return_value=chart)
+    other_chart = Mock()
+    other_chart.datasource.database.db_engine_spec = other_annotation_engine_spec
+    mocker.patch(
+        "superset.daos.chart.ChartDAO.find_by_id",
+        side_effect=lambda chart_id: other_chart if chart_id == 3 else chart,
+    )
     layer = {
         "annotationType": "TIME_SERIES",
         "name": "annotation",
         "sourceType": "line",
         "value": 2,
     }
+    layers = [layer]
+    if other_annotation_engine_spec is not None:
+        layers.append({**layer, "name": "other annotation", "value": 3})
 
     def get_payload(**kwargs: Any) -> dict[str, Any]:
         """Record the annotation error like the main query processor."""
@@ -1320,7 +1332,7 @@ def _annotation_compile_result(
     mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
 
     return _compile_chart(
-        {"metrics": ["count"], "annotation_layers": [layer]}, dataset_id=1
+        {"metrics": ["count"], "annotation_layers": layers}, dataset_id=1
     )
 
 
@@ -1444,3 +1456,55 @@ def test_classify_as_database_error_stops_on_cyclic_cause_chain() -> None:
 
     assert not worker.is_alive()
     assert results == [None]
+
+
+def test_compile_chart_annotation_syntax_error_with_several_engines_is_not_connection(
+    mocker: MockerFixture,
+) -> None:
+    """Which annotation engine failed is unknown, so no generic fallback applies.
+
+    Two annotation charts sit on Postgres and MySQL. A MySQL syntax error matches
+    no specific connection pattern; an engine's generic fallback must not turn it
+    into a database connection error.
+    """
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    message = (
+        "(MySQLdb.ProgrammingError) (1064, 'You have an error in your SQL "
+        "syntax; check the manual that corresponds to your MySQL server "
+        "version for the right syntax to use near 'FROMM x' at line 1')"
+    )
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=MySQLEngineSpec,
+        other_annotation_engine_spec=PostgresEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "compile_error"
+    assert message in result.error_obj.details
+
+
+def test_compile_chart_annotation_connection_error_with_several_engines(
+    mocker: MockerFixture,
+) -> None:
+    """A specific connection pattern still classifies with several engines."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        _POSTGRES_CONNECTION_REFUSED,
+        dataset_engine_spec=MySQLEngineSpec,
+        annotation_engine_spec=PostgresEngineSpec,
+        other_annotation_engine_spec=MySQLEngineSpec,
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == "database_connection_error"
+    assert "annotation layer's chart" in result.error_obj.message

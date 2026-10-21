@@ -40,6 +40,7 @@ from typing import Any, Dict, List, Literal
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset.commands.exceptions import CommandException
+from superset.errors import SupersetErrorType
 from superset.exceptions import QueryObjectValidationError
 from superset.mcp_service.chart.chart_helpers import canonicalize_operation_form_data
 from superset.mcp_service.chart.query_result import (
@@ -455,13 +456,20 @@ def _find_database_failure(exc: BaseException) -> _DatabaseFailure | None:
     return failure
 
 
-def _annotation_engine_specs(form_data: dict[str, Any]) -> list[Any]:
-    """Return the engine specs of the charts the annotation layers query."""
+def _annotation_engine_specs(form_data: dict[str, Any]) -> tuple[list[Any], bool]:
+    """Return the engine specs of the charts the annotation layers query.
+
+    The flag is True when the failing layer's engine is certain: every chart
+    layer resolved to the same engine. The exception does not name the layer
+    that raised it, so with several engines (or an unresolved chart) any of
+    them could be the failing one.
+    """
     from superset.daos.chart import ChartDAO
     from superset.utils.core import ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
 
     layers = form_data.get("annotation_layers")
     specs: list[Any] = []
+    unresolved = False
     for layer in layers if isinstance(layers, list) else []:
         if (
             not isinstance(layer, dict)
@@ -473,9 +481,11 @@ def _annotation_engine_specs(form_data: dict[str, Any]) -> list[Any]:
         chart = ChartDAO.find_by_id(chart_id)
         database = getattr(getattr(chart, "datasource", None), "database", None)
         spec = getattr(database, "db_engine_spec", None)
-        if spec is not None and spec not in specs:
+        if spec is None:
+            unresolved = True
+        elif spec not in specs:
             specs.append(spec)
-    return specs
+    return specs, len(specs) == 1 and not unresolved
 
 
 def _has_chart_annotation_layers(form_data: dict[str, Any]) -> bool:
@@ -499,8 +509,10 @@ def _classify_as_database_error(
     annotation layer's chart. Walks the ``__cause__`` chain for typed database
     errors, then falls back to the engine spec's ``extract_errors`` regex
     patterns, the same classification the Superset UI uses. An annotation
-    failure is matched against the annotation charts' engines when they can be
-    found, else against the dataset's.
+    failure is matched against the annotation charts' engines. Unless a single
+    engine is certain to be the failing one, only specific connection patterns
+    count: an engine's generic fallback would turn any error into a connection
+    failure.
     """
     failure = _find_database_failure(exc)
     if failure is None:
@@ -516,7 +528,10 @@ def _classify_as_database_error(
         return None
 
     try:
-        specs = _annotation_engine_specs(form_data) if source == "annotation" else []
+        specs: list[Any] = []
+        exact = source != "annotation"
+        if source == "annotation":
+            specs, exact = _annotation_engine_specs(form_data)
         if not specs:
             from superset.daos.dataset import DatasetDAO
 
@@ -525,7 +540,11 @@ def _classify_as_database_error(
                 specs = [dataset.database.db_engine_spec]
         for spec in specs:
             errors = spec.extract_errors(failure.error)
-            if any(e.error_type in CONNECTION_ERROR_TYPES for e in errors):
+            if any(
+                e.error_type in CONNECTION_ERROR_TYPES
+                and (exact or e.error_type != SupersetErrorType.GENERIC_DB_ENGINE_ERROR)
+                for e in errors
+            ):
                 return source
     except Exception:  # pylint: disable=broad-except
         logger.debug(
