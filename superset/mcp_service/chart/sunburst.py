@@ -39,6 +39,66 @@ class SunburstResultRoles:
     secondary_metric: str | None = None
 
 
+def grained_column_reference(column: Any) -> str | None:
+    """Return the column name of a grained hierarchy level, else None.
+
+    Recognizes only the BASE_AXIS column-reference shape written by
+    :func:`apply_sunburst_hierarchy_time_grain`; arbitrary Custom SQL columns
+    are not treated as physical references.
+    """
+    if (
+        isinstance(column, Mapping)
+        and column.get("columnType") == "BASE_AXIS"
+        and column.get("expressionType") == "SQL"
+        and column.get("isColumnReference") is True
+        and isinstance(name := column.get("sqlExpression"), str)
+        and name
+        and column.get("label") == name
+    ):
+        return name
+    return None
+
+
+def apply_sunburst_hierarchy_time_grain(form_data: dict[str, Any]) -> dict[str, Any]:
+    """Carry the Sunburst time grain on the temporal hierarchy level.
+
+    The Sunburst control panel has no ``granularity_sqla`` or
+    ``time_grain_sqla`` control, and Explore builds its chart-data request from
+    controls only, so those top-level keys never reach the query when a saved
+    chart is opened in Explore. A hierarchy level that is the temporal column
+    therefore carries the grain itself, in the BASE_AXIS column-reference shape
+    the frontend ``normalizeTimeColumn`` emits: the ``columns`` control keeps it
+    and buildQuery forwards it unchanged. Without a grain, a grained level
+    reverts to the plain column name. The top-level keys are kept because
+    dashboards, validation and update merges read them.
+    """
+    columns = form_data.get("columns")
+    if not isinstance(columns, list):
+        return form_data
+    temporal_column = form_data.get("granularity_sqla")
+    grain = form_data.get("time_grain_sqla")
+    rewritten: list[Any] = []
+    for column in columns:
+        name = column if isinstance(column, str) else grained_column_reference(column)
+        if name is None:
+            rewritten.append(column)
+        elif isinstance(grain, str) and grain and name == temporal_column:
+            rewritten.append(
+                {
+                    "columnType": "BASE_AXIS",
+                    "expressionType": "SQL",
+                    "isColumnReference": True,
+                    "label": name,
+                    "sqlExpression": name,
+                    "timeGrain": grain,
+                }
+            )
+        else:
+            rewritten.append(name)
+    form_data["columns"] = rewritten
+    return form_data
+
+
 def _column_result_label(column: Any) -> str | None:
     """Resolve a bounded native column reference to its query output label."""
     if isinstance(column, str) and column:
@@ -389,6 +449,10 @@ def normalize_sunburst_form_data_references(  # noqa: C901
     columns = normalized.get("columns")
     if isinstance(columns, list):
         for index, column in enumerate(columns):
+            if (grained := grained_column_reference(column)) is not None:
+                # Re-encoded with the canonical name once granularity_sqla is
+                # canonicalized below.
+                column = grained
             if isinstance(column, str):
                 columns[index] = DatasetValidator.get_canonical_column_name(
                     column, dataset_context
@@ -433,4 +497,4 @@ def normalize_sunburst_form_data_references(  # noqa: C901
         normalized["granularity_sqla"] = DatasetValidator.get_canonical_column_name(
             temporal_column, dataset_context
         )
-    return normalized
+    return apply_sunburst_hierarchy_time_grain(normalized)

@@ -2548,12 +2548,21 @@ class SunburstChartConfig(BaseChartConfig):
         )
         if hierarchy_key is None:
             return
+        from superset.mcp_service.chart.sunburst import grained_column_reference
+
         hierarchy = data[hierarchy_key]
         if isinstance(hierarchy, (str, dict)):
             hierarchy = [hierarchy]
         if isinstance(hierarchy, list):
+            # A saved grained temporal level is a BASE_AXIS column reference;
+            # its grain round-trips through the top-level time_grain_sqla.
+            names = [
+                item if isinstance(item, str) else grained_column_reference(item)
+                for item in hierarchy
+            ]
             data[hierarchy_key] = [
-                {"name": item} if isinstance(item, str) else item for item in hierarchy
+                {"name": name} if name else item
+                for name, item in zip(names, hierarchy, strict=True)
             ]
         if hierarchy_key != "groupby":
             # Saved Sunburst payloads sometimes retain an empty groupby from a

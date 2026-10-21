@@ -68,6 +68,7 @@ from superset.mcp_service.chart.schemas import (
     WaterfallChartConfig,
     XYChartConfig,
 )
+from superset.mcp_service.chart.sunburst import apply_sunburst_hierarchy_time_grain
 from superset.mcp_service.chart.validation.dataset_validator import (
     is_dataset_column_temporal,
     resolve_exact_first_casefold,
@@ -2059,7 +2060,7 @@ def map_sunburst_config(config: SunburstChartConfig) -> Dict[str, Any]:
 
     add_currency_format(form_data, config.currency_format)
     _add_adhoc_filters(form_data, config.filters)
-    return form_data
+    return apply_sunburst_hierarchy_time_grain(form_data)
 
 
 # Sunburst fields with explicit omission/clear semantics. Mapper defaults must
@@ -2703,7 +2704,7 @@ def finalize_sunburst_update_form_data(  # noqa: C901
     # see and reject it consistently across immediate, preview-first, and
     # cached update paths instead of letting the query builder silently ignore
     # a request that cannot be represented by the frontend contract.
-    return merged
+    return apply_sunburst_hierarchy_time_grain(merged)
 
 
 _DATASET_BOUND_FORM_DATA_KEYS = frozenset(

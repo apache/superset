@@ -22,6 +22,7 @@ from collections.abc import Iterator, Mapping
 from copy import deepcopy
 from decimal import Decimal
 from pathlib import Path
+from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
@@ -5582,3 +5583,161 @@ def test_sunburst_docs_warn_about_nonfinite_metric_normalization() -> None:
     assert "normalized to null and then to zero" in section
     assert "overflowing aggregate can therefore appear as zero" in section
     assert "infinite metric values remain invalid" not in section
+
+
+# Controls on the Sunburst Explore panel (Sunburst/controlPanel.tsx) plus the
+# datasource and viz_type controls every chart has. Explore builds its
+# chart-data request from controls only (getFormDataFromControls), so a saved
+# key outside this set, such as granularity_sqla or time_grain_sqla, never
+# reaches Sunburst buildQuery when the saved chart is opened in Explore.
+_SUNBURST_EXPLORE_CONTROL_KEYS = frozenset(
+    {
+        "datasource",
+        "viz_type",
+        "columns",
+        "metric",
+        "secondary_metric",
+        "adhoc_filters",
+        "row_limit",
+        "sort_by_metric",
+        "color_scheme",
+        "linear_color_scheme",
+        "show_labels",
+        "show_labels_threshold",
+        "show_total",
+        "show_null_values",
+        "label_type",
+        "number_format",
+        "currency_format",
+        "date_format",
+    }
+)
+
+
+def _explore_query(form_data: Mapping[str, object]) -> dict[str, Any]:
+    """Build the query Explore sends for saved Sunburst form data."""
+    explore_form_data = {
+        key: deepcopy(value)
+        for key, value in form_data.items()
+        if key in _SUNBURST_EXPLORE_CONTROL_KEYS
+    }
+    return build_query_context_from_form_data(
+        explore_form_data, {"id": 7, "type": "table"}, viz_type="sunburst_v2"
+    )["queries"][0]
+
+
+def _grained(column: str, grain: str) -> dict[str, object]:
+    return {
+        "columnType": "BASE_AXIS",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+        "label": column,
+        "sqlExpression": column,
+        "timeGrain": grain,
+    }
+
+
+def test_temporal_hierarchy_grain_survives_opening_the_saved_chart_in_explore() -> None:
+    """A monthly temporal ring must stay monthly in Explore, not daily."""
+    form_data = map_config_to_form_data(
+        _config(
+            hierarchy=[{"name": "order_date"}, {"name": "region"}],
+            temporal_column="order_date",
+            time_grain="P1M",
+        )
+    )
+
+    assert form_data["columns"] == [_grained("order_date", "P1M"), "region"]
+    # Dashboards, validation and update merges keep reading the top-level pair.
+    assert form_data["granularity_sqla"] == "order_date"
+    assert form_data["time_grain_sqla"] == "P1M"
+
+    query = _explore_query(form_data)
+    assert "granularity" not in query
+    extras = query.get("extras")
+    assert extras is None or "time_grain_sqla" not in extras
+    assert query["columns"] == [_grained("order_date", "P1M"), "region"]
+    roles, error = resolve_sunburst_result_roles(form_data)
+    assert error is None
+    assert roles is not None
+    assert roles.hierarchy == ("order_date", "region")
+
+
+def test_temporal_column_outside_hierarchy_keeps_plain_hierarchy_columns() -> None:
+    form_data = map_config_to_form_data(
+        _config(temporal_column="order_date", time_grain="P1M")
+    )
+
+    assert form_data["columns"] == ["region", "country"]
+
+
+@pytest.mark.parametrize(
+    "overrides, expected_first_level",
+    [
+        ({}, _grained("OrderDate", "P1M")),
+        ({"time_grain": "P1Y"}, _grained("OrderDate", "P1Y")),
+        ({"time_grain": None}, "OrderDate"),
+        ({"temporal_column": None}, "OrderDate"),
+    ],
+)
+def test_temporal_hierarchy_grain_follows_update_merges(
+    overrides: dict[str, object], expected_first_level: object
+) -> None:
+    chart = Mock(
+        id=19,
+        datasource_id=7,
+        slice_name="Saved hierarchy",
+        params=json.dumps(
+            {
+                "viz_type": "sunburst_v2",
+                "columns": [_grained("OrderDate", "P1M"), "Region"],
+                "metric": "SavedSales",
+                "granularity_sqla": "OrderDate",
+                "time_grain_sqla": "P1M",
+            }
+        ),
+    )
+    config = _config(hierarchy=[{"name": "OrderDate"}, {"name": "Region"}], **overrides)
+    request = UpdateChartRequest(identifier=19, config=config)
+    payload = _build_update_payload(request, chart, parsed_config=config)
+    preview = _build_preview_form_data(request, chart, parsed_config=config)
+    assert isinstance(payload, dict)
+    assert isinstance(preview, dict)
+
+    for state in (json.loads(payload["params"]), preview):
+        assert state["columns"] == [expected_first_level, "Region"]
+
+
+def test_saved_grained_hierarchy_round_trips_through_native_and_normalize() -> None:
+    saved = {
+        "viz_type": "sunburst_v2",
+        "columns": [_grained("orderdate", "P1M"), "region"],
+        "metric": "SavedSales",
+        "granularity_sqla": "orderdate",
+        "time_grain_sqla": "P1M",
+    }
+
+    config = SunburstChartConfig.model_validate(saved)
+    assert [level.name for level in config.hierarchy] == ["orderdate", "region"]
+    assert config.time_grain == "P1M"
+
+    context = DatasetContext(
+        id=7,
+        table_name="sales",
+        schema=None,
+        database_name="main",
+        available_columns=[
+            {"name": "Region", "type": "VARCHAR"},
+            {"name": "OrderDate", "type": "TIMESTAMP", "is_temporal": True},
+        ],
+        available_metrics=[{"name": "SavedSales", "expression": "SUM(sales)"}],
+    )
+    normalized = normalize_sunburst_form_data_references(saved, context)
+    assert normalized["columns"] == [_grained("OrderDate", "P1M"), "Region"]
+    assert normalized["granularity_sqla"] == "OrderDate"
+
+    plugin = get_registry().get("sunburst")
+    assert plugin is not None
+    fields = plugin.resolve_query_fields(normalized, "sunburst_v2")
+    assert fields is not None
+    assert fields[1] == [_grained("OrderDate", "P1M"), "Region"]
