@@ -22,7 +22,9 @@ import {
   getColumnLabel,
   getNumberFormatter,
   getTimeFormatter,
+  TimeGranularity,
 } from '@superset-ui/core';
+import { isGrainedLevel } from './buildQuery';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
@@ -120,12 +122,23 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         if (columns?.length) {
+          // A grained level holds the start of a time bucket, so its detail
+          // filter carries the grain buildQuery applied (the dashboard grain
+          // first) to match the whole bucket rather than that one instant.
+          const timeGrain = (formData.extraFormData?.time_grain_sqla ??
+            formData.timeGrainSqla) as TimeGranularity | undefined;
           treePath.forEach((path, i) =>
             drillToDetailFilters.push({
               col: columns[i],
               op: '==',
               val: records[i],
               formattedVal: path,
+              ...(timeGrain &&
+                isGrainedLevel(
+                  columns[i],
+                  formData.temporalColumnsLookup,
+                  formData.granularitySqla,
+                ) && { grain: timeGrain }),
             }),
           );
           const val = treePath[treePath.length - 1];
