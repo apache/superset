@@ -17,7 +17,7 @@
  * under the License.
  */
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import fetchMock from 'fetch-mock';
 import { isFeatureEnabled } from '@superset-ui/core';
 import {

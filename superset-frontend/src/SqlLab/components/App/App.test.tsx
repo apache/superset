@@ -20,7 +20,7 @@ import { isValidElement } from 'react';
 import { AnyAction, combineReducers } from 'redux';
 import Mousetrap from 'mousetrap';
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { render } from 'spec/helpers/testing-library';
 
 import App from 'src/SqlLab/components/App';

@@ -17,7 +17,7 @@
  * under the License.
  */
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { Store } from 'redux';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { Menu } from '@superset-ui/core/components/Menu';
