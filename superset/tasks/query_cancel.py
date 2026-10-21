@@ -48,7 +48,9 @@ from contextvars import ContextVar
 from typing import Any, Callable, cast, Iterator, TYPE_CHECKING
 
 from flask import current_app
+from flask_babel import gettext as _
 
+from superset.exceptions import QueryObjectValidationError
 from superset.stats_logger import BaseStatsLogger
 
 if TYPE_CHECKING:
@@ -89,6 +91,10 @@ class _CancellationQuery:
         self.extra[key] = value
 
 
+class ChartQueryStoppedError(QueryObjectValidationError):
+    """Raised before a statement executes when its run was already stopped."""
+
+
 def capture_cancel_query_id(database: "Database", cursor: Any) -> "str | None":
     """Return an engine cancel id for a live cursor, or None if unsupported.
 
@@ -123,6 +129,9 @@ def notify_cursor(cursor: Any) -> None:
         return
     try:
         sink(cursor)
+    except ChartQueryStoppedError:
+        # Deliberate: abort the statement before it executes.
+        raise
     except Exception:  # noqa: BLE001 pylint: disable=broad-except
         logger.warning("Cancel-id capture failed", exc_info=True)
 
@@ -256,11 +265,20 @@ def cancellable_chart_query(
         # fallback), each on whatever connection the pool hands out, and the
         # handle must always name the session that is executing right now.
         nonlocal captured
+        # A Stop recorded before this statement had a handle to cancel is
+        # honoured by not running the statement at all.
+        if chart_query_cancel_requested(query_id):
+            raise ChartQueryStoppedError(_("Query was stopped"))
         cancel_id = capture_cancel_query_id(target, cursor)
         if cancel_id is None:
             return
         captured = True
         _publish_cancel_handle(owner_id, query_id, database_id, cancel_id)
+        # A Stop landing between the check above and the publish saw no handle
+        # to kill; recheck now that the handle is visible.
+        if chart_query_cancel_requested(query_id):
+            _discard_cancel_handle(owner_id, query_id, cancel_id)
+            raise ChartQueryStoppedError(_("Query was stopped"))
 
     try:
         with capture_cancel_id(_sink):

@@ -3319,3 +3319,27 @@ def test_get_payload_result_scopes_the_run_for_cancellation() -> None:
     run.return_value.__enter__.assert_called_once()
     run.return_value.__exit__.assert_called_once()
     assert result.queries == ()
+
+
+def test_get_query_result_discards_a_result_stopped_mid_statement() -> None:
+    """A Stop landing during the statement must not leave a cacheable result."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.get_query_result.return_value = _stub_result()
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["state"])
+
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        side_effect=[False, True],
+    ):
+        result = processor.get_query_result(query_obj)
+
+    mock_datasource.get_query_result.assert_called_once()
+    assert result.status == QueryStatus.FAILED
+    assert result.df.empty

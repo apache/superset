@@ -586,7 +586,13 @@ class QueryContextProcessor:
         """
         if chart_query_cancel_requested(self._query_context.client_id):
             return self._stopped_query_result()
-        return self._qc_datasource.get_query_result(query_object)
+        result = self._qc_datasource.get_query_result(query_object)
+        # A Stop that kills a statement the datasource ran internally (e.g. a
+        # time-offset subquery) leaves a partial frame behind with a SUCCESS
+        # status; recheck so that result is never served or cached.
+        if chart_query_cancel_requested(self._query_context.client_id):
+            return self._stopped_query_result()
+        return result
 
     @staticmethod
     def _stopped_query_result() -> QueryResult:

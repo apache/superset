@@ -601,3 +601,68 @@ def test_chart_query_cancel_requested_is_false_when_the_cache_fails() -> None:
 
     with _registry_env(1, cache):
         assert chart_query_cancel_requested("client-1") is False
+
+
+def test_notify_cursor_aborts_a_statement_whose_run_was_already_stopped() -> None:
+    """A Stop recorded before the handle exists blocks the statement from running."""
+    import pytest
+
+    from superset.tasks.query_cancel import (
+        _cancel_requested_key,
+        cancellable_chart_query,
+        ChartQueryStoppedError,
+    )
+
+    cache = _FakeCache()
+    cache.store[_cancel_requested_key(1, "client-1")] = True
+    database = MagicMock()
+    database.id = 5
+
+    with _registry_env(1, cache):
+        with patch(
+            "superset.tasks.query_cancel.capture_cancel_query_id",
+            return_value="engine-1",
+        ):
+            with cancellable_chart_query("client-1", database):
+                with pytest.raises(ChartQueryStoppedError):
+                    notify_cursor(MagicMock())
+
+    assert "chart-query-cancel:1:client-1" not in cache.store
+
+
+def test_notify_cursor_aborts_when_stop_lands_during_publish() -> None:
+    """A Stop arriving between the intent check and the publish is still honoured."""
+    import pytest
+
+    from superset.tasks import query_cancel
+    from superset.tasks.query_cancel import (
+        _cancel_requested_key,
+        cancellable_chart_query,
+        ChartQueryStoppedError,
+    )
+
+    cache = _FakeCache()
+    database = MagicMock()
+    database.id = 5
+    real_publish = query_cancel._publish_cancel_handle
+
+    def publish_then_stop(*args: object, **kwargs: object) -> None:
+        real_publish(*args, **kwargs)  # type: ignore[arg-type]
+        cache.store[_cancel_requested_key(1, "client-1")] = True
+
+    with _registry_env(1, cache):
+        with (
+            patch(
+                "superset.tasks.query_cancel.capture_cancel_query_id",
+                return_value="engine-1",
+            ),
+            patch(
+                "superset.tasks.query_cancel._publish_cancel_handle",
+                side_effect=publish_then_stop,
+            ),
+        ):
+            with cancellable_chart_query("client-1", database):
+                with pytest.raises(ChartQueryStoppedError):
+                    notify_cursor(MagicMock())
+
+    assert "chart-query-cancel:1:client-1" not in cache.store
