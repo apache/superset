@@ -48,6 +48,14 @@ Known limitations:
     even though the surrounding query is preserved byte-for-byte. The
     surrounding-query fidelity guarantee does not extend to the predicate
     string itself.
+  - A JOIN splice always inserts/extends an ``ON`` clause, same as
+    ``RLSAsPredicateTransformer`` (this module's AST-based counterpart, which
+    has this same limitation on ``master`` today). For a join kind that
+    doesn't accept ``ON`` in the target dialect (e.g. ``NATURAL JOIN``, or
+    ``CROSS JOIN`` outside of MySQL-family dialects where it's a syntax
+    error), this produces invalid SQL rather than silently dropping the
+    predicate — a loud failure, not a bypass, but still worth a dedicated fix
+    in both transformers rather than one-off here.
 """
 
 from __future__ import annotations

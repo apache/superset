@@ -3955,6 +3955,21 @@ def test_set_limit_value_after_splice_reparses_from_raw_sql() -> None:
     assert "LIMIT 10" in formatted
 
 
+def test_set_limit_value_wrap_sql_after_splice_reparses_from_raw_sql() -> None:
+    """
+    `WRAP_SQL` takes the same "reparse cached splice SQL before mutating" path
+    as `FORCE_LIMIT`, but it's a separate branch and needs its own coverage.
+    """
+    statement = SQLStatement("SELECT * FROM some_table", "postgresql")
+    statement._raw_sql = "SELECT * FROM some_table WHERE tenant_id = 42"
+
+    statement.set_limit_value(10, LimitMethod.WRAP_SQL)
+    formatted = statement.format()
+
+    assert "tenant_id = 42" in formatted
+    assert "LIMIT 10" in formatted
+
+
 @pytest.mark.parametrize(
     "kql, limit, expected",
     [
