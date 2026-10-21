@@ -26,8 +26,10 @@ assists people when migrating to a new version.
 
 - MCP `duplicate_dashboard` deep-copies charts by default. Callers that intentionally
   share charts with the source dashboard must pass `duplicate_slices=false`.
-  MCP `list_dashboards` rejects unknown request fields instead of silently ignoring
-  them; use `edited_by_me` for direct user ownership, not `owned_by_me`.
+  MCP `list_dashboards`, `list_charts`, `list_datasets`, `list_reports` and
+  `list_databases` reject unknown request fields instead of silently ignoring
+  them, with suggestions for supported fields. Use `created_by_me` for authorship
+  or `edited_by_me` for direct user ownership where supported, not `owned_by_me`.
 
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different

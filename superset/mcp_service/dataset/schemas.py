@@ -37,7 +37,11 @@ from pydantic import (
 )
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
-from superset.mcp_service.chart.schemas import DataColumn, PerformanceMetadata
+from superset.mcp_service.chart.schemas import (
+    DataColumn,
+    PerformanceMetadata,
+    UnknownFieldCheckMixin,
+)
 from superset.mcp_service.common.cache_schemas import (
     CacheStatus,
     CreatedByMeMixin,
@@ -265,12 +269,15 @@ class DatasetList(PaginatedResponse[DatasetFilter]):
 
 
 class ListDatasetsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[DatasetFilter],
 ):
     """Request schema for list_datasets with clear, unambiguous types."""
+
+    model_config = ConfigDict(extra="forbid")
 
     # Unlike its siblings, this schema does NOT parse JSON-string `filters`/
     # `select_columns` into lists; it relies on Pydantic's native list

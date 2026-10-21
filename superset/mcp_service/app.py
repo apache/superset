@@ -329,7 +329,7 @@ To find all items you have any connection to (created OR edit):
 - list_dashboards(request={{"created_by_me": true, "edited_by_me": true}})
 - list_datasets(request={{"created_by_me": true, "edited_by_me": true}})
 
-For dashboards, edited_by_me means direct USER editor (owner), excluding role/group access. Use created_by_me for authorship, edited_by_me for direct editor membership, or both
+edited_by_me means direct USER editor (owner), excluding role/group access. Use created_by_me for authorship, edited_by_me for direct editor membership, or both
 together for the union. These flags can be combined with 'filters' but not
 with 'search'.
 

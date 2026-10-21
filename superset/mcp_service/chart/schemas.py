@@ -6220,12 +6220,15 @@ class ChartRequestNormalizerMixin(BaseModel):
 
 
 class ListChartsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[ChartFilter],
 ):
     """Request schema for list_charts with clear, unambiguous types."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_column: Annotated[
         str | None,
