@@ -190,6 +190,15 @@ def _registry_key(user_id: int, client_id: str) -> str:
     return f"chart-query-cancel:{user_id}:{client_id}"
 
 
+def _cancel_requested_key(user_id: int, client_id: str) -> str:
+    """Cache key recording that a user asked to stop a chart query run.
+
+    Scoped by user for the same reason as ``_registry_key``: a ``client_id``
+    can only ever flag the requester's own run.
+    """
+    return f"chart-query-cancel-requested:{user_id}:{client_id}"
+
+
 def _registry_ttl() -> int:
     """How long a cancel handle stays resolvable.
 
@@ -308,8 +317,93 @@ def _discard_cancel_handle(
         logger.warning("Could not discard chart query cancel handle", exc_info=True)
 
 
+def _request_chart_query_cancel(user_id: int, client_id: str) -> None:
+    """Record that the user asked to stop this run. Best-effort.
+
+    Killing the statement that is executing right now is only half of a Stop:
+    a chart-data run can be several statements (contribution totals, the
+    grouping-sets fallback's one-query-per-level, one query object after
+    another), and a Stop that lands before the first starts, or in the gap
+    between two, finds no handle to cancel. The intent recorded here is what
+    the execution loop checks before it starts each statement (see
+    ``chart_query_cancel_requested``), so the rest of the run is skipped
+    instead of carrying on as if nothing happened.
+    """
+    # Inline for test-patchability; see cancellable_chart_query's comment.
+    from superset.extensions import cache_manager
+
+    try:
+        cache_manager.chart_query_cancel_cache.set(
+            _cancel_requested_key(user_id, client_id),
+            True,
+            timeout=_registry_ttl(),
+        )
+    except Exception:  # noqa: BLE001 pylint: disable=broad-except
+        logger.warning("Could not record chart query cancel request", exc_info=True)
+
+
+def chart_query_cancel_requested(client_id: "str | None") -> bool:
+    """Whether the requesting user has asked to stop the run named by ``client_id``.
+
+    Checked by the execution loop before each statement of a chart-data run.
+    False without a ``client_id`` or a user (nothing could have been
+    requested), and on a cache failure (never block a query on the registry).
+    """
+    # Inline for test-patchability; see cancellable_chart_query's comment.
+    from superset.extensions import cache_manager
+    from superset.utils.core import get_user_id
+
+    user_id = get_user_id()
+    if not client_id or user_id is None:
+        return False
+
+    try:
+        return bool(
+            cache_manager.chart_query_cancel_cache.get(
+                _cancel_requested_key(user_id, client_id)
+            )
+        )
+    except Exception:  # noqa: BLE001 pylint: disable=broad-except
+        logger.warning("Could not read chart query cancel request", exc_info=True)
+        return False
+
+
+@contextmanager
+def chart_query_run(client_id: "str | None") -> Iterator[None]:
+    """Scope one chart-data run so its cancel intent is cleared when it ends.
+
+    The intent is deliberately *not* cleared on entry: a Stop that arrives
+    before the run reaches its first statement must still take effect. Each
+    run carries a fresh ``client_id``, so an intent recorded for a run that is
+    already over can never leak into a later one; clearing it here just keeps
+    the registry tidy rather than leaving it to the TTL.
+    """
+    # Inline for test-patchability; see cancellable_chart_query's comment.
+    from superset.extensions import cache_manager
+    from superset.utils.core import get_user_id
+
+    user_id = get_user_id()
+    if not client_id or user_id is None:
+        yield
+        return
+
+    try:
+        yield
+    finally:
+        try:
+            cache_manager.chart_query_cancel_cache.delete(
+                _cancel_requested_key(user_id, client_id)
+            )
+        except Exception:  # noqa: BLE001 pylint: disable=broad-except
+            logger.warning("Could not clear chart query cancel request", exc_info=True)
+
+
 def cancel_chart_query_for_user(client_id: str) -> bool:
     """Cancel the requesting user's running chart query, if it is cancellable.
+
+    Always records the cancel intent for the run first, so whatever the run
+    has not started yet is skipped at its next checkpoint even when there is
+    no statement executing right now to kill.
 
     :returns: True if the engine reported the query cancelled. False covers both
         "no such in-flight query for this user" and "the engine declined" — the
@@ -324,6 +418,8 @@ def cancel_chart_query_for_user(client_id: str) -> bool:
     user_id = get_user_id()
     if user_id is None:
         return False
+
+    _request_chart_query_cancel(user_id, client_id)
 
     try:
         handle = cache_manager.chart_query_cancel_cache.get(

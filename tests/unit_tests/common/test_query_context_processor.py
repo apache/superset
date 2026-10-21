@@ -3170,3 +3170,152 @@ def test_get_df_payload_keeps_dataset_validation_type() -> None:
     assert isinstance(payload["error"], QueryObjectValidationMessage)
     assert payload["error"] == "Columns missing in dataset: ['missing']"
     cache.set_query_result.assert_not_called()
+
+
+def _stub_result(df: pd.DataFrame | None = None, status: str | None = None):
+    from datetime import timedelta
+
+    from superset.common.db_query_status import QueryStatus
+    from superset.models.helpers import QueryResult
+
+    return QueryResult(
+        df=pd.DataFrame({"metric": [1]}) if df is None else df,
+        query="SELECT 1",
+        duration=timedelta(seconds=0),
+        status=status or QueryStatus.SUCCESS,
+    )
+
+
+def test_get_query_result_is_skipped_once_a_stop_was_requested() -> None:
+    """A Stop that landed before this statement started keeps it off the warehouse."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = mock_datasource
+    query_obj = QueryObject(datasource=mock_datasource, columns=["state"])
+
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        return_value=True,
+    ) as requested:
+        result = processor.get_query_result(query_obj)
+
+    requested.assert_called_once_with("client-1")
+    mock_datasource.get_query_result.assert_not_called()
+    assert result.status == QueryStatus.FAILED
+    assert result.error_message
+    assert result.df.empty
+
+
+def test_grouping_sets_fallback_stops_at_a_failed_level() -> None:
+    """A failed (or cancelled) level ends the fallback with that failure.
+
+    Running the remaining levels would let a later level's SUCCESS overwrite
+    the failure, and the partial concatenation would then be cached as a
+    complete result.
+    """
+    from superset.common.db_query_status import QueryStatus
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state"],
+        grouping_sets=[["state"], []],
+    )
+    processor = QueryContextProcessor(MagicMock())
+    processor._qc_datasource = mock_datasource
+
+    failed = _stub_result(df=pd.DataFrame(), status=QueryStatus.FAILED)
+    failed.error_message = "canceling statement due to user request"
+    mock_datasource.get_query_result.side_effect = [failed, _stub_result()]
+
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        return_value=False,
+    ):
+        result = processor._grouping_sets_fallback(query_obj)
+
+    assert result is failed
+    assert mock_datasource.get_query_result.call_count == 1
+
+
+def test_grouping_sets_fallback_honours_a_stop_between_levels() -> None:
+    """Each level checks the cancel intent, so a Stop in the gap skips the rest."""
+    from superset.common.db_query_status import QueryStatus
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    query_obj = QueryObject(
+        datasource=mock_datasource,
+        columns=["state"],
+        grouping_sets=[["state"], []],
+    )
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = mock_datasource
+    mock_datasource.get_query_result.return_value = _stub_result()
+
+    with patch(
+        "superset.common.query_context_processor.chart_query_cancel_requested",
+        side_effect=[False, True],
+    ):
+        result = processor._grouping_sets_fallback(query_obj)
+
+    assert mock_datasource.get_query_result.call_count == 1
+    assert result.status == QueryStatus.FAILED
+
+
+def test_ensure_totals_available_runs_the_totals_query_cancellably() -> None:
+    """The totals query runs inside the same cancel scope as the chart queries."""
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.database = MagicMock()
+    totals_query = QueryObject(datasource=mock_datasource, columns=["state"])
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    query_context.queries = [totals_query]
+    query_context.get_query_result.return_value = _stub_result()
+    processor = QueryContextProcessor(query_context)
+    processor._qc_datasource = mock_datasource
+
+    scope = MagicMock()
+    with (
+        patch(
+            "superset.common.query_context_processor.cancellable_chart_query",
+            scope,
+        ),
+        patch.object(processor, "get_cache_timeout", return_value=300),
+        patch.object(processor, "query_cache_key", return_value="key"),
+        patch.object(processor, "_resolve_forced_query", return_value=False),
+    ):
+        processor.ensure_totals_available(queries_needing_totals=[0], totals_idx=0)
+
+    scope.assert_called_once_with("client-1", mock_datasource.database)
+    scope.return_value.__enter__.assert_called_once()
+    query_context.get_query_result.assert_called_once_with(totals_query)
+
+
+def test_get_payload_result_scopes_the_run_for_cancellation() -> None:
+    """The run-level scope wraps the whole payload, clearing the intent after."""
+    query_context = MagicMock()
+    query_context.client_id = "client-1"
+    query_context.queries = []
+    query_context.prepare_contribution_totals.return_value = ([], None)
+    query_context.cache_values = {"queries": []}
+    processor = QueryContextProcessor(query_context)
+
+    run = MagicMock()
+    with patch("superset.common.query_context_processor.chart_query_run", run):
+        result = processor.get_payload_result(force_cached=True)
+
+    run.assert_called_once_with("client-1")
+    run.return_value.__enter__.assert_called_once()
+    run.return_value.__exit__.assert_called_once()
+    assert result.queries == ()

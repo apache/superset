@@ -361,7 +361,10 @@ def test_cancellable_chart_query_publishes_nothing_when_engine_has_no_cancel_id(
 
 def test_cancel_chart_query_for_user_cancels_its_own_query() -> None:
     """Cancelling one's own registered query hits the engine and cleans up."""
-    from superset.tasks.query_cancel import cancel_chart_query_for_user
+    from superset.tasks.query_cancel import (
+        _cancel_requested_key,
+        cancel_chart_query_for_user,
+    )
 
     cache = _FakeCache()
     cache.store["chart-query-cancel:1:client-1"] = {
@@ -382,8 +385,9 @@ def test_cancel_chart_query_for_user_cancels_its_own_query() -> None:
             assert cancel_chart_query_for_user("client-1") is True
 
     cancel.assert_called_once_with(database, "engine-1")
-    # A cancelled query's handle is dropped rather than left to expire.
-    assert cache.store == {}
+    # A cancelled query's handle is dropped rather than left to expire; the
+    # run's cancel intent stays until the run itself ends (see chart_query_run).
+    assert cache.store == {_cancel_requested_key(1, "client-1"): True}
 
 
 def test_cancel_chart_query_for_user_does_not_discard_a_newer_handle() -> None:
@@ -396,7 +400,10 @@ def test_cancel_chart_query_for_user_does_not_discard_a_newer_handle() -> None:
     successful anyway, discarding must not remove the entry a later cursor has
     since published for the statement that is actually still running.
     """
-    from superset.tasks.query_cancel import cancel_chart_query_for_user
+    from superset.tasks.query_cancel import (
+        _cancel_requested_key,
+        cancel_chart_query_for_user,
+    )
 
     cache = _FakeCache()
     cache.store["chart-query-cancel:1:client-1"] = {
@@ -431,7 +438,8 @@ def test_cancel_chart_query_for_user_does_not_discard_a_newer_handle() -> None:
         "chart-query-cancel:1:client-1": {
             "database_id": 5,
             "cancel_query_id": "engine-2",
-        }
+        },
+        _cancel_requested_key(1, "client-1"): True,
     }
 
 
@@ -444,6 +452,7 @@ def test_cancel_chart_query_for_user_cannot_reach_another_users_query() -> None:
     left untouched.
     """
     from superset.tasks.query_cancel import (
+        _cancel_requested_key,
         _registry_key,
         cancel_chart_query_for_user,
     )
@@ -461,7 +470,12 @@ def test_cancel_chart_query_for_user_cannot_reach_another_users_query() -> None:
 
     cancel.assert_not_called()
     find_by_id.assert_not_called()
-    assert cache.store == {_registry_key(1, "client-1"): victim_handle}
+    # User 1's handle is untouched, and user 2's cancel intent lands in user
+    # 2's own namespace, where user 1's run never looks.
+    assert cache.store == {
+        _registry_key(1, "client-1"): victim_handle,
+        _cancel_requested_key(2, "client-1"): True,
+    }
 
 
 def test_cancellable_chart_query_cannot_overwrite_another_users_handle() -> None:
@@ -507,3 +521,83 @@ def test_cancel_chart_query_for_user_returns_false_when_nothing_registered() -> 
         with patch("superset.tasks.query_cancel.cancel_chart_query") as cancel:
             assert cancel_chart_query_for_user("missing") is False
     cancel.assert_not_called()
+
+
+# --- run-level cancel intent ----------------------------------------------
+
+
+def test_cancel_chart_query_for_user_records_intent_even_without_a_handle() -> None:
+    """A Stop with nothing executing yet still flags the run to be skipped.
+
+    Between statements (or before the first one) there is no handle to cancel,
+    so the engine is never reached and the call reports nothing stopped; the
+    recorded intent is what makes the run's next checkpoint bail out.
+    """
+    from superset.tasks.query_cancel import (
+        cancel_chart_query_for_user,
+        chart_query_cancel_requested,
+    )
+
+    cache = _FakeCache()
+
+    with _registry_env(1, cache):
+        with patch("superset.tasks.query_cancel.cancel_chart_query") as cancel:
+            assert cancel_chart_query_for_user("client-1") is False
+            assert chart_query_cancel_requested("client-1") is True
+
+    cancel.assert_not_called()
+
+
+def test_cancel_intent_is_scoped_by_user() -> None:
+    """Another user's Stop naming the same ``client_id`` is invisible to this run."""
+    from superset.tasks.query_cancel import (
+        cancel_chart_query_for_user,
+        chart_query_cancel_requested,
+    )
+
+    cache = _FakeCache()
+
+    with _registry_env(2, cache):
+        assert cancel_chart_query_for_user("client-1") is False
+
+    with _registry_env(1, cache):
+        assert chart_query_cancel_requested("client-1") is False
+
+
+def test_cancel_intent_is_never_requested_without_a_client_id_or_a_user() -> None:
+    cache = _FakeCache()
+    from superset.tasks.query_cancel import chart_query_cancel_requested
+
+    with _registry_env(1, cache):
+        assert chart_query_cancel_requested(None) is False
+    with _registry_env(None, cache):
+        assert chart_query_cancel_requested("client-1") is False
+
+
+def test_chart_query_run_keeps_an_earlier_stop_and_clears_it_at_the_end() -> None:
+    """A Stop that beat the run to the cache is honoured inside, then dropped."""
+    from superset.tasks.query_cancel import (
+        cancel_chart_query_for_user,
+        chart_query_cancel_requested,
+        chart_query_run,
+    )
+
+    cache = _FakeCache()
+
+    with _registry_env(1, cache):
+        assert cancel_chart_query_for_user("client-1") is False
+        with chart_query_run("client-1"):
+            assert chart_query_cancel_requested("client-1") is True
+        assert chart_query_cancel_requested("client-1") is False
+    assert cache.store == {}
+
+
+def test_chart_query_cancel_requested_is_false_when_the_cache_fails() -> None:
+    """A registry outage must not stop a query that nobody asked to stop."""
+    from superset.tasks.query_cancel import chart_query_cancel_requested
+
+    cache = MagicMock()
+    cache.get.side_effect = RuntimeError("cache down")
+
+    with _registry_env(1, cache):
+        assert chart_query_cancel_requested("client-1") is False
