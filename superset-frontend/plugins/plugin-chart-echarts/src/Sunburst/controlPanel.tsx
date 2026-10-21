@@ -17,11 +17,7 @@
  * under the License.
  */
 import { t } from '@apache-superset/core/translation';
-import {
-  ensureIsArray,
-  isAdhocColumn,
-  isPhysicalColumn,
-} from '@superset-ui/core';
+import { ensureIsArray, isPhysicalColumn } from '@superset-ui/core';
 import {
   ControlPanelConfig,
   ControlPanelsContainerProps,
@@ -65,10 +61,11 @@ const config: ControlPanelConfig = {
                     option.is_dttm,
                   ]),
                 );
+                // buildQuery grains only physical temporal levels, so an adhoc
+                // level alone does not show a grain that would not apply.
                 return ensureIsArray(controls?.columns?.value).some(
                   selection =>
-                    isAdhocColumn(selection) ||
-                    (isPhysicalColumn(selection) && !!dttmLookup[selection]),
+                    isPhysicalColumn(selection) && !!dttmLookup[selection],
                 );
               },
             },

@@ -82,6 +82,16 @@ test('the time grain control does not add a grain to saved or new charts', () =>
 test('the time grain control shows only for a temporal hierarchy level', () => {
   expect(visible(['region'])).toBe(false);
   expect(visible(['region', 'ts'])).toBe(true);
+  // buildQuery does not grain adhoc levels, so they do not show the control.
+  expect(
+    visible([
+      {
+        expressionType: 'SQL',
+        sqlExpression: 'CAST(ts AS TIMESTAMP)',
+        label: 'ts_cast',
+      },
+    ]),
+  ).toBe(false);
 });
 
 test('the temporal lookup control is part of the Sunburst panel', () => {
