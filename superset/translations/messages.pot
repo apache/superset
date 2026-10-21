@@ -15331,6 +15331,10 @@ msgstr ""
 msgid "Time grain"
 msgstr ""
 
+#: superset-frontend/plugins/plugin-chart-echarts/src/Sunburst/controlPanel.tsx:55
+msgid "Time grain applied to the temporal levels of the hierarchy."
+msgstr ""
+
 msgid "Time grain chart customization plugin"
 msgstr ""
 
