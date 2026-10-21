@@ -75,11 +75,6 @@ PERCENT_1_POINT = ",.1%"
 # The Excel equivalent, applied as a cell format so the value stays numeric.
 EXCEL_PERCENT_FORMAT = "0.0%"
 
-# "Adaptive formatting" in the time format controls, mirroring ``SMART_DATE_ID``
-# in ``superset-ui-core/time-format``. It is an alias the browser resolves to a
-# formatter that picks a representation per value, not a format string.
-SMART_DATE = "smart_date"
-
 # ``strftime`` copies a directive it does not recognize into its output
 # verbatim, so a d3-only one would reach the report as literal text: ``%L`` and
 # ``%q`` stay ``%L`` and ``%q`` rather than becoming milliseconds and a quarter.
@@ -875,9 +870,16 @@ def is_strftime_expressible(d3_time_format: str) -> bool:
         # formatter, so leaving it in would render it as literal text.
         return False
     directives = re.findall(r"%(.)", d3_time_format)
-    return bool(directives) and all(
-        directive in SHARED_TIME_DIRECTIVES for directive in directives
-    )
+    if not directives:
+        # Nothing for ``strftime`` to substitute, so it hands the string back
+        # unchanged and every cell would read the format itself. This is also
+        # what rejects the aliases the time format controls offer, which the
+        # browser resolves to a formatter that picks a representation per value
+        # rather than to a format string: ``smart_date`` ("Adaptive
+        # formatting", ``SMART_DATE_ID`` in ``superset-ui-core/time-format``)
+        # among them.
+        return False
+    return all(directive in SHARED_TIME_DIRECTIVES for directive in directives)
 
 
 def format_time_column(df: pd.DataFrame, column: Any, d3_time_format: str) -> None:
@@ -1306,17 +1308,16 @@ def table(
         # Mirror the Table plugin's first formatter branch
         # (``if (isTime || config.d3TimeFormat)`` in ``transformProps.ts``):
         # an explicit per-column ``d3TimeFormat`` formats a temporal column and
-        # takes precedence over number formatting. Scoped to datetime columns
-        # with an explicit ``strftime``-style format; ``smart_date`` and any
-        # other alias is skipped so it is never rendered as literal text. The
-        # bare ``isTime`` fallback, ``tableTimestampFormat`` default,
-        # SMART_DATE granularity, and string temporal columns are left to a
-        # follow-up, since they need a full server-side d3-time-format port
-        # rather than ``strftime``.
+        # takes precedence over number formatting. Scoped to a datetime column
+        # carrying a format every directive of which ``strftime`` reads the same
+        # way. A column of another dtype has no ``strftime`` to call, and the
+        # bare ``isTime`` fallback, the ``tableTimestampFormat`` default,
+        # adaptive granularity and string temporal columns are left to a
+        # follow-up: they need a full server-side d3-time-format port rather
+        # than ``strftime``.
         time_format = config.get("d3TimeFormat")
         if (
             time_format
-            and time_format != SMART_DATE
             and is_strftime_expressible(time_format)
             and pd.api.types.is_datetime64_any_dtype(df[column])
         ):
@@ -1407,12 +1408,22 @@ def payload_coltypes(
     Only a column whose values really are strings is reported differently. The
     XLSX path hands these types to ``apply_column_types`` to get date cells out
     of a frame whose dates are still dates, and that frame is untouched here.
+
+    Nulls are dropped before the values are read. ``format_time_column`` leaves
+    them in place, and ``infer_dtype`` counts a ``NaT`` as a value of its own
+    type rather than one ``skipna`` drops, so it calls a formatted column
+    holding one ``"mixed"``. A column of nothing but nulls reads as neither
+    text nor mixed and keeps whatever type the dataset gives it.
+
+    The index is positional because ``extract_dataframe_dtypes`` walks the
+    frame the same way, so the two line up even where a label repeats.
     """
     coltypes = extract_dataframe_dtypes(df, datasource)
     return [
         GenericDataType.STRING
         if coltype == GenericDataType.TEMPORAL
-        and pd.api.types.infer_dtype(df.iloc[:, index], skipna=True) == "string"
+        and pd.api.types.infer_dtype(df.iloc[:, index].dropna(), skipna=False)
+        == "string"
         else coltype
         for index, coltype in enumerate(coltypes)
     ]

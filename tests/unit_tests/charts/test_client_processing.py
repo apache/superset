@@ -2521,8 +2521,9 @@ def test_table_applies_time_format_alongside_number_format() -> None:
 def test_table_leaves_adaptive_time_format_alone() -> None:
     """
     ``smart_date`` ("Adaptive formatting") is an alias the browser resolves to a
-    formatter, not a format string, so it is skipped rather than passed to
-    ``strftime``, which would print it as literal text in every cell.
+    formatter, not a format string. It carries no ``%`` directive, so the rule
+    that a format has to have one is what keeps it away from ``strftime``,
+    which would hand the alias back unchanged and print it in every cell.
     """
     df = pd.DataFrame.from_dict(
         {
@@ -2541,6 +2542,69 @@ def test_table_leaves_adaptive_time_format_alone() -> None:
         pd.Timestamp("2024-01-15 13:45:00"),
         pd.Timestamp("2024-06-30 08:00:00"),
     ]
+
+
+@pytest.mark.parametrize(
+    "time_format",
+    [
+        "yyyy-mm-dd",
+        "Q1",
+        "Date",
+        "100%",
+    ],
+)
+def test_table_skips_a_time_format_with_no_directive(time_format: str) -> None:
+    """
+    A format carrying no ``%`` directive is not a format string.
+
+    ``strftime`` has nothing to substitute and returns the string it was given,
+    so accepting one of these would put ``yyyy-mm-dd`` in every cell of the
+    column instead of a date. This is the rule that also rejects the adaptive
+    alias.
+    """
+    df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": time_format}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == [pd.Timestamp("2024-04-02 13:45:00")]
+
+
+@pytest.mark.parametrize(
+    ("values", "expected"),
+    [
+        pytest.param(
+            {0: "2024-01-15", 1: "2024-06-30"},
+            ["2024-01-15", "2024-06-30"],
+            id="string column",
+        ),
+        pytest.param({0: 2024, 1: 2025}, [2024, 2025], id="integer column"),
+    ],
+)
+def test_table_skips_a_time_format_on_a_non_datetime_column(
+    values: dict[int, Any], expected: list[Any]
+) -> None:
+    """
+    ``d3TimeFormat`` on a column that is not datetime leaves the column alone.
+
+    A string or a number has no ``strftime`` to call, so formatting one would
+    raise ``AttributeError`` in the report worker. The browser reaches these
+    through a d3-time-format port, which parses the value first, and that is
+    what the follow-up needs rather than something ``strftime`` can stand in
+    for.
+    """
+    df = pd.DataFrame.from_dict({"ds": values})
+    form_data = {
+        "viz_type": "table",
+        "column_config": {"ds": {"d3TimeFormat": "%Y"}},
+    }
+
+    formatted = table(df, form_data)
+
+    assert formatted["ds"].tolist() == expected
 
 
 def test_table_time_format_keeps_nulls() -> None:
@@ -2571,17 +2635,24 @@ def test_table_time_format_keeps_nulls() -> None:
         "%-d %b",
         "%x",
         "local!%Y-%m-%d",
+        "%Y local!",
         "%H:%M:%S.%f",
     ],
 )
 def test_table_skips_a_time_format_strftime_cannot_express(time_format: str) -> None:
     """
     ``strftime`` copies a directive it does not recognize into its output, so a
-    format carrying a d3-only one would reach the report as literal text, and so
-    would the ``local!`` marker that the browser's registry strips. ``%f`` is
-    recognized by both but means different things: d3 scales the milliseconds it
-    has, so its microseconds always end in ``000``. The column is left raw
-    instead, the way an unsupported number format is.
+    format carrying a d3-only one would reach the report as literal text.
+
+    So would the ``local!`` marker, wherever it sits. ``TimeFormatterRegistry``
+    reads local time off ``startsWith`` but takes the marker out of the format
+    with ``replace``, which drops it from anywhere, so a trailing one is not
+    part of the chart's output either and a format carrying one is left to the
+    browser rather than matched on its prefix.
+
+    ``%f`` is recognized by both but means different things: d3 scales the
+    milliseconds it has, so its microseconds always end in ``000``. The column
+    is left raw instead, the way an unsupported number format is.
     """
     df = pd.DataFrame.from_dict({"ds": {0: pd.Timestamp("2024-04-02 13:45:00")}})
     form_data = {
@@ -2695,6 +2766,46 @@ def test_table_report_time_format_survives_the_notification_table() -> None:
 
     assert notification_table is not None
     assert notification_table[("ds",)].tolist() == ["02/01/2024", "15/01/2024"]
+
+
+def test_table_report_time_format_survives_a_null_in_the_column() -> None:
+    """
+    A null alongside the formatted strings does not cost the column its type.
+
+    ``format_time_column`` leaves nulls in place, and ``infer_dtype`` reads a
+    ``NaT`` as a value of its own type rather than one ``skipna`` drops, so it
+    calls the column ``"mixed"`` rather than text. Typing it ``TEMPORAL`` on
+    that basis sends it back through the datetime cast in
+    ``chart_data_to_dataframe``, which reads ``02/01/2024`` month-first and
+    puts 1 February in the report, so any null in the column would undo the
+    format.
+    """
+    datasource = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = [{"column_name": "ds", "is_dttm": True}]
+    result = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.JSON,
+                "data": [
+                    {"ds": pd.Timestamp("2024-01-02"), "cnt": 1},
+                    {"ds": None, "cnt": 2},
+                ],
+            }
+        ],
+    }
+    form_data = {
+        "viz_type": "table",
+        "metrics": ["cnt"],
+        "column_config": {"ds": {"d3TimeFormat": "%d/%m/%Y"}},
+    }
+
+    query = apply_client_processing(result, form_data, datasource)["queries"][0]
+
+    assert query["coltypes"][0] == GenericDataType.STRING
+    values = list(query["data"]["ds"].values())
+    assert values[0] == "02/01/2024"
+    assert pd.isna(values[1])
 
 
 def test_report_payload_keeps_an_unformatted_temporal_column_temporal() -> None:
