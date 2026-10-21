@@ -4936,6 +4936,9 @@ msgstr "Zatvori editor prelomnih tačaka boje"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Close tab"
@@ -10273,10 +10276,10 @@ msgstr "Sakriva liniju za vremensku seriju"
 msgid "Hierarchy"
 msgstr "Hijerarhija"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -11830,10 +11833,10 @@ msgstr "Geografska dužina i širina"
 msgid "Longitude of default viewport"
 msgstr "Geografska dužina podrazumevanog prikaza"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -13617,9 +13620,6 @@ msgstr "Providnost balončića, 0 znači potpuno providno, 1 znači neprovidno"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Providnost, očekuje vrednosti između 0 i 100"
 
-msgid "Open"
-msgstr ""
-
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Open Datasource tab"
@@ -13659,6 +13659,9 @@ msgstr "Otvori u SQL Lab-u"
 # uk]
 msgid "Open in SQL lab"
 msgstr "Otvori u SQL Lab-u"
+
+msgid "Open price"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -16352,6 +16355,13 @@ msgstr "Skrolujte do dna da biste omogućili prepisivanje izmena. "
 msgid "Search"
 msgstr "Pretraga"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Pretraži %s zapis"
+msgstr[1] "Pretraži %s zapisa"
+msgstr[2] "Pretraži %s zapisa"
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Search / Filter"
@@ -16415,9 +16425,6 @@ msgstr "Pretraga u filterima"
 
 msgid "Search metrics by key or label"
 msgstr "Pretraži metrike po ključu ili oznaci"
-
-msgid "Search records"
-msgstr ""
 
 # uk]
 msgid "Search tags"
