@@ -46,6 +46,7 @@ from superset.connectors.sqla.partition_mapping import (
     contains_executable_comment,
     contains_jinja,
     contains_value_placeholder,
+    declares_array_type,
     drop_unmapped_value_transforms,
     equality_mirrors_safely,
     evaluate_transform,
@@ -3669,6 +3670,56 @@ def test_an_array_partition_column_is_refused_whatever_the_value(
 
     assert error is not None
     assert "array column" in error
+
+
+@pytest.mark.parametrize(
+    "column_type",
+    ["TEXT[]", "INTEGER[]", "VARCHAR(10)[]", "int[3]", "TEXT[][]"],
+)
+def test_a_postgres_array_partition_column_is_refused(column_type: str) -> None:
+    """
+    SC-128852. `PostgresEngineSpec` does not opt into multi-value columns, so it
+    resolves ``TEXT[]`` to ``STRING`` and the ``MULTI_VALUE`` check never fired:
+    the preview said valid and ``region_keys = 'us'`` failed every chart with
+    ``malformed array literal``. The declared type answers on its own.
+    """
+    from superset.db_engine_specs.postgres import (  # noqa: PLC0415
+        PostgresEngineSpec,
+    )
+
+    column = _partition_column(column_type)
+
+    with patch.object(
+        type(column.table.database),
+        "db_engine_spec",
+        new_callable=lambda: property(lambda self: PostgresEngineSpec),
+    ):
+        assert column.type_generic != GenericDataType.MULTI_VALUE
+        error = probed_value_type_error(column, ["us"])
+
+    assert error is not None
+    assert "array column" in error
+
+
+@pytest.mark.parametrize(
+    "column_type, is_array",
+    [
+        ("TEXT[]", True),
+        ("integer[]", True),
+        ("ARRAY<STRING>", True),
+        ("array(varchar)", True),
+        ("Array(Int32)", True),
+        ("ARRAY", True),
+        ("TEXT", False),
+        ("BIGINT", False),
+        ("VARCHAR(255)", False),
+        ("ARRAYLIKE", False),
+        ("STRUCT<a: ARRAY<INT>>", False),
+        (None, False),
+    ],
+)
+def test_declares_array_type(column_type: str | None, is_array: bool) -> None:
+    assert declares_array_type(column_type) is is_array
 
 
 def test_a_scalar_column_on_an_array_capable_engine_still_mirrors() -> None:

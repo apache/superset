@@ -560,6 +560,26 @@ def _native_generic_type(
         return None
 
 
+#: A declared type naming an array: PostgreSQL's ``TEXT[]`` / ``INTEGER[][]``
+#: / ``int[3]``, and the ``ARRAY<...>`` / ``ARRAY(...)`` / ``Array(...)``
+#: spellings of Hive, Spark, Trino, BigQuery and ClickHouse.
+_ARRAY_TYPE_RE = re.compile(r"(\[\s*\d*\s*\])+\s*$|^\s*ARRAY\b", re.IGNORECASE)
+
+
+def declares_array_type(column_type: str | None) -> bool:
+    """
+    Whether a declared column type is an array, whatever the engine spec says.
+
+    The engine spec only reports ``MULTI_VALUE`` where it has opted into
+    ``supports_multivalue_columns``; PostgreSQL has not, and resolves ``TEXT[]``
+    to ``STRING`` and ``INTEGER[]`` to ``NUMERIC``. So an array partition column
+    there cleared the array refusal, previewed valid, and every equality chart
+    on the mapping failed with ``malformed array literal``. The declared type
+    is what the engine will compare, so it is read directly as well.
+    """
+    return bool(column_type and _ARRAY_TYPE_RE.search(column_type))
+
+
 #: Declared types whose comparison ignores trailing blanks.
 #:
 #: The fixed-width character types, which the SQL standard has compare as
@@ -3441,10 +3461,10 @@ def probed_value_type_error(
     resolve.
     """
     generic_type = _native_generic_type(partition_column)
-    if generic_type is None:
-        return None
 
-    if generic_type == utils.GenericDataType.MULTI_VALUE:
+    if generic_type == utils.GenericDataType.MULTI_VALUE or declares_array_type(
+        partition_column.type
+    ):
         # Refused for the column rather than per value: an array holds no
         # scalar, so there is no result a transform could return that would
         # compare. `handle_comparison_filter` emits a bare ``col = value``, so
@@ -3466,6 +3486,9 @@ def probed_value_type_error(
                 column=partition_column.column_name,
             )
         )
+
+    if generic_type is None:
+        return None
 
     allowed = _PROBE_RESULT_TYPES.get(generic_type)
     if allowed is None:
