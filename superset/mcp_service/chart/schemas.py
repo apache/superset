@@ -1024,7 +1024,14 @@ class AxisConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
     title: str | None = Field(None, max_length=200)
     scale: Literal["linear", "log"] | None = "linear"
-    format: str | None = Field(None, description="e.g. '$,.2f'", max_length=50)
+    format: str | None = Field(
+        None,
+        description=(
+            "D3 format, e.g. ,.2f; currency symbols require verified "
+            "currency metadata or user instructions"
+        ),
+        max_length=50,
+    )
 
 
 class LegendConfig(UnknownFieldCheckMixin):
@@ -1041,7 +1048,12 @@ class CurrencyFormat(UnknownFieldCheckMixin):
 
     symbol: str = Field(
         ...,
-        description="Currency code or symbol (e.g. 'USD', 'EUR', '$', '€')",
+        description=(
+            "Currency code or symbol established by user instructions "
+            "or verified source metadata. Do not infer currency from "
+            "CPC, sales, revenue or other metric names. "
+            "Omit currency_format when unknown."
+        ),
         max_length=20,
     )
     symbol_position: Literal["prefix", "suffix"] = Field(
@@ -3499,7 +3511,7 @@ class BigNumberChartConfig(BaseChartConfig):
         None,
         description=(
             "Number format string for the metric value "
-            "(e.g., '$,.2f' for currency, ',.0f' for integers, "
+            "(e.g., ',.2f' for decimals, ',.0f' for integers, "
             "'.2%' for percentages)"
         ),
         max_length=50,
@@ -3624,7 +3636,7 @@ class TableColumnConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     d3_number_format: str | None = Field(
         None,
         alias="d3NumberFormat",
-        description="D3 number format, for example ',.2f', '$,.2f', or '.1%'.",
+        description="D3 number format, for example ',.2f', ',.0f', or '.1%'.",
         min_length=1,
         max_length=100,
     )
@@ -3691,7 +3703,7 @@ class TableChartConfig(BaseChartConfig):
             "its label). Use columnWidth for minimum width in pixels, "
             "d3NumberFormat for D3 number formats such as ',.2f' or '.1%', and "
             "d3TimeFormat for D3 time formats such as '%Y-%m-%d'. Example: "
-            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': '$,.2f'}, "
+            "{'Total Sales': {'columnWidth': 120, 'd3NumberFormat': ',.2f'}, "
             "'Order Date': {'d3TimeFormat': '%Y-%m-%d'}}."
         ),
     )
@@ -6212,12 +6224,15 @@ class ChartRequestNormalizerMixin(BaseModel):
 
 
 class ListChartsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[ChartFilter],
 ):
     """Request schema for list_charts with clear, unambiguous types."""
+
+    model_config = ConfigDict(extra="forbid")
 
     order_column: Annotated[
         str | None,
@@ -6721,6 +6736,10 @@ class ChartData(BaseModel):
     chart_id: int
     chart_name: str
     chart_type: str
+
+    # Internal handoff to the dashboard tool; not part of the public chart payload.
+    _query_row_limits: list[int | None] = PrivateAttr(default_factory=list)
+    _query_post_processing: list[list[str]] = PrivateAttr(default_factory=list)
 
     # Enhanced data description
     columns: List[DataColumn] = Field(description="Rich column metadata")

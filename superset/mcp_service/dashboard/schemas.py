@@ -100,6 +100,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
     resolve_chart_datasource_id,
     resolve_chart_datasource_name,
+    UnknownFieldCheckMixin,
 )
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
@@ -209,12 +210,26 @@ class DashboardFilter(ColumnOperator):
 
 
 class ListDashboardsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[DashboardFilter],
 ):
     """Request schema for list_dashboards with clear, unambiguous types."""
+
+    edited_by_me: bool = Field(
+        default=False,
+        description=(
+            "Only dashboards where the current user is a direct USER editor "
+            "(the dashboard ownership representation). Does not include access "
+            "inherited from roles or groups. Use this for dashboards I own. "
+            "Combining with created_by_me returns creator OR owner, not both."
+        ),
+    )
+
+    # Never silently discard a misspelled scope filter (e.g. owned_by_me).
+    model_config = ConfigDict(extra="forbid")
 
     order_column: Annotated[
         str | None,
@@ -1462,12 +1477,13 @@ class DuplicateDashboardRequest(BaseModel):
         validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
     duplicate_slices: bool = Field(
-        default=False,
+        default=True,
         description=(
-            "When true, every chart on the source dashboard is deep-copied "
+            "When true (default), every chart on the source dashboard is deep-copied "
             "into a new chart object owned by the caller. When false "
-            "(default), the new dashboard references the same charts as the "
-            "source."
+            "the new dashboard references the same charts as the "
+            "source; editing them also changes the source dashboard. "
+            "Use false only when shared charts are explicitly intended."
         ),
     )
     sanitization_warnings: SkipJsonSchema[List[str]] = Field(
@@ -3494,9 +3510,10 @@ class GetDashboardDataRequest(BaseModel):
         ge=1,
         le=1000,
         description=(
-            "Rows to query per chart. Only sample_rows of these are returned "
-            "per chart; total_rows reports the full count when the fetch was not "
-            "capped, and the per-chart truncated flag marks a capped fetch."
+            "Requested input row limit per query, subject to server caps. Only "
+            "sample_rows output rows are returned per chart. total_rows is null "
+            "when retrieval is capped or post-processing leaves input coverage "
+            "unverified; truncated is true in either case."
         ),
     )
     sample_rows: int = Field(
@@ -3539,7 +3556,10 @@ class DashboardChartQueryData(BaseModel):
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
-        False, description="True when this query returned fewer than the total"
+        False,
+        description=(
+            "True when query retrieval is capped or input coverage is unverified"
+        ),
     )
 
 
@@ -3557,13 +3577,30 @@ class DashboardChartData(BaseModel):
     total_rows: OptionalRowCount = Field(
         None,
         description=(
-            "Total rows available when known; null when the fetch was capped with "
-            "no authoritative total (see truncated)"
+            "Total rows available when known; null when retrieval is capped with "
+            "no authoritative total or post-processing leaves input coverage "
+            "unverified (see truncated)"
         ),
     )
     truncated: bool = Field(
         False,
-        description="True when fewer rows were returned than the total available",
+        description="True when retrieval is capped or input coverage is unverified",
+    )
+    fetch_row_limit: int | None = Field(
+        None,
+        description=(
+            "Row limit applied for this data retrieval, "
+            "not necessarily the saved chart limit"
+        ),
+    )
+    sample_rows_limit: int | None = Field(
+        None, description="Maximum example rows included in sample_data"
+    )
+    completeness_note: str | None = Field(
+        None,
+        description=(
+            "Limits on interpreting this retrieval as the full chart population"
+        ),
     )
     queries: list[DashboardChartQueryData] | None = Field(
         None,
@@ -3594,6 +3631,17 @@ class DashboardData(BaseModel):
     agent can answer analytical questions about the whole dashboard from a
     single call, instead of fetching each chart separately.
     """
+
+    completeness_note: str = Field(
+        default=(
+            "Example rows are not the full population. Query post-processing may "
+            "collapse or replace input rows capped by fetch_row_limit. For affected "
+            "queries, total_rows is unknown and truncated=true means input coverage "
+            "is unverified, not observed truncation. Verify the saved configuration "
+            "and source aggregates before making full-population claims."
+        ),
+        description="Shared guidance for interpreting per-chart retrieval coverage",
+    )
 
     dashboard_id: int = Field(..., description="Dashboard id")
     dashboard_name: str = Field(..., description="Dashboard title")

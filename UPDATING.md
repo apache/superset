@@ -24,6 +24,18 @@ assists people when migrating to a new version.
 
 ## Next
 
+- MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
+  row-collapsing post-processing leaves input coverage unverified, not only when
+  truncation is observed. Output row counts do not prove complete input coverage.
+  `fetch_row_limit` reports the executed query limit, including server caps.
+
+- MCP `duplicate_dashboard` deep-copies charts by default. Callers that intentionally
+  share charts with the source dashboard must pass `duplicate_slices=false`.
+  MCP `list_dashboards`, `list_charts`, `list_datasets`, `list_reports` and
+  `list_databases` reject unknown request fields instead of silently ignoring
+  them, with suggestions for supported fields. Use `created_by_me` for authorship
+  or `edited_by_me` for direct user ownership where supported, not `owned_by_me`.
+
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
   metrics, including two SUM metrics. Metric-specific values and totals remain
