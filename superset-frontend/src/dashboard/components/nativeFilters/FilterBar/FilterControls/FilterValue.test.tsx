@@ -24,7 +24,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { Provider } from 'react-redux';
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { NativeFilterType, DatasourceType } from '@superset-ui/core';
 import type { Filter } from '@superset-ui/core';
 import FilterValue from './FilterValue';

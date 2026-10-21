@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { Provider } from 'react-redux';
 import configureMockStore from 'redux-mock-store';
 

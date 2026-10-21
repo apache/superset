@@ -28,7 +28,7 @@ import {
   useSelector,
   type TypedUseSelectorHook,
 } from 'react-redux';
-import thunk, { type ThunkDispatch } from 'redux-thunk';
+import { thunk, type ThunkDispatch } from 'redux-thunk';
 import { api } from 'src/hooks/apiResources/queryApi';
 import messageToastReducer from 'src/components/MessageToasts/reducers';
 import charts from 'src/components/Chart/chartReducer';
@@ -190,7 +190,8 @@ export function setupStore({
     },
     middleware: getMiddleware,
     devTools: process.env.WEBPACK_MODE === 'development' && !disableDebugger,
-    enhancers: [persistSqlLabStateEnhancer as StoreEnhancer],
+    enhancers: getDefaultEnhancers =>
+      getDefaultEnhancers().concat(persistSqlLabStateEnhancer as StoreEnhancer),
     ...overrides,
   });
 }

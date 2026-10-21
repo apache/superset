@@ -18,7 +18,7 @@
  */
 import fetchMock from 'fetch-mock';
 import configureMockStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import type { ThunkDispatch } from 'redux-thunk';
 import type { AnyAction } from 'redux';
 import { waitFor, defaultStore } from 'spec/helpers/testing-library';

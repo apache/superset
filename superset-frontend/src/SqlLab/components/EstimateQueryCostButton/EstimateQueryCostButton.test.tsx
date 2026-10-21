@@ -17,7 +17,7 @@
  * under the License.
  */
 import configureStore from 'redux-mock-store';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { fireEvent, render } from 'spec/helpers/testing-library';
 import { Store } from 'redux';
 import {

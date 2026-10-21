@@ -18,7 +18,7 @@
  */
 import configureStore from 'redux-mock-store';
 import fetchMock from 'fetch-mock';
-import thunk from 'redux-thunk';
+import { thunk } from 'redux-thunk';
 import { fireEvent, render, waitFor } from 'spec/helpers/testing-library';
 import { Store } from 'redux';
 import { SupersetClientClass } from '@superset-ui/core';
