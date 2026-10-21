@@ -42,7 +42,6 @@ from superset.extensions.view import (
     registered_page_paths,
 )
 
-
 #: The view menu an extension's page permissions hang from.
 VIEW_MENU = f"{EXTENSION_VIEW_MENU_PREFIX}acme.tools"
 
@@ -351,8 +350,9 @@ def test_the_same_permission_on_another_extension_does_not_carry_over(
 def test_permissions_are_created_for_every_page_that_names_one(
     app: Flask, security: FakeSecurityManager
 ) -> None:
+    register_extension_pages(app, manifest("/a", "/b", permission="can_review"))
     with app.app_context():
-        ensure_page_permissions(manifest("/a", "/b", permission="can_review"))
+        ensure_page_permissions(app, manifest("/a", "/b", permission="can_review"))
 
     # One row, not one per page: pages of an extension may share a permission.
     assert security.created == [("can_review", VIEW_MENU)]
@@ -366,8 +366,9 @@ def test_a_created_permission_is_granted_to_admin(
     Without it an administrator who installs an extension cannot open its
     pages until they grant themselves access to their own deployment.
     """
+    register_extension_pages(app, manifest("/a", permission="can_review"))
     with app.app_context():
-        ensure_page_permissions(manifest("/a", permission="can_review"))
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
 
     assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
 
@@ -383,8 +384,9 @@ def test_an_operator_can_withhold_the_grant_from_admin(
     """
     security.existing.add(("can_review", VIEW_MENU))
 
+    register_extension_pages(app, manifest("/a", permission="can_review"))
     with app.app_context():
-        ensure_page_permissions(manifest("/a", permission="can_review"))
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
 
     assert security.created == []
     assert security.admin_role.permissions == []
@@ -399,8 +401,9 @@ def test_the_admin_role_is_read_from_configuration(
     superuser = SimpleNamespace(name="Superuser", permissions=[])
     security.roles["Superuser"] = superuser
 
+    register_extension_pages(app, manifest("/a", permission="can_review"))
     with app.app_context():
-        ensure_page_permissions(manifest("/a", permission="can_review"))
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
 
     assert superuser.permissions == [("can_review", VIEW_MENU)]
     assert security.admin_role.permissions == []
@@ -411,8 +414,9 @@ def test_a_missing_admin_role_does_not_stop_the_boot(
 ) -> None:
     security.roles.clear()
 
+    register_extension_pages(app, manifest("/a", permission="can_review"))
     with app.app_context():
-        ensure_page_permissions(manifest("/a", permission="can_review"))
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
 
     assert security.created == [("can_review", VIEW_MENU)]
 
@@ -420,8 +424,9 @@ def test_a_missing_admin_role_does_not_stop_the_boot(
 def test_nothing_is_created_for_pages_without_permissions(
     app: Flask, security: FakeSecurityManager
 ) -> None:
+    register_extension_pages(app, manifest("/a", "/b"))
     with app.app_context():
-        ensure_page_permissions(manifest("/a", "/b"))
+        ensure_page_permissions(app, manifest("/a", "/b"))
 
     assert security.created == []
     assert security.admin_role.permissions == []
@@ -431,9 +436,10 @@ def test_creating_permissions_is_idempotent(
     app: Flask, security: FakeSecurityManager
 ) -> None:
     # Every worker runs this at every boot.
+    register_extension_pages(app, manifest("/a", permission="can_review"))
     with app.app_context():
-        ensure_page_permissions(manifest("/a", permission="can_review"))
-        ensure_page_permissions(manifest("/a", permission="can_review"))
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
 
     assert security.created == [("can_review", VIEW_MENU)]
     # Granted once, by the boot that created it -- not again afterwards.
@@ -450,8 +456,9 @@ def test_a_failure_to_create_a_permission_does_not_stop_the_boot(
 
     monkeypatch.setattr(security, "add_permission_view_menu", explode)
 
+    register_extension_pages(app, manifest("/a", permission="can_review"))
     with app.app_context():
-        ensure_page_permissions(manifest("/a", permission="can_review"))
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
 
     # And the session was rolled back, so the next write on this worker is
     # not issued against a session left dirty by the failed insert.
@@ -620,18 +627,55 @@ def test_a_converter_above_the_page_s_depth_claims_the_path(app: Flask) -> None:
     assert endpoint == "datasource_values"
 
 
-def test_a_page_whose_prefix_a_converter_does_not_match_is_allowed(
+def test_a_converter_that_could_never_match_is_not_a_conflict(
     app: Flask,
 ) -> None:
-    """The check stays segment-wise rather than refusing anything that shares
-    a prefix: a static segment that differs is a genuine miss."""
+    """`<int:slice_id>` cannot match `review`, so the page may have the path.
+
+    The weaker version of this test used a differing static segment, which a
+    plain string comparison also gets right -- it documented the intent
+    without being able to catch a regression. This one fails under any check
+    that treats every converter as matching anything.
+    """
     app.add_url_rule(
-        "/api/v1/chart/<int:pk>", endpoint="chart", view_func=lambda **_k: ""
+        "/slice/<int:slice_id>/", endpoint="slice", view_func=lambda **_k: ""
     )
 
-    register_extension_pages(app, manifest("/api/v1/review"))
+    register_extension_pages(app, manifest("/slice/review"))
 
-    assert "/api/v1/review" in paths_in(app)
+    assert "/slice/review" in paths_in(app)
+    # And the core rule still answers its own URLs.
+    endpoint, _args = app.url_map.bind("localhost").match("/slice/42/")
+    assert endpoint == "slice"
+
+
+def test_a_converter_that_could_match_is_still_a_conflict(app: Flask) -> None:
+    """The narrowing above must not become "any converter, no conflict"."""
+    app.add_url_rule(
+        "/slice/<slice_name>/", endpoint="slice", view_func=lambda **_k: ""
+    )
+
+    register_extension_pages(app, manifest("/slice/review"))
+
+    assert "/slice/review" not in paths_in(app)
+
+
+def test_a_converter_inside_a_segment_is_seen(app: Flask) -> None:
+    """A converter need not occupy a whole segment.
+
+    `/plugin/v<int:version>/data` splits into a segment `v<int:version>` that
+    no comparison against `v1` recognises as dynamic, so a page at
+    `/plugin/v1` would be accepted and would then take `/plugin/v1/data`.
+    No core rule has this shape today, but operator blueprints and
+    FLASK_APP_MUTATOR both run before extensions load.
+    """
+    app.add_url_rule(
+        "/plugin/v<int:version>/data", endpoint="plugin", view_func=lambda **_k: ""
+    )
+
+    register_extension_pages(app, manifest("/plugin/v1"))
+
+    assert "/plugin/v1" not in paths_in(app)
 
 
 def test_a_path_converter_above_the_page_claims_the_whole_subtree(
@@ -717,3 +761,89 @@ def test_the_manifest_bounds_what_the_boot_check_has_to_scan() -> None:
 
     with pytest.raises(ValidationError):
         Contributions(pages=[Page(path=f"/p{i}", name="x") for i in range(101)])
+
+
+@pytest.mark.parametrize("permission", ["can_userinfo", "can_recent_activity"])
+def test_a_page_naming_a_universally_held_permission_is_refused(
+    app: Flask, caplog: pytest.LogCaptureFixture, permission: str
+) -> None:
+    """These defeat the restriction rather than merely misplacing it.
+
+    `_is_alpha_pvm` and `_is_gamma_pvm` both end in
+    `... or self._is_accessible_to_all(pvm)`, evaluated after the
+    `_is_admin_only` test that keeps extension permissions off those roles.
+    A page declaring one would be open to every role however its view menu is
+    named -- the same defect the view-menu prefix fixed, through the other
+    override set.
+    """
+    with caplog.at_level(logging.ERROR):
+        register_extension_pages(app, manifest("/a", permission=permission))
+
+    assert "/a" not in paths_in(app)
+    assert "every role holds" in caplog.text
+
+
+def test_the_reserved_sets_are_superset_s_own(app: Flask) -> None:
+    """Pins both guards to the sets they defend, not to copies of them."""
+    from superset.security.manager import SupersetSecurityManager
+
+    reserved = (
+        SupersetSecurityManager.OBJECT_SPEC_PERMISSIONS
+        | SupersetSecurityManager.ACCESSIBLE_PERMS
+    )
+    for permission in reserved:
+        assert view._permission_problem(permission) is not None
+
+    assert view._permission_problem("can_review") is None
+    assert view._permission_problem(None) is None
+
+
+def test_a_refused_page_gets_no_permission_row(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """A page with no rule is unreachable, so its permission is noise.
+
+    Creating it would leave a row -- and an Admin grant -- in the Roles
+    screen for a page that does not exist.
+    """
+    app.add_url_rule("/welcome", endpoint="welcome", view_func=lambda: "")
+
+    register_extension_pages(app, manifest("/welcome", permission="can_review"))
+    with app.app_context():
+        ensure_page_permissions(app, manifest("/welcome", permission="can_review"))
+
+    assert security.created == []
+    assert security.admin_role.permissions == []
+
+
+def test_a_registered_page_still_gets_its_permission(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """Guards the filter above against refusing everything."""
+    register_extension_pages(app, manifest("/approvals", permission="can_review"))
+    with app.app_context():
+        ensure_page_permissions(app, manifest("/approvals", permission="can_review"))
+
+    assert security.created == [("can_review", VIEW_MENU)]
+
+
+def test_the_rule_parse_werkzeug_exposes_is_the_shape_we_read() -> None:
+    """`Rule._trace` is private, so a Werkzeug upgrade should fail loudly.
+
+    Without this the parse would quietly become unreadable, the fallback
+    would take over, and the only symptom would be pages refused for paths
+    that are free -- which looks like a manifest mistake, not a regression.
+    """
+    from werkzeug.routing import Map, Rule
+
+    url_map = Map()
+    rule = Rule("/plugin/v<int:version>/data", endpoint="probe")
+    url_map.add(rule)
+    url_map.update()
+
+    assert view._rule_segments(rule) == [
+        ("plugin", []),
+        ("v", ["version"]),
+        ("data", []),
+    ]
+    assert "version" in getattr(rule, "_converters", {})
