@@ -30,7 +30,7 @@ const TEMPLATE_PATH = path.join(
 
 function extractCallbackScript(): string {
   const html = fs.readFileSync(TEMPLATE_PATH, 'utf-8');
-  const match = html.match(/<script[^>]*>([\s\S]*?)<\/script>/);
+  const match = html.match(/<script[^>]*>([\s\S]*?)<\/script>/i);
   if (!match) {
     throw new Error('Could not find the callback <script> in oauth2.html');
   }
