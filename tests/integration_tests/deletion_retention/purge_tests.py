@@ -24,6 +24,8 @@ guarantee under FK enforcement OFF, and the version-tables-absent no-op.
 
 from __future__ import annotations
 
+import uuid
+from collections.abc import Callable
 from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any
@@ -31,6 +33,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 import sqlalchemy as sa
+from flask_appbuilder.security.sqla.models import PermissionView, Role
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.attributes import set_committed_value
@@ -40,11 +43,15 @@ from superset import db, security_manager
 from superset.commands.deletion_retention import audit
 from superset.commands.deletion_retention.purge_cascade import (
     cascade_hard_delete,
+    CascadeResult,
     suppress_purge_association_versions,
 )
 from superset.commands.deletion_retention.purge_policy import (
     get_purge_policy,
     PurgeEntityPolicy,
+    REASON_CASCADE_INTEGRITY_FAILURE,
+    REASON_REPORT_SCHEDULE,
+    REASON_USER_ATTRIBUTE,
 )
 from superset.connectors.sqla.models import (
     RLSFilterTables,
@@ -53,9 +60,11 @@ from superset.connectors.sqla.models import (
 )
 from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.models.dashboard import Dashboard, dashboard_slices
+from superset.models.helpers import SoftDeleteMixin
 from superset.models.slice import Slice
 from superset.models.user_attributes import UserAttribute
 from superset.reports.models import ReportSchedule
+from superset.semantic_layers.models import SemanticLayer, SemanticView
 from superset.tags.models import ObjectType, Tag, TaggedObject
 from superset.tasks import deletion_retention as deletion_retention_task
 from superset.tasks.deletion_retention import _purge_impl
@@ -205,6 +214,201 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             "datasource_access", vm_name
         )
 
+    def test_purging_dataset_keeps_shared_semantic_view_permission(self) -> None:
+        """Purging one datasource cannot revoke another datasource's grant."""
+        dataset: SqlaTable = self.make_dataset("shared_perm")
+        dataset_id: int = dataset.id
+        permission_name: str | None = security_manager.get_dataset_perm(
+            dataset.id, dataset.table_name, dataset.database.database_name
+        )
+        assert permission_name is not None
+        assert self.dataset.perm is not None
+        shared_pvm: PermissionView | None = security_manager.find_permission_view_menu(
+            "datasource_access", permission_name
+        )
+        other_pvm: PermissionView | None = security_manager.find_permission_view_menu(
+            "datasource_access", self.dataset.perm
+        )
+        assert shared_pvm is not None
+        assert other_pvm is not None
+        layer: SemanticLayer = SemanticLayer(
+            uuid=uuid.uuid4(),
+            name="retention_it_shared_layer",
+            type="test",
+            configuration="{}",
+        )
+        layer_uuid: uuid.UUID = layer.uuid
+        view_id: int | None = None
+        role_id: int | None = None
+
+        try:
+            db.session.add(layer)
+            db.session.flush()
+            # Preserve the fixture's stored permission without the insert listener
+            # replacing it with a newly generated view permission.
+            db.session.execute(
+                sa.insert(SemanticView.__table__).values(
+                    uuid=uuid.uuid4(),
+                    name="retention_it_shared_view",
+                    semantic_layer_uuid=layer.uuid,
+                    configuration="{}",
+                    perm=permission_name,
+                )
+            )
+            view_id = db.session.execute(
+                sa.select(SemanticView.id).where(SemanticView.perm == permission_name)
+            ).scalar_one()
+            role: Role = Role(
+                name="retention_it_shared_reader", permissions=[shared_pvm, other_pvm]
+            )
+            db.session.add(role)
+            db.session.commit()
+            role_id = role.id
+
+            self.soft_delete(dataset, days_ago=90)
+            result: dict[str, Any] = _purge(window=30)
+            db.session.expire_all()
+
+            assert result["purged"].get("tables") == 1, result
+            assert not self.exists(SqlaTable, dataset_id)
+            assert db.session.get(SemanticView, view_id) is not None
+            assert security_manager.find_permission_view_menu(
+                "datasource_access", permission_name
+            )
+            saved_role_after_purge: Role | None = db.session.get(Role, role_id)
+            assert saved_role_after_purge is not None
+            assert {
+                pvm.view_menu.name for pvm in saved_role_after_purge.permissions
+            } == {permission_name, self.dataset.perm}
+        finally:
+            db.session.rollback()
+            saved_role: Role | None = (
+                db.session.get(Role, role_id) if role_id is not None else None
+            )
+            saved_view: SemanticView | None = (
+                db.session.get(SemanticView, view_id) if view_id is not None else None
+            )
+            saved_layer: SemanticLayer | None = db.session.get(
+                SemanticLayer, layer_uuid
+            )
+            if saved_role is not None:
+                db.session.delete(saved_role)
+            if saved_view is not None:
+                db.session.delete(saved_view)
+            if saved_layer is not None:
+                db.session.delete(saved_layer)
+            db.session.commit()
+
+    def test_orm_dataset_delete_keeps_permission_another_dataset_owns(self) -> None:
+        """The ORM delete path keeps a permission still used by another row."""
+        first: SqlaTable = self.make_dataset("orm_shared_first")
+        second: SqlaTable = self.make_dataset("orm_shared_second")
+        assert first.perm is not None
+        permission_name: str = first.perm
+        db.session.execute(
+            sa.update(SqlaTable.__table__)
+            .where(SqlaTable.id == second.id)
+            .values(perm=permission_name)
+        )
+        db.session.commit()
+
+        try:
+            db.session.delete(first)
+            db.session.commit()
+            assert self.exists(SqlaTable, second.id)
+            assert security_manager.find_permission_view_menu(
+                "datasource_access", permission_name
+            )
+        finally:
+            db.session.rollback()
+            shared_pvm: PermissionView | None = (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", permission_name
+                )
+            )
+            if shared_pvm is not None:
+                db.session.delete(shared_pvm)
+                db.session.commit()
+
+    def test_purging_dataset_without_stored_permission_uses_derived_name(self) -> None:
+        """A missing stored permission does not strand its existing grant."""
+        dataset: SqlaTable = self.make_dataset("missing_stored_perm")
+        dataset_id: int = dataset.id
+        assert dataset.perm is not None
+        permission_name: str = dataset.perm
+        self.soft_delete(dataset, days_ago=90)
+        db.session.execute(
+            sa.update(SqlaTable.__table__)
+            .where(SqlaTable.id == dataset_id)
+            .values(perm=None)
+        )
+        db.session.commit()
+
+        result: dict[str, Any] = _purge(window=30)
+        assert result["purged"].get("tables") == 1, result
+        assert not self.exists(SqlaTable, dataset_id)
+        assert not security_manager.find_permission_view_menu(
+            "datasource_access", permission_name
+        )
+
+    def test_batch_purge_retires_permission_after_last_dataset_owner(self) -> None:
+        """A batch retains a shared permission until its final owner is purged."""
+        first: SqlaTable = self.make_dataset("batch_shared_first")
+        second: SqlaTable = self.make_dataset("batch_shared_second")
+        first_id: int = first.id
+        second_id: int = second.id
+        assert first.perm is not None
+        permission_name: str = first.perm
+        self.soft_delete(first, days_ago=90)
+        self.soft_delete(second, days_ago=90)
+        db.session.execute(
+            sa.update(SqlaTable.__table__)
+            .where(SqlaTable.id == second_id)
+            .values(perm=permission_name)
+        )
+        db.session.commit()
+
+        original_purge_one: Callable[
+            [type[SoftDeleteMixin], int, datetime], CascadeResult | None
+        ] = deletion_retention_task._purge_one
+        retained_after_first: list[bool] = []
+
+        def observe_purge_one(
+            model: type[SoftDeleteMixin], entity_id: int, cutoff: datetime
+        ) -> CascadeResult | None:
+            result: CascadeResult | None = original_purge_one(model, entity_id, cutoff)
+            if model is SqlaTable and entity_id == first_id:
+                retained_after_first.append(
+                    security_manager.find_permission_view_menu(
+                        "datasource_access", permission_name
+                    )
+                    is not None
+                )
+            return result
+
+        try:
+            with patch.object(
+                deletion_retention_task, "_purge_one", side_effect=observe_purge_one
+            ):
+                result: dict[str, Any] = _purge(window=30)
+            assert result["purged"].get("tables") == 2, result
+            assert retained_after_first == [True]
+            assert not self.exists(SqlaTable, first_id)
+            assert not self.exists(SqlaTable, second_id)
+            assert not security_manager.find_permission_view_menu(
+                "datasource_access", permission_name
+            )
+        finally:
+            db.session.rollback()
+            shared_pvm: PermissionView | None = (
+                security_manager.find_permission_view_menu(
+                    "datasource_access", permission_name
+                )
+            )
+            if shared_pvm is not None:
+                db.session.delete(shared_pvm)
+                db.session.commit()
+
     def test_restore_race_does_not_remove_dataset_permission(self) -> None:
         """A zero-row conditional parent delete leaves its permission intact."""
         dataset = self.make_dataset("restore_race")
@@ -286,6 +490,7 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
             .one()
         )
         assert row.status == audit.STATUS_BLOCKED
+        assert row.reason == REASON_REPORT_SCHEDULE
 
     def test_repeated_report_blocker_preserves_counts_and_suppresses_noise(
         self,
@@ -392,12 +597,13 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
                 attribute.welcome_dashboard_id = previous_dashboard_id
             db.session.commit()
 
-    def test_purging_dataset_leaves_referencing_chart_dangling(self) -> None:
+    def test_purging_dataset_detaches_referencing_chart(self) -> None:
         """A soft-deleted dataset is purged without a dependent guard even
-        with a live chart referencing it; the chart is left
-        dangling (unchanged), not blocked or rewritten."""
+        with a live chart referencing it; the chart is kept, not blocked,
+        with its datasource id and permission fields cleared (sc-119912)."""
         chart = self.make_chart("dangling", dataset=self.dataset)
         chart_id, ds_id = chart.id, self.dataset.id
+        assert chart.perm is not None
         self.soft_delete(self.dataset, days_ago=90)
 
         _purge(window=30)
@@ -405,7 +611,8 @@ class TestSoftDeletePurge(DeletionRetentionTestBase):
         assert not self.exists(SqlaTable, ds_id)
         assert self.exists(Slice, chart_id)
         kept = db.session.query(Slice).filter(Slice.id == chart_id).one()
-        assert kept.datasource_id == ds_id  # dangling, unmodified
+        assert kept.datasource_id is None
+        assert (kept.perm, kept.schema_perm, kept.catalog_perm) == (None, None, None)
 
     def test_tags_removed_on_purge(self) -> None:
         """The entity's tagged_object rows are removed (the
@@ -768,6 +975,7 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
             assert result.purged is False
             assert result.blocked_reason is not None
             assert "welcome page" in result.blocked_reason
+            assert result.blocked_reason_code == REASON_USER_ATTRIBUTE
             assert self.exists(Dashboard, dashboard_id)
         finally:
             self._restore_welcome(attribute, created, previous)
@@ -812,9 +1020,119 @@ class TestExplicitBlockerGuards(DeletionRetentionTestBase):
             db.session.commit()
 
         assert result.purged is False
-        assert result.blocked_reason == "blocked by database references"
+        assert (
+            result.blocked_reason
+            == "cascade blocked by a database integrity constraint"
+        )
         assert "SQL:" not in result.blocked_reason
+        assert result.blocked_reason_code == REASON_CASCADE_INTEGRITY_FAILURE
         assert self.exists(Slice, chart_id)
+
+    def test_three_way_distinction_is_readable_from_the_audit_alone(self) -> None:
+        """Report, welcome, and database-integrity blocks write distinct codes.
+
+        The audit table is the durable record: each of the three
+        non-completing outcomes must be identifiable from its row alone,
+        with no SQL fragments and the integrity case keeping blocked status.
+        """
+        chart: Slice = self.make_chart("threeway_report")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_threeway",
+            crontab="0 0 * * *",
+            chart=chart,
+        )
+        db.session.add(report)
+        db.session.commit()
+        chart_uuid: str = str(chart.uuid)
+        self.soft_delete(chart, days_ago=90)
+
+        dashboard: Dashboard = self.make_dashboard("threeway_welcome")
+        dashboard_uuid: str = str(dashboard.uuid)
+        self.soft_delete(dashboard, days_ago=90)
+        attribute: UserAttribute
+        created: bool
+        previous: int | None
+        attribute, created, previous = self._set_welcome(dashboard.id)
+
+        fk_chart: Slice = self.make_chart("threeway_fk")
+        fk_uuid: str = str(fk_chart.uuid)
+        self.soft_delete(fk_chart, days_ago=90)
+
+        real_get_policy: Callable[[type[Any]], PurgeEntityPolicy] = get_purge_policy
+
+        def fail_fk_chart_cleanup(
+            session: Session, policy: PurgeEntityPolicy, entity_id: int
+        ) -> None:
+            if entity_id == fk_chart.id:
+                raise IntegrityError("FOREIGN KEY constraint failed", None, Exception())
+            real_get_policy(Slice).delete_associations(session, policy, entity_id)
+
+        def patched_policy(model: type[Any]) -> PurgeEntityPolicy:
+            policy: PurgeEntityPolicy = real_get_policy(model)
+            if model is Slice:
+                return replace(policy, delete_associations=fail_fk_chart_cleanup)
+            return policy
+
+        try:
+            with patch(
+                "superset.commands.deletion_retention.purge_cascade.get_purge_policy",
+                side_effect=patched_policy,
+            ):
+                _purge(window=30)
+
+            rows: dict[str, audit.PurgeAuditLog] = {
+                uuid: db.session.query(audit.PurgeAuditLog)
+                .filter_by(entity_uuid=uuid)
+                .one()
+                for uuid in (chart_uuid, dashboard_uuid, fk_uuid)
+            }
+            assert rows[chart_uuid].reason == REASON_REPORT_SCHEDULE
+            assert rows[dashboard_uuid].reason == REASON_USER_ATTRIBUTE
+            assert rows[fk_uuid].reason == REASON_CASCADE_INTEGRITY_FAILURE
+            assert len({row.reason for row in rows.values()}) == 3
+            for row in rows.values():
+                assert row.status == audit.STATUS_BLOCKED
+                assert "SQL" not in row.reason
+                assert "?" not in row.reason
+        finally:
+            self._restore_welcome(attribute, created, previous)
+
+    def test_first_declared_blocker_wins_in_the_audit_record(self) -> None:
+        """A dashboard blocked by both rules records the first-declared code.
+
+        Declaration order is part of the audit contract: report_schedule is
+        declared before user_attribute, so a dashboard that is both
+        report-referenced and someone's welcome page records
+        REASON_REPORT_SCHEDULE.
+        """
+        dashboard: Dashboard = self.make_dashboard("firstmatch")
+        report: ReportSchedule = ReportSchedule(
+            type="Report",
+            name="retention_it_firstmatch",
+            crontab="0 0 * * *",
+            dashboard=dashboard,
+        )
+        db.session.add(report)
+        db.session.commit()
+        dashboard_uuid: str = str(dashboard.uuid)
+        self.soft_delete(dashboard, days_ago=90)
+        attribute: UserAttribute
+        created: bool
+        previous: int | None
+        attribute, created, previous = self._set_welcome(dashboard.id)
+        try:
+            _purge(window=30)
+
+            row: audit.PurgeAuditLog = (
+                db.session.query(audit.PurgeAuditLog)
+                .filter_by(entity_uuid=dashboard_uuid)
+                .one()
+            )
+            assert row.status == audit.STATUS_BLOCKED
+            assert row.reason == REASON_REPORT_SCHEDULE
+        finally:
+            self._restore_welcome(attribute, created, previous)
 
     def test_policy_action_failure_rolls_back_prior_phases(self) -> None:
         """A later policy-action failure restores earlier association cleanup."""

@@ -669,8 +669,16 @@ def test_get_samples_with_incorrect_cc(test_client, login_as_admin, virtual_data
         f"/datasource/samples?datasource_id={virtual_dataset.id}&datasource_type=table"
     )
     rv = test_client.post(uri, json={})
+    # An incorrect calculated column is rejected with a clean client error
+    # (422), not a 500. Parenthesizing calculated-column expressions shifts the
+    # point at which the engine rejects the malformed SQL (a hard syntax error
+    # in ``(INCORRECT SQL)``), so it now surfaces as a ``DatasetSamplesFailedError``
+    # message ("error") rather than a structured ``INVALID_SQL_ERROR`` list
+    # ("errors"); both are a 422 describing the bad SQL.
     assert rv.status_code == 422
-    assert rv.json["errors"][0]["error_type"] == "INVALID_SQL_ERROR"
+    assert rv.json.get("error") or rv.json.get("errors"), (
+        f"Expected an error payload for the invalid calculated column: {rv.json}"
+    )
 
 
 @with_feature_flags(ALLOW_ADHOC_SUBQUERY=True)

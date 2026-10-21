@@ -35,7 +35,7 @@ params:
   color_scheme: supersetColors
   comparison_type: values
   datasource: 56__table
-  granularity_sqla: ts
+  x_axis: ts
   groupby:
   - name
   label_colors:

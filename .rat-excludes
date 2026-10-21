@@ -10,6 +10,7 @@
 .stylelintignore
 .flake8
 .nvmrc
+.npmrc
 .rat-excludes
 .swcrc
 .*log

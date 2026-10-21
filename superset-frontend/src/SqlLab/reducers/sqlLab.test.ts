@@ -61,6 +61,53 @@ describe('sqlLabReducer', () => {
     });
   });
 
+  test('should default extra_json to an empty object when extra is unset', () => {
+    // `extra` is nullable in the metadata database, and JSON.parse(extra || '')
+    // is guaranteed to throw because '' is never valid JSON, so one such row
+    // took down the whole reducer.
+    const incomingDb = {
+      ...databases.result[0],
+      extra: null,
+    };
+    const incomingDbId = Number(incomingDb.id);
+
+    const action = actions.setDatabases([incomingDb] as any);
+
+    const newState = sqlLabReducer(initialState, action);
+
+    expect(newState.databases[incomingDbId]).toEqual({
+      ...incomingDb,
+      extra_json: {},
+    });
+  });
+
+  test('defaults extra_json when a database has malformed extra', () => {
+    const incomingDb = { ...databases.result[0], extra: '{not json' };
+
+    const newState = sqlLabReducer(
+      initialState,
+      actions.setDatabases([incomingDb] as any),
+    );
+
+    expect(newState.databases[Number(incomingDb.id)].extra_json).toEqual({});
+  });
+
+  test('keeps a valid extra payload', () => {
+    const incomingDb = {
+      ...databases.result[0],
+      extra: '{"engine_params": {"pool_size": 5}}',
+    };
+
+    const newState = sqlLabReducer(
+      initialState,
+      actions.setDatabases([incomingDb] as any),
+    );
+
+    expect(newState.databases[Number(incomingDb.id)].extra_json).toEqual({
+      engine_params: { pool_size: 5 },
+    });
+  });
+
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('Query editors actions', () => {
     let newState: SqlLabState;

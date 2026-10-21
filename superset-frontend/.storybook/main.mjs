@@ -83,6 +83,10 @@ const disableDevModeInRules = rules =>
     };
   });
 
+function getAbsolutePath(value) {
+  return path.dirname(require.resolve(path.join(value, 'package.json')));
+}
+
 export default {
   stories: [
     '../src/**/*.stories.tsx',
@@ -95,13 +99,29 @@ export default {
     "@storybook/addon-docs"
   ],
 
-  staticDirs: ['../src/assets/images'],
+  staticDirs: [
+    '../src/assets/images',
+    // maplibre-gl 6's ESM-only build loads its worker from a real URL
+    // instead of an inlined blob (see MapLibre.tsx for the matching
+    // maplibregl.setWorkerUrl() call). The worker's own bundle does a
+    // relative ESM import of its "shared" chunk, so both files must be
+    // copied verbatim, unhashed, into the same output directory.
+    '../node_modules/maplibre-gl/dist',
+  ],
 
   webpackFinal: config => ({
     ...config,
     module: {
       ...config.module,
-      rules: disableDevModeInRules(customConfig.module.rules),
+      rules: [
+        ...(config.module?.rules ?? []).filter(
+          rule => {
+            const test = rule.test?.toString() ?? '';
+            return test !== '/\\.css$/' && !test.includes('svg');
+          },
+        ),
+        ...disableDevModeInRules(customConfig.module.rules),
+      ],
     },
     resolve: {
       ...config.resolve,
@@ -129,7 +149,3 @@ export default {
     options: {},
   }
 };
-
-function getAbsolutePath(value) {
-  return path.dirname(require.resolve(path.join(value, 'package.json')));
-}

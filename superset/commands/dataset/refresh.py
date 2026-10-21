@@ -28,6 +28,7 @@ from superset.commands.dataset.exceptions import (
     DatasetNotFoundError,
     DatasetRefreshFailedError,
 )
+from superset.commands.utils import raise_if_managed_externally
 from superset.connectors.sqla.models import SqlaTable
 from superset.daos.dataset import DatasetDAO
 from superset.datasets.datetime_format_detector import DatetimeFormatDetector
@@ -44,6 +45,10 @@ class RefreshDatasetCommand(BaseCommand):
     def __init__(self, model_id: int):
         self._model_id = model_id
         self._model: Optional[SqlaTable] = None
+        # False when run() skipped the column refresh (see below), so callers
+        # that report on the refresh can tell it apart from a refresh that
+        # left the columns unchanged.
+        self.metadata_refreshed = False
 
     @transaction(on_error=partial(on_error, reraise=DatasetRefreshFailedError))
     def run(self) -> Model:
@@ -51,6 +56,7 @@ class RefreshDatasetCommand(BaseCommand):
         assert self._model
         try:
             self._model.fetch_metadata()
+            self.metadata_refreshed = True
         except SupersetVirtualTableParseException as ex:
             # The virtual dataset's SQL could not be parsed or templated at
             # save time — typically Jinja blocks (e.g. ``{% if from_dttm %}``)
@@ -93,3 +99,8 @@ class RefreshDatasetCommand(BaseCommand):
             security_manager.raise_for_editorship(self._model)
         except SupersetSecurityException as ex:
             raise DatasetForbiddenError() from ex
+
+        # Refresh persists fetched column metadata onto the dataset; an
+        # externally managed dataset's columns are owned by the external
+        # sync, which would overwrite (or fight) the refresh.
+        raise_if_managed_externally(self._model, DatasetForbiddenError)

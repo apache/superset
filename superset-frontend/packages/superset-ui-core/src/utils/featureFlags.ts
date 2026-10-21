@@ -24,10 +24,12 @@ export enum FeatureFlag {
   // PLEASE KEEP THE LIST SORTED ALPHABETICALLY
   AlertsAttachReports = 'ALERTS_ATTACH_REPORTS',
   AlertReports = 'ALERT_REPORTS',
+  AlertReportDynamicExecutor = 'ALERT_REPORT_DYNAMIC_EXECUTOR',
   AlertReportTabs = 'ALERT_REPORT_TABS',
   AlertReportSlackV2 = 'ALERT_REPORT_SLACK_V2',
   AlertReportWebhook = 'ALERT_REPORT_WEBHOOK',
   AlertReportsFilter = 'ALERT_REPORTS_FILTER',
+  AlertReportsRetry = 'ALERT_REPORTS_RETRY',
   AllowFullCsvExport = 'ALLOW_FULL_CSV_EXPORT',
   ChartPluginsExperimental = 'CHART_PLUGINS_EXPERIMENTAL',
   ConfirmDashboardDiff = 'CONFIRM_DASHBOARD_DIFF',

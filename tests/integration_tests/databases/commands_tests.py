@@ -1138,6 +1138,10 @@ def test_validate_partial(is_port_open, is_hostname_valid, app_context):
 def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
     """
     Test parameter validation when only some parameters are present.
+
+    ``port`` is explicitly ``None`` in the payload -- not required for
+    Postgres, since a blank/null port falls back to the default 5432 -- and
+    is correctly absent from the expected "missing" list below.
     """
     is_hostname_valid.return_value = False
 
@@ -1157,11 +1161,11 @@ def test_validate_partial_invalid_hostname(is_hostname_valid, app_context):
         command.run()
     assert excinfo.value.errors == [
         SupersetError(
-            message="One or more parameters are missing: database, port, username",
+            message="One or more parameters are missing: database, username",
             error_type=SupersetErrorType.CONNECTION_MISSING_PARAMETERS_ERROR,
             level=ErrorLevel.WARNING,
             extra={
-                "missing": ["database", "port", "username"],
+                "missing": ["database", "username"],
                 "issue_codes": [
                     {
                         "code": 1018,
@@ -1211,7 +1215,10 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = SupersetException("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, None, "main", False)
+        schema_name: str | None = self.default_schema_backend_map.get(database.backend)
+        if schema_name is None:
+            self.skipTest(f"No default schema mapped for {database.backend}")
+        command = TablesDatabaseCommand(database.id, None, schema_name, False)
         with pytest.raises(SupersetException) as excinfo:  # noqa: PT012
             command.run()
             assert str(excinfo.value) == "Test Error"
@@ -1227,7 +1234,10 @@ class TestTablesDatabaseCommand(SupersetTestCase):
         mock_can_access_database.side_effect = Exception("Test Error")
         mock_g.user = security_manager.find_user("admin")
 
-        command = TablesDatabaseCommand(database.id, None, "main", False)
+        schema_name: str | None = self.default_schema_backend_map.get(database.backend)
+        if schema_name is None:
+            self.skipTest(f"No default schema mapped for {database.backend}")
+        command = TablesDatabaseCommand(database.id, None, schema_name, False)
         with pytest.raises(DatabaseTablesUnexpectedError) as excinfo:  # noqa: PT012
             command.run()
             assert (
@@ -1273,6 +1283,9 @@ class TestTablesDatabaseCommand(SupersetTestCase):
                 database, "get_default_catalog", return_value="default_catalog"
             ),
             patch.object(
+                database, "get_all_schema_names", return_value={"schema_name"}
+            ) as mock_get_all_schema_names,
+            patch.object(
                 database, "get_all_table_names_in_schema", return_value=[]
             ) as mock_get_all_table_names,
             patch.object(
@@ -1286,6 +1299,12 @@ class TestTablesDatabaseCommand(SupersetTestCase):
             command.run()
 
             # Assert that the default catalog is used instead of None
+            mock_get_all_schema_names.assert_called_once_with(
+                catalog="default_catalog",
+                cache=database.schema_cache_enabled,
+                cache_timeout=database.schema_cache_timeout or None,
+                force=False,
+            )
             mock_get_all_table_names.assert_called_once_with(
                 catalog="default_catalog",
                 schema="schema_name",

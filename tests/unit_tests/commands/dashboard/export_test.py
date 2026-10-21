@@ -82,12 +82,13 @@ def test_file_content_replaces_dataset_id_with_uuid_in_display_controls():
     )
 
     mock_dataset = MagicMock()
+    mock_dataset.id = 99
     mock_dataset.uuid = dataset_uuid
 
     with (
         patch(
-            "superset.commands.dashboard.export.DatasetDAO.find_by_id",
-            return_value=mock_dataset,
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[mock_dataset],
         ),
         patch(
             "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
@@ -106,6 +107,272 @@ def test_file_content_replaces_dataset_id_with_uuid_in_display_controls():
 
     # Dividers with no targets must be unaffected
     assert customizations[1]["targets"] == []
+
+
+def test_file_content_batches_dataset_lookup_across_targets():
+    """
+    Regression test: dataset lookups must go through a single batched
+    DatasetDAO.find_by_ids call, not one DatasetDAO.find_by_id call per
+    target. Multiple filters/customizations referencing the same dataset
+    must not trigger redundant DB round-trips.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    dataset_uuid_1 = str(uuid.uuid4())
+    dataset_uuid_2 = str(uuid.uuid4())
+
+    mock_dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "FILTER-1",
+                    "targets": [{"datasetId": 1}, {"datasetId": 2}],
+                },
+                {
+                    "id": "FILTER-2",
+                    "targets": [{"datasetId": 1}],
+                },
+            ],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-1",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetId": 1}],
+                },
+            ],
+        }
+    )
+
+    mock_dataset_1 = MagicMock()
+    mock_dataset_1.id = 1
+    mock_dataset_1.uuid = dataset_uuid_1
+    mock_dataset_2 = MagicMock()
+    mock_dataset_2.id = 2
+    mock_dataset_2.uuid = dataset_uuid_2
+
+    with (
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[mock_dataset_1, mock_dataset_2],
+        ) as mock_find_by_ids,
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_id"
+        ) as mock_find_by_id,
+        patch(
+            "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+    ):
+        content = ExportDashboardsCommand._file_content(mock_dashboard)
+
+    mock_find_by_id.assert_not_called()
+    mock_find_by_ids.assert_called_once()
+    (called_ids,), _ = mock_find_by_ids.call_args
+    assert set(called_ids) == {1, 2}
+
+    result = yaml.safe_load(content)
+    native_filters = result["metadata"]["native_filter_configuration"]
+    assert native_filters[0]["targets"][0]["datasetUuid"] == dataset_uuid_1
+    assert native_filters[0]["targets"][1]["datasetUuid"] == dataset_uuid_2
+    assert native_filters[1]["targets"][0]["datasetUuid"] == dataset_uuid_1
+
+    customization_target = result["metadata"]["chart_customization_config"][0][
+        "targets"
+    ][0]
+    assert customization_target["datasetUuid"] == dataset_uuid_1
+
+
+def test_export_batches_dataset_export_across_targets():
+    """
+    Regression test: _export must batch dataset exports into a single
+    ExportDatasetsCommand call, not one call per target. Multiple
+    filters/customizations referencing the same dataset must only trigger
+    a single find_by_ids lookup and a single export command.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    mock_dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "FILTER-1",
+                    "targets": [{"datasetId": 1}, {"datasetId": 2}],
+                },
+            ],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-1",
+                    "type": "CHART_CUSTOMIZATION",
+                    "targets": [{"datasetId": 1}],
+                },
+            ],
+        }
+    )
+
+    mock_dataset_1 = MagicMock()
+    mock_dataset_1.id = 1
+    mock_dataset_2 = MagicMock()
+    mock_dataset_2.id = 2
+    mock_datasets_cmd = MagicMock()
+    mock_datasets_cmd.run.return_value = iter([])
+
+    with (
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[mock_dataset_1, mock_dataset_2],
+        ) as mock_find_by_ids,
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_id"
+        ) as mock_find_by_id,
+        patch(
+            "superset.commands.dashboard.export.ExportDatasetsCommand",
+            return_value=mock_datasets_cmd,
+        ) as mock_datasets_cls,
+        patch(
+            "superset.commands.dashboard.export.ExportChartsCommand"
+        ) as mock_charts_cls,
+        patch(
+            "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+    ):
+        mock_charts_cls.return_value.run.return_value = iter([])
+        list(ExportDashboardsCommand._export(mock_dashboard))
+
+    mock_find_by_id.assert_not_called()
+    mock_find_by_ids.assert_called_once()
+    mock_datasets_cls.assert_called_once()
+    mock_datasets_cmd.run.assert_called_once()
+    (called_ids,), _ = mock_datasets_cls.call_args
+    assert set(called_ids) == {1, 2}
+
+
+def test_file_content_resolves_string_and_int_dataset_ids_to_same_dataset():
+    """
+    Regression test: datasetId may be stored as either an int or a numeric
+    string (native_filter_cache.py types it int | str). A target with a
+    string datasetId must still resolve against the (int-keyed) dataset
+    lookup instead of silently missing datasetUuid.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    dataset_uuid = str(uuid.uuid4())
+
+    mock_dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "FILTER-1",
+                    "targets": [{"datasetId": "5"}, {"datasetId": 5}],
+                },
+            ],
+            "chart_customization_config": [],
+        }
+    )
+
+    mock_dataset = MagicMock()
+    mock_dataset.id = 5
+    mock_dataset.uuid = dataset_uuid
+
+    with (
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[mock_dataset],
+        ) as mock_find_by_ids,
+        patch(
+            "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+    ):
+        content = ExportDashboardsCommand._file_content(mock_dashboard)
+
+    # both the string and int forms of the same id are batched together
+    (called_ids,), _ = mock_find_by_ids.call_args
+    assert set(called_ids) == {5}
+
+    native_filters = yaml.safe_load(content)["metadata"]["native_filter_configuration"]
+    assert native_filters[0]["targets"][0]["datasetUuid"] == dataset_uuid
+    assert native_filters[0]["targets"][1]["datasetUuid"] == dataset_uuid
+
+
+def test_coerce_dataset_id_rejects_non_integral_values():
+    """Regression test: bare int() silently truncates 1.9 to 1, parses "1_0" as 10."""
+    from superset.commands.dashboard.export import _coerce_dataset_id
+
+    assert _coerce_dataset_id(5) == 5
+    assert _coerce_dataset_id("5") == 5
+    assert _coerce_dataset_id(1.9) is None
+    assert _coerce_dataset_id("1.9") is None
+    assert _coerce_dataset_id("1_0") is None
+    assert _coerce_dataset_id("abc") is None
+    assert _coerce_dataset_id(None) is None
+    assert _coerce_dataset_id(True) is None
+    assert _coerce_dataset_id(-5) == -5
+    assert _coerce_dataset_id("-5") is None
+
+
+def test_export_skips_dangling_dataset_references_without_raising():
+    """
+    Regression test: the find_by_ids pre-filter in _export must only pass
+    ids that actually resolved to ExportDatasetsCommand. Passing every
+    referenced id straight through — including one for a dataset that no
+    longer exists — would make ExportModelsCommand.validate() raise
+    DatasetNotFoundError and abort the entire dashboard export over a
+    single dangling filter/customization reference.
+    """
+    from superset.commands.dashboard.export import ExportDashboardsCommand
+
+    mock_dashboard = _make_mock_dashboard(
+        {
+            "native_filter_configuration": [
+                {
+                    "id": "FILTER-1",
+                    "targets": [{"datasetId": 1}, {"datasetId": 2}],
+                },
+            ],
+            "chart_customization_config": [
+                {
+                    "id": "CUSTOMIZATION-1",
+                    "type": "CHART_CUSTOMIZATION",
+                    # dataset 3 no longer exists (deleted dataset)
+                    "targets": [{"datasetId": 3}],
+                },
+            ],
+        }
+    )
+
+    mock_dataset_1 = MagicMock()
+    mock_dataset_1.id = 1
+    mock_dataset_2 = MagicMock()
+    mock_dataset_2.id = 2
+    mock_datasets_cmd = MagicMock()
+    mock_datasets_cmd.run.return_value = iter([])
+
+    with (
+        # dataset 3 is deliberately absent from the resolved list
+        patch(
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[mock_dataset_1, mock_dataset_2],
+        ),
+        patch(
+            "superset.commands.dashboard.export.ExportDatasetsCommand",
+            return_value=mock_datasets_cmd,
+        ) as mock_datasets_cls,
+        patch(
+            "superset.commands.dashboard.export.ExportChartsCommand"
+        ) as mock_charts_cls,
+        patch(
+            "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",
+            return_value=False,
+        ),
+    ):
+        mock_charts_cls.return_value.run.return_value = iter([])
+        # must not raise DatasetNotFoundError
+        list(ExportDashboardsCommand._export(mock_dashboard))
+
+    mock_datasets_cls.assert_called_once()
+    (called_ids,), _ = mock_datasets_cls.call_args
+    assert set(called_ids) == {1, 2}
 
 
 def test_export_yields_dataset_files_for_display_controls():
@@ -134,14 +401,15 @@ def test_export_yields_dataset_files_for_display_controls():
     )
 
     mock_dataset = MagicMock()
+    mock_dataset.id = dataset_id
     sentinel_file = ("datasets/my_dataset.yaml", lambda: "dataset_content")
     mock_datasets_cmd = MagicMock()
     mock_datasets_cmd.run.return_value = iter([sentinel_file])
 
     with (
         patch(
-            "superset.commands.dashboard.export.DatasetDAO.find_by_id",
-            return_value=mock_dataset,
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[mock_dataset],
         ),
         patch(
             "superset.commands.dashboard.export.ExportDatasetsCommand",
@@ -686,9 +954,10 @@ def test_stabilize_chart_ids_remaps_expanded_slices() -> None:
 
 def test_file_content_missing_dataset_preserves_dataset_id() -> None:
     """
-    When DatasetDAO.find_by_id returns None for a display control target,
-    datasetId is preserved (dual-write: it was never popped) and no
-    datasetUuid is added — the target is not silently emptied.
+    When DatasetDAO.find_by_ids does not return a match for a display
+    control target's dataset, datasetId is preserved (dual-write: it was
+    never popped) and no datasetUuid is added — the target is not silently
+    emptied.
     """
     from superset.commands.dashboard.export import ExportDashboardsCommand
 
@@ -706,8 +975,8 @@ def test_file_content_missing_dataset_preserves_dataset_id() -> None:
 
     with (
         patch(
-            "superset.commands.dashboard.export.DatasetDAO.find_by_id",
-            return_value=None,
+            "superset.commands.dashboard.export.DatasetDAO.find_by_ids",
+            return_value=[],
         ),
         patch(
             "superset.commands.dashboard.export.feature_flag_manager.is_feature_enabled",

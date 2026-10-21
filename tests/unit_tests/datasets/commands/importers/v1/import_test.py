@@ -29,6 +29,7 @@ import pytest
 import yaml
 from flask import current_app
 from flask_appbuilder.security.sqla.models import Role, User
+from jinja2.exceptions import TemplateError
 from marshmallow import ValidationError
 from pytest_mock import MockerFixture
 from sqlalchemy.orm.session import Session
@@ -44,8 +45,11 @@ from superset.commands.dataset.importers.v1.utils import (
     validate_data_uri,
 )
 from superset.commands.exceptions import ImportFailedError
+from superset.commands.importers.exceptions import IncorrectFormatError
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.datasets.schemas import ImportV1DatasetSchema
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetParseError, SupersetSecurityException
 from superset.models.core import Database
 from superset.utils import json
 from superset.utils.core import override_user
@@ -630,6 +634,694 @@ def _dataset_config_with_children(
     }
 
 
+def test_import_dataset_virtual_checks_sql_table_access(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A virtual dataset import validates access to the tables its SQL
+    references, not only access to the dataset object itself.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
+        # Deny only the SQL/table-level check; the datasource-level check passes.
+        if kwargs.get("sql"):
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.TABLE_SECURITY_ACCESS_ERROR,
+                    message="You need access to the following tables",
+                    level=ErrorLevel.ERROR,
+                )
+            )
+
+    mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=raise_for_access
+    )
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = "SELECT * FROM secret_table"
+
+    with pytest.raises(DatasetAccessDeniedError):
+        import_dataset(config)
+
+
+def test_import_dataset_virtual_sql_check_receives_template_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Jinja-templated SQL only resolves its real table references once the
+    template params are applied, so they must reach the access check.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    raise_for_access = mocker.patch.object(security_manager, "raise_for_access")
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = (
+        "{% if flag %}SELECT * FROM secret_table{% else %}SELECT 1{% endif %}"  # noqa: E501
+    )
+    config["template_params"] = {"flag": True}
+
+    import_dataset(config)
+
+    sql_call = next(
+        call for call in raise_for_access.call_args_list if call.kwargs.get("sql")
+    )
+    assert sql_call.kwargs["template_params"] == {"flag": True}
+    # Empty strings in the export payload must not be forwarded verbatim.
+    assert sql_call.kwargs["schema"] is None
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        SupersetParseError("SELECT", message="Could not parse SQL"),
+        TemplateError("Could not render SQL"),
+    ],
+)
+def test_import_dataset_virtual_invalid_sql_is_rejected_as_bad_payload(
+    error: Exception, mocker: MockerFixture, session: Session
+) -> None:
+    """
+    SQL that cannot be parsed or rendered can't be access-checked, so the
+    import fails closed as an invalid payload rather than an access denial.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+
+    def raise_for_access(**kwargs: object) -> None:
+        # Only the SQL/table-level check fails, so the test still fails if the
+        # datasource-level call is the one that raises.
+        if kwargs.get("sql"):
+            raise error
+
+    mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=raise_for_access
+    )
+
+    config = copy.deepcopy(dataset_fixture)
+    config["database_id"] = database.id
+    config["sql"] = "SELECT +/"
+
+    with pytest.raises(IncorrectFormatError, match="Invalid SQL"):
+        import_dataset(config)
+
+
+def test_import_dataset_repoint_authorizes_requested_binding_pre_mutation(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (schema-swap): an overwrite that repoints a dataset to a
+    new schema must authorize the REQUESTED binding with allow_editorship=False
+    and do so BEFORE the row is mutated -- otherwise the per-table lookup
+    resolves the dataset itself (whose perm omits the schema) and a
+    datasource_access holder could repoint it to a schema they can't read.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    seen: dict[str, Any] = {}
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            seen["kwargs"] = kwargs
+            seen["stored_schema"] = db.session.get(SqlaTable, existing.id).schema
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "private",
+            "catalog": None,
+            "sql": "",
+            "database_id": database.id,
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert seen["kwargs"].get("allow_editorship") is False
+    assert seen["kwargs"]["table"].schema == "private"  # requested, not stored
+    assert seen["stored_schema"] == "public"  # check ran before import_from_dict
+
+
+def test_import_dataset_metadata_only_skips_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (over-restriction): a metadata-only re-import (unchanged
+    table binding) must NOT run the table/SQL access check, so an editor
+    without separate data access can still re-import non-binding changes --
+    matching UpdateDatasetCommand, which only revalidates on a source change.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        uuid=ds_uuid,
+        description="old",
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "",
+            "database_id": database.id,
+            "description": "new description",
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert binding_checks == []  # unchanged binding -> no table/SQL access check
+
+
+def test_import_dataset_database_repoint_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard: an overwrite that keeps table/schema/catalog/sql but
+    points at a DIFFERENT database still repoints the dataset, so the binding
+    check must run against the new database with allow_editorship=False -- the
+    database is part of the binding (matching UpdateDatasetCommand's repoint).
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    db_a = Database(database_name="db_a", sqlalchemy_uri="sqlite://")
+    db_b = Database(database_name="db_b", sqlalchemy_uri="sqlite://")
+    db.session.add_all([db_a, db_b])
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=db_a,
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    # The access check runs before import_from_dict; stub the mutation so the
+    # test isolates whether the binding check ran (a real DB-identity change
+    # drives import_from_dict down an insert path that is orthogonal here).
+    mocker.patch.object(SqlaTable, "import_from_dict", return_value=existing)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "",
+            "database_id": db_b.id,  # repoint to a different database
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    # Authorized against the REQUESTED connection, not the stored one.
+    assert binding_checks[0]["database"] is db_b
+    assert binding_checks[0]["table"].table == "orders"
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_template_params_only_change_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Regression guard (templated repoint): an overwrite that keeps the SQL text
+    but changes only ``template_params`` still repoints where a Jinja ``FROM``
+    resolves, so the binding check must run against the NEW params with
+    allow_editorship=False -- the stored params are not what the overwrite
+    executes.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    ds_uuid = str(uuid.uuid4())
+    existing = SqlaTable(
+        table_name="orders",
+        schema="public",
+        catalog=None,
+        database=database,
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps({"t": "public.ok"}),
+        uuid=ds_uuid,
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": ds_uuid,
+            "table_name": "orders",
+            "schema": "public",
+            "catalog": None,
+            "sql": "SELECT * FROM {{ t }}",  # unchanged SQL text
+            "database_id": database.id,
+            "template_params": {"t": "private.secret"},  # repoints the FROM
+            "metrics": [],
+            "columns": [],
+        }
+    )
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": "private.secret"}
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def _existing_dataset(**overrides: Any) -> tuple[SqlaTable, Database]:
+    """
+    Persist a dataset to overwrite-import -- by default a virtual one reading
+    ``SELECT * FROM orders`` in ``private``.
+    """
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+    existing = SqlaTable(
+        **{
+            "table_name": "orders_report",
+            "schema": "private",
+            "catalog": None,
+            "database": database,
+            "sql": "SELECT * FROM orders",
+            "uuid": str(uuid.uuid4()),
+            **overrides,
+        }
+    )
+    db.session.add(existing)
+    db.session.flush()
+    return existing, database
+
+
+def _overwrite_config(existing: SqlaTable, **overrides: Any) -> dict[str, Any]:
+    """An overwrite config for ``existing`` repeating its stored binding."""
+    config = copy.deepcopy(dataset_fixture)
+    config.update(
+        {
+            "uuid": str(existing.uuid),
+            "table_name": existing.table_name,
+            "schema": existing.schema,
+            "catalog": existing.catalog,
+            "sql": existing.sql,
+            "database_id": existing.database_id,
+            "template_params": None,
+            "metrics": [],
+            "columns": [],
+            **overrides,
+        }
+    )
+    return config
+
+
+def _record_binding_checks(mocker: MockerFixture) -> list[dict[str, Any]]:
+    """Allow every access check, recording the table/SQL binding ones."""
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+    binding_checks: list[dict[str, Any]] = []
+
+    def record(**kwargs: Any) -> None:
+        if kwargs.get("table") is not None or kwargs.get("sql") is not None:
+            binding_checks.append(kwargs)
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=record)
+    return binding_checks
+
+
+def test_import_dataset_template_params_type_change_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite that changes only a param's JSON type (``1`` -> ``true``)
+    still repoints a templated ``FROM``, so it re-runs the binding check
+    rather than being judged unchanged by Python dict equality.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}", template_params=json.dumps({"t": 1})
+    )
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, template_params={"t": True}), True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": True}
+
+
+def test_import_dataset_reimport_keeps_legacy_nonobject_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Re-importing a bundle whose dataset carries a legacy non-object (but
+    executable) ``template_params`` must be treated as an unchanged binding,
+    not rejected -- the stored value is unchanged, so this is a metadata-only
+    re-import, matching UpdateDatasetCommand's echo handling.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps([["t", "public.ok"]]),
+    )
+    binding_checks = _record_binding_checks(mocker)
+
+    # The export carries the params as their parsed (list) form.
+    import_dataset(
+        _overwrite_config(existing, template_params=[["t", "public.ok"]]),
+        overwrite=True,
+    )
+
+    assert binding_checks == []
+
+
+def test_import_dataset_binding_check_drops_reserved_params(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The import binding check renders with the submitted params minus the names
+    the processor consumes structurally, matching execution.
+    """
+    existing, _ = _existing_dataset(sql="SELECT * FROM {{ t }}")
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(
+            existing, template_params={"t": "public.ok", "extra_cache_keys": []}
+        ),
+        True,
+    )
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"t": "public.ok"}
+
+
+def test_import_dataset_virtual_rename_skips_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A virtual dataset's ``table_name`` is only a label, so an overwrite that
+    renames it (same SQL, connection, catalog, schema and params) is not a
+    repoint -- as with PUT and ``/datasource/save/`` -- and stays open to an
+    editor without a grant on the underlying tables.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(existing, table_name="orders_report_renamed"),
+        overwrite=True,
+    )
+
+    assert binding_checks == []
+
+
+def test_import_dataset_omitted_sql_authorizes_stored_sql_at_requested_schema(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite only applies the keys it carries, so omitting ``sql`` keeps
+    the stored SQL. Moving the schema must then authorize that stored SQL as
+    it will resolve under the requested schema -- not take the physical
+    branch and check ``<schema>.<table_name>``.
+    """
+    existing, database = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, schema="public")
+    del config["sql"]
+
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["database"] is database
+    assert binding_checks[0]["sql"] == "SELECT * FROM orders"
+    assert binding_checks[0]["schema"] == "public"
+    assert "table" not in binding_checks[0]
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_unreadable_stored_params_fail_closed(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Params stored on a physical dataset are never parsed, and execution would
+    still apply a list of pairs (via ``dict.update``). Converting it to a
+    templated virtual dataset while omitting ``template_params`` keeps those
+    params, so the import refuses to authorize the SQL against a guess.
+    """
+    existing, _ = _existing_dataset(
+        sql=None,
+        table_name="orders",
+        template_params='[["t", "private.secret"]]',
+    )
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, sql="SELECT * FROM {{ t }}")
+    del config["template_params"]
+
+    with pytest.raises(IncorrectFormatError, match="template_params"):
+        import_dataset(config, overwrite=True)
+
+    assert binding_checks == []
+
+
+@pytest.mark.parametrize(
+    "template_params", ["{bad", '"t"', '["t"]', '[["t", "private.secret"]]']
+)
+def test_import_dataset_unreadable_config_params_fail_closed(
+    mocker: MockerFixture, session: Session, template_params: str
+) -> None:
+    """
+    Params that aren't a JSON object can't be read the way execution reads
+    them, so a virtual import carrying them is refused as a bad payload rather
+    than authorized against ``{}``.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    with pytest.raises(IncorrectFormatError, match="template_params"):
+        import_dataset(
+            _overwrite_config(existing, template_params=template_params),
+            overwrite=True,
+        )
+
+    assert binding_checks == []
+
+
+def test_import_dataset_params_checked_as_execution_reads_them(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    The import stores a config's params as ``json.dumps(params)`` and
+    execution reads them back with ``json_to_dict``, which rewrites ``", }"``
+    even inside a string value. The check must see what execution will see,
+    or it authorizes a branch of the template that never runs.
+    """
+    existing, _ = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(
+        _overwrite_config(
+            existing,
+            sql="SELECT * FROM {{ 'secret_t' if p == 'x}' else 'ok_t' }}",
+            template_params={"p": "x, }"},
+        ),
+        overwrite=True,
+    )
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["template_params"] == {"p": "x}"}
+
+
+@pytest.mark.parametrize(
+    "overrides, expected",
+    [
+        # SQL replaced: the new SQL is authorized at the stored location.
+        ({"sql": "SELECT * FROM salaries"}, {"sql": "SELECT * FROM salaries"}),
+        # Catalog moved: unqualified names resolve elsewhere.
+        ({"catalog": "other"}, {"sql": "SELECT * FROM orders", "catalog": "other"}),
+    ],
+)
+def test_import_dataset_virtual_binding_change_runs_check(
+    mocker: MockerFixture,
+    session: Session,
+    overrides: dict[str, Any],
+    expected: dict[str, Any],
+) -> None:
+    """
+    Each part of a virtual dataset's binding other than its label is
+    re-authorized when an overwrite changes it, at the requested values.
+    """
+    existing, database = _existing_dataset()
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, **overrides), overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["database"] is database
+    assert binding_checks[0].get("allow_editorship") is False
+    for key, value in expected.items():
+        assert binding_checks[0][key] == value
+
+
+def test_import_dataset_physical_rename_runs_binding_check(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A physical dataset's ``table_name`` *is* its binding, so an overwrite that
+    only renames it points the dataset at another table and is authorized
+    against that table.
+    """
+    existing, _ = _existing_dataset(sql=None, table_name="orders", schema="public")
+    binding_checks = _record_binding_checks(mocker)
+
+    import_dataset(_overwrite_config(existing, table_name="salaries"), overwrite=True)
+
+    assert len(binding_checks) == 1
+    table = binding_checks[0]["table"]
+    assert (table.table, table.schema, table.catalog) == ("salaries", "public", None)
+    assert binding_checks[0].get("allow_editorship") is False
+
+
+def test_import_dataset_omitted_fields_keep_stored_values(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    An overwrite only applies the keys it carries: replacing the SQL while
+    omitting ``schema`` and ``template_params`` keeps the stored ones, so the
+    new SQL is authorized as it will run -- at the stored schema, rendered
+    with the stored params.
+    """
+    existing, _ = _existing_dataset(
+        sql="SELECT * FROM {{ t }}",
+        template_params=json.dumps({"t": "public.ok"}),
+    )
+    binding_checks = _record_binding_checks(mocker)
+    config = _overwrite_config(existing, sql="SELECT * FROM {{ t }} LIMIT 1")
+    del config["schema"]
+    del config["template_params"]
+
+    import_dataset(config, overwrite=True)
+
+    assert len(binding_checks) == 1
+    assert binding_checks[0]["schema"] == "private"
+    assert binding_checks[0]["template_params"] == {"t": "public.ok"}
+
+
+def test_import_dataset_render_error_is_bad_payload(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    SQL that can't be rendered with its params (e.g. ``{{ p + 1 }}`` with
+    ``p = "a"``) can't be authorized: the import fails as a bad payload
+    rather than surfacing a 500.
+    """
+    existing, _ = _existing_dataset()
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    def render_fails(**kwargs: Any) -> None:
+        if kwargs.get("sql"):
+            raise TypeError('can only concatenate str (not "int") to str')
+
+    mocker.patch.object(security_manager, "raise_for_access", side_effect=render_fails)
+
+    with pytest.raises(IncorrectFormatError, match="Invalid SQL"):
+        import_dataset(
+            _overwrite_config(
+                existing, sql="SELECT {{ p + 1 }}", template_params={"p": "a"}
+            ),
+            overwrite=True,
+        )
+
+
 def test_import_dataset_schema_rejects_duplicate_metric_uuids() -> None:
     """
     Two metrics sharing a UUID must be rejected by the import schema.
@@ -771,6 +1463,148 @@ def test_import_dataset_no_folder(mocker: MockerFixture, session: Session) -> No
 
     sqla_table = import_dataset(config)
     assert sqla_table.folders is None
+
+
+def test_import_dataset_skips_has_table_check_without_data_uri(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Importing a dataset with no ``data`` URI should never call
+    ``Database.has_table`` - its result only ever gates ``load_data``, which
+    is already a no-op when there's no data URI to load. Skipping the call
+    avoids an unnecessary round trip to the target database on every
+    imported dataset, which is what made bulk imports of many datasets slow
+    enough to hit the gunicorn worker timeout.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "no_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    import_dataset(config)
+
+    has_table.assert_not_called()
+
+
+def test_import_dataset_checks_has_table_with_data_uri(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present, ``Database.has_table`` should still be
+    consulted to decide whether the data needs to be (re-)loaded. A table that
+    already exists means the data is there, so it must not be re-loaded.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=True)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "has_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_not_called()
+
+
+def test_import_dataset_loads_data_when_table_is_missing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    When a ``data`` URI is present and the target table doesn't exist yet, the
+    data must actually be loaded. This is the case ``has_table`` exists to
+    detect, and the one an inverted or misindented condition would silently
+    skip while still satisfying the checks above.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    has_table = mocker.patch.object(Database, "has_table", return_value=False)
+    load_data = mocker.patch("superset.commands.dataset.importers.v1.utils.load_data")
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    config = {
+        "table_name": "missing_data_table",
+        "main_dttm_col": None,
+        "description": None,
+        "default_endpoint": None,
+        "offset": 0,
+        "cache_timeout": None,
+        "schema": None,
+        "sql": None,
+        "params": None,
+        "template_params": None,
+        "filter_select_enabled": False,
+        "fetch_values_predicate": None,
+        "extra": None,
+        "uuid": uuid.uuid4(),
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+        "data": "https://example.com/data.csv",
+    }
+
+    import_dataset(config)
+
+    has_table.assert_called_once()
+    load_data.assert_called_once()
 
 
 def test_import_dataset_rejects_non_default_catalog_when_multi_catalog_disabled(
@@ -1499,21 +2333,27 @@ def test_import_dataset_access_check(
     """
     Test that import_dataset raises DatasetAccessDeniedError when the user does not
     have datasource-level access to the target dataset.
+
+    Only the dataset-level (``datasource=``) gate denies: the table binding
+    check that runs first is allowed, so this fails if that gate is removed
+    instead of passing on the earlier check.
     """
     from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
     from superset.exceptions import SupersetSecurityException
 
-    mocker.patch.object(security_manager, "can_access", return_value=True)
-    mocker.patch.object(
-        security_manager,
-        "raise_for_access",
-        side_effect=SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message="User does not have access to this datasource",
-                level=ErrorLevel.ERROR,
+    def deny_dataset_access(**kwargs: Any) -> None:
+        if kwargs.get("datasource") is not None:
+            raise SupersetSecurityException(
+                SupersetError(
+                    error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+                    message="User does not have access to this datasource",
+                    level=ErrorLevel.ERROR,
+                )
             )
-        ),
+
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    raise_for_access = mocker.patch.object(
+        security_manager, "raise_for_access", side_effect=deny_dataset_access
     )
 
     engine = db.session.get_bind()
@@ -1528,6 +2368,14 @@ def test_import_dataset_access_check(
 
     with pytest.raises(DatasetAccessDeniedError):
         import_dataset(config)
+
+    gates = [
+        call.kwargs["datasource"]
+        for call in raise_for_access.call_args_list
+        if call.kwargs.get("datasource") is not None
+    ]
+    assert len(gates) == 1
+    assert gates[0].uuid == uuid.UUID(config["uuid"])
 
 
 def test_import_soft_deleted_dataset_overwrite_restores_in_place(
@@ -2239,3 +3087,308 @@ def test_import_restore_blocked_by_active_twin_at_incoming_identity(
     assert "another active dataset" in str(excinfo.value)
     # Check-before-mutate: the failed import leaves the row soft-deleted.
     assert existing.deleted_at is not None
+
+
+@pytest.mark.parametrize("config_catalog", ["public", None])
+def test_import_dataset_identity_collision_requires_overwrite_permission(
+    mocker: MockerFixture, session: Session, config_catalog: str | None
+) -> None:
+    """
+    A config with a fresh UUID but the physical identity of an existing ACTIVE
+    dataset must go through the same overwrite permission gate as a UUID match.
+
+    The ``None`` case matters on its own: ``import_from_dict`` drops null keys
+    from its uniqueness predicate, so a catalog-less config still reaches a
+    dataset stored under a catalog.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=False)
+    mocker.patch.object(security_manager, "is_admin", return_value=False)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    victim = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(victim)
+    db.session.flush()
+
+    importer_user = User(
+        username="importer",
+        first_name="at",
+        last_name="tacker",
+        email="importer@example.com",
+    )
+
+    # Fresh UUID, but the same physical identity as ``victim``.
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": config_catalog,
+        "sql": "SELECT * FROM finance.salaries -- clobbered",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    with override_user(importer_user):
+        with pytest.raises(ImportFailedError) as excinfo:
+            import_dataset(copy.deepcopy(config), overwrite=True)
+    assert "overwrite" in str(excinfo.value).lower()
+
+    # The victim dataset must not have been clobbered.
+    assert victim.sql == "SELECT * FROM finance.salaries"
+
+
+def test_import_dataset_identity_collision_overwrites_in_place_for_editor(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    Once the gate passes, an identity collision updates the existing dataset in
+    place rather than creating a twin, and the caller's config is left alone so
+    a bundle importer that re-reads or retries it still sees its own UUID.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    existing = SqlaTable(
+        table_name="salaries",
+        schema="finance",
+        catalog="public",
+        database_id=database.id,
+        uuid="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+        sql="SELECT * FROM finance.salaries",
+    )
+    db.session.add(existing)
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "catalog": "public",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    imported = import_dataset(config, overwrite=True)
+
+    assert imported.id == existing.id
+    assert imported.sql == "SELECT * FROM finance.salaries -- updated"
+    assert db.session.query(SqlaTable).count() == 1
+    assert config["uuid"] == "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+
+
+def test_import_dataset_identity_collision_with_duplicate_rows_returns_existing(
+    mocker: MockerFixture, session: Session
+) -> None:
+    """
+    A config that omits the catalog matches every row sharing its (database,
+    schema, table), so it can be ambiguous. ``import_from_dict`` then raises
+    ``MultipleResultsFound`` and the legacy fallback returns the existing row
+    unmodified. It must not look the incoming UUID up again: on an identity
+    match that UUID belongs to no row, and the lookup would raise.
+    """
+    mocker.patch.object(security_manager, "can_access", return_value=True)
+    mocker.patch.object(security_manager, "is_editor", return_value=True)
+
+    engine = db.session.get_bind()
+    SqlaTable.metadata.create_all(engine)  # pylint: disable=no-member
+
+    database = Database(database_name="my_database", sqlalchemy_uri="sqlite://")
+    db.session.add(database)
+    db.session.flush()
+
+    for dataset_uuid, catalog in (
+        ("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", "public"),
+        ("cccccccc-cccc-cccc-cccc-cccccccccccc", "private"),
+    ):
+        db.session.add(
+            SqlaTable(
+                table_name="salaries",
+                schema="finance",
+                catalog=catalog,
+                database_id=database.id,
+                uuid=dataset_uuid,
+                sql="SELECT * FROM finance.salaries",
+            )
+        )
+    db.session.flush()
+
+    config = {
+        "table_name": "salaries",
+        "schema": "finance",
+        "sql": "SELECT * FROM finance.salaries -- updated",
+        "uuid": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+        "metrics": [],
+        "columns": [],
+        "database_uuid": database.uuid,
+        "database_id": database.id,
+    }
+
+    dataset = import_dataset(copy.deepcopy(config), overwrite=True)
+
+    assert str(dataset.uuid) == "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    assert dataset.sql == "SELECT * FROM finance.salaries"
+
+
+def test_peer_validating_connection_blocks_rebound_peer() -> None:
+    """
+    The import fetch validates the connected peer address, so a hostname that
+    passes ``is_safe_host`` and then re-resolves to an internal address (DNS
+    rebinding) is rejected before any request bytes are sent.
+    """
+    from http.client import HTTPConnection
+    from unittest.mock import MagicMock, patch
+
+    from superset.commands.dataset.exceptions import DatasetForbiddenDataURI
+    from superset.commands.dataset.importers.v1.utils import (
+        _PeerValidatingHTTPConnection,
+    )
+
+    sock = MagicMock()
+    sock.getpeername.return_value = ("169.254.169.254", 80)
+
+    with patch.object(
+        HTTPConnection, "connect", lambda self: setattr(self, "sock", sock)
+    ):
+        conn = _PeerValidatingHTTPConnection("rebinder.example.com")
+        with pytest.raises(DatasetForbiddenDataURI):
+            conn.connect()
+
+
+def test_load_data_disables_proxy_when_internal_urls_disallowed(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``load_data`` builds its opener with an explicit no-proxy handler when
+    internal data URLs are disallowed, so a configured HTTP(S) proxy can't
+    intercept the connection the peer check validates.
+    """
+    from superset.commands.dataset.importers.v1.utils import load_data
+
+    current_app.config["DATASET_IMPORT_ALLOW_INTERNAL_DATA_URLS"] = False
+
+    mocker.patch("superset.commands.dataset.importers.v1.utils.validate_data_uri")
+    mocker.patch(
+        "superset.examples.helpers.normalize_example_data_url",
+        side_effect=lambda uri: uri,
+    )
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils._convert_temporal_columns"
+    )
+    mocker.patch("superset.commands.dataset.importers.v1.utils.db.session.connection")
+    mock_df = Mock()
+    mock_df.keys.return_value = []
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.pd.read_csv",
+        return_value=mock_df,
+    )
+    mock_opener = Mock()
+    mock_opener.open.return_value = io.BytesIO(b"")
+    mock_build_opener = mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.request.build_opener",
+        return_value=mock_opener,
+    )
+
+    dataset = Mock(spec=SqlaTable)
+    dataset.columns = []
+    dataset.table_name = "my_table"
+    dataset.schema = None
+
+    database = Mock(spec=Database)
+    database.sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+
+    load_data("https://example.org/data.csv", dataset, database)
+
+    handlers = mock_build_opener.call_args.args
+    assert any(
+        isinstance(handler, request.ProxyHandler) and not handler.proxies  # type: ignore[attr-defined]
+        for handler in handlers
+    )
+
+
+def test_load_data_bounds_gzip_download_before_decompression(
+    mocker: MockerFixture,
+) -> None:
+    """
+    For a ``.gz`` data URI, ``load_data`` must bound the raw (compressed)
+    download before decompressing it, not just the decompressed output --
+    otherwise an oversized or malformed compressed response could be read
+    in full before any size check applies.
+    """
+    from superset.commands.dataset.importers.v1.utils import load_data
+
+    mocker.patch("superset.commands.dataset.importers.v1.utils.validate_data_uri")
+    mocker.patch(
+        "superset.examples.helpers.normalize_example_data_url",
+        side_effect=lambda uri: uri,
+    )
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils._convert_temporal_columns"
+    )
+    mocker.patch("superset.commands.dataset.importers.v1.utils.db.session.connection")
+    mock_df = Mock()
+    mock_df.keys.return_value = []
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.pd.read_csv",
+        return_value=mock_df,
+    )
+
+    raw_response = Mock()
+    mock_opener = Mock()
+    mock_opener.open.return_value = raw_response
+    mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.request.build_opener",
+        return_value=mock_opener,
+    )
+
+    bounded_raw = io.BytesIO(b"")
+    decompressed = Mock()
+    mock_read_bounded = mocker.patch(
+        "superset.commands.dataset.importers.v1.utils._read_bounded",
+        side_effect=[bounded_raw, io.BytesIO(b"")],
+    )
+    mock_gzip_open = mocker.patch(
+        "superset.commands.dataset.importers.v1.utils.gzip.open",
+        return_value=decompressed,
+    )
+
+    dataset = Mock(spec=SqlaTable)
+    dataset.columns = []
+    dataset.table_name = "my_table"
+    dataset.schema = None
+
+    database = Mock(spec=Database)
+    database.sqlalchemy_uri = current_app.config["SQLALCHEMY_DATABASE_URI"]
+
+    load_data("https://example.org/data.csv.gz", dataset, database)
+
+    # the raw (still compressed) response is bounded first...
+    assert mock_read_bounded.call_args_list[0].args[0] is raw_response
+    # ...then gzip.open() decompresses the bounded buffer...
+    mock_gzip_open.assert_called_once_with(bounded_raw)
+    # ...and the decompressed output is bounded again before parsing.
+    assert mock_read_bounded.call_args_list[1].args[0] is decompressed

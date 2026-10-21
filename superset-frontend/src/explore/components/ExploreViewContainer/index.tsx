@@ -64,7 +64,10 @@ import {
   LocalStorageKeys,
 } from 'src/utils/localStorageHelpers';
 import { RESERVED_CHART_URL_PARAMS, URL_PARAMS } from 'src/constants';
-import { QUERY_MODE_REQUISITES } from 'src/explore/constants';
+import {
+  QUERY_MODE_REQUISITES,
+  ExploreStandaloneMode,
+} from 'src/explore/constants';
 import { areObjectsEqual } from 'src/reduxUtils';
 import * as logActions from 'src/logger/actions';
 import {
@@ -245,6 +248,8 @@ const updateHistory = debounce(
           standalone ? URL_PARAMS.standalone.name : 'base',
           {
             [URL_PARAMS.formDataKey.name]: key ?? '',
+            // Carry the active mode through, so mode 2 is not rewritten to 1.
+            ...(standalone ? { [URL_PARAMS.standalone.name]: standalone } : {}),
             ...additionalParam,
           },
           force,
@@ -333,7 +338,9 @@ interface ExploreRootState {
     can_overwrite: boolean;
     sliceName?: string;
     triggerRender: boolean;
-    standalone: boolean;
+    // Seeded by hydrateExplore from getUrlParam(URL_PARAMS.standalone), so this is
+    // the coerced numeric mode, or null when the param is absent or unparseable.
+    standalone: number | null;
     force: boolean;
     form_data?: QueryFormData;
     saveAction?: SaveActionType | null;
@@ -380,7 +387,7 @@ interface StateProps {
   form_data: QueryFormData;
   table_name?: string;
   vizType?: string;
-  standalone: boolean;
+  standalone: number;
   force: boolean;
   chart: ChartState;
   timeout: number;
@@ -537,6 +544,16 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     ],
   );
 
+  const hasControlErrors = useMemo(
+    () =>
+      Object.values(props.controls).some(
+        control =>
+          control.validationErrors && control.validationErrors.length > 0,
+      ),
+    [props.controls],
+  );
+  const isChartLoading = props.chart.chartStatus === 'loading';
+
   const onQuery = useCallback(() => {
     if (isChartVersionPreviewActive) {
       return;
@@ -573,14 +590,16 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
       const controlOrCommand = event.ctrlKey || event.metaKey;
       if (controlOrCommand) {
         const isEnter = event.key === 'Enter' || event.keyCode === 13;
-        if (isEnter) {
+        // Match the Run button, which is disabled while any control has
+        // validation errors and swapped for Stop while the chart is loading
+        if (isEnter && !hasControlErrors && !isChartLoading) {
           onQuery();
         }
         // Note: Ctrl+S save functionality removed due to type incompatibilities
         // between Slice types. Use the save button instead.
       }
     },
-    [onQuery],
+    [onQuery, hasControlErrors, isChartLoading],
   );
 
   function onStop() {
@@ -632,11 +651,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
   }, [isDynamicPluginLoading]);
 
   useEffect(() => {
-    const hasError = Object.values(props.controls).some(
-      control =>
-        control.validationErrors && control.validationErrors.length > 0,
-    );
-    if (!hasError) {
+    if (!hasControlErrors) {
       props.actions.triggerQuery(true, props.chart.id);
     }
   }, []);
@@ -697,8 +712,13 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
         (previousControls.datasource == null ||
           props.controls.datasource.value !== previousControls.datasource.value)
       ) {
-        // this should really be handled by actions
-        fetchDatasourceMetadata(props.form_data.datasource);
+        Promise.resolve()
+          .then(() =>
+            props.actions.fetchDatasourceMetadata(props.form_data.datasource),
+          )
+          .catch(() => {
+            props.addDangerToast(t('Failed to load datasource metadata'));
+          });
       }
 
       const changedControlKeys = Object.keys(props.controls).filter(
@@ -874,8 +894,12 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
 
   const previousOwnState = usePrevious(props.ownState);
   useEffect(() => {
+    // clientView (export snapshot) and chartState (AG Grid column/sort/filter
+    // state read on mount) are folded into ownState but aren't query-affecting;
+    // excluding them here is what the dashboard-side getRelevantDataMask does
+    // for the same reason - see src/dashboard/util/activeAllDashboardFilters.ts.
     const strip = (s: JsonObject | undefined) =>
-      s && typeof s === 'object' ? omit(s, ['clientView']) : s;
+      omit(s && typeof s === 'object' ? s : {}, ['clientView', 'chartState']);
     if (!isEqual(strip(previousOwnState), strip(props.ownState))) {
       onQuery();
       reRenderChart();
@@ -1023,7 +1047,7 @@ function ExploreViewContainer(props: ExploreViewContainerProps) {
     );
   }
 
-  if (props.standalone) {
+  if (props.standalone === ExploreStandaloneMode.HideNav) {
     return renderChartContainer();
   }
 
@@ -1387,7 +1411,18 @@ function mapStateToProps(state: ExploreRootState) {
     form_data: patchedFormData,
     table_name: datasource.table_name,
     vizType: form_data.viz_type,
-    standalone: !!explore.standalone,
+    // `explore.standalone` is the URL param coerced by getUrlParam (hydrateExplore
+    // sets it), so 'true' arrives as 1 and 'false' as 0. Mode 2 is the only value
+    // that keeps the editor; every other truthy mode renders chart-only, which is
+    // what any truthy `standalone` did before granular modes existed. Values
+    // getUrlParam cannot parse arrive as null and render normally, matching the
+    // pre-existing behaviour for unparseable params.
+    standalone:
+      explore.standalone === ExploreStandaloneMode.HideNavShowControls
+        ? ExploreStandaloneMode.HideNavShowControls
+        : explore.standalone
+          ? ExploreStandaloneMode.HideNav
+          : ExploreStandaloneMode.None,
     force: !!explore.force,
     chart,
     timeout: common.conf.SUPERSET_WEBSERVER_TIMEOUT,
@@ -1411,6 +1446,7 @@ function mapDispatchToProps(dispatch: Dispatch): DispatchProps {
     ...saveModalActions,
     ...chartActions,
     ...logActions,
+    fetchDatasourceMetadata,
   };
   return {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any -- Action modules export mixed types (creators + constants)

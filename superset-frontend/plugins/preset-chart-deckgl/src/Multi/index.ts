@@ -22,7 +22,7 @@ import thumbnail from './images/custom_thumb_thumbnail.png';
 import thumbnailDark from './images/custom_thumb_thumbnail-dark.png';
 import example from './images/custom_thumb_example.png';
 import exampleDark from './images/custom_thumb_example-dark.png';
-import transformProps from '../transformProps';
+import transformProps from './transformProps';
 import controlPanel from './controlPanel';
 
 const metadata = new ChartMetadata({

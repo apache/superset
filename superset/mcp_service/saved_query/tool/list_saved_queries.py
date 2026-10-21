@@ -52,6 +52,7 @@ _DEFAULT_LIST_SAVED_QUERIES_REQUEST = ListSavedQueriesRequest()
         title="List saved queries",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def list_saved_queries(

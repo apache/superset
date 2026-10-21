@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import logging
+from typing import Any
 from unittest.mock import MagicMock
 
 import pytest
@@ -22,9 +24,9 @@ from pytest_mock import MockerFixture
 
 from superset.commands.semantic_layer.create import CreateSemanticLayerCommand
 from superset.commands.semantic_layer.exceptions import (
-    SemanticLayerCreateFailedError,
     SemanticLayerInvalidError,
 )
+from superset.exceptions import SupersetSecurityException
 
 
 def test_create_semantic_layer_success(mocker: MockerFixture) -> None:
@@ -53,7 +55,39 @@ def test_create_semantic_layer_success(mocker: MockerFixture) -> None:
     assert result == new_model
     expected = {**data, "configuration": '{"account": "test"}'}
     dao.create.assert_called_once_with(attributes=expected)
-    mock_cls.from_configuration.assert_called_once_with({"account": "test"})
+    mock_cls.configuration_class.model_validate.assert_called_once_with(
+        {"account": "test"}
+    )
+
+
+def test_create_semantic_layer_configuration_already_serialized(
+    mocker: MockerFixture,
+) -> None:
+    """When ``configuration`` is already a JSON string, it is passed through
+    to the DAO unchanged instead of being re-serialized."""
+    new_model = MagicMock()
+
+    dao = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao.validate_uniqueness.return_value = True
+    dao.create.return_value = new_model
+
+    mock_cls = MagicMock()
+    mocker.patch.dict(
+        "superset.commands.semantic_layer.create.registry",
+        {"snowflake": mock_cls},
+    )
+
+    data = {
+        "name": "My Layer",
+        "type": "snowflake",
+        "configuration": '{"account": "test"}',
+    }
+    result = CreateSemanticLayerCommand(data).run()
+
+    assert result == new_model
+    dao.create.assert_called_once_with(attributes=data)
 
 
 def test_create_semantic_layer_unknown_type(mocker: MockerFixture) -> None:
@@ -100,26 +134,31 @@ def test_create_semantic_layer_duplicate_name(mocker: MockerFixture) -> None:
 def test_create_semantic_layer_invalid_configuration(
     mocker: MockerFixture,
 ) -> None:
-    """Test that invalid configuration is caught by the @transaction decorator."""
-    dao = mocker.patch(
+    """Provider errors remain generic invalid input without a chained cause."""
+    dao: MagicMock = mocker.patch(
         "superset.commands.semantic_layer.create.SemanticLayerDAO",
     )
     dao.validate_uniqueness.return_value = True
 
-    mock_cls = MagicMock()
-    mock_cls.from_configuration.side_effect = ValueError("bad config")
+    mock_cls: MagicMock = MagicMock()
+    mock_cls.configuration_class.model_validate.side_effect = ValueError("bad config")
     mocker.patch.dict(
         "superset.commands.semantic_layer.create.registry",
         {"snowflake": mock_cls},
     )
 
-    data = {
+    data: dict[str, Any] = {
         "name": "My Layer",
         "type": "snowflake",
         "configuration": {"bad": "data"},
     }
-    with pytest.raises(SemanticLayerCreateFailedError):
+    with pytest.raises(
+        SemanticLayerInvalidError, match="Provider rejected the configuration"
+    ) as exc_info:
         CreateSemanticLayerCommand(data).run()
+    assert exc_info.value.__cause__ is None
+    assert exc_info.value.__suppress_context__ is True
+    dao.create.assert_not_called()
 
 
 def test_create_semantic_layer_copies_data(mocker: MockerFixture) -> None:
@@ -152,6 +191,9 @@ def test_create_semantic_layer_copies_data(mocker: MockerFixture) -> None:
 def test_create_semantic_view_success(mocker: MockerFixture) -> None:
     """Test successful creation of a semantic view."""
     mock_layer = MagicMock()
+    provider_view: MagicMock = MagicMock()
+    provider_view.name = "orders"
+    mock_layer.implementation.get_semantic_view.return_value = provider_view
     dao_layer = mocker.patch(
         "superset.commands.semantic_layer.create.SemanticLayerDAO",
     )
@@ -165,6 +207,11 @@ def test_create_semantic_view_success(mocker: MockerFixture) -> None:
     mock_model.uuid = "new-uuid"
     mock_model.name = "orders"
     dao_view.create.return_value = mock_model
+
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
 
     from superset.commands.semantic_layer.create import CreateSemanticViewCommand
 
@@ -180,6 +227,45 @@ def test_create_semantic_view_success(mocker: MockerFixture) -> None:
     dao_view.validate_uniqueness.assert_called_once_with(
         "orders", "layer-uuid", {"db": "prod"}
     )
+
+
+def test_create_semantic_view_configuration_already_serialized(
+    mocker: MockerFixture,
+) -> None:
+    """When ``configuration`` is already a JSON string, it is passed through
+    to the DAO unchanged instead of being re-serialized."""
+    mock_layer = MagicMock()
+    provider_view: MagicMock = MagicMock()
+    provider_view.name = "orders"
+    mock_layer.implementation.get_semantic_view.return_value = provider_view
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+    dao_view.validate_uniqueness.return_value = True
+    mock_model = MagicMock()
+    dao_view.create.return_value = mock_model
+
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+
+    data = {
+        "name": "orders",
+        "semantic_layer_uuid": "layer-uuid",
+        "configuration": '{"db": "prod"}',
+    }
+    result = CreateSemanticViewCommand(data).run()
+
+    assert result == mock_model
+    dao_view.create.assert_called_once_with(attributes=data)
 
 
 def test_create_semantic_view_layer_not_found(mocker: MockerFixture) -> None:
@@ -202,6 +288,30 @@ def test_create_semantic_view_layer_not_found(mocker: MockerFixture) -> None:
         CreateSemanticViewCommand({"name": "v", "semantic_layer_uuid": "missing"}).run()
 
 
+def test_create_semantic_view_requires_layer_access(mocker: MockerFixture) -> None:
+    """Creating a view under a layer the user cannot access is blocked."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewForbiddenError
+    from superset.exceptions import SupersetSecurityException
+
+    mock_layer = MagicMock()
+    mock_layer.raise_for_access.side_effect = SupersetSecurityException(MagicMock())
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+
+    with pytest.raises(SemanticViewForbiddenError):
+        CreateSemanticViewCommand(
+            {"name": "v", "semantic_layer_uuid": "no-access"}
+        ).run()
+    dao_view.create.assert_not_called()
+
+
 def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:
     """Test CreateSemanticViewCommand raises on duplicate view."""
     mock_layer = MagicMock()
@@ -214,6 +324,11 @@ def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:
         "superset.commands.semantic_layer.create.SemanticViewDAO",
     )
     dao_view.validate_uniqueness.return_value = False
+
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
 
     from superset.commands.semantic_layer.create import CreateSemanticViewCommand
     from superset.commands.semantic_layer.exceptions import (
@@ -228,3 +343,245 @@ def test_create_semantic_view_duplicate(mocker: MockerFixture) -> None:
                 "configuration": {"db": "prod"},
             }
         ).run()
+
+
+def test_create_semantic_view_forbidden(mocker: MockerFixture) -> None:
+    """Test CreateSemanticViewCommand raises when the caller may not modify
+    the parent layer."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewForbiddenError
+
+    mock_layer = MagicMock()
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=False,
+    )
+
+    with pytest.raises(SemanticViewForbiddenError):
+        CreateSemanticViewCommand(
+            {
+                "name": "orders",
+                "semantic_layer_uuid": "layer-uuid",
+                "configuration": {"db": "prod"},
+            }
+        ).run()
+
+    dao_view.create.assert_not_called()
+
+
+def test_create_semantic_view_creator_of_layer_allowed(mocker: MockerFixture) -> None:
+    """A non-admin who created the parent layer, but holds no explicit
+    editorship on it, can still add a semantic view to it."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+
+    mock_layer = MagicMock()
+    provider_view: MagicMock = MagicMock()
+    provider_view.name = "orders"
+    mock_layer.implementation.get_semantic_view.return_value = provider_view
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+    dao_view.validate_uniqueness.return_value = True
+    mock_model = MagicMock()
+    dao_view.create.return_value = mock_model
+
+    sm = mocker.patch("superset.commands.utils.security_manager")
+    sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+    mock_layer.created_by = sm.current_user
+
+    result = CreateSemanticViewCommand(
+        {
+            "name": "orders",
+            "semantic_layer_uuid": "layer-uuid",
+            "configuration": {"db": "prod"},
+        }
+    ).run()
+
+    assert result == mock_model
+    dao_view.create.assert_called_once()
+
+
+def test_create_semantic_view_non_creator_non_editor_forbidden(
+    mocker: MockerFixture,
+) -> None:
+    """A non-admin who neither created the parent layer nor is an editor of
+    it is rejected."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewForbiddenError
+
+    mock_layer = MagicMock()
+    dao_layer = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO",
+    )
+    dao_layer.find_by_uuid.return_value = mock_layer
+
+    dao_view = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO",
+    )
+
+    sm = mocker.patch(
+        "superset.commands.utils.security_manager",
+    )
+    sm.raise_for_editorship = MagicMock(
+        side_effect=SupersetSecurityException(MagicMock()),
+    )
+    mock_layer.created_by = MagicMock(name="someone_else")
+
+    with pytest.raises(SemanticViewForbiddenError):
+        CreateSemanticViewCommand(
+            {
+                "name": "orders",
+                "semantic_layer_uuid": "layer-uuid",
+                "configuration": {"db": "prod"},
+            }
+        ).run()
+
+    dao_view.create.assert_not_called()
+
+
+@pytest.mark.parametrize("configuration", [{"db": "prod"}, '{"db": "prod"}', {}])
+def test_create_semantic_view_lookup_before_uniqueness(
+    mocker: MockerFixture, configuration: dict[str, Any] | str
+) -> None:
+    """Use persisted-view lookup semantics before checking uniqueness."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+
+    layer: MagicMock = MagicMock()
+    layer.implementation.get_semantic_views.return_value = set()
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO"
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    dao.validate_uniqueness.return_value = True
+    calls: MagicMock = MagicMock()
+    calls.attach_mock(layer.implementation.get_semantic_view, "lookup")
+    calls.attach_mock(dao.validate_uniqueness, "unique")
+    calls.attach_mock(dao.create, "create")
+    assert (
+        CreateSemanticViewCommand(
+            {
+                "name": "orders",
+                "semantic_layer_uuid": "layer-uuid",
+                "configuration": configuration,
+            }
+        ).run()
+        is dao.create.return_value
+    )
+    assert [entry[0] for entry in calls.mock_calls] == ["lookup", "unique", "create"]
+    layer.implementation.get_semantic_view.assert_called_once_with(
+        "orders", {} if configuration == {} else {"db": "prod"}
+    )
+    layer.implementation.get_semantic_views.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "failure",
+    [None, ValueError("secret"), ConnectionError("secret"), RuntimeError("secret")],
+)
+def test_create_semantic_view_lookup_failure(
+    mocker: MockerFixture, caplog: pytest.LogCaptureFixture, failure: Exception | None
+) -> None:
+    """Reject missing or failed lookups with one honest, secret-free error."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewInvalidError
+
+    caplog.set_level(logging.INFO, logger="superset.commands.semantic_layer.create")
+    layer: MagicMock = MagicMock()
+    layer.implementation.get_semantic_view.return_value = None
+    layer.implementation.get_semantic_view.side_effect = failure
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO"
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    error: pytest.ExceptionInfo[SemanticViewInvalidError]
+    with pytest.raises(SemanticViewInvalidError) as error:
+        CreateSemanticViewCommand(
+            {"name": "orders", "semantic_layer_uuid": "layer-uuid"}
+        ).run()
+    assert str(error.value) == (
+        "Couldn't validate this semantic view: it may not exist, "
+        "or the semantic layer is unreachable."
+    )
+    assert error.value.status == 422
+    assert error.value.__cause__ is None
+    assert error.value.__suppress_context__
+    assert "secret" not in caplog.text
+    assert all(record.exc_info is None for record in caplog.records)
+    if failure is not None:
+        assert caplog.messages == [
+            "Semantic view lookup failed for layer layer-uuid, view orders: "
+            f"{type(failure).__name__}",
+            "Semantic view lookup produced no view for layer layer-uuid, view orders",
+        ]
+    else:
+        assert caplog.messages == [
+            "Semantic view lookup produced no view for layer layer-uuid, view orders"
+        ]
+        assert caplog.records[0].levelno == logging.INFO
+    dao.validate_uniqueness.assert_not_called()
+    dao.create.assert_not_called()
+
+
+@pytest.mark.parametrize("configuration", ["{not json", '["db"]', '"prod"'])
+def test_create_semantic_view_malformed_configuration(
+    mocker: MockerFixture, configuration: str
+) -> None:
+    """Refuse a serialized configuration that isn't a JSON object, per view."""
+    from superset.commands.semantic_layer.create import CreateSemanticViewCommand
+    from superset.commands.semantic_layer.exceptions import SemanticViewInvalidError
+
+    layer: MagicMock = MagicMock()
+    mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticLayerDAO.find_by_uuid",
+        return_value=layer,
+    )
+    dao: MagicMock = mocker.patch(
+        "superset.commands.semantic_layer.create.SemanticViewDAO"
+    )
+    mocker.patch(
+        "superset.commands.semantic_layer.create.current_user_can_modify_object",
+        return_value=True,
+    )
+    error: pytest.ExceptionInfo[SemanticViewInvalidError]
+    with pytest.raises(SemanticViewInvalidError) as error:
+        CreateSemanticViewCommand(
+            {
+                "name": "orders",
+                "semantic_layer_uuid": "layer-uuid",
+                "configuration": configuration,
+            }
+        ).run()
+    assert str(error.value) == "The view configuration must be a JSON object."
+    assert error.value.__cause__ is None
+    layer.implementation.get_semantic_view.assert_not_called()
+    dao.create.assert_not_called()

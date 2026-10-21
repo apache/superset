@@ -22,12 +22,13 @@ from datetime import datetime, timezone
 from typing import Any, cast, TYPE_CHECKING
 from urllib import parse
 
-from flask import current_app as app
+from flask import current_app as app, has_app_context
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
-from sqlalchemy import types
+from sqlalchemy import func, types
 from sqlalchemy.engine.url import URL
+from sqlalchemy.sql.expression import ColumnElement
 from urllib3.exceptions import NewConnectionError
 
 from superset.databases.utils import make_url_safe
@@ -54,7 +55,12 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     """Shared engine spec for ClickHouse."""
 
     time_groupby_inline = True
+    # ClickHouse resolves an identifier to a SELECT alias first, in every clause:
+    # with `toStartOfDay(toDateTime(ts)) AS ts`, `GROUP BY toStartOfDay(...(ts))`
+    # re-truncates the alias and `WHERE ts >= ...` filters on the bucket.
+    select_alias_shadows_source_column = True
     supports_multivalues_insert = True
+    supports_multivalue_columns = True
 
     # ClickHouse doesn't support IS true/false syntax, use = true/false instead
     use_equality_for_boolean_filters = True
@@ -112,6 +118,7 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     _time_grain_expressions = {
         None: "{col}",
+        "PT1S": "toStartOfSecond(toDateTime64({col}, 3))",
         "PT1M": "toStartOfMinute(toDateTime({col}))",
         "PT5M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 300)*300)",
         "PT10M": "toDateTime(intDiv(toUInt32(toDateTime({col})), 600)*600)",
@@ -127,12 +134,18 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
 
     column_type_mappings = (
         (
-            re.compile(r".*Enum.*", re.IGNORECASE),
+            # Anchor to the start so only top-level arrays match. This must be
+            # ordered before the ``Enum`` entry below: ``Array(Enum8(...))`` is a
+            # real array and should classify as MULTI_VALUE, not STRING. The
+            # anchor also prevents over-matching nested arrays such as
+            # ``Map(String, Array(String))`` or ``Tuple(Array(String))``, which
+            # are not themselves array columns and must keep their own type.
+            re.compile(r"^Array\(", re.IGNORECASE),
             types.String(),
-            GenericDataType.STRING,
+            GenericDataType.MULTI_VALUE,
         ),
         (
-            re.compile(r".*Array.*", re.IGNORECASE),
+            re.compile(r".*Enum.*", re.IGNORECASE),
             types.String(),
             GenericDataType.STRING,
         ),
@@ -174,6 +187,56 @@ class ClickHouseBaseEngineSpec(BaseEngineSpec):
     )
 
     @classmethod
+    def array_contains_any(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAny(arr, [v1, v2]) -> 1 if arr shares any element.
+        # func.array(*values) renders as array(v1, v2) == [v1, v2].
+        return func.hasAny(col, func.array(*values))
+
+    @classmethod
+    def array_contains_all(cls, col: ColumnElement, values: list[Any]) -> ColumnElement:
+        # ClickHouse: hasAll(arr, [v1, v2]) -> 1 if arr contains all elements.
+        return func.hasAll(col, func.array(*values))
+
+    @classmethod
+    def array_length(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: length(arr) -> number of elements
+        return func.length(col)
+
+    @classmethod
+    def array_literal(cls, values: list[Any]) -> ColumnElement:
+        # ClickHouse: array(v1, v2) is equivalent to the literal [v1, v2].
+        return func.array(*values)
+
+    @classmethod
+    def array_explode(cls, col: ColumnElement) -> ColumnElement:
+        # ClickHouse: arrayJoin(arr) yields one row per element, so
+        # SELECT DISTINCT arrayJoin(arr) returns the distinct elements.
+        return func.arrayJoin(col)
+
+    # Matches the element type inside a top-level ``Array(...)`` column, e.g.
+    # ``Array(Int32)`` -> ``Int32``, ``Array(Nullable(String))`` -> ``String``.
+    _ARRAY_ELEMENT_RE = re.compile(r"^Array\((?P<inner>.+)\)$", re.IGNORECASE)
+    # Element-type wrappers that don't change the underlying generic type.
+    _ELEMENT_WRAPPER_RE = re.compile(
+        r"^(?:Nullable|LowCardinality)\((?P<inner>.+)\)$", re.IGNORECASE
+    )
+
+    @classmethod
+    def get_array_element_type(cls, native_type: str | None) -> GenericDataType | None:
+        if not native_type:
+            return None
+        match = cls._ARRAY_ELEMENT_RE.match(native_type.strip())
+        if not match:
+            return None
+        inner = match.group("inner").strip()
+        # Peel wrappers (Nullable/LowCardinality) that don't alter the generic
+        # type so the inner scalar type drives classification.
+        while wrapper := cls._ELEMENT_WRAPPER_RE.match(inner):
+            inner = wrapper.group("inner").strip()
+        spec = cls.get_column_spec(inner)
+        return spec.generic_type if spec else None
+
+    @classmethod
     def epoch_to_dttm(cls) -> str:
         return "{col}"
 
@@ -202,9 +265,22 @@ class ClickHouseEngineSpec(ClickHouseBaseEngineSpec):
     _show_functions_column = "name"
     supports_file_upload = False
 
-    # Note: Primary metadata is in ClickHouseConnectEngineSpec which consolidates
-    # both drivers. This spec exists for backwards compatibility with existing
-    # connections using the clickhouse-sqlalchemy driver.
+    metadata = {
+        "description": (
+            "ClickHouse is an open-source column-oriented database for real-time "
+            "analytics using SQL (legacy clickhouse-sqlalchemy driver)."
+        ),
+        "logo": "clickhouse.svg",
+        "logo_dark": "clickhouse-dark.svg",
+        "homepage_url": "https://clickhouse.com/",
+        "categories": [
+            DatabaseCategory.ANALYTICAL_DATABASES,
+            DatabaseCategory.OPEN_SOURCE,
+        ],
+        "pypi_packages": ["clickhouse-sqlalchemy"],
+        "connection_string": "clickhouse://{username}:{password}@{host}:{port}/{database}",
+        "default_port": 8123,
+    }
 
     @classmethod
     def get_dbapi_exception_mapping(cls) -> dict[type[Exception], type[Exception]]:
@@ -307,9 +383,16 @@ try:
         "*Int128",
         "string",
     )
+    # Importing this module happens as a side effect of iterating db_engine_specs
+    # (e.g. from a standalone script or test that never builds a Flask app), so
+    # `current_app` may not be bound to an app context yet -- guard the version
+    # lookup rather than let that crash the import outright.
+    version_string = (
+        app.config.get("VERSION_STRING", "dev") if has_app_context() else "dev"
+    )
     set_setting(
         "product_name",
-        f"superset/{app.config.get('VERSION_STRING', 'dev')}",
+        f"superset/{version_string}",
     )
 except ImportError:  # ClickHouse Connect not installed, do nothing
     pass
@@ -338,25 +421,29 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
             "analytics using SQL. It's known for extremely fast query performance "
             "on large datasets."
         ),
-        "logo": "clickhouse.png",
+        "logo": "clickhouse.svg",
+        "logo_dark": "clickhouse-dark.svg",
         "homepage_url": "https://clickhouse.com/",
         "categories": [
             DatabaseCategory.ANALYTICAL_DATABASES,
             DatabaseCategory.OPEN_SOURCE,
         ],
-        "pypi_packages": ["clickhouse-connect>=0.13.0"],
+        "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
         "connection_string": "clickhousedb://{username}:{password}@{host}:{port}/{database}",
         "default_port": 8123,
         "drivers": [
             {
-                "name": "clickhouse-connect (Recommended)",
-                "pypi_package": "clickhouse-connect>=0.13.0",
+                "name": "clickhouse-connect",
+                "pypi_package": "clickhouse-connect>=1.8.0,<2.0",
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}:{port}/{database}"
                 ),
                 "is_recommended": True,
+                "docs_url": "https://github.com/ClickHouse/clickhouse-connect",
                 "notes": (
-                    "Official ClickHouse Python driver with native protocol support."
+                    "Official ClickHouse Python driver using HTTP(S). Use the HTTP "
+                    "port (8123 by default), or the HTTPS port with secure=true "
+                    "(8443 for ClickHouse Cloud). Native TCP ports are not supported."
                 ),
             },
             {
@@ -374,6 +461,20 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
         ],
         "connection_examples": [
             {
+                "description": (
+                    "ClickHouse Cloud SQL playground (demo user, no password)"
+                ),
+                "connection_string": (
+                    "clickhousedb://demo:@sql-clickhouse.clickhouse.com:8443/uk?secure=true"
+                ),
+            },
+            {
+                "description": "ClickHouse Cloud (HTTPS)",
+                "connection_string": (
+                    "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
+                ),
+            },
+            {
                 "description": "Altinity Cloud",
                 "connection_string": (
                     "clickhousedb://demo:demo@github.demo.trial.altinity.cloud"
@@ -381,12 +482,26 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                 ),
             },
             {
-                "description": "Local (no auth, no SSL)",
-                "connection_string": "clickhousedb://localhost/default",
+                "description": "Local (default user, no password, no TLS)",
+                "connection_string": "clickhousedb://default@localhost:8123/default",
             },
         ],
         "install_instructions": (
-            'echo "clickhouse-connect>=0.13.0" >> ./docker/requirements-local.txt'
+            "# For a Python environment\n"
+            'pip install "clickhouse-connect>=1.8.0,<2.0"\n\n'
+            "# For the repository Docker Compose setup\n"
+            'echo "clickhouse-connect>=1.8.0,<2.0" >> ./docker/requirements-local.txt\n'
+            "# Restart the containers after adding the driver."
+        ),
+        "docs_url": "https://clickhouse.com/docs/integrations/superset",
+        "notes": (
+            "The SQL playground at sql.clickhouse.com uses the database endpoint "
+            "sql-clickhouse.clickhouse.com; the example connects to its uk sample "
+            "database. "
+            "URL-encode special characters in usernames and passwords when building "
+            "a SQLAlchemy URI. Use database credentials, not your ClickHouse Cloud "
+            "console sign-in. For Docker deployments, localhost refers to the "
+            "Superset container; use a hostname reachable from that container."
         ),
         "compatible_databases": [
             {
@@ -396,24 +511,39 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     "for ClickHouse. It provides automatic scaling, built-in "
                     "backups, and enterprise security features."
                 ),
-                "logo": "clickhouse.png",
+                "logo": "clickhouse-mark.svg",
+                "logo_dark": "clickhouse-mark-dark.svg",
                 "homepage_url": "https://clickhouse.cloud/",
                 "categories": [
                     DatabaseCategory.ANALYTICAL_DATABASES,
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "pypi_packages": ["clickhouse-connect>=0.13.0"],
+                "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}:8443/{database}?secure=true"
                 ),
                 "parameters": {
-                    "username": "ClickHouse Cloud username",
-                    "password": "ClickHouse Cloud password",
-                    "host": "Your ClickHouse Cloud hostname",
+                    "username": (
+                        "Database username from the service Connect dialog "
+                        "(default: default)"
+                    ),
+                    "password": (
+                        "URL-encoded database password from the service Connect dialog"
+                    ),
+                    "host": "HTTPS hostname from the service Connect dialog",
                     "database": "Database name (default)",
                 },
-                "docs_url": "https://clickhouse.com/docs/en/cloud",
+                "docs_url": (
+                    "https://clickhouse.com/docs/products/cloud/"
+                    "getting-started/cloud-get-started"
+                ),
+                "notes": (
+                    "Open your service in the ClickHouse Cloud console and select "
+                    "Connect to find the HTTPS endpoint and database credentials. "
+                    "For public connections, allow the Superset server IP address "
+                    "in the service IP access list."
+                ),
             },
             {
                 "name": "Altinity.Cloud",
@@ -428,7 +558,7 @@ class ClickHouseConnectEngineSpec(BasicParametersMixin, ClickHouseEngineSpec):
                     DatabaseCategory.CLOUD_DATA_WAREHOUSES,
                     DatabaseCategory.HOSTED_OPEN_SOURCE,
                 ],
-                "pypi_packages": ["clickhouse-connect>=0.13.0"],
+                "pypi_packages": ["clickhouse-connect>=1.8.0,<2.0"],
                 "connection_string": (
                     "clickhousedb://{username}:{password}@{host}/{database}?secure=true"
                 ),

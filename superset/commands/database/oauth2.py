@@ -21,15 +21,20 @@ from functools import partial
 from typing import cast
 from uuid import UUID
 
+import jwt
+from marshmallow import ValidationError
+
+from superset import db, security_manager
 from superset.commands.base import BaseCommand
 from superset.commands.database.exceptions import DatabaseNotFoundError
 from superset.daos.database import DatabaseUserOAuth2TokensDAO
 from superset.daos.key_value import KeyValueDAO
 from superset.databases.schemas import OAuth2ProviderResponseSchema
-from superset.exceptions import OAuth2Error
+from superset.exceptions import OAuth2Error, OAuth2RejectedError
 from superset.key_value.types import JsonKeyValueCodec, KeyValueResource
 from superset.models.core import Database, DatabaseUserOAuth2Tokens
 from superset.superset_typing import OAuth2State
+from superset.utils.core import get_user_id
 from superset.utils.decorators import on_error, transaction
 from superset.utils.oauth2 import decode_oauth2_state
 
@@ -96,6 +101,11 @@ class OAuth2StoreTokenCommand(BaseCommand):
             database_id=self._state["database_id"],
         ):
             DatabaseUserOAuth2TokensDAO.delete([existing])
+            # flush the delete before inserting the replacement -- the unit
+            # of work otherwise emits INSERTs before DELETEs within a single
+            # flush, which would trip the (user_id, database_id) unique
+            # index below on the old row.
+            db.session.flush()
 
         # store tokens
         expiration = datetime.now() + timedelta(seconds=token_response["expires_in"])
@@ -110,10 +120,30 @@ class OAuth2StoreTokenCommand(BaseCommand):
         )
 
     def validate(self) -> None:
-        if error := self._parameters.get("error"):
-            raise OAuth2Error(error)
+        if self._parameters.get("error"):
+            raise OAuth2RejectedError("The OAuth2 provider denied the request")
 
-        self._state = decode_oauth2_state(self._parameters["state"])
+        try:
+            state = self._parameters["state"]
+        except KeyError:
+            raise OAuth2RejectedError(
+                "The OAuth2 callback is missing the state parameter"
+            ) from None
+
+        try:
+            self._state = decode_oauth2_state(state)
+        except (jwt.PyJWTError, ValidationError):
+            raise OAuth2RejectedError("The OAuth2 state parameter is invalid") from None
+
+        # Bind the callback to the current session: require an authenticated,
+        # non-guest user whose id matches the one carried in the state.
+        user_id = get_user_id()
+        if user_id is None or security_manager.is_guest_user():
+            raise OAuth2RejectedError(
+                "The OAuth2 callback requires an authenticated user"
+            )
+        if user_id != self._state["user_id"]:
+            raise OAuth2RejectedError("The OAuth2 state belongs to a different user")
 
         if database := DatabaseUserOAuth2TokensDAO.get_database(
             self._state["database_id"]

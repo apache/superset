@@ -18,6 +18,7 @@
 from __future__ import annotations
 
 import enum
+import logging
 from typing import TYPE_CHECKING
 
 from flask_appbuilder import Model
@@ -33,6 +34,7 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.engine.base import Connection
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy.orm.mapper import Mapper
 from sqlalchemy.schema import UniqueConstraint
@@ -49,7 +51,8 @@ if TYPE_CHECKING:
     from superset.models.slice import Slice
     from superset.models.sql_lab import Query
 
-Session = sessionmaker(future=True)
+Session = sessionmaker()
+logger: logging.Logger = logging.getLogger(__name__)
 
 user_favorite_tag_table = Table(
     "user_favorite_tag",
@@ -141,17 +144,61 @@ class TaggedObject(Model, AuditMixinNullable):
         return f"<TaggedObject: {self.object_type}:{self.object_id} TAG:{self.tag_id}>"
 
 
+def _insert_in_savepoint(
+    session: orm.Session,  # pylint: disable=disallowed-name
+    record: Tag | TaggedObject,
+) -> None:
+    """Isolate a candidate insert without committing the caller's work."""
+    connection: Connection = session.connection()
+    if (
+        connection.dialect.name == "sqlite"
+        and not connection.connection.dbapi_connection.in_transaction
+    ):
+        # Pysqlite's legacy mode does not BEGIN for SELECT or SAVEPOINT;
+        # releasing a first-write savepoint must not commit the tag.
+        connection.exec_driver_sql("BEGIN")
+    with session.begin_nested():
+        session.add(record)
+        session.flush()
+
+
 def get_tag(
     name: str,
     session: orm.Session,  # pylint: disable=disallowed-name
     type_: TagType,
 ) -> Tag:
-    tag_name = name.strip()
-    tag = session.query(Tag).filter_by(name=tag_name, type=type_).one_or_none()
+    """Get or create a tag, reusing the winner of a concurrent insert."""
+    tag_name: str = name.strip()
+    query: orm.Query = session.query(Tag).filter_by(name=tag_name, type=type_)
+    tag: Tag | None = query.one_or_none()
     if tag is None:
         tag = Tag(name=tag_name, type=type_)
-        session.add(tag)
-        session.commit()
+        try:
+            _insert_in_savepoint(session, tag)
+        except IntegrityError:
+            # begin_nested flushes pending work before opening its savepoint.
+            # Such failures are not recoverable tag conflicts.
+            if not session.is_active:
+                raise
+            # Recovery assumes the default READ COMMITTED isolation.
+            # A locking read does not prevent MySQL REPEATABLE READ deadlocks.
+            tag = query.with_for_update(read=True).one_or_none()
+            if tag is None:
+                conflicting_tag: Tag | None = (
+                    session.query(Tag)
+                    .filter_by(name=tag_name)
+                    .with_for_update(read=True)
+                    .one_or_none()
+                )
+                if conflicting_tag is not None and conflicting_tag.type != type_:
+                    logger.error(
+                        "Tag name %r is already used by a different tag type "
+                        "(%s; requested %s)",
+                        tag_name,
+                        conflicting_tag.type,
+                        type_,
+                    )
+                raise
     return tag
 
 
@@ -168,6 +215,28 @@ def get_object_type(class_name: str) -> ObjectType:
         raise Exception(  # pylint: disable=broad-exception-raised
             f"No mapping found for {class_name}"
         ) from ex
+
+
+def tagging_enabled() -> bool:
+    """
+    Whether the tagging system is enabled.
+
+    The SQLA event listeners below are attached unconditionally at app startup
+    (see ``superset.app.SupersetApp.sync_config_to_db``). Listeners that
+    *create* tags check the flag when they fire, so the flag, including a
+    runtime override, is honored on the write path the same way it is on the
+    UI, export and import paths. The ``after_delete`` listeners deliberately
+    skip this check: they only remove ``tagged_object`` rows, and skipping that
+    cleanup would orphan rows pointing at a deleted object whose id may later
+    be reused.
+    """
+    # Resolved through the manager on every call rather than bound at import
+    # time, so that patching the manager (as the tests do) takes effect.
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        feature_flag_manager,
+    )
+
+    return feature_flag_manager.is_feature_enabled("TAGGING_SYSTEM")
 
 
 class ObjectUpdater:
@@ -213,6 +282,7 @@ class ObjectUpdater:
         object_id: int,
         object_type: str,
     ) -> None:
+        """Create an implicit link without failing when another writer wins."""
         # Check if the object is already tagged
         exists_query = exists().where(
             TaggedObject.tag_id == tag_id,
@@ -223,10 +293,24 @@ class ObjectUpdater:
 
         # Add TaggedObject to the session if it isn't already tagged
         if not already_tagged:
-            tagged_object = TaggedObject(
+            tagged_object: TaggedObject = TaggedObject(
                 tag_id=tag_id, object_id=object_id, object_type=object_type
             )
-            session.add(tagged_object)
+            try:
+                _insert_in_savepoint(session, tagged_object)
+            except IntegrityError:
+                if not session.is_active:
+                    raise
+                if (
+                    session.query(TaggedObject)
+                    .filter_by(
+                        tag_id=tag_id, object_id=object_id, object_type=object_type
+                    )
+                    .with_for_update(read=True)
+                    .one_or_none()
+                    is None
+                ):
+                    raise
 
     @classmethod
     def after_insert(
@@ -235,6 +319,9 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
+        if not tagging_enabled():
+            return
+
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # add `editor:` tags
             cls._add_editors(session, target)
@@ -253,6 +340,9 @@ class ObjectUpdater:
         connection: Connection,
         target: Dashboard | FavStar | Slice | Query | SqlaTable,
     ) -> None:
+        if not tagging_enabled():
+            return
+
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             # Fetch current editor tags
             existing_tags = (
@@ -272,12 +362,12 @@ class ObjectUpdater:
 
             # Add missing tags
             for editor_tag_id in new_editor_tag_ids - existing_editor_tag_ids:
-                tagged_object = TaggedObject(
+                cls.add_tag_object_if_not_tagged(
+                    session,
                     tag_id=editor_tag_id,
                     object_id=target.id,
                     object_type=cls.object_type,
                 )
-                session.add(tagged_object)
 
             # Remove unnecessary tags
             for tag in existing_tags:
@@ -345,15 +435,18 @@ class FavStarUpdater:
     def after_insert(
         cls, _mapper: Mapper, connection: Connection, target: FavStar
     ) -> None:
+        if not tagging_enabled():
+            return
+
         with Session(bind=connection) as session:  # pylint: disable=disallowed-name
             name = f"favorited_by:{target.user_id}"
             tag = get_tag(name, session, TagType.favorited_by)
-            tagged_object = TaggedObject(
+            ObjectUpdater.add_tag_object_if_not_tagged(
+                session,
                 tag_id=tag.id,
                 object_id=target.obj_id,
-                object_type=get_object_type(target.class_name),
+                object_type=get_object_type(target.class_name).name,
             )
-            session.add(tagged_object)
             session.commit()
 
     @classmethod

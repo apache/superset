@@ -20,7 +20,7 @@ import { Link, useHistory } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { css } from '@apache-superset/core/theme';
-import { CardStyles } from 'src/views/CRUD/utils';
+import { CardStyles, isNavigationHandledByLink } from 'src/views/CRUD/utils';
 import {
   FaveStar,
   Icons,
@@ -31,6 +31,7 @@ import {
 import { MenuItem } from '@superset-ui/core/components/Menu';
 import { Dashboard } from 'src/views/CRUD/types';
 import { assetUrl } from 'src/utils/assetUrl';
+import { deleteActionLabel } from 'src/utils/softDeleteCopy';
 import { SubjectPile } from 'src/features/subjects/SubjectPile';
 import { KebabMenuButton } from 'src/components';
 import { isUserEditorOrAdmin } from 'src/dashboard/util/permissionUtils';
@@ -82,8 +83,13 @@ function DashboardCard({
   const history = useHistory();
   const canEdit = hasPerm('can_write');
   const canDelete = hasPerm('can_write');
+  const softDelete = isFeatureEnabled(FeatureFlag.SoftDelete);
   const canExport = hasPerm('can_export');
-  const allowEdit = isUserEditorOrAdmin(user, dashboard.editors);
+  const allowEdit = isUserEditorOrAdmin(
+    user,
+    dashboard.editors,
+    dashboard.extra_editors,
+  );
   const digest = dashboard.changed_on_utc || dashboard.changed_on;
   const thumbnailUrl =
     isFeatureEnabled(FeatureFlag.Thumbnails) && dashboard.id && digest
@@ -147,9 +153,13 @@ function DashboardCard({
           title={
             allowEdit
               ? null
-              : t(
-                  'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
-                )
+              : softDelete
+                ? t(
+                    'You must be a dashboard editor in order to archive. Please reach out to a dashboard editor to request modifications or edit access.',
+                  )
+                : t(
+                    'You must be a dashboard editor in order to delete. Please reach out to a dashboard editor to request modifications or edit access.',
+                  )
           }
         >
           <button
@@ -159,7 +169,7 @@ function DashboardCard({
             onClick={allowEdit ? () => onDelete(dashboard) : undefined}
             data-test="dashboard-card-option-delete-button"
           >
-            <Icons.DeleteOutlined iconSize="l" /> {t('Delete')}
+            <Icons.DeleteOutlined iconSize="l" /> {deleteActionLabel()}
           </button>
         </Tooltip>
       ),
@@ -169,8 +179,8 @@ function DashboardCard({
 
   return (
     <CardStyles
-      onClick={() => {
-        if (!bulkSelectEnabled) {
+      onClick={event => {
+        if (!bulkSelectEnabled && !isNavigationHandledByLink(event)) {
           history.push(dashboard.url);
         }
       }}

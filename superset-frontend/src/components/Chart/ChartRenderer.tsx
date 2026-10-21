@@ -45,6 +45,7 @@ import {
   ContextMenuFilters,
   DataRecordFilters,
 } from '@superset-ui/core';
+import type { Hooks } from '@superset-ui/core';
 import { logging } from '@apache-superset/core/utils';
 import { t } from '@apache-superset/core/translation';
 import { useTheme } from '@apache-superset/core/theme';
@@ -57,6 +58,8 @@ import ChartContextMenu, {
   ChartContextMenuRef,
 } from './ChartContextMenu/ChartContextMenu';
 import { handleChartDataResponse } from './chartAction';
+import { AsyncModeOverride, resolveAsyncMode } from 'src/utils/asyncMode';
+import { getTabId } from 'src/hooks/useTabId';
 
 // Types for filter values
 type FilterValue = string | number | boolean | null | undefined;
@@ -140,10 +143,19 @@ export interface ChartRendererProps {
   cacheBusterProp?: string;
   onChartStateChange?: (chartState: AgGridChartState) => void;
   suppressLoadingSpinner?: boolean;
+  asyncModeOverride?: AsyncModeOverride;
 }
 
+// Async resolution is injected for self-contained chart components in
+// superset-ui-core (e.g. StatefulChart), which read these off `Hooks` and cannot
+// import app-level async-event middleware themselves.
+type AsyncChartHooks = Pick<
+  Hooks,
+  'handleAsyncChartData' | 'resolveAsyncMode' | 'getTabId'
+>;
+
 // Hooks interface
-interface ChartHooks {
+interface ChartHooks extends AsyncChartHooks {
   onAddFilter: (
     col: string,
     vals: FilterValue[],
@@ -163,14 +175,6 @@ interface ChartHooks {
   setDataMask: (dataMask: DataMask) => void;
   onLegendScroll: (legendIndex: number) => void;
   onChartStateChange?: (chartState: AgGridChartState) => void;
-  // Resolve async (HTTP 202 / GLOBAL_ASYNC_QUERIES) chart-data responses for
-  // self-contained chart components in superset-ui-core (e.g. StatefulChart),
-  // which cannot import app-level async-event middleware.
-  handleAsyncChartData?: (
-    response: Response,
-    json: JsonObject,
-    signal?: AbortSignal,
-  ) => Promise<QueryData[]> | QueryData[];
 }
 
 const BLANK = {};
@@ -214,6 +218,7 @@ function ChartRendererComponent({
     source,
     emitCrossFilters,
     onChartStateChange,
+    asyncModeOverride,
   } = restProps;
 
   const theme = useTheme();
@@ -267,14 +272,44 @@ function ChartRendererComponent({
     prevQueriesResponseRef.current = queriesResponse;
   }, [queriesResponse]);
 
+  const currentFormData =
+    chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
+  const vizType = currentFormData.viz_type || propVizType;
+  // Some charts fetch their own data and issue no top-level query (e.g. deck.gl
+  // Multiple Layers, which renders its sub-layer charts), so an empty response
+  // is expected and shouldn't trigger the no-results state. Honor the chart's
+  // own enableNoResults metadata (defaults to true).
+  const chartEnableNoResults =
+    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
+
+  // A failed load leaves its errored response in the store, and the next
+  // CHART_UPDATE_STARTED clears chartAlert but not queriesResponse. Checking
+  // the response itself keeps that stale error from being drawn as chart data
+  // while the retry is in flight.
+  const hasAnyErrors = queriesResponse?.some(item => item?.error);
+  // The response of a chart that fetches its own data stays empty once it has
+  // loaded, so for those any response that landed counts as previous data.
+  const hasPreviousResponse = chartEnableNoResults
+    ? (queriesResponse?.length ?? 0) > 0
+    : Array.isArray(queriesResponse);
+  const hasValidPreviousData = hasPreviousResponse && !hasAnyErrors;
+
+  // An auto-refresh keeps the chart on screen while its query is in flight.
+  // The store holds the previous response until the new one lands, so that
+  // response is what the chart renders in the meantime.
+  const isRefreshing =
+    Boolean(restProps.suppressLoadingSpinner) && chartStatus === 'loading';
+  const hasRenderableResults =
+    resultsReady || (isRefreshing && hasValidPreviousData);
+
   // Clone queriesResponse to protect against plugin mutation of Redux state.
-  // Gate on `resultsReady` so the deep clone doesn't run for every
+  // Gate on `hasRenderableResults` so the deep clone doesn't run for every
   // queriesResponse identity change during loading/idle (only when results
-  // are actually about to render). Matches the pre-refactor gating.
+  // are actually about to render).
   // TODO: remove once reducers use Redux Toolkit with Immer.
   const mutableQueriesResponse = useMemo(
-    () => (resultsReady ? cloneDeep(queriesResponse) : undefined),
-    [queriesResponse, resultsReady],
+    () => (hasRenderableResults ? cloneDeep(queriesResponse) : undefined),
+    [queriesResponse, hasRenderableResults],
   );
 
   // Handler functions
@@ -285,7 +320,16 @@ function ChartRendererComponent({
     [addFilter],
   );
 
+  // The response the last render success was reported for. A refreshed
+  // response can be reported both by the effect below and by a plugin that
+  // mounts for it, and only the first report counts.
+  const reportedResponseRef = useRef<QueryData[] | null | undefined>();
+
   const handleRenderSuccess = useCallback((): void => {
+    if (reportedResponseRef.current === queriesResponse) {
+      return;
+    }
+    reportedResponseRef.current = queriesResponse;
     if (['loading', 'rendered'].indexOf(chartStatus as string) < 0) {
       actions.chartRenderingSucceeded(chartId);
     }
@@ -300,7 +344,23 @@ function ChartRendererComponent({
         duration: Logger.getTimestamp() - renderStartTimeRef.current,
       });
     }
-  }, [actions, chartId, chartStatus, propVizType]);
+  }, [actions, chartId, chartStatus, propVizType, queriesResponse]);
+
+  // The plugin reports render success once, after it loads. A chart kept on
+  // screen through an auto-refresh stays mounted when the new response lands,
+  // so that render is reported here to move the chart back to `rendered`.
+  const keptOnScreenRef = useRef(false);
+  useEffect(() => {
+    if (chartStatus === 'loading') {
+      keptOnScreenRef.current = hasRenderableResults;
+      return;
+    }
+    const refreshLanded = keptOnScreenRef.current;
+    keptOnScreenRef.current = false;
+    if (refreshLanded && chartStatus === 'success') {
+      handleRenderSuccess();
+    }
+  }, [chartStatus, handleRenderSuccess, hasRenderableResults, queriesResponse]);
 
   const handleRenderFailure = useCallback(
     (error: Error, info: { componentStack: string } | null): void => {
@@ -376,9 +436,28 @@ function ChartRendererComponent({
 
   const setDataMaskCallback = useCallback(
     (dataMask: DataMask) => {
-      actions?.updateDataMask?.(chartId, dataMask);
+      const sourceForm = latestQueryFormData ?? formData;
+      actions?.updateDataMask?.(
+        chartId,
+        sourceForm.datasource?.endsWith('__semantic_view')
+          ? {
+              ...dataMask,
+              extraFormData: {
+                ...dataMask.extraFormData,
+                semantic_selection_sources: [
+                  ...(dataMask.extraFormData?.semantic_selection_sources ?? []),
+                  ...(sourceForm.semantic_selection_sources ?? []),
+                  {
+                    datasource: sourceForm.datasource,
+                    version: sourceForm.semantic_selection_version ?? null,
+                  },
+                ],
+              },
+            }
+          : dataMask,
+      );
     },
-    [actions, chartId],
+    [actions, chartId, latestQueryFormData, formData],
   );
 
   // Hooks object - memoized
@@ -398,6 +477,15 @@ function ChartRendererComponent({
       // StatefulChart) resolve async (202) chart-data responses without
       // depending on app-level async-event middleware.
       handleAsyncChartData: handleChartDataResponse,
+      // Shares the async opt-in policy (feature flag + deployment default, plus
+      // the per-dashboard `async_mode` override) with those self-contained
+      // producers so they don't always run synchronously and honor the
+      // dashboard override like the Redux chart path.
+      resolveAsyncMode: () => resolveAsyncMode(asyncModeOverride),
+      // Lets those producers send this tab's id on an async request so the
+      // backend ref-counts the tab (per-tab cancel/detach), matching the Redux
+      // chart path (see chartAction.ts).
+      getTabId: () => getTabId(),
     }),
     [
       handleAddFilter,
@@ -411,28 +499,19 @@ function ChartRendererComponent({
       onFilterMenuOpen,
       setDataMaskCallback,
       showContextMenu,
+      asyncModeOverride,
     ],
   );
-
-  const hasAnyErrors = queriesResponse?.some(item => item?.error);
-  const hasValidPreviousData =
-    (queriesResponse?.length ?? 0) > 0 && !hasAnyErrors;
 
   if (!!chartAlert || chartStatus === null) {
     return null;
   }
 
-  if (chartStatus === 'loading') {
-    if (!restProps.suppressLoadingSpinner || !hasValidPreviousData) {
-      return null;
-    }
+  if (chartStatus === 'loading' && !hasRenderableResults) {
+    return null;
   }
 
   renderStartTimeRef.current = Logger.getTimestamp();
-
-  const currentFormData =
-    chartIsStale && latestQueryFormData ? latestQueryFormData : formData;
-  const vizType = currentFormData.viz_type || propVizType;
 
   // It's bad practice to use unprefixed `vizType` as classnames for chart
   // container. It may cause css conflicts as in the case of legacy table chart.
@@ -499,12 +578,6 @@ function ChartRendererComponent({
     Object.keys(ownState.agGridFilterModel).length > 0;
 
   const currentFormDataExtended = currentFormData as JsonObject;
-  // Some charts fetch their own data and issue no top-level query (e.g. deck.gl
-  // Multiple Layers, which renders its sub-layer charts), so an empty response
-  // is expected and shouldn't trigger the no-results state. Honor the chart's
-  // own enableNoResults metadata (defaults to true).
-  const chartEnableNoResults =
-    getChartMetadataRegistry().get(vizType)?.enableNoResults ?? true;
   const bypassNoResult =
     chartEnableNoResults &&
     !(
@@ -550,10 +623,7 @@ function ChartRendererComponent({
           legendState={state.legendState}
           enableNoResults={bypassNoResult}
           legendIndex={state.legendIndex}
-          isRefreshing={
-            Boolean(restProps.suppressLoadingSpinner) &&
-            chartStatus === 'loading'
-          }
+          isRefreshing={isRefreshing}
           {...drillToDetailProps}
         />
       </div>

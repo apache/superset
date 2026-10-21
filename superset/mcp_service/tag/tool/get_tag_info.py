@@ -47,6 +47,7 @@ logger = logging.getLogger(__name__)
         title="Get tag info",
         readOnlyHint=True,
         destructiveHint=False,
+        openWorldHint=False,
     ),
 )
 async def get_tag_info(request: GetTagInfoRequest, ctx: Context) -> TagInfo | TagError:

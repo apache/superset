@@ -17,7 +17,7 @@
 import contextlib
 import logging
 from abc import ABC
-from typing import Any, cast, Optional
+from typing import Any, cast, Optional, TYPE_CHECKING
 
 from flask import request
 from flask_babel import lazy_gettext as _
@@ -38,6 +38,7 @@ from superset.exceptions import SupersetException
 from superset.explore.exceptions import WrongEndpointError
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.extensions import security_manager
+from superset.models.sql_lab import Query
 from superset.superset_typing import ExplorableData
 from superset.utils import core as utils, json
 from superset.views.utils import (
@@ -46,7 +47,49 @@ from superset.views.utils import (
     sanitize_datasource_data,
 )
 
+if TYPE_CHECKING:
+    from superset.models.slice import Slice
+
 logger = logging.getLogger(__name__)
+
+
+def _authorize_datasource(
+    datasource: "BaseDatasource | Query", slc: Optional["Slice"]
+) -> None:
+    """
+    Raise if the current user cannot access the resource being explored.
+
+    Split out of ``GetExploreCommand.run()`` so the authorship-bypass
+    routing below is testable without a request context.
+    """
+    if slc:
+        security_manager.raise_for_access(chart=slc)
+    elif isinstance(datasource, Query):
+        # A "query" datasource_type resolves to the actual SQL Lab
+        # Query row, not a registered dataset -- its .perm is a
+        # synthetic string no role is ever granted, so the generic
+        # datasource_access check below would always fail here.
+        # Route it through the same query-authorship bypass the
+        # explore/create-chart form-data step already applies (see
+        # superset/explore/utils.py::check_query_access), so the
+        # Explore page for that transition actually opens for the
+        # query's own author.
+        #
+        # The Query is still passed as ``datasource`` too: the
+        # ``EXTRA_RAISE_FOR_ACCESS_BYPASS`` hook only ever receives
+        # ``datasource`` (never ``query``), and before this reroute the
+        # Explore GET handed it the Query under that name. Dropping it
+        # would silently stop a deployment's custom bypass from seeing
+        # the query at all. The author bypass returns before the generic
+        # ``datasource`` perm check at the tail of ``raise_for_access``,
+        # so this does not weaken anything for anyone else.
+        security_manager.raise_for_access(
+            query=datasource,
+            datasource=datasource,
+            allow_query_authorship_bypass=True,
+        )
+    else:
+        security_manager.raise_for_access(datasource=datasource)
 
 
 class GetExploreCommand(BaseCommand, ABC):
@@ -124,10 +167,7 @@ class GetExploreCommand(BaseCommand, ABC):
 
         if datasource:
             datasource_name = datasource.name
-            if slc:
-                security_manager.raise_for_access(chart=slc)
-            else:
-                security_manager.raise_for_access(datasource=datasource)
+            _authorize_datasource(datasource, slc)
 
         viz_type = form_data.get("viz_type")
         if (

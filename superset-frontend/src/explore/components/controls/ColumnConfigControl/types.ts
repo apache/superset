@@ -29,7 +29,9 @@ import { ControlFormItemComponents } from './ControlForm';
  * Column formatting configs.
  */
 export type ColumnConfig = {
-  [key in SharedColumnConfigProp]?: (typeof SHARED_COLUMN_CONFIG_PROPS)[key]['value'];
+  [
+    key in SharedColumnConfigProp
+  ]?: (typeof SHARED_COLUMN_CONFIG_PROPS)[key]['value'];
 } & Record<string, StrictJsonValue>;
 
 /**
@@ -68,5 +70,3 @@ export function isTabLayoutItem(
 ): layoutItem is TabLayoutItem {
   return !!(layoutItem as TabLayoutItem)?.tab;
 }
-
-export default {};

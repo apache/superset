@@ -31,10 +31,11 @@ from jinja2 import DebugUndefined, Environment, TemplateSyntaxError, UndefinedEr
 from jinja2.exceptions import SecurityError
 from jinja2.sandbox import SandboxedEnvironment
 from sqlalchemy.engine.interfaces import Dialect
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.sql.expression import bindparam
 from sqlalchemy.types import String
 
-from superset import security_manager
+from superset import db, security_manager
 from superset.commands.dataset.exceptions import DatasetNotFoundError
 from superset.common.utils.time_range_utils import get_since_until_from_time_range
 from superset.constants import LRU_CACHE_MAX_SIZE, NO_TIME_RANGE
@@ -118,6 +119,51 @@ class TimeFilter:
     time_range: str | None
 
 
+class SQLSafeList(list[Any]):  # noqa: FURB189
+    """
+    A list of dialect-escaped values whose *whole-container* string
+    rendering cannot re-introduce raw quote characters.
+
+    Rendering a plain Python list in a Jinja template goes through
+    ``str()``/``repr()``, which wraps every string element in fresh quote
+    delimiters (and switches to double-quote delimiters when the element
+    contains a single quote, emitting that single quote raw). Either way
+    the rendered text can contain quote characters that were never
+    escaped for SQL, so a template interpolating the list inside its own
+    quotes -- e.g. ``LIKE '{{ filter.get('escaped_val') }}'`` -- could be
+    broken out of even though every string leaf was individually escaped.
+    This subclass renders as its (already-escaped) elements joined with
+    ``", "``, with no additional delimiters, so every quote in the output
+    is one the dialect's literal processor already escaped.
+    """
+
+    def __str__(self) -> str:
+        return ", ".join(str(element) for element in self)
+
+    __repr__ = __str__
+
+
+class SQLSafeDict(dict[Any, Any]):  # noqa: FURB189
+    """
+    A dict of dialect-escaped keys and values whose *whole-container*
+    string rendering cannot re-introduce raw quote characters. Mirrors
+    :class:`SQLSafeList` for the mapping case.
+
+    Keys are typically used for member lookups (for example
+    ``{{ get_guest_user_attribute('tenant').id }}``) rather than
+    interpolated into SQL directly, but a template can still render the
+    whole dict -- and a key, like a value, may originate from data the
+    caller does not fully control. Keys are therefore escaped the same
+    way values are, through ``ExtraCache._escape_value``, so whole-dict
+    rendering carries the same guarantee as whole-list rendering.
+    """
+
+    def __str__(self) -> str:
+        return ", ".join(f"{key}: {value}" for key, value in self.items())
+
+    __repr__ = __str__
+
+
 def _normalize_postgresql_backslash_escapes(dialect: Dialect) -> None:
     """Correct a PostgreSQL dialect instance's ``_backslash_escapes`` default
     in place so backslashes round-trip unchanged when the dialect is used to
@@ -191,29 +237,43 @@ class ExtraCache:
             return user_id
         return None
 
-    def current_username(self, add_to_cache_keys: bool = True) -> str | None:
+    def current_username(
+        self, add_to_cache_keys: bool = True, escape_result: bool = True
+    ) -> str | None:
         """
         Return the username of the user who is currently logged in.
 
         :param add_to_cache_keys: Whether the value should be included in the cache key
+        :param escape_result: Should special characters in the result be escaped
         :returns: The username
         """
 
         if username := get_username():
+            # The documented templating pattern interpolates this value into a
+            # SQL literal, so apply the same dialect-specific escaping the other
+            # viewer-controlled macros (url_param, get_guest_user_attribute) use,
+            # keeping the identity macros consistent with their siblings.
+            if escape_result:
+                username = self._escape_value(username)
             if add_to_cache_keys:
                 self.cache_key_wrapper(username)
             return username
         return None
 
-    def current_user_email(self, add_to_cache_keys: bool = True) -> str | None:
+    def current_user_email(
+        self, add_to_cache_keys: bool = True, escape_result: bool = True
+    ) -> str | None:
         """
         Return the email address of the user who is currently logged in.
 
         :param add_to_cache_keys: Whether the value should be included in the cache key
+        :param escape_result: Should special characters in the result be escaped
         :returns: The user email address
         """
 
         if email_address := get_user_email():
+            if escape_result:
+                email_address = self._escape_value(email_address)
             if add_to_cache_keys:
                 self.cache_key_wrapper(email_address)
             return email_address
@@ -235,6 +295,15 @@ class ExtraCache:
             if add_to_cache_keys:
                 self.cache_key_wrapper(json.dumps(user_roles))
             return user_roles
+        except SQLAlchemyError:
+            # `get_user_roles()` lazy-loads roles from db.session, so a caught
+            # DB error can leave it in "pending rollback" state. This runs
+            # during SQL templating, upstream of the engine build that would
+            # otherwise inherit the failed transaction. Narrower than the
+            # blanket handler below so a non-DB failure (e.g. serializing the
+            # roles for the cache key) never discards pending work.
+            db.session.rollback()  # pylint: disable=consider-using-transaction
+            return None
         except Exception:  # pylint: disable=broad-except
             return None
 
@@ -463,10 +532,19 @@ class ExtraCache:
         to restore parity with PostgreSQL's default configuration, while
         MySQL/MariaDB keep the stricter, backslash-doubling behavior above.
 
-        Lists are processed element-wise and dict values recursively, so
-        strings nested inside JSON structures are also escaped; dict keys
-        are left untouched since they are used for member lookups, not
-        interpolation. Non-string leaf values are left as-is.
+        Lists are processed element-wise and dict keys/values recursively,
+        so strings nested inside JSON structures are also escaped. Non-string
+        leaf values are left as-is.
+
+        Lists and dicts are returned as :class:`SQLSafeList` /
+        :class:`SQLSafeDict` rather than plain ``list``/``dict``: Jinja
+        renders a whole container through ``str()``/``repr()``, which
+        wraps string elements in fresh quote delimiters that were never
+        escaped, so even a fully-escaped container could re-introduce raw
+        quotes when interpolated as a whole. The safe subclasses render
+        without adding such delimiters, while still comparing equal to
+        (and behaving like) their plain built-in counterparts everywhere
+        else.
         """
         if not self.dialect:
             return val
@@ -475,9 +553,11 @@ class ExtraCache:
             _normalize_postgresql_backslash_escapes(compiler.dialect)
             return compiler.render_literal_value(val, String())[1:-1]
         if isinstance(val, list):
-            return [self._escape_value(v) for v in val]
+            return SQLSafeList(self._escape_value(v) for v in val)
         if isinstance(val, dict):
-            return {k: self._escape_value(v) for k, v in val.items()}
+            return SQLSafeDict(
+                (self._escape_value(k), self._escape_value(v)) for k, v in val.items()
+            )
         return val
 
     def get_filters(self, column: str, remove_filter: bool = False) -> list[Filter]:
@@ -821,6 +901,11 @@ class WhereInMacro:  # pylint: disable=too-few-public-methods
             for bind in binds
         ]
         joined_values = ", ".join(string_representations)
+        # The macro returns literal SQL, not a DBAPI parameterized statement.
+        # Undo only the compiler's percent escaping, as compile_sqla_query does;
+        # SQL Lab executes the rendered query without a parameters object.
+        if self.dialect.identifier_preparer._double_percents:  # pylint: disable=protected-access
+            joined_values = joined_values.replace("%%", "%")
         result = (
             f"({joined_values})" if (joined_values or not default_to_none) else None
         )
@@ -866,6 +951,23 @@ class SupersetSandboxedEnvironment(SandboxedEnvironment):
         if isinstance(obj, partial):
             return False
         return super().is_safe_attribute(obj, attr, value)
+
+
+# Names taken by ``BaseTemplateProcessor.__init__`` as structural arguments
+# rather than passed through ``set_context``, so they are never exposed as
+# Jinja variables in the render context. A define/repoint access check renders
+# the SQL with the submitted ``template_params``; dropping these first keeps
+# that render matching execution (see ``template_params_for_access_check``).
+RESERVED_TEMPLATE_PARAM_NAMES: frozenset[str] = frozenset(
+    {
+        "database",
+        "query",
+        "table",
+        "extra_cache_keys",
+        "removed_filters",
+        "applied_filters",
+    }
+)
 
 
 class BaseTemplateProcessor:
@@ -1237,7 +1339,7 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     """
     # pylint: disable=import-outside-toplevel
     from superset.daos.chart import ChartDAO
-    from superset.views.utils import loads_request_json
+    from superset.views.utils import get_request_json_body, loads_request_json
 
     form_data: dict[str, Any] = {}
     exc_message = _(
@@ -1246,7 +1348,7 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     )
 
     if has_request_context():
-        if payload := request.get_json(cache=True) if request.is_json else None:
+        if payload := get_request_json_body():
             if dataset_id := payload.get("datasource", {}).get("id"):
                 return dataset_id
             form_data.update(payload.get("form_data", {}))
@@ -1272,6 +1374,34 @@ def get_dataset_id_from_context(metric_key: str) -> int:
     raise SupersetTemplateException(exc_message)
 
 
+def guest_user_can_access_dataset(dataset: SqlaTable) -> bool:
+    """
+    Whether the current guest (embedded) user may read the given dataset.
+
+    Guest access is granted per dashboard, so the dataset must back at least
+    one chart on a dashboard the guest token covers; a ``datasets`` allowlist
+    on the token further restricts the reachable IDs.
+
+    :param dataset: a dataset resolved without the DAO base filter.
+    :returns: whether the guest user may read the dataset.
+    """
+    guest_user = security_manager.get_current_guest_user_if_guest()
+    if not guest_user:
+        return False
+
+    allowed_datasets: list[int] | None = guest_user.guest_token.get("datasets")
+    if allowed_datasets is not None and (
+        not isinstance(allowed_datasets, list) or dataset.id not in allowed_datasets
+    ):
+        return False
+
+    return any(
+        security_manager.has_guest_access(dashboard)
+        for slc in dataset.slices
+        for dashboard in slc.dashboards
+    )
+
+
 def metric_macro(
     env: Environment,
     context: dict[str, Any],
@@ -1294,13 +1424,19 @@ def metric_macro(
     if not dataset_id:
         dataset_id = get_dataset_id_from_context(metric_key)
 
-    # Embedded user access is validated at the dashboard level, so we bypass
-    # the regular DAO filter for them
+    # Embedded (guest) user access is validated at the dashboard level, so the
+    # regular DAO filter is bypassed for them and dashboard-level scope is
+    # enforced explicitly below.
     dataset = DatasetDAO.find_by_id(
         dataset_id,
         skip_base_filter=security_manager.is_guest_user(),
     )
     if not dataset:
+        raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
+
+    # With the base filter skipped, scope a guest to datasets reachable through
+    # a dashboard their token grants; reuse the not-found error for consistency.
+    if security_manager.is_guest_user() and not guest_user_can_access_dataset(dataset):
         raise DatasetNotFoundError(f"Dataset ID {dataset_id} not found.")
 
     metrics: dict[str, str] = {
