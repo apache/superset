@@ -16,7 +16,6 @@
 # under the License.
 # pylint: disable=unused-argument, import-outside-toplevel, protected-access
 from datetime import datetime
-from typing import Optional
 
 import pytest
 
@@ -29,12 +28,15 @@ from tests.unit_tests.fixtures.common import dttm  # noqa: F401
     [
         ("Date", "'2019-01-02'"),
         ("TimeStamp", "'2019-01-02 03:04:05'"),
+        ("DateTime", "'2019-01-02 03:04:05'"),
+        ("String", "'2019-01-02 03:04:05'"),
+        ("Text", "'2019-01-02 03:04:05'"),
         ("UnknownType", None),
     ],
 )
 def test_convert_dttm(
     target_type: str,
-    expected_result: Optional[str],
+    expected_result: str | None,
     dttm: datetime,  # noqa: F811
 ) -> None:
     from superset.db_engine_specs.cockroachdb import (
@@ -58,3 +60,13 @@ def test_dialect_loads_under_installed_sqlalchemy() -> None:
     from sqlalchemy import create_engine
 
     create_engine("cockroachdb://root@localhost:26257/defaultdb?sslmode=disable")
+
+
+def test_cockroachdb_properties() -> None:
+    from superset.db_engine_specs.cockroachdb import CockroachDbEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    assert issubclass(CockroachDbEngineSpec, PostgresEngineSpec)
+    assert CockroachDbEngineSpec._extended_aggregations == {}
+    assert "sqlalchemy-cockroachdb" in CockroachDbEngineSpec.metadata["pypi_packages"]
+    assert CockroachDbEngineSpec.metadata["default_port"] == 26257
