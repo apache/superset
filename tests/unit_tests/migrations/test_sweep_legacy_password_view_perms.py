@@ -182,8 +182,9 @@ def test_is_idempotent(session: Session) -> None:
 
 
 def test_downgrade_is_a_no_op(session: Session) -> None:
-    """The dead permissions have no code path that can recreate or check
-    them, so downgrade deliberately restores nothing."""
+    """The dead permissions have no code path that checks them (and FAB
+    re-registers the two launcher PVMs itself on app creation anyway), so
+    downgrade deliberately restores nothing."""
     migration.do_downgrade(session)
     session.commit()
     assert session.query(PermissionView).count() == 0

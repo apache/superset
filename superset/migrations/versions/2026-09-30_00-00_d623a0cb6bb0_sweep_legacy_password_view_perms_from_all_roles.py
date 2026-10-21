@@ -82,10 +82,16 @@ def do_upgrade(session: Session) -> None:
 def do_downgrade(session: Session) -> None:
     """Intentionally a no-op.
 
-    These permissions were deleted because the views/actions they gated are
-    never registered in current code, so current code can never create them
-    again on its own. Recreating the bare PVM rows here would just
-    reintroduce dead, unreachable permissions with no code path granting or
+    The reset views' own permissions can never come back on their own: those
+    views are not registered, so nothing re-registers their PVMs. The two
+    ``UserDBModelView`` launcher actions are different -- the hidden actions
+    still exist on the view, so FAB re-registers their PVM rows whenever the
+    app is created with ``FAB_UPDATE_PERMS`` on (the default, which includes
+    ``superset init``) and hands them to the ``AUTH_ROLE_ADMIN`` role.
+    ``superset init`` strips them from the built-in Admin role again via
+    ``set_role``, but a custom-named ``AUTH_ROLE_ADMIN`` is never resynced
+    and keeps them. Either way the actions answer 404, so recreating any of
+    these rows here would only reintroduce dead permissions with no code path
     checking them -- there is no meaningful prior state to restore.
     """
 

@@ -824,8 +824,11 @@ assigns their permissions (`can this form get/post on ResetPasswordView` and
 `ResetMyPasswordView`, plus the `resetpasswords` and `resetmypassword` actions on
 `UserDBModelView`) to the built-in Admin/Alpha/Gamma/sql_lab roles, and a data
 migration removes those same permissions from every other (operator-defined)
-role that already held them, so no role on any upgraded install retains them.
-Every flow they served lives in the SPA: administrators reset a user's
+role that already held them. The one exception is a custom-named
+`AUTH_ROLE_ADMIN`: FAB re-registers the two `UserDBModelView` action
+permissions on app creation and grants new ones to that role, and `superset
+init` only resyncs the built-in roles, so such a role re-acquires those two
+(still hidden, still 404) entries. Every flow they served lives in the SPA: administrators reset a user's
 password from the "New password" fields in the Users list edit modal (`PUT
 /api/v1/security/users/<id>`), users change their own from the "Reset my
 password" modal on their profile page (`PUT /api/v1/me/`, which requires
