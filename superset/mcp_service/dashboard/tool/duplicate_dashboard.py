@@ -18,7 +18,8 @@
 """
 MCP tool: duplicate_dashboard
 
-Duplicates an existing dashboard, optionally deep-copying its charts.
+Duplicates an existing dashboard and deep-copies charts by default for isolation.
+Set duplicate_slices=false only to deliberately share the source charts.
 Canonical workflow: clone a template dashboard, then edit the copy
 (e.g. to create a regional or staging variant).
 """

@@ -801,6 +801,25 @@ async def test_duplicate_description_explains_isolated_default() -> None:
     """Published guidance must not introduce the default as an opt-in."""
     tools = await mcp.list_tools()
     tool = next(tool for tool in tools if tool.name == "duplicate_dashboard")
+    from importlib import import_module
+
+    from superset.mcp_service.app import get_default_instructions
+
+    module = import_module("superset.mcp_service.dashboard.tool.duplicate_dashboard")
+    assert "deep-copies charts by default" in (module.__doc__ or "")
+    assert "Set duplicate_slices=false only" in (module.__doc__ or "")
+
+    instructions = get_default_instructions()
+    entry = next(
+        line
+        for line in instructions.splitlines()
+        if line.startswith("- duplicate_dashboard:")
+    )
+    assert "By default the copy deep-copies charts" in entry
+    assert "edits are isolated" in entry
+    assert "Set duplicate_slices=false only" in entry
+    assert "optionally deep-copying" not in entry
+
     description = " ".join((tool.description or "").split())
     assert "By default the copy deep-copies charts" in description
     assert "With duplicate_slices=true" not in description
