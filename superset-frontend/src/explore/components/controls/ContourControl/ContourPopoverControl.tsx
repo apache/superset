@@ -46,12 +46,9 @@ const StyledRow = styled(Row)`
   gap: ${({ theme }) => theme.sizeUnit * 2}px;
 `;
 
-const isIsoband = (contour: ContourType) => {
-  return (
-    (contour.upperThreshold || contour.upperThreshold === 0) &&
-    (contour.lowerThreshold || contour.lowerThreshold === 0)
-  );
-};
+const isIsoband = (contour: ContourType) =>
+  (contour.upperThreshold || contour.upperThreshold === 0) &&
+  (contour.lowerThreshold || contour.lowerThreshold === 0);
 
 const getTabKey = (contour: ContourType | undefined) =>
   contour && isIsoband(contour) ? ContourTypes.Isoband : ContourTypes.Isoline;
