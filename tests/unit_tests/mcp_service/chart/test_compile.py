@@ -1176,3 +1176,79 @@ def test_compile_chart_validation_failure_is_not_connection_error(
     assert result.error_obj.error_type == "compile_error"
     assert result.error_obj.error_code == "CHART_COMPILE_FAILED"
     assert message in result.error_obj.details
+
+
+@pytest.mark.parametrize(
+    ("message", "validation_failure", "expected_error_type"),
+    [
+        (
+            "(psycopg2.OperationalError) connection to server failed: "
+            "Connection refused",
+            False,
+            "database_connection_error",
+        ),
+        (
+            "Unsafe template value for key time_grain: TimeGrain",
+            True,
+            "compile_error",
+        ),
+        ("Invalid post-processing operation", True, "compile_error"),
+    ],
+)
+def test_compile_chart_annotation_failure_preserves_error_classification(
+    mocker: MockerFixture,
+    message: str,
+    validation_failure: bool,
+    expected_error_type: str,
+) -> None:
+    """Annotation failures retain their classification through validation wraps."""
+    from superset.common.query_context_processor import QueryContextProcessor
+    from superset.db_engine_specs.base import BaseEngineSpec
+    from superset.exceptions import (
+        QueryObjectValidationError,
+        QueryObjectValidationMessage,
+    )
+
+    annotation_context = Mock(queries=[])
+    annotation_error = (
+        QueryObjectValidationMessage(QueryObjectValidationError(message))
+        if validation_failure
+        else message
+    )
+    annotation_context.get_payload.return_value = {
+        "queries": [{"error": annotation_error}]
+    }
+    chart = Mock()
+    chart.get_query_context.return_value = annotation_context
+    mocker.patch(
+        "superset.common.query_context_processor.ChartDAO.find_by_id",
+        return_value=chart,
+    )
+
+    def get_payload(**kwargs: Any) -> dict[str, Any]:
+        """Record the annotation error like the main query processor."""
+        try:
+            QueryContextProcessor.get_viz_annotation_data(
+                {"value": 2, "name": "annotation"}, force=False
+            )
+        except QueryObjectValidationError as exc:
+            return {"queries": [{"error": QueryObjectValidationMessage(exc)}]}
+        raise AssertionError("Expected the annotation query to fail")
+
+    context = Mock()
+    context.get_payload.side_effect = get_payload
+    mocker.patch(
+        "superset.mcp_service.chart.chart_helpers.build_query_context_from_form_data",
+        return_value=context,
+    )
+    mocker.patch("superset.charts.data.form_data.set_query_context_form_data")
+    dataset = Mock()
+    dataset.database.db_engine_spec = BaseEngineSpec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+
+    result = _compile_chart({"metrics": ["count"]}, dataset_id=1)
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    assert message in result.error_obj.details

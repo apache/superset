@@ -480,6 +480,8 @@ buckets, including Big Number trendlines with saved metrics. Template-rendering
 and query-processing validation failures are reported as `compile_error`, with
 the underlying error in `details`, rather than as database connection failures.
 Check the chart configuration or dataset expressions before retrying.
+Database failures in annotation-layer queries remain `database_connection_error`,
+even when the annotation layer wraps the failure as a validation error.
 
 ### AI doesn't see Superset tools
 

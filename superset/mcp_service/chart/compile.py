@@ -123,7 +123,6 @@ def _compile_chart(  # noqa: C901
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
         ChartDataQueryFailedError,
-        ChartDataQueryValidationError,
     )
     from superset.mcp_service.chart.chart_helpers import (
         build_query_context_from_form_data,
@@ -218,8 +217,7 @@ def _compile_chart(  # noqa: C901
         return CompileResult(success=True, warnings=warnings, row_count=row_count)
     except (ChartDataQueryFailedError, ChartDataCacheLoadError) as exc:
         if (
-            not isinstance(exc, ChartDataQueryValidationError)
-            and datasource_type == DatasourceType.TABLE.value
+            datasource_type == DatasourceType.TABLE.value
             and _classify_as_database_error(exc, dataset_id)
         ):
             logger.warning(
@@ -413,20 +411,35 @@ def _classify_as_database_error(exc: BaseException, dataset_id: int) -> bool:
     then falls back to the engine spec's ``extract_errors`` regex patterns —
     the same classification the Superset UI uses.
     """
+    from superset.commands.chart.exceptions import (
+        ChartDataQueryFailedError,
+        ChartDataQueryValidationError,
+    )
+
+    # Validation wrappers can carry an annotation chart's database failure.
+    # Only a non-validation query failure may use the engine's generic fallback.
+    database_exc = None if isinstance(exc, ChartDataQueryValidationError) else exc
     # Direct SQLAlchemy errors (unwrapped or in cause chain)
     current: BaseException | None = exc
     while current is not None:
         if isinstance(current, SQLAlchemyError):
             return True
+        if isinstance(current, ChartDataQueryFailedError) and not isinstance(
+            current, ChartDataQueryValidationError
+        ):
+            database_exc = current
         current = current.__cause__
+
+    if database_exc is None:
+        return False
 
     # Use the dataset's engine spec to classify (same as the UI)
     try:
         from superset.daos.dataset import DatasetDAO
 
         dataset = DatasetDAO.find_by_id(dataset_id)
-        if dataset and dataset.database and isinstance(exc, Exception):
-            errors = dataset.database.db_engine_spec.extract_errors(exc)
+        if dataset and dataset.database and isinstance(database_exc, Exception):
+            errors = dataset.database.db_engine_spec.extract_errors(database_exc)
             return any(e.error_type in CONNECTION_ERROR_TYPES for e in errors)
     except Exception:  # pylint: disable=broad-except
         logger.debug(
