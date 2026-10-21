@@ -22,6 +22,10 @@ from superset.commands.chart.exceptions import (
     ChartQueryContextDatasourceMismatchValidationError,
 )
 from superset.commands.exceptions import DatasourceTypeInvalidError
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.utils import json
 from superset.utils.core import DatasourceType
 
@@ -32,6 +36,11 @@ def validate_chart_datasource_type(datasource_type: str) -> None:
     SQL Lab queries are registered datasource types but are not persistent
     chart sources; accepting all DatasourceDAO registrations would include them.
     """
+    if (
+        datasource_type == DatasourceType.SEMANTIC_VIEW
+        and not is_semantic_layers_enabled()
+    ):
+        raise ValidationError(SemanticLayersDisabledError.message)
     if datasource_type not in (DatasourceType.TABLE, DatasourceType.SEMANTIC_VIEW):
         raise DatasourceTypeInvalidError()
 

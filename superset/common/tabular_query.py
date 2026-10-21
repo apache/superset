@@ -134,9 +134,10 @@ def _resolve_time_column(
 ) -> str | None:
     """Resolve and validate the temporal column a time range applies to.
 
-    Datasets carry ``main_dttm_col``; semantic views do not, so a lone datetime
-    dimension is inferred. Only inferred when a time range was given — an
-    unfiltered query must not acquire a temporal axis it did not ask for.
+    Both datasets and semantic views may carry ``main_dttm_col``; otherwise a
+    lone datetime dimension is inferred. Only inferred when a time range was
+    given — an unfiltered query must not acquire a temporal axis it did not ask
+    for.
     """
     valid_columns = {column.column_name for column in explorable.columns}
     dttm_columns = [

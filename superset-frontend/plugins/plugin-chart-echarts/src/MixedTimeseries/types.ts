@@ -50,6 +50,7 @@ export type EchartsMixedTimeseriesFormData = QueryFormData & {
   minorTicks: boolean;
   gridlines: boolean;
   axisTicks: boolean;
+  valueAxisLabels: boolean;
   logAxis: boolean;
   logAxisSecondary: boolean;
   yAxisFormat?: string;
@@ -117,6 +118,7 @@ export const DEFAULT_FORM_DATA: EchartsMixedTimeseriesFormData = {
   minorSplitLine: TIMESERIES_DEFAULTS.minorSplitLine,
   gridlines: TIMESERIES_DEFAULTS.gridlines,
   axisTicks: TIMESERIES_DEFAULTS.axisTicks,
+  valueAxisLabels: TIMESERIES_DEFAULTS.valueAxisLabels,
   truncateYAxis: TIMESERIES_DEFAULTS.truncateYAxis,
   truncateYAxisSecondary: TIMESERIES_DEFAULTS.truncateYAxis,
   logAxis: TIMESERIES_DEFAULTS.logAxis,
