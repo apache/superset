@@ -110,6 +110,15 @@ assists people when migrating to a new version.
   the view's `metadata_cache_token`, so metadata refresh makes old entries miss. Enable
   `SEMANTIC_LAYERS`; configure shared persistent `DATA_CACHE_CONFIG` and Redis-backed `DISTRIBUTED_COORDINATION_CONFIG` on every web/worker process.
 
+- `!=`, `NOT LIKE` and `NOT ILIKE` filters on SQLAlchemy-backed datasets now also
+  return rows where the column is NULL, as do whole-array `!=` / `NOT IN` filters
+  and `!=` / `NOT IN` filters on advanced data type columns (internet address,
+  port). Previously these rows were dropped by SQL three-valued logic
+  (`NULL != 'CA'` is not true), so a filter such as `state != 'CA'` removed NULL
+  rows in addition to `CA`. Dashboards, charts and reports that use these
+  operators may therefore show additional NULL rows. An explicit NULL operand
+  behaves as before (`!= NULL` still means `IS NOT NULL`).
+
 - Address validation refuses additional non-global address forms. Addresses in
   the well-known NAT64 prefix `64:ff9b::/96` are checked using their embedded IPv4
   address and refused when that address is unsafe. Local-use translation

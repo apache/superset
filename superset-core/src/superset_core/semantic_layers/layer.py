@@ -79,8 +79,15 @@ class SemanticCacheIdentityMaterial:
 class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     """
     Abstract base class for semantic layers.
+
+    Providers store the parsed configuration instance on the writable
+    ``self.configuration`` attribute. Assigning a raw dictionary is a type error
+    by design; exposing configuration as a read-only property is not supported.
     """
 
+    # Parsed settings read by the host when requesting the runtime schema.
+    # Providers supply this instance attribute; the SDK does not initialize it.
+    configuration: ConfigT
     configuration_class: type[BaseModel]
     semantic_cache_responsibility: SemanticCacheResponsibility = (
         SemanticCacheResponsibility.PROVIDER
@@ -143,6 +150,12 @@ class SemanticLayer(ABC, Generic[ConfigT, SemanticViewT]):
     ) -> dict[str, Any]:
         """
         Get the JSON schema for the configuration needed to add the semantic layer.
+
+        Omitting configuration (or passing ``None``), with the required
+        ``transport`` keyword, must return a static schema
+        without I/O: no connections, network discovery or credential lookup.
+        The host uses this form before configuration exists, including for
+        secret masking. It must not require a constructed provider instance.
 
         A partial configuration `configuration` can be sent to improve the schema,
         allowing for progressive validation and better UX. For example, a semantic
