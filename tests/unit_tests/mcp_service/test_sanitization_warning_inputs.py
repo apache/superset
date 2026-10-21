@@ -188,7 +188,13 @@ def test_title_sanitization_error_names_field(
 @pytest.mark.parametrize("alias", [False, True])
 @pytest.mark.parametrize(
     "rejected",
-    ["javascript:alert('private-input')", "Inspect data: text,private-input"],
+    [
+        "javascript:alert('private-input')",
+        "Inspect data: text,private-input",
+        "java\tscript:private-input",
+        "vb\nscript:private-input",
+        "dat\ra:text/html,private-input",
+    ],
 )
 async def test_title_sanitization_wire_error_names_field(
     tool: str,

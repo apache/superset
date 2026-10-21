@@ -762,7 +762,8 @@ curl -X POST http://localhost:5008/mcp \
 
 Dashboard titles and chart names may contain punctuation and prose labels such
 as `substitute data: Jira support tickets`. URL payloads using `javascript:`,
-`vbscript:`, or `data:` remain rejected. A `data:` label is accepted only when
+`vbscript:`, or `data:` remain rejected, including schemes with embedded ASCII
+tabs, newlines, or carriage returns. A `data:` label is accepted only when
 `data:` is followed by whitespace and no comma appears anywhere after it. A
 value that starts with `data:`, or has a character other than whitespace right
 after `data:`, is always rejected. Browsers read the text before the first comma

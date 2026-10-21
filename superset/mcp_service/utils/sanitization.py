@@ -90,6 +90,10 @@ _WHITESPACE_DATA_SCHEME_RE = re.compile(r"\bdata:\s", re.IGNORECASE)
 def _check_dangerous_url_scheme(value: str, field_name: str) -> None:
     """Raise if ``value`` contains a ``javascript:`` / ``vbscript:`` / ``data:``
     URL scheme."""
+    # WHATWG URL parsing removes ASCII tab, LF, and CR, even inside schemes.
+    # Normalize only the check; preserve whitespace in accepted display text.
+    value = value.translate(str.maketrans("", "", "\t\n\r"))
+
     # Only the first whitespace-prefixed payload and the last comma are needed.
     # Avoid rescanning the suffix for every data: token in comma-free prose.
     data_scheme = _WHITESPACE_DATA_SCHEME_RE.search(value)

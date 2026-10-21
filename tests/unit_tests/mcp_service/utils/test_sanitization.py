@@ -846,3 +846,24 @@ def test_repeated_data_labels_without_comma_are_preserved(filter_value: bool) ->
         assert sanitize_filter_value(value, max_length=60000) == value.strip()
     else:
         assert sanitize_user_input(value, "Title", max_length=60000) == value.strip()
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize(
+    "control", ["\t", "\n", "\r", "\t\n\r", "&#9;", "&#10;", "&#13;"]
+)
+@pytest.mark.parametrize(
+    "scheme,payload",
+    [("javascript", "alert(1)"), ("vbscript", "msgbox(1)"), ("data", "text/html,x")],
+)
+def test_url_scheme_with_embedded_controls_is_rejected(
+    sanitize: Callable[[str], object], control: str, scheme: str, payload: str
+) -> None:
+    """Reject URL-parser-stripped controls at every scheme split, including colon."""
+    for position in range(1, len(scheme) + 1):
+        value = scheme[:position] + control + scheme[position:] + ":" + payload
+        with pytest.raises(ValueError, match="malicious URL scheme"):
+            sanitize(value)
