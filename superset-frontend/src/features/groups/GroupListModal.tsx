@@ -28,9 +28,14 @@ import {
   Select,
   AsyncSelect,
 } from '@superset-ui/core/components';
-import { getUserDisplayLabel } from 'src/features/users/utils';
+import { SUBJECT_OPTION_FILTER_PROPS } from 'src/features/subjects/SubjectSelectLabel';
 import { FormValues, GroupModalProps } from './types';
-import { createGroup, fetchUserOptions, updateGroup } from './utils';
+import {
+  createGroup,
+  fetchUserOptions,
+  toUserSelectOption,
+  updateGroup,
+} from './utils';
 
 function GroupListModal({
   show,
@@ -92,11 +97,7 @@ function GroupListModal({
   const initialValues = {
     ...group,
     roles: group?.roles?.map(role => role.id) || [],
-    users:
-      group?.users?.map(user => ({
-        value: user.id,
-        label: getUserDisplayLabel(user),
-      })) || [],
+    users: group?.users?.map(toUserSelectOption) || [],
   };
 
   return (
@@ -151,6 +152,9 @@ function GroupListModal({
           options={(filterValue, page, pageSize) =>
             fetchUserOptions(filterValue, page, pageSize, addDangerToast)
           }
+          // The server matches on email too; re-filter on the option's
+          // plain-text name and email rather than its React label.
+          optionFilterProps={SUBJECT_OPTION_FILTER_PROPS}
         />
       </FormItem>
     </FormModal>

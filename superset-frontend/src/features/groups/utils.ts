@@ -19,10 +19,38 @@
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
+import {
+  SUBJECT_DETAIL_PROP,
+  SUBJECT_TEXT_LABEL_PROP,
+  SubjectSelectLabel,
+} from 'src/features/subjects/SubjectSelectLabel';
 import { getUserDisplayLabel } from 'src/features/users/utils';
 import { FormValues } from './types';
 
-type UserOption = { id: number } & Parameters<typeof getUserDisplayLabel>[0];
+type UserRecord = { id: number; email?: string } & Parameters<
+  typeof getUserDisplayLabel
+>[0];
+
+/**
+ * Build a select option for a user picker.
+ *
+ * The option shows the email under the display name, like the subject-based
+ * owner pickers do, so that a server-side match on email is visible to the
+ * person searching. Plain-text copies of both lines are attached under the
+ * subject filter props so AsyncSelect's client-side re-filter can match them
+ * (a React label is otherwise filtered as an empty string), and under `title`
+ * so ListView can serialize the chosen option's label into the URL.
+ */
+export const toUserSelectOption = (user: UserRecord) => {
+  const textLabel = getUserDisplayLabel(user);
+  return {
+    value: user.id,
+    label: SubjectSelectLabel({ label: textLabel, secondaryLabel: user.email }),
+    title: textLabel,
+    [SUBJECT_TEXT_LABEL_PROP]: textLabel,
+    [SUBJECT_DETAIL_PROP]: user.email,
+  };
+};
 
 export const createGroup = async (values: FormValues) => {
   await SupersetClient.post({
@@ -67,13 +95,10 @@ export const fetchUserOptions = async (
       endpoint: `/api/v1/security/users/?q=${query}`,
     });
 
-    const results: UserOption[] = response.json?.result || [];
+    const results: UserRecord[] = response.json?.result || [];
 
     return {
-      data: results.map(user => ({
-        value: user.id,
-        label: getUserDisplayLabel(user),
-      })),
+      data: results.map(toUserSelectOption),
       totalCount: response.json?.count ?? 0,
     };
   } catch (error) {

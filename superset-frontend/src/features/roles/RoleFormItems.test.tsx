@@ -24,6 +24,7 @@ import {
   UsersField,
   GroupsField,
 } from './RoleFormItems';
+import { fetchUserOptions, toUserSelectOption } from '../groups/utils';
 import { fetchPermissionOptions } from './utils';
 
 jest.mock('./utils', () => ({
@@ -32,6 +33,7 @@ jest.mock('./utils', () => ({
 }));
 
 jest.mock('../groups/utils', () => ({
+  ...jest.requireActual('../groups/utils'),
   fetchUserOptions: jest.fn(),
 }));
 
@@ -98,6 +100,51 @@ test('UsersField renders label and select', () => {
   render(<UsersField addDangerToast={addDangerToast} loading={false} />);
   expect(screen.getByText('Users')).toBeInTheDocument();
   expect(screen.getByTestId('roles-select')).toBeInTheDocument();
+});
+
+test('UsersField shows a user matched by email even though the label is their name', async () => {
+  // fetchUserOptions matches email server-side, but the option label is the
+  // display name. AsyncSelect's client-side re-filter must use the option's
+  // plain-text name and email props, or the server-matched option is hidden.
+  jest
+    .mocked(fetchUserOptions)
+    .mockImplementation(async (filterValue: string) =>
+      filterValue === 'jane@example.com'
+        ? {
+            data: [
+              toUserSelectOption({
+                id: 7,
+                username: 'jsmith',
+                first_name: 'Jane',
+                last_name: 'Smith',
+                email: 'jane@example.com',
+              }),
+            ],
+            totalCount: 1,
+          }
+        : // totalCount must exceed the empty initial page here, otherwise
+          // AsyncSelect marks allValuesLoaded and short-circuits every
+          // later fetch, including the search request this test depends on.
+          { data: [], totalCount: 1 },
+    );
+
+  render(<UsersField addDangerToast={addDangerToast} loading={false} />);
+  const combobox = screen.getByRole('combobox');
+  await waitFor(() => userEvent.click(combobox));
+  await userEvent.clear(combobox);
+  await userEvent.type(combobox, 'jane@example.com', { delay: 10 });
+
+  await waitFor(() =>
+    expect(fetchUserOptions).toHaveBeenCalledWith(
+      'jane@example.com',
+      expect.anything(),
+      expect.anything(),
+      addDangerToast,
+    ),
+  );
+  const dropdown = within(document.querySelector('.ant-select-dropdown-list')!);
+  expect(await dropdown.findByText('Jane Smith')).toBeInTheDocument();
+  expect(dropdown.getByText('jane@example.com')).toBeInTheDocument();
 });
 
 test('GroupsField renders label and select', () => {

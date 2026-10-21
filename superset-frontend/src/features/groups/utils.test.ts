@@ -18,7 +18,8 @@
  */
 import { SupersetClient } from '@superset-ui/core';
 import rison from 'rison';
-import { fetchUserOptions } from './utils';
+import { render, screen } from 'spec/helpers/testing-library';
+import { fetchUserOptions, toUserSelectOption } from './utils';
 
 type GetResponse = Awaited<ReturnType<typeof SupersetClient.get>>;
 
@@ -43,7 +44,13 @@ afterEach(() => {
 
 test('fetchUserOptions sends the search term as a server-side filter', async () => {
   mockUsersResponse([
-    { id: 7, username: 'jsmith', first_name: 'Jane', last_name: 'Smith' },
+    {
+      id: 7,
+      username: 'jsmith',
+      first_name: 'Jane',
+      last_name: 'Smith',
+      email: 'jane@example.com',
+    },
   ]);
 
   const result = await fetchUserOptions('Jane Sm', 0, 100, jest.fn());
@@ -56,7 +63,15 @@ test('fetchUserOptions sends the search term as a server-side filter', async () 
     order_direction: 'asc',
   });
   expect(result).toEqual({
-    data: [{ value: 7, label: 'Jane Smith' }],
+    data: [
+      {
+        value: 7,
+        label: expect.anything(),
+        title: 'Jane Smith',
+        textLabel: 'Jane Smith',
+        subjectDetail: 'jane@example.com',
+      },
+    ],
     totalCount: 1,
   });
 });
@@ -93,7 +108,7 @@ test.each([
       order_direction: 'asc',
     });
     expect(result).toEqual({
-      data: [{ value: 1, label: 'admin' }],
+      data: [expect.objectContaining({ value: 1, title: 'admin' })],
       totalCount: 250,
     });
   },
@@ -109,4 +124,39 @@ test('fetchUserOptions shows a toast and returns no options on error', async () 
     'There was an error while fetching users',
   );
   expect(result).toEqual({ data: [], totalCount: 0 });
+});
+
+test('toUserSelectOption shows the email under the display name', () => {
+  const option = toUserSelectOption({
+    id: 7,
+    username: 'jsmith',
+    first_name: 'Jane',
+    last_name: 'Smith',
+    email: 'jane@example.com',
+  });
+
+  render(option.label);
+
+  expect(screen.getByText('Jane Smith')).toBeInTheDocument();
+  expect(screen.getByText('jane@example.com')).toBeInTheDocument();
+  expect(option).toMatchObject({
+    value: 7,
+    title: 'Jane Smith',
+    textLabel: 'Jane Smith',
+    subjectDetail: 'jane@example.com',
+  });
+});
+
+test('toUserSelectOption falls back to the username and omits a missing email', () => {
+  const option = toUserSelectOption({ id: 3, username: 'svc_reporting' });
+
+  render(option.label);
+
+  expect(screen.getByText('svc_reporting')).toBeInTheDocument();
+  expect(option).toMatchObject({
+    value: 3,
+    title: 'svc_reporting',
+    textLabel: 'svc_reporting',
+    subjectDetail: undefined,
+  });
 });
