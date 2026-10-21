@@ -654,7 +654,12 @@ class QueryContextProcessor:
                 data_key: Any = (
                     [
                         annotation_query_context.query_cache_key(
-                            prepare_query_object(annotation_query_context, query_object)
+                            prepare_query_object(
+                                annotation_query_context,
+                                query_object,
+                                query_object.result_type
+                                or annotation_query_context.result_type,
+                            )
                         )
                         for query_object in annotation_query_context.queries
                     ]
