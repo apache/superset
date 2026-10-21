@@ -20,6 +20,7 @@ import { escape } from 'lodash-es';
 import { t, tn } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { isReviewRequired } from 'src/features/changeManagement/types';
 
 export interface ToastContent {
   text: string;
@@ -120,6 +121,28 @@ export function deletedToast(name: string): string {
   return isFeatureEnabled(FeatureFlag.SoftDelete)
     ? t('Archived: %s', name)
     : t('Deleted: %s', name);
+}
+
+/**
+ * The message to show when a delete was captured for review instead of
+ * applied (the server answers 202 with `review_required`), or `null` when the
+ * delete really happened. Callers use the `null` to keep their normal path:
+ * the "Archived: <name>" toast and the list refresh are both wrong for a
+ * delete that removed nothing.
+ */
+export function deleteReviewMessage(responseBody: unknown): string | null {
+  if (!isReviewRequired(responseBody)) {
+    return null;
+  }
+  if (responseBody.message) {
+    return responseBody.message;
+  }
+  return (responseBody.count ?? 1) > 1
+    ? t(
+        '%s deletes submitted for review. Nothing has been removed.',
+        responseBody.count,
+      )
+    : t('Delete submitted for review. Nothing has been removed.');
 }
 
 /**

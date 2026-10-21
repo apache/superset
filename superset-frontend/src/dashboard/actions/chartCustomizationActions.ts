@@ -28,7 +28,15 @@ import {
   Filter,
   Filters,
 } from '@superset-ui/core';
-import { addDangerToast } from 'src/components/MessageToasts/actions';
+import {
+  addDangerToast,
+  addSuccessToast,
+} from 'src/components/MessageToasts/actions';
+import {
+  isReviewRequired,
+  type ReviewRequiredResponse,
+} from 'src/features/changeManagement/types';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
 import { DashboardInfo, RootState } from 'src/dashboard/types';
 import {
   removeDataMask,
@@ -51,7 +59,8 @@ const createUpdateChartCustomizationsApi = (id: number) =>
       deleted: string[];
       reordered?: string[];
     },
-    { result: (ChartCustomization | ChartCustomizationDivider)[] }
+    | { result: (ChartCustomization | ChartCustomizationDivider)[] }
+    | ReviewRequiredResponse
   >({
     method: 'PUT',
     endpoint: `/api/v1/dashboard/${id}/chart_customizations`,
@@ -105,6 +114,17 @@ export function saveChartCustomization(
         deleted: deletedIds,
         reordered: reorderedIds,
       });
+
+      // A gated write (HTTP 202) was captured for review; the live
+      // customizations are unchanged, so apply nothing locally.
+      if (isReviewRequired(response)) {
+        const { text, options } = reviewRequiredToast(
+          response.message,
+          response.id,
+        );
+        dispatch(addSuccessToast(text, options));
+        return { result: {}, last_modified_time: Date.now() };
+      }
 
       dispatch(dashboardSaveSucceeded(id));
 

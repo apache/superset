@@ -29,6 +29,12 @@ import { Dispatch } from 'redux';
 import { RootState } from 'src/dashboard/types';
 import { cloneDeep, omit } from 'lodash-es';
 import { setDataMaskForFilterChangesComplete } from 'src/dataMask/actions';
+import { addSuccessToast } from 'src/components/MessageToasts/actions';
+import {
+  isReviewRequired,
+  type ReviewRequiredResponse,
+} from 'src/features/changeManagement/types';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
 import { HYDRATE_DASHBOARD } from './hydrate';
 import {
   dashboardInfoChanged,
@@ -84,12 +90,26 @@ export const setFilterConfiguration =
       filterChanges,
     });
 
-    const updateFilters = makeApi<SaveFilterChangesType, { result: Filter[] }>({
+    const updateFilters = makeApi<
+      SaveFilterChangesType,
+      { result: Filter[] } | ReviewRequiredResponse
+    >({
       method: 'PUT',
       endpoint: `/api/v1/dashboard/${id}/filters`,
     });
     try {
       const response = await updateFilters(filterChanges);
+      // A gated write (HTTP 202) was captured for review: the live filters
+      // are unchanged and there is no `result` to apply. Say so rather than
+      // updating the page as though the change were live.
+      if (isReviewRequired(response)) {
+        const { text, options } = reviewRequiredToast(
+          response.message,
+          response.id,
+        );
+        dispatch(addSuccessToast(text, options));
+        return;
+      }
       // chartsInScope/tabsInScope are derived from the live layout, and the
       // response carries the persisted copy for every filter - including the
       // ones this save never touched, whose copy is whatever was stored when

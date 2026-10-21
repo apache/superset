@@ -27,6 +27,8 @@ import {
   navigateOpenedTab,
   openBlankTab,
 } from 'src/utils/navigationUtils';
+import { isReviewRequired } from 'src/features/changeManagement/types';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
 import type { VersionedEntityType } from './types';
 import {
   createChartFromSnapshot,
@@ -190,11 +192,24 @@ export function useVersionActions(
     setIsRestoring(true);
     try {
       const beforeTransactionId = await latestTransactionId();
-      const { message } = await restoreVersion(
+      const restoreResult = await restoreVersion(
         entityType,
         uuid,
         restoreTarget.versionUuid,
       );
+      // A gated restore (HTTP 202) was captured for review: nothing was
+      // restored, so don't report success, clear the preview or refresh the
+      // version list as though it had been.
+      if (isReviewRequired(restoreResult)) {
+        const { text, options } = reviewRequiredToast(
+          restoreResult.message,
+          restoreResult.id,
+        );
+        addSuccessToast(text, options);
+        setRestoreTarget(null);
+        return;
+      }
+      const { message } = restoreResult;
       const afterTransactionId = await latestTransactionId();
       if (
         beforeTransactionId !== null &&

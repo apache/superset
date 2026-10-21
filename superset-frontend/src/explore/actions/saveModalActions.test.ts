@@ -343,6 +343,65 @@ test('updateSlice handles success', async () => {
   expect(slice).toEqual(sliceResponsePayload);
 });
 
+test('updateSlice on a review-required save keeps the chart id and shows the server message', async () => {
+  const message = 'Changes saved. Viewers still see the live version.';
+  fetchMock.put(
+    updateSliceEndpoint,
+    {
+      status: 202,
+      body: {
+        id: 987, // the change request id, NOT the chart id
+        ids: [987],
+        count: 1,
+        asset_type: 'chart',
+        asset_id: sliceId,
+        review_required: true,
+        message,
+      },
+    },
+    { name: updateSliceEndpoint },
+  );
+  const dispatchSpy = jest.fn();
+  const dispatch = (action: any) => {
+    dispatchSpy(action);
+  };
+  const getState = () => mockExploreState;
+
+  const result = await updateSlice(
+    {
+      slice_id: sliceId,
+      editors: editors as [],
+      form_data: formData,
+      slice_name: '',
+      description: '',
+      description_markdown: '',
+      slice_url: '',
+      viz_type: '',
+      thumbnail_url: '',
+      changed_on: 0,
+      changed_on_humanized: '',
+      modified: '',
+      datasource_id: 0,
+      datasource_type: datasourceType,
+      datasource_url: '',
+      datasource_name: '',
+      created_by: { id: 0 },
+    },
+    sliceName,
+    [],
+  )(dispatch as Dispatch<any>, getState);
+
+  // The caller redirects to result.id: it must be the chart, not the request.
+  expect(result.id).toBe(sliceId);
+  expect(result.review_required).toBe(true);
+  expect(dispatchSpy.mock.calls.map(c => c[0].type)).not.toContain(
+    SAVE_SLICE_SUCCESS,
+  );
+  const toasts = dispatchSpy.mock.calls.filter(c => c[0].type === 'ADD_TOAST');
+  expect(toasts).toHaveLength(1);
+  expect(toasts[0][0].payload.text).toBe(message);
+});
+
 test('updateSlice handles failure', async () => {
   fetchMock.put(
     updateSliceEndpoint,

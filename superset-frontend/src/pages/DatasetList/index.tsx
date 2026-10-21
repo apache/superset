@@ -78,6 +78,7 @@ import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
   archiveConfirmDescription,
   deleteActionLabel,
+  deleteReviewMessage,
   deletedToast,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
@@ -115,6 +116,10 @@ import type {
 import type User from 'src/types/User';
 
 // Keep saved Default URLs compatible with the prefix-free SPA route.
+import ReviewStatusTag, {
+  useOpenChanges,
+} from 'src/features/changeManagement/ReviewStatusTag';
+
 const normalizeLegacyDashboardUrl = (url: string) =>
   url.replace(/^\/superset(?=\/dashboard(?:\/|$))/, '');
 
@@ -839,6 +844,8 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     );
   };
 
+  const openChanges = useOpenChanges('dataset');
+
   const columns = useMemo(
     () => [
       {
@@ -852,6 +859,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
         Cell: ({
           row: {
             original: {
+              id,
               extra,
               table_name: datasetTitle,
               description,
@@ -908,6 +916,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
                 )}
                 {titleLink}
                 {description && <InfoTooltip tooltip={description} />}
+                <ReviewStatusTag
+                  status={openChanges[String(id)]}
+                  assetType="dataset"
+                  assetId={id}
+                />
               </FlexRowContainer>
             );
           } catch {
@@ -1146,6 +1159,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       handleBulkDatasetExport,
       PREVENT_UNSAFE_DEFAULT_URLS_ON_DATASET,
       user,
+      openChanges,
     ],
   );
 
@@ -1417,9 +1431,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     SupersetClient.delete({
       endpoint: `/api/v1/dataset/${id}`,
     }).then(
-      () => {
-        refreshData();
+      ({ json }) => {
         setDatasetCurrentlyDeleting(null);
+        // Captured for review: the dataset is still there, so keep the row
+        // and don't claim it was archived.
+        const reviewMessage = deleteReviewMessage(json);
+        if (reviewMessage) {
+          addSuccessToast(reviewMessage);
+          return;
+        }
+        refreshData();
         addSuccessToast(deletedToast(tableName));
       },
       createErrorHandler(errMsg =>
@@ -1464,7 +1485,18 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
       if (failures.length === 0) {
-        if (softDelete && semanticViews.length) {
+        // Datasets captured for review were not removed; say so instead of
+        // reporting them as archived.
+        const reviewMessages = results.flatMap(result => {
+          if (result.status !== 'fulfilled') return [];
+          const message = deleteReviewMessage(
+            (result.value as { json?: unknown } | undefined)?.json,
+          );
+          return message ? [message] : [];
+        });
+        if (reviewMessages.length) {
+          addSuccessToast(reviewMessages.join(' '));
+        } else if (softDelete && semanticViews.length) {
           // Semantic views were hard-deleted, not archived; counting them as
           // archived would tell the user they are recoverable.
           addSuccessToast(

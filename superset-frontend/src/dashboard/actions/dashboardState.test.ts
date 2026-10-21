@@ -38,6 +38,7 @@ import {
   saveFaveStar,
   savePublished,
   addSliceToDashboard,
+  persistDashboardLabelsColor,
 } from 'src/dashboard/actions/dashboardState';
 import { refreshChart } from 'src/components/Chart/chartAction';
 import { UPDATE_COMPONENTS_PARENTS_LIST } from 'src/dashboard/actions/dashboardLayout';
@@ -535,6 +536,39 @@ describe('dashboardState actions', () => {
         `/dashboard/${updatedId}/`,
         { event: 'dashboard_properties_changed' },
       );
+    });
+
+    // Asset approval: a 409 means another editor holds the dashboard. That is
+    // a lock, shown as the server's own sentence, never as a save failure.
+    test('shows a 409 lock as a warning with the server message', async () => {
+      const { getState, dispatch } = setup({
+        dashboardState: { hasUnsavedChanges: true },
+      });
+      const lockMessage =
+        'Alex Rivera already has changes open on this dashboard. Only one set of changes can be open at a time.';
+      putStub.mockRestore();
+      putStub = jest.spyOn(SupersetClient, 'put').mockRejectedValue(
+        new Response(JSON.stringify({ message: lockMessage }), {
+          status: 409,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+      );
+
+      const thunk = saveDashboardRequest(
+        newDashboardData,
+        9,
+        SAVE_TYPE_OVERWRITE,
+      );
+      await thunk(dispatch, getState);
+
+      await waitFor(() => {
+        const toasts = dispatch.mock.calls
+          .map(call => call[0])
+          .filter(action => action?.type === ADD_TOAST);
+        expect(toasts).toHaveLength(1);
+        expect(toasts[0].payload.toastType).toBe(ToastType.Warning);
+        expect(toasts[0].payload.text).toBe(lockMessage);
+      });
     });
 
     // Regression for the reserved-URL-character slug redirect. When the
@@ -1290,4 +1324,52 @@ describe('dashboardState actions', () => {
       );
     },
   );
+});
+
+test('persistDashboardLabelsColor does not sync colors in the background when review is on', async () => {
+  mockIsFeatureEnabled.mockImplementation(flag => flag === 'CHANGE_MANAGEMENT');
+  const putSpy = jest.spyOn(SupersetClient, 'put');
+  const dispatch = jest.fn();
+  const getState = () =>
+    ({
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: {
+        labelsColorMapMustSync: true,
+        sharedLabelsColorsMustSync: false,
+      },
+    }) as any;
+
+  await persistDashboardLabelsColor()(dispatch, getState);
+
+  expect(putSpy).not.toHaveBeenCalled();
+  expect(
+    dispatch.mock.calls.filter(([action]) => action?.type === ADD_TOAST),
+  ).toHaveLength(0);
+  putSpy.mockRestore();
+  mockIsFeatureEnabled.mockReset();
+});
+
+test('persistDashboardLabelsColor swallows a refused sync without a toast', async () => {
+  mockIsFeatureEnabled.mockReturnValue(false);
+  const putSpy = jest
+    .spyOn(SupersetClient, 'put')
+    .mockRejectedValue(new Response('{}', { status: 422 }));
+  const dispatch = jest.fn();
+  const getState = () =>
+    ({
+      dashboardInfo: { id: 1, metadata: {} },
+      dashboardState: {
+        labelsColorMapMustSync: true,
+        sharedLabelsColorsMustSync: false,
+      },
+    }) as any;
+
+  await persistDashboardLabelsColor()(dispatch, getState);
+  await waitFor(() => expect(putSpy).toHaveBeenCalledTimes(1));
+
+  expect(
+    dispatch.mock.calls.filter(([action]) => action?.type === ADD_TOAST),
+  ).toHaveLength(0);
+  putSpy.mockRestore();
+  mockIsFeatureEnabled.mockReset();
 });

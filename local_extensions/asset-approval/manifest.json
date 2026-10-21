@@ -1,0 +1,11 @@
+{
+  "publisher": "preset",
+  "name": "asset-approval",
+  "displayName": "Asset approval",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "description": "Maker-checker review for dashboards, charts and datasets. A change does not reach viewers until a second eligible editor approves it.",
+  "backend": {
+    "entrypoint": "asset_approval.entrypoint"
+  }
+}

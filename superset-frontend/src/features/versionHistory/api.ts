@@ -27,6 +27,7 @@ import type {
   HydrateDashboardData,
 } from 'src/dashboard/actions/hydrate';
 import type { Dashboard } from 'src/types/Dashboard';
+import type { ReviewRequiredResponse } from 'src/features/changeManagement/types';
 import type {
   ActivityEntityKind,
   ActivityInclude,
@@ -104,11 +105,11 @@ export async function restoreVersion(
   entityType: VersionedEntityType,
   uuid: string,
   versionUuid: string,
-): Promise<{ message: string }> {
+): Promise<{ message: string } | ReviewRequiredResponse> {
   const { json } = await SupersetClient.post({
     endpoint: `/api/v1/${API_RESOURCE[entityType]}/${encodeURIComponent(uuid)}/versions/${encodeURIComponent(versionUuid)}/restore`,
   });
-  return json as { message: string };
+  return json as { message: string } | ReviewRequiredResponse;
 }
 
 /** Creates a new chart from a version snapshot; returns the new chart id. */

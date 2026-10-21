@@ -18,6 +18,7 @@
  */
 import {
   archiveConfirmDescription,
+  deleteReviewMessage,
   getSoftDeleteRetentionDays,
   recoveredToast,
 } from './softDeleteCopy';
@@ -131,5 +132,30 @@ test('the confirm copy omits the clause when there is no window', () => {
   );
   expect(archiveConfirmDescription('dashboards', true)).toBe(
     'These dashboards will be moved to Recently Archived in the Settings menu. You can recover them there.',
+  );
+});
+
+test('deleteReviewMessage is null for a delete that actually happened', () => {
+  expect(deleteReviewMessage(undefined)).toBeNull();
+  expect(deleteReviewMessage({})).toBeNull();
+  expect(deleteReviewMessage({ message: 'ok' })).toBeNull();
+});
+
+test('deleteReviewMessage returns the server message for a gated delete', () => {
+  expect(
+    deleteReviewMessage({
+      id: 1,
+      review_required: true,
+      message: 'Delete submitted for review. Nothing has been removed.',
+    }),
+  ).toBe('Delete submitted for review. Nothing has been removed.');
+});
+
+test('deleteReviewMessage falls back to copy that says nothing was removed', () => {
+  expect(deleteReviewMessage({ id: 1, review_required: true })).toBe(
+    'Delete submitted for review. Nothing has been removed.',
+  );
+  expect(deleteReviewMessage({ id: 1, count: 3, review_required: true })).toBe(
+    '3 deletes submitted for review. Nothing has been removed.',
   );
 });

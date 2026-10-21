@@ -28,7 +28,11 @@ import {
 import { styled } from '@apache-superset/core/theme';
 import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import Chart from 'src/types/Chart';
-import { deletedToast, deleteFailedToast } from 'src/utils/softDeleteCopy';
+import {
+  deletedToast,
+  deleteFailedToast,
+  deleteReviewMessage,
+} from 'src/utils/softDeleteCopy';
 import { intersection } from 'lodash-es';
 import rison from 'rison';
 import type {
@@ -373,7 +377,14 @@ export function handleChartDelete(
   SupersetClient.delete({
     endpoint: `/api/v1/chart/${id}`,
   }).then(
-    () => {
+    ({ json }) => {
+      // Captured for review: nothing was removed, so there is nothing to
+      // refresh away and "Archived" would be untrue.
+      const reviewMessage = deleteReviewMessage(json);
+      if (reviewMessage) {
+        addSuccessToast(reviewMessage);
+        return;
+      }
       if (chartFilter === 'Mine') refreshData(filters);
       else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
@@ -397,7 +408,12 @@ export function handleDashboardDelete(
   return SupersetClient.delete({
     endpoint: `/api/v1/dashboard/${id}`,
   }).then(
-    () => {
+    ({ json }) => {
+      const reviewMessage = deleteReviewMessage(json);
+      if (reviewMessage) {
+        addSuccessToast(reviewMessage);
+        return;
+      }
       const filters = {
         pageIndex: 0,
         pageSize: PAGE_SIZE,

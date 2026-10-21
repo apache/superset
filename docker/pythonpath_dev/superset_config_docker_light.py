@@ -67,3 +67,24 @@ if os.environ.get("SUPERSET_FEATURE_EMBEDDED_SUPERSET", "").strip().lower() == "
     # the standard read-only viewer role — so the embedded flow can authenticate
     # and load dashboard data in local dev.
     PUBLIC_ROLE_LIKE = "Gamma"
+
+
+# --- Asset approval -----------------------------------------------------------
+#
+# The maker-checker review feature, for QA. Two parts:
+#
+#   * the extension at `local_extensions/asset-approval`, which owns the
+#     review API, the write gate, and the two screens it contributes as
+#     pages (Approvals, Change review);
+#   * `CHANGE_MANAGEMENT`, which the gate reads. With it off the review API
+#     answers an empty list and no write is intercepted, so the whole feature
+#     is inert and Superset behaves exactly as it does upstream.
+#
+# `ENABLE_EXTENSIONS` is what lets the host load a local extension at all.
+LOCAL_EXTENSIONS = ["/app/local_extensions/asset-approval"]
+
+FEATURE_FLAGS = {
+    **globals().get("FEATURE_FLAGS", {}),
+    "ENABLE_EXTENSIONS": True,
+    "CHANGE_MANAGEMENT": True,
+}

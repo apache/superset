@@ -254,6 +254,11 @@ export const routes: Routes = [
     mobileSupported: true,
   },
   { path: RoutePaths.DASHBOARD, Component: Dashboard, mobileSupported: true },
+  // Approvals and Change review are not routed here any more: the
+  // asset-approval extension declares them as contributed pages and the host
+  // registers the rules from its manifest. Left in place they would shadow
+  // the contribution, because every route in this table is matched before
+  // the extension catch-all.
   { path: RoutePaths.CHART_ADD, Component: ChartCreation },
   { path: RoutePaths.CHART_LIST, Component: ChartList },
   { path: RoutePaths.DATASET_LIST, Component: DatasetList },

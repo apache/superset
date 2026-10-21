@@ -144,6 +144,12 @@ export interface SliceHeaderControlsProps {
   addSuccessToast: (message: string) => void;
   addWarningToast?: (message: string) => void;
 
+  // This tile's data is out of reach for the viewer, so every menu item
+  // that would ask for it is suppressed. Declared here because this file
+  // carries its own copy of the props interface; the one in ./types.ts is a
+  // separate declaration and adding the field only there left every use of
+  // it below unresolved.
+  noAccess?: boolean;
   supersetCanExplore?: boolean;
   supersetCanShare?: boolean;
   supersetCanDownload?: boolean;

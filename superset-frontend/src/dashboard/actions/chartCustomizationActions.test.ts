@@ -289,3 +289,37 @@ test('failed customization persistence does not signal a successful dashboard sa
 
   expect(dispatch).not.toHaveBeenCalledWith(dashboardSaveSucceeded(1));
 });
+
+test('saveChartCustomization applies nothing locally when the save needs review', async () => {
+  const message = 'Changes saved. Viewers still see the live version.';
+  fetchMock.put('glob:*/api/v1/dashboard/1/chart_customizations', {
+    status: 202,
+    body: {
+      id: 77,
+      asset_id: 1,
+      asset_type: 'dashboard',
+      review_required: true,
+      message,
+    },
+  });
+  const { getState, dispatch } = setup({
+    dashboardInfo: { id: 1, metadata: { chart_customization_config: [] } },
+  });
+
+  const thunk = saveChartCustomization([], ['CUSTOM-1'], [], true);
+  await expect(thunk(dispatch, getState, null)).resolves.toBeDefined();
+
+  const types = dispatch.mock.calls.map(
+    ([action]: [{ type: string }]) => action.type,
+  );
+  // Upstream clears the local data masks before the request goes out, so a
+  // gated write dispatches that first and the toast second -- and, crucially,
+  // nothing that would apply the change.
+  expect(types).toEqual(['REMOVE_DATA_MASK', 'ADD_TOAST']);
+  // The toast is the second dispatch, after the mask clearing above.
+  expect(dispatch.mock.calls[1][0].payload.toastType).toBe('SUCCESS_TOAST');
+  expect(dispatch.mock.calls[1][0].payload.text).toContain(message);
+  expect(dispatch.mock.calls[1][0].payload.text).toContain(
+    '/approvals/submitted-by-me',
+  );
+});

@@ -48,6 +48,7 @@ import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmDescription,
   deleteActionLabel,
+  deleteReviewMessage,
 } from 'src/utils/softDeleteCopy';
 import {
   ActionButton,
@@ -112,6 +113,10 @@ const FlexRowContainer = styled.div`
     margin-right: ${({ theme }) => theme.sizeUnit}px;
   }
 `;
+
+import ReviewStatusTag, {
+  useOpenChanges,
+} from 'src/features/changeManagement/ReviewStatusTag';
 
 const PAGE_SIZE = 25;
 // How many blocking alerts/reports the archive modal previews before the
@@ -430,6 +435,11 @@ function ChartList(props: ChartListProps) {
       )}`,
     }).then(
       ({ json = {} }) => {
+        const reviewMessage = deleteReviewMessage(json);
+        if (reviewMessage) {
+          addSuccessToast(reviewMessage);
+          return;
+        }
         refreshData();
         addSuccessToast(
           softDelete
@@ -494,6 +504,8 @@ function ChartList(props: ChartListProps) {
     [addDangerToast],
   );
 
+  const openChanges = useOpenChanges('chart');
+
   const columns = useMemo(
     () => [
       {
@@ -519,6 +531,7 @@ function ChartList(props: ChartListProps) {
         Cell: ({
           row: {
             original: {
+              id,
               url,
               slice_name: sliceName,
               certified_by: certifiedBy,
@@ -540,6 +553,13 @@ function ChartList(props: ChartListProps) {
               {sliceName}
             </Link>
             {description && <InfoTooltip tooltip={description} />}
+            {/* Beside the name rather than in its own column: empty for
+                most rows most of the time. */}
+            <ReviewStatusTag
+              status={openChanges[String(id)]}
+              assetType="chart"
+              assetId={id}
+            />
           </FlexRowContainer>
         ),
         Header: t('Name'),

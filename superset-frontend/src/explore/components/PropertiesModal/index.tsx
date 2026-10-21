@@ -43,6 +43,7 @@ import {
 import Chart, { Slice } from 'src/types/Chart';
 import { useAppDispatch } from 'src/views/store';
 import { saveSliceSuccess } from 'src/explore/actions/saveModalActions';
+import { isReviewRequired } from 'src/features/changeManagement/types';
 import withToasts from 'src/components/MessageToasts/withToasts';
 import { type TagType } from 'src/components';
 import { TagTypeEnum } from 'src/components/Tag/TagType';
@@ -264,6 +265,18 @@ function PropertiesModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
+      // A gated write (HTTP 202) was captured for review; the live chart is
+      // unchanged, so don't claim it was updated or feed stale data to onSave.
+      if (isReviewRequired(res.json)) {
+        addSuccessToast(
+          res.json.message ??
+            t('Changes saved. Viewers still see the live version.'),
+        );
+        onHide();
+        setSubmitting(false);
+        return;
+      }
+
       dispatch(saveSliceSuccess({ id: slice.slice_id }));
       res = await SupersetClient.get({
         endpoint: chartEndpoint,

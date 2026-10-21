@@ -42,6 +42,8 @@ import { ErrorMessageWithStackTrace } from 'src/components';
 import type { DatasetObject } from 'src/features/datasets/types';
 import { withCertificationFields } from '../utils';
 import { mapSubjectValuesToIds } from 'src/features/subjects/SubjectPicker';
+import { isReviewRequired } from 'src/features/changeManagement/types';
+import { reviewRequiredToast } from 'src/features/changeManagement/display';
 import type { DatasourceModalProps } from '../types';
 import { setDatasetCertification } from '../components/DatasourceEditor/datasetCertification';
 
@@ -261,11 +263,24 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     // Pull out extra fields into the extra object
     setIsSaving(true);
     try {
-      await SupersetClient.put({
+      const { json: putJson } = await SupersetClient.put({
         endpoint: `/api/v1/dataset/${currentDatasource.id}?override_columns=${syncColumns}`,
         jsonPayload: buildPayload(currentDatasource),
         ...(versionEtag ? { headers: { 'If-Match': versionEtag } } : {}),
       });
+
+      // A gated write (HTTP 202) was captured for review: the live dataset
+      // is unchanged. Datasets have no review banner, so the toast links to
+      // the request's own page, where it can be submitted or discarded.
+      if (isReviewRequired(putJson)) {
+        const { text, options } = reviewRequiredToast(
+          putJson.message,
+          putJson.id,
+        );
+        addSuccessToast(text, options);
+        onHide();
+        return;
+      }
 
       const { json, response } = await SupersetClient.get({
         endpoint: `/api/v1/dataset/${currentDatasource?.id}`,

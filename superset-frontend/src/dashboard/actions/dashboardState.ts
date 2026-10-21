@@ -592,8 +592,29 @@ export function saveDashboardRequest(
     };
 
     const onUpdateSuccess = (response: JsonObject): JsonObject => {
-      const updatedDashboard = (response.json as JsonObject)
-        .result as JsonObject;
+      const body = response.json as JsonObject;
+
+      // A captured write (HTTP 202) did not update the dashboard: the
+      // change is waiting for review and the live asset is untouched. The
+      // rest of this handler syncs state from the updated dashboard and
+      // navigates, both of which are wrong here -- and `result` is absent,
+      // so reading metadata off it throws and the save looks like it
+      // failed when it did exactly what it was meant to.
+      if (body.review_required) {
+        dispatch(saveDashboardFinished());
+        // Leave edit mode so the review banner is visible; it is the only
+        // place the author can now act on what they just submitted.
+        dispatch(setEditMode(false));
+        dispatch(
+          addSuccessToast(
+            (body.message as string) ??
+              t('Changes saved. Viewers still see the live version.'),
+          ),
+        );
+        return response;
+      }
+
+      const updatedDashboard = body.result as JsonObject;
       const lastModifiedTime = (response.json as JsonObject)
         .last_modified_time as number;
       // A successful save can change the source schema. Until its response
@@ -665,9 +686,23 @@ export function saveDashboardRequest(
 
     const onError = async (response: Response): Promise<void> => {
       logging.error(response);
-      const errorText = await getErrorText(response, 'dashboard');
       dispatch(saveDashboardFinished());
-      dispatch(addDangerToast(errorText));
+      // 409 from asset approval: another editor holds the dashboard. That is
+      // a lock, not a failure, so the server's own sentence is shown as it
+      // is -- read from the body, because `getErrorText` wraps it in "there
+      // was an error saving this dashboard", which a lock is not.
+      if (response.status === 409) {
+        const lockText = await response
+          .clone()
+          .json()
+          .then(body => body?.message)
+          .catch(() => undefined);
+        if (lockText) {
+          dispatch(addWarningToast(lockText));
+          return;
+        }
+      }
+      dispatch(addDangerToast(await getErrorText(response, 'dashboard')));
     };
 
     if (
@@ -1306,7 +1341,15 @@ export const persistDashboardLabelsColor =
     if (labelsColorMapMustSync || sharedLabelsColorsMustSync) {
       dispatch(setDashboardLabelsColorMapSynced());
       dispatch(setDashboardSharedLabelsColorsSynced());
-      storeDashboardColorConfig(id, metadata);
+      // This is a background housekeeping write that runs on page view. Under
+      // review the server refuses it (422) rather than capturing it, and
+      // nobody asked for it, so don't send it and never surface a failure.
+      if (isFeatureEnabled(FeatureFlag.ChangeManagement)) {
+        return;
+      }
+      storeDashboardColorConfig(id, metadata).catch(() => {
+        // Best-effort sync: the next view retries.
+      });
     }
   };
 

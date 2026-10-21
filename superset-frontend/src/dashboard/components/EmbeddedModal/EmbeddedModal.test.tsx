@@ -17,6 +17,7 @@
  * under the License.
  */
 import {
+  createStore,
   render,
   screen,
   userEvent,
@@ -27,6 +28,7 @@ import {
   getExtensionsRegistry,
   makeApi,
 } from '@superset-ui/core';
+import messageToastsReducer from 'src/components/MessageToasts/reducers';
 import setupCodeOverrides from 'src/setup/setupCodeOverrides';
 import DashboardEmbedModal from '.';
 
@@ -183,4 +185,67 @@ test('renders extension component when registered', async () => {
   ).toBeInTheDocument();
 
   extensionsRegistry.set('embedded.modal', undefined);
+});
+
+const reviewResponse = {
+  id: 61,
+  asset_id: 1,
+  review_required: true,
+  message: 'Embedding change submitted for review. Nothing has been changed.',
+};
+const setMockApiReviewRequired = () => {
+  (makeApi as any).mockReturnValue(jest.fn().mockResolvedValue(reviewResponse));
+};
+const toastTexts = (store: ReturnType<typeof createStore>) =>
+  (
+    store.getState() as unknown as { messageToasts: { text: string }[] }
+  ).messageToasts.map(toast => toast.text);
+
+test('enabling embedding that needs review shows the server message and stays un-embedded', async () => {
+  setMockApiNotFound();
+  const store = createStore({}, { messageToasts: messageToastsReducer });
+  render(<DashboardEmbedModal {...defaultProps} />, {
+    useRedux: true,
+    store,
+  });
+  const enableEmbed = await screen.findByRole('button', {
+    name: 'Enable embedding',
+  });
+
+  setMockApiReviewRequired();
+  await userEvent.click(enableEmbed);
+
+  await waitFor(() => expect(toastTexts(store)).toHaveLength(1));
+  expect(toastTexts(store)[0]).toContain(reviewResponse.message);
+  expect(toastTexts(store)[0]).toContain('/approvals/submitted-by-me');
+  expect(
+    screen.getByRole('button', { name: 'Enable embedding' }),
+  ).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Deactivate' }),
+  ).not.toBeInTheDocument();
+});
+
+test('deactivating embedding that needs review keeps it active and the modal open', async () => {
+  const store = createStore({}, { messageToasts: messageToastsReducer });
+  render(<DashboardEmbedModal {...defaultProps} />, {
+    useRedux: true,
+    store,
+  });
+  await userEvent.click(
+    await screen.findByRole('button', { name: 'Deactivate' }),
+  );
+  await screen.findByText('Disable embedding?');
+
+  setMockApiReviewRequired();
+  await userEvent.click(screen.getByRole('button', { name: 'Deactivate' }));
+
+  await waitFor(() => expect(toastTexts(store)).toHaveLength(1));
+  expect(toastTexts(store)[0]).toContain(reviewResponse.message);
+  expect(mockOnHide).not.toHaveBeenCalled();
+  // Still embedded: the config and its Deactivate button are unchanged.
+  expect(
+    await screen.findByRole('button', { name: 'Deactivate' }),
+  ).toBeInTheDocument();
+  expect(screen.queryByText('Embedding deactivated.')).not.toBeInTheDocument();
 });

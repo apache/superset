@@ -1,0 +1,34 @@
+{
+  "compilerOptions": {
+    "target": "es2017",
+    "module": "esnext",
+    "moduleResolution": "node10",
+    "jsx": "react",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "baseUrl": ".",
+    "paths": {
+      "@apache-superset/core": [
+        "/app/superset-frontend/packages/superset-core/lib/index.d.ts"
+      ],
+      "@apache-superset/core/*": [
+        "/app/superset-frontend/packages/superset-core/lib/*"
+      ],
+      "@superset-ui/core": [
+        "/app/superset-frontend/packages/superset-ui-core/lib/index.d.ts"
+      ],
+      "@superset-ui/core/*": [
+        "/app/superset-frontend/packages/superset-ui-core/lib/*"
+      ]
+    }
+  },
+  "include": [
+    "src"
+  ],
+  "exclude": [
+    "src/**/*.test.tsx",
+    "spec"
+  ]
+}

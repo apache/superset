@@ -1,0 +1,20 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    // `node10` cannot read the `exports` map that @testing-library publishes
+    // its types behind, so those imports resolve to nothing under the
+    // build's own setting.
+    "moduleResolution": "bundler",
+    "module": "esnext",
+    "types": ["jest", "node"],
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@apache-superset/core": ["./coreStub.tsx"],
+      "@superset-ui/core": ["./supersetUiStub.ts"]
+    }
+  },
+  "exclude": [],
+  "include": ["../src/**/*", "./**/*"]
+}

@@ -1,0 +1,216 @@
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+"""The review lifecycle: submit, approve, request changes, withdraw, discard.
+
+Each operation authorizes, checks the transition is legal, and commits. The
+transitions themselves are deliberately few: Visa keeps no rejection history
+(Visa Q7), so "request changes" returns the *same* record to the author
+rather than closing it and opening another. Drafts never expire (Visa Q8).
+"""
+
+from __future__ import annotations
+
+import logging
+from datetime import datetime, timezone
+from typing import Any
+
+from flask_appbuilder.models.sqla import Model
+
+from superset import db
+from asset_approval.eligibility import can_approve, eligible_approvers
+from asset_approval.exceptions import (
+    ApprovalForbiddenError,
+    ChangeRequestNotFoundError,
+    InvalidTransitionError,
+    NoEligibleApproverError,
+    ReviewNoteRequiredError,
+)
+from asset_approval.models import ChangeRequest
+from asset_approval.replay import apply_change, load_asset
+from asset_approval.types import AssetType, ChangeStatus
+from superset.utils.core import get_user_id
+from superset.utils.decorators import transaction
+
+logger = logging.getLogger(__name__)
+
+
+def _now() -> datetime:
+    return datetime.now(timezone.utc)
+
+
+def find(change_request_id: int) -> ChangeRequest:
+    change_request = db.session.query(ChangeRequest).get(change_request_id)
+    if change_request is None:
+        raise ChangeRequestNotFoundError(change_request_id)
+    return change_request
+
+
+def _asset_for(change_request: ChangeRequest) -> Any:
+    asset = load_asset(
+        AssetType(change_request.asset_type), change_request.asset_id
+    )
+    if asset is None:
+        # The asset was deleted out from under an open request. Nothing can
+        # be approved onto it, so the request is dead; surfaced as not-found
+        # rather than a confusing approval error.
+        raise ChangeRequestNotFoundError(change_request.id)
+    return asset
+
+
+@transaction()
+def submit(
+    change_request_id: int,
+    note: str | None = None,
+    requested_approver_id: int | None = None,
+) -> ChangeRequest:
+    """Send a draft for review, locking it.
+
+    Locking on submit is Decision 5: an approval has to cover exactly what
+    was reviewed, so the content cannot move underneath the reviewer. If the
+    author wants to keep editing they withdraw first.
+    """
+    change_request = find(change_request_id)
+    user_id = get_user_id()
+    if change_request.author_fk != user_id:
+        raise ApprovalForbiddenError()
+    if ChangeStatus(change_request.status) not in {
+        ChangeStatus.DRAFT,
+        ChangeStatus.CHANGES_REQUESTED,
+    }:
+        raise InvalidTransitionError(change_request.status, "submitted")
+
+    asset = _asset_for(change_request)
+    # SOW 5.4: never auto-approve. If there is nobody else who could say
+    # yes, refuse the submission and tell the author how to fix it, rather
+    # than letting the change sit unapprovable or quietly letting it through.
+    if not eligible_approvers(asset, exclude_user_id=user_id):
+        raise NoEligibleApproverError(change_request.asset_type)
+
+    change_request.set_status(ChangeStatus.PENDING)
+    change_request.submitted_at = _now()
+    if note is not None:
+        change_request.note = note
+    change_request.requested_approver_fk = requested_approver_id
+    db.session.add(change_request)
+    return change_request
+
+
+@transaction()
+def approve(change_request_id: int, note: str | None = None) -> Model:
+    """Approve and publish, by replaying the author's original command.
+
+    The replay runs inside this transaction, so a command that fails leaves
+    the request pending rather than marking it approved over a change that
+    never landed.
+    """
+    change_request = find(change_request_id)
+    user_id = get_user_id()
+    # Authorize before saying anything about the request's state, so that
+    # someone with no say over it cannot probe its status by the refusal.
+    asset = _asset_for(change_request)
+    if not can_approve(change_request, asset, user_id):
+        raise ApprovalForbiddenError()
+    if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
+        raise InvalidTransitionError(change_request.status, "approved")
+
+    applied = apply_change(change_request)
+
+    change_request.set_status(ChangeStatus.APPROVED)
+    change_request.reviewer_fk = user_id
+    change_request.decided_at = _now()
+    if note:
+        # The approver may add to the author's note, not replace it
+        # (SOW 5.3): both halves are the record of why this went live.
+        change_request.note = (
+            f"{change_request.note}\n\n{note}" if change_request.note else note
+        )
+    db.session.add(change_request)
+    return applied
+
+
+@transaction()
+def request_changes(change_request_id: int, review_note: str) -> ChangeRequest:
+    """Send the change back to its author with a reason.
+
+    Not a rejection: the record stays open and the author keeps working on
+    it (Decision 3, Visa Q7).
+    """
+    if not review_note or not review_note.strip():
+        raise ReviewNoteRequiredError()
+
+    change_request = find(change_request_id)
+    user_id = get_user_id()
+    # Authorize first; see ``approve``.
+    asset = _asset_for(change_request)
+    if not can_approve(change_request, asset, user_id):
+        raise ApprovalForbiddenError()
+    if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
+        raise InvalidTransitionError(change_request.status, "sent back")
+
+    change_request.set_status(ChangeStatus.CHANGES_REQUESTED)
+    change_request.reviewer_fk = user_id
+    change_request.review_note = review_note.strip()
+    change_request.decided_at = _now()
+    db.session.add(change_request)
+    return change_request
+
+
+@transaction()
+def withdraw(change_request_id: int) -> ChangeRequest:
+    """Take a pending request back, so the author can keep editing."""
+    change_request = find(change_request_id)
+    if change_request.author_fk != get_user_id():
+        raise ApprovalForbiddenError()
+    if ChangeStatus(change_request.status) is not ChangeStatus.PENDING:
+        raise InvalidTransitionError(change_request.status, "withdrawn")
+
+    change_request.set_status(ChangeStatus.DRAFT)
+    change_request.submitted_at = None
+    db.session.add(change_request)
+    return change_request
+
+
+@transaction()
+def discard(change_request_id: int) -> ChangeRequest:
+    """Throw the change away and free the asset.
+
+    SOW 5.3 lets any editor discard, including someone else's work, so that
+    one abandoned draft cannot block an asset indefinitely. It is destructive
+    and uncommon elsewhere (Decision 6), so the confirmation names the author
+    and the draft's age -- that part is the UI's job; this records the act.
+    """
+    change_request = find(change_request_id)
+    user_id = get_user_id()
+
+    # Authorize first; see ``approve``.
+    asset = _asset_for(change_request)
+    from asset_approval.eligibility import (  # pylint: disable=import-outside-toplevel
+        is_strict_editor,
+    )
+
+    if change_request.author_fk != user_id and not (
+        user_id is not None and is_strict_editor(asset, user_id)
+    ):
+        raise ApprovalForbiddenError()
+    if not change_request.is_open:
+        raise InvalidTransitionError(change_request.status, "discarded")
+
+    change_request.set_status(ChangeStatus.DISCARDED)
+    change_request.reviewer_fk = user_id
+    change_request.decided_at = _now()
+    db.session.add(change_request)
+    return change_request

@@ -22,6 +22,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { useHistory, useLocation } from 'react-router-dom';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
+import { useOpenChange } from 'src/features/changeManagement/useAssetReview';
+import {
+  announceDiscardChanges,
+  announceShowWhatChanged,
+} from 'src/features/changeManagement/events';
 import { t } from '@apache-superset/core/translation';
 import { isEmpty } from 'lodash-es';
 import { URL_PARAMS } from 'src/constants';
@@ -178,6 +183,9 @@ export const useHeaderActionsMenu = ({
     [directPathToChild],
   );
 
+  // Only to decide whether to offer the review entries below.
+  const openChange = useOpenChange('dashboard', Number(dashboardId));
+
   const shareMenuItems = useShareMenuItems({
     title: t('Share'),
     disabled: isLoading,
@@ -308,9 +316,29 @@ export const useHeaderActionsMenu = ({
 
     // Edit properties
     if (editMode) {
+      // The review entries come first: when a change is open they are what
+      // the author came to this menu for (mock 1c). Discard is separated
+      // by a divider and styled as the destructive action it is.
+      if (openChange?.is_open && openChange.is_author) {
+        menuItems.push({
+          key: 'change-management-what-changed',
+          label: t('What changed'),
+          onClick: announceShowWhatChanged,
+        });
+      }
       menuItems.push({
         key: MenuKeys.EditProperties,
         label: t('Edit properties'),
+      });
+    }
+
+    if (editMode && openChange?.is_open && openChange.is_author) {
+      menuItems.push({ type: 'divider' });
+      menuItems.push({
+        key: 'change-management-discard',
+        label: t('Discard changes…'),
+        danger: true,
+        onClick: announceDiscardChanges,
       });
     }
 
@@ -409,6 +437,7 @@ export const useHeaderActionsMenu = ({
       />
     );
   }, [
+    openChange,
     addDangerToast,
     addSuccessToast,
     colorNamespace,
