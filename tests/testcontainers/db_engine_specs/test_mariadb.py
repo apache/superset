@@ -267,6 +267,9 @@ def tls_container() -> Iterator[tuple[MySqlContainer, str]]:
     with tempfile.TemporaryDirectory() as cert_dir_str:
         cert_dir = Path(cert_dir_str)
         _write_self_signed_cert(cert_dir)
+        # TemporaryDirectory is 0700; the container's mysql user must be able
+        # to traverse the bind-mounted directory on Linux.
+        cert_dir.chmod(0o755)
         container = MySqlContainer(
             "mariadb:11",
             command=(
@@ -277,6 +280,31 @@ def tls_container() -> Iterator[tuple[MySqlContainer, str]]:
         ).with_volume_mapping(cert_dir_str, "/certs", "ro")
         with container as started:
             yield started, str(cert_dir / "ca.pem")
+
+
+def test_require_mysql_tls_rejects_untrusted_ca(
+    tls_container: tuple[MySqlContainer, str], tmp_path: Path
+) -> None:
+    """
+    Guards the verification itself: a CA that did not sign the server's cert
+    must be rejected. `Ssl_cipher` alone only shows the session is encrypted,
+    so this fails if `ssl_ca` is dropped or ignored. `VERIFY_CA` is requested
+    explicitly so the outcome does not depend on which client library
+    mysqlclient links (plain `REQUIRED` only demands encryption on Oracle's).
+    """
+    container, _ = tls_container
+    _write_self_signed_cert(tmp_path)
+    wrong_ca = tmp_path / "ca.pem"
+    host = _tcp_host(container)
+    port = container.get_exposed_port(container.port)
+    uri, connect_args = _require_tls_connect_args(
+        f"ssl=1&ssl_mode=VERIFY_CA&ssl_ca={wrong_ca}"
+    )
+    uri = uri.set(host=host, port=int(port), database=container.dbname)
+    tls_engine = create_engine(uri, connect_args=connect_args)
+    with pytest.raises(OperationalError):
+        with tls_engine.connect():
+            pass
 
 
 def test_require_mysql_tls_connects_with_verified_tls(
