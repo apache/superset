@@ -201,6 +201,18 @@ const StyledImage = styled(Image)`
 const { useBreakpoint } = Grid;
 
 /**
+ * What the two helpers below need of a contributed page, and no more, so the
+ * menu does not take a dependency on the pages registry. One shape shared by
+ * both, so a field one of them reads cannot go missing from the other.
+ */
+type ContributedPage = {
+  name: string;
+  path: string;
+  nav?: { label?: string; category?: string };
+  permitted?: boolean;
+};
+
+/**
  * Folds pages contributed by extensions into the server-rendered menu.
  *
  * The navbar is built on the server from FAB's menu, which an extension
@@ -215,12 +227,7 @@ const { useBreakpoint } = Grid;
  */
 export function withExtensionPages(
   menu: MenuObjectProps[],
-  pages: {
-    name: string;
-    path: string;
-    nav?: { label?: string };
-    permitted?: boolean;
-  }[],
+  pages: ContributedPage[],
 ): MenuObjectProps[] {
   // A page the user may not open is left out rather than shown and refused:
   // the server answers 403 for it, so an entry here would only advertise a
@@ -265,12 +272,7 @@ export function withExtensionPages(
  */
 export function withExtensionSettings(
   settings: MenuObjectProps[],
-  pages: {
-    name: string;
-    path: string;
-    nav?: { label?: string; category?: string };
-    permitted?: boolean;
-  }[],
+  pages: ContributedPage[],
 ): MenuObjectProps[] {
   const contributed = pages.filter(
     page => page.nav?.category && page.permitted !== false,
