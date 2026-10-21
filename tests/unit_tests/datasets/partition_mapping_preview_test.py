@@ -25,6 +25,7 @@ expression from costing a query at all.
 
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any
 from unittest.mock import MagicMock, patch
 
@@ -1340,3 +1341,64 @@ def test_preview_and_the_chart_path_agree_about_a_coarse_column(
     assert exact["valid"] is True
     assert "region_key = '20260706100811'" in exact["emitted_predicate"]
     assert "region_key = '20260706100811'" in exact_sql
+
+
+def test_preview_shows_a_temporal_answer_as_the_engines_own_literal(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    A transform answering with a timestamp was previewed as valid with
+    ``part_ts >= '2026-01-01 00:00:00'`` on Trino, which the engine refuses:
+    it has no implicit coercion from ``varchar`` to ``timestamp``. The preview
+    shows what the chart emits, so it now shows the engine's own literal.
+    """
+    dataset.database.sqlalchemy_uri = "trino://user@localhost:8080/hive"
+    db.session.flush()
+
+    with patch(PROBE, return_value=[datetime(2026, 1, 1)]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "dt_epoch",
+                "partition_column": "part_ts",
+                "value_transform": "from_unixtime(:value)",
+                "is_monotonic": True,
+                "operator": ">=",
+                "sample_values": ["1767225600"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is True
+    assert result["emitted_predicate"] == (
+        "part_ts >= TIMESTAMP '2026-01-01 00:00:00.000000' OR part_ts IS NULL"
+    )
+
+
+def test_preview_declines_a_temporal_answer_the_engine_would_floor(
+    client: Any, full_api_access: None, dataset: Any
+) -> None:
+    """
+    SQLite writes a timestamp literal to the second, so a sub-second answer
+    cannot be asked for as it stands. The preview says so rather than showing
+    a predicate narrower than the filter.
+    """
+    with patch(PROBE, return_value=[datetime(2026, 1, 1, 0, 0, 0, 500000)]):
+        response = client.post(
+            f"/api/v1/dataset/{dataset.id}/partition_mapping/preview/",
+            json={
+                "mapped_column": "dt_epoch",
+                "partition_column": "part_ts",
+                "value_transform": "from_unixtime(:value)",
+                "is_monotonic": True,
+                "operator": "<=",
+                "sample_values": ["1767225600"],
+            },
+        )
+
+    assert response.status_code == 200
+    result = response.json["result"]
+    assert result["valid"] is False
+    assert result["reason"] == "type"
+    assert "emitted_predicate" not in result
