@@ -356,9 +356,11 @@ test('handles bulk dashboard export with correct ID and shows spinner', async ()
 });
 
 test('handles dashboard deletion confirmation', async () => {
+  const onActivityRefresh = jest.fn();
   const props = {
     ...defaultProps,
     mine: mockDashboards,
+    onActivityRefresh,
   };
 
   const refreshDataMock = jest.fn();
@@ -376,6 +378,11 @@ test('handles dashboard deletion confirmation', async () => {
     fetchData: jest.fn(),
     toggleBulkSelect: jest.fn(),
   }));
+
+  // onActivityRefresh must not fire before the delete-triggered refresh
+  // actually runs, since it's wired to follow refreshData, not the
+  // fire-and-forget delete call itself.
+  expect(onActivityRefresh).not.toHaveBeenCalled();
 
   render(
     <Router history={history}>
@@ -418,6 +425,7 @@ test('handles dashboard deletion confirmation', async () => {
   );
 
   expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  expect(onActivityRefresh).toHaveBeenCalledTimes(1);
 });
 
 test('passes correct parameters to handleDashboardDelete for Other tab', async () => {

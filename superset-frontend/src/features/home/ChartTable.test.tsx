@@ -208,9 +208,11 @@ test('refreshes other tab data after deleting a chart', async () => {
     message: 'Chart deleted',
   });
 
+  const onActivityRefresh = jest.fn();
   await renderChartTable({
     ...otherTabProps,
     otherTabTitle: 'All',
+    onActivityRefresh,
   });
 
   expect(screen.getByText('cool chart 0')).toBeInTheDocument();
@@ -247,4 +249,5 @@ test('refreshes other tab data after deleting a chart', async () => {
 
   expect(screen.getByText('cool chart 1')).toBeInTheDocument();
   expect(screen.getByText('cool chart 2')).toBeInTheDocument();
+  expect(onActivityRefresh).toHaveBeenCalledTimes(1);
 });

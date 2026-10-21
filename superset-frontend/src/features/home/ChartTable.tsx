@@ -131,6 +131,10 @@ function ChartTable({
   });
 
   const getData = (tab: TableTab) => fetchData(getChartFetchDataConfig(tab));
+  const handleGetData = (tab: TableTab) => {
+    getData(tab);
+    onActivityRefresh?.();
+  };
 
   useEffect(() => {
     if (loaded || activeTab === TableTab.Favorite) {
@@ -241,7 +245,7 @@ function ChartTable({
               refreshData={handleRefreshData}
               addDangerToast={addDangerToast}
               addSuccessToast={addSuccessToast}
-              getData={getData}
+              getData={handleGetData}
               favoriteStatus={favoriteStatus[e.id]}
               saveFavoriteStatus={saveFavoriteStatus}
               handleBulkChartExport={handleBulkChartExport}
