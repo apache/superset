@@ -138,9 +138,7 @@ describe('extension page catch-all precedence', () => {
     expect(scoped[scoped.length - 1].path).toBe(EXTENSION_CATCH_ALL);
     // Stated twice on purpose: the index check above is what breaks when a
     // route is appended, and this is what that would mean.
-    expect(
-      scoped.filter(r => r.path === EXTENSION_CATCH_ALL),
-    ).toHaveLength(1);
+    expect(scoped.filter(r => r.path === EXTENSION_CATCH_ALL)).toHaveLength(1);
   });
 
   test('every host route resolves to itself, not to the catch-all', async () => {
@@ -156,7 +154,9 @@ describe('extension page catch-all precedence', () => {
     expect(literalPaths.length).toBeGreaterThan(5);
 
     literalPaths.forEach(pathname => {
-      const firstMatch = scoped.find(r => matchPath(pathname, { path: r.path }));
+      const firstMatch = scoped.find(r =>
+        matchPath(pathname, { path: r.path }),
+      );
       expect([pathname, firstMatch?.path]).not.toEqual([
         pathname,
         EXTENSION_CATCH_ALL,
@@ -169,7 +169,9 @@ describe('extension page catch-all precedence', () => {
     async pathname => {
       const scoped = await routesWithExtensions();
 
-      const firstMatch = scoped.find(r => matchPath(pathname, { path: r.path }));
+      const firstMatch = scoped.find(r =>
+        matchPath(pathname, { path: r.path }),
+      );
       expect(firstMatch?.path).not.toBe(EXTENSION_CATCH_ALL);
     },
   );
@@ -180,7 +182,9 @@ describe('extension page catch-all precedence', () => {
     // Both a single segment and a deep link, since a page owns everything
     // beneath its own path.
     ['/approvals', '/change-review/42/edit'].forEach(pathname => {
-      const firstMatch = scoped.find(r => matchPath(pathname, { path: r.path }));
+      const firstMatch = scoped.find(r =>
+        matchPath(pathname, { path: r.path }),
+      );
       expect(firstMatch?.path).toBe(EXTENSION_CATCH_ALL);
     });
   });

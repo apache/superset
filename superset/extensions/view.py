@@ -573,7 +573,10 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
                 manifest.id,
                 exc_info=True,
             )
-            security_manager.session.rollback()
+            # Rolled back here rather than through `@transaction`, which
+            # would wrap the whole loop: one permission that cannot be
+            # written must not discard the ones already created.
+            security_manager.session.rollback()  # pylint: disable=consider-using-transaction
 
 
 def permitted_page_paths(app: Flask, manifest: Manifest) -> set[str]:

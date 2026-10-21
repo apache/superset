@@ -278,9 +278,7 @@ test('moving within a page clears a crash from the previous sub-path', async () 
     screen.getByRole('button', { name: 'go' }).click();
 
     expect(await screen.findByText('showing /records/43')).toBeInTheDocument();
-    expect(
-      screen.queryByText(/record 42 is broken/i),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/record 42 is broken/i)).not.toBeInTheDocument();
   } finally {
     consoleError.mockRestore();
   }

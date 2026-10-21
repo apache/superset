@@ -75,8 +75,10 @@ const INERT = new Disposable(() => {});
  */
 const PAGE_PATH_PATTERN = /^(\/[a-z]([a-z0-9]*(-[a-z0-9]+)*)?)+$/;
 
-const pageRegistry: Map<string, { page: ResolvedPage; component: ComponentType }> =
-  new Map();
+const pageRegistry: Map<
+  string,
+  { page: ResolvedPage; component: ComponentType }
+> = new Map();
 
 const syncListeners = new Set<() => void>();
 const subscribe = (listener: () => void) => {

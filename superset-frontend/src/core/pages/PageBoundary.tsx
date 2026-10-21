@@ -106,7 +106,11 @@ export default function PageBoundary({ id, children }: PageBoundaryProps) {
   }
 
   return (
-    <ErrorBoundary key={`${id}:${attempt}`} showMessage={false} onError={onError}>
+    <ErrorBoundary
+      key={`${id}:${attempt}`}
+      showMessage={false}
+      onError={onError}
+    >
       {children}
     </ErrorBoundary>
   );
