@@ -475,6 +475,10 @@ export default function EchartsTimeseries({
                       val: timeRange,
                     },
                   ],
+            // The backend rewrites every TEMPORAL_RANGE filter's value with the
+            // query's time_range, so without this override target charts would
+            // keep their own saved range and ignore the clicked bucket.
+            ...(values.length ? { time_range: timeRange } : {}),
           },
           filterState: {
             label: values.length ? values : undefined,

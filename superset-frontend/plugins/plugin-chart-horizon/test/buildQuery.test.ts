@@ -41,6 +41,17 @@ test('builds a grouped timeseries query with a series limit', () => {
   expect(query.orderby).toEqual([['sum__num', true]]);
 });
 
+test('keeps the semantic series limit inferred from timeseries columns', () => {
+  const [query] = buildQuery({
+    ...formData,
+    datasource: '5__semantic_view',
+  }).queries;
+  expect(query.is_timeseries).toBe(true);
+  expect(query.columns).toEqual(['gender']);
+  expect(query.series_columns).toBeUndefined();
+  expect(query.series_limit).toBe(25);
+});
+
 test('orders descending when order_desc is set', () => {
   const [query] = buildQuery({ ...formData, order_desc: true }).queries;
   expect(query.orderby).toEqual([['sum__num', false]]);
