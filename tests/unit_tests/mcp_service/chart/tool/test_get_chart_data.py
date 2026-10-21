@@ -5723,6 +5723,9 @@ async def test_rebuilt_table_data_does_not_use_saved_server_pagination(
     assert query["row_limit"] == limit
     assert not query.get("is_rowcount")
     assert query["row_offset"] == 0
+    if path != "unsaved":
+        assert chart.params == json.dumps(form_data)
+        assert chart.query_context is None
     if response_format == "csv":
         assert len(wire["csv_data"].splitlines()) == 101
     elif response_format == "json":
