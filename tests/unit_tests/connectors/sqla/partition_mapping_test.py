@@ -67,6 +67,7 @@ from superset.connectors.sqla.partition_mapping import (
     NON_DETERMINISTIC_FUNCTIONS,
     parse_error_detail,
     placeholder_is_executable,
+    PROBE_CACHE_VERSION,
     probe_sql_is_evaluable,
     probed_value_type_error,
     RawProbeValue,
@@ -2802,6 +2803,36 @@ def test_a_transform_that_only_ever_answers_null_does_not_mirror(
     with app.app_context():
         evaluate_transform(database, None, None, transform, [1790850600, 1790852399])
 
+        assert known_mirror_verdict(database, None, None, transform) is False
+
+
+def test_a_verdict_stored_before_the_all_null_rule_is_not_read(app: Flask) -> None:
+    """
+    A `True` written before an all-`NULL` probe stopped counting as working is
+    indistinguishable from one another input earned, and the new rule will not
+    overwrite such a `True`. Ribbon's QA cache held exactly that for
+    `trunc(from_unixtime(:value), 'HH')` on Hive. Both caches are versioned, so
+    the old entries are never read: the next query re-probes and records
+    `False`.
+    """
+    from superset.extensions import cache_manager  # noqa: PLC0415
+
+    transform = "unix_timestamp(trunc(from_unixtime(:value), 'HH'))"
+    database = _database_returning([None])
+
+    with app.app_context():
+        legacy_verdict = _mirror_verdict_cache_key(
+            database, None, None, transform
+        ).replace(f"{PROBE_CACHE_VERSION}:", "")
+        legacy_probe = _probe_cache_key(
+            database, None, None, transform, [1790850600]
+        ).replace(f"{PROBE_CACHE_VERSION}:", "")
+        cache_manager.cache.set(legacy_verdict, True)
+        cache_manager.cache.set(legacy_probe, [None])
+
+        evaluate_transform(database, None, None, transform, [1790850600])
+
+        assert database.get_df.called
         assert known_mirror_verdict(database, None, None, transform) is False
 
 

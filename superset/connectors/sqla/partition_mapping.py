@@ -2097,6 +2097,16 @@ def _execution_identity(database: Database) -> str | None:
     return get_username()
 
 
+#: Bumped whenever what the probe cache or the verdict cache *means* changes,
+#: so entries written under the old meaning are never read under the new one.
+#: v2: an all-``NULL`` probe stopped recording a working transform. A ``True``
+#: stored before that is indistinguishable from one another input earned, so
+#: it would have kept Explore's glyph lit for up to a cache timeout -- and the
+#: cached probe results behind it would have kept any query from re-probing
+#: and writing a fresh one.
+PROBE_CACHE_VERSION = "v2"
+
+
 def _probe_cache_key(
     database: Database,
     catalog: str | None,
@@ -2133,7 +2143,7 @@ def _probe_cache_key(
         default=repr,
     )
     digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # noqa: S324
-    return f"partition_transform_probe:{digest}"
+    return f"partition_transform_probe:{PROBE_CACHE_VERSION}:{digest}"
 
 
 def _cache_get(key: str) -> list[Any] | None:
@@ -2183,7 +2193,7 @@ def _mirror_verdict_cache_key(
         default=repr,
     )
     digest = hashlib.md5(payload.encode("utf-8")).hexdigest()  # noqa: S324
-    return f"partition_transform_verdict:{digest}"
+    return f"partition_transform_verdict:{PROBE_CACHE_VERSION}:{digest}"
 
 
 def record_mirror_verdict(
