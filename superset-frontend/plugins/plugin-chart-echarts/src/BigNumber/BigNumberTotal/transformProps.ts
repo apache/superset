@@ -73,7 +73,11 @@ export default function transformProps(
   } = queriesData[0] || {};
   const granularity = extractTimegrain(rawFormData as QueryFormData);
   const metrics = chartProps.datasource?.metrics || [];
-  const originalLabel = getOriginalLabel(metric, metrics);
+  const originalLabel = getOriginalLabel(
+    metric,
+    metrics,
+    chartProps.datasource.verboseMap,
+  );
   const metricName = getMetricLabel(metric);
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const formattedSubtitle = subtitle?.trim() ? subtitle : subheader || '';

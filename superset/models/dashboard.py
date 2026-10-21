@@ -198,26 +198,50 @@ def _authored_adhoc_label(item: dict[str, Any]) -> str | None:
     return _authored_display_label(item)
 
 
-def saved_chart_display_labels(datasource: SqlaTable, chart: Slice) -> dict[str, str]:
+def _dataset_display_labels(
+    datasource: SqlaTable,
+) -> tuple[dict[str, str], dict[str, str]]:
+    """Index configured column and metric labels once per dataset payload."""
+    return (
+        {
+            column.column_name: label
+            for column in datasource.columns
+            if (label := _configured_display_label(column.verbose_name))
+        },
+        {
+            metric.metric_name: label
+            for metric in datasource.metrics
+            if (label := _configured_display_label(metric.verbose_name))
+        },
+    )
+
+
+def saved_chart_display_labels(
+    datasource: SqlaTable,
+    chart: Slice,
+    *,
+    configured_labels: tuple[dict[str, str], dict[str, str]] | None = None,
+) -> dict[str, str]:
     """Map a chart's saved dimension/metric IDs to their configured labels.
 
-    Display references come from saved form data and query context. Raw names
-    resolve against the dataset's stored column and saved-metric
-    ``verbose_name`` attributes, and an entry is omitted when no label is
+    Display references come from active saved form controls. Viewer-writable
+    query context cannot add labels. Raw names resolve against the dataset's
+    stored column and saved-metric ``verbose_name`` attributes. An entry is
+    omitted when no label is
     configured. Expressions are never parsed: columns appearing only inside an
     expression, aggregate or filter, and every unused dataset field, are
     excluded. No external metadata is discovered.
 
     :param datasource: The chart's SQLAlchemy dataset
     :param chart: A chart whose datasource is ``datasource``
+    :param configured_labels: Optional dataset indexes shared by this request
     :returns: Raw field/metric ID to display label, strings only
     """
-    column_labels: dict[Any, Any] = {
-        column.column_name: column.verbose_name for column in datasource.columns
-    }
-    metric_labels: dict[Any, Any] = {
-        metric.metric_name: metric.verbose_name for metric in datasource.metrics
-    }
+    column_labels, metric_labels = (
+        configured_labels
+        if configured_labels is not None
+        else _dataset_display_labels(datasource)
+    )
     labels: dict[str, str] = {}
     # pylint: disable=protected-access
     columns, metrics = datasource._slice_display_references(chart)
@@ -227,17 +251,13 @@ def saved_chart_display_labels(datasource: SqlaTable, chart: Slice) -> dict[str,
     ):
         for reference in references:
             if isinstance(reference, str):
-                if label := _configured_display_label(stored_labels.get(reference)):
+                if label := stored_labels.get(reference):
                     labels.setdefault(reference, label)
             elif isinstance(reference, dict):
                 if (
                     stored_labels is column_labels
                     and (column_name := _physical_display_column(reference))
-                    and (
-                        label := _configured_display_label(
-                            column_labels.get(column_name)
-                        )
-                    )
+                    and (label := column_labels.get(column_name))
                 ):
                     labels.setdefault(column_name, label)
                 elif label := _authored_adhoc_label(reference):
@@ -630,6 +650,8 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         if not isinstance(datasource, SqlaTable):
             return payload
 
+        configured_labels = _dataset_display_labels(datasource)
+        verbose_map = payload.get("verbose_map", {})
         labels: dict[str, dict[str, str]] = {}
         for chart in sorted(slices, key=lambda slc: slc.id or 0):
             if (
@@ -640,11 +662,12 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                 continue
             # Building the labels reads stored metadata only, so the access
             # check runs just for charts that would contribute an entry.
-            chart_labels = saved_chart_display_labels(datasource, chart)
+            chart_labels = saved_chart_display_labels(
+                datasource, chart, configured_labels=configured_labels
+            )
             # A raw ID can collide with another chart's saved field or authored
             # label. Omit conflicting labels rather than expose a different
             # field's display name or disagree with the full-access payload.
-            verbose_map = payload.get("verbose_map", {})
             chart_labels = {
                 name: label
                 for name, label in chart_labels.items()

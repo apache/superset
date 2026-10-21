@@ -2776,6 +2776,12 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             callers may supply it to reuse the same dashboard decision
         :returns: Whether the caller may receive the chart's display labels
         """
+        if (
+            chart.datasource_type != DatasourceType.TABLE
+            or chart not in dashboard.slices
+        ):
+            return False
+
         if not self.is_guest_user():
             return self.can_access_chart(chart)
 
@@ -2787,10 +2793,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             return False
 
         if (
-            getattr(self.can_access_chart, "__func__", None)
-            is SupersetSecurityManager.can_access_chart
+            getattr(self.can_access_chart, "__func__", None) is STOCK_CAN_ACCESS_CHART
             and getattr(self.raise_for_access, "__func__", None)
-            is SupersetSecurityManager.raise_for_access
+            is STOCK_RAISE_FOR_ACCESS
         ):
             return True
         return self.can_access_chart(chart)
@@ -6893,5 +6898,6 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     security_menu.childs.remove(item)
 
 
-# Keep the original function identity before operator configuration can replace it.
+# Keep original function identities before operator configuration can replace them.
 STOCK_RAISE_FOR_ACCESS: Callable[..., None] = SupersetSecurityManager.raise_for_access
+STOCK_CAN_ACCESS_CHART: Callable[..., bool] = SupersetSecurityManager.can_access_chart

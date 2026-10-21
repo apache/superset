@@ -378,8 +378,8 @@ class DashboardDatasetSchema(Schema):
     metrics = fields.List(fields.Dict())
     order_by_choices = fields.List(fields.List(fields.Str()))
     verbose_map = fields.Dict(fields.Str(), fields.Str())
-    # Built server-side from accessible member charts only, so it survives the
-    # datasource-access and guest narrowing that removes ``verbose_map``.
+    # Built server-side from accessible member charts only, so it survives both
+    # datasource-access narrowing (which removes ``verbose_map``) and guest narrowing.
     chart_display_labels = fields.Dict(
         keys=fields.Str(),
         values=fields.Dict(keys=fields.Str(), values=fields.Str()),

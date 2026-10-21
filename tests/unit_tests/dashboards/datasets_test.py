@@ -1216,6 +1216,33 @@ def test_inaccessible_fields_keep_every_entry_and_exclude_labels() -> None:
         ),
         ("histogram", {"column": "region"}, {"region": "Region"}),
         (
+            "candlestick",
+            {
+                "x_axis": "region",
+                "series": ["metro"],
+                "open": "revenue",
+                "close": "margin",
+                "high": "revenue",
+                "low": "margin",
+            },
+            {
+                "region": "Region",
+                "metro": "Metro area",
+                "revenue": "Revenue",
+                "margin": "Margin",
+            },
+        ),
+        (
+            "tree_chart",
+            {"id": "region", "parent": "metro", "name": "region"},
+            {"region": "Region", "metro": "Metro area"},
+        ),
+        (
+            "heatmap",
+            {"all_columns_x": ["region", "metro"]},
+            {"region": "Region", "metro": "Metro area"},
+        ),
+        (
             "echarts_timeseries_line",
             {"series_columns": ["region"], "tooltip_metrics": ["revenue"]},
             {"region": "Region", "revenue": "Revenue"},
@@ -1408,12 +1435,13 @@ def test_chart_display_labels_honor_existing_custom_guest_authorization(
         custom_check.assert_called_once()
 
 
-def test_chart_display_labels_read_raw_query_context_references() -> None:
-    """Saved queries contribute displayed fields without parsing expressions."""
+def test_chart_display_labels_ignore_viewer_writable_query_context() -> None:
+    """Cached query outputs cannot expand the editor-controlled label allowlist."""
     table = _labelled_table()
     chart = _chart(11, table, groupby=["region"])
     chart.query_context = json.dumps(
         {
+            "form_data": {"groupby": ["metro"], "metrics": ["revenue"]},
             "queries": [
                 {
                     "columns": [
@@ -1437,18 +1465,145 @@ def test_chart_display_labels_read_raw_query_context_references() -> None:
                     "filters": [{"col": "cost_center"}],
                     "orderby": [["margin", False]],
                 }
-            ]
+            ],
         }
     )
     labels = saved_chart_display_labels(table, chart)
-    assert labels == {
+    assert labels == {"region": "Region"}
+    verbose_map = table.data_for_slices([chart])["verbose_map"]
+    assert verbose_map["metro"] == "Metro area"
+    assert verbose_map["Cost grouping"] == "Cost grouping"
+    assert verbose_map["revenue"] == "Revenue"
+
+
+@pytest.mark.parametrize("sort_is_displayed", [False, True])
+def test_chart_display_labels_exclude_gantt_sort_only_query_columns(
+    sort_is_displayed: bool,
+) -> None:
+    """Gantt's orderby dependencies in query.columns are not display controls."""
+    table = _labelled_table()
+    sort_column = "region" if sort_is_displayed else "cost_center"
+    chart = _chart(
+        11,
+        table,
+        start_time="region",
+        end_time="metro",
+        y_axis="venue",
+        series=["region"],
+        tooltip_columns=["metro"],
+        tooltip_metrics=["revenue"],
+        order_by_cols=[json.dumps([sort_column, True])],
+    )
+    chart.viz_type = "gantt_chart"
+    # Gantt/buildQuery.ts adds orderby columns to its raw query outputs.
+    chart.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": list(
+                        dict.fromkeys(["region", "metro", "venue", sort_column])
+                    ),
+                    "metrics": ["revenue"],
+                    "orderby": [[sort_column, True]],
+                    "series_columns": ["region"],
+                }
+            ]
+        }
+    )
+    assert saved_chart_display_labels(table, chart) == {
         "region": "Region",
         "metro": "Metro area",
-        "Cost grouping": "Cost grouping",
         "revenue": "Revenue",
     }
-    verbose_map = table.data_for_slices([chart])["verbose_map"]
-    assert all(verbose_map[key] == value for key, value in labels.items())
+    assert sort_column in table.data_for_slices([chart])["verbose_map"]
+
+
+@pytest.mark.parametrize("sort_is_displayed", [False, True])
+def test_chart_display_labels_exclude_butterfly_sort_only_query_metrics(
+    sort_is_displayed: bool,
+) -> None:
+    """Butterfly's added sort metric is labelled only when explicitly displayed."""
+    table = _labelled_table()
+    table.metrics.append(
+        SqlMetric(
+            metric_name="sort_only", expression="COUNT(*)", verbose_name="Sort label"
+        )
+    )
+    sort_metric = "revenue" if sort_is_displayed else "sort_only"
+    chart = _chart(
+        11,
+        table,
+        groupby=["region"],
+        left_metric="revenue",
+        right_metric="margin",
+        orderby=[sort_metric],
+        order_desc=True,
+    )
+    chart.viz_type = "butterfly"
+    # Butterfly/buildQuery.ts uses buildSortMetricOrderby, which appends a
+    # missing sort metric to metrics as well as placing it in orderby.
+    chart.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": ["region"],
+                    "metrics": list(dict.fromkeys(["revenue", "margin", sort_metric])),
+                    "orderby": [[sort_metric, False]],
+                }
+            ]
+        }
+    )
+    assert saved_chart_display_labels(table, chart) == {
+        "region": "Region",
+        "revenue": "Revenue",
+        "margin": "Margin",
+    }
+    assert sort_metric in table.data_for_slices([chart])["verbose_map"]
+
+
+@pytest.mark.parametrize("mode", ["aggregate", "raw", None, "invalid"])
+def test_chart_display_labels_exclude_hidden_table_controls(mode: str | None) -> None:
+    """Retained controls from the other table query mode cannot contribute labels."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        query_mode=mode,
+        all_columns=["metro", "cost_center"],
+        groupby=["region"],
+        metrics=["revenue"],
+        percent_metrics=["margin"],
+    )
+    chart.viz_type = "table"
+    chart.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": ["metro", "cost_center", "region"],
+                    "metrics": ["revenue", "margin"],
+                }
+            ]
+        }
+    )
+    assert saved_chart_display_labels(table, chart) == (
+        {"region": "Region", "revenue": "Revenue", "margin": "Margin"}
+        if mode == "aggregate"
+        else {"metro": "Metro area", "cost_center": "Cost center"}
+    )
+    assert set(table.data_for_slices([chart])["verbose_map"]) >= {
+        "metro",
+        "cost_center",
+        "region",
+        "revenue",
+        "margin",
+    }
+
+
+def test_chart_display_labels_keep_metadata_ids_outside_tree_controls() -> None:
+    """Generic chart metadata named id/name is not a displayed column reference."""
+    table = _labelled_table()
+    chart = _chart(11, table, id="region", name="metro", parent="cost_center")
+    assert saved_chart_display_labels(table, chart) == {}
 
 
 def test_chart_display_labels_include_explicit_tooltip_columns() -> None:

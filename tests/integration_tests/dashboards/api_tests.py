@@ -750,7 +750,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         charts = self._labelled_chart_count(data)
         assert charts >= 2
         # prefetch_chart_access is 3 statements; each chart check measured 1.
-        assert labelled - baseline <= 3 + 2 * charts
+        assert labelled - baseline <= 3 + charts
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_chart_display_labels_dashboard_viewer(self) -> None:
@@ -792,6 +792,96 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         }
         for excluded_key in ("verbose_map", "columns", "column_names", "metrics"):
             assert excluded_key not in dataset
+
+    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @with_feature_flags(EMBEDDED_SUPERSET=True)
+    def test_get_dashboard_datasets_labels_ignore_viewer_query_context_update(
+        self,
+    ) -> None:
+        """A viewer's permitted context refresh cannot expand display labels."""
+        from superset.subjects.utils import get_or_create_user_subject
+
+        gamma = security_manager.find_user(GAMMA_USERNAME)
+        gamma_subject = get_or_create_user_subject(gamma.id)
+        with self._world_health_display_labels() as ids:
+            chart_id = ids["Most Populated Countries"]
+            chart = db.session.get(Slice, chart_id)
+            dashboard = Dashboard.get("world_health")
+            previous_chart = (
+                chart.params,
+                chart.query_context,
+                chart.viz_type,
+                list(chart.viewers),
+            )
+            previous_dashboard = dashboard.published, list(dashboard.viewers)
+            params = json.dumps(
+                {
+                    "viz_type": "big_number_total",
+                    "metric": "sum__SP_POP_TOTL",
+                    "datasource": f"{ids['table_id']}__table",
+                }
+            )
+            chart.params = params
+            chart.query_context = None
+            chart.viz_type = "big_number_total"
+            chart.viewers = [gamma_subject]
+            dashboard.published = True
+            dashboard.viewers = [gamma_subject]
+            db.session.commit()
+            query_context = json.dumps(
+                {
+                    "datasource": {"id": ids["table_id"], "type": "table"},
+                    "queries": [
+                        {"columns": ["country_name"], "metrics": ["sum__SP_POP_TOTL"]}
+                    ],
+                }
+            )
+            try:
+                with override_user(gamma):
+                    assert not security_manager.is_editor(chart)
+                    assert not security_manager.can_access_datasource(chart.datasource)
+                self.login(GAMMA_USERNAME)
+                update = self.client.put(
+                    f"api/v1/chart/{chart_id}",
+                    json={
+                        "query_context": query_context,
+                        "query_context_generation": True,
+                    },
+                )
+                assert update.status_code == 200
+                chart = db.session.get(Slice, chart_id)
+                assert chart.query_context == query_context
+                assert chart.params == params
+
+                response = self.client.get("api/v1/dashboard/world_health/datasets")
+                dataset = self._world_health_dataset(response, ids["table_id"])
+                assert dataset["chart_display_labels"][str(chart_id)] == {
+                    "sum__SP_POP_TOTL": "Population"
+                }
+                for field in ("verbose_map", "columns", "column_names", "metrics"):
+                    assert field not in dataset
+
+                self.logout()
+                # Flask-Login caches the user on the test's shared app context.
+                with current_app.app_context():
+                    guest_response = self._get_world_health_datasets_as_guest()
+                guest_dataset = self._world_health_dataset(
+                    guest_response, ids["table_id"]
+                )
+                assert guest_dataset["chart_display_labels"][str(chart_id)] == {
+                    "sum__SP_POP_TOTL": "Population"
+                }
+            finally:
+                chart = db.session.get(Slice, chart_id)
+                (
+                    chart.params,
+                    chart.query_context,
+                    chart.viz_type,
+                    chart.viewers,
+                ) = previous_chart
+                dashboard = Dashboard.get("world_health")
+                dashboard.published, dashboard.viewers = previous_dashboard
+                db.session.commit()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @with_feature_flags(EMBEDDED_SUPERSET=True)

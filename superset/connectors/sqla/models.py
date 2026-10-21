@@ -236,6 +236,10 @@ DISPLAY_METRIC_PARAMS = (
     "y",
     "left_metric",
     "right_metric",
+    "open",
+    "close",
+    "high",
+    "low",
 )
 DISPLAY_COLUMN_LIST_PARAMS = (
     "all_columns",
@@ -263,6 +267,11 @@ DISPLAY_COLUMN_PARAMS = (
     "y_axis",
     "dimension",
 )
+# These controls accept either one column or a legacy list of columns.
+DISPLAY_COLUMN_MIXED_PARAMS = ("all_columns_x", "series")
+
+DisplayReference = str | dict[str, Any]
+ChartDisplayReferences = tuple[list[DisplayReference], list[DisplayReference]]
 
 
 def _authored_display_label(reference: dict[str, Any]) -> str | None:
@@ -726,12 +735,16 @@ class BaseDatasource(
         return column_names or None
 
     @staticmethod
-    def _query_display_references(
+    def _query_output_references(
         query_context: str | None,
-    ) -> tuple[list[str | dict[str, Any]], list[str | dict[str, Any]]]:
-        """Collect only raw query output references, never query dependencies."""
-        columns: list[str | dict[str, Any]] = []
-        metrics: list[str | dict[str, Any]] = []
+    ) -> ChartDisplayReferences:
+        """Collect query outputs for full-access metadata, including sort fields.
+
+        These references must not authorize chart labels: viewers can regenerate
+        the query context, and plugins add dependencies that they do not display.
+        """
+        columns: list[DisplayReference] = []
+        metrics: list[DisplayReference] = []
         try:
             payload = json.loads(query_context or "{}")
         except (TypeError, ValueError):
@@ -754,26 +767,40 @@ class BaseDatasource(
                     )
         return columns, metrics
 
-    @classmethod
-    def _slice_display_references(
-        cls, slc: Slice
-    ) -> tuple[list[str | dict[str, Any]], list[str | dict[str, Any]]]:
-        """Collect saved display columns and metrics, preserving adhoc objects.
+    @staticmethod
+    def _active_display_form_data(
+        form_data: dict[str, Any], viz_type: str | None
+    ) -> dict[str, Any]:
+        """Exclude table controls retained while their query mode is hidden."""
+        if viz_type != "table":
+            return form_data
+        mode = form_data.get("query_mode")
+        if mode not in ("raw", "aggregate"):
+            # Match plugin-chart-table's getQueryMode for legacy saved charts.
+            mode = "raw" if form_data.get("all_columns") else "aggregate"
+        params = (
+            ("all_columns", "columns")
+            if mode == "raw"
+            else ("groupby", "metrics", "percent_metrics")
+        )
+        return {name: form_data[name] for name in params if name in form_data}
 
-        Query columns and metrics cover plugin-specific display controls. Form
-        controls also cover charts saved without a query context. Filter, sort,
-        granularity and expression-internal dependencies are never traversed.
+    @classmethod
+    def _form_display_references(
+        cls, form_data: dict[str, Any], viz_type: str | None
+    ) -> ChartDisplayReferences:
+        """Collect explicit display controls without reading SQL or dependencies.
+
+        List controls require lists. The single-column controls ``series`` and
+        ``all_columns_x`` also support their established legacy list shapes.
         """
-        try:
-            form_data = json.loads(slc.params or "{}")
-        except (TypeError, ValueError):
-            return [], []
-        if not isinstance(form_data, dict):
-            return [], []
-        columns: list[str | dict[str, Any]] = []
-        metrics: list[str | dict[str, Any]] = []
+        columns: list[DisplayReference] = []
+        metrics: list[DisplayReference] = []
+        column_params: tuple[str, ...] = DISPLAY_COLUMN_PARAMS
+        if viz_type == "tree_chart":
+            column_params += ("id", "parent", "name")
         for target, list_params, single_params in (
-            (columns, DISPLAY_COLUMN_LIST_PARAMS, DISPLAY_COLUMN_PARAMS),
+            (columns, DISPLAY_COLUMN_LIST_PARAMS, column_params),
             (metrics, DISPLAY_METRIC_LIST_PARAMS, DISPLAY_METRIC_PARAMS),
         ):
             for name in list_params:
@@ -784,14 +811,35 @@ class BaseDatasource(
             for name in single_params:
                 if isinstance(value := form_data.get(name), (str, dict)):
                     target.append(value)
+        for name in DISPLAY_COLUMN_MIXED_PARAMS:
+            if isinstance(references := form_data.get(name), list):
+                columns.extend(
+                    item for item in references if isinstance(item, (str, dict))
+                )
 
-        query_columns, query_metrics = cls._query_display_references(slc.query_context)
-        columns.extend(query_columns)
         # Tooltip contents are explicit display references. Passing no currency
         # column excludes the query-only currency-formatting dependency.
         columns.extend(sorted(cls._extract_form_data_columns(form_data, None, False)))
-        metrics.extend(query_metrics)
         return columns, metrics
+
+    @classmethod
+    def _slice_display_references(cls, slc: Slice) -> ChartDisplayReferences:
+        """Collect label references from editor-controlled, active saved controls.
+
+        Query context is viewer-writable and cannot expand the label allowlist.
+        Filter, sort, granularity and expression-internal dependencies are not
+        display controls, even when plugins include them in query outputs.
+        """
+        try:
+            form_data = json.loads(slc.params or "{}")
+        except (TypeError, ValueError):
+            return [], []
+        if not isinstance(form_data, dict):
+            return [], []
+        viz_type = slc.viz_type or form_data.get("viz_type")
+        return cls._form_display_references(
+            cls._active_display_form_data(form_data, viz_type), viz_type
+        )
 
     def data_for_slices(  # pylint: disable=too-many-locals  # noqa: C901
         self, slices: list[Slice]
@@ -850,9 +898,16 @@ class BaseDatasource(
                 ]
                 column_names.update(_columns)
 
-            # Share display dependencies with the restricted chart-label path,
-            # retaining all existing full-access metadata dependencies above.
-            display_columns, display_metrics = self._slice_display_references(slc)
+            # Full-access metadata retains hidden controls and query-only
+            # dependencies; only active saved controls authorize chart labels.
+            display_columns, display_metrics = self._form_display_references(
+                form_data, slc.viz_type
+            )
+            query_columns, query_metrics = self._query_output_references(
+                slc.query_context
+            )
+            display_columns.extend(query_columns)
+            display_metrics.extend(query_metrics)
             for references, names in (
                 (display_columns, column_names),
                 (display_metrics, metric_names),
