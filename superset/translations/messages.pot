@@ -3537,6 +3537,9 @@ msgstr ""
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr ""
 
@@ -6600,6 +6603,10 @@ msgstr ""
 msgid "Failed at retrieving results"
 msgstr ""
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
@@ -7412,10 +7419,10 @@ msgstr ""
 msgid "Hierarchy"
 msgstr ""
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -8197,6 +8204,9 @@ msgstr ""
 msgid "Lat"
 msgstr ""
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr ""
 
@@ -8571,10 +8581,10 @@ msgstr ""
 msgid "Longitude of default viewport"
 msgstr ""
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -9890,9 +9900,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr ""
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr ""
 
@@ -9921,6 +9928,9 @@ msgid "Open in SQL Lab"
 msgstr ""
 
 msgid "Open in SQL lab"
+msgstr ""
+
+msgid "Open price"
 msgstr ""
 
 msgid "Open query in SQL Lab"
@@ -12995,6 +13005,9 @@ msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some required filters on other tabs have values and will not be cleared"
+msgstr ""
+
+msgid "Some semantic views could not be added"
 msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
@@ -17251,6 +17264,11 @@ msgid "Your query was updated"
 msgstr ""
 
 msgid "Your report could not be deleted"
+msgstr ""
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
 msgstr ""
 
 msgid "Your session has ended. Please sign in again."
