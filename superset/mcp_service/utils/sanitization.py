@@ -79,6 +79,11 @@ def _strip_html_tags(value: str) -> str:
     return re.sub(r"&lt;(?![A-Za-z/!?])", "<", cleaned).replace("&amp;", "&")
 
 
+# A tag opener left escaped by _strip_html_tags: markup reconstructed by
+# decoding or by joining text around a stripped tag.
+_ESCAPED_TAG_OPENER_RE = re.compile(r"&lt;[A-Za-z/!?]")
+
+
 def _scheme_pattern(scheme: str) -> str:
     """Match ``scheme:`` with ASCII tab, LF, or CR between its characters.
 
@@ -256,6 +261,7 @@ def sanitize_user_input(
 
     Security checks performed:
         - Strips all HTML tags using nh3 (Rust-based sanitizer)
+        - Rejects tag-shaped text left after stripping (e.g. encoded tags)
         - Blocks JavaScript/VBScript/data URL schemes
         - Blocks event handlers (onclick=, onerror=, etc.)
         - Removes dangerous Unicode characters (zero-width, control chars)
@@ -306,6 +312,13 @@ def sanitize_user_input(
     # has been intentionally stripped away.
     value = _strip_html_tags(value)
     value = _remove_dangerous_unicode(value)
+
+    # Reject rather than store tag-shaped text: a later sanitizer pass would
+    # decode and strip it, so the stored value would not be stable.
+    if _ESCAPED_TAG_OPENER_RE.search(value):
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially malicious HTML"
+        )
 
     # Check for dangerous patterns (URL schemes, event handlers)
     _check_dangerous_patterns(value, field_name)

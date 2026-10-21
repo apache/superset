@@ -935,3 +935,37 @@ def test_strip_html_tags_does_not_reconstruct_tag_openers(value: str) -> None:
     result = _strip_html_tags(value)
     assert "<script" not in result
     assert "<img" not in result
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "&lt;<b></b>script&gt;alert(1)",
+        "&lt;&#8203;script&gt;alert(1)",
+        "&amp;lt;</script>click= <b>📈",
+        "&#x3c;&#x3c;</b>x",
+    ],
+)
+def test_sanitize_user_input_rejects_reconstructed_tag_text(value: str) -> None:
+    """Tag-shaped text left after stripping is rejected, never stored."""
+    with pytest.raises(ValueError, match="malicious HTML"):
+        sanitize_user_input(value, "Title")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "A <> B",
+        "a << b",
+        "Weekly <img src=x>KPIs",
+        "Q3 <b>revenue</b> &amp; costs",
+        "&lt;3 charts",
+    ],
+)
+def test_sanitize_user_input_is_stable_on_resubmission(value: str) -> None:
+    """Sanitizing a stored value again leaves it unchanged."""
+    once = sanitize_user_input(value, "Title")
+    assert once is not None
+    assert sanitize_user_input(once, "Title") == once

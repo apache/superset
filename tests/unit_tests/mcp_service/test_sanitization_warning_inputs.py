@@ -943,7 +943,7 @@ def test_literal_less_than_title_round_trip(
 
 @pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
 @pytest.mark.parametrize(
-    "value", ["&#x3c;&#x3c;</b>x", "&amp;lt;</script>click= <b>📈"]
+    "value", ["Weekly <img src=x>KPIs", "Q3 <b>revenue</b> &amp; costs"]
 )
 def test_title_sanitized_once(
     model: type[BaseModel], payload: dict[str, Any], field: str, value: str
@@ -972,6 +972,20 @@ def test_title_sanitized_once(
     assert len(calls) == 1
     assert getattr(request, field) == expected
     assert len(request.sanitization_warnings) == 1
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize(
+    "value", ["&#x3c;&#x3c;</b>x", "&amp;lt;</script>click= <b>📈"]
+)
+def test_reconstructed_tag_title_rejected(
+    model: type[BaseModel], payload: dict[str, Any], field: str, value: str
+) -> None:
+    """Encoded tag text is rejected instead of stored or auto-named."""
+    with pytest.raises(ValidationError) as exc:
+        model.model_validate({**payload, field: value})
+    assert exc.value.errors()[0]["loc"] == (field,)
+    assert exc.value.errors()[0]["type"] == "unsafe_text"
 
 
 @pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
