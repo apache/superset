@@ -822,8 +822,25 @@ async def test_duplicate_description_explains_isolated_default() -> None:
 
     description = " ".join((tool.description or "").split())
     assert "By default the copy deep-copies charts" in description
+    from superset.mcp_service.server import _truncate_description
+
+    compact = " ".join(_truncate_description(tool.description or "", 300).split())
+    assert "deep-copied by default" in compact
+    assert "duplicate_slices=false" in compact
     assert "With duplicate_slices=true" not in description
     assert "Set duplicate_slices=false only" in description
     from superset.mcp_service.dashboard.schemas import DuplicateDashboardRequest
 
     assert DuplicateDashboardRequest.model_fields["duplicate_slices"].default is True
+
+
+@pytest.mark.asyncio
+async def test_compact_duplicate_description_keeps_default() -> None:
+    """Tool-search agents must learn the isolated default in compact mode."""
+    from superset.mcp_service.server import _truncate_description
+
+    tools = await mcp.list_tools()
+    tool = next(tool for tool in tools if tool.name == "duplicate_dashboard")
+    compact = _truncate_description(tool.description or "", 300)
+    assert "deep-copied by default" in " ".join(compact.split())
+    assert "duplicate_slices=false" in compact

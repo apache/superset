@@ -451,8 +451,18 @@ def _with_query_post_processing(response: ChartData, query_context: Any) -> Char
         [
             str(step["operation"])
             for step in getattr(query, "post_processing", None) or []
-            if isinstance(step, dict) and step.get("operation")
+            if isinstance(step, dict)
+            and step.get("operation")
+            # A pivot without groupby columns preserves one row per index value.
+            and not (
+                step["operation"] == "pivot"
+                and not (step.get("options") or {}).get("columns")
+            )
         ]
+        for query in getattr(query_context, "queries", None) or []
+    ]
+    response._query_row_limits = [
+        getattr(query, "row_limit", None)
         for query in getattr(query_context, "queries", None) or []
     ]
     return response

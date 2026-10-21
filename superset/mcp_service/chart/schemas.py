@@ -3508,7 +3508,7 @@ class BigNumberChartConfig(BaseChartConfig):
         None,
         description=(
             "Number format string for the metric value "
-            "(e.g., '$,.2f' for currency, ',.0f' for integers, "
+            "(e.g., ',.2f' for decimals, ',.0f' for integers, "
             "'.2%' for percentages)"
         ),
         max_length=50,
@@ -3633,7 +3633,7 @@ class TableColumnConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
     d3_number_format: str | None = Field(
         None,
         alias="d3NumberFormat",
-        description="D3 number format, for example ',.2f', '$,.2f', or '.1%'.",
+        description="D3 number format, for example ',.2f', ',.0f', or '.1%'.",
         min_length=1,
         max_length=100,
     )
@@ -6719,6 +6719,7 @@ class ChartData(BaseModel):
     chart_type: str
 
     # Internal handoff to the dashboard tool; not part of the public chart payload.
+    _query_row_limits: list[int | None] = PrivateAttr(default_factory=list)
     _query_post_processing: list[list[str]] = PrivateAttr(default_factory=list)
 
     # Enhanced data description

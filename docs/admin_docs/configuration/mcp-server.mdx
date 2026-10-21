@@ -155,17 +155,19 @@ with suggestions for supported arguments. `list_databases` supports
 `created_by_me`, not `edited_by_me`.
 
 Each chart in `get_dashboard_data` includes `fetch_row_limit`, `sample_rows_limit`
-and a `completeness_note`. Example rows are not the full population. When an
-executed query uses post-processing that can collapse or replace input rows
-(aggregate, boxplot, histogram, pivot, prophet, resample, rolling, or an unknown/custom
-operation), output row counts cannot establish input coverage. For these queries,
+and a short `completeness_note`; shared guidance appears once on `DashboardData`.
+`fetch_row_limit` is the executed limit for the primary query, including server caps;
+each query layer uses its own executed limit to assess completeness. Example rows
+are not the full population. When an executed query uses post-processing that can collapse or replace input rows
+(aggregate, boxplot, histogram, grouped pivot, prophet, resample, rolling, or an
+unknown/custom operation), output row counts cannot establish input coverage. For these queries,
 `total_rows` is null and `truncated=true` conservatively signals unverified input
 coverage, not observed truncation. This applies to timeseries pivots with groupby
 dimensions as well as distribution charts, including each layer of mixed charts.
-Row-preserving operations retain ordinary row-count completeness checks. Check the
-saved chart configuration, `fetch_row_limit` and source aggregates before making
-full-population claims. Legacy responses without operation metadata retain the
-distribution warning: `truncated=false` alone does not prove full input coverage.
+Pivots without groupby columns and other row-preserving operations retain ordinary
+row-count completeness checks. Check the saved chart configuration, `fetch_row_limit` and source aggregates before making
+full-population claims. Distribution responses without operation metadata also
+report unknown totals and unverified coverage conservatively.
 
 Chart configuration examples use plain number formats. Currency formatting should
 come from user instructions or verified source metadata, not a field name such

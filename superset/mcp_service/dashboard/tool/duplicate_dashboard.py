@@ -291,7 +291,8 @@ async def duplicate_dashboard(
     request: DuplicateDashboardRequest, ctx: Context
 ) -> DuplicateDashboardResponse:
     """
-    Duplicate an existing dashboard under a new title.
+    Duplicate a dashboard under a new title; charts are deep-copied by
+    default (duplicate_slices=false shares them).
 
     By default the copy deep-copies charts so subsequent edits are isolated:
     every chart becomes a new chart object owned by you, so edits to the

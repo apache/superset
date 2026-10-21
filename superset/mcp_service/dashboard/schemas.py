@@ -3501,9 +3501,10 @@ class GetDashboardDataRequest(BaseModel):
         ge=1,
         le=1000,
         description=(
-            "Rows to query per chart. Only sample_rows of these are returned "
-            "per chart; total_rows reports the full count when the fetch was not "
-            "capped, and the per-chart truncated flag marks a capped fetch."
+            "Requested input row limit per query, subject to server caps. Only "
+            "sample_rows output rows are returned per chart. total_rows is null "
+            "when retrieval is capped or post-processing leaves input coverage "
+            "unverified; truncated is true in either case."
         ),
     )
     sample_rows: int = Field(
@@ -3567,8 +3568,9 @@ class DashboardChartData(BaseModel):
     total_rows: OptionalRowCount = Field(
         None,
         description=(
-            "Total rows available when known; null when the fetch was capped with "
-            "no authoritative total (see truncated)"
+            "Total rows available when known; null when retrieval is capped with "
+            "no authoritative total or post-processing leaves input coverage "
+            "unverified (see truncated)"
         ),
     )
     truncated: bool = Field(
@@ -3620,6 +3622,17 @@ class DashboardData(BaseModel):
     agent can answer analytical questions about the whole dashboard from a
     single call, instead of fetching each chart separately.
     """
+
+    completeness_note: str = Field(
+        default=(
+            "Example rows are not the full population. Query post-processing may "
+            "collapse or replace input rows capped by fetch_row_limit. For affected "
+            "queries, total_rows is unknown and truncated=true means input coverage "
+            "is unverified, not observed truncation. Verify the saved configuration "
+            "and source aggregates before making full-population claims."
+        ),
+        description="Shared guidance for interpreting per-chart retrieval coverage",
+    )
 
     dashboard_id: int = Field(..., description="Dashboard id")
     dashboard_name: str = Field(..., description="Dashboard title")
