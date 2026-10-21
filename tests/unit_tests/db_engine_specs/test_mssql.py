@@ -887,6 +887,7 @@ def test_get_catalog_from_engine_params_empty_database_query_param_falls_back_to
 
 
 def _basic_parameters(**overrides: Any) -> dict[str, Any]:
+    """Build basic connection parameters, overridable per test."""
     parameters: dict[str, Any] = {
         "username": "user",
         "password": "password",
