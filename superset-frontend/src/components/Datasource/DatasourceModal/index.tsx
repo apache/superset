@@ -172,6 +172,8 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
     };
   }, [datasource.id, etag, show]);
   const baselineSql = seededSql ?? datasource.sql;
+  // The API reports a physical dataset's SQL as `null`, the editor as `''`.
+  const sqlChanged = (baselineSql ?? '') !== (currentDatasource.sql ?? '');
 
   const buildPayload = (datasource: Record<string, any>) => {
     const payload: Record<string, any> = {
@@ -346,7 +348,7 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
                 here may affect other charts
                 in undesirable ways.`)}
         />
-        {baselineSql !== currentDatasource.sql && (
+        {sqlChanged && (
           <div
             css={theme => ({
               marginBottom: theme.marginMD,
@@ -380,14 +382,14 @@ const DatasourceModal: FunctionComponent<DatasourceModalProps> = ({
         {t('Are you sure you want to save and apply changes?')}
       </div>
     ),
-    [currentDatasource.sql, baselineSql, syncColumns],
+    [sqlChanged, syncColumns],
   );
 
   useEffect(() => {
-    if (baselineSql !== currentDatasource.sql) {
+    if (sqlChanged) {
       setSyncColumns(true);
     }
-  }, [baselineSql, currentDatasource.sql]);
+  }, [sqlChanged]);
 
   const onClickSave = () => {
     setConfirmModalOpen(true);
