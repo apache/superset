@@ -773,30 +773,36 @@ def test_saved_chart_display_labels_require_string_verbose_names() -> None:
     assert saved_chart_display_labels(table, chart) == {}
 
 
-def test_dashboard_datasets_full_access_keeps_verbose_map_and_labels(
-    client: Any, full_api_access: None
+@pytest.mark.parametrize("admin", [True, False])
+def test_dashboard_datasets_full_access_keeps_verbose_map_without_label_work(
+    client: Any, full_api_access: None, admin: bool
 ) -> None:
-    """A full-access principal keeps the verbose map and also gets labels."""
+    """Datasource-authorized callers use existing labels without extra work."""
     table: SqlaTable = _labelled_table()
     chart: Slice = _chart(
         11, table, groupby=["region", "metro", "venue"], metrics=["revenue"]
     )
-    dashboard: Dashboard = Dashboard(id=17, slices=[chart])
+    dashboard: Dashboard = Dashboard(
+        id=17, slices=[chart], published=True, viewers=[_viewer(1)]
+    )
 
-    with _as_regular_user(admin=True):
+    with (
+        _as_regular_user(admin=admin, viewer_of=lambda resource: resource is dashboard),
+        patch("superset.models.dashboard._dataset_display_labels") as index_labels,
+        patch("superset.models.dashboard.saved_chart_display_labels") as chart_labels,
+    ):
         call: _DatasetsCall = _get_datasets(client, dashboard)
 
     response: Any = call.response
     assert response.status_code == 200
-    call.prefetch.assert_called_once_with(dashboard)
-    assert _checked_chart_ids(call) == {11}
+    call.prefetch.assert_not_called()
+    call.chart_checks.assert_not_called()
+    index_labels.assert_not_called()
+    chart_labels.assert_not_called()
     [dataset] = response.json["result"]
     assert dataset["verbose_map"]["metro"] == "Metro area"
     assert dataset["columns"]
-    assert dataset["chart_display_labels"] == {
-        "11": {"region": "Region", "metro": "Metro area", "revenue": "Revenue"}
-    }
-    _assert_string_labels(dataset["chart_display_labels"])
+    assert "chart_display_labels" not in dataset
 
 
 def test_dashboard_datasets_dashboard_only_principal_gets_authorized_labels(
@@ -844,6 +850,70 @@ def test_dashboard_datasets_dashboard_only_principal_gets_authorized_labels(
         assert label not in body
     for raw_id in ('"metro"', '"margin"', '"cost_center"', '"12"', '"13"'):
         assert raw_id not in body
+
+
+@pytest.mark.parametrize("full_access_first", [True, False])
+def test_dashboard_datasets_skip_label_work_only_for_accessible_datasource(
+    client: Any, full_api_access: None, full_access_first: bool
+) -> None:
+    """A datasource grant does not suppress labels for other member datasets."""
+    accessible_table = _labelled_table(7)
+    restricted_table = _labelled_table(8)
+    full_access_chart = _chart(11, accessible_table, groupby=["region"])
+    restricted_chart = _chart(21, restricted_table, groupby=["metro"])
+    restricted_chart.viewers = [_viewer(1)]
+    charts = [full_access_chart, restricted_chart]
+    dashboard = Dashboard(
+        id=17,
+        slices=charts if full_access_first else list(reversed(charts)),
+        published=True,
+        viewers=[_viewer(1)],
+    )
+
+    with (
+        _as_regular_user(
+            viewer_of=lambda resource: resource in (dashboard, restricted_chart),
+        ),
+        patch(
+            "superset.models.dashboard.security_manager.can_access_datasource",
+            side_effect=lambda datasource: datasource is accessible_table,
+        ) as datasource_checks,
+    ):
+        call = _get_datasets(client, dashboard)
+
+    assert call.response.status_code == 200
+    call.prefetch.assert_called_once_with(dashboard)
+    assert _checked_chart_ids(call) == {21}
+    assert datasource_checks.call_count == 2
+    datasource_checks.assert_any_call(accessible_table)
+    datasource_checks.assert_any_call(restricted_table)
+    datasets = {item["id"]: item for item in call.response.json["result"]}
+    assert datasets[7]["verbose_map"]["region"] == "Region"
+    assert "chart_display_labels" not in datasets[7]
+    assert "verbose_map" not in datasets[8]
+    assert datasets[8]["chart_display_labels"] == {"21": {"metro": "Metro area"}}
+
+
+def test_dashboard_datasets_datasource_access_cache_is_request_local(
+    client: Any, full_api_access: None
+) -> None:
+    """A prior request's datasource grant cannot affect a later caller's labels."""
+    table = _labelled_table()
+    chart = _chart(11, table, groupby=["region"])
+    dashboard = Dashboard(id=17, slices=[chart])
+
+    with _as_regular_user(admin=True):
+        full_access = _get_datasets(client, dashboard)
+    with _as_regular_user(admin=True, can_access_datasource=False):
+        restricted = _get_datasets(client, dashboard)
+
+    assert full_access.response.status_code == restricted.response.status_code == 200
+    [full_dataset] = full_access.response.json["result"]
+    [restricted_dataset] = restricted.response.json["result"]
+    assert full_dataset["verbose_map"]["region"] == "Region"
+    assert "chart_display_labels" not in full_dataset
+    assert "verbose_map" not in restricted_dataset
+    assert restricted_dataset["chart_display_labels"] == {"11": {"region": "Region"}}
 
 
 def test_dashboard_datasets_omit_labels_when_none_configured(
@@ -1035,7 +1105,7 @@ def test_chart_display_labels_are_sqla_only_with_colliding_ids(
         _as_regular_user(admin=True),
         patch(
             "superset.models.dashboard.security_manager.can_access_datasource",
-            side_effect=lambda datasource: datasource is table or semantic_access,
+            side_effect=lambda datasource: datasource is not table and semantic_access,
         ),
         patch.object(
             SemanticView,
@@ -1396,11 +1466,13 @@ def test_chart_display_labels_preserve_column_metric_collision_precedence(
     column_chart = _chart(11, table, groupby=["region"])
     metric_chart = _chart(12, table, metrics=["region"])
     dashboard = Dashboard(id=17, slices=[column_chart, metric_chart])
-    with _as_regular_user(admin=True):
+    verbose_map = table.data_for_slices([column_chart, metric_chart])["verbose_map"]
+    with _as_regular_user(admin=True, can_access_datasource=False):
         response = _get_datasets(client, dashboard).response
     assert response.status_code == 200
     [dataset] = response.json["result"]
-    assert dataset["verbose_map"]["region"] == "Region"
+    assert verbose_map["region"] == "Region"
+    assert "verbose_map" not in dataset
     assert dataset["chart_display_labels"] == {"11": {"region": "Region"}}
 
 
@@ -1561,20 +1633,24 @@ def test_chart_display_labels_exclude_butterfly_sort_only_query_metrics(
     assert sort_metric in table.data_for_slices([chart])["verbose_map"]
 
 
+@pytest.mark.parametrize("viz_type", ["table", "ag-grid-table"])
 @pytest.mark.parametrize("mode", ["aggregate", "raw", None, "invalid"])
-def test_chart_display_labels_exclude_hidden_table_controls(mode: str | None) -> None:
+@pytest.mark.parametrize("all_columns", [["metro", "cost_center"], [], None])
+def test_chart_display_labels_exclude_hidden_table_controls(
+    viz_type: str, mode: str | None, all_columns: list[str] | None
+) -> None:
     """Retained controls from the other table query mode cannot contribute labels."""
     table = _labelled_table()
     chart = _chart(
         11,
         table,
         query_mode=mode,
-        all_columns=["metro", "cost_center"],
+        all_columns=all_columns,
         groupby=["region"],
         metrics=["revenue"],
         percent_metrics=["margin"],
     )
-    chart.viz_type = "table"
+    chart.viz_type = viz_type
     chart.query_context = json.dumps(
         {
             "queries": [
@@ -1585,11 +1661,14 @@ def test_chart_display_labels_exclude_hidden_table_controls(mode: str | None) ->
             ]
         }
     )
-    assert saved_chart_display_labels(table, chart) == (
-        {"region": "Region", "revenue": "Revenue", "margin": "Margin"}
-        if mode == "aggregate"
-        else {"metro": "Metro area", "cost_center": "Cost center"}
-    )
+    is_raw = mode == "raw" or (mode not in ("aggregate", "raw") and bool(all_columns))
+    if is_raw:
+        expected = (
+            {"metro": "Metro area", "cost_center": "Cost center"} if all_columns else {}
+        )
+    else:
+        expected = {"region": "Region", "revenue": "Revenue", "margin": "Margin"}
+    assert saved_chart_display_labels(table, chart) == expected
     assert set(table.data_for_slices([chart])["verbose_map"]) >= {
         "metro",
         "cost_center",

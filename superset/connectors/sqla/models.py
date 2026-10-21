@@ -772,11 +772,11 @@ class BaseDatasource(
         form_data: dict[str, Any], viz_type: str | None
     ) -> dict[str, Any]:
         """Exclude table controls retained while their query mode is hidden."""
-        if viz_type != "table":
+        if viz_type not in ("table", "ag-grid-table"):
             return form_data
         mode = form_data.get("query_mode")
         if mode not in ("raw", "aggregate"):
-            # Match plugin-chart-table's getQueryMode for legacy saved charts.
+            # Match both table plugins' getQueryMode for legacy saved charts.
             mode = "raw" if form_data.get("all_columns") else "aggregate"
         params = (
             ("all_columns", "columns")

@@ -561,19 +561,24 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 chart.params, chart.query_context, chart.viz_type = previous
                 db.session.commit()
 
+    @parameterized.expand([ADMIN_USERNAME, ALPHA_USERNAME])
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
-    def test_get_dashboard_datasets_chart_display_labels(self) -> None:
-        """Saved dimensions and metrics with configured labels are listed per
-        chart, alongside the verbose map a full-access caller already gets."""
+    def test_get_dashboard_datasets_chart_display_labels_full_access(
+        self, username: str
+    ) -> None:
+        """Datasource access supplies verbose_map without a redundant chart map."""
         with self._world_health_display_labels() as ids:
-            self.login(ADMIN_USERNAME)
+            dashboard = Dashboard.get("world_health")
+            dashboard.published = True
+            db.session.commit()
+            self.login(username)
             response = self.get_assert_metric(
                 "api/v1/dashboard/world_health/datasets", "get_datasets"
             )
             dataset = self._world_health_dataset(response, ids["table_id"])
 
-        self._assert_world_health_labels(dataset["chart_display_labels"], ids)
-        assert dataset["verbose_map"]["country_name"] == "Country"
+        assert "chart_display_labels" not in dataset
+        assert self.WORLD_HEALTH_LABELS.items() <= dataset["verbose_map"].items()
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     @patch("superset.dashboards.api.security_manager.can_access_datasource")
@@ -601,9 +606,15 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         with self._world_health_display_labels() as ids:
             allowed_id = ids["Most Populated Countries"]
             self.login(ADMIN_USERNAME)
-            with patch(
-                "superset.models.dashboard.security_manager.can_access_chart",
-                side_effect=lambda chart: chart.id == allowed_id,
+            with (
+                patch(
+                    "superset.models.dashboard.security_manager.can_access_chart",
+                    side_effect=lambda chart: chart.id == allowed_id,
+                ),
+                patch(
+                    "superset.models.dashboard.security_manager.can_access_datasource",
+                    return_value=False,
+                ),
             ):
                 response = self.get_assert_metric(
                     "api/v1/dashboard/world_health/datasets", "get_datasets"
@@ -682,7 +693,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         """
         assert request().status_code == 200
         with patch.object(
-            Dashboard, "_with_chart_display_labels", lambda self, *args: args[2]
+            Dashboard,
+            "_with_chart_display_labels",
+            lambda self, *args, **kwargs: args[2],
         ):
             with self._count_metadata_queries() as baseline:
                 assert request().status_code == 200
@@ -713,8 +726,7 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_chart_display_labels_query_count(self) -> None:
-        """For a non-guest, labels cost nothing when no chart has one, and at
-        most one chart-access prefetch plus a small per-chart check otherwise."""
+        """Datasource access avoids label permission queries even with labels."""
         dashboard = db.session.query(Dashboard).filter_by(slug="world_health").one()
         dashboard.published = True
         db.session.commit()
@@ -745,12 +757,13 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             ) as prefetch,
         ):
             baseline, labelled, data = self._datasets_query_counts(request)
-        # Once per labelled request (warm-up and measured), never per chart.
-        assert prefetch.call_count == 2
-        charts = self._labelled_chart_count(data)
-        assert charts >= 2
-        # prefetch_chart_access is 3 statements; each chart check measured 1.
-        assert labelled - baseline <= 3 + charts
+        assert self._labelled_chart_count(data) == 0
+        assert labelled == baseline
+        prefetch.assert_not_called()
+        assert any(
+            self.WORLD_HEALTH_LABELS.items() <= dataset["verbose_map"].items()
+            for dataset in data["result"]
+        )
 
     @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
     def test_get_dashboard_datasets_chart_display_labels_dashboard_viewer(self) -> None:

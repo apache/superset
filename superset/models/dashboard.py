@@ -541,8 +541,15 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
 
     def datasets_trimmed_for_slices(
         self,
+        *,
+        can_access_datasource: Callable[[BaseDatasource | SemanticView], bool]
+        | None = None,
     ) -> list[tuple[BaseDatasource | SemanticView, dict[str, Any]]]:
-        """Return trimmed chart metadata, keeping datasource types distinct."""
+        """Return trimmed chart metadata, keeping datasource types distinct.
+
+        The endpoint supplies its request-local datasource check so label assembly
+        and metadata serialization share the same authorization decision.
+        """
         # Key by (datasource_type, datasource_id): SqlaTable and SemanticView
         # have independent auto-increment id spaces, so grouping by the bare
         # datasource_id would merge unrelated datasources with colliding ids.
@@ -556,15 +563,18 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
 
         result: list[tuple[BaseDatasource | SemanticView, dict[str, Any]]] = []
         label_access = _ChartLabelAccess(self)
+        datasource_access = (
+            can_access_datasource or security_manager.can_access_datasource
+        )
 
         for _, slices in slices_by_datasource.items():
             # Resolve once per typed datasource, retaining eager-loaded tables.
             datasource: Datasource | None = next(iter(slices)).resolved_datasource
 
             if isinstance(datasource, (BaseDatasource, SemanticView)):
-                if isinstance(
-                    datasource, SemanticView
-                ) and not security_manager.can_access_datasource(datasource):
+                if isinstance(datasource, SemanticView) and not datasource_access(
+                    datasource
+                ):
                     # Keep the dashboard lookup identity without instantiating
                     # a provider or discovering metadata with stored credentials.
                     result.append(
@@ -617,7 +627,11 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
                     (
                         datasource,
                         self._with_chart_display_labels(
-                            datasource, slices, payload, label_access
+                            datasource,
+                            slices,
+                            payload,
+                            label_access,
+                            can_access_datasource=datasource_access,
                         ),
                     )
                 )
@@ -630,24 +644,33 @@ class Dashboard(CoreDashboard, SoftDeleteMixin, AuditMixinNullable, ImportExport
         slices: set[Slice],
         payload: dict[str, Any],
         access: _ChartLabelAccess,
+        *,
+        can_access_datasource: Callable[[BaseDatasource | SemanticView], bool]
+        | None = None,
     ) -> dict[str, Any]:
         """Add display labels of this dashboard's accessible member charts.
 
         Only SQLAlchemy datasets get ``chart_display_labels``, and only this
         dashboard's own member charts on ``datasource`` that the caller may
         access contribute, each limited to its saved dimensions and metrics.
-        Nothing is taken from the request. The map is independent of datasource
-        access, which still narrows the rest of the payload, so a caller without
-        that access sees authorized chart labels only. The key is omitted when
-        no label is authorized.
+        Nothing is taken from the request. Callers with datasource access keep
+        the existing verbose map and skip label assembly and chart authorization.
+        Callers without that access see authorized chart labels only. The key is
+        omitted when no label is authorized.
 
         :param datasource: The datasource shared by ``slices``
         :param slices: Member charts of this dashboard on ``datasource``
         :param payload: The trimmed datasource payload, updated in place
         :param access: This request's chart authorization for labels
+        :param can_access_datasource: This request's shared datasource check
         :returns: ``payload``
         """
         if not isinstance(datasource, SqlaTable):
+            return payload
+        datasource_access = (
+            can_access_datasource or security_manager.can_access_datasource
+        )
+        if datasource_access(datasource):
             return payload
 
         configured_labels = _dataset_display_labels(datasource)
