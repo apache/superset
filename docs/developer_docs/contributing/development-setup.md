@@ -95,7 +95,6 @@ documentation.
 Affecting the Docker build process:
 
 - **SUPERSET_BUILD_TARGET (default=dev):** which --target to build, either `lean` or `dev` are commonly used
-- **INCLUDE_FIREFOX (default=false):** whether to include the Firefox headless browser in the build. Superset's screenshot features use only Chromium, so Alerts & Reports and thumbnails don't use it
 - **INCLUDE_CHROMIUM (default=false):** whether to include Playwright and the Chromium headless browser in the build, which Alerts & Reports and thumbnails need to take screenshots
 - **BUILD_TRANSLATIONS(default=false):** whether to compile the translations from the .po files available
 - **SUPERSET_LOAD_EXAMPLES (default=yes):** whether to load the examples into the database upon startup,

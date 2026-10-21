@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useCallback, useState, useMemo, useEffect } from 'react';
+import { useCallback, useState, useMemo, useEffect, useRef } from 'react';
 import rison from 'rison';
 import { t } from '@apache-superset/core/translation';
 import {
@@ -47,10 +47,28 @@ interface ColumnSelectProps {
   value?: string | string[];
   onChange?: (value: string) => void;
   mode?: 'multiple';
+  // Called with the names of the columns that back the rendered options
+  // (already narrowed by `filterValues`) whenever a dataset's columns load,
+  // plus the datasource key (see getDatasourceKey) they were loaded for. Lets
+  // a parent seed a default selection that matches the options exactly, and
+  // tell which datasource a selection belongs to.
+  onColumnsLoaded?: (columnNames: string[], datasourceKey: string) => void;
+  // Label options (and selected values) with the column's verbose name,
+  // falling back to column_name. Search matches either.
+  showVerboseNames?: boolean;
+  placeholder?: string;
 }
 
+/**
+ * Identifies a datasource across both ID sequences. Datasets and semantic
+ * views have independent IDs, so the type is part of the key.
+ */
+export const getDatasourceKey = (
+  datasetId: number | string | undefined,
+  datasourceType: DatasourceType | undefined,
+) => `${datasetId}__${datasourceType || DatasourceType.Table}`;
+
 /** Special purpose AsyncSelect that selects a column from a dataset */
-// eslint-disable-next-line import/prefer-default-export
 export function ColumnSelect({
   allowClear = false,
   filterValues = () => true,
@@ -62,6 +80,9 @@ export function ColumnSelect({
   value,
   onChange,
   mode,
+  onColumnsLoaded,
+  showVerboseNames = false,
+  placeholder = t('Select a column'),
 }: ColumnSelectProps) {
   const [columns, setColumns] = useState<Column[]>();
   const [loading, setLoading] = useState(false);
@@ -72,14 +93,38 @@ export function ColumnSelect({
     ]);
   }, [form, filterId, formField]);
 
+  // The names backing the rendered options: the loaded columns narrowed by
+  // `filterValues`, the same narrowing the option list applies, so a default
+  // seeded through onColumnsLoaded matches the available options exactly.
+  const filterColumnNames = useCallback(
+    (cols: Column[]) =>
+      ensureIsArray(cols)
+        .filter(filterValues)
+        .map((col: Column) => col.column_name),
+    [filterValues],
+  );
+
   const options = useMemo(
     () =>
       ensureIsArray(columns)
         .filter(filterValues)
-        .map((col: Column) => col.column_name)
-        .map((column: string) => ({ label: column, value: column })),
-    [columns, filterValues],
+        .map((col: Column) => ({
+          label: (showVerboseNames && col.verbose_name) || col.column_name,
+          value: col.column_name,
+        })),
+    [columns, filterValues, showVerboseNames],
   );
+
+  // Whether the current selection still matches a loaded column. An empty
+  // selection has nothing to look up and is legitimate (e.g. a cleared
+  // multi-select), so it must not trigger a reset of the form field.
+  const isValueInColumns = (cols: Column[]) => {
+    const lookupValue = ensureIsArray(value);
+    return (
+      lookupValue.length === 0 ||
+      cols.some((column: Column) => lookupValue.includes(column.column_name))
+    );
+  };
 
   const currentFilterType =
     form.getFieldValue('filters')?.[filterId].filterType;
@@ -98,8 +143,23 @@ export function ColumnSelect({
   // the datasource type changes.  Datasets and semantic views have independent
   // ID sequences, so switching between them with the same numeric ID must still
   // trigger a column re-fetch.
-  const datasourceKey = `${datasetId}__${datasourceType || DatasourceType.Table}`;
+  const datasourceKey = getDatasourceKey(datasetId, datasourceType);
+  // Only the request for the current datasource may update the columns: a
+  // late response for a previous (possibly same-id) datasource is ignored.
+  const requestIdRef = useRef(0);
+  // The form outlives this picker: once unmounted, its pending request must
+  // not reset the column a replacement picker has set.
+  useEffect(
+    () => () => {
+      requestIdRef.current += 1;
+    },
+    [],
+  );
   useChangeEffect(datasourceKey, previous => {
+    requestIdRef.current += 1;
+    const requestId = requestIdRef.current;
+    const requestKey = datasourceKey;
+    const isCurrent = () => requestId === requestIdRef.current;
     if (previous != null) {
       setColumns([]);
       resetColumnField();
@@ -109,28 +169,33 @@ export function ColumnSelect({
       const handleError = async (
         badResponse: Parameters<typeof getClientErrorObject>[0],
       ) => {
+        if (!isCurrent()) return;
         const errorText = selectClientErrorMessage(
           await getClientErrorObject(badResponse),
           t('An error has occurred'),
           { 403: t('You do not have permission to edit this dashboard') },
         );
-        addDangerToast(errorText);
+        // The binding may have changed while the error body was read.
+        if (!isCurrent()) return;
+        addDangerToast(errorText, { noDuplicate: true });
       };
 
       if (datasourceType === DatasourceType.SemanticView) {
         fetchSemanticViewStructure(datasetId)
           .then(({ dimensions }) => {
+            if (!isCurrent()) return;
             const cols: Column[] = semanticViewDimensionsToColumns(dimensions);
-            const lookupValue = Array.isArray(value) ? value : [value];
-            const valueExists = cols.some((column: Column) =>
-              lookupValue?.includes(column.column_name),
-            );
-            if (!valueExists) {
+            if (!isValueInColumns(cols)) {
               resetColumnField();
             }
             setColumns(cols);
+            onColumnsLoaded?.(filterColumnNames(cols), requestKey);
           }, handleError)
-          .finally(() => setLoading(false));
+          .finally(() => {
+            if (isCurrent()) {
+              setLoading(false);
+            }
+          });
       } else {
         cachedSupersetGet({
           endpoint: `/api/v1/dataset/${datasetId}?q=${rison.encode({
@@ -139,21 +204,29 @@ export function ColumnSelect({
               'columns.is_dttm',
               'columns.type_generic',
               'columns.filterable',
+              ...(showVerboseNames ? ['columns.verbose_name'] : []),
             ],
           })}`,
         })
           .then(({ json: { result } }) => {
-            const lookupValue = Array.isArray(value) ? value : [value];
-            const valueExists = result.columns.some((column: Column) =>
-              lookupValue?.includes(column.column_name),
-            );
-            if (!valueExists) {
+            if (!isCurrent()) {
+              return;
+            }
+            if (!isValueInColumns(result.columns)) {
               resetColumnField();
             }
             setColumns(result.columns);
+            onColumnsLoaded?.(filterColumnNames(result.columns), requestKey);
           }, handleError)
-          .finally(() => setLoading(false));
+          .finally(() => {
+            if (isCurrent()) {
+              setLoading(false);
+            }
+          });
       }
+    } else {
+      // A superseded request no longer clears the spinner itself.
+      setLoading(false);
     }
   });
 
@@ -165,7 +238,7 @@ export function ColumnSelect({
       loading={loading}
       onChange={onChange}
       options={options}
-      placeholder={t('Select a column')}
+      placeholder={placeholder}
       notFoundContent={t('No compatible columns found')}
       showSearch
       allowClear={allowClear}

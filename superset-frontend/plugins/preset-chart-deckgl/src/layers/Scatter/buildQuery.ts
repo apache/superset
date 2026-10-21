@@ -31,7 +31,7 @@ import {
   SpatialFormData,
 } from '../spatialUtils';
 import { addTooltipColumnsToQuery } from '../buildQueryUtils';
-import { isMetricValue } from '../utils/metricUtils';
+import { getTypedFixedRadius, isMetricValue } from '../utils/metricUtils';
 
 export interface DeckScatterFormData
   extends Omit<SpatialFormData, 'color_picker'>, SqlaFormData {
@@ -48,6 +48,7 @@ export interface DeckScatterFormData
   max_radius?: number;
   color_picker?: { r: number; g: number; b: number; a: number };
   dimension?: string;
+  mcp_geographic?: boolean;
 }
 
 export default function buildQuery(formData: DeckScatterFormData) {
@@ -69,7 +70,9 @@ export default function buildQuery(formData: DeckScatterFormData) {
       columns = addTooltipColumnsToQuery(columns, tooltip_contents);
 
       // Only add metric if point_radius_fixed is a metric type
-      const isMetric = isMetricValue(point_radius_fixed);
+      const isMetric =
+        getTypedFixedRadius(formData) === null &&
+        isMetricValue(point_radius_fixed);
       // Extract metric value: legacy string format or object with metric value
       const rawValue =
         typeof point_radius_fixed === 'string'
