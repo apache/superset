@@ -758,6 +758,24 @@ curl -X POST http://localhost:5008/mcp \
 
 ---
 
+## Text input validation
+
+Dashboard titles and chart names may contain punctuation and prose labels such
+as `substitute data: Jira support tickets`. URL payloads using `javascript:`,
+`vbscript:`, or `data:` remain rejected, including schemes with embedded ASCII
+tabs, newlines, or carriage returns. A `data:` label is accepted only when
+`data:` is followed by whitespace and no comma appears anywhere after it. A
+value that starts with `data:`, or has a character other than whitespace right
+after `data:`, is always rejected. Browsers read the text before the first comma
+as the media type and load a data URL whose media type is invalid, such as
+`data: Jira,`, as plain text, so a comma-bearing label such as
+`substitute data: Jira, support` is rejected because it cannot be told apart
+from a data URL. When title or name
+sanitization fails, MCP validation errors identify the field, such as
+`request.dashboard_title`, and provide a fixed disallowed-content reason,
+including the comma restriction on `data:` labels, without echoing the supplied
+value.
+
 ## Deployment
 
 ### Single Process
@@ -1409,6 +1427,17 @@ names do not make nonnumeric values eligible.
 - The MCP server enforces Superset's RBAC permissions -- the authenticated user must have the required roles
 - In development mode, ensure `MCP_DEV_USERNAME` maps to a user with appropriate roles (e.g., Admin)
 - Check `superset/security/manager.py` for the specific permission tuples required by each tool domain (e.g., `("can_execute_sql_query", "SQLLab")`)
+
+### Rejected text fields
+
+Text-sanitization errors identify the rejected field and provide a fixed reason
+without echoing its value. This applies to titles, certification text, chart
+column names and labels, filter values, temporal and Gantt sort columns, Bullet
+labels, and time-range or comparison-period text. A `data:` label followed by a
+comma is rejected as a possible data URL; rewrite the label without `data:` or
+without the comma. Bullet labels cannot contain commas at all because their
+frontend controls use comma-separated values. Empty certification text must be
+cleared with an explicit empty string rather than text that sanitizes to nothing.
 
 ### Response too large
 

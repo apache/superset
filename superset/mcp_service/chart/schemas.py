@@ -84,7 +84,10 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import (
     ExactJsonSafeMapping,
     ExactJsonSafeRows,
@@ -883,7 +886,7 @@ class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
 
 class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     name: str | None = Field(
         None,
@@ -1055,7 +1058,7 @@ LEGEND_POSITION_LITERAL = Literal["top", "bottom", "left", "right"]
 
 
 class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     column: str = Field(
         ...,
@@ -1175,7 +1178,7 @@ class SortByConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 class GanttSortByConfig(UnknownFieldCheckMixin):
     """One physical-column ordering applied before Gantt rendering."""
 
-    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+    model_config = ConfigDict(extra="ignore", populate_by_name=True, loc_by_alias=False)
 
     column: str = Field(
         ...,
@@ -4602,9 +4605,10 @@ class BulletChartConfig(BaseChartConfig):
         result: list[str] = []
         for label in labels:
             if "," in label:
-                raise ValueError(
+                raise PydanticCustomError(
+                    "bullet_label_comma",
                     "Bullet labels cannot contain commas because the frontend "
-                    "comma-separated controls have no escaping"
+                    "comma-separated controls have no escaping",
                 )
             if label == "":
                 result.append("")
@@ -6356,16 +6360,17 @@ class GenerateChartRequest(
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Chart name", max_length=255, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "chart_name contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a chart_name with plain text, or "
-                "omit it to auto-generate one."
+        with field_validation_error("chart_name"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Chart name", max_length=255, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "chart_name contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a chart_name with plain text, or "
+                    "omit it to auto-generate one."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "chart_name was modified during sanitization to remove "
@@ -6378,7 +6383,14 @@ class GenerateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+        try:
+            return sanitize_user_input(
+                v, "Chart name", max_length=255, allow_empty=True
+            )
+        except ValueError as ex:
+            raise PydanticCustomError(
+                "unsafe_text", "{error}", {"error": str(ex)}
+            ) from ex
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -6424,7 +6436,7 @@ class GenerateExploreLinkRequest(
 class UpdateChartRequest(
     ChartRequestNormalizerMixin, OmittedMeansUnchanged, QueryCacheControl
 ):
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = ConfigDict(populate_by_name=True, loc_by_alias=False)
 
     identifier: int | str = Field(
         ...,
@@ -6517,7 +6529,14 @@ class UpdateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+        try:
+            return sanitize_user_input(
+                v, "Chart name", max_length=255, allow_empty=True
+            )
+        except ValueError as ex:
+            raise PydanticCustomError(
+                "unsafe_text", "{error}", {"error": str(ex)}
+            ) from ex
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):

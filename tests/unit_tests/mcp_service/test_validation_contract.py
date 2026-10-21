@@ -557,3 +557,26 @@ def test_wrapper_hint_only_matches_direct_request_properties(
         },
     }
     assert _is_unwrapped_request_field(schema, location) is expected
+
+
+@pytest.mark.parametrize(
+    ("location", "expected"),
+    [
+        (("table", "columns", 0, "label"), "columns.0.label"),
+        (("table", "columns", 0, "private-input"), "columns.0.[field]"),
+        (("private-input", "columns", 0, "label"), "[field].[field].[field].[field]"),
+        (("table", "private-input", "label"), "[field].[field]"),
+        (
+            ("table", "query_context", "private-input", "label"),
+            "[field].[field].[field]",
+        ),
+    ],
+)
+def test_compact_chart_diagnostics_only_expose_declared_fields(
+    location: tuple[str | int, ...], expected: str
+) -> None:
+    """Expanded diagnostics still mask unknown tags, fields, and dictionary keys."""
+    from superset.mcp_service.chart.schemas import CHART_CONFIG_REFERENCE_SCHEMA
+    from superset.mcp_service.utils.validation import _schema_location
+
+    assert _schema_location(CHART_CONFIG_REFERENCE_SCHEMA, location) == expected
