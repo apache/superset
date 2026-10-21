@@ -19,6 +19,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import ipaddress
 import os
 import socket
@@ -33,10 +34,12 @@ from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from importlib.machinery import ModuleSpec
 from pathlib import Path
-from threading import get_ident, Thread
+from threading import get_ident, Lock, Thread
+from types import ModuleType
 from typing import Any, cast, TypeAlias
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 import requests
@@ -1443,3 +1446,108 @@ def test_non_string_label_cannot_chain_library_secrets(
     assert "raw-secret" not in caplog.text
     assert "private.test" not in caplog.text
     send.assert_called_once()
+
+
+def test_missing_hostname_is_rejected_before_io() -> None:
+    send: Mock
+    raised: pytest.ExceptionInfo[ProviderRequestError]
+    with patch.object(semantic_layer_http._DirectSession, "request") as send:
+        with pytest.raises(ProviderRequestError) as raised:
+            provider_request("fixture", "GET", "https:///missing-host", timeout=1)
+    assert raised.value.failure is ProviderRequestFailure.INVALID_URL
+    send.assert_not_called()
+
+
+def test_closed_deadline_does_not_duplicate_or_shutdown_socket() -> None:
+    scheduler: semantic_layer_http.DeadlineScheduler = semantic_layer_http._scheduler()
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() - 1
+    )
+    left: socket.socket
+    right: socket.socket
+    left, right = socket.socketpair()
+    try:
+        scheduler.close(bound)
+        scheduler.register(bound, left)
+        assert not bound.sockets
+        assert bound not in scheduler._tokens
+        assert not bound.expired
+        right.settimeout(0.2)
+        left.sendall(b"open")
+        assert right.recv(4) == b"open"
+    finally:
+        scheduler.close(bound)
+        left.close()
+        right.close()
+
+
+def test_shutdown_error_does_not_skip_other_owned_sockets() -> None:
+    failed: Mock = Mock(spec=socket.socket)
+    failed.shutdown.side_effect = OSError("already disconnected")
+    left: socket.socket
+    right: socket.socket
+    left, right = socket.socketpair()
+    bound: semantic_layer_http._Deadline = semantic_layer_http._Deadline(
+        time.monotonic() - 1, sockets=[failed, left.dup()]
+    )
+    try:
+        semantic_layer_http.DeadlineScheduler._expire(bound)
+        assert bound.expired
+        failed.shutdown.assert_called_once_with(socket.SHUT_RDWR)
+        right.settimeout(0.2)
+        assert right.recv(1) == b""
+    finally:
+        semantic_layer_http._scheduler().close(bound)
+        left.close()
+        right.close()
+    failed.close.assert_called_once()
+    assert not bound.sockets
+
+
+@pytest.mark.parametrize("fork_available", [True, False])
+def test_registered_fork_hook_resets_only_child_scheduler_state(
+    fork_available: bool, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Load a separate module instance: never replace the live worker or its lock.
+    spec: ModuleSpec | None = importlib.util.spec_from_file_location(
+        "_isolated_provider_transport", semantic_layer_http.__file__
+    )
+    assert spec is not None
+    assert spec.loader is not None
+    isolated: ModuleType = importlib.util.module_from_spec(spec)
+    monkeypatch.setitem(sys.modules, spec.name, isolated)
+    register: Mock = Mock()
+    platform: pytest.MonkeyPatch
+    with monkeypatch.context() as platform:
+        if fork_available:
+            platform.setattr(os, "register_at_fork", register, raising=False)
+        else:
+            platform.delattr(os, "register_at_fork", raising=False)
+        spec.loader.exec_module(isolated)
+    assert isolated._SCHEDULER is None
+    if not fork_available:
+        register.assert_not_called()
+        return
+    register.assert_called_once_with(
+        after_in_child=isolated._reset_scheduler_after_fork
+    )
+    inherited_scheduler: Mock = Mock(spec=isolated.DeadlineScheduler)
+    monkeypatch.setattr(isolated, "_SCHEDULER", inherited_scheduler)
+    inherited_lock: Lock = isolated._SCHEDULER_LOCK
+    inherited_lock.acquire()
+    parent_scheduler: semantic_layer_http.DeadlineScheduler | None = (
+        semantic_layer_http._SCHEDULER
+    )
+    parent_lock: Lock = semantic_layer_http._SCHEDULER_LOCK
+    callback: Callable[[], None] = register.call_args.kwargs["after_in_child"]
+    try:
+        callback()
+        assert isolated._SCHEDULER is None
+        assert isolated._SCHEDULER_LOCK is not inherited_lock
+        assert isolated._SCHEDULER_LOCK.acquire(blocking=False)
+        isolated._SCHEDULER_LOCK.release()
+        assert semantic_layer_http._SCHEDULER is parent_scheduler
+        assert semantic_layer_http._SCHEDULER_LOCK is parent_lock
+        assert not inherited_scheduler.mock_calls
+    finally:
+        inherited_lock.release()
