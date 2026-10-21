@@ -813,7 +813,7 @@ def test_execute_failure_finishes_query_record(
     assert mock_query.status == expected_status.value
     assert mock_query.error_message
     assert mock_query.end_time == 1234000.0
-    mock_db_session.rollback.assert_called_once()
+    mock_db_session.rollback.assert_not_called()
     mock_db_session.commit.assert_called_once()
 
 
@@ -839,6 +839,7 @@ def test_execute_preserves_error_when_failure_recording_fails(
     )
     from superset.sql.execution.executor import SQLExecutor
 
+    caplog.set_level("WARNING", logger="superset.sql.execution.executor")
     error = {
         "database": RuntimeError("Query failed"),
         "timeout": SupersetTimeoutException(
@@ -854,6 +855,7 @@ def test_execute_preserves_error_when_failure_recording_fails(
     mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
     mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
     mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=error)
+    mock_db_session.is_active = metadata_failure != "rollback"
     getattr(mock_db_session, metadata_failure).side_effect = RuntimeError(
         "Metadata unavailable"
     )
@@ -875,8 +877,83 @@ def test_execute_preserves_error_when_failure_recording_fails(
         if metadata_failure == "commit":
             assert result.query_id == mock_query.id
 
-    assert mock_db_session.rollback.call_count == 2
+    assert mock_db_session.rollback.call_count == (
+        2 if metadata_failure == "rollback" else 1
+    )
     assert "Failed to persist SQL query error" in caplog.text
+
+
+@pytest.mark.parametrize("metadata_flush_fails", [False, True])
+def test_execute_failure_preserves_usable_metadata_transaction(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    tmp_path: Path,
+    metadata_flush_fails: bool,
+) -> None:
+    """Keep unrelated pending writes unless a failed flush requires rollback."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import executor
+
+    engine = create_engine(f"sqlite:///{tmp_path / 'metadata.db'}")
+    Query.__table__.create(engine)
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="sync-error",
+            database_id=1,
+            sql="SELECT 1",
+            status="running",
+        )
+        other = Query(id=124, client_id="other", database_id=1, progress=0)
+        session.add_all([query, other])
+        session.commit()
+
+        def fail_execution(*args: Any, **kwargs: Any) -> None:
+            other.progress = 37
+            session.add(
+                Query(
+                    id=125,
+                    client_id="pending",
+                    database_id=None if metadata_flush_fails else 1,
+                )
+            )
+            if metadata_flush_fails:
+                session.flush()
+            raise RuntimeError("Query failed")
+
+        mocker.patch.object(executor.db, "session", session)
+        mocker.patch.object(
+            executor.SQLExecutor, "_create_query_record", return_value=query
+        )
+        mocker.patch.object(
+            executor.SQLExecutor, "_try_get_cached_result", return_value=None
+        )
+        mocker.patch.object(
+            executor.SQLExecutor, "_execute_statements", side_effect=fail_execution
+        )
+
+        result = database.execute("SELECT 1")
+
+        assert result.status == QueryStatus.FAILED
+        assert result.query_id == 123
+        with Session(engine) as verification_session:
+            recorded = verification_session.get(Query, 123)
+            assert recorded is not None
+            assert recorded.status == "failed"
+            assert recorded.error_message == result.error_message
+            assert recorded.end_time is not None
+            other_recorded = verification_session.get(Query, 124)
+            assert other_recorded is not None
+            assert other_recorded.progress == (0 if metadata_flush_fails else 37)
+            assert (
+                verification_session.get(Query, 125) is None
+            ) is metadata_flush_fails
+    engine.dispose()
 
 
 @pytest.mark.parametrize("failure", ["database", "timeout", "oauth"])
