@@ -47,6 +47,7 @@ from superset.semantic_layers.access import (
     is_semantic_layers_enabled,
     SemanticLayersDisabledError,
 )
+from superset.semantic_layers.dimension_resolution import AmbiguousDimensionError
 from superset.semantic_layers.models import ColumnMetadata, SemanticView
 
 logger = logging.getLogger(__name__)
@@ -228,11 +229,16 @@ async def _collect_external_metrics(
                         compatible_dimensions=compat_dims,
                     )
                 )
-        except Exception as exc:  # noqa: BLE001
-            # External registry may be empty in OSS — degrade gracefully
+        except AmbiguousDimensionError as exc:
             await ctx.warning(
                 "Could not load metrics for view id=%s: %s" % (view.id, str(exc))
             )
+        except Exception:  # noqa: BLE001
+            # External registry may be empty in OSS — degrade gracefully
+            logger.warning(
+                "Could not load metrics for view id=%s", view.id, exc_info=True
+            )
+            await ctx.warning("Unable to retrieve metrics for a semantic view.")
     return results
 
 
@@ -347,8 +353,9 @@ async def list_metrics(
         logger.exception(
             "Unexpected error in list_metrics: %s: %s", type(exc).__name__, str(exc)
         )
-        await ctx.error("Unexpected error: %s: %s" % (type(exc).__name__, str(exc)))
+        message: str = "Unable to retrieve metrics."
+        await ctx.error(message)
         return SemanticLayerError.create(
-            error=f"Internal error listing metrics: {exc}",
+            error=message,
             error_type="InternalError",
         )
