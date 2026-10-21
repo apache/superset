@@ -659,3 +659,79 @@ describe('mobile consumption mode', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 });
+
+test.each([
+  ['no Manage', [], true, 1],
+  ['no admission', [], false, 0],
+  ['missing bootstrap flag', [], undefined, 0],
+  [
+    'Manage without archive',
+    [{ name: 'Manage', label: 'Manage', childs: [] }],
+    true,
+    1,
+  ],
+  [
+    'existing translated archive',
+    [
+      {
+        name: 'Manage',
+        label: 'Gestion',
+        childs: [
+          {
+            name: 'Recently Archived',
+            label: 'Archives récentes',
+            url: '/archived/',
+          },
+        ],
+      },
+    ],
+    true,
+    1,
+  ],
+])('archive fallback: %s', async (_name, settings, admitted, count) => {
+  resetUseSelectorMock();
+  const props = createProps();
+  props.settings = settings;
+  props.navbarRight = {
+    ...props.navbarRight,
+    can_access_recently_archived: admitted,
+  };
+  render(<RightMenu {...props} />, {
+    useRedux: true,
+    useQueryParams: true,
+    useRouter: true,
+    useTheme: true,
+  });
+  await userEvent.hover(await screen.findByText('Settings'));
+  await screen.findByText('Info');
+  const archiveLinks = screen
+    .queryAllByRole('link')
+    .filter(link => link.getAttribute('href') === '/archived/');
+  expect(archiveLinks).toHaveLength(count);
+});
+
+test('archive fallback respects the application root', async () => {
+  const rootSpy = jest
+    .spyOn(getBootstrapData, 'applicationRoot')
+    .mockReturnValue('/analytics');
+  try {
+    resetUseSelectorMock();
+    const props = createProps();
+    props.navbarRight = {
+      ...props.navbarRight,
+      can_access_recently_archived: true,
+    };
+    render(<RightMenu {...props} />, {
+      useRedux: true,
+      useQueryParams: true,
+      useRouter: true,
+      useTheme: true,
+    });
+    await userEvent.hover(await screen.findByText('Settings'));
+    expect(
+      await screen.findByRole('link', { name: 'Recently Archived' }),
+    ).toHaveAttribute('href', '/analytics/archived/');
+  } finally {
+    rootSpy.mockRestore();
+  }
+});

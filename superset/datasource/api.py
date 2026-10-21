@@ -37,9 +37,11 @@ from superset.common.tabular_query import (
     validate_query_names,
 )
 from superset.connectors.sqla.models import BaseDatasource
+from superset.constants import CACHE_DISABLED_TIMEOUT
 from superset.daos.datasource import DatasourceDAO
 from superset.daos.exceptions import DatasourceNotFound, DatasourceTypeNotSupportedError
 from superset.datasource.schemas import DatasourceQuerySchema
+from superset.errors import SupersetErrorType
 from superset.exceptions import (
     QueryObjectValidationError,
     SupersetException,
@@ -73,12 +75,16 @@ SEARCH_CACHE_TIMEOUT = 60
 
 
 class _HttpError(Exception):
-    """Carries an HTTP status out of the shared resolve helper."""
+    """Carry an HTTP status and response payload out of the resolve helper."""
 
-    def __init__(self, status: int, message: str) -> None:
+    def __init__(
+        self, status: int, message: str, *, error: dict[str, Any] | None = None
+    ) -> None:
         super().__init__(message)
-        self.status = status
-        self.message = message
+        self.status: int = status
+        self.payload: dict[str, Any] = {"message": message}
+        if error is not None:
+            self.payload["errors"] = [error]
 
 
 def _column_values_cache_key(
@@ -143,8 +149,15 @@ def get_cached_column_values(
             "q": search,
         },
     )
+    timeout: int = datasource.cache_timeout or app.config.get(
+        "CACHE_DEFAULT_TIMEOUT", 300
+    )
     cached: list[Any] | None
-    if not force and (cached := cache_manager.data_cache.get(cache_key)) is not None:
+    if (
+        timeout != CACHE_DISABLED_TIMEOUT
+        and not force
+        and (cached := cache_manager.data_cache.get(cache_key)) is not None
+    ):
         logger.debug(
             "column-values cache HIT: uid=%s col=%s", datasource.uid, column_name
         )
@@ -172,13 +185,11 @@ def get_cached_column_values(
             warn_threshold,
         )
 
-    timeout: int = datasource.cache_timeout or app.config.get(
-        "CACHE_DEFAULT_TIMEOUT", 300
-    )
     # Bound each distinct search term's lifetime instead of retaining one
     # entry per keystroke for the full default timeout.
     timeout = min(timeout, SEARCH_CACHE_TIMEOUT) if search else timeout
-    cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
+    if timeout != CACHE_DISABLED_TIMEOUT:
+        cache_manager.data_cache.set(cache_key, payload, timeout=timeout)
     logger.debug("column-values cache MISS: uid=%s col=%s", datasource.uid, column_name)
     return payload, False
 
@@ -304,7 +315,12 @@ class DatasourceRestApi(BaseSupersetApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message)
 
-        return self._column_values_response(datasource, datasource_type, column_name)
+        try:
+            return self._column_values_response(
+                datasource, datasource_type, column_name
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
 
     def _column_values_response(
         self, datasource: BaseDatasource, datasource_type: str, column_name: str
@@ -693,6 +709,16 @@ class DatasourceRestApi(BaseSupersetApi):
         if selection_errors:
             return self.response(400, message="; ".join(selection_errors))
 
+        try:
+            datasource_uid: str = datasource.uid
+            metadata_version: str | None = (
+                datasource.metadata_generation
+                if isinstance(datasource, SemanticView)
+                else None
+            )
+        except SupersetSecurityException as ex:
+            return self.response(403, message=ex.message, errors=[ex.to_dict()])
+
         # Build a stable cache key from the datasource identity and the
         # (sorted) selection so that order differences don't cause cache misses.
         cache_key = (
@@ -700,12 +726,9 @@ class DatasourceRestApi(BaseSupersetApi):
             + hashlib.sha256(
                 json.dumps(
                     {
-                        "uid": datasource.uid,
-                        "metadata_version": (
-                            datasource.metadata_generation
-                            if isinstance(datasource, SemanticView)
-                            else None
-                        ),
+                        "uid": datasource_uid,
+                        "changed_on": str(getattr(datasource, "changed_on", "")),
+                        "metadata_version": metadata_version,
                         "m": sorted(selected_metrics),
                         "d": sorted(selected_dimensions),
                     },
@@ -714,7 +737,14 @@ class DatasourceRestApi(BaseSupersetApi):
             ).hexdigest()
         )
 
-        if (cached := cache_manager.data_cache.get(cache_key)) is not None:
+        timeout: int = datasource.cache_timeout or app.config.get(
+            "CACHE_DEFAULT_TIMEOUT", 300
+        )
+        cached: dict[str, list[str]] | None
+        if (
+            timeout != CACHE_DISABLED_TIMEOUT
+            and (cached := cache_manager.data_cache.get(cache_key)) is not None
+        ):
             return self.response(200, result=cached)
 
         try:
@@ -729,10 +759,8 @@ class DatasourceRestApi(BaseSupersetApi):
         except AmbiguousDimensionError as ex:
             return self.response(400, message=str(ex))
 
-        timeout = datasource.cache_timeout or app.config.get(
-            "CACHE_DEFAULT_TIMEOUT", 300
-        )
-        cache_manager.data_cache.set(cache_key, result, timeout=timeout)
+        if timeout != CACHE_DISABLED_TIMEOUT:
+            cache_manager.data_cache.set(cache_key, result, timeout=timeout)
 
         return self.response(200, result=result)
 
@@ -752,6 +780,11 @@ class DatasourceRestApi(BaseSupersetApi):
         except (DatasourceNotFound, SemanticLayersDisabledError) as ex:
             raise _HttpError(404, ex.message) from ex
         except SupersetSecurityException as ex:
+            if (
+                ex.error.error_type
+                == SupersetErrorType.SEMANTIC_EXECUTION_REFUSED_ERROR
+            ):
+                raise _HttpError(403, ex.message, error=ex.to_dict()) from ex
             raise _HttpError(403, ex.message) from ex
         except TabularQueryValidationError as ex:
             raise _HttpError(400, str(ex)) from ex
@@ -817,7 +850,7 @@ class DatasourceRestApi(BaseSupersetApi):
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, payload)
         except _HttpError as ex:
-            return self.response(ex.status, message=ex.message)
+            return self.response(ex.status, **ex.payload)
         except ValueError:
             return self.response(
                 400, message=f"Invalid datasource type: {datasource_type}"
@@ -1011,7 +1044,7 @@ class DatasourceRestApi(BaseSupersetApi):
         try:
             resolved = self._resolve_for_query(datasource_type, datasource_id, {})
         except _HttpError as ex:
-            return self.response(ex.status, message=ex.message)
+            return self.response(ex.status, **ex.payload)
         except ValueError:
             return self.response(
                 400, message=f"Invalid datasource type: {datasource_type}"

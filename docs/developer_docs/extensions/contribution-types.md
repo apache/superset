@@ -245,12 +245,17 @@ See [MCP Integration](./mcp.md) for implementation details.
 
 ### Semantic Layers
 
-See [cache invalidation](../semantic-layer-cache-clear.md) for the optional
-cache-token factory hook and provider cache requirements.
+See [cache invalidation](../semantic-layer-cache-clear.md) for the required
+cache-token factory argument and provider cache requirements.
+
+See the [execution context contract](semantic-execution-context.md) for provider construction and connection-mode guarantees.
 
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
 
 ```python
+from typing import Any
+
+from superset_core.semantic_layers.context import SemanticCredentials, SemanticExecutionContext
 from superset_core.semantic_layers.decorators import semantic_layer
 from superset_core.semantic_layers.layer import SemanticLayer
 
@@ -266,10 +271,21 @@ from my_extension.view import MySemanticView
 class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
     configuration_class = MyConfig
 
+    def __init__(
+        self, configuration: MyConfig, *, cache_token: str,
+        context: SemanticExecutionContext,
+    ) -> None:
+        self.configuration: MyConfig = configuration
+        self.cache_token: str = cache_token
+        self.context: SemanticExecutionContext = context
+
     @classmethod
-    def from_configuration(cls, configuration: dict) -> "MySemanticLayer":
-        config = MyConfig.model_validate(configuration)
-        return cls(config)
+    def from_configuration(
+        cls, configuration: dict[str, Any], *, cache_token: str,
+        context: SemanticExecutionContext, credentials: SemanticCredentials | None = None,
+    ) -> "MySemanticLayer":
+        config: MyConfig = MyConfig.model_validate(configuration)
+        return cls(config, cache_token=cache_token, context=context)
 
     @classmethod
     def get_configuration_schema(cls, configuration=None) -> dict:
@@ -294,6 +310,63 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 - **Host context**: Original ID used as-is
 
 The decorator registers the class in the semantic layers registry, making it available in the UI for users to create connections. The `configuration_class` should be a Pydantic model that defines the fields needed to connect (credentials, project, database, etc.). Superset uses the model's JSON schema to render the configuration form dynamically.
+
+#### Provider obligations and isolated tests
+
+Store the parsed configuration instance on the writable `self.configuration`
+attribute, using the provider's configuration type. Assigning a raw dictionary is
+a type error by design; a read-only `@property` is not supported.
+The host reads this attribute to request the runtime schema.
+`get_configuration_schema()` and `get_configuration_schema(None)` must
+return a static schema without I/O or a constructed provider: the host calls
+this form before credentials exist and when identifying secret fields.
+
+`get_values(dimension, filters)` returns its Arrow value column under
+`dimension.name` for nonempty results. The private `id` and display `verbose_name`
+are not result-column names. Legacy single-column and empty-result handling are
+unchanged. Apply filters or refuse the request; never drop them
+and retry. See the SDK `SemanticView` docstrings for member identity, grain
+variants and ordering before limit, and the [query error guide](../semantic-query-errors.md)
+for typed refusals versus operational faults. The selection-version guard is a
+separate boundary and raises `ValueError`; it does not classify provider faults.
+
+Bind provider construction to the supplied execution context and cache token.
+An uncached provider needs no shared cache. A provider that does cache must
+partition **actual lookups**, before
+discovery, by the token and the existing endpoint/credential/role/view scope.
+Merely assigning `self.cache_token` is not invalidation. The
+[cache guide](../semantic-layer-cache-clear.md#provider-sdk-contract) describes
+the required factory and provider cache behavior. Schema transport
+evolution is separate from these obligations; use the signatures supplied by the
+SDK version your provider supports.
+
+For tests without a running Superset application, install
+`apache-superset-core[testing]` and enable the SDK plugin in your root `conftest.py`:
+
+```python
+pytest_plugins = ["superset_core.semantic_layers.testing"]
+```
+
+Import decorated provider modules **inside** a test or fixture that requests
+`semantic_layer_registration`, after it has been activated:
+
+```python
+def test_configuration(semantic_layer_registration: None) -> None:
+    from my_extension.layer import MySemanticLayer
+
+    schema: dict[str, object] = MySemanticLayer.get_configuration_schema()
+    assert schema["type"] == "object"
+```
+
+The fixture substitutes only the SDK registration decorator and restores it after
+the test. It keeps the provider class intact, without a registry or host startup.
+It does not emulate ID prefixing, duplicate detection or extension lifecycle;
+keep those checks in a host integration lane. Module-level imports happen too
+soon, and previously imported decorator aliases are not replaced. Use isolated
+provider test processes, not a live host. An executable, SDK-only example is in
+[`superset-core/tests/semantic_layers/example_provider.py`](https://github.com/apache/superset/blob/master/superset-core/tests/semantic_layers/example_provider.py).
+It demonstrates discovery and values only; unsupported table/count queries are
+explicitly refused, not claimed as a full provider implementation.
 
 #### Declaring semantic view features
 

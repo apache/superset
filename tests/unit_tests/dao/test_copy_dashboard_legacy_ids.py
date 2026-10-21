@@ -211,3 +211,54 @@ def test_copy_archived_slot_policy_and_restore(
         assert archived.id not in {chart.id for chart in copied.slices}
     else:
         assert {chart.id for chart in copied.slices} == source_ids
+
+
+@pytest.mark.parametrize("kept", [["first"], []])
+def test_copy_without_charts_dropped_from_layout(
+    session: Session, kept: list[str]
+) -> None:
+    """A copy whose layout drops current members only links the layout's charts.
+
+    Forking an older dashboard version sends that version's layout, which can
+    omit charts the source has gained since.
+    """
+    Dashboard.metadata.create_all(session.get_bind())
+    dataset: SqlaTable = SqlaTable(
+        table_name="copy_subset",
+        database=Database(database_name="copy_subset", sqlalchemy_uri="sqlite://"),
+    )
+    db.session.add(dataset)
+    db.session.flush()
+    charts: dict[str, Slice] = {
+        name: Slice(slice_name=name, datasource_type="table", datasource_id=dataset.id)
+        for name in ("first", "second")
+    }
+    source: Dashboard = Dashboard(
+        dashboard_title="source", slices=list(charts.values())
+    )
+    db.session.add(source)
+    db.session.flush()
+    # The source is loaded by a fresh request; its charts' dashboards are not.
+    db.session.expire_all()
+    positions: dict[str, Any] = {
+        f"CHART-{name}": {"type": "CHART", "meta": {"chartId": charts[name].id}}
+        for name in kept
+    }
+    mock_g: MagicMock
+    with (
+        patch("superset.daos.dashboard.security_manager.is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied: Dashboard = DashboardDAO.copy_dashboard(
+            source,
+            {
+                "dashboard_title": "copy",
+                "json_metadata": json.dumps({"positions": positions}),
+            },
+        )
+    db.session.expire_all()
+    assert {chart.id for chart in copied.slices} == {charts[name].id for name in kept}
+    assert {chart.id for chart in source.slices} == {
+        chart.id for chart in charts.values()
+    }
