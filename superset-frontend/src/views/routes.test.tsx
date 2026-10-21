@@ -17,6 +17,10 @@
  * under the License.
  */
 import { matchPath } from 'react-router-dom';
+// Imported statically, and before './routes', so both hold the same page
+// registry. A dynamic import here would resolve against a module registry an
+// earlier `jest.resetModules()` has since replaced.
+import { registerPageFor } from 'src/core/pages';
 import { isFrontendRoute, routes } from './routes';
 
 jest.mock('src/pages/Home', () => () => <div data-test="mock-home" />);
@@ -198,4 +202,26 @@ describe('extension page catch-all precedence', () => {
 
     expect(scoped.map(r => r.path)).not.toContain(EXTENSION_CATCH_ALL);
   });
+});
+
+test('isFrontendRoute recognises a contributed page and its sub-paths', () => {
+  // Asked of the page registry rather than re-derived here, so there is one
+  // definition of which paths a page owns. Without it the menu would
+  // full-page-reload to reach a contributed page.
+  const registration = registerPageFor(
+    'acme.tools',
+    [{ path: '/review-queue' }],
+    { path: '/review-queue', name: 'Queue' },
+    () => null,
+  );
+
+  try {
+    expect(isFrontendRoute('/review-queue')).toBe(true);
+    expect(isFrontendRoute('/review-queue/42/edit')).toBe(true);
+    // A sibling sharing a prefix is not inside the page.
+    expect(isFrontendRoute('/review-queue-archive')).toBe(false);
+    expect(isFrontendRoute('/nothing-claims-this')).toBe(false);
+  } finally {
+    registration.dispose();
+  }
 });

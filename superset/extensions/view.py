@@ -461,10 +461,23 @@ def _grant_to_admin(permission: str, extension_id: str) -> None:
     without first running init and without granting themselves access to
     their own deployment.
 
-    Called only on the boot that creates the permission. Re-granting on every
-    boot would silently reinstate a grant an operator had deliberately
-    removed; withholding it from Admin has to remain something an operator
-    can decide.
+    Granted only while *no role at all* holds the permission.
+
+    Two failures pull in opposite directions here. Granting on every boot
+    reinstates a grant an operator deliberately removed, so withholding it
+    from Admin stops being something they can decide. Granting only on the
+    boot that creates the permission leaves it ungranted forever if that boot
+    had no Admin role yet, or lost the create race to another worker, or
+    failed partway -- and nothing retries.
+
+    A permission no role holds gates nothing and leaves the page unreachable
+    by anyone, which is the state those failures produce and is not a state an
+    operator can be aiming for. So it is repaired. An operator who moves the
+    grant to a role of their own keeps it there: something holds it, and this
+    does not touch it.
+
+    The residual is narrow and deliberate: an operator who wants the page
+    reachable by nobody has to remove the page, not the permission.
     """
     from superset import security_manager
 
@@ -482,16 +495,19 @@ def _grant_to_admin(permission: str, extension_id: str) -> None:
     if pvm is None:
         return
 
-    if pvm not in role.permissions:
-        # Idempotent and self-committing in FAB; called only when absent so
-        # that an ordinary boot does no write at all.
-        security_manager.add_permission_role(role, pvm)
-        logger.info(
-            "Granted '%s' on '%s' to the '%s' role",
-            permission,
-            extension_id,
-            role_name,
-        )
+    if getattr(pvm, "role", None):
+        # Held by something -- Admin, or a role the operator chose instead.
+        return
+
+    # Idempotent and self-committing in FAB. An ordinary boot does no write,
+    # because by then a role holds it and the check above has returned.
+    security_manager.add_permission_role(role, pvm)
+    logger.info(
+        "Granted '%s' on '%s' to the '%s' role",
+        permission,
+        extension_id,
+        role_name,
+    )
 
 
 def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
@@ -528,20 +544,18 @@ def ensure_page_permissions(app: Flask, manifest: Manifest) -> None:
     for permission in sorted(required):
         try:
             view_menu = _view_menu(manifest.id)
-            if security_manager.find_permission_view_menu(permission, view_menu):
-                continue
+            if not security_manager.find_permission_view_menu(permission, view_menu):
+                security_manager.add_permission_view_menu(permission, view_menu)
+                logger.info(
+                    "Created permission '%s' on '%s' for extension pages",
+                    permission,
+                    view_menu,
+                )
 
-            security_manager.add_permission_view_menu(permission, view_menu)
-            logger.info(
-                "Created permission '%s' on '%s' for extension pages",
-                permission,
-                view_menu,
-            )
-            # Only here, on the boot that created it. Re-granting on every
-            # boot would silently reinstate a grant an operator had
-            # deliberately removed, which is not a decision this gets to
-            # overrule -- an operator who wants Admin to keep it can grant it
-            # back in the Roles screen, or run `superset init`.
+            # Runs whether or not this boot created the permission, so a grant
+            # that never happened -- no Admin role yet, a lost create race, a
+            # failure partway -- is repaired rather than missing forever.
+            # `_grant_to_admin` declines once any role holds it.
             _grant_to_admin(permission, manifest.id)
         except Exception:  # pylint: disable=broad-except
             # Most often a concurrent worker inserting the same row.

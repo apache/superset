@@ -79,7 +79,19 @@ class FakeSecurityManager:
         return (permission, view) in self.granted
 
     def find_permission_view_menu(self, permission: str, view: str) -> object | None:
-        return (permission, view) if (permission, view) in self.existing else None
+        if (permission, view) not in self.existing:
+            return None
+        # FAB's PermissionView carries `role`, the roles holding it. The
+        # production code reads it, so the stand-in has to have it.
+        return SimpleNamespace(
+            permission=SimpleNamespace(name=permission),
+            view_menu=SimpleNamespace(name=view),
+            role=[
+                role
+                for role in self.roles.values()
+                if (permission, view) in getattr(role, "permissions", [])
+            ],
+        )
 
     def add_permission_view_menu(self, permission: str, view: str) -> None:
         self.existing.add((permission, view))
@@ -89,8 +101,12 @@ class FakeSecurityManager:
         return self.roles.get(name)
 
     def add_permission_role(self, role: object, perm_view: object) -> None:
-        if perm_view not in role.permissions:  # type: ignore[attr-defined]
-            role.permissions.append(perm_view)  # type: ignore[attr-defined]
+        # Stored as the (permission, view_menu) pair the rest of this file
+        # asserts against, and the pair `find_permission_view_menu` derives
+        # `role` from -- so a grant made here is visible to the next lookup.
+        held = (perm_view.permission.name, perm_view.view_menu.name)
+        if held not in role.permissions:  # type: ignore[attr-defined]
+            role.permissions.append(held)  # type: ignore[attr-defined]
 
     # Named to match SupersetSecurityManager. A fake that invents its own
     # attribute names lets production code call something that is not there.
@@ -373,14 +389,38 @@ def test_a_created_permission_is_granted_to_admin(
     assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
 
 
-def test_an_operator_can_withhold_the_grant_from_admin(
+def test_an_operator_who_moves_the_grant_keeps_it_where_they_put_it(
     app: Flask, security: FakeSecurityManager
 ) -> None:
-    """The permission already exists and the role does not hold it.
+    """Admin excluded, a role of the operator's own holding it instead.
 
-    That is what an operator who removed it in the Roles screen looks like
-    on the next boot. Re-granting here would overrule them silently, and
-    there would be no way to run Superset with Admin excluded from a page.
+    Re-granting to Admin here would overrule them silently, and withholding
+    it from Admin would stop being something an operator can decide.
+    """
+    security.existing.add(("can_review", VIEW_MENU))
+    reviewers = SimpleNamespace(
+        name="Reviewers", permissions=[("can_review", VIEW_MENU)]
+    )
+    security.roles["Reviewers"] = reviewers
+
+    register_extension_pages(app, manifest("/a", permission="can_review"))
+    with app.app_context():
+        ensure_page_permissions(app, manifest("/a", permission="can_review"))
+
+    assert security.created == []
+    assert security.admin_role.permissions == []
+    assert reviewers.permissions == [("can_review", VIEW_MENU)]
+
+
+def test_a_grant_that_never_happened_is_repaired_on_a_later_boot(
+    app: Flask, security: FakeSecurityManager
+) -> None:
+    """No role holds it, which is what the failures this guards look like.
+
+    The permission exists but was never granted -- the first boot had no
+    Admin role yet, or lost the create race, or failed partway. Granting only
+    on the boot that creates the permission would leave it ungranted forever,
+    with nothing to retry it.
     """
     security.existing.add(("can_review", VIEW_MENU))
 
@@ -389,7 +429,7 @@ def test_an_operator_can_withhold_the_grant_from_admin(
         ensure_page_permissions(app, manifest("/a", permission="can_review"))
 
     assert security.created == []
-    assert security.admin_role.permissions == []
+    assert security.admin_role.permissions == [("can_review", VIEW_MENU)]
 
 
 def test_the_admin_role_is_read_from_configuration(

@@ -239,7 +239,11 @@ export function withExtensionPages(
       page =>
         ({
           label: page.nav?.label ?? page.name,
-          name: page.nav?.label ?? page.name,
+          // `name` is the React key for the entry, and the label is the
+          // extension author's to choose -- a page labelled "Charts" would
+          // collide with the host's own entry. The path cannot collide,
+          // because the server refused any page that shared one.
+          name: `extension:${page.path}`,
           url: page.path,
         }) as unknown as MenuObjectProps,
     ),
