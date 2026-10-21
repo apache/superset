@@ -45,9 +45,15 @@ def _canvas_facts(cls: Any) -> Dict[str, Any]:
         "filter": behavior.filter,
         "filterable": behavior.filterable,
         "emitsFilters": behavior.emits_filters,
+        "gridColumns": behavior.grid_columns,
         "defaultSize": list(ui.default_size) if ui.default_size else None,
     }
     return {key: value for key, value in facts.items() if value}
+
+
+def _required_props(cls: Any) -> List[str] | None:
+    schema = cls.controls_class.model_json_schema(by_alias=True)
+    return schema.get("required") or None
 
 
 def _list_widget_types_impl() -> List[Dict[str, Any]]:
@@ -57,6 +63,7 @@ def _list_widget_types_impl() -> List[Dict[str, Any]]:
             "id": cls.widget_type,
             "name": cls.name,
             "description": cls.description,
+            "requiredProps": _required_props(cls),
             "canvas": _canvas_facts(cls) or None,
         }
         for cls in registry.values()
@@ -80,11 +87,13 @@ def list_widget_types() -> ListWidgetTypesResponse:
     This is the entry point for progressive disclosure: pick a type's ``id``,
     then call ``get_widget_control_schema`` for its minimum-viable control schema
     (call it again with ``paths`` to drill into optional/nested branches).
-    Returns each type's id, human name, description and, under ``canvas``,
-    how it nests and filters: containers list ``acceptedChildren``, a type
-    that must sit inside another lists ``allowedParents``, filters are
-    ``filter``, widgets that filters narrow are ``filterable``, and
-    ``defaultSize`` is ``[columns, rows]`` on the 24-column grid.
+    Returns each type's id, human name, description, the props it can't do
+    without (``requiredProps``) and, under ``canvas``, how it nests and
+    filters: containers list ``acceptedChildren`` and, when they lay children
+    out on a grid, its ``gridColumns``; a type that must sit inside another
+    lists ``allowedParents``, filters are ``filter``, widgets that filters
+    narrow are ``filterable``, and ``defaultSize`` is ``[columns, rows]`` in
+    the parent's grid.
     """
     return ListWidgetTypesResponse.model_validate(
         {"widget_types": _list_widget_types_impl()}

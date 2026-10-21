@@ -111,7 +111,9 @@ def apply_or_raise(
         ) from ex
     except DefinitionValidationError as ex:
         raise DefinitionInvalidError(
-            "The operations produce an invalid definition", issues=ex.issues
+            "The operations produce an invalid definition",
+            issues=ex.issues,
+            operation_index=ex.operation,
         ) from ex
 
 

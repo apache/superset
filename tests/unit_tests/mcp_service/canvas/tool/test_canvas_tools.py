@@ -392,3 +392,132 @@ def test_preview_returns_the_query_to_users_who_can_view_queries() -> None:
 
         security.can_access.assert_called_with("can_view_query", "Dashboard")
         assert result.get("query") == expected
+
+
+def test_preview_says_when_the_renderer_failed() -> None:
+    import requests
+
+    from superset.mcp_service.canvas.tool.preview_widget import _preview_widget_impl
+
+    node = {
+        "widgetType": "echarts",
+        "props": {"dataBinding": {"datasetId": 13, "metrics": [REVENUE]}},
+    }
+    with (
+        patch(f"{PREVIEW}.CanvasDAO") as dao,
+        patch(f"{PREVIEW}.run_binding", return_value=PlacementData([{}], None, None)),
+        patch(f"{PREVIEW}.current_app") as app,
+        patch(f"{PREVIEW}._render", side_effect=requests.ConnectionError("refused")),
+    ):
+        dao.load.return_value = _preview_canvas(node)
+        app.config = {"CANVAS_WIDGET_RENDERER_URL": "http://renderer"}
+        result, image = _preview_widget_impl(1, "chart", dark=False)
+
+    assert image is None
+    assert result["rendered"] is False
+    assert "not checked visually" in result["warnings"][0]
+
+
+DRAFT_TOOL = "superset.mcp_service.canvas.tool.apply_canvas_draft_ops"
+
+
+def test_apply_draft_ops_returns_placements_and_what_got_pushed() -> None:
+    from superset.commands.canvas.draft import CanvasDraft
+    from superset.mcp_service.canvas.tool.apply_canvas_draft_ops import (
+        _apply_canvas_draft_ops_impl,
+    )
+
+    draft = CanvasDraft(
+        token="tok",  # noqa: S106
+        owner_id=1,
+        canvas_id=7,
+        base_revision=3,
+        revision=1,
+        definition={},
+    )
+    a = {"col": 1, "row": 1, "colSpan": 12, "rowSpan": 4}
+    b = {"col": 13, "row": 1, "colSpan": 12, "rowSpan": 4}
+    pushed = {**b, "row": 5}
+    with (
+        patch(f"{DRAFT_TOOL}.load_draft"),
+        patch(f"{DRAFT_TOOL}.ApplyCanvasDraftOperationsCommand") as command,
+        patch(
+            f"{DRAFT_TOOL}.render_context",
+            side_effect=[
+                {"placements": {"a": a, "b": b}, "gridColumns": {}},
+                {
+                    "placements": {"a": {**a, "colSpan": 24}, "b": pushed},
+                    "gridColumns": {},
+                },
+            ],
+        ),
+        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO"),
+    ):
+        command.return_value.run.return_value = (
+            draft,
+            [{"op": "place", "id": "a", "layout": {**a, "colSpan": 24}}],
+        )
+        result = _apply_canvas_draft_ops_impl(
+            "tok", 0, [{"op": "place", "id": "a", "layout": {**a, "colSpan": 24}}]
+        )
+
+    assert result["displaced"] == ["b"]
+    assert result["placements"]["b"] == pushed
+    assert result["revision"] == 1
+
+
+def test_apply_draft_ops_echoes_ids_but_not_props() -> None:
+    from superset.commands.canvas.draft import CanvasDraft
+    from superset.mcp_service.canvas.tool.apply_canvas_draft_ops import (
+        _apply_canvas_draft_ops_impl,
+    )
+
+    draft = CanvasDraft(
+        token="tok",  # noqa: S106
+        owner_id=1,
+        canvas_id=7,
+        base_revision=3,
+        revision=1,
+        definition={},
+    )
+    op = {"op": "add", "widgetType": "markdown", "props": {"content": "Hi"}}
+    with (
+        patch(f"{DRAFT_TOOL}.load_draft"),
+        patch(f"{DRAFT_TOOL}.ApplyCanvasDraftOperationsCommand") as command,
+        patch(
+            f"{DRAFT_TOOL}.render_context",
+            return_value={"placements": {}, "gridColumns": {}},
+        ),
+        patch("superset.mcp_service.canvas.tool.canvas_draft_common.CanvasDAO"),
+    ):
+        command.return_value.run.return_value = (draft, [{**op, "id": "markdown"}])
+        result = _apply_canvas_draft_ops_impl("tok", 0, [op])
+
+    assert result["ops"] == [{"op": "add", "widgetType": "markdown", "id": "markdown"}]
+
+
+def test_commit_returns_the_canvas_url_and_revision() -> None:
+    from superset.mcp_service.canvas.tool.commit_canvas_draft import (
+        _commit_canvas_draft_impl,
+    )
+
+    module = "superset.mcp_service.canvas.tool.commit_canvas_draft"
+    with (
+        patch(f"{module}.load_draft") as load,
+        patch(f"{module}.CommitCanvasDraftCommand") as command,
+        patch(f"{module}.CanvasDAO") as dao,
+    ):
+        load.return_value.canvas_id = 7
+        command.return_value.run.return_value = MagicMock(revision=9)
+        dao.find_by_id.return_value = MagicMock(url="/canvas/sales/")
+        result = _commit_canvas_draft_impl("tok", 1)
+
+    assert result == {"canvas_id": 7, "url": "/canvas/sales/", "canvas_revision": 9}
+
+
+def test_responses_leave_out_empty_fields() -> None:
+    from superset.mcp_service.canvas.schemas import CanvasDraftResponse
+
+    response = CanvasDraftResponse.model_validate({"canvas_id": 7, "revision": 2})
+
+    assert response.model_dump() == {"canvas_id": 7, "revision": 2}

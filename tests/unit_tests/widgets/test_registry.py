@@ -126,6 +126,28 @@ def test_validate_control_values_flags_color_dimension_not_grouped() -> None:
     assert any("colorDimension" in error["message"] for error in errors)
 
 
+def test_validate_control_values_rejects_unknown_fields() -> None:
+    # Pydantic ignores undeclared fields, so an invented prop would be stored
+    # and silently do nothing.
+    errors = _block("balloons").validate_control_values(
+        {
+            "dataBinding": {
+                "datasetId": 1,
+                "metrics": ["count"],
+                "timeGrain": "P1M",
+                "orderBy": [{"field": "count", "direction": "desc"}],
+            },
+            "colour": "red",
+        }
+    )
+    assert sorted(error["loc"] for error in errors) == [
+        ["colour"],
+        ["dataBinding", "orderBy", "0", "direction"],
+        ["dataBinding", "timeGrain"],
+    ]
+    assert {error["message"] for error in errors} == {"Unknown field"}
+
+
 def test_validate_control_values_empty_when_no_values() -> None:
     # Nothing to validate (required-field checks live elsewhere).
     assert _block("balloons").validate_control_values(None) == []

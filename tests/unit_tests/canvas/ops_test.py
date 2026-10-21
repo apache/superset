@@ -403,6 +403,73 @@ def test_place_updates_layout_and_resolves_collisions() -> None:
     assert applied[0].touched == [Touch("n1", FieldGroup.LAYOUT)]
 
 
+def test_a_container_grows_to_fit_a_child_pushed_down() -> None:
+    doc = build(
+        add(
+            "group", id="kpis", layout={"col": 1, "row": 1, "colSpan": 24, "rowSpan": 4}
+        ),
+        add(
+            "chart-1",
+            id="a",
+            parent="kpis",
+            layout={"col": 1, "row": 1, "colSpan": 6, "rowSpan": 4},
+        ),
+        add(
+            "chart-2",
+            id="b",
+            parent="kpis",
+            layout={"col": 7, "row": 1, "colSpan": 6, "rowSpan": 4},
+        ),
+        add(
+            "chart-3",
+            id="below",
+            layout={"col": 1, "row": 5, "colSpan": 24, "rowSpan": 4},
+        ),
+    )
+
+    result, _ = apply(
+        doc,
+        {
+            "op": "place",
+            "id": "b",
+            "layout": {"col": 1, "row": 1, "colSpan": 6, "rowSpan": 4},
+        },
+    )
+
+    # b lands under a, the group grows to hold it, and what was below the
+    # group is pushed down in turn instead of being drawn over.
+    assert result["nodes"]["b"]["layout"]["row"] == 5
+    assert result["nodes"]["kpis"]["layout"]["rowSpan"] == 8
+    assert result["nodes"]["below"]["layout"]["row"] == 9
+
+
+def test_a_container_keeps_a_height_its_children_fit_in() -> None:
+    doc = build(
+        add(
+            "group", id="kpis", layout={"col": 1, "row": 1, "colSpan": 24, "rowSpan": 6}
+        ),
+        add(
+            "chart-1",
+            parent="kpis",
+            layout={"col": 1, "row": 1, "colSpan": 6, "rowSpan": 2},
+        ),
+    )
+
+    assert doc["nodes"]["kpis"]["layout"]["rowSpan"] == 6
+
+
+def test_an_invalid_result_names_the_operation_that_caused_it() -> None:
+    with pytest.raises(DefinitionValidationError) as excinfo:
+        apply(
+            empty_definition(),
+            add("chart-1"),
+            {"op": "add", "widgetType": "chart", "props": {"x": 1}},
+            add("chart-2"),
+        )
+
+    assert excinfo.value.operation == 1
+
+
 def test_all_operations_apply_or_none_do() -> None:
     doc = build(add("chart-1", id=GROUP_ID))
 

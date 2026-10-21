@@ -28,6 +28,11 @@ class WidgetTypeInfo(BaseModel):
     id: str
     name: str
     description: str
+    required_props: list[str] | None = Field(
+        default=None,
+        alias="requiredProps",
+        description="Props a new instance must set; the rest have defaults.",
+    )
     canvas: dict[str, Any] | None = Field(
         default=None,
         description=(

@@ -90,3 +90,6 @@ class WidgetUi:
     max_col_span: int | None = None
     min_row_span: int | None = None
     max_row_span: int | None = None
+    # Rows a container's own chrome (a tab bar) takes above its children; the
+    # canvas grows a container to its children's rows plus these.
+    chrome_rows: int = 0

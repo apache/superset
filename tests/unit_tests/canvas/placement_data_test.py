@@ -109,7 +109,7 @@ def test_returns_rows_and_the_query_that_ran(
     binding, filters = run_binding.call_args.args
     assert binding == BINDING
     assert filters == [RuntimeFilter(datasetId=13, column="country", values=["FR"])]
-    can_view_query.assert_called_with("can_view_query", "Dashboard")
+    can_view_query.assert_any_call("can_view_query", "Dashboard")
 
 
 def test_the_query_needs_view_query(

@@ -24,13 +24,13 @@
         "readOnlyHint": false
       },
       "compact_description_chars": 292,
-      "description_chars": 1760,
+      "description_chars": 2089,
       "entry_bytes": {
-        "structured": 4462,
-        "text_only": 2423
+        "structured": 5077,
+        "text_only": 2758
       },
       "input_schema_bytes": 232,
-      "output_schema_bytes": 2023
+      "output_schema_bytes": 2303
     },
     "apply_dashboard_filters": {
       "annotations": {
@@ -55,14 +55,14 @@
         "openWorldHint": false,
         "readOnlyHint": false
       },
-      "compact_description_chars": 246,
-      "description_chars": 263,
+      "compact_description_chars": 257,
+      "description_chars": 327,
       "entry_bytes": {
-        "structured": 2728,
-        "text_only": 689
+        "structured": 3073,
+        "text_only": 754
       },
       "input_schema_bytes": 149,
-      "output_schema_bytes": 2023
+      "output_schema_bytes": 2303
     },
     "create_canvas": {
       "annotations": {
@@ -90,11 +90,11 @@
       "compact_description_chars": 291,
       "description_chars": 362,
       "entry_bytes": {
-        "structured": 2824,
+        "structured": 3104,
         "text_only": 785
       },
       "input_schema_bytes": 147,
-      "output_schema_bytes": 2023
+      "output_schema_bytes": 2303
     },
     "create_dataset": {
       "annotations": {
@@ -170,11 +170,11 @@
       "compact_description_chars": 51,
       "description_chars": 51,
       "entry_bytes": {
-        "structured": 2471,
+        "structured": 2751,
         "text_only": 432
       },
       "input_schema_bytes": 108,
-      "output_schema_bytes": 2023
+      "output_schema_bytes": 2303
     },
     "delete_chart": {
       "annotations": {
@@ -394,11 +394,11 @@
       "compact_description_chars": 181,
       "description_chars": 194,
       "entry_bytes": {
-        "structured": 2640,
+        "structured": 2920,
         "text_only": 601
       },
       "input_schema_bytes": 162,
-      "output_schema_bytes": 2023
+      "output_schema_bytes": 2303
     },
     "get_catalog": {
       "annotations": {
@@ -1144,13 +1144,13 @@
         "readOnlyHint": true
       },
       "compact_description_chars": 299,
-      "description_chars": 675,
+      "description_chars": 796,
       "entry_bytes": {
-        "structured": 1592,
-        "text_only": 1009
+        "structured": 1888,
+        "text_only": 1132
       },
       "input_schema_bytes": 62,
-      "output_schema_bytes": 567
+      "output_schema_bytes": 740
     },
     "manage_dashboard_certification": {
       "annotations": {
@@ -1258,11 +1258,11 @@
       "compact_description_chars": 151,
       "description_chars": 875,
       "entry_bytes": {
-        "structured": 3372,
+        "structured": 3506,
         "text_only": 1902
       },
       "input_schema_bytes": 763,
-      "output_schema_bytes": 1454
+      "output_schema_bytes": 1588
     },
     "query_dataset": {
       "annotations": {
@@ -1459,12 +1459,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 552901,
-      "text_only": 228123
+      "structured": 555131,
+      "text_only": 228646
     },
     "compact_catalog_bytes": {
-      "structured": 495256,
-      "text_only": 170478
+      "structured": 496974,
+      "text_only": 170489
     },
     "largest_entry": {
       "structured": {

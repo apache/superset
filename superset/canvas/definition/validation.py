@@ -44,7 +44,7 @@ from pydantic import BaseModel, ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
 from superset_core.widgets import Widget
 
-from superset.canvas.definition.grid import resolve_grid, span_errors
+from superset.canvas.definition.grid import Rect, resolve_grid, span_errors
 from superset.canvas.definition.placements import (
     placement_types,
     upgrade_inline_props,
@@ -77,6 +77,9 @@ class Issue:
 class DefinitionValidationError(ValueError):
     def __init__(self, issues: list[Issue]) -> None:
         self.issues = issues
+        # The operation that likely caused the first issue, when the
+        # definition came from applying operations.
+        self.operation: int | None = None
         super().__init__("; ".join(f"{i.path}: {i.message}" for i in issues))
 
 
@@ -294,15 +297,55 @@ class _Validator:
                 )
 
     def _resolve_layouts(self, doc: dict[str, Any]) -> None:
-        self._resolve_children(doc, ROOT_ID, doc["root"]["layout"]["columns"], None)
-        for node_id, widget in self.node_types.items():
-            if widget.behavior.container:
-                self._resolve_children(
-                    doc,
-                    node_id,
-                    widget.behavior.grid_columns,
-                    widget.behavior.child_layout_model or _EmptyLayout,
+        # Deepest containers first: each grows to fit its children before its
+        # parent places it, so a push-down inside a container never spills
+        # over the widgets below it.
+        containers = sorted(
+            (i for i, w in self.node_types.items() if w.behavior.container),
+            key=self._depth,
+            reverse=True,
+        )
+        content_rows: dict[str, int] = {}
+        for node_id in containers:
+            widget = self.node_types[node_id]
+            columns = widget.behavior.grid_columns
+            rects = self._resolve_children(
+                doc,
+                node_id,
+                columns,
+                widget.behavior.child_layout_model or _EmptyLayout,
+            )
+            if columns is not None:
+                rows = max((r.row + r.row_span - 1 for r in rects), default=0)
+            else:
+                rows = max(
+                    (
+                        content_rows.get(child_id, 0)
+                        for child_id in self._children_of(doc, node_id)
+                    ),
+                    default=0,
                 )
+            content_rows[node_id] = rows + widget.ui.chrome_rows if rows else 0
+            self._fit(doc, node_id, content_rows[node_id])
+        self._resolve_children(doc, ROOT_ID, doc["root"]["layout"]["columns"], None)
+
+    def _depth(self, node_id: str) -> int:
+        depth = 0
+        while (node_id := self.parents.get(node_id, ROOT_ID)) != ROOT_ID:
+            depth += 1
+        return depth
+
+    def _fit(self, doc: dict[str, Any], node_id: str, rows: int) -> None:
+        """Grow a container placed on its parent's grid to ``rows`` rows."""
+        parent_id = self.parents.get(node_id, ROOT_ID)
+        parent = self.node_types.get(parent_id)
+        on_grid = parent_id == ROOT_ID or (
+            parent is not None and parent.behavior.grid_columns is not None
+        )
+        layout = doc["nodes"][node_id].get("layout")
+        if on_grid and isinstance(layout, dict):
+            if (layout.get("rowSpan") or 1) < rows:
+                layout["rowSpan"] = rows
 
     def _resolve_children(
         self,
@@ -310,7 +353,7 @@ class _Validator:
         parent_id: str,
         columns: int | None,
         child_model: type[BaseModel] | None,
-    ) -> None:
+    ) -> list[Rect]:
         children = self._children_of(doc, parent_id)
         model = GridPlacement if columns is not None else child_model
         assert model is not None  # noqa: S101
@@ -341,11 +384,13 @@ class _Validator:
             layouts.append(layout)
             doc["nodes"][child_id]["layout"] = layout
 
-        if columns is not None and len(layouts) == len(children):
-            _, stored = resolve_grid(layouts, columns)
-            for child_id, layout in zip(children, stored, strict=True):
-                if child_id not in kept:
-                    doc["nodes"][child_id]["layout"] = layout
+        if columns is None or len(layouts) != len(children):
+            return []
+        rects, stored = resolve_grid(layouts, columns)
+        for child_id, layout in zip(children, stored, strict=True):
+            if child_id not in kept:
+                doc["nodes"][child_id]["layout"] = layout
+        return rects
 
     def _size_errors(
         self, node_id: str, layout: dict[str, Any], columns: int
