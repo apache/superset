@@ -17,6 +17,7 @@
 
 """Producer wire contracts for safe argument-validation failures."""
 
+import inspect
 from enum import Enum
 from typing import Any, Literal
 from unittest.mock import patch
@@ -35,6 +36,7 @@ from superset.mcp_service.middleware import (
     GlobalErrorHandlerMiddleware,
     ToolResultCompatibilityMiddleware,
 )
+from superset.mcp_service.utils import validation
 from superset.mcp_service.utils.validation import validation_message
 from superset.utils import json
 
@@ -389,8 +391,19 @@ async def test_validation_extraction_is_bounded(
     extracted_counts: list[int] = []
 
     def bounded_errors(error: ValidationError, **kwargs: Any) -> list[Any]:
-        """Bound diagnostic extraction, not FastMCP's own error handling."""
-        if kwargs == {
+        """Bound diagnostic extraction, not FastMCP's own error handling.
+
+        FastMCP summarises validation failures with the same ``errors()``
+        keyword arguments, so only calls made from Superset's extraction
+        module count as diagnostic extraction.
+        """
+        caller = inspect.currentframe()
+        caller_module = (
+            caller.f_back.f_globals.get("__name__", "")
+            if caller is not None and caller.f_back is not None
+            else ""
+        )
+        if caller_module == validation.__name__ and kwargs == {
             "include_url": False,
             "include_context": False,
             "include_input": False,
