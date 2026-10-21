@@ -48,7 +48,13 @@ export const fetchUserOptions = async (
   addDangerToast: (msg: string) => void,
 ) => {
   const query = rison.encode({
-    filter: filterValue,
+    ...(filterValue
+      ? {
+          filters: [
+            { col: 'username', opr: 'user_all_text', value: filterValue },
+          ],
+        }
+      : {}),
     page,
     page_size: pageSize,
     order_column: 'username',
