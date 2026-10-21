@@ -2428,8 +2428,14 @@ quotes and ampersands, with a 200-character bound per candidate. Use
 ### Title validation errors
 
 Rejected MCP titles report a field-specific reason without echoing the input.
-Titles exceeding 500 characters for dashboards or 255 characters for charts
+Titles exceeding 500 characters for dashboards or 250 characters for charts
 report "String exceeds the allowed maximum length". `duplicate_dashboard`
 requires a non-blank title and reports "Text must not be empty" when no text
 remains after sanitization. Optional titles retain their existing empty-value
 behavior.
+
+Blank names in `create_virtual_dataset`, `create_theme`, `create_dataset_metric`,
+`update_dataset_metric`, and `update_dataset`, and whitespace-only labels in
+`save_sql_query`, report "Text must not be empty" at the corresponding name field.
+Explicit null metric or dataset names remain invalid; omitting them from updates
+leaves the stored name unchanged.

@@ -44,7 +44,15 @@ from superset.mcp_service.dashboard.schemas import (
     ManageDashboardCertificationRequest,
     UpdateDashboardRequest,
 )
+from superset.mcp_service.dataset.schemas import (
+    CreateDatasetMetricRequest,
+    CreateVirtualDatasetRequest,
+    UpdateDatasetMetricRequest,
+    UpdateDatasetRequest,
+)
 from superset.mcp_service.middleware import ToolResultCompatibilityMiddleware
+from superset.mcp_service.sql_lab.schemas import SaveSqlQueryRequest
+from superset.mcp_service.theme.schemas import CreateThemeRequest
 from superset.utils import json
 
 
@@ -208,6 +216,44 @@ def make_title_server() -> FastMCP:
     @server.tool
     def update_chart(request: UpdateChartRequest) -> str:
         """Validate chart updates."""
+        return "ok"
+
+    return server
+
+
+def make_name_server() -> FastMCP:
+    """Register required object-name request schemas for wire validation."""
+    server = FastMCP("name-validation")
+    server.add_middleware(ToolResultCompatibilityMiddleware())
+
+    @server.tool
+    def create_virtual_dataset(request: CreateVirtualDatasetRequest) -> str:
+        """Validate virtual dataset creation."""
+        return "ok"
+
+    @server.tool
+    def create_theme(request: CreateThemeRequest) -> str:
+        """Validate theme creation."""
+        return "ok"
+
+    @server.tool
+    def create_dataset_metric(request: CreateDatasetMetricRequest) -> str:
+        """Validate metric creation."""
+        return "ok"
+
+    @server.tool
+    def update_dataset_metric(request: UpdateDatasetMetricRequest) -> str:
+        """Validate metric updates."""
+        return "ok"
+
+    @server.tool
+    def update_dataset(request: UpdateDatasetRequest) -> str:
+        """Validate dataset updates."""
+        return "ok"
+
+    @server.tool
+    def save_sql_query(request: SaveSqlQueryRequest) -> str:
+        """Validate saved query creation."""
         return "ok"
 
     return server
@@ -547,9 +593,9 @@ async def test_sibling_alias_sanitization_wire_error_names_canonical_field(
                 "config": {"chart_type": "table", "columns": [{"name": "a"}]},
             },
             "chart_name",
-            255,
+            250,
         ),
-        ("update_chart", {"identifier": 1}, "chart_name", 255),
+        ("update_chart", {"identifier": 1}, "chart_name", 250),
     ],
 )
 @pytest.mark.parametrize("alias", [None, "title", "name"])
@@ -598,3 +644,94 @@ async def test_duplicate_dashboard_empty_title_wire_reason(
             "request.dashboard_title: Text must not be empty",
         )
     ]
+
+
+_REQUIRED_NAME_CASES: list[tuple[str, dict[str, Any], str, list[str | None]]] = [
+    (
+        "create_virtual_dataset",
+        {"database_id": 1, "sql": "select 1"},
+        "dataset_name",
+        ["", " \t\n"],
+    ),
+    ("create_theme", {"json_data": {}}, "theme_name", ["", " \t\n"]),
+    (
+        "create_dataset_metric",
+        {"dataset_id": 1, "expression": "count(*)"},
+        "metric_name",
+        ["", " \t\n"],
+    ),
+    (
+        "update_dataset_metric",
+        {"dataset_id": 1, "metric": 1},
+        "metric_name",
+        ["", " \t\n", None],
+    ),
+    ("update_dataset", {"dataset_id": 1}, "table_name", ["", " \t\n", None]),
+    (
+        "save_sql_query",
+        {"database_id": 1, "sql": "select 1"},
+        "label",
+        [" \t\n"],
+    ),
+]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    ("tool", "payload", "field", "rejected"),
+    [
+        (tool, payload, field, rejected)
+        for tool, payload, field, blanks in _REQUIRED_NAME_CASES
+        for rejected in blanks
+    ],
+)
+async def test_required_name_empty_wire_reason(
+    tool: str, payload: dict[str, Any], field: str, rejected: str | None
+) -> None:
+    """Blank object names report a safe reason at the declared field."""
+    async with Client(make_name_server()) as client:
+        result = await client.call_tool_mcp(
+            tool, {"request": {**payload, field: rejected}}
+        )
+    assert result.isError is True
+    assert result.content == [
+        TextContent(
+            type="text",
+            text=f"Error: Validation error in {tool}: request.{field}: "
+            "Text must not be empty",
+        )
+    ]
+
+
+@pytest.mark.parametrize(
+    "model,payload",
+    [
+        (
+            GenerateChartRequest,
+            {
+                "dataset_id": 1,
+                "config": {"chart_type": "table", "columns": [{"name": "a"}]},
+            },
+        ),
+        (UpdateChartRequest, {"identifier": 1}),
+    ],
+)
+@pytest.mark.parametrize("length", [250, 251, 252, 253, 254, 255])
+def test_chart_name_model_column_boundary(
+    model: type[BaseModel], payload: dict[str, Any], length: int
+) -> None:
+    """Chart names must fit the persisted Slice name column."""
+    from superset.models.slice import Slice
+
+    limit = Slice.__table__.c.slice_name.type.length
+    assert limit == 250
+    if length <= limit:
+        assert (
+            model.model_validate({**payload, "chart_name": "x" * length}).chart_name
+            == "x" * length
+        )
+    else:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, "chart_name": "x" * length})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+        assert exc.value.errors()[0]["loc"] == ("chart_name",)

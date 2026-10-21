@@ -31,6 +31,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+from pydantic_core import PydanticCustomError
 
 from superset.daos.base import ColumnOperator, ColumnOperatorEnum
 from superset.mcp_service.common.pagination_schemas import (
@@ -154,7 +155,7 @@ class CreateThemeRequest(BaseModel):
     def reject_blank_theme_name(cls, value: str) -> str:
         """Mirror the REST ThemePostSchema check: no empty/whitespace names."""
         if not value or not value.strip():
-            raise ValueError("Theme name cannot be empty.")
+            raise PydanticCustomError("empty_text", "Theme name cannot be empty.")
         return value
 
 

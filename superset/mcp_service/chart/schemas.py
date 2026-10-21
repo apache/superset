@@ -6331,7 +6331,7 @@ class GenerateChartRequest(
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
-        max_length=255,
+        max_length=250,
         validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     save_chart: bool = Field(default=False, description="Save permanently in Superset")
@@ -6377,7 +6377,7 @@ class GenerateChartRequest(
             return data
         with field_validation_error("chart_name"):
             sanitized, was_modified = sanitize_user_input_with_changes(
-                raw, "Chart name", max_length=255, allow_empty=True
+                raw, "Chart name", max_length=250, allow_empty=True
             )
             if was_modified and not sanitized:
                 raise ValueError(
@@ -6398,7 +6398,7 @@ class GenerateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+        return sanitize_user_input(v, "Chart name", max_length=250, allow_empty=True)
 
     @model_validator(mode="after")
     def validate_cache_timeout(self) -> "GenerateChartRequest":
@@ -6471,7 +6471,7 @@ class UpdateChartRequest(
     chart_name: str | None = Field(
         None,
         description="Auto-generates if omitted",
-        max_length=255,
+        max_length=250,
         validation_alias=AliasChoices("chart_name", "name", "title", "slice_name"),
     )
     dataset_id: int | None = Field(
@@ -6537,7 +6537,7 @@ class UpdateChartRequest(
     @classmethod
     def sanitize_chart_name(cls, v: str | None) -> str | None:
         """Sanitize chart name to prevent XSS attacks."""
-        return sanitize_user_input(v, "Chart name", max_length=255, allow_empty=True)
+        return sanitize_user_input(v, "Chart name", max_length=250, allow_empty=True)
 
 
 class UpdateChartPreviewRequest(ChartRequestNormalizerMixin, FormDataCacheControl):

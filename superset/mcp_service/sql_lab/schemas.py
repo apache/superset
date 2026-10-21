@@ -27,6 +27,7 @@ from pydantic import (
     field_validator,
     model_serializer,
 )
+from pydantic_core import PydanticCustomError
 
 from superset.mcp_service.utils.serialization import (
     JsonSafeRows,
@@ -268,7 +269,7 @@ class SaveSqlQueryRequest(BaseModel):
     @classmethod
     def label_not_empty(cls, v: str) -> str:
         if not v or not v.strip():
-            raise ValueError("Label cannot be empty")
+            raise PydanticCustomError("empty_text", "Label cannot be empty")
         return v.strip()
 
 
