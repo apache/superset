@@ -17,7 +17,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 import pyarrow as pa
 
@@ -27,6 +27,9 @@ from superset.daos.database import DatabaseDAO
 from superset.models.sql_lab import Query, TabState
 from superset.sqllab.limiting_factor import LimitingFactor
 from superset.utils.core import apply_max_row_limit
+
+if TYPE_CHECKING:
+    from superset.db_engine_specs.base import BaseEngineSpec
 
 logger = logging.getLogger(__name__)
 
@@ -61,9 +64,14 @@ def get_query_limit(query_limit: int | None) -> int:
     return limit
 
 
-def set_query_limit(query: Query, rendered_query: str, limit: int) -> None:
+def set_query_limit(
+    query: Query,
+    rendered_query: str,
+    limit: int,
+    db_engine_spec: type[BaseEngineSpec],
+) -> None:
     """Choose the execution limit and record whether SQL or the dropdown sets it."""
-    sql_limit = query.database.db_engine_spec.get_limit_from_sql(rendered_query)
+    sql_limit = db_engine_spec.get_limit_from_sql(rendered_query)
     if sql_limit is None or sql_limit > limit:
         query.limiting_factor = LimitingFactor.DROPDOWN
     elif limit > sql_limit:

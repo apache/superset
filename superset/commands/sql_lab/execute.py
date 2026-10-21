@@ -267,6 +267,7 @@ class ExecuteSqlCommand(BaseCommand):
             self._execution_context.query,
             rendered_query,
             self._execution_context.limit,
+            self._execution_context.database.db_engine_spec,  # type: ignore
         )
 
 

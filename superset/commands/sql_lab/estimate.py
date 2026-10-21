@@ -231,7 +231,7 @@ class QueryEstimationCommand(BaseCommand):
         query = Query(database=self._database, select_as_cta_used=False)
         if query in db.session:
             db.session.expunge(query)
-        set_query_limit(query, sql, get_query_limit(self._query_limit))
+        set_query_limit(query, sql, get_query_limit(self._query_limit), spec)
         apply_limit(query, script.statements[0])
         return script.format(comments=spec.allows_sql_comments), None
 

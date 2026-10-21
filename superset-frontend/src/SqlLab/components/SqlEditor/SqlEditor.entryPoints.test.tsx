@@ -47,16 +47,13 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual('@superset-ui/core'),
   isFeatureEnabled: jest.fn(),
 }));
-jest.mock(
-  'react-virtualized-auto-sizer',
-  () =>
-    ({
-      children,
-    }: {
-      children: (size: { height: number }) => React.ReactNode;
-    }) =>
-      children({ height: 500 }),
-);
+jest.mock('react-virtualized-auto-sizer', () => ({
+  AutoSizer: ({
+    renderProp,
+  }: {
+    renderProp: (size: { height: number }) => React.ReactNode;
+  }) => renderProp({ height: 500 }),
+}));
 jest.mock('src/SqlLab/components/ResultSet', () => () => <div />);
 jest.mock('src/components/DatabaseSelector', () => ({
   DatabaseSelector: () => <div />,
