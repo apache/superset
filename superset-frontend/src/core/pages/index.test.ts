@@ -311,3 +311,65 @@ test('a declaration that says nothing about permission is treated as open', () =
 
   expect(getPages()[0].permitted).toBe(true);
 });
+
+test('the manifest supplies nav and name without the code repeating them', () => {
+  // The manifest is where a page is declared, and the server sends the whole
+  // declaration to the frontend. Reading only the registration's argument
+  // meant a page that declared `nav` there never reached the menu -- the
+  // field looked decorative.
+  disposables.push(
+    registerPageFor(
+      'acme.tools',
+      [
+        {
+          path: '/review-queue',
+          name: 'Review queue',
+          nav: { label: 'Queue' },
+          permission: 'can_review',
+        },
+      ],
+      { path: '/review-queue', name: 'Review queue' },
+      Component,
+    ),
+  );
+
+  expect(getPages()[0]).toMatchObject({
+    path: '/review-queue',
+    nav: { label: 'Queue' },
+    permission: 'can_review',
+    permitted: true,
+  });
+});
+
+test('what the registration passes wins over the declaration', () => {
+  // The declaration is a default, not an override: the call the author wrote
+  // is the more specific statement.
+  disposables.push(
+    registerPageFor(
+      'acme.tools',
+      [{ path: '/review-queue', name: 'From manifest' }],
+      { path: '/review-queue', name: 'From code' },
+      Component,
+    ),
+  );
+
+  expect(getPages()[0].name).toBe('From code');
+});
+
+test('the declaration cannot smuggle in a different path or permission flag', () => {
+  // `path`, `registered` and `permitted` are the host's own fields; spreading
+  // the declaration must not let them be restated as page descriptor fields.
+  disposables.push(
+    registerPageFor(
+      'acme.tools',
+      [{ path: '/review-queue', registered: true, permitted: false }],
+      { path: '/review-queue', name: 'Queue' },
+      Component,
+    ),
+  );
+
+  const [page] = getPages();
+  expect(page.path).toBe('/review-queue');
+  expect(page.permitted).toBe(false);
+  expect(page).not.toHaveProperty('registered');
+});
