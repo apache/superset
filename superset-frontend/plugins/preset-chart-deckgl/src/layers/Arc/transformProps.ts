@@ -66,13 +66,6 @@ function processArcData(
         extraProps: {},
       };
 
-      if (dimension) {
-        arcPoint.cat_color =
-          record[dimension] != null
-            ? String(record[dimension])
-            : NULL_CATEGORY_KEY;
-      }
-
       // eslint-disable-next-line no-underscore-dangle
       if (record.__timestamp != null) {
         // eslint-disable-next-line no-underscore-dangle
@@ -80,6 +73,15 @@ function processArcData(
       }
 
       arcPoint = addPropertiesToFeature(arcPoint, record, excludeKeys);
+
+      // Assigned after the property copy so a column named `cat_color` cannot
+      // overwrite the selected dimension's category.
+      if (dimension) {
+        arcPoint.cat_color =
+          record[dimension] != null
+            ? String(record[dimension])
+            : NULL_CATEGORY_KEY;
+      }
       return arcPoint;
     })
     .filter((point): point is ArcPoint => point !== null);
