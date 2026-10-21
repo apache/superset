@@ -32,7 +32,7 @@
     "@types/ws": "^8.18.2",
     "esbuild": "^0.28.2",
     "oxfmt": "^0.72.0",
-    "oxlint": "^1.87.0",
+    "oxlint": "^1.88.0",
     "oxlint-tsgolint": "^7.0.2004",
     "tscw-config": "^1.1.2",
     "typescript": "^7.0.2",
