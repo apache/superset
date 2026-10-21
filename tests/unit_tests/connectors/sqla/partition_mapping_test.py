@@ -604,6 +604,31 @@ def test_resolve_returns_none_when_the_mapped_column_no_longer_exists(
         assert resolve_partition_mapping(table) is None
 
 
+def test_resolve_returns_none_for_a_templated_partition_column(app: Flask) -> None:
+    """
+    The mirror is built outside the template processor, so a Jinja-bearing
+    partition key would be emitted as raw ``{{ ... }}``. Save-time validation
+    refuses it; this is the bail-out for an imported or older row.
+    """
+    table = _mapped_table()
+    _column_named(table, "dt_epoch").expression = "{{ 'dt_' ~ 'epoch' }}"
+    with app.app_context():
+        assert resolve_partition_mapping(table) is None
+
+
+def test_resolve_keeps_an_untemplated_calculated_partition_column(
+    app: Flask,
+) -> None:
+    table = _mapped_table()
+    _column_named(table, "dt_epoch").expression = "CAST(dt AS BIGINT)"
+    with app.app_context():
+        assert resolve_partition_mapping(table) is not None
+
+
+def _column_named(table: SqlaTable, name: str) -> TableColumn:
+    return next(column for column in table.columns if column.column_name == name)
+
+
 def test_resolve_returns_none_on_self_mapping(app: Flask) -> None:
     """
     ``partition_column == effective mapped column`` mirrors a column onto itself.
@@ -1922,6 +1947,22 @@ def test_an_unknown_mapped_column_override_blocks_the_save() -> None:
     issues = _issues(partition_mapped_column="nope")
     assert len(_blocking(issues)) == 1
     assert issues[0].field == "partition_mapped_column"
+
+
+@pytest.mark.parametrize(
+    "expression",
+    ["{{ 'dt_' ~ 'epoch' }}", "{% if 1 %}dt_epoch{% endif %}", "dt {# note #}"],
+    ids=["expression", "statement", "comment"],
+)
+def test_a_templated_partition_column_blocks_the_save(expression: str) -> None:
+    issues = _blocking(_issues(partition_expression=expression))
+    assert len(issues) == 1
+    assert issues[0].field == "partition_column"
+    assert "Jinja" in str(issues[0].message)
+
+
+def test_an_untemplated_calculated_partition_column_is_accepted() -> None:
+    assert _blocking(_issues(partition_expression="CAST(dt AS BIGINT)")) == []
 
 
 def test_an_explicit_self_mapping_blocks_the_save() -> None:

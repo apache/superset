@@ -574,7 +574,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
         schema = self._properties.get("schema", self._model.schema)
 
         effective_mapped_column = partition_mapped_column or main_dttm_col
-        transform = self._effective_transform(columns, effective_mapped_column)
+        transform = self._effective_column_attribute(
+            columns, effective_mapped_column, "partition_value_transform"
+        )
 
         for issue in validate_partition_mapping(
             column_names=column_names,
@@ -583,6 +585,9 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
             main_dttm_col=main_dttm_col,
             transform=transform,
             engine=database.backend,
+            partition_expression=self._effective_column_attribute(
+                columns, partition_column, "expression"
+            ),
         ):
             if issue.blocking:
                 exceptions.append(
@@ -608,29 +613,31 @@ class UpdateDatasetCommand(UpdateMixin, BaseCommand):
                     ValidationError(reason, field_name="partition_value_transform")
                 )
 
-    def _effective_transform(
+    def _effective_column_attribute(
         self,
         columns: list[dict[str, Any]] | None,
-        mapped_column: str | None,
+        column_name: str | None,
+        attribute: str,
     ) -> str | None:
         """
-        The value transform on the effective mapped column.
+        One attribute of a named column, as this request will leave it.
 
         Reads from the payload when the request carries columns, and from the
         persisted model otherwise -- a PUT that changes only `partition_column`
-        still has to be validated against the transform already stored.
+        still has to be validated against the transform already stored, and
+        against the expression of the column it now names.
         """
-        if not mapped_column:
+        if not column_name:
             return None
         if columns is not None:
             for column in columns:
-                if column.get("column_name") == mapped_column:
-                    return column.get("partition_value_transform")
+                if column.get("column_name") == column_name:
+                    return column.get(attribute)
             return None
         model = cast(SqlaTable, self._model)
         for existing in model.columns:
-            if existing.column_name == mapped_column:
-                return existing.partition_value_transform
+            if existing.column_name == column_name:
+                return getattr(existing, attribute)
         return None
 
     def _validate_fetch_values_predicate(

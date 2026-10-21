@@ -1850,6 +1850,7 @@ def _mapping_command(
     partition_mapped_column: str | None = None,
     main_dttm_col: str = "event_time",
     database: Database | None = None,
+    partition_expression: str | None = None,
 ) -> UpdateDatasetCommand:
     """
     A command whose stored dataset maps `event_time` onto `dt_epoch`.
@@ -1865,6 +1866,7 @@ def _mapping_command(
     partition_column.column_name = "dt_epoch"
     # The partition column is the target of a mapping, never the source of one.
     partition_column.partition_value_transform = None
+    partition_column.expression = partition_expression
 
     mock_dataset = mocker.MagicMock(is_managed_externally=False)
     if database is not None:
@@ -2132,3 +2134,61 @@ def test_a_self_mapping_is_still_rejected_alongside_a_column_payload(
     command._validate_partition_mapping(exceptions)
 
     assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_templated_partition_column_blocks_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """
+    The mirrored predicate is built outside the template processor, so a
+    Jinja-bearing partition key would reach every chart's SQL unrendered.
+    Read from the stored column when the request carries no column payload.
+    """
+    command = _mapping_command(
+        mocker,
+        "unix_timestamp(:value)",
+        partition_expression="{{ 'dt_' ~ 'epoch' }}",
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+    assert "Jinja" in str(exceptions[0])
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_a_templated_partition_column_in_the_payload_blocks_the_save(
+    mocker: MockerFixture,
+) -> None:
+    """The expression this request writes is the one that counts, not storage's."""
+    command = _mapping_command(mocker, "unix_timestamp(:value)")
+    command._properties = {
+        "columns": [
+            {
+                "column_name": "event_time",
+                "partition_value_transform": "unix_timestamp(:value)",
+            },
+            {"column_name": "dt_epoch", "expression": "{% if 1 %}dt{% endif %}"},
+        ]
+    }
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert [exc.field_name for exc in exceptions] == ["partition_column"]
+
+
+@with_feature_flags(PARTITION_FILTER_MAPPING=True)
+def test_an_untemplated_calculated_partition_column_still_saves(
+    mocker: MockerFixture,
+) -> None:
+    command = _mapping_command(
+        mocker, "unix_timestamp(:value)", partition_expression="CAST(dt AS BIGINT)"
+    )
+
+    exceptions: list[ValidationError] = []
+    command._validate_partition_mapping(exceptions)
+
+    assert exceptions == []
