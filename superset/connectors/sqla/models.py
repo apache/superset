@@ -2887,6 +2887,10 @@ class SqlaTable(
                 db_engine_spec.alter_new_orm_column(new_column)
                 if expression:
                     new_column.expression = expression
+                # Defaults for a newly discovered column only; an existing
+                # column keeps whatever the dataset owner chose.
+                new_column.groupby = True
+                new_column.filterable = True
             else:
                 new_column = old_column
                 # Type and physical expression both feed generated SQL, so
@@ -2901,8 +2905,6 @@ class SqlaTable(
                 # Set description from comment field if available
                 if col.get("comment"):
                     new_column.description = col["comment"]
-            new_column.groupby = True
-            new_column.filterable = True
             columns.append(new_column)
             # Never the partition column. It is a technical column -- an epoch
             # integer, a lowercased region key -- that no analyst filters on,
