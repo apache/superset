@@ -78,7 +78,7 @@ async def test_list_dashboards_unknown_scope_never_reaches_dao() -> None:
         patch("superset.daos.dashboard.DashboardDAO.list") as dao,
     ):
         async with Client(mcp) as client:
-            with pytest.raises(ToolError, match="owned_by_me"):
+            with pytest.raises(ToolError, match="did you mean 'edited_by_me'"):
                 await client.call_tool(
                     "list_dashboards", {"request": {"owned_by_me": True}}
                 )

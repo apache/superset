@@ -1431,10 +1431,21 @@ def test_apply_filter_range_rejects_boolean_bounds(bound: bool, index: int) -> N
 
 @pytest.mark.parametrize("field", ["owned_by_me", "created_by_my", "page_szie"])
 def test_list_dashboards_rejects_unknown_arguments(field: str) -> None:
-    with pytest.raises(ValidationError) as exc:
+    with pytest.raises(ValidationError, match=f"Unknown field '{field}'"):
         ListDashboardsRequest.model_validate({field: True})
-    assert exc.value.errors()[0]["loc"] == (field,)
-    assert exc.value.errors()[0]["type"] == "extra_forbidden"
+
+
+@pytest.mark.parametrize(
+    ("field", "suggestion"),
+    [("owned_by_me", "edited_by_me"), ("page_szie", "page_size")],
+)
+def test_list_dashboards_unknown_arguments_suggest_supported_fields(
+    field: str, suggestion: str
+) -> None:
+    """Validation teaches the supported spelling without loosening the schema."""
+    with pytest.raises(ValidationError, match=f"did you mean '{suggestion}'"):
+        ListDashboardsRequest.model_validate({field: True})
+    assert ListDashboardsRequest.model_json_schema()["additionalProperties"] is False
 
 
 def test_list_dashboards_preserves_supported_filters_and_aliases() -> None:

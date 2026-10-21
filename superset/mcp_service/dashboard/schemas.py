@@ -99,6 +99,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
     resolve_chart_datasource_id,
     resolve_chart_datasource_name,
+    UnknownFieldCheckMixin,
 )
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
@@ -205,6 +206,7 @@ class DashboardFilter(ColumnOperator):
 
 
 class ListDashboardsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
