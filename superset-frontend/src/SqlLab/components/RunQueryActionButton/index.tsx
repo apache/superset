@@ -92,7 +92,7 @@ const isMainButtonGesture = (event: SyntheticEvent<HTMLSpanElement>) =>
 
 const StyledButton = styled.span`
   button {
-    line-height: 13px;
+    line-height: 1.2;
     min-width: auto !important;
     padding: 0 ${({ theme }) => theme.sizeUnit * 3}px 0
       ${({ theme }) => theme.sizeUnit * 2}px;
