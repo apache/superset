@@ -436,6 +436,24 @@ RATELIMIT_APPLICATION = "50 per second"
 # second-granularity relative ranges ("Last 24 hours") essentially never.
 PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT = int(timedelta(days=1).total_seconds())
 
+# How long a failed probe is remembered before the warehouse is asked again.
+# Short on purpose: long enough that a transform the engine always rejects is not
+# re-run on every chart load, short enough that a transient failure costs
+# minutes of pruning rather than a day. Set to 0 to retry on every query.
+PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT = int(
+    timedelta(minutes=5).total_seconds()
+)
+
+# Most distinct filter values one probe evaluates. Each value is one column of a
+# single SELECT, and engines cap the select list (PostgreSQL at 1,664); a wider
+# filter is not probed and its query does not prune. Set to 0 for no cap.
+PARTITION_TRANSFORM_PROBE_MAX_VALUES = 1000
+
+# Seconds a probe may run before it is abandoned and the query does not prune.
+# Best effort: enforced with SIGALRM, so only in a main-thread worker. Set to 0
+# to disable.
+PARTITION_TRANSFORM_PROBE_TIMEOUT = int(timedelta(seconds=10).total_seconds())
+
 # Per-user, per-dataset budget for the partition mapping preview endpoint, which
 # fires a real warehouse query from a text input in the dataset editor. Counted
 # in a fixed 60-second window; set to 0 to disable.

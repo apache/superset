@@ -215,6 +215,20 @@ def app_context(app: SupersetApp) -> Iterator[None]:
         yield
 
 
+@pytest.fixture(autouse=True)
+def _clear_local_partition_probe_cache() -> Iterator[None]:
+    """
+    The test app runs a null cache, so partition probes fall back to a
+    per-process one -- which would otherwise serve one test's mocked probe
+    result to the next test that happens to share its cache key.
+    """
+    from superset.connectors.sqla.partition_mapping import _LOCAL_PROBE_CACHE
+
+    _LOCAL_PROBE_CACHE.clear()
+    yield
+    _LOCAL_PROBE_CACHE.clear()
+
+
 @pytest.fixture
 def full_api_access(mocker: MockerFixture) -> Union[Iterator[None], None]:
     """
