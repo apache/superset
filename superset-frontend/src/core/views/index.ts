@@ -35,10 +35,13 @@ type View = viewsApi.View;
 type ViewRegisteredEvent = viewsApi.ViewRegisteredEvent;
 type ViewUnregisteredEvent = viewsApi.ViewUnregisteredEvent;
 
-const viewRegistry: Map<
-  string,
-  { view: View; location: string; component: ComponentType }
-> = new Map();
+interface RegisteredView {
+  view: View;
+  location: string;
+  component: ComponentType;
+}
+
+const viewRegistry: Map<string, RegisteredView> = new Map();
 
 const locationIndex: Map<string, Set<string>> = new Map();
 
@@ -99,6 +102,20 @@ export const resolveView = (id: string): React.ReactElement => {
 };
 
 /**
+ * Reactive lookup of a single registered view's entry (its metadata and
+ * component), or `undefined` while nothing is registered under `id`.
+ * Re-renders the caller when that registration changes, so a host page
+ * can tell "not registered (yet)" apart from "registered" and read the
+ * view's `name` without resolving it.
+ */
+export const useRegisteredView = (id: string): RegisteredView | undefined =>
+  useSyncExternalStore(
+    subscribe,
+    () => viewRegistry.get(id),
+    () => undefined,
+  );
+
+/**
  * Reactive counterpart to `resolveView`, for hosting a single
  * extension-registered view (see `src/pages/ExtensionView`).
  *
@@ -114,19 +131,15 @@ export const resolveView = (id: string): React.ReactElement => {
  * via `useSyncExternalStore` (the same registry-change events `useViews`
  * already subscribes to) re-renders once that registration lands.
  *
- * Snapshots the registered `component` itself, not a freshly
- * `React.createElement`-ed result -- `useSyncExternalStore` requires a
- * `getSnapshot` that returns a stable reference when nothing changed, and
- * `entry.component` is exactly that (unlike a new element object created
- * fresh on every call).
+ * Built on `useRegisteredView`, so the snapshot is the registry entry
+ * itself rather than a freshly `React.createElement`-ed result --
+ * `useSyncExternalStore` requires a `getSnapshot` that returns a stable
+ * reference when nothing changed, and the stored entry is exactly that
+ * (unlike a new element object created fresh on every call).
  */
 export const useResolveView = (id: string): React.ReactElement => {
-  const component = useSyncExternalStore(
-    subscribe,
-    () => viewRegistry.get(id)?.component,
-    () => undefined,
-  );
-  if (!component) {
+  const entry = useRegisteredView(id);
+  if (!entry) {
     return React.createElement(ExtensionPlaceholder, { id });
   }
   return React.createElement(ErrorBoundary, {
@@ -134,7 +147,7 @@ export const useResolveView = (id: string): React.ReactElement => {
     // No JSX in a .ts file; `key` requires a props object, so `children`
     // has to travel through it too.
     // oxlint-disable-next-line no-children-prop
-    children: React.createElement(component),
+    children: React.createElement(entry.component),
   });
 };
 

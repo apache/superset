@@ -16,10 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { t } from '@apache-superset/core/translation';
+import { Loading } from '@superset-ui/core/components';
 import SubMenu, { SubMenuProps } from 'src/features/home/SubMenu';
-import { useResolveView } from 'src/core/views';
+import ExtensionsLoader from 'src/extensions/ExtensionsLoader';
+import { useRegisteredView, useResolveView } from 'src/core/views';
 
 /**
  * Generic full-page host for a single extension-registered view, reached at
@@ -36,39 +39,73 @@ import { useResolveView } from 'src/core/views';
  * `window.location.assign` in the absence of an SDK-level SPA-navigation
  * primitive), and the providing extension's own code loads asynchronously
  * -- a non-reactive resolve would permanently commit to the "could not be
- * loaded" placeholder from before that load finishes.
+ * loaded" placeholder from before that load finishes. Until the extension
+ * loader settles, an unregistered id shows a loading state rather than
+ * that placeholder, so a slow load and a wrong id look different.
  */
-const decodeViewId = (viewId: string | undefined): string => {
-  if (!viewId) {
-    return '';
-  }
-  try {
-    return decodeURIComponent(viewId);
-  } catch {
-    return viewId;
-  }
+
+/**
+ * The router's `history` (v4) runs `decodeURI` on the pathname before
+ * `useParams` sees it. That pass decodes everything except the URI's
+ * reserved characters, so an id navigated to via `encodeURIComponent`
+ * arrives with `%2F` (and friends) still escaped but every other sequence,
+ * including a literal `%` sent as `%25`, already decoded. A second full
+ * `decodeURIComponent` would throw on an id that legitimately contains
+ * `%`, so only the reserved-character escapes that first pass leaves
+ * behind are decoded here.
+ */
+const RESERVED_CHARACTER_ESCAPES = /%(2F|3A|40|26|3D|2B|24|2C|3B|3F|23)/gi;
+
+const decodeViewId = (viewId: string | undefined): string =>
+  (viewId ?? '').replace(RESERVED_CHARACTER_ESCAPES, escaped =>
+    decodeURIComponent(escaped),
+  );
+
+/**
+ * Whether `ExtensionsLoader.initializeExtensions()` has settled. The loader
+ * memoizes its promise, so this awaits the same load `ExtensionsStartup`
+ * kicks off; if this effect fires first, it merely starts that load early,
+ * and extension code still only runs after the `/api/v1/extensions/`
+ * round trip, by which point `window.superset` is in place.
+ */
+const useExtensionsSettled = (): boolean => {
+  const [settled, setSettled] = useState(false);
+  useEffect(() => {
+    let active = true;
+    const markSettled = () => {
+      if (active) {
+        setSettled(true);
+      }
+    };
+    ExtensionsLoader.getInstance()
+      .initializeExtensions()
+      .then(markSettled, markSettled);
+    return () => {
+      active = false;
+    };
+  }, []);
+  return settled;
 };
 
 const ExtensionView = () => {
   const { viewId: rawViewId } = useParams<{ viewId: string }>();
-  // The router leaves percent-encoded separators (`%2F`) intact, so decode
-  // to match the registry key whether a command used a literal or encoded `/`.
   const viewId = decodeViewId(rawViewId);
-
-  const menuData: SubMenuProps = {
-    name: t('Extension'),
-  };
-
-  const resolved = useResolveView(viewId ?? '');
+  const registered = useRegisteredView(viewId);
+  const resolved = useResolveView(viewId);
+  const extensionsSettled = useExtensionsSettled();
 
   if (!viewId) {
     return null;
   }
 
+  const menuData: SubMenuProps = {
+    name: registered?.view.name ?? t('Extension'),
+  };
+
   return (
     <>
       <SubMenu {...menuData} />
-      {resolved}
+      {registered || extensionsSettled ? resolved : <Loading />}
     </>
   );
 };
