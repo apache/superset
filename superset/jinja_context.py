@@ -504,7 +504,7 @@ class ExtraCache:
             val = flt.get("val")
             if isinstance(val, list):
                 return_val.extend(val)
-            elif val:
+            elif val not in (None, ""):
                 return_val.append(val)
 
         if (not return_val) and default:
@@ -659,7 +659,7 @@ class ExtraCache:
                 and flt.get("clause") == "WHERE"
                 and flt.get("subject") == column
                 and (
-                    val
+                    val not in (None, "", [])
                     # IS_NULL and IS_NOT_NULL operators do not have a value
                     or op
                     in (
