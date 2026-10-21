@@ -24,6 +24,7 @@ import {
   waitFor,
   userEvent,
 } from 'spec/helpers/testing-library';
+import { StrictMode } from 'react';
 import { SupersetClient } from '@superset-ui/core';
 
 import {
@@ -214,8 +215,252 @@ test('shows partial success feedback when only some semantic views are created',
       '1 semantic view(s) failed to add: customers',
     );
   });
-  expect(props.onSuccess).not.toHaveBeenCalled();
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'customers: create failed',
+  );
+  expect(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  ).toBeEnabled();
+  await selectOption('Semantic views', 'orders (already added)');
+  expect(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  ).toBeEnabled();
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
   expect(props.onHide).not.toHaveBeenCalled();
+  mockedPost.mockResolvedValueOnce({
+    json: { result: { created: [{ uuid: 'view-2', name: 'customers' }] } },
+  });
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  expect(mockedPost).toHaveBeenLastCalledWith({
+    endpoint: '/api/v1/semantic_view/',
+    jsonPayload: {
+      views: [
+        {
+          name: 'customers',
+          semantic_layer_uuid: 'layer-1',
+          configuration: {},
+        },
+      ],
+    },
+  });
+  await waitFor(() => expect(props.onHide).toHaveBeenCalledTimes(1));
+});
+
+test.each([
+  [
+    'all failed',
+    {
+      result: {
+        created: [],
+        errors: [
+          { name: 'orders', error: 'Invalid <script>model</script>' },
+          { name: 'customers', error: { configuration: ['Missing field'] } },
+        ],
+      },
+    },
+    [
+      'Failed to add orders: Invalid <script>model</script>',
+      'Failed to add customers: configuration: Missing field',
+    ],
+  ],
+  [
+    'malformed',
+    { result: { errors: 'private provider details' } },
+    ['An error occurred while adding semantic views'],
+  ],
+  [
+    'malformed success',
+    { result: { created: [null], errors: [null] } },
+    ['An error occurred while adding semantic views'],
+  ],
+])(
+  'shows safe inline creation feedback for %s',
+  async (_label, body, messages) => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: {
+            result: [
+              { name: 'orders', already_added: false },
+              { name: 'customers', already_added: false },
+            ],
+          },
+        });
+      return _label === 'malformed success'
+        ? Promise.resolve({ json: body })
+        : Promise.reject({ status: 422, json: async () => body });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await selectOption('Semantic views', 'customers');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    );
+    const alert = await screen.findByRole('alert');
+    messages.forEach(message => expect(alert).toHaveTextContent(message));
+    expect(alert.querySelector('script')).toBeNull();
+    expect(alert).not.toHaveTextContent('private provider details');
+    if (_label.startsWith('malformed')) {
+      expect(props.addDangerToast).toHaveBeenCalledWith(
+        'An error occurred while adding semantic views',
+      );
+    }
+    expect(props.onHide).not.toHaveBeenCalled();
+    expect(props.onSuccess).not.toHaveBeenCalled();
+    expect(
+      screen.getByRole('button', { name: /add 2 view\(s\)/i }),
+    ).toBeEnabled();
+  },
+);
+
+test('a creation response cannot update a closed and reopened modal', async () => {
+  let finishSave: (value: unknown) => void = () => {};
+  const pendingSave = new Promise(resolve => {
+    finishSave = resolve;
+  });
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({ json: { result: { properties: {} } } });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return pendingSave;
+  });
+  const props = createProps();
+  const { rerender } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  rerender(<AddSemanticViewModal {...props} show={false} />);
+  rerender(<AddSemanticViewModal {...props} />);
+  await act(async () => {
+    finishSave({
+      json: { result: { created: [{ uuid: 'view-1', name: 'orders' }] } },
+    });
+  });
+  expect(props.onSuccess).toHaveBeenCalledTimes(1);
+  expect(props.onHide).not.toHaveBeenCalled();
+  expect(props.addSuccessToast).toHaveBeenCalledWith(
+    '1 semantic view(s) added',
+  );
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+test.each([1, 2, 100])(
+  'counts %s unnamed failures without a long toast',
+  async count => {
+    mockedGet.mockResolvedValue({
+      json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+    });
+    mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+      if (endpoint.endsWith('/schema/runtime'))
+        return Promise.resolve({ json: { result: { properties: {} } } });
+      if (endpoint.endsWith('/views'))
+        return Promise.resolve({
+          json: { result: [{ name: 'orders', already_added: false }] },
+        });
+      return Promise.resolve({
+        json: {
+          result: {
+            created: [],
+            errors: Array.from({ length: count }, (_, index) => ({
+              name: count === 2 && index === 0 ? 'orders' : null,
+              error: 'Invalid view',
+            })),
+          },
+        },
+      });
+    });
+    const props = createProps();
+    render(<AddSemanticViewModal {...props} />);
+    await selectOption('Semantic layer', 'Test layer');
+    await selectOption('Semantic views', 'orders');
+    await userEvent.click(
+      screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+    );
+    await waitFor(() =>
+      expect(props.addDangerToast).toHaveBeenCalledWith(
+        count === 2
+          ? '2 semantic view(s) failed to add: orders'
+          : `${count} semantic view(s) failed to add`,
+      ),
+    );
+  },
+);
+
+test('clears failures on a configuration change and bounds a large failure list', async () => {
+  mockedGet.mockResolvedValue({
+    json: { result: [{ uuid: 'layer-1', name: 'Test layer' }] },
+  });
+  mockedPost.mockImplementation(({ endpoint }: { endpoint: string }) => {
+    if (endpoint.endsWith('/schema/runtime'))
+      return Promise.resolve({
+        json: {
+          result: { properties: { note: { type: 'string', title: 'Note' } } },
+        },
+      });
+    if (endpoint.endsWith('/views'))
+      return Promise.resolve({
+        json: { result: [{ name: 'orders', already_added: false }] },
+      });
+    return Promise.resolve({
+      json: {
+        result: {
+          created: [],
+          errors: Array.from({ length: 100 }, (_, index) => ({
+            name: `view-${index}`,
+            error: 'Invalid view',
+          })),
+        },
+      },
+    });
+  });
+  const props = createProps();
+  render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Test layer');
+  fireEvent.change(await screen.findByRole('textbox', { name: 'Note' }), {
+    target: { value: 'schema' },
+  });
+  await waitFor(() =>
+    expect(
+      screen.getByRole('combobox', { name: 'Semantic views' }),
+    ).toBeEnabled(),
+  );
+  await selectOption('Semantic views', 'orders');
+  await userEvent.click(
+    screen.getByRole('button', { name: /add 1 view\(s\)/i }),
+  );
+  const alert = await screen.findByRole('alert');
+  expect(alert).toHaveTextContent('view-99');
+  expect(props.addDangerToast).toHaveBeenCalledWith(
+    '100 semantic view(s) failed to add',
+  );
+  const region = screen.getByRole('region', {
+    name: 'Some semantic views could not be added',
+  });
+  expect(region).toHaveStyleRule('overflow-y', 'auto');
+  expect(region).toHaveStyleRule('max-height', '240px');
+  fireEvent.change(screen.getByRole('textbox', { name: 'Note' }), {
+    target: { value: 'another schema' },
+  });
+  await waitFor(() =>
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument(),
+  );
 });
 
 test('shows toast when loading semantic layers fails', async () => {
@@ -275,6 +520,11 @@ test('shows toast when add semantic views fails', async () => {
       'An error occurred while adding semantic views',
     );
   });
+  expect(screen.getByRole('alert')).toHaveTextContent(
+    'An error occurred while adding semantic views',
+  );
+  expect(screen.getByRole('alert')).not.toHaveTextContent('save failed');
+  expect(props.onHide).not.toHaveBeenCalled();
 });
 
 // ---------------------------------------------------------------------------
@@ -419,7 +669,6 @@ test('a const array default does not loop updates', async () => {
 });
 
 test('a failed array-only refresh keeps views and Add usable with a bounded retry', async () => {
-  let refreshCount = 0;
   const schemaWithMode = {
     ...dynamicMetricsSchema,
     properties: {
@@ -436,7 +685,6 @@ test('a failed array-only refresh keeps views and Add usable with a bounded retr
   mockLayerWithSchema(schemaWithMode, {
     '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
       if ((payload as { runtime_data?: unknown })?.runtime_data) {
-        refreshCount += 1;
         return Promise.reject(new Error('refresh boom'));
       }
       return Promise.resolve({ json: { result: schemaWithMode } });
@@ -455,7 +703,18 @@ test('a failed array-only refresh keeps views and Add usable with a bounded retr
     },
     { timeout: 10000 },
   );
-  expect(refreshCount).toBeGreaterThanOrEqual(1);
+  await waitFor(
+    () =>
+      expect(mockedPost).toHaveBeenCalledWith({
+        endpoint: '/api/v1/semantic_layer/layer-1/schema/runtime',
+        jsonPayload: {
+          runtime_data: expect.objectContaining({
+            metrics: expect.arrayContaining(['m1']),
+          }),
+        },
+      }),
+    { timeout: 10000 },
+  );
   // The user's selection is untouched by the failure (spec FR-005).
   expect(selectedTag('m1')).toBeTruthy();
   await waitFor(
@@ -469,7 +728,18 @@ test('a failed array-only refresh keeps views and Add usable with a bounded retr
   await selectOption('Semantic views', 'orders');
   expect(screen.getByRole('button', { name: /Add 1 view/ })).toBeEnabled();
   await pickFromSelect(/metrics/i, 'm2');
-  await waitFor(() => expect(refreshCount).toBe(2), { timeout: 10000 });
+  await waitFor(
+    () =>
+      expect(mockedPost).toHaveBeenCalledWith({
+        endpoint: '/api/v1/semantic_layer/layer-1/schema/runtime',
+        jsonPayload: {
+          runtime_data: expect.objectContaining({
+            metrics: expect.arrayContaining(['m2']),
+          }),
+        },
+      }),
+    { timeout: 10000 },
+  );
 });
 
 test('the save payload carries every selected metric', async () => {
@@ -542,7 +812,20 @@ test('the save payload carries every selected metric', async () => {
 
 test('renders and selects within a 500-metric runtime schema', async () => {
   const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation();
-  mockLayerWithSchema(largeRuntimeSchema as Record<string, unknown>);
+  let resolveSelectedRefresh: (() => void) | undefined;
+  mockLayerWithSchema(largeRuntimeSchema as Record<string, unknown>, {
+    '/api/v1/semantic_layer/layer-1/schema/runtime': (payload: unknown) => {
+      const data = (payload as { runtime_data?: { metrics?: string[] } })
+        ?.runtime_data;
+      if (data?.metrics?.includes(largeMetricEnum[42])) {
+        return new Promise(resolve => {
+          resolveSelectedRefresh = () =>
+            resolve({ json: { result: largeRuntimeSchema } });
+        });
+      }
+      return Promise.resolve({ json: { result: largeRuntimeSchema } });
+    },
+  });
   render(<AddSemanticViewModal {...createProps()} />);
   await selectOption('Semantic layer', 'Snowflake SL');
 
@@ -559,20 +842,22 @@ test('renders and selects within a 500-metric runtime schema', async () => {
   await userEvent.click(option);
   expect(selectedTag(largeMetricEnum[42])).toBeTruthy();
 
-  // largeRuntimeSchema's dimensions field depends on metrics, so the pick
-  // schedules a refresh — wait for it so the dedupe/apply path is exercised
-  // at 500-metric scale rather than ending before the debounce elapses.
-  await waitFor(
-    () => {
-      const refreshes = mockedPost.mock.calls.filter(
-        ([{ endpoint, jsonPayload }]) =>
-          endpoint === '/api/v1/semantic_layer/layer-1/schema/runtime' &&
-          (jsonPayload as { runtime_data?: unknown })?.runtime_data,
-      );
-      expect(refreshes.length).toBeGreaterThanOrEqual(1);
-    },
-    { timeout: 10000 },
-  );
+  // Finish this metric's own refresh before unmounting; an earlier refresh
+  // for empty runtime data does not prove the selected metric was applied.
+  await waitFor(() => {
+    expect(mockedPost).toHaveBeenCalledWith({
+      endpoint: '/api/v1/semantic_layer/layer-1/schema/runtime',
+      jsonPayload: {
+        runtime_data: expect.objectContaining({
+          metrics: [largeMetricEnum[42]],
+        }),
+      },
+    });
+    expect(resolveSelectedRefresh).toBeDefined();
+  });
+  await act(async () => {
+    resolveSelectedRefresh?.();
+  });
   expect(selectedTag(largeMetricEnum[42])).toBeTruthy();
   expect(
     consoleErrorSpy.mock.calls.find(args =>
@@ -626,6 +911,7 @@ async function chooseDependentOption(name: string, value: string) {
 
 async function openDependentSchemaForm(
   makeSchema: typeof databaseSchema = databaseSchema,
+  { strict = false }: { strict?: boolean } = {},
 ) {
   jest.useFakeTimers();
   const pending: PendingSchema[] = [];
@@ -644,7 +930,10 @@ async function openDependentSchemaForm(
     },
   });
   const props = createProps();
-  const { rerender } = render(<AddSemanticViewModal {...props} />);
+  const modal = <AddSemanticViewModal {...props} />;
+  const { rerender, unmount } = render(
+    strict ? <StrictMode>{modal}</StrictMode> : modal,
+  );
   await chooseDependentOption('Semantic layer', 'Snowflake SL');
   // Let JSON Forms emit its mount-time change before selecting a database.
   // Otherwise that delayed event can reset the dependency snapshot mid-pick.
@@ -659,7 +948,7 @@ async function openDependentSchemaForm(
   await act(async () => {
     pending[0].resolve(initial);
   });
-  return { pending, props, rerender };
+  return { pending, props, rerender, unmount };
 }
 
 const viewsRequests = () =>
@@ -705,6 +994,95 @@ test.each(['shared', 'old_only'])(
     ).toBeNull();
   },
 );
+
+test('a debounced refresh scheduled before unmount never fires', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  await chooseDependentOption('Database', 'second');
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  // A timer that outlives the modal posts on behalf of a component that is
+  // gone, and in this file it would land in the next test's mocks.
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('StrictMode remounting keeps dependency refreshes and views fetches working', async () => {
+  // StrictMode mounts, runs the unmount cleanup, then mounts again in
+  // development. The opening helper already requires the Database change to
+  // post a schema refresh, which a stale unmounted flag would swallow.
+  const { pending } = await openDependentSchemaForm(databaseSchema, {
+    strict: true,
+  });
+  expect(pending).toHaveLength(1);
+  const viewsBefore = viewsRequests().length;
+  await chooseDependentOption('Schema', 'shared');
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS);
+  });
+  expect(viewsRequests().length).toBeGreaterThan(viewsBefore);
+});
+
+test('a views fetch scheduled before unmount never fires', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  // A complete form queues a views fetch behind the modal's debounce.
+  await chooseDependentOption('Schema', 'shared');
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
+
+test('a runtime schema response delivered after unmount fetches no views', async () => {
+  let finishSchema: (() => void) | undefined;
+  mockLayerWithSchema(
+    {},
+    {
+      '/api/v1/semantic_layer/layer-1/schema/runtime': () =>
+        new Promise(resolve => {
+          finishSchema = () => resolve({ json: { result: {} } });
+        }),
+    },
+  );
+  const props = createProps();
+  const { unmount } = render(<AddSemanticViewModal {...props} />);
+  await selectOption('Semantic layer', 'Snowflake SL');
+  await waitFor(() => expect(finishSchema).toBeDefined());
+  unmount();
+  // A schema with no properties would otherwise fetch views right away.
+  await act(async () => {
+    finishSchema?.();
+  });
+  expect(viewsRequests()).toHaveLength(0);
+  expect(props.addDangerToast).not.toHaveBeenCalled();
+});
+
+test('a form change delivered after unmount schedules no refresh', async () => {
+  const { pending, unmount } = await openDependentSchemaForm();
+  const viewsBefore = viewsRequests().length;
+  fireEvent.mouseDown(screen.getByRole('combobox', { name: 'Database' }));
+  const option = await waitFor(() => {
+    const item = document.querySelector(
+      '.ant-select-item-option[title="second"]',
+    );
+    if (!item) throw new Error('Missing option second');
+    return item;
+  });
+  fireEvent.click(option);
+  // Unmount inside JSON Forms' own 10 ms change debounce, so its onChange
+  // reaches the modal only after the modal is gone.
+  unmount();
+  await act(async () => {
+    jest.advanceTimersByTime(SCHEMA_REFRESH_DEBOUNCE_MS * 2);
+  });
+  expect(pending).toHaveLength(1);
+  expect(viewsRequests()).toHaveLength(viewsBefore);
+});
 
 test('dependent options ignore an older response while the latest refresh is pending', async () => {
   const { pending } = await openDependentSchemaForm();

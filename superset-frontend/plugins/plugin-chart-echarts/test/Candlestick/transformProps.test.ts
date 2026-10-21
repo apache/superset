@@ -1108,6 +1108,23 @@ test('tooltip reads OHLC from custom-series 5-tuples', () => {
   expect(tooltipHtml).toContain(`${CANDLESTICK_SERIES_NAME} (Increase)`);
 });
 
+test('tooltip labels OHLC values with their own price strings', () => {
+  const tooltipHtml = getTooltipHtml(buildProps(), [
+    {
+      dataIndex: 0,
+      name: '2017-10-24',
+      seriesType: 'candlestick',
+      seriesName: CANDLESTICK_SERIES_NAME,
+      value: [20, 34, 10, 38],
+      data: [20, 34, 10, 38],
+    },
+  ]);
+  expect(tooltipHtml).toContain('Open price');
+  expect(tooltipHtml).toContain('Close price');
+  expect(tooltipHtml).toContain('Low price');
+  expect(tooltipHtml).toContain('High price');
+});
+
 test('tooltip lists every candlestick and moving average on the hovered date', () => {
   const seriesData = [
     {

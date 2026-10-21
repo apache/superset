@@ -105,6 +105,7 @@ export interface BrandProps {
 }
 
 export interface NavBarProps {
+  can_access_recently_archived?: boolean;
   show_watermark: boolean;
   bug_report_url?: string;
   bug_report_text?: string;
