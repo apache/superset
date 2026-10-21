@@ -17,9 +17,18 @@
  * under the License.
  */
 import { useState } from 'react';
-import { fireEvent, render } from 'spec/helpers/testing-library';
+import {
+  fireEvent,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'spec/helpers/testing-library';
 
 import mockDatasource from 'spec/fixtures/mockDatasource';
+import TextControl from 'src/explore/components/controls/TextControl';
+import Field from '../Field';
+import Fieldset from '../Fieldset';
 import CollectionTable from '.';
 
 const props = {
@@ -267,4 +276,90 @@ test('restores the original order after a sort is cleared when the parent echoes
     (container.querySelector('[data-test="type-input-2"]') as HTMLInputElement)
       .value,
   ).toBe('EDITED');
+});
+
+const descriptionFieldset = (
+  <Fieldset compact>
+    <Field
+      fieldKey="description"
+      label="Description"
+      control={<TextControl />}
+    />
+  </Fieldset>
+);
+
+const lastDescriptionsById = (onChange: jest.Mock) =>
+  Object.fromEntries(
+    onChange.mock.calls[onChange.mock.calls.length - 1][0].map(
+      (item: { id: string; description?: string }) => [
+        item.id,
+        item.description,
+      ],
+    ),
+  );
+
+test("a delayed fieldset commit does not revert another row's edit", async () => {
+  // Fieldset edits commit on a debounce, so both rows are edited before
+  // either commit lands.
+  const onChange = jest.fn();
+  const collection = [
+    { id: 'a', column_name: 'a', description: '' },
+    { id: 'b', column_name: 'b', description: '' },
+  ];
+
+  render(
+    <CollectionTable
+      collection={collection}
+      tableColumns={['column_name']}
+      sortColumns={[]}
+      expandFieldset={descriptionFieldset}
+      onChange={onChange}
+    />,
+  );
+
+  const expanders = screen.getAllByRole('button', { name: /expand row/i });
+  await userEvent.click(expanders[0]);
+  await userEvent.click(expanders[1]);
+
+  const inputs = screen.getAllByRole('textbox');
+  expect(inputs).toHaveLength(2);
+
+  fireEvent.change(inputs[0], { target: { value: 'from A' } });
+  fireEvent.change(inputs[1], { target: { value: 'from B' } });
+
+  await waitFor(() =>
+    expect(lastDescriptionsById(onChange)).toEqual({
+      a: 'from A',
+      b: 'from B',
+    }),
+  );
+});
+
+test('a fieldset commit preserves the collection order', async () => {
+  const onChange = jest.fn();
+  const collection = [
+    { id: 'z', column_name: 'z', description: '' },
+    { id: 'a', column_name: 'a', description: '' },
+  ];
+
+  render(
+    <CollectionTable
+      collection={collection}
+      tableColumns={['column_name']}
+      sortColumns={[]}
+      expandFieldset={descriptionFieldset}
+      onChange={onChange}
+    />,
+  );
+
+  const expanders = screen.getAllByRole('button', { name: /expand row/i });
+  await userEvent.click(expanders[1]);
+  fireEvent.change(screen.getByRole('textbox'), {
+    target: { value: 'edited' },
+  });
+
+  await waitFor(() => expect(onChange).toHaveBeenCalled());
+  const final = onChange.mock.calls[onChange.mock.calls.length - 1][0];
+  expect(final.map((item: { id: string }) => item.id)).toEqual(['z', 'a']);
+  expect(final[1].description).toBe('edited');
 });
