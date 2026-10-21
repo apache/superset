@@ -620,3 +620,33 @@ def test_retained_bubble_invalid_sort_is_rejected(orderby: object) -> None:
     )
     assert error is not None
     assert error.error_type == SEMANTIC_VIEW_ADHOC_ERROR
+
+
+def test_grained_sunburst_hierarchy_level_is_a_view_dimension() -> None:
+    """A Sunburst level carrying its time grain still names a view column."""
+    target: ChartDatasource = ChartDatasource(
+        _mock_view(), DatasourceType.SEMANTIC_VIEW, 7, "Jaffle Shop"
+    )
+    grained: dict[str, object] = {
+        "columnType": "BASE_AXIS",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+        "label": "metric_time",
+        "sqlExpression": "metric_time",
+        "timeGrain": "P1M",
+    }
+    form_data: dict[str, object] = {
+        "viz_type": "sunburst_v2",
+        "columns": [grained, "customer__region"],
+        "metric": "revenue",
+        "granularity_sqla": "metric_time",
+        "time_grain_sqla": "P1M",
+    }
+    assert validate_semantic_view_form_data(form_data, target) is None
+
+    unknown = {**grained, "label": "missing", "sqlExpression": "missing"}
+    error = validate_semantic_view_form_data(
+        {**form_data, "columns": [unknown]}, target
+    )
+    assert error is not None
+    assert error.error_type == "column_not_found"
