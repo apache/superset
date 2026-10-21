@@ -29,6 +29,7 @@ import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
 import { formatSeriesName } from '../utils/series';
+import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 
 export const extractTreePathInfo = (treePathInfo: TreePathInfo[] | undefined) =>
   (treePathInfo ?? [])
@@ -122,37 +123,53 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         if (columns?.length) {
-          // A grained level holds the start of a time bucket, so its detail
-          // filter carries the grain buildQuery applied (the dashboard grain
-          // first) to match the whole bucket rather than that one instant.
           const timeGrain = (formData.extraFormData?.time_grain_sqla ??
             formData.timeGrainSqla) as TimeGranularity | undefined;
-          treePath.forEach((path, i) =>
-            drillToDetailFilters.push({
-              col: columns[i],
-              op: '==',
-              val: records[i],
-              formattedVal: path,
-              ...(timeGrain &&
-                isGrainedLevel(
-                  columns[i],
-                  formData.temporalColumnsLookup,
-                  formData.granularitySqla,
-                ) && { grain: timeGrain }),
-            }),
-          );
-          const val = treePath[treePath.length - 1];
-          drillByFilters.push({
-            col: columns[treePath.length - 1],
-            op: '==',
-            val,
-            formattedVal: formatSeriesName(val, {
-              timeFormatter: getTimeFormatter(formData.dateFormat),
-              numberFormatter: getNumberFormatter(formData.numberFormat),
-              coltype:
-                coltypeMapping?.[getColumnLabel(columns[treePath.length - 1])],
-            }),
+          treePath.forEach((path, i) => {
+            // Range filters apply the dataset timezone/offset to both bucket
+            // bounds. Equality on a truncated column bypasses that handling.
+            const temporalFilter =
+              timeGrain &&
+              isGrainedLevel(
+                columns[i],
+                formData.temporalColumnsLookup,
+                formData.granularitySqla,
+              )
+                ? getTemporalXAxisDrillByFilter(
+                    columns[i],
+                    records[i],
+                    timeGrain,
+                    path,
+                  )
+                : undefined;
+            drillToDetailFilters.push(
+              temporalFilter ?? {
+                col: columns[i],
+                op: '==',
+                val: records[i],
+                formattedVal: path,
+              },
+            );
+            if (temporalFilter && i === treePath.length - 1) {
+              drillByFilters.push(temporalFilter);
+            }
           });
+          if (!drillByFilters.length) {
+            const val = treePath[treePath.length - 1];
+            drillByFilters.push({
+              col: columns[treePath.length - 1],
+              op: '==',
+              val,
+              formattedVal: formatSeriesName(val, {
+                timeFormatter: getTimeFormatter(formData.dateFormat),
+                numberFormatter: getNumberFormatter(formData.numberFormat),
+                coltype:
+                  coltypeMapping?.[
+                    getColumnLabel(columns[treePath.length - 1])
+                  ],
+              }),
+            });
+          }
         }
         onContextMenu(pointerEvent.clientX, pointerEvent.clientY, {
           drillToDetail: drillToDetailFilters,

@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { TimeGranularity } from '@superset-ui/core';
 import { render } from '../../../../spec/helpers/testing-library';
 import EchartsSunburst from '../../src/Sunburst/EchartsSunburst';
 import Echart from '../../src/components/Echart';
@@ -35,7 +36,11 @@ const mockedEchart = jest.mocked(Echart);
 // 2003-10-01T00:00:00Z, the start of the month bucket a monthly grain returns.
 const OCTOBER_2003 = 1064966400000;
 
-const rightClickOctoberClassicCars = (formData: Record<string, unknown>) => {
+const rightClickContext = (
+  formData: Record<string, unknown>,
+  records: (number | string | null)[] = [OCTOBER_2003, 'Classic Cars'],
+  names: string[] = ['October', 'Classic Cars'],
+) => {
   mockedEchart.mockClear();
   const onContextMenu = jest.fn();
   const props = {
@@ -62,16 +67,18 @@ const rightClickOctoberClassicCars = (formData: Record<string, unknown>) => {
   const lastCall = mockedEchart.mock.calls[mockedEchart.mock.calls.length - 1];
   const { eventHandlers } = lastCall[0] as { eventHandlers: EventHandlers };
   eventHandlers.contextmenu({
-    data: { records: [OCTOBER_2003, 'Classic Cars'] },
+    data: { records },
     treePathInfo: [
       { name: '', dataIndex: 0, value: 100 },
-      { name: 'October', dataIndex: 1, value: 60 },
-      { name: 'Classic Cars', dataIndex: 2, value: 40 },
+      ...names.map((name, i) => ({ name, dataIndex: i + 1, value: 40 })),
     ],
     event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
   });
-  return onContextMenu.mock.calls[0][2].drillToDetail;
+  return onContextMenu.mock.calls[0][2];
 };
+
+const rightClickOctoberClassicCars = (formData: Record<string, unknown>) =>
+  rightClickContext(formData).drillToDetail;
 
 test('drill to detail on a grained temporal level filters the whole time bucket', () => {
   expect(
@@ -82,10 +89,9 @@ test('drill to detail on a grained temporal level filters the whole time bucket'
   ).toEqual([
     {
       col: 'order_date',
-      op: '==',
-      val: OCTOBER_2003,
+      op: 'TEMPORAL_RANGE',
+      val: '2003-10-01T00:00:00 : 2003-11-01T00:00:00',
       formattedVal: 'October',
-      grain: 'P1M',
     },
     {
       col: 'product_line',
@@ -102,7 +108,7 @@ test('drill to detail uses the dashboard time grain over the saved one', () => {
     granularitySqla: 'order_date',
     extraFormData: { time_grain_sqla: 'P1Y' },
   });
-  expect(temporalFilter.grain).toBe('P1Y');
+  expect(temporalFilter.val).toBe('2003-10-01T00:00:00 : 2004-10-01T00:00:00');
 });
 
 test('drill to detail adds no grain to raw temporal or categorical levels', () => {
@@ -125,4 +131,86 @@ test('drill to detail adds no grain to raw temporal or categorical levels', () =
         expect(filter).not.toHaveProperty('grain'),
     ),
   );
+});
+
+// TEMPORAL_RANGE goes through get_time_filter, which applies the dataset's
+// timezone or Hour Offset to both bounds; grain equality bypasses that path.
+test.each([
+  [TimeGranularity.DAY, '2003-10-01T00:00:00', '2003-10-02T00:00:00'],
+  [TimeGranularity.WEEK, '2003-10-05T00:00:00', '2003-10-12T00:00:00'],
+  [TimeGranularity.MONTH, '2003-10-01T00:00:00', '2003-11-01T00:00:00'],
+  [TimeGranularity.QUARTER, '2003-10-01T00:00:00', '2004-01-01T00:00:00'],
+  [TimeGranularity.YEAR, '2003-01-01T00:00:00', '2004-01-01T00:00:00'],
+])(
+  'temporal segment drills use a timezone-aware bucket range for %s',
+  (grain, since, until) => {
+    const context = rightClickContext(
+      {
+        columns: ['order_date'],
+        timeGrainSqla: grain,
+        temporalColumnsLookup: { order_date: true },
+      },
+      [Date.parse(`${since}Z`)],
+      ['October'],
+    );
+    const expected = {
+      col: 'order_date',
+      op: 'TEMPORAL_RANGE',
+      val: `${since} : ${until}`,
+      formattedVal: 'October',
+    };
+    expect(context.drillToDetail).toEqual([expected]);
+    expect(context.drillBy.filters).toEqual([expected]);
+  },
+);
+
+test('null temporal segments retain an equality filter without a grain', () => {
+  const context = rightClickContext(
+    {
+      columns: ['order_date'],
+      timeGrainSqla: 'P1M',
+      temporalColumnsLookup: { order_date: true },
+    },
+    [null],
+    ['<NULL>'],
+  );
+  expect(context.drillToDetail).toEqual([
+    { col: 'order_date', op: '==', val: null, formattedVal: '<NULL>' },
+  ]);
+});
+
+test('categorical drill-by and root detail filters retain their behavior', () => {
+  const formData = {
+    timeGrainSqla: 'P1M',
+    temporalColumnsLookup: { order_date: true },
+  };
+  expect(rightClickContext(formData).drillBy.filters).toEqual([
+    {
+      col: 'product_line',
+      op: '==',
+      val: 'Classic Cars',
+      formattedVal: 'Classic Cars',
+    },
+  ]);
+  expect(rightClickContext(formData, [], []).drillToDetail).toEqual([]);
+});
+
+test('drill-by on a grained temporal segment uses its raw bucket instead of its label', () => {
+  const context = rightClickContext(
+    {
+      columns: ['order_date'],
+      timeGrainSqla: 'P1M',
+      temporalColumnsLookup: { order_date: true },
+    },
+    [OCTOBER_2003],
+    ['October'],
+  );
+  expect(context.drillBy.filters).toEqual([
+    {
+      col: 'order_date',
+      op: 'TEMPORAL_RANGE',
+      val: '2003-10-01T00:00:00 : 2003-11-01T00:00:00',
+      formattedVal: 'October',
+    },
+  ]);
 });
