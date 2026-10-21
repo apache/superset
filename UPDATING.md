@@ -48,10 +48,12 @@ assists people when migrating to a new version.
   creates the `ExtensionsRestApi` and `ExtensionStorageRestApi` permissions and
   grants them under the existing role rules (Admin, Alpha and Gamma), as on
   deployments that already started with the flag on; they have no effect while
-  the flag is off. Upgrade order: deploy, run `superset init`, then enable the
-  flag at runtime. The extension storage write routes (PUT/DELETE) are no
-  longer exempt from CSRF protection; API clients must send a CSRF token, as
-  for other Superset APIs.
+  the flag is off. Admins will therefore see these permissions in role editors
+  even with `ENABLE_EXTENSIONS` off; they grant nothing while the flag is off,
+  because every request to these APIs returns 404. Upgrade order: deploy, run
+  `superset init`, then enable the flag at runtime. The extension storage write
+  routes (PUT/DELETE) are no longer exempt from CSRF protection; API clients
+  must send a CSRF token, as for other Superset APIs.
 
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
