@@ -6718,6 +6718,9 @@ class ChartData(BaseModel):
     chart_name: str
     chart_type: str
 
+    # Internal handoff to the dashboard tool; not part of the public chart payload.
+    _query_post_processing: list[list[str]] = PrivateAttr(default_factory=list)
+
     # Enhanced data description
     columns: List[DataColumn] = Field(description="Rich column metadata")
     data: ExactJsonSafeRows = Field(description="Actual data rows")

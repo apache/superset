@@ -3546,7 +3546,10 @@ class DashboardChartQueryData(BaseModel):
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
-        False, description="True when this query returned fewer than the total"
+        False,
+        description=(
+            "True when query retrieval is capped or input coverage is unverified"
+        ),
     )
 
 
@@ -3570,7 +3573,7 @@ class DashboardChartData(BaseModel):
     )
     truncated: bool = Field(
         False,
-        description="True when fewer rows were returned than the total available",
+        description="True when retrieval is capped or input coverage is unverified",
     )
     fetch_row_limit: int | None = Field(
         None,

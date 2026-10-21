@@ -155,10 +155,17 @@ with suggestions for supported arguments. `list_databases` supports
 `created_by_me`, not `edited_by_me`.
 
 Each chart in `get_dashboard_data` includes `fetch_row_limit`, `sample_rows_limit`
-and a `completeness_note`. Example rows are not the full population. Histogram
-bins and box-plot statistics can be computed after the input row limit, so one output row with
-`truncated=false` does not prove that all source rows were included. Check the
-saved chart configuration and source aggregates before interpreting distributions.
+and a `completeness_note`. Example rows are not the full population. When an
+executed query uses post-processing that can collapse or replace input rows
+(aggregate, boxplot, histogram, pivot, prophet, resample, rolling, or an unknown/custom
+operation), output row counts cannot establish input coverage. For these queries,
+`total_rows` is null and `truncated=true` conservatively signals unverified input
+coverage, not observed truncation. This applies to timeseries pivots with groupby
+dimensions as well as distribution charts, including each layer of mixed charts.
+Row-preserving operations retain ordinary row-count completeness checks. Check the
+saved chart configuration, `fetch_row_limit` and source aggregates before making
+full-population claims. Legacy responses without operation metadata retain the
+distribution warning: `truncated=false` alone does not prove full input coverage.
 
 Chart configuration examples use plain number formats. Currency formatting should
 come from user instructions or verified source metadata, not a field name such

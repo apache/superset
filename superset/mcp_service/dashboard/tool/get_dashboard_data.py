@@ -56,15 +56,46 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+# Only these built-ins preserve input rows. Aggregate, boxplot, histogram,
+# pivot, resample and rolling can reduce them; prophet rebuilds the time index.
+# Unknown/custom operations are conservative by default, including future additions.
+_ROW_PRESERVING_OPERATIONS = {
+    "compare",
+    "contribution",
+    "cum",
+    "diff",
+    "flatten",
+    "geodetic_parse",
+    "geohash_decode",
+    "geohash_encode",
+    "rank",
+    "rename",
+    "select",
+    "sort",
+}
+
+
+def _may_collapse_rows(operations: list[str]) -> bool:
+    """Whether output counts cannot establish input retrieval coverage."""
+    return any(operation not in _ROW_PRESERVING_OPERATIONS for operation in operations)
+
+
 def _completeness(
-    row_count: int, source_total: int | None, limit: int
+    row_count: int,
+    source_total: int | None,
+    limit: int,
+    operations: list[str] | None = None,
 ) -> tuple[int | None, bool]:
     """Resolve (total_rows, truncated) for a query result. A source total is only
     authoritative when it exceeds the returned count; a total equal to a capped
     fetch is just the cap (the upstream rowcount is the length of the already
     limited dataframe), so treat it as unknown (None). Truncated means fewer rows
-    were returned than exist.
+    were returned than exist, or input coverage is unverified because executed
+    post-processing can reduce rows before these counts are measured.
     """
+    if _may_collapse_rows(operations or []):
+        # Both counts describe post-processed output, not the capped input.
+        return None, True
     if source_total is not None and source_total > row_count:
         return source_total, True
     if row_count >= limit:
@@ -97,26 +128,42 @@ def _summarize_chart_data(
     layers = result.query_results or []
     primary = next((q for q in layers if q.data), layers[0] if layers else None)
     limit = request.fetch_row_limit
+
+    def operations(query_index: int) -> list[str]:
+        """Match metadata by query position, including empty leading layers."""
+        metadata = result._query_post_processing
+        return metadata[query_index] if query_index < len(metadata) else []
+
+    has_collapsing_operations = any(
+        _may_collapse_rows(steps) for steps in result._query_post_processing
+    )
     if primary is not None:
         columns = primary.columns
         sample_data = primary.data[: request.sample_rows]
         row_count = primary.row_count
-        total_rows, _ = _completeness(row_count, primary.total_rows, limit)
-        # A chart is incomplete if any layer returned fewer than its total.
+        total_rows, _ = _completeness(
+            row_count, primary.total_rows, limit, operations(primary.query_index)
+        )
+        # Any capped or unverified layer makes chart coverage unverified.
         truncated = any(
-            _completeness(lyr.row_count, lyr.total_rows, limit)[1] for lyr in layers
+            _completeness(
+                lyr.row_count, lyr.total_rows, limit, operations(lyr.query_index)
+            )[1]
+            for lyr in layers
         )
     else:
         columns = [column.name for column in result.columns]
         sample_data = result.data[: request.sample_rows]
         row_count = result.row_count
-        total_rows, truncated = _completeness(row_count, result.total_rows, limit)
+        total_rows, truncated = _completeness(
+            row_count, result.total_rows, limit, operations(0)
+        )
     queries: list[DashboardChartQueryData] | None = None
     if len(layers) > 1:
         queries = []
         for layer in layers:
             l_total, l_truncated = _completeness(
-                layer.row_count, layer.total_rows, limit
+                layer.row_count, layer.total_rows, limit, operations(layer.query_index)
             )
             queries.append(
                 DashboardChartQueryData(
@@ -135,7 +182,13 @@ def _summarize_chart_data(
         fetch_row_limit=request.fetch_row_limit,
         sample_rows_limit=request.sample_rows,
         completeness_note=(
-            "Distribution statistics may be computed from input rows capped by "
+            "Query post-processing may collapse or replace input rows capped by "
+            "fetch_row_limit. row_count describes output rows, not input coverage; "
+            "For affected queries, total_rows is unknown; truncated=true means input "
+            "coverage is unverified, not that truncation was observed. Verify source "
+            "aggregates before making a full-population claim."
+            if has_collapsing_operations
+            else "Distribution statistics may be computed from input rows capped by "
             "fetch_row_limit. "
             "A single output row and truncated=false do not establish full-population "
             "coverage or a defect in the saved chart. Verify the saved configuration "
