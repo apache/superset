@@ -276,11 +276,14 @@ const config: ControlPanelConfig = {
               type: 'CheckboxControl',
               label: t('Combine metrics'),
               default: false,
+              // Not a renderTrigger: combining metrics removes the per-metric
+              // subtotal level and the metric-axis rollup levels (see
+              // `buildGroupbyCombinations`), so changing it needs a real
+              // requery rather than a client-side-only re-render.
               description: t(
                 'Display metrics side by side within each column, as ' +
                   'opposed to each column being displayed side by side for each metric.',
               ),
-              renderTrigger: true,
             },
           },
         ],
