@@ -19,6 +19,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: update-country-maps
+  cancel-in-progress: false
+
 jobs:
   update-country-maps:
     runs-on: ubuntu-26.04
@@ -91,7 +95,7 @@ jobs:
 
           if errors:
               print("had_errors=true")
-              summary = "\\n".join(f"- {e}" for e in errors[:20])
+              summary = "\n".join(f"- {e}" for e in errors[:20])
           else:
               print("had_errors=false")
               summary = ""
@@ -100,6 +104,13 @@ jobs:
               f.write(summary)
           PYEOF
           rm -f .ci-run.ipynb
+          if [ -s notebook-errors.txt ]; then
+            echo "::warning::Notebook hit cell errors; generated data may be stale."
+            {
+              echo "### Country map notebook cell errors"
+              cat notebook-errors.txt
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Check for drift
         id: diff
@@ -137,7 +148,7 @@ jobs:
           fi
 
           if gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq 'length > 0' | grep -q true; then
-            echo "PR already open for $BRANCH; branch push above updated it."
+            gh pr edit "$BRANCH" --repo "$GITHUB_REPOSITORY" --body "$BODY"
           else
             gh pr create --repo "$GITHUB_REPOSITORY" \
               --title "chore(country-map): regenerate GeoJSON from upstream sources" \
