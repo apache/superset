@@ -174,7 +174,7 @@ function buildTimeseriesCustomLegend({
   interactive: boolean;
   legendNames: string[];
   legendState?: LegendState;
-  orientation: LegendOrientation;
+  orientation: LegendOrientation.Top | LegendOrientation.Bottom;
   series: SeriesOption[];
 }): TimeseriesCustomLegend {
   const firstSeriesByName = new Map<string, SeriesOption>();
