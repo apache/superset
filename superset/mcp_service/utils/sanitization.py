@@ -77,21 +77,24 @@ def _strip_html_tags(value: str) -> str:
 
 
 # Script schemes remain forbidden regardless of payload whitespace. A data URL
-# starts a value, has an adjacent payload, or, after whitespace, has a blank or
-# MIME-like segment (containing "/", ";" or "%") before its comma. A prose label
-# such as "substitute data: Jira, support tickets" has none and is not a URL.
-# Each alternative scans a segment once, so matching stays linear.
+# starts a value or has an adjacent or comma-delimited payload, even after spaces.
+# Invalid MIME types still load as text/plain in browsers, so a comma-bearing
+# prose label cannot safely be distinguished from a data URL by its MIME type.
 _DANGEROUS_URL_SCHEME_RE = re.compile(
-    r"\b(javascript|vbscript):|^\s*data:|\bdata:(?=\S|$)"
-    r"|\bdata:\s(?:[^,/;%]*[/;%][^,]*|\s*),",
+    r"\b(javascript|vbscript):|^\s*data:|\bdata:(?=\S|$)",
     re.IGNORECASE,
 )
+_WHITESPACE_DATA_SCHEME_RE = re.compile(r"\bdata:\s", re.IGNORECASE)
 
 
 def _check_dangerous_url_scheme(value: str, field_name: str) -> None:
     """Raise if ``value`` contains a ``javascript:`` / ``vbscript:`` / ``data:``
     URL scheme."""
-    if _DANGEROUS_URL_SCHEME_RE.search(value):
+    # Only the first whitespace-prefixed payload and the last comma are needed.
+    # Avoid rescanning the suffix for every data: token in comma-free prose.
+    data_scheme = _WHITESPACE_DATA_SCHEME_RE.search(value)
+    has_data_payload = data_scheme is not None and value.rfind(",") >= data_scheme.end()
+    if _DANGEROUS_URL_SCHEME_RE.search(value) or has_data_payload:
         raise ValueError(f"{field_name} contains potentially malicious URL scheme")
 
 

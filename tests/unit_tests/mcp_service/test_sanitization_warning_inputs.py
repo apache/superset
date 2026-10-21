@@ -105,7 +105,7 @@ def test_sanitization_warnings_are_server_only(
     [
         "[DEMO] Service Desk - Executive Summary "
         "(substitute data: Jira support tickets)",
-        "Service Desk (substitute data: Jira, support tickets)",
+        "Service Desk (source data: issue records and support tickets)",
     ],
 )
 def test_title_accepts_data_in_prose(
@@ -143,7 +143,12 @@ def test_title_accepts_data_in_prose(
 )
 @pytest.mark.parametrize(
     "value",
-    ["javascript:alert(1)", "data:text/html,payload", "<script>alert(1)</script>"],
+    [
+        "javascript:alert(1)",
+        "data:text/html,payload",
+        "<script>alert(1)</script>",
+        "Inspect data: text,URL_PROBE",
+    ],
 )
 def test_title_sanitization_error_names_field(
     model: type[
@@ -181,11 +186,16 @@ def test_title_sanitization_error_names_field(
     ],
 )
 @pytest.mark.parametrize("alias", [False, True])
+@pytest.mark.parametrize(
+    "rejected",
+    ["javascript:alert('private-input')", "Inspect data: text,private-input"],
+)
 async def test_title_sanitization_wire_error_names_field(
     tool: str,
     payload: dict[str, Any],
     field: str,
     alias: bool,
+    rejected: str,
 ) -> None:
     """Real MCP argument validation names fields without exposing rejected input."""
     server = FastMCP("title-validation")
@@ -216,7 +226,6 @@ async def test_title_sanitization_wire_error_names_field(
         """Validate chart updates."""
         return "ok"
 
-    rejected = "javascript:alert('private-input')"
     async with Client(server) as client:
         result = await client.call_tool_mcp(
             tool, {"request": {**payload, "title" if alias else field: rejected}}

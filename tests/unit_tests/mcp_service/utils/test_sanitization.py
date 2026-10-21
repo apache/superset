@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Callable
+from functools import partial
+
 import pytest
 
 from superset.mcp_service.chart.schemas import ChartError
@@ -783,14 +786,57 @@ def test_url_scheme_payloads_remain_rejected(value: str) -> None:
 
 
 @pytest.mark.parametrize(
+    "sanitize",
+    [sanitize_filter_value, partial(sanitize_user_input, field_name="Title")],
+)
+@pytest.mark.parametrize("whitespace", [" ", "\t", "\n", "\u00a0", "\u3000", "&#9;"])
+@pytest.mark.parametrize("media_type", ["text", "html", "x-test", "text\u200b"])
+def test_data_url_with_invalid_media_type_is_rejected(
+    sanitize: Callable[[str], object], whitespace: str, media_type: str
+) -> None:
+    """Browsers load invalid MIME types as text/plain rather than rejecting URLs."""
+    value = f"Inspect data:{whitespace}{media_type},URL_PROBE"
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize(value)
+
+
+def test_markdown_data_url_with_invalid_media_type_is_rejected() -> None:
+    """A Markdown link can retain a data URL with an invalid MIME type."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_user_input("[open](data: text,URL_PROBE)", "Title")
+
+
+@pytest.mark.parametrize(
     "value",
     [
         "[DEMO] Service Desk - Executive Summary "
         "(substitute data: Jira support tickets)",
-        "substitute data: Jira, support tickets",
-        "Source data: Zendesk, Jira and ServiceNow",
+        "Source data: support tickets and issue records",
     ],
 )
 def test_sanitizer_accepts_data_in_prose(value: str) -> None:
-    """A prose label after "data:" is not a data URL, even before a comma."""
+    """A comma-free prose label after "data:" is not a data URL."""
     assert sanitize_user_input(value, "Title") == value
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [sanitize_filter_value, partial(sanitize_user_input, field_name="Title")],
+)
+def test_comma_bearing_data_label_is_rejected(
+    sanitize: Callable[[str], object],
+) -> None:
+    """Comma-bearing labels are ambiguous with browser-loadable data URLs."""
+    value = "Source data: issue records, support tickets"
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize(value)
+
+
+@pytest.mark.parametrize("filter_value", [False, True])
+def test_repeated_data_labels_without_comma_are_preserved(filter_value: bool) -> None:
+    """Long comma-free prose must not trigger repeated suffix scans."""
+    value = "Source " + "data: records " * 4000
+    if filter_value:
+        assert sanitize_filter_value(value, max_length=60000) == value.strip()
+    else:
+        assert sanitize_user_input(value, "Title", max_length=60000) == value.strip()
