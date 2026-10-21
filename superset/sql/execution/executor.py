@@ -1007,7 +1007,7 @@ class SQLExecutor:
     def _create_error_result(
         self,
         status: QueryStatus,
-        error_message: str,
+        error_message: str | None,
         start_time: float,
         partial_results: list[Any] | None = None,
         query: Query | None = None,
@@ -1023,21 +1023,36 @@ class SQLExecutor:
         :param query: Persisted audit record, if execution reached that stage
         :returns: QueryResult with error status
         """
-        from superset_core.queries.types import QueryResult as QueryResultType
+        from superset_core.queries.types import (
+            QueryResult as QueryResultType,
+            QueryStatus,
+        )
 
+        from superset.sql.execution.utils import commit_query_unless_stopped
+
+        query_id = None
         if query is not None:
-            # A failed metadata flush must be rolled back before recording failure.
-            db.session.rollback()  # pylint: disable=consider-using-transaction
-            query.status = status.value
-            query.error_message = error_message
-            query.end_time = now_as_float()
-            db.session.commit()  # pylint: disable=consider-using-transaction
+            try:
+                # A failed metadata flush must be rolled back before recording failure.
+                db.session.rollback()  # pylint: disable=consider-using-transaction
+                query_id = query.id
+                query.status = status.value
+                query.error_message = error_message
+                query.end_time = now_as_float()
+                if not commit_query_unless_stopped(query):
+                    status = QueryStatus.STOPPED
+                    error_message = query.error_message
+            except Exception:  # pylint: disable=broad-except
+                logger.warning("Failed to persist SQL query error", exc_info=True)
+                # Metadata recovery must not replace the original execution error.
+                with contextlib.suppress(Exception):
+                    db.session.rollback()  # pylint: disable=consider-using-transaction
 
         return QueryResultType(
             status=status,
             statements=partial_results or [],
             error_message=error_message,
-            query_id=query.id if query is not None else None,
+            query_id=query_id,
             total_execution_time_ms=(time.time() - start_time) * 1000,
         )
 

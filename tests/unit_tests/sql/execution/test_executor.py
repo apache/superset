@@ -32,6 +32,7 @@ These tests cover the SQL execution API including:
 import sqlite3
 from contextlib import closing
 from itertools import islice
+from pathlib import Path
 from typing import Any
 from unittest.mock import MagicMock
 
@@ -814,6 +815,156 @@ def test_execute_failure_finishes_query_record(
     assert mock_query.end_time == 1234000.0
     mock_db_session.rollback.assert_called_once()
     mock_db_session.commit.assert_called_once()
+
+
+@pytest.mark.parametrize("failure", ["database", "timeout", "oauth", "oauth_redirect"])
+@pytest.mark.parametrize("metadata_failure", ["rollback", "commit"])
+def test_execute_preserves_error_when_failure_recording_fails(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_db_session: MagicMock,
+    default_sql_config: None,
+    failure: str,
+    metadata_failure: str,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """A metadata outage must not replace the execution error or OAuth redirect."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import (
+        OAuth2Error,
+        OAuth2RedirectError,
+        SupersetTimeoutException,
+    )
+    from superset.sql.execution.executor import SQLExecutor
+
+    error = {
+        "database": RuntimeError("Query failed"),
+        "timeout": SupersetTimeoutException(
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            message="Query timed out",
+            level=ErrorLevel.ERROR,
+        ),
+        "oauth": OAuth2Error("Authentication required"),
+        "oauth_redirect": OAuth2RedirectError(
+            "https://example.com/auth", "tab-id", "https://example.com/callback"
+        ),
+    }[failure]
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
+    mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
+    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=error)
+    getattr(mock_db_session, metadata_failure).side_effect = RuntimeError(
+        "Metadata unavailable"
+    )
+
+    if isinstance(error, (OAuth2Error, OAuth2RedirectError)):
+        with pytest.raises(type(error)) as caught:
+            database.execute("SELECT 1")
+        assert caught.value is error
+    else:
+        result = database.execute("SELECT 1")
+        assert result.status == (
+            QueryStatus.TIMED_OUT if failure == "timeout" else QueryStatus.FAILED
+        )
+        assert result.error_message == (
+            "Query exceeded the timeout limit"
+            if failure == "timeout"
+            else "sqlite error: Query failed"
+        )
+        if metadata_failure == "commit":
+            assert result.query_id == mock_query.id
+
+    assert mock_db_session.rollback.call_count == 2
+    assert "Failed to persist SQL query error" in caplog.text
+
+
+@pytest.mark.parametrize("failure", ["database", "timeout", "oauth"])
+def test_execute_failure_preserves_concurrent_stop(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    default_sql_config: None,
+    tmp_path: Path,
+    failure: str,
+) -> None:
+    """A stop committed after the error handler's read must win its later write."""
+    from sqlalchemy import create_engine
+    from sqlalchemy.orm import Session
+
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import OAuth2Error, SupersetTimeoutException
+    from superset.models.sql_lab import Query
+    from superset.sql.execution import executor
+
+    error = {
+        "database": RuntimeError("Query failed"),
+        "timeout": SupersetTimeoutException(
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            message="Query timed out",
+            level=ErrorLevel.ERROR,
+        ),
+        "oauth": OAuth2Error("Authentication required"),
+    }[failure]
+    engine = create_engine(f"sqlite:///{tmp_path / 'stop.db'}")
+    Query.__table__.create(engine)
+
+    def stop_before_failure_write() -> float:
+        """Accept Stop in another session after failure metadata has been staged."""
+        with Session(engine) as stop_session:
+            stopped = stop_session.get(Query, 123)
+            assert stopped is not None
+            stopped.status = "stopped"
+            stopped.end_time = 1234000.0
+            stopped.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+            stop_session.commit()
+        return 9999000.0
+
+    with Session(engine) as session:
+        query = Query(
+            id=123,
+            client_id="sync-stop",
+            database_id=1,
+            sql="SELECT 1",
+            status="running",
+        )
+        session.add(query)
+        session.commit()
+        mocker.patch.object(executor.db, "session", session)
+        mocker.patch.object(
+            executor.SQLExecutor, "_create_query_record", return_value=query
+        )
+        mocker.patch.object(
+            executor.SQLExecutor, "_try_get_cached_result", return_value=None
+        )
+        mocker.patch.object(
+            executor.SQLExecutor, "_execute_statements", side_effect=error
+        )
+        mocker.patch.object(
+            executor, "now_as_float", side_effect=stop_before_failure_write
+        )
+
+        if isinstance(error, OAuth2Error):
+            with pytest.raises(OAuth2Error) as caught:
+                database.execute("SELECT 1")
+            assert caught.value is error
+        else:
+            result = database.execute("SELECT 1")
+            assert result.status == QueryStatus.STOPPED
+            assert result.query_id == 123
+            assert result.error_message is None
+
+        # A later caller's commit must not flush stale failure metadata either.
+        session.commit()
+        with Session(engine) as verification_session:
+            recorded = verification_session.get(Query, 123)
+            assert recorded is not None
+            assert recorded.status == "stopped"
+            assert recorded.end_time == 1234000.0
+            assert recorded.error_message is None
+            assert recorded.extra[QUERY_EARLY_CANCEL_KEY] is True
+    engine.dispose()
 
 
 # =============================================================================
