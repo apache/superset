@@ -127,7 +127,7 @@ celery==5.6.3
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
-certifi==2026.5.20
+certifi==2026.10.19
     # via
     #   -c requirements/base-constraint.txt
     #   clickhouse-connect
@@ -380,7 +380,7 @@ geographiclib==2.0
     #   geopy
 geojson==3.3.0
     # via sqlalchemy-cratedb
-geopy==2.4.1
+geopy==2.5.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
@@ -725,7 +725,7 @@ parsedatetime==2.6
     #   apache-superset
 pathable==0.4.3
     # via jsonschema-path
-pillow==12.3.0
+pillow==13.0.0
     # via
     #   -c requirements/base-constraint.txt
     #   apache-superset
