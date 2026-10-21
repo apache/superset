@@ -76,24 +76,32 @@ def _strip_html_tags(value: str) -> str:
     return cleaned.replace("&amp;", "&")
 
 
+def _scheme_pattern(scheme: str) -> str:
+    """Match ``scheme:`` with ASCII tab, LF, or CR between its characters.
+
+    WHATWG URL parsing removes those characters, even inside a scheme.
+    Matching them in place, rather than deleting them before the check,
+    keeps the word boundary before a scheme that starts a new line.
+    """
+    return r"[\t\n\r]*".join(scheme) + r"[\t\n\r]*:"
+
+
 # Script schemes remain forbidden regardless of payload whitespace. A data URL
 # starts a value or has an adjacent or comma-delimited payload, even after spaces.
 # Invalid MIME types still load as text/plain in browsers, so a comma-bearing
 # prose label cannot safely be distinguished from a data URL by its MIME type.
+_SCRIPT_SCHEMES = "|".join(_scheme_pattern(s) for s in ("javascript", "vbscript"))
+_DATA_SCHEME = _scheme_pattern("data")
 _DANGEROUS_URL_SCHEME_RE = re.compile(
-    r"\b(javascript|vbscript):|^\s*data:|\bdata:(?=\S|$)",
+    rf"\b(?:{_SCRIPT_SCHEMES})|^\s*{_DATA_SCHEME}|\b{_DATA_SCHEME}(?=\S|$)",
     re.IGNORECASE,
 )
-_WHITESPACE_DATA_SCHEME_RE = re.compile(r"\bdata:\s", re.IGNORECASE)
+_WHITESPACE_DATA_SCHEME_RE = re.compile(rf"\b{_DATA_SCHEME}\s", re.IGNORECASE)
 
 
 def _check_dangerous_url_scheme(value: str, field_name: str) -> None:
     """Raise if ``value`` contains a ``javascript:`` / ``vbscript:`` / ``data:``
     URL scheme."""
-    # WHATWG URL parsing removes ASCII tab, LF, and CR, even inside schemes.
-    # Normalize only the check; preserve whitespace in accepted display text.
-    value = value.translate(str.maketrans("", "", "\t\n\r"))
-
     # Only the first whitespace-prefixed payload and the last comma are needed.
     # Avoid rescanning the suffix for every data: token in comma-free prose.
     data_scheme = _WHITESPACE_DATA_SCHEME_RE.search(value)

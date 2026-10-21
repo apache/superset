@@ -867,3 +867,39 @@ def test_url_scheme_with_embedded_controls_is_rejected(
         value = scheme[:position] + control + scheme[position:] + ":" + payload
         with pytest.raises(ValueError, match="malicious URL scheme"):
             sanitize(value)
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize("separator", ["\t", "\n", "\r", "\r\n"])
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "javascript:alert(1)",
+        "vbscript:msgbox(1)",
+        "data:text/html,x",
+        "da\tta:text/html,x",
+        "java\nscript:alert(1)",
+    ],
+)
+def test_url_scheme_after_control_separator_is_rejected(
+    sanitize: Callable[[str], object], separator: str, payload: str
+) -> None:
+    """A scheme stays a separate word after a tab or line break."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize("Notes" + separator + payload)
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize("separator", ["\t", "\n", "\r\n"])
+def test_data_label_followed_by_control_whitespace_is_preserved(
+    sanitize: Callable[[str], object], separator: str
+) -> None:
+    """Whitespace after a comma-free data: label may be a tab or line break."""
+    value = f"Substitute data:{separator}Jira support tickets"
+    assert sanitize(value) == value.replace("\r\n", "\n")
