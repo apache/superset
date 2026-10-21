@@ -1702,12 +1702,13 @@ test('FilterBar applies a time range selected for a filter without an applied en
 test('FilterBar drops the selected time range when cross-filtering is disabled', async () => {
   mockTimeRangeRequests();
   // The settings toggle saves the new value through the dashboard PUT API.
-  const updateDashboardApi = jest.fn().mockResolvedValue({
-    result: {
-      json_metadata: JSON.stringify({ cross_filters_enabled: false }),
-    },
-    last_modified_time: 1,
-  });
+  // Echo the submitted metadata so the filter configuration survives the save.
+  const updateDashboardApi = jest.fn(
+    async ({ json_metadata }: { json_metadata: string }) => ({
+      result: { json_metadata },
+      last_modified_time: 1,
+    }),
+  );
   mockedMakeApi.mockReturnValue(updateDashboardApi);
   const store = renderTimeFilterBar(
     {
@@ -1739,5 +1740,9 @@ test('FilterBar drops the selected time range when cross-filtering is disabled',
     (store.getState() as RootState).dashboardInfo.crossFiltersEnabled,
   ).toBe(false);
   expect(getAppliedTimeMask(store)).toBeUndefined();
+  // The time filter is still configured and rendered; only its stale
+  // selection is gone.
+  expect(screen.getByText('Time range')).toBeInTheDocument();
+  expect(screen.getByText('No filter')).toBeInTheDocument();
   expect(screen.queryByText('Last week')).not.toBeInTheDocument();
 });
