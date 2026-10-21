@@ -97,7 +97,8 @@ export default function transformProps(
   const measure = Math.max(...measures);
 
   // Match the legacy default: a single band up to 110% of the measure.
-  const ranges = tokenizeToNumericArray(rawRanges) ?? [0, measure * 1.1];
+  const explicitRanges = tokenizeToNumericArray(rawRanges);
+  const ranges = explicitRanges ?? [0, measure * 1.1];
   const rangeLabels = tokenizeToStringArray(rawRangeLabels) ?? [];
   const markers = tokenizeToNumericArray(rawMarkers) ?? [];
   const markerLabels = tokenizeToStringArray(rawMarkerLabels) ?? [];
@@ -135,7 +136,9 @@ export default function transformProps(
     .map((value, i) => ({
       value,
       label: rangeLabels[i],
-      color: rangeColors?.[i] || undefined,
+      // Colors only apply to user-entered ranges; the automatic fallback band
+      // must not pick up a stale `range_colors` entry kept from earlier edits.
+      color: explicitRanges ? rangeColors?.[i] || undefined : undefined,
     }))
     .filter(({ value }) => value > axisMin)
     .sort((a, b) => b.value - a.value);

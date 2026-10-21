@@ -540,3 +540,15 @@ test('drops a range value that overflows to Infinity instead of shifting range_c
   );
   expect(bandColors).toEqual(['#00ff00', '#ff0000']);
 });
+
+test('ignores range_colors when ranges is empty and the automatic fallback band is used', () => {
+  const { echartOptions } = transformProps(
+    chartProps({ ranges: '', rangeColors: ['#ff0000', '#00ff00'] }),
+  );
+  const { series } = echartOptions as any;
+
+  const bandColors = series[0].markArea.data.map(
+    (d: any) => d[0].itemStyle.color,
+  );
+  expect(bandColors).toEqual([supersetTheme.colorFillQuaternary]);
+});
