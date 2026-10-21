@@ -31,7 +31,7 @@ const LegendViewport = styled.div<{ maxHeight: number; maxWidth?: number }>`
     overflow-x: hidden;
     overflow-y: auto;
     padding: ${theme.sizeUnit}px ${theme.sizeUnit * 2}px;
-    width: ${maxWidth !== undefined && maxWidth > 0 ? `${maxWidth}px` : '100%'};
+    width: ${maxWidth !== undefined && maxWidth > 0 ? 'auto' : '100%'};
   `}
 `;
 
@@ -158,8 +158,7 @@ function TimeseriesLegend({
   orientation,
   showSelectors,
 }: TimeseriesLegendProps) {
-  const isVertical =
-    orientation === 'left' || orientation === 'right';
+  const isVertical = orientation === 'left' || orientation === 'right';
 
   const isEmpty = items.length === 0;
   const noSpace =
@@ -213,7 +212,12 @@ function TimeseriesLegend({
                   color={item.color}
                   selected={item.selected}
                 />
-                <Label truncate={isVertical}>{item.name}</Label>
+                <Label
+                  title={isVertical ? item.name : undefined}
+                  truncate={isVertical}
+                >
+                  {item.name}
+                </Label>
               </ItemButton>
             </LegendItem>
           ),

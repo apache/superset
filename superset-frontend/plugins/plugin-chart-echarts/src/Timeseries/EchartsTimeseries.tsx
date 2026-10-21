@@ -847,6 +847,7 @@ export default function EchartsTimeseries({
   const isVerticalLegend =
     customLegend?.orientation === LegendOrientation.Left ||
     customLegend?.orientation === LegendOrientation.Right;
+
   const customLegendMaxHeight = customLegend
     ? isVerticalLegend
       ? chartBodyHeight
