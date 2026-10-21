@@ -13830,6 +13830,14 @@ msgstr ""
 msgid "The `%(field)s` field must be a string."
 msgstr ""
 
+#, python-format
+msgid "The `%(operation)s` post-processing operation failed: %(message)s"
+msgstr ""
+
+#, python-format
+msgid "The `%(operation)s` post-processing operation references a column or level that is not in the query result: %(name)s"
+msgstr ""
+
 msgid "The affected charts or dashboards changed. Review the updated impact and type DELETE again to continue."
 msgstr ""
 
