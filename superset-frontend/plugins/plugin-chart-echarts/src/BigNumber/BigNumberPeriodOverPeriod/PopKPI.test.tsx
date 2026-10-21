@@ -104,6 +104,23 @@ test('a custom increaseColor hex wins over the legacy comparisonColorScheme', ()
   );
 });
 
+test('a decrease paints the arrow and delta pill with the custom decreaseColor', () => {
+  render(
+    <PopKPI
+      {...baseProps}
+      percentDifferenceNumber={-0.2}
+      valueDifference="-20"
+      increaseColor="#336699"
+      decreaseColor="#994422"
+    />,
+  );
+
+  expect(screen.getByText('↓')).toHaveStyleRule('color', '#994422');
+  const deltaPill = screen.getByText('△');
+  expect(deltaPill).toHaveStyleRule('color', '#994422');
+  expect(deltaPill).toHaveStyleRule('background-color', '#9944221A');
+});
+
 test('falls back to neutral styling when comparisonColorEnabled is false', () => {
   render(
     <PopKPI
