@@ -572,6 +572,45 @@ test('only temporal columns get a pre-filled transform', () => {
   expect(defaultTransformFor(datasource, COLUMNS[2])).toBe('');
 });
 
+test('a temporal column stored as a number or as text gets no pre-fill', () => {
+  // The engine default takes a timestamp. On an epoch `BIGINT` both Hive and
+  // Impala reject `unix_timestamp(:value)`, so the pre-fill left the mapping
+  // broken until the owner replaced it.
+  const datasource = {
+    partition_value_transform_default: 'unix_timestamp(:value)',
+  };
+  expect(
+    defaultTransformFor(datasource, {
+      column_name: 'event_time',
+      type: 'BIGINT',
+      is_dttm: true,
+      python_date_format: 'epoch_s',
+    }),
+  ).toBe('');
+  expect(
+    defaultTransformFor(datasource, {
+      column_name: 'ds',
+      type: 'STRING',
+      is_dttm: true,
+      python_date_format: '%Y%m%d',
+    }),
+  ).toBe('');
+  expect(
+    defaultTransformFor(datasource, {
+      column_name: 'event_time',
+      type: 'DATETIME',
+      is_dttm: true,
+    }),
+  ).toBe('unix_timestamp(:value)');
+  // An undeclared type keeps the default, as before.
+  expect(
+    defaultTransformFor(datasource, {
+      column_name: 'event_time',
+      is_dttm: true,
+    }),
+  ).toBe('unix_timestamp(:value)');
+});
+
 test('an engine with no default offers no pre-fill', () => {
   // `unix_timestamp(:value)` would not parse on Postgres, and a wrong default
   // is worse than none.

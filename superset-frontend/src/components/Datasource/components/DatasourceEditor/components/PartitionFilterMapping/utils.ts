@@ -287,12 +287,23 @@ export function partitionRowState(
  * Only temporal columns get one, and only when the engine supplies it:
  * `unix_timestamp(:value)` is Hive-family syntax and would not parse on
  * Postgres or BigQuery, so a wrong default is worse than none.
+ *
+ * And only where the column holds a timestamp, which is what the engine's
+ * default takes. A column flagged temporal but stored as an epoch `BIGINT` or
+ * as formatted text reaches the transform as that number or text: Hive and
+ * Impala both reject `unix_timestamp(1768474043)`, so the pre-fill left an
+ * epoch mapping broken until the owner replaced it, which is what Ribbon's
+ * validation ran into. A column whose declared type is unknown keeps the
+ * default, as before.
  */
 export function defaultTransformFor(
   datasource: PartitionMappingDatasource,
   column: PartitionMappingColumn | undefined,
 ): string {
   if (!column?.is_dttm) {
+    return '';
+  }
+  if (column.type && !TEMPORAL_TYPE_RE.test(column.type)) {
     return '';
   }
   return datasource.partition_value_transform_default || '';

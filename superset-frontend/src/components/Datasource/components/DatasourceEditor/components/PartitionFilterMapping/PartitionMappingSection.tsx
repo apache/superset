@@ -33,6 +33,7 @@ import {
 import { useDebouncedCommit } from './useDebouncedCommit';
 import { usePartitionMappingPreview } from './usePartitionMappingPreview';
 import {
+  defaultTransformFor,
   partitionRowState,
   previewOperatorFor,
   sampleValuesFor,
@@ -255,7 +256,13 @@ export default function PartitionMappingSection({
           // here: clicking Save blurs this input before the click lands.
           onBlur={flushTransform}
           onPressEnter={flushTransform}
-          placeholder={t('unix_timestamp(:value)')}
+          // The engine's own default where it applies, as `defaultTransformFor`
+          // decides it: on an epoch or formatted-text column a
+          // `unix_timestamp(:value)` hint reads as the answer and is rejected.
+          placeholder={
+            defaultTransformFor(datasource, item) ||
+            t('A SQL expression using :value')
+          }
           aria-label={t('Value transform')}
           data-test="partition-value-transform"
           css={css`

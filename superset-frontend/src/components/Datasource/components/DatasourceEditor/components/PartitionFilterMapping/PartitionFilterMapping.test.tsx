@@ -309,6 +309,41 @@ test('an unmapped column offers to take the mapping over', async () => {
   expect(onMoveMappingHere).toHaveBeenCalledWith('country');
 });
 
+test.each([
+  ['an epoch column', 'BIGINT', 'epoch_s', 'A SQL expression using :value'],
+  ['a timestamp column', 'TIMESTAMP', undefined, 'unix_timestamp(:value)'],
+])(
+  'the transform hint on %s offers the engine default only where it applies',
+  (_, type, format, placeholder) => {
+    // Ribbon's epoch `event_time` showed `unix_timestamp(:value)` as the hint,
+    // which both Hive and Impala reject on a number.
+    render(
+      <PartitionMappingSection
+        item={{
+          column_name: 'event_time',
+          type,
+          is_dttm: true,
+          python_date_format: format,
+        }}
+        value={null}
+        datasource={{
+          main_dttm_col: 'event_time',
+          partition_column: 'dt',
+          partition_value_transform_default: 'unix_timestamp(:value)',
+        }}
+        onMoveMappingHere={jest.fn()}
+        onRemoveMapping={jest.fn()}
+        onMonotonicChange={jest.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId('partition-value-transform')).toHaveAttribute(
+      'placeholder',
+      placeholder,
+    );
+  },
+);
+
 test('the partition column itself gets no mapping section', () => {
   const { container } = render(
     <PartitionMappingSection
