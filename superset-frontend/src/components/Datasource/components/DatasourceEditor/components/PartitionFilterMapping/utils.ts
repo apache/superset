@@ -302,14 +302,34 @@ export function defaultTransformFor(
 const NUMERIC_TYPE_RE =
   /INT|NUMERIC|DECIMAL|DOUBLE|FLOAT|REAL|NUMBER|BIGNUMERIC/i;
 
-/** The sample instant, 2026-01-15 00:00:00 UTC, in each epoch representation. */
+/**
+ * The sample instant, 2026-01-15 10:47:23 UTC, in each epoch representation.
+ *
+ * Deliberately off every boundary. Bucketing is the usual transform -- an epoch
+ * floored to the hour or the day -- and at a boundary a transform that does not
+ * round at all answers exactly what one that rounds correctly does, so the
+ * preview showed a broken key as valid.
+ */
 const EPOCH_SAMPLES: Record<string, string> = {
-  epoch_s: '1768435200',
-  epoch_ms: '1768435200000',
+  epoch_s: '1768474043',
+  epoch_ms: '1768474043000',
 };
 
-/** The sample instant as ISO text, which is what an unformatted column gets. */
-const TIMESTAMP_SAMPLE = '2026-01-15 00:00:00';
+/** The sample instant as ISO text, for a column whose type keeps a time of day. */
+const TIMESTAMP_SAMPLE = '2026-01-15 10:47:23';
+
+/**
+ * The same day at midnight, for a column that may be compared by the day.
+ *
+ * A `DATE` column -- or one whose declared type is unknown -- can compare at
+ * day resolution, where an equality carrying a time of day is declined
+ * (`_engine_literal_resolution`), and a preview of `=` with the off-boundary
+ * sample would report a working mapping as broken.
+ */
+const DATE_SAMPLE = '2026-01-15 00:00:00';
+
+/** Declared types that keep a time of day: TIMESTAMP, DATETIME, TIME. */
+const TIME_OF_DAY_TYPE_RE = /TIME/i;
 
 /**
  * Declared types the engine renders a datetime for on its own.
@@ -334,10 +354,10 @@ const STRFTIME_FIELDS: Record<string, string> = {
   y: '26',
   m: '01',
   d: '15',
-  H: '00',
-  I: '12',
-  M: '00',
-  S: '00',
+  H: '10',
+  I: '10',
+  M: '47',
+  S: '23',
   f: '000000',
   j: '015',
   p: 'AM',
@@ -411,7 +431,14 @@ export function sampleValuesFor(
         format.includes('%') && !TEMPORAL_TYPE_RE.test(column.type ?? '')
           ? renderSampleWithFormat(format)
           : undefined;
-      return [formatted || TIMESTAMP_SAMPLE];
+      if (formatted) {
+        return [formatted];
+      }
+      return [
+        TIME_OF_DAY_TYPE_RE.test(column.type ?? '')
+          ? TIMESTAMP_SAMPLE
+          : DATE_SAMPLE,
+      ];
     }
     const epochSample = EPOCH_SAMPLES[format];
     if (epochSample) {

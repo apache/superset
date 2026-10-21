@@ -613,7 +613,7 @@ test('a temporal column stored as a number previews in its stored representation
       is_dttm: true,
       python_date_format: 'epoch_s',
     }),
-  ).toEqual(['1768435200']);
+  ).toEqual(['1768474043']);
   expect(
     sampleValuesFor({
       column_name: 'event_epoch_ms',
@@ -621,7 +621,7 @@ test('a temporal column stored as a number previews in its stored representation
       is_dttm: true,
       python_date_format: 'epoch_ms',
     }),
-  ).toEqual(['1768435200000']);
+  ).toEqual(['1768474043000']);
   // A numeric temporal column without an epoch format still gets numbers,
   // never a timestamp string its own type cannot hold.
   expect(
@@ -634,6 +634,31 @@ test('a temporal column stored as a number previews in its stored representation
       is_dttm: true,
       python_date_format: 'epoch_s',
     }),
+  ).toEqual(['2026-01-15 10:47:23']);
+});
+
+test('the sample instant sits off every hour and day boundary', () => {
+  // At a boundary, `:value` and an hour- or day-floored `:value` are the same
+  // number, so a transform that forgot to round previewed as valid. Ribbon's
+  // hour bucket is the case: `:value - :value % 3600` and plain `:value` must
+  // preview differently.
+  const [epoch] = sampleValuesFor({
+    column_name: 'event_epoch',
+    type: 'BIGINT',
+    is_dttm: true,
+    python_date_format: 'epoch_s',
+  });
+  expect(Number(epoch) % 3600).not.toBe(0);
+  expect(
+    sampleValuesFor({ column_name: 'ts', type: 'DATETIME', is_dttm: true }),
+  ).toEqual(['2026-01-15 10:47:23']);
+});
+
+test('a column that may compare by the day keeps a midnight sample', () => {
+  // A time of day on a day-resolution column declines an equality, so the
+  // preview would report a working DATE mapping as broken.
+  expect(
+    sampleValuesFor({ column_name: 'ds', type: 'DATE', is_dttm: true }),
   ).toEqual(['2026-01-15 00:00:00']);
 });
 
@@ -658,7 +683,7 @@ test('a temporal column stored as formatted text previews in that format', () =>
       is_dttm: true,
       python_date_format: '%Y-%m-%d %H:%M:%S',
     }),
-  ).toEqual(['2026-01-15 00:00:00']);
+  ).toEqual(['2026-01-15 10:47:23']);
   expect(
     sampleValuesFor({
       column_name: 'ds',
@@ -677,7 +702,7 @@ test('a temporal column stored as formatted text previews in that format', () =>
       is_dttm: true,
       python_date_format: '%Y%m%d',
     }),
-  ).toEqual(['2026-01-15 00:00:00']);
+  ).toEqual(['2026-01-15 10:47:23']);
 
   // And a directive the renderer does not know falls back rather than sending
   // a sample with a literal `%c` in it.
