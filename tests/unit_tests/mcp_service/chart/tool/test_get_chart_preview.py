@@ -2656,10 +2656,17 @@ async def test_png_over_budget_rejection_is_audited():
     with (
         patch("superset.mcp_service.middleware.get_user_id", return_value=7),
         patch("superset.mcp_service.middleware.event_logger") as mock_event_logger,
+        patch(
+            "superset.mcp_service.middleware.run_in_metadata_thread",
+            new=AsyncMock(side_effect=lambda fn, *args, **kwargs: fn(*args, **kwargs)),
+        ) as mock_hop,
         pytest.raises(ToolError, match="PNG preview"),
     ):
         await middleware.on_call_tool(context, AsyncMock(return_value=response))
 
+    # The audit write must hop off the transport loop rather than run inline.
+    mock_hop.assert_awaited_once()
+    assert mock_hop.await_args.args[0] is mock_event_logger.log
     mock_event_logger.log.assert_called_once()
     kwargs = mock_event_logger.log.call_args.kwargs
     assert kwargs["user_id"] == 7
