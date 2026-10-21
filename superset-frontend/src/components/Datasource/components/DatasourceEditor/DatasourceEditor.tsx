@@ -1031,6 +1031,13 @@ function DatasourceEditor({
     propsDatasource.datasource_type === 'table' ||
       propsDatasource.type === 'table',
   );
+  // Captured once when the editor opens: onChange round-trips through the
+  // parent (e.g. DatasourceModal) and echoes the edit back down as a new
+  // `datasource` prop, so comparing against the live prop would immediately
+  // erase the "just toggled" signal this baseline is used to detect.
+  const [normalizeColumnsBaseline] = useState(
+    propsDatasource.normalize_columns,
+  );
   const [isEditMode, setIsEditMode] = useState(false);
   const [databaseColumns, setDatabaseColumns] = useState<Column[]>(
     propsDatasource.columns.filter(col => !col.expression),
@@ -1934,15 +1941,29 @@ function DatasourceEditor({
           />
         )}
         {datasourceType === DATASOURCE_TYPES.physical.key && (
-          <Field
-            inline
-            fieldKey="normalize_columns"
-            label={t('Normalize column names')}
-            description={t(
-              'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+          <>
+            <Field
+              inline
+              fieldKey="normalize_columns"
+              label={t('Normalize column names')}
+              description={t(
+                'Allow column names to be changed to case insensitive format, if supported (e.g. Oracle, Snowflake).',
+              )}
+              control={<CheckboxControl />}
+            />
+            {datasource.normalize_columns && !normalizeColumnsBaseline && (
+              <Alert
+                css={themeParam => ({ marginBottom: themeParam.sizeUnit * 4 })}
+                type="warning"
+                showIcon
+                message={t(
+                  'Changing this setting may change the casing for all columns in this dataset, ' +
+                    'which may break any existing charts and dashboard filters that reference the ' +
+                    'current column names.',
+                )}
+              />
             )}
-            control={<CheckboxControl />}
-          />
+          </>
         )}
         <Field
           inline
@@ -1955,7 +1976,13 @@ function DatasourceEditor({
         />
       </Fieldset>
     ),
-    [datasource, onDatasourcePropChange, isSqla, datasourceType],
+    [
+      datasource,
+      onDatasourcePropChange,
+      isSqla,
+      normalizeColumnsBaseline,
+      datasourceType,
+    ],
   );
 
   const renderSourceFieldset = useCallback(

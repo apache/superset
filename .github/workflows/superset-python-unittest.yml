@@ -65,6 +65,19 @@ jobs:
         uses: $/.github/actions/setup-backend/
         with:
           python-version: ${{ matrix.python-version }}
+      - name: SDK unit tests
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          PYTHONPATH: ${{ github.workspace }}/superset-core/src
+        run: |
+          python -m pytest -q -o addopts='' superset-core/tests --junit-xml=test-results/junit-sdk.xml
+      # The babel_update.sh tests run the script's msgcat step and fail on CI
+      # when gettext is missing (tests/unit_tests/scripts/translations).
+      - name: Install gettext tools
+        uses: awalsh128/cache-apt-pkgs-action@553a35bb8ebd9fcabcb1c9451aa4c98e1b4ca8a9 # v1.6.3
+        with:
+          packages: gettext
+          version: 1.0
       # Runs in parallel via pytest-xdist: the serial suite had grown to
       # ~27-28 min against this job's 30-minute timeout, so the trailing
       # coverage/upload steps were being killed on ordinary runner variance
@@ -109,7 +122,7 @@ jobs:
       # job can't safely have on a fork PR).
       - name: Upload JUnit test results
         if: always()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: junit-results-${{ matrix.python-version }}
           path: test-results/
@@ -123,7 +136,7 @@ jobs:
     timeout-minutes: 5
     steps:
       - name: Upload event file
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: Event File
           path: ${{ github.event_path }}

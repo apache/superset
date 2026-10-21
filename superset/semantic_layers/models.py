@@ -23,15 +23,13 @@ import hashlib
 import logging
 import math
 import uuid
-from collections.abc import Callable, Hashable
+from collections.abc import Hashable
 from dataclasses import dataclass, field
-from functools import cached_property
 from typing import Any, cast, TYPE_CHECKING
 
 import pandas as pd
 import pyarrow as pa
 import sqlalchemy as sa
-from flask import current_app
 from flask_appbuilder import Model
 from flask_babel import lazy_gettext as _
 from sqlalchemy import Column, ForeignKey, Integer, String, Text
@@ -46,8 +44,10 @@ from superset_core.semantic_layers.layer import (
 from superset_core.semantic_layers.types import (
     Dimension,
     Filter,
+    Metric,
     Operator,
     PredicateType,
+    SemanticResult,
 )
 from superset_core.semantic_layers.view import (
     SemanticView as SemanticViewABC,
@@ -58,13 +58,20 @@ from superset.common.utils.dataframe_utils import df_columns_to_num
 from superset.exceptions import (
     InvalidPostProcessingError,
     QueryObjectValidationError,
-    SemanticResultCompletenessError,
 )
 from superset.explorables.base import TimeGrainDict
 from superset.extensions import db, encrypted_field_factory
 from superset.models.helpers import AuditMixinNullable, QueryResult
 from superset.result_set import stringify_extension_columns
-from superset.semantic_layers.completeness import provider_completeness
+from superset.semantic_layers.dimension_resolution import (
+    DimensionUsage,
+    resolve_dimensions,
+)
+from superset.semantic_layers.exceptions import (
+    execute_semantic_query,
+    SemanticLayerQueryRejectedError,
+)
+from superset.semantic_layers.execution import configured_namespace, SemanticBindingMemo
 from superset.semantic_layers.mapper import get_results
 from superset.semantic_layers.registry import registry
 from superset.utils import json
@@ -75,41 +82,6 @@ if TYPE_CHECKING:
 
 
 logger = logging.getLogger(__name__)
-
-
-# Known grains ranked finest to coarsest by their ISO-8601 durations, so that
-# collapsing same-named grain variants picks the least-aggregated one
-# deterministically. Grains outside this table rank after every known one.
-_GRAIN_FINENESS: dict[str, int] = {
-    "PT1S": 0,
-    "PT1M": 1,
-    "PT1H": 2,
-    "P1D": 3,
-    "P1W": 4,
-    "P1M": 5,
-    "P3M": 6,
-    "P1Y": 7,
-}
-
-
-def _grain_preference(dimension: Any) -> tuple[int, int, str]:
-    """Sort key for choosing among same-named grain variants.
-
-    The unaggregated variant (``grain is None``) always wins; otherwise the
-    finest grain does, with the grain's representation as a deterministic
-    tie-break. ``get_dimensions()`` returns an unordered set, so without an
-    explicit preference the collapsed pick — and with it column metadata and
-    value suggestions — would vary run to run.
-    """
-    grain = getattr(dimension, "grain", None)
-    if grain is None:
-        return (0, 0, "")
-    representation = str(getattr(grain, "representation", grain))
-    return (
-        1,
-        _GRAIN_FINENESS.get(representation, len(_GRAIN_FINENESS)),
-        representation,
-    )
 
 
 def get_column_type(semantic_type: pa.DataType) -> GenericDataType:
@@ -191,15 +163,7 @@ class _MetadataGenerations:
     def capture(self, layer: SemanticLayer, session: Session) -> str:
         """Web, task and MCP operations share a credential-independent identity."""
         if layer.uuid not in self.generations:
-            namespace: str | Callable[[], str] = current_app.config.get(
-                "SEMANTIC_LAYER_CACHE_NAMESPACE", ""
-            )
-            if callable(namespace):
-                namespace = namespace()
-            if not isinstance(namespace, str):
-                raise TypeError(
-                    "SEMANTIC_LAYER_CACHE_NAMESPACE must resolve to a string"
-                )
+            namespace: str = configured_namespace()
             url: sa.engine.URL = session.get_bind(mapper=SemanticLayer).engine.url
             driver: str = url.drivername.split("+", 1)[0]
             identity: list[str | int | None] = (
@@ -343,7 +307,7 @@ class SemanticLayer(AuditMixinNullable, Model):
             .execution_options(synchronize_session=False)
         )
         session.expire(self, ["cache_version"])
-        self.__dict__.pop("implementation", None)
+        SemanticBindingMemo.for_layer(self).forget(self)
         _MetadataGenerations.for_session(session).forget(self.uuid)
         instance: object
         for instance in session.identity_map.values():
@@ -353,21 +317,12 @@ class SemanticLayer(AuditMixinNullable, Model):
                     sa.inspect(instance).dict.get("semantic_layer_uuid", self.uuid)
                     == self.uuid
                 ):
-                    instance.forget_metadata()
+                    instance.reset_metadata_generation()
 
-    @cached_property
-    def implementation(
-        self,
-    ) -> SemanticLayerABC[Any, SemanticViewABC]:
-        """
-        Return semantic layer implementation.
-        """
-        # TODO (betodealmeida):
-        # return extension_manager.get_contribution("semanticLayers", self.type)
-        class_ = registry[self.type]
-        return class_.from_configuration_with_cache_token(
-            json.loads(self.configuration), cache_token=self.metadata_generation
-        )
+    @property
+    def implementation(self) -> SemanticLayerABC[Any, SemanticViewABC]:
+        """Return the operation's guarded, identity-bound provider layer."""
+        return SemanticBindingMemo.for_layer(self).bind(self)[0]
 
 
 class SemanticView(AuditMixinNullable, Model):
@@ -455,17 +410,20 @@ class SemanticView(AuditMixinNullable, Model):
 
         security_manager.semantic_view_after_delete(mapper, connection, target)
 
-    @cached_property
+    @property
     def implementation(self) -> SemanticViewABC:
-        """
-        Return semantic view implementation.
-        """
-        # Pin before the provider can discover any members.
-        self._capture_metadata_generation()
-        return self.semantic_layer.implementation.get_semantic_view(
-            self.name,
-            json.loads(self.configuration),
+        """Return a view from the same memo and identity as its owning layer."""
+        layer: SemanticLayerABC[Any, Any]
+        views: dict[tuple[str, str], SemanticViewABC]
+        layer, views = SemanticBindingMemo.for_layer(self.semantic_layer).bind(
+            self.semantic_layer
         )
+        self._capture_metadata_generation()
+        configuration: dict[str, Any] = json.loads(self.configuration)
+        key: tuple[str, str] = (self.name, json.dumps(configuration, sort_keys=True))
+        if key not in views:
+            views[key] = layer.get_semantic_view(self.name, configuration)
+        return views[key]
 
     # =========================================================================
     # Explorable protocol implementation
@@ -531,14 +489,15 @@ class SemanticView(AuditMixinNullable, Model):
         Delegates to the provider ABC's purpose-built ``get_values`` — an
         abstract member every provider implements, consumed here for the
         first time. ``search`` narrows at the provider with a containment
-        ``LIKE`` filter on the dimension, so values beyond the first page are
-        findable. Two documented parity gaps with datasets, both inherent to
+        ``LIKE`` filter on string dimensions, so values beyond the first page are
+        findable. Non-string dimensions use the bounded page without a LIKE filter.
+        Two documented parity gaps with datasets, both inherent to
         the standard filter model: case sensitivity follows the provider's
         collation (no case-folding operator), and ``%``/``_`` in the search
         term act as wildcards (no portable escape declaration; over-matching
-        is the safe failure for suggestions). A provider that rejects the
-        narrowing filter — a non-text dimension, say — falls back to the
-        unfiltered bounded page with a logged warning rather than an error.
+        is the safe failure for suggestions). Provider rejections and faults
+        use the same host classification as chart queries. A failed search
+        never retries without its narrowing filter.
 
         ``get_values`` takes no limit or order, so both are applied here:
         sorted ascending (nulls first) and then truncated, so the page is
@@ -552,42 +511,44 @@ class SemanticView(AuditMixinNullable, Model):
         a metric name included — which the endpoint reports as the caller's
         error naming the column, exactly as a dataset does.
         """
-        dimensions = {
+        dimensions: dict[str, Dimension] = {
             dimension.name: dimension for dimension in self._unique_dimensions
         }
         if column_name not in dimensions:
             raise KeyError(column_name)
-        dimension = dimensions[column_name]
-
-        if search:
-            narrowing = Filter(
+        dimension: Dimension = dimensions[column_name]
+        dimension_type: pa.DataType = dimension.type
+        if pa.types.is_dictionary(dimension_type):
+            dimension_type = dimension_type.value_type
+        narrowing: Filter | None = (
+            Filter(
                 type=PredicateType.WHERE,
                 column=dimension,
                 operator=Operator.LIKE,
                 value=f"%{search}%",
             )
-            try:
-                with provider_completeness():
-                    result = self.implementation.get_values(dimension, {narrowing})
-            except SemanticResultCompletenessError:
-                raise
-            except Exception:  # pylint: disable=broad-exception-caught
-                # The narrowing filter is best-effort: a provider that cannot
-                # apply it must degrade to the bounded first page (the picker
-                # still narrows within it), never to an error — but say so,
-                # or the degradation is the next silent failure.
-                logger.warning(
-                    "Semantic view %s rejected the value-search filter on "
-                    "dimension %s; returning the unfiltered page",
-                    self.uuid,
-                    dimension.name,
-                    exc_info=True,
-                )
-                with provider_completeness():
-                    result = self.implementation.get_values(dimension, None)
-        else:
-            with provider_completeness():
-                result = self.implementation.get_values(dimension, None)
+            if search
+            and (
+                pa.types.is_string(dimension_type)
+                or pa.types.is_large_string(dimension_type)
+                or pa.types.is_string_view(dimension_type)
+            )
+            else None
+        )
+        try:
+            result: SemanticResult = execute_semantic_query(
+                self.implementation.get_values,
+                dimension,
+                {narrowing} if narrowing is not None else None,
+            )
+        except SemanticLayerQueryRejectedError as ex:
+            logger.warning(
+                "Semantic view %s rejected value suggestions for dimension %s (%s)",
+                self.uuid,
+                dimension.name,
+                ex.code.value,
+            )
+            raise
 
         # Some drivers report zero rows as ``results is None``.
         if result.results is None or result.results.num_rows == 0:
@@ -659,24 +620,18 @@ class SemanticView(AuditMixinNullable, Model):
         ]
 
     @property
-    def _unique_dimensions(self) -> list[Any]:
+    def _unique_dimensions(self) -> list[Dimension]:
         # A semantic view may expose multiple ``Dimension`` objects sharing the
         # same ``name`` but different grains (one variant per supported time
         # grain). For column-list purposes we collapse these into a single
         # entry; the available grains are surfaced separately via
         # ``get_time_grains`` and ``data["time_grain_sqla"]``. The variant
-        # kept is chosen by ``_grain_preference`` (unaggregated, else finest
-        # grain) rather than by encounter order: ``get_dimensions()`` is an
-        # unordered set, and both the column metadata and the filter-value
-        # suggestions built from this list must not vary run to run.
-        seen: dict[str, Any] = {}
-        for dimension in self.implementation.get_dimensions():
-            incumbent = seen.get(dimension.name)
-            if incumbent is None or (
-                _grain_preference(dimension) < _grain_preference(incumbent)
-            ):
-                seen[dimension.name] = dimension
-        return list(seen.values())
+        # kept uses the same default/ambiguity policy as query mapping.
+        return list(
+            resolve_dimensions(
+                self.implementation.get_dimensions(), usage=DimensionUsage.METADATA
+            ).values()
+        )
 
     @property
     def columns(self) -> list[ColumnMetadata]:
@@ -873,7 +828,11 @@ class SemanticView(AuditMixinNullable, Model):
 
     def forget_metadata(self) -> None:
         """Discard this view's implementation and captured generation together."""
-        self.__dict__.pop("implementation", None)
+        SemanticBindingMemo.for_layer(self.semantic_layer).forget(self.semantic_layer)
+        self.reset_metadata_generation()
+
+    def reset_metadata_generation(self) -> None:
+        """Forget the captured generation without loading relationships or providers."""
         self._metadata_generation = None
 
     @property
@@ -1011,6 +970,23 @@ class SemanticView(AuditMixinNullable, Model):
     def query_language(self) -> str | None:
         return None
 
+    def _compat_selection(
+        self,
+        selected_metrics: list[str],
+        selected_dimensions: list[str],
+    ) -> tuple[set[Metric], set[Dimension]]:
+        """Resolve both compatibility projections through one selection policy."""
+        metric_map: dict[str, Metric] = {
+            metric.name: metric for metric in self.implementation.get_metrics()
+        }
+        dim_map: dict[str, Dimension] = resolve_dimensions(
+            self.implementation.get_dimensions(), usage=DimensionUsage.COMPATIBILITY
+        )
+        return (
+            {metric_map[name] for name in selected_metrics if name in metric_map},
+            {dim_map[name] for name in selected_dimensions if name in dim_map},
+        )
+
     def get_compatible_metrics(
         self,
         selected_metrics: list[str],
@@ -1022,11 +998,14 @@ class SemanticView(AuditMixinNullable, Model):
         Translates string names to semantic-layer objects, delegates to the
         view implementation, and translates the result back to names.
         """
-        metric_map = {m.name: m for m in self.implementation.get_metrics()}
-        dim_map = {d.name: d for d in self.implementation.get_dimensions()}
-        sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
-        sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
-        compatible = self.implementation.get_compatible_metrics(sel_metrics, sel_dims)
+        sel_metrics: set[Metric]
+        sel_dims: set[Dimension]
+        sel_metrics, sel_dims = self._compat_selection(
+            selected_metrics, selected_dimensions
+        )
+        compatible: set[Metric] = self.implementation.get_compatible_metrics(
+            sel_metrics, sel_dims
+        )
         return [m.name for m in compatible]
 
     def get_compatible_dimensions(
@@ -1042,11 +1021,12 @@ class SemanticView(AuditMixinNullable, Model):
         Collapse grain variants into sorted unique names, also bounding
         the shared list_metrics projection.
         """
-        metric_map = {m.name: m for m in self.implementation.get_metrics()}
-        dim_map = {d.name: d for d in self.implementation.get_dimensions()}
-        sel_metrics = {metric_map[n] for n in selected_metrics if n in metric_map}
-        sel_dims = {dim_map[n] for n in selected_dimensions if n in dim_map}
-        compatible = self.implementation.get_compatible_dimensions(
+        sel_metrics: set[Metric]
+        sel_dims: set[Dimension]
+        sel_metrics, sel_dims = self._compat_selection(
+            selected_metrics, selected_dimensions
+        )
+        compatible: set[Dimension] = self.implementation.get_compatible_dimensions(
             sel_metrics, sel_dims
         )
         return sorted({d.name for d in compatible})

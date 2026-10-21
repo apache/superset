@@ -11,7 +11,10 @@ updates:
         patterns: ["*"]
       codeql:
         patterns:
-          - github/codeql-action/*
+          - "github/codeql-action/*"
+      gh-actions:
+        patterns:
+          - "actions/*"
     cooldown:
       default-days: 7
 
