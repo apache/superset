@@ -4660,19 +4660,22 @@ describe('natural sort of a category x-axis (#35853)', () => {
   }
 
   test('reorders numeric-like string dimension values numerically, not lexicographically', () => {
-    // Backend returned these out of order; lexicographic order would put
-    // "202410" before "202402".
+    // Variable-width values so numeric and lexicographic order actually
+    // disagree: lexicographically, '10' < '2' (compares the leading '1'
+    // against '2'), so a comparator that fell back to plain string
+    // comparison would leave this as ['10', '2', '1'] instead of sorting
+    // numerically.
     const chartProps = categoryChartProps([
-      { dim: '202410', metric: 4 },
-      { dim: '202401', metric: 1 },
-      { dim: '202402', metric: 2 },
+      { dim: '10', metric: 4 },
+      { dim: '2', metric: 2 },
+      { dim: '1', metric: 1 },
     ]);
 
     const { echartOptions } = transformProps(chartProps);
     const series = echartOptions.series as SeriesOption[];
     const data = series[0].data as [string, number][];
 
-    expect(data.map(row => row[0])).toEqual(['202401', '202402', '202410']);
+    expect(data.map(row => row[0])).toEqual(['1', '2', '10']);
     expect(data.map(row => row[1])).toEqual([1, 2, 4]);
   });
 
@@ -4839,5 +4842,29 @@ describe('natural sort of a category x-axis (#35853)', () => {
     const data = series[0].data as [string, number][];
 
     expect(data.map(row => row[0])).toEqual(['202402', '202401', '202410']);
+  });
+
+  test('skips the natural sort when x_axis_sort explicitly orders the x-axis column itself, descending', () => {
+    // sortOperator (buildQuery.ts) would have the backend return these rows
+    // already sorted descending by `dim` itself (via `is_sort_index`), an
+    // explicit user choice. Natural-sorting on top of that would silently
+    // flip it back to ascending.
+    const chartProps = categoryChartProps(
+      [
+        { dim: '202410', metric: 3 },
+        { dim: '202402', metric: 2 },
+        { dim: '202401', metric: 1 },
+      ],
+      {
+        xAxisSort: 'dim',
+        xAxisSortAsc: false,
+      } as unknown as Partial<EchartsTimeseriesFormData>,
+    );
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [string, number][];
+
+    expect(data.map(row => row[0])).toEqual(['202410', '202402', '202401']);
   });
 });

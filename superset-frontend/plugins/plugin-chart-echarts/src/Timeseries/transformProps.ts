@@ -585,17 +585,18 @@ export default function transformProps(
     xAxisDataType,
     seriesType,
   );
-  // sortOperator (buildQuery.ts) already orders the backend rows by a
-  // chosen metric when x_axis_sort names one other than the x-axis column
-  // itself, for every series type here (not just Bar) - but only when
-  // groupby is empty, the same condition it checks before emitting that
-  // sort. Natural-sorting by x-value on top of that would silently discard
-  // the explicit "sort categories by metric" choice, so skip it whenever
-  // the backend would actually have applied that sort.
-  const xAxisSortedByMetric =
+  // sortOperator (buildQuery.ts) already orders the backend rows, for every
+  // series type here (not just Bar), whenever x_axis_sort/x_axis_sort_asc
+  // are both set, groupby is empty, and x_axis_sort names either a metric
+  // or the x-axis column itself - the latter via `is_sort_index`, honoring
+  // x_axis_sort_asc's direction. Natural-sorting by x-value on top of
+  // either of those would silently discard that explicit choice (including
+  // an explicit descending order on the x-axis column itself), so skip it
+  // under the exact same condition sortOperator uses to decide whether it
+  // applied a sort.
+  const xAxisSortAppliedByBackend =
     isDefined(xAxisSort) &&
     isDefined(xAxisSortAsc) &&
-    xAxisSort !== rawXAxisLabel &&
     isEmpty(groupBy) &&
     [
       rawXAxisLabel,
@@ -623,7 +624,7 @@ export default function transformProps(
   const shouldNaturalSort =
     xAxisType === AxisType.Category &&
     seriesType !== EchartsTimeseriesSeriesType.Bar &&
-    !xAxisSortedByMetric;
+    !xAxisSortAppliedByBackend;
   const naturalSortMode = classifyNaturalSortMode(
     forecastRebasedData.map(row => row[xAxisLabel]),
   );
