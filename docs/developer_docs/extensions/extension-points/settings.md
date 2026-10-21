@@ -26,7 +26,7 @@ under the License.
 
 The **Settings** dropdown in the top navigation bar can list entries contributed by extensions, each opening a full-page view the extension renders. This is the extension point for things like an extension's own admin or configuration screen.
 
-Unlike the SQL Lab extension points, these locations are not declared in `extension.json`: the `contributions.views` and `contributions.menus` manifest fields only accept SQL Lab scopes. Extensions register against them in code instead, from the extension's entry point or `activate` function.
+Unlike the SQL Lab extension points, these locations are not declared in `extension.json`: the `contributions.views` and `contributions.menus` manifest fields only accept SQL Lab scopes. Extensions register against them in code instead, at module load time in the extension's entry point. The loader only evaluates the module and does not call an exported `activate` function, so registrations inside one are never made unless the entry point calls it itself.
 
 | Extension Point    | ID                     | Views | Menus | Description                                              |
 | ------------------ | ---------------------- | ----- | ----- | -------------------------------------------------------- |
@@ -65,7 +65,7 @@ Each method takes the message and an optional `{ duration }` in milliseconds; wh
 
 ## Example
 
-This example adds a "My Extension Settings" entry to the Settings dropdown that opens the extension's own settings page:
+This example adds a "My Extension Settings" entry to the Settings dropdown that opens the extension's own settings page. The navigation assumes Superset is served from the root path; on a deployment under `SUPERSET_APP_ROOT`, prefix the URL with that app root, since a native `location.assign` does not get the router's basename:
 
 ```typescript
 import {
