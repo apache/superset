@@ -763,6 +763,59 @@ def test_execute_custom_timeout(
     )
 
 
+@pytest.mark.parametrize("failure", ["database", "timeout", "oauth"])
+def test_execute_failure_finishes_query_record(
+    mocker: MockerFixture,
+    database: Database,
+    app_context: None,
+    mock_query: MagicMock,
+    mock_db_session: MagicMock,
+    default_sql_config: None,
+    failure: str,
+) -> None:
+    """An execution failure must not leave its audit record running."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import OAuth2Error, SupersetTimeoutException
+    from superset.sql.execution.executor import SQLExecutor
+
+    errors = {
+        "database": RuntimeError("Query failed"),
+        "timeout": SupersetTimeoutException(
+            error_type=SupersetErrorType.GENERIC_BACKEND_ERROR,
+            message="Query timed out",
+            level=ErrorLevel.ERROR,
+        ),
+        "oauth": OAuth2Error("Authentication required"),
+    }
+    mock_query.status = "running"
+    mocker.patch.object(SQLExecutor, "_create_query_record", return_value=mock_query)
+    mocker.patch.object(SQLExecutor, "_try_get_cached_result", return_value=None)
+    mocker.patch.object(SQLExecutor, "_execute_statements", side_effect=errors[failure])
+    mocker.patch(
+        "superset.sql.execution.executor.now_as_float",
+        return_value=1234000.0,
+        create=True,
+    )
+    expected_status = (
+        QueryStatus.TIMED_OUT if failure == "timeout" else QueryStatus.FAILED
+    )
+
+    if failure == "oauth":
+        with pytest.raises(OAuth2Error):
+            database.execute("SELECT 1")
+    else:
+        result = database.execute("SELECT 1")
+        assert result.status == expected_status
+        assert result.query_id == mock_query.id
+        assert result.error_message == mock_query.error_message
+
+    assert mock_query.status == expected_status.value
+    assert mock_query.error_message
+    assert mock_query.end_time == 1234000.0
+    mock_db_session.rollback.assert_called_once()
+    mock_db_session.commit.assert_called_once()
+
+
 # =============================================================================
 # Error Handling Tests
 # =============================================================================
