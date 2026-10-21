@@ -1510,7 +1510,7 @@ def add_xy_sort_config(
 def configure_temporal_handling(
     form_data: Dict[str, Any],
     x_is_temporal: bool,
-    time_grain: str | None,
+    time_grain: TimeGrain | str | None,
 ) -> None:
     """Configure form_data based on whether x-axis column is temporal.
 

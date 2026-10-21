@@ -2195,3 +2195,42 @@ def test_deck_path_metric_keeps_canonical_path_grouping(
     sql = table.get_query_str(query_object.to_dict())
     assert "GROUP BY path" in sql, sql
     assert "COUNT(*)" in sql, sql
+
+
+def test_build_query_dicts_from_form_data_passes_enum_values_as_strings(
+    monkeypatch,
+):
+    """Enum members in form_data reach the query as plain strings.
+
+    Template rendering rejects non-primitive context values, so an enum a mapper
+    forgets to unwrap must not leak into the queries or the form data.
+    """
+    from enum import Enum
+
+    from superset.constants import TimeGrain
+
+    class _FutureEnum(Enum):
+        VALUE = "future"
+
+    monkeypatch.setattr(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        lambda datasource_id, datasource_type: "base",
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": "table",
+        "query_mode": "aggregate",
+        "groupby": ["state"],
+        "metrics": ["count"],
+        "adhoc_filters": [],
+        "granularity_sqla": "ds",
+        "time_grain_sqla": TimeGrain.MONTH,
+        "future_option": [{"nested": _FutureEnum.VALUE}],
+    }
+
+    queries = build_query_dicts_from_form_data(form_data, 1, "table")
+
+    grain = queries[0]["extras"]["time_grain_sqla"]
+    assert grain == "P1M"
+    assert type(grain) is str
+    assert type(form_data["time_grain_sqla"]) is str
+    assert form_data["future_option"] == [{"nested": "future"}]

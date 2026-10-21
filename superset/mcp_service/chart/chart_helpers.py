@@ -27,6 +27,8 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
+from copy import deepcopy
+from enum import Enum
 from typing import Any, TYPE_CHECKING
 from urllib.parse import parse_qs, urlparse
 
@@ -1148,6 +1150,20 @@ def build_single_query_dict(
     return qd
 
 
+def coerce_enum_values(value: Any) -> Any:
+    """Replace enum members with their values, in place for dicts and lists."""
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, dict):
+        for key, item in value.items():
+            value[key] = coerce_enum_values(item)
+    elif isinstance(value, list):
+        value[:] = [coerce_enum_values(item) for item in value]
+    elif isinstance(value, tuple):
+        return tuple(coerce_enum_values(item) for item in value)
+    return value
+
+
 def build_query_dicts_from_form_data(
     form_data: dict[str, Any],
     datasource_id: Any,
@@ -1169,6 +1185,12 @@ def build_query_dicts_from_form_data(
     )
     from superset.mcp_service.chart.registry import plugin_for_viz_type
 
+    # Typed chart configs carry enums such as TimeGrain. Every MCP query is
+    # built here, so unwrap them once: template rendering rejects non-primitive
+    # context values.
+    coerce_enum_values(form_data)
+    if extra_form_data is not None:
+        extra_form_data = coerce_enum_values(deepcopy(extra_form_data))
     viz_type: str = (
         form_data.get("viz_type")
         or (getattr(chart, "viz_type", "") if chart else "")
