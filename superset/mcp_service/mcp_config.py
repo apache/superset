@@ -19,7 +19,7 @@
 import logging
 import secrets
 from collections.abc import Callable
-from typing import Any, Dict, Optional, Sequence
+from typing import Any, Dict, Optional, Sequence, TYPE_CHECKING
 
 from fastmcp.server.auth.providers.jwt import JWTVerifier
 from flask import Flask
@@ -28,11 +28,15 @@ from superset.constants import CHANGE_ME_GUEST_TOKEN_JWT_SECRET
 from superset.mcp_service.composite_token_verifier import CompositeTokenVerifier
 from superset.mcp_service.constants import (
     DEFAULT_MAX_LIST_ITEMS,
-    DEFAULT_TOKEN_LIMIT,
+    DEFAULT_MAX_PNG_RESPONSE_BYTES,
+    DEFAULT_MAX_RESPONSE_BYTES,
     DEFAULT_WARN_THRESHOLD_PCT,
 )
 from superset.mcp_service.guest_token_verifier import GuestTokenVerifier
 from superset.mcp_service.jwt_verifier import DetailedJWTVerifier, MCPJWTVerifier
+
+if TYPE_CHECKING:
+    from superset.mcp_service.dataset_scope import DatasetScopeResolver
 
 logger = logging.getLogger(__name__)
 
@@ -63,10 +67,59 @@ WEBDRIVER_BASEURL_USER_FRIENDLY = WEBDRIVER_BASEURL
 # user's Superset administrator and the Apache Superset issue tracker.
 MCP_BUG_REPORT_CONTACT: str | None = None
 
-# Optional dataset routing mode: effective role names -> registered dataset UUIDs.
-# None preserves the complete MCP tool surface; {} permits no datasets.
-# This only narrows access and is not a substitute for permissions or RLS.
-MCP_DATASET_ROLE_ALLOWLIST: dict[str, list[str]] | None = None
+# Optional dataset routing mode, narrowing MCP tools to a set of registered
+# dataset UUIDs (see SCOPED_TOOLS in dataset_scope.py). None preserves the
+# complete MCP tool surface. This only narrows access and is not a substitute
+# for permissions or RLS.
+#
+# Two forms:
+#   dict[str, list[str]] -- static effective role name -> dataset UUID list,
+#     validated at startup. A caller's allowed datasets are the union of
+#     their effective roles' lists; an unlisted role (including Admin)
+#     contributes nothing. {} permits no datasets. Suitable for single-
+#     tenant installs where roles and dataset UUIDs are fixed at deploy time.
+#   Callable[[user], Iterable[str | UUID] | UNSCOPED | None] -- resolves the
+#     allowed dataset UUIDs for the current request's user instead of a static
+#     mapping. Use
+#     this when role names and dataset UUIDs are not static -- e.g. one MCP
+#     deployment serving many per-workspace tenants, each with its own roles
+#     and datasets. Called on every tool call that needs routing enforcement,
+#     possibly more than once per call, so it must be cheap, side-effect free
+#     and in-process (no slow network I/O per call).
+#     Return `superset.mcp_service.dataset_scope.UNSCOPED` to exempt the
+#     caller (e.g. a tenant that has not opted in) from routing constraints:
+#     full tool surface, no dataset filter. Import it inside the callable,
+#     since importing MCP modules while the config loads is circular.
+#     Fails CLOSED (denies every dataset for that request) if the callable
+#     raises (including during iteration), returns None or an empty iterable,
+#     or returns a value that cannot be parsed as dataset UUIDs -- only the
+#     explicit UNSCOPED sentinel lifts the constraints.
+MCP_DATASET_ROLE_ALLOWLIST: "dict[str, list[str]] | DatasetScopeResolver | None" = None
+
+# Maximum admitted warehouse-capable tool calls per application/process. There
+# is no waiting queue: a saturated pool returns a server-busy error. Timed-out
+# calls retain their slots until query/cancellation I/O finishes. Cancellation
+# has a separate equally bounded pool so a stuck query cannot starve its own
+# cancellation.
+#
+# Both bounds come out of one metadata-pool budget (capacity is pool_size +
+# max_overflow): 2 * MCP_TOOL_WORKERS (each call plus its cancellation) +
+# MCP_METADATA_TOOL_WORKERS + 1 transport-side metadata thread (tools/list
+# filtering, audit writes, error hooks) + 1 API-key lookup thread never exceeds
+# it, so no checkout waits for another holder even with every slot admitted.
+# None admits about a third of the remaining connections, up to 16 (4 with the
+# default 5 + 10 pool); larger values are reduced with a startup warning.
+MCP_TOOL_WORKERS: int | None = None
+
+# Maximum admitted calls of metadata-only tools (list_*, get_*_info, ...; see
+# METADATA_ONLY_TOOLS in superset/mcp_service/worker.py) per process, on top
+# of MCP_TOOL_WORKERS. They never hold a metadata connection across warehouse
+# I/O, so they keep answering while slow queries fill MCP_TOOL_WORKERS. One
+# that reaches a warehouse must also take an MCP_TOOL_WORKERS slot. None admits
+# what the budget above leaves, up to 16 (5 with the default 5 + 10 pool);
+# larger values are reduced with a startup warning. 0 admits them under
+# MCP_TOOL_WORKERS instead.
+MCP_METADATA_TOOL_WORKERS: int | None = None
 
 # MCP Debug mode - shows suppressed initialization output in stdio mode
 MCP_DEBUG = False
@@ -368,26 +421,32 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
         "add_chart_to_existing_dashboard",
         "apply_dashboard_filters",
         "create_dataset",
+        "create_dataset_metric",
         "create_theme",
         "create_virtual_dataset",
         "delete_chart",
         "delete_dashboard",
+        "delete_dataset",
+        "delete_dataset_metric",
         "duplicate_dashboard",
         "execute_sql",
         "generate_chart",
         "generate_dashboard",
         "generate_explore_link",
         "manage_dashboard_certification",
+        "manage_dashboard_markdown",
         "manage_dashboard_owners",
         "manage_dashboard_roles",
         "manage_native_filters",
         "remove_chart_from_dashboard",
         "restore_chart",
         "restore_dashboard",
+        "restore_dataset",
         "save_sql_query",
         "update_chart",
         "update_chart_preview",
         "update_dashboard",
+        "update_dataset",
         "update_dataset_metric",
     ],
 }
@@ -399,12 +458,13 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # Overview:
 # ---------
 # The Response Size Guard prevents oversized responses from overwhelming LLM
-# clients (e.g., Claude Desktop). When a tool response exceeds the token limit,
+# clients (e.g., Claude Desktop). When a tool response exceeds the byte limit,
 # it returns a helpful error with suggestions for reducing the response size.
 #
 # How it works:
 # -------------
-# 1. After a tool executes, the middleware estimates the response's token count
+# 1. After a tool executes, the middleware measures the response's serialized
+#    UTF-8 byte size
 # 2. If the response exceeds the configured limit, it blocks the response
 # 3. Instead, it returns an error message with smart suggestions:
 #    - Reduce page_size/limit
@@ -415,24 +475,28 @@ MCP_CACHE_CONFIG: dict[str, Any] = {
 # Configuration:
 # --------------
 # - enabled: Toggle the guard on/off (default: True)
-# - token_limit: Maximum estimated tokens per response (default: 25,000)
+# - max_bytes: Maximum serialized response size in bytes (default: 50,000)
+# - png_max_bytes: Maximum serialized PNG preview response size (default: 1,000,000)
 # - excluded_tools: Tools to skip checking (e.g., streaming tools)
 # - warn_threshold_pct: Log warnings above this % of limit (default: 80%)
 # - max_list_items: Cap applied to list fields (e.g. ``charts``,
 #   ``native_filters``) during Phase 2 of dynamic truncation for the "info"
 #   tools (get_chart_info, get_dataset_info, get_dashboard_info,
-#   get_instance_info) when a response exceeds token_limit (default: 100).
+#   get_instance_info) when a response exceeds max_bytes (default: 100).
 #   Operators with tenants that have unusually large dashboards (hundreds of
 #   charts/filters) can raise this value to return more complete responses.
 #
-# Token Estimation:
-# -----------------
-# Uses character-based heuristic (~3.5 chars per token for JSON).
-# This is intentionally conservative to avoid underestimating.
+# Size Measurement:
+# ------------------
+# Uses the exact serialized UTF-8 byte length of the response. This is not an
+# LLM token estimate: an MCP server cannot know which client (Claude, GPT,
+# Gemini, a local model) or tokenizer is consuming a given response, so byte
+# size is used as a deterministic, tokenizer-agnostic proxy for response size.
 # =============================================================================
 MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default to protect LLM clients
-    "token_limit": DEFAULT_TOKEN_LIMIT,
+    "max_bytes": DEFAULT_MAX_RESPONSE_BYTES,
+    "png_max_bytes": DEFAULT_MAX_PNG_RESPONSE_BYTES,
     "warn_threshold_pct": DEFAULT_WARN_THRESHOLD_PCT,
     "max_list_items": DEFAULT_MAX_LIST_ITEMS,
     "excluded_tools": [  # Tools to skip size checking
@@ -460,25 +524,27 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 # - "bm25": Natural language search using BM25 ranking (recommended)
 # - "regex": Pattern-based search using regular expressions
 #
-# Schema Compaction:
-# ------------------
-# When compact_schemas=True, search results strip $defs sections and replace
-# $ref pointers with {"type": "object"}, and truncate tool descriptions.
-# This reduces per-search token cost by ~40-60%.  Full schemas remain
-# available when the tool is actually invoked via call_tool.
+# Schema Serialization:
+# ---------------------
+# Input schemas preserve $defs, $ref, nullable unions, and validation constraints;
+# titles and output schemas are omitted. Clients should resolve references within
+# each tool's inputSchema. Inlining references duplicates shared chart models.
+# The legacy compact_schemas setting only selects the default description limit
+# (300 when True, 0 when False) if max_description_length is omitted.
+# Field descriptions on a tool's request parameter carry untruncated calling
+# instructions in inputSchema or parameters_hint. These instructions do not
+# consume the description prose budget.
 #
 # Rollback:
 # ---------
 # - Set enabled=False to disable tool search entirely (full catalog exposed).
-# - Set compact_schemas=False to disable schema compaction only (full $defs
-#   and descriptions in search results, tool search still active).
 # - Set max_description_length=0 to disable description truncation only.
 #
 # Summary Mode (include_schemas):
 # --------------------------------
 # When include_schemas=False, search results omit inputSchema entirely and
 # include a lightweight "parameters_hint" field listing top-level parameter
-# names (e.g. "page, page_size, search, filters"). This reduces per-search
+# names and any request-wrapper instructions. This reduces per-search
 # token cost by ~80% vs compact mode while still conveying what parameters
 # a tool accepts. Full schemas remain available when invoking the tool via
 # call_tool.
@@ -486,8 +552,8 @@ MCP_RESPONSE_SIZE_CONFIG: dict[str, Any] = {
 #   so LLMs can see structured/discriminated-union configs (e.g. chart
 #   generation) without a second round trip. Set include_schemas=False to
 #   switch to summary mode if search_tools response size becomes a problem
-#   again; compact_schemas is ignored when include_schemas=False (no schema to
-#   compact); max_description_length still applies in summary mode.
+#   again; compact_schemas is ignored when include_schemas=False.
+#   max_description_length still applies in summary mode.
 # =============================================================================
 MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     "enabled": True,  # Enabled by default — reduces initial context by ~70%
@@ -499,9 +565,33 @@ MCP_TOOL_SEARCH_CONFIG: dict[str, Any] = {
     ],
     "search_tool_name": "search_tools",  # Name of the search tool
     "call_tool_name": "call_tool",  # Name of the call proxy tool
-    "compact_schemas": True,  # Strip $defs/$ref (requires include_schemas=True)
+    "compact_schemas": True,  # Legacy default description limit for full schemas
     "max_description_length": 300,  # Truncate tool descriptions (0 = no truncation)
     "include_schemas": True,  # full inputSchema in search results
+}
+
+
+# =============================================================================
+# MCP Native Tool List Configuration
+# =============================================================================
+#
+# Applies only when tool search is disabled (MCP_TOOL_SEARCH_CONFIG["enabled"]
+# = False), where tools/list advertises every tool the caller may use.
+#
+# compact=True bounds each listed description to max_description_length with
+# whole paragraphs first, then whole sentences. After a whole paragraph fits,
+# a following heading, IMPORTANT block or list is not partly advertised.
+# Request-parameter instructions stay untruncated in the input schema and are
+# not deducted from the native prose budget. Names and schemas ($defs, nullable
+# unions, constraints), and annotations are served unchanged, and tools/call
+# validates against the same server-side models, so only the listed prose
+# changes. Detailed chart guidance remains available from get_chart_type_schema.
+#
+# Disabled by default: the native listing serves full descriptions.
+# =============================================================================
+MCP_NATIVE_TOOL_LIST_CONFIG: dict[str, Any] = {
+    "compact": False,  # Bound tools/list descriptions (native mode only)
+    "max_description_length": 300,  # Prose budget per tool when compact
 }
 
 

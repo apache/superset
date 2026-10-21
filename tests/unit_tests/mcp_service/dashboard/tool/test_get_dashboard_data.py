@@ -26,6 +26,7 @@ from pydantic import ValidationError
 
 from superset.mcp_service.app import mcp
 from superset.mcp_service.chart.schemas import (
+    BigNumberHeadline,
     ChartData,
     ChartError,
     ChartQueryResult,
@@ -137,6 +138,49 @@ async def test_returns_compact_summary_per_chart(mock_dao, mock_exec, mcp_server
     # Shallow summary/insights fields were dropped to keep the payload lean.
     assert "summary" not in first
     assert "insights" not in first
+
+
+@patch(EXEC, new_callable=AsyncMock)
+@patch(DAO)
+@pytest.mark.asyncio
+async def test_big_number_headline_comes_from_the_chart_result_not_the_sample(
+    mock_dao, mock_exec, mcp_server
+):
+    """The headline spans the whole series; sample_rows only trims what's shown."""
+    rows = [{"__timestamp": i, "total": i} for i in range(1, 20)]
+    big_number = _chart_data(108, "Total Sales (YTD)", "big_number", rows=rows)
+    big_number.headline = BigNumberHeadline(
+        value=190, aggregation="sum", rows_used=len(rows)
+    )
+    unavailable = _chart_data(109, "Other KPI", "big_number")
+    unavailable.headline = BigNumberHeadline(
+        aggregation="sum", reason="The fetch was truncated at the row limit."
+    )
+    mock_dao.return_value = _dashboard(
+        13,
+        "Sales",
+        [
+            _slice(108, "Total Sales (YTD)", "big_number"),
+            _slice(109, "Other KPI", "big_number"),
+            _slice(110, "Table"),
+        ],
+    )
+    mock_exec.side_effect = [big_number, unavailable, _chart_data(110, "Table")]
+
+    async with Client(mcp_server) as client:
+        data = await _call(client, {"identifier": 13, "sample_rows": 3})
+
+    first, second, third = data["charts"]
+    assert len(first["sample_data"]) == 3
+    assert first["headline"] == {
+        "value": 190,
+        "aggregation": "sum",
+        "rows_used": 19,
+        "reason": None,
+    }
+    assert second["headline"]["value"] is None
+    assert "truncated" in second["headline"]["reason"]
+    assert third["headline"] is None
 
 
 @patch(EXEC, new_callable=AsyncMock)

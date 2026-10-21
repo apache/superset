@@ -158,7 +158,7 @@ export const useHeaderAutoRefresh = ({
       }
 
       if (suppressSpinners) {
-        startAutoRefresh();
+        startAutoRefresh(chartsToRefresh);
         setStatus(AutoRefreshStatus.Fetching);
         setFetchStartTime(Date.now());
       }

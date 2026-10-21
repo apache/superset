@@ -63,7 +63,10 @@ from superset.commands.deletion_retention.purge_impact import (
 )
 from superset.commands.exceptions import CommandException
 from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import (
     collect_dataset_impact,
     PurgeArchivedCommand,
@@ -108,7 +111,11 @@ from superset.exceptions import (
 from superset.jinja_context import BaseTemplateProcessor, get_template_processor
 from superset.subjects.filters import FilterRelatedSubjects, subject_type_filter
 from superset.utils import json
-from superset.utils.core import parse_boolean_string, send_export_zip
+from superset.utils.core import (
+    parse_boolean_string,
+    send_export_zip,
+    write_zip_entry,
+)
 from superset.versioning.api_helpers import (
     concurrency_token_from,
     current_entity_version_info,
@@ -134,6 +141,7 @@ from superset.views.base_api import (
     requires_form_data,
     requires_json,
     statsd_metrics,
+    validate_feature_flags,
 )
 from superset.views.error_handling import handle_api_exception
 from superset.views.filters import (
@@ -1018,8 +1026,9 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
                 for file_name, file_content in ExportDatasetsCommand(
                     requested_ids
                 ).run():
-                    with bundle.open(f"{root}/{file_name}", "w") as fp:
-                        fp.write(file_content().encode())
+                    write_zip_entry(
+                        bundle, f"{root}/{file_name}", file_content().encode()
+                    )
             except DatasetNotFoundError:
                 return self.response_404()
         buf.seek(0)
@@ -1736,7 +1745,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
         if not upload:
             return self.response_400()
         if is_zipfile(upload):
-            with ZipFile(upload) as bundle:
+            with open_import_bundle(upload) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
             upload.seek(0)
@@ -2218,6 +2227,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/versions/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.list_versions",
@@ -2266,6 +2276,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: f"{self.__class__.__name__}.get_version",  # noqa: E501
@@ -2325,6 +2336,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     @expose("/<uuid_str>/activity/", methods=("GET",))
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @permission_name("get")
     @statsd_metrics
     @event_logger.log_this_with_context(
@@ -2412,6 +2424,7 @@ class DatasetRestApi(SoftDeleteApiMixin, BaseSupersetModelRestApi):
     )
     @protect()
     @safe
+    @validate_feature_flags(["VERSION_HISTORY"])
     @statsd_metrics
     @event_logger.log_this_with_context(
         action=lambda self, *args, **kwargs: (
