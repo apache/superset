@@ -256,6 +256,8 @@ export default function transformProps(
     showQueryIdentifiers = false,
     metrics = [],
     metricsB = [],
+    truncateMetric,
+    truncateMetricB,
   }: EchartsMixedTimeseriesFormData = { ...DEFAULT_FORM_DATA, ...formData };
 
   const refs: Refs = {};
@@ -544,7 +546,24 @@ export default function transformProps(
 
     let displayName: string;
 
-    if (groupby.length > 0) {
+    if (truncateMetric && groupby.length > 0) {
+      // Drop the metric part entirely and show only the groupby/dimension
+      // values, same metric-vs-dimension split the branch below uses: the
+      // label-map tuple is [metric, ...dimensions] when it has more than
+      // one entry, otherwise the whole tuple is the dimension (no metric
+      // index at all). Still apply the query-identifier suffix when asked
+      // for, or Query A and Query B become indistinguishable whenever they
+      // share a groupby value (#38451).
+      const groupbyValues =
+        labelMapValues && labelMapValues.length > 1
+          ? labelMapValues.slice(1)
+          : (labelMapValues ?? []);
+      const truncatedName =
+        groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
+      displayName = showQueryIdentifiers
+        ? `${truncatedName} (Query A)`
+        : truncatedName;
+    } else if (groupby.length > 0) {
       // When we have groupby, format as "metric, dimension". Each series
       // belongs to the metric recorded in its label-map tuple
       // ([metric, ...dimensions]) — always using the first metric would
@@ -651,7 +670,24 @@ export default function transformProps(
 
     let displayName: string;
 
-    if (groupbyB.length > 0) {
+    if (truncateMetricB && groupbyB.length > 0) {
+      // Drop the metric part entirely and show only the groupby/dimension
+      // values, same metric-vs-dimension split the branch below uses: the
+      // label-map tuple is [metric, ...dimensions] when it has more than
+      // one entry, otherwise the whole tuple is the dimension (no metric
+      // index at all). Still apply the query-identifier suffix when asked
+      // for, or Query A and Query B become indistinguishable whenever they
+      // share a groupby value (#38451).
+      const groupbyValues =
+        labelMapValuesB && labelMapValuesB.length > 1
+          ? labelMapValuesB.slice(1)
+          : (labelMapValuesB ?? []);
+      const truncatedName =
+        groupbyValues.length > 0 ? groupbyValues.join(', ') : entryName;
+      displayName = showQueryIdentifiers
+        ? `${truncatedName} (Query B)`
+        : truncatedName;
+    } else if (groupbyB.length > 0) {
       // When we have groupby, format as "metric, dimension". Each series
       // belongs to the metric recorded in its label-map tuple
       // ([metric, ...dimensions]) — always using the first metric would

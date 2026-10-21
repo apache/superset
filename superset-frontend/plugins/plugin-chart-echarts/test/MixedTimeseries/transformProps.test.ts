@@ -1967,3 +1967,68 @@ test('converts xAxisLabelInterval string "0" to number 0', () => {
   // "All" must also disable hideOverlap so ECharts never drops a label.
   expect(xAxis.axisLabel.hideOverlap).toBe(false);
 });
+
+describe('truncateMetric / truncateMetricB', () => {
+  const getSeriesNames = (
+    overrides: Partial<EchartsMixedTimeseriesFormData>,
+  ) => {
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queriesData,
+      formData: { ...formData, ...overrides },
+      queriesData,
+    });
+    const transformed = transformProps(chartProps);
+    return (transformed.echartOptions.series as SeriesOption[]).map(
+      s => s.name,
+    );
+  };
+
+  test('drops the metric prefix for both queries when both flags are on', () => {
+    const seriesNames = getSeriesNames({
+      truncateMetric: true,
+      truncateMetricB: true,
+    });
+
+    expect(seriesNames).toContain('boy');
+    expect(seriesNames).toContain('girl');
+    expect(seriesNames).not.toContain('sum__num, boy');
+    expect(seriesNames).not.toContain('sum__num, girl');
+  });
+
+  test('keeps the "metric, dimension" name when both flags are off', () => {
+    const seriesNames = getSeriesNames({});
+
+    expect(seriesNames).toContain('sum__num, boy');
+    expect(seriesNames).toContain('sum__num, girl');
+  });
+
+  test('truncateMetricB truncates query B independently of query A', () => {
+    const seriesNames = getSeriesNames({ truncateMetricB: true });
+
+    // Query A (not truncated) keeps the metric prefix.
+    expect(seriesNames).toContain('sum__num, boy');
+    expect(seriesNames).toContain('sum__num, girl');
+    // Query B (truncated) drops it.
+    expect(seriesNames).toContain('boy');
+    expect(seriesNames).toContain('girl');
+  });
+
+  test('still appends the query identifier when truncating, so Query A and B stay distinguishable (#38451)', () => {
+    const seriesNames = getSeriesNames({
+      truncateMetric: true,
+      truncateMetricB: true,
+      showQueryIdentifiers: true,
+    });
+
+    expect(seriesNames).toContain('boy (Query A)');
+    expect(seriesNames).toContain('girl (Query A)');
+    expect(seriesNames).toContain('boy (Query B)');
+    expect(seriesNames).toContain('girl (Query B)');
+    // The metric is still dropped - only the query suffix is added back.
+    expect(seriesNames).not.toContain('sum__num, boy (Query A)');
+  });
+});
