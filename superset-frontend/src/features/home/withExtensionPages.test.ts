@@ -17,7 +17,7 @@
  * under the License.
  */
 
-import { withExtensionPages } from './Menu';
+import { withExtensionPages, withExtensionSettings } from './Menu';
 
 const menu = [{ label: 'Dashboards', name: 'Dashboards', url: '/dashboard/list/' }];
 
@@ -85,4 +85,77 @@ test('a page labelled like a host entry does not collide with its key', () => {
     'Charts',
     'extension:/review-charts',
   ]);
+});
+
+// eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
+describe('withExtensionSettings', () => {
+  const settings = [
+    {
+      name: 'Manage',
+      label: 'Manage',
+      childs: [{ label: 'CSS Templates', name: 'CssTemplate', url: '/csstemplate/' }],
+    },
+    { name: 'Security', label: 'Security', childs: [] },
+  ];
+
+  test('a page naming a category joins that group instead of the navbar', () => {
+    // `MenuWrapper` splits the FAB menu by group name, so an entry appended
+    // to the navbar list can never reach Settings.
+    const result = withExtensionSettings(settings as never, [
+      page({ nav: { label: 'Change review', category: 'Manage' } }),
+    ]);
+
+    const manage = result.find(group => group.name === 'Manage');
+    expect(manage?.childs).toHaveLength(2);
+    expect(manage?.childs?.[1]).toMatchObject({
+      label: 'Change review',
+      url: '/review-queue',
+    });
+  });
+
+  test('the host entries in that group are kept, and come first', () => {
+    const result = withExtensionSettings(settings as never, [
+      page({ nav: { label: 'Change review', category: 'Manage' } }),
+    ]);
+
+    expect(
+      (result.find(g => g.name === 'Manage')?.childs ?? []).map(
+        c => (c as { label: string }).label,
+      ),
+    ).toEqual(['CSS Templates', 'Change review']);
+  });
+
+  test('a group the host did not render is not invented', () => {
+    // FAB builds Manage only when the reader may see something in it. A
+    // group conjured here would be one the rest of Superset does not agree
+    // exists; the page keeps its URL, it is the entry that is missing.
+    const result = withExtensionSettings([settings[1]] as never, [
+      page({ nav: { label: 'Change review', category: 'Manage' } }),
+    ]);
+
+    expect(result).toHaveLength(1);
+    expect(result[0].name).toBe('Security');
+  });
+
+  test('a page the user may not open is left out', () => {
+    const result = withExtensionSettings(settings as never, [
+      page({ nav: { label: 'Change review', category: 'Manage' }, permitted: false }),
+    ]);
+
+    expect(result.find(g => g.name === 'Manage')?.childs).toHaveLength(1);
+  });
+
+  test('a page with no category is left for the navbar', () => {
+    expect(withExtensionSettings(settings as never, [page()])).toBe(settings);
+  });
+
+  test('the navbar and Settings never both take the same page', () => {
+    // The two helpers partition on `nav.category`, so a page cannot appear
+    // twice under different labels.
+    const navPages = withExtensionPages([] as never, [
+      page({ nav: { label: 'Change review', category: 'Manage' } }),
+    ]);
+
+    expect(navPages).toHaveLength(0);
+  });
 });

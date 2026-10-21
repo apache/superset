@@ -38,11 +38,20 @@ from superset_core.extensions.constants import (
 
 
 class PageNav(BaseModel):
-    """Placement of a page in the navigation bar."""
+    """Placement of a page in the navigation."""
 
     label: str = Field(
         ...,
         description="Text of the navigation entry",
+        min_length=1,
+    )
+    category: str | None = Field(
+        default=None,
+        description=(
+            "A group of the Settings menu to sit in, such as 'Manage', "
+            "rather than the top-level navigation bar. The group must be "
+            "one Superset already renders."
+        ),
         min_length=1,
     )
 

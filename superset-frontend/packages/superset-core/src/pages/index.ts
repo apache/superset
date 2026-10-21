@@ -79,6 +79,16 @@ export interface Page {
   nav?: {
     /** Defaults to the page's `name`. */
     label?: string;
+    /**
+     * A group of the Settings menu to sit in, such as `Manage`, rather than
+     * the top-level navigation bar.
+     *
+     * Use it for a screen an administrator goes looking for rather than one
+     * a user works in daily. The group has to be one Superset already
+     * renders: it builds Manage only when the reader may see something in
+     * it, and an entry cannot create a group of its own.
+     */
+    category?: string;
   };
   /**
    * Permission a user must hold to open the page.
