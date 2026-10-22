@@ -15,6 +15,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from collections.abc import Callable
+from functools import partial
+
 import pytest
 
 from superset.mcp_service.chart.schemas import ChartError
@@ -740,3 +743,163 @@ def test_escape_like_empty_string():
     from superset.mcp_service.utils.sanitization import escape_like
 
     assert escape_like("") == ""
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "javascript:alert(1)",
+        "vbscript:msgbox(1)",
+        "See javascript: alert(1)",
+        "See vbscript: msgbox(1)",
+        "data:text/html,payload",
+        "data:,payload",
+        "data:;base64,cGF5bG9hZA==",
+        "data: text/html,payload",
+        "data: ,payload",
+        "data: payload",
+        "See data:text/html,payload",
+        '"data:text/html,payload"',
+        "(data:text/html,payload)",
+        "See data: text/html,payload",
+        "See data: %74ext%2fhtml,payload",
+        "See data: te\txt/html,payload",
+        "See data: text/html ;base64,cGF5bG9hZA==",
+        "JaVaScRiPt:alert(1)",
+        "d&#97;ta:text/html,payload",
+        "da\u200bta:text/html,payload",
+        "java&#8203;script:alert(1)",
+        "See data:\u00a0text/html,payload",
+        "See data:\u3000image/svg+xml;base64,cGF5bG9hZA==",
+        "See data: text&sol;html,payload",
+        "See data: ;base64,cGF5bG9hZA==",
+        "See data:  ,payload",
+        "See data: Jira, then data: text/html,payload",
+    ],
+)
+def test_url_scheme_payloads_remain_rejected(value: str) -> None:
+    """Keep URL payloads blocked at token boundaries and after decoding."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_user_input(value, "Title")
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_filter_value(value)
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [sanitize_filter_value, partial(sanitize_user_input, field_name="Title")],
+)
+@pytest.mark.parametrize("whitespace", [" ", "\t", "\n", "\u00a0", "\u3000", "&#9;"])
+@pytest.mark.parametrize("media_type", ["text", "html", "x-test", "text\u200b"])
+def test_data_url_with_invalid_media_type_is_rejected(
+    sanitize: Callable[[str], object], whitespace: str, media_type: str
+) -> None:
+    """Browsers load invalid MIME types as text/plain rather than rejecting URLs."""
+    value = f"Inspect data:{whitespace}{media_type},URL_PROBE"
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize(value)
+
+
+def test_markdown_data_url_with_invalid_media_type_is_rejected() -> None:
+    """A Markdown link can retain a data URL with an invalid MIME type."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize_user_input("[open](data: text,URL_PROBE)", "Title")
+
+
+@pytest.mark.parametrize(
+    "value",
+    [
+        "[DEMO] Service Desk - Executive Summary "
+        "(substitute data: Jira support tickets)",
+        "Source data: support tickets and issue records",
+    ],
+)
+def test_sanitizer_accepts_data_in_prose(value: str) -> None:
+    """A comma-free prose label after "data:" is not a data URL."""
+    assert sanitize_user_input(value, "Title") == value
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [sanitize_filter_value, partial(sanitize_user_input, field_name="Title")],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Source data: issue records, support tickets",
+        "substitute data: Jira, support",
+    ],
+)
+def test_comma_bearing_data_label_is_rejected(
+    sanitize: Callable[[str], object], value: str
+) -> None:
+    """Comma-bearing labels are ambiguous with browser-loadable data URLs."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize(value)
+
+
+@pytest.mark.parametrize("filter_value", [False, True])
+def test_repeated_data_labels_without_comma_are_preserved(filter_value: bool) -> None:
+    """Long comma-free prose must not trigger repeated suffix scans."""
+    value = "Source " + "data: records " * 4000
+    if filter_value:
+        assert sanitize_filter_value(value, max_length=60000) == value.strip()
+    else:
+        assert sanitize_user_input(value, "Title", max_length=60000) == value.strip()
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize(
+    "control", ["\t", "\n", "\r", "\t\n\r", "&#9;", "&#10;", "&#13;"]
+)
+@pytest.mark.parametrize(
+    "scheme,payload",
+    [("javascript", "alert(1)"), ("vbscript", "msgbox(1)"), ("data", "text/html,x")],
+)
+def test_url_scheme_with_embedded_controls_is_rejected(
+    sanitize: Callable[[str], object], control: str, scheme: str, payload: str
+) -> None:
+    """Reject URL-parser-stripped controls at every scheme split, including colon."""
+    for position in range(1, len(scheme) + 1):
+        value = scheme[:position] + control + scheme[position:] + ":" + payload
+        with pytest.raises(ValueError, match="malicious URL scheme"):
+            sanitize(value)
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize("separator", ["\t", "\n", "\r", "\r\n"])
+@pytest.mark.parametrize(
+    "payload",
+    [
+        "javascript:alert(1)",
+        "vbscript:msgbox(1)",
+        "data:text/html,x",
+        "da\tta:text/html,x",
+        "java\nscript:alert(1)",
+    ],
+)
+def test_url_scheme_after_control_separator_is_rejected(
+    sanitize: Callable[[str], object], separator: str, payload: str
+) -> None:
+    """A scheme stays a separate word after a tab or line break."""
+    with pytest.raises(ValueError, match="malicious URL scheme"):
+        sanitize("Notes" + separator + payload)
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [partial(sanitize_user_input, field_name="title"), sanitize_filter_value],
+)
+@pytest.mark.parametrize("separator", ["\t", "\n", "\r\n"])
+def test_data_label_followed_by_control_whitespace_is_preserved(
+    sanitize: Callable[[str], object], separator: str
+) -> None:
+    """Whitespace after a comma-free data: label may be a tab or line break."""
+    value = f"Substitute data:{separator}Jira support tickets"
+    assert sanitize(value) == value.replace("\r\n", "\n")

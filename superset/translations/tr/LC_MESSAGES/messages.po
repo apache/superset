@@ -10687,6 +10687,9 @@ msgstr "Asgar"
 msgid "Minimum Font Size"
 msgstr "Minimum Font Boyut"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Asgari Radius"
 
@@ -10697,6 +10700,16 @@ msgid "Minimum Width"
 msgstr "Minimum Genişlik"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -20576,6 +20589,9 @@ msgid "X Axis Label Interval"
 msgstr "X Axis Label Interval"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Zaman formatı"
 
@@ -20621,6 +20637,9 @@ msgstr "Y"
 
 msgid "Y Axis Label"
 msgstr "Y Axis Label"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y Axis Title"
