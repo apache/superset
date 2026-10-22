@@ -39,9 +39,12 @@ assists people when migrating to a new version.
 - The extension storage write routes (`PUT`/`DELETE` under
   `/api/v1/extensions/<publisher>/<name>/storage/`) are no longer exempt from
   CSRF protection. They inherited the exemption from Flask-AppBuilder's
-  `BaseApi`; browser requests already send the token, but other API clients
-  that write extension storage with a session cookie must now send one, as for
-  every other Superset API.
+  `BaseApi`; they now behave like every other Superset REST API. The browser
+  already sends the token. Any other client that writes extension storage,
+  whether it authenticates with a session cookie, a JWT bearer token or an API
+  key, must first call `GET /api/v1/security/csrf_token/` with its credential,
+  then send the returned token in the `X-CSRFToken` header together with the
+  session cookie set by that call (the token is bound to the session).
 
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
