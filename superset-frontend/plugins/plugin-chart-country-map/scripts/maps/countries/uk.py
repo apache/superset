@@ -32,5 +32,7 @@ NAME = "uk"
 def build(ctx: BuildContext) -> dict[str, gpd.GeoDataFrame]:
     uk = ctx.df[ctx.df.admin == "United Kingdom"]
     uk_copy = apply_bounds(uk, (-10, 60), (20, 20))
+    # The source data labels Wirral (GB-WRL) as "Halton", which duplicates GB-HAL.
+    uk_copy.loc[uk_copy["iso_3166_2"] == "GB-WRL", "name"] = "Wirral"
 
     return {NAME: uk_copy}
