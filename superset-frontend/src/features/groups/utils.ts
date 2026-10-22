@@ -115,7 +115,7 @@ export const fetchUserOptions = async (
   // The ListView filter path passes the raw input, so trim here to keep both
   // callers from sending a whitespace-only search.
   const searchTerm = filterValue.trim();
-  const query = rison.encode({
+  const query = rison.encode_uri({
     filters: searchTerm
       ? [{ col: 'username', opr: 'user_all_text', value: searchTerm }]
       : [],
