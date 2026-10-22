@@ -121,8 +121,18 @@ interface ExportZipOptions {
 /**
  * Validate an export zip response: content-type, zip structure, and resource yaml files.
  * Shared across chart and dataset export tests.
+ *
+ * Status/content-type come from `response` itself, but the zip bytes are
+ * re-fetched independently via `page.request` (the browser context's own
+ * APIRequestContext, sharing its cookies) rather than read off `response`
+ * directly. The app consumes `response` itself via `fetch().then(r =>
+ * r.blob())` to trigger the download, and Playwright 1.64's bundled
+ * Chromium no longer reliably keeps that response's network body available
+ * to `response.body()` once the page has already drained it - an
+ * independent GET of the same (idempotent) export URL avoids that race.
  */
 export async function expectValidExportZip(
+  page: Page,
   response: ResponseLike,
   options: ExportZipOptions,
 ): Promise<void> {
@@ -141,7 +151,11 @@ export async function expectValidExportZip(
     );
   }
 
-  const body = await response.body();
+  const refetched = await page.request.get(response.url(), {
+    headers: { Accept: 'application/zip, application/x-zip-compressed' },
+  });
+  expect(refetched.status()).toBe(200);
+  const body = await refetched.body();
   expect(body.length).toBeGreaterThan(0);
 
   const entries: string[] = [];

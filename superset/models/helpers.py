@@ -753,6 +753,32 @@ def parse_array_literal(value: Any) -> list[Any]:
     return [value]
 
 
+def keep_null_rows(
+    sqla_col: Any,
+    negated_cond: Any,
+    db_engine_spec: builtins.type[BaseEngineSpec],
+) -> Any:
+    """
+    Make a negated predicate keep the rows where ``sqla_col`` is NULL.
+
+    SQL three-valued logic evaluates ``NULL != 'a'``, ``NULL NOT LIKE 'a%'`` and
+    similar negations to NULL, which a WHERE clause treats as false, so a bare
+    negated filter would also drop NULL rows although it only names the values to
+    exclude. The NULL check is built through the engine spec so engines with their
+    own NULL syntax are honored, and it must be given the column the filter names
+    (before any string cast applied for pattern matching).
+
+    :param sqla_col: the filtered column expression
+    :param negated_cond: the negated predicate built for ``sqla_col``
+    :param db_engine_spec: engine spec of the database being queried
+    :return: ``sqla_col IS NULL OR negated_cond``
+    """
+    return or_(
+        db_engine_spec.handle_null_filter(sqla_col, utils.FilterOperator.IS_NULL),
+        negated_cond,
+    )
+
+
 def coerce_array_values(
     values: list[Any], element_type: Optional[utils.GenericDataType]
 ) -> list[Any]:
@@ -5490,11 +5516,20 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             _(bus_resp["error_message"])
                         )
 
-                    target_clause_list.append(
-                        ADVANCED_DATA_TYPES[col_advanced_data_type].translate_filter(
-                            sqla_col, op, bus_resp["values"]
+                    translated_filter = ADVANCED_DATA_TYPES[
+                        col_advanced_data_type
+                    ].translate_filter(sqla_col, op, bus_resp["values"])
+                    # Negations keep NULL rows unless the operand itself is NULL,
+                    # which a plugin may translate on its own (``IS NOT NULL``).
+                    if (op == utils.FilterOperator.NOT_EQUALS and eq is not None) or (
+                        op == utils.FilterOperator.NOT_IN
+                        and isinstance(eq, (list, tuple))
+                        and all(value is not None for value in eq)
+                    ):
+                        translated_filter = keep_null_rows(
+                            sqla_col, translated_filter, db_engine_spec
                         )
-                    )
+                    target_clause_list.append(translated_filter)
                 elif is_multivalue_col and op in {
                     utils.FilterOperator.EQUALS,
                     utils.FilterOperator.NOT_EQUALS,
@@ -5515,11 +5550,12 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                                 parse_array_literal(val), array_element_type
                             )
                         )
-                        cond = (
-                            sqla_col != literal
-                            if op == utils.FilterOperator.NOT_EQUALS
-                            else sqla_col == literal
-                        )
+                        if op == utils.FilterOperator.NOT_EQUALS:
+                            cond = keep_null_rows(
+                                sqla_col, sqla_col != literal, db_engine_spec
+                            )
+                        else:
+                            cond = sqla_col == literal
                     else:
                         candidates: list[Any] = (
                             list(val) if isinstance(val, (list, tuple)) else [val]
@@ -5536,7 +5572,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             ]
                         )
                         if op == utils.FilterOperator.NOT_IN:
-                            cond = ~cond
+                            cond = keep_null_rows(sqla_col, ~cond, db_engine_spec)
                     target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IN,
@@ -5572,11 +5608,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
                         else:
                             cond = is_null_cond
+                        if op == utils.FilterOperator.NOT_IN:
+                            cond = ~cond
                     else:
                         cond = sqla_col.in_(eq)
-
-                    if op == utils.FilterOperator.NOT_IN:
-                        cond = ~cond
+                        if op == utils.FilterOperator.NOT_IN:
+                            # ``NULL NOT IN (...)`` is not true (three-valued
+                            # logic), so a plain negation would also drop NULL
+                            # rows. Only the listed values are meant to be
+                            # excluded, so keep NULL rows unless NULL itself is
+                            # in the list (handled above).
+                            cond = or_(
+                                db_engine_spec.handle_null_filter(
+                                    sqla_col, utils.FilterOperator.IS_NULL
+                                ),
+                                ~cond,
+                            )
                     target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,
@@ -5667,9 +5714,16 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         utils.FilterOperator.GREATER_THAN_OR_EQUALS,
                         utils.FilterOperator.LESS_THAN_OR_EQUALS,
                     }:
-                        target_clause_list.append(
-                            db_engine_spec.handle_comparison_filter(sqla_col, op, eq)
+                        comparison = db_engine_spec.handle_comparison_filter(
+                            sqla_col, op, eq
                         )
+                        # ``!= NULL`` already means IS NOT NULL; any other operand
+                        # only excludes its own value, so NULL rows stay.
+                        if op == utils.FilterOperator.NOT_EQUALS and eq is not None:
+                            comparison = keep_null_rows(
+                                sqla_col, comparison, db_engine_spec
+                            )
+                        target_clause_list.append(comparison)
                     elif op in {
                         utils.FilterOperator.ILIKE,
                         utils.FilterOperator.LIKE,
@@ -5682,6 +5736,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             target_generic_type != GenericDataType.STRING
                             or is_uuid_native_type(col_type)
                         )
+                        # NULL rows are identified on the column itself, not on
+                        # its string cast.
+                        null_check_col = sqla_col
                         if needs_string_cast_for_like:
                             sqla_col = sa.cast(sqla_col, sa.String)
 
@@ -5690,9 +5747,21 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         elif op == utils.FilterOperator.ILIKE:
                             target_clause_list.append(sqla_col.ilike(eq))
                         elif op == utils.FilterOperator.NOT_LIKE:
-                            target_clause_list.append(sqla_col.not_like(eq))
+                            target_clause_list.append(
+                                keep_null_rows(
+                                    null_check_col,
+                                    sqla_col.not_like(eq),
+                                    db_engine_spec,
+                                )
+                            )
                         else:
-                            target_clause_list.append(sqla_col.not_ilike(eq))
+                            target_clause_list.append(
+                                keep_null_rows(
+                                    null_check_col,
+                                    sqla_col.not_ilike(eq),
+                                    db_engine_spec,
+                                )
+                            )
                     elif op in {
                         utils.FilterOperator.CONTAINS_ANY,
                         utils.FilterOperator.CONTAINS_ALL,

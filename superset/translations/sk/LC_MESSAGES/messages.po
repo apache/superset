@@ -4142,6 +4142,9 @@ msgstr "Zavrieť editor fariebných hranic"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Zavrieť kartu"
 
@@ -8626,10 +8629,10 @@ msgstr "Skryje čáru pre časovou radu"
 msgid "Hierarchy"
 msgstr "Hierarchie"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9935,10 +9938,10 @@ msgstr "Zemepisná dĺžka a šírka"
 msgid "Longitude of default viewport"
 msgstr "Zemepisná dĺžka predvoleného zobrazenie"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10437,6 +10440,9 @@ msgstr "Minimum"
 msgid "Minimum Font Size"
 msgstr "Minimální veľkosť písma"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Minimální polomer"
 
@@ -10445,6 +10451,16 @@ msgid "Minimum Width"
 msgstr "Minimální šírka"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -11447,9 +11463,6 @@ msgstr "Nepriehľadnosť bublin, 0 znamená zcela průhledné, 1 znamená neprů
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Nepriehľadnosť, očekává hodnoty mezi 0 a 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Otvoriť kartu Zdroje dat"
 
@@ -11485,6 +11498,9 @@ msgstr "Otvoriť v SQL Labu"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Otvoriť v SQL Labu"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Otvoriť dotaz v SQL Labu"
@@ -13721,6 +13737,13 @@ msgstr "Posuňte sa dolů pre povolenie prepísanie zmen. "
 msgid "Search"
 msgstr "Hľadať"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Hľadať %s záznam"
+msgstr[1] "Hľadať %s záznamy"
+msgstr[2] "Hľadať %s záznamov"
+
 msgid "Search / Filter"
 msgstr "Hľadať / Filtrovať"
 
@@ -13780,9 +13803,6 @@ msgstr "Hľadať ve filtrech"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Hľadať metriky a stĺpce"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
@@ -20135,6 +20155,9 @@ msgid "X Axis Label Interval"
 msgstr "Interval popisků osy X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Formát čísla na osu X"
 
@@ -20181,6 +20204,9 @@ msgstr "Formát osy Y"
 
 msgid "Y Axis Label"
 msgstr "Popisek osy Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Názov osy Y"
