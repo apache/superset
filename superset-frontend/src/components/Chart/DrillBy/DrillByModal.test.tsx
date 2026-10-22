@@ -483,82 +483,100 @@ test('categorical Drill by keeps the chart and dashboard time range', async () =
   );
 });
 
-test.each([
-  ['initial', 'success'],
-  ['initial', 'error'],
-  ['reload', 'success'],
-  ['reload', 'error'],
-])(
-  'ignores a late %s request %s while a drill bucket range is pending',
-  async (requestKind, outcome) => {
-    let resolveOldRequest!: (value: QueryData[]) => void;
-    let rejectOldRequest!: (reason: Error) => void;
-    const oldRequest = new Promise<QueryData[]>((resolve, reject) => {
-      resolveOldRequest = resolve;
-      rejectOldRequest = reject;
-    });
-    let resolveRange!: (value: string) => void;
-    const pendingRange = new Promise<string>(resolve => {
-      resolveRange = resolve;
-    });
-    let resolveNewRequest!: (value: QueryData[]) => void;
-    const newRequest = new Promise<QueryData[]>(resolve => {
-      resolveNewRequest = resolve;
-    });
-    const request = jest.spyOn(chartActions, 'requestChartDataResolved');
-    if (requestKind === 'reload') {
-      request.mockResolvedValueOnce([]);
-    }
-    request.mockReturnValueOnce(oldRequest).mockReturnValueOnce(newRequest);
-    jest
-      .spyOn(timeRangeUtils, 'fetchDrillByTimeRange')
-      .mockReturnValue(pendingRange);
-    const selection = jest.spyOn(contextMenu, 'useContextMenu');
-    const results = jest.spyOn(resultsTableView, 'useResultsTableView');
+/** Exercise a superseded request while the next drill bucket is unresolved. */
+async function assertLateRequestIgnored(
+  requestKind: 'initial' | 'reload',
+  outcome: 'success' | 'error',
+): Promise<void> {
+  let resolveOldRequest!: (value: QueryData[]) => void;
+  let rejectOldRequest!: (reason: Error) => void;
+  const oldRequest = new Promise<QueryData[]>((resolve, reject) => {
+    resolveOldRequest = resolve;
+    rejectOldRequest = reject;
+  });
+  let resolveRange!: (value: string) => void;
+  const pendingRange = new Promise<string>(resolve => {
+    resolveRange = resolve;
+  });
+  let resolveNewRequest!: (value: QueryData[]) => void;
+  const newRequest = new Promise<QueryData[]>(resolve => {
+    resolveNewRequest = resolve;
+  });
+  const request = jest.spyOn(chartActions, 'requestChartDataResolved');
+  if (requestKind === 'reload') {
+    request.mockResolvedValueOnce([]);
+  }
+  request.mockReturnValueOnce(oldRequest).mockReturnValueOnce(newRequest);
+  jest
+    .spyOn(timeRangeUtils, 'fetchDrillByTimeRange')
+    .mockReturnValue(pendingRange);
+  const selection = jest.spyOn(contextMenu, 'useContextMenu');
+  const results = jest.spyOn(resultsTableView, 'useResultsTableView');
 
-    await renderModal({
-      column: { column_name: 'name', verbose_name: null },
-      formData: { ...formData, time_range: 'Last year' },
-    });
-    if (requestKind === 'reload') {
-      await waitFor(() =>
-        expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument(),
-      );
-      act(() => results.mock.lastCall?.[5]?.());
-    }
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: { ...formData, time_range: 'Last year' },
+  });
+  if (requestKind === 'reload') {
     await waitFor(() =>
-      expect(request).toHaveBeenCalledTimes(requestKind === 'reload' ? 2 : 1),
+      expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument(),
     );
-    const oldSignal = request.mock.lastCall?.[1];
-    act(() =>
-      selection.mock.lastCall?.[2]?.(
-        { column_name: 'gender', verbose_name: null },
-        { filters: [year2003BucketFilter], groupbyFieldName: 'groupby' },
-      ),
-    );
-    expect(timeRangeUtils.fetchDrillByTimeRange).toHaveBeenCalled();
+    act(() => results.mock.lastCall?.[5]?.());
+  }
+  await waitFor(() =>
+    expect(request).toHaveBeenCalledTimes(requestKind === 'reload' ? 2 : 1),
+  );
+  const oldSignal = request.mock.lastCall?.[1];
+  act(() =>
+    selection.mock.lastCall?.[2]?.(
+      { column_name: 'gender', verbose_name: null },
+      { filters: [year2003BucketFilter], groupbyFieldName: 'groupby' },
+    ),
+  );
+  expect(timeRangeUtils.fetchDrillByTimeRange).toHaveBeenCalled();
 
-    await act(async () => {
-      if (outcome === 'success') {
-        resolveOldRequest([]);
-      } else {
-        rejectOldRequest(new Error('superseded request failed'));
-      }
-    });
-    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
-    expect(results.mock.lastCall?.[0]).toBeUndefined();
-    expect(screen.queryByTestId('drill-by-chart')).not.toBeInTheDocument();
-    expect(oldSignal?.aborted).toBe(true);
+  await act(async () => {
+    if (outcome === 'success') {
+      resolveOldRequest([]);
+    } else {
+      rejectOldRequest(new Error('superseded request failed'));
+    }
+  });
+  expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+  expect(results.mock.lastCall?.[0]).toBeUndefined();
+  expect(screen.queryByTestId('drill-by-chart')).not.toBeInTheDocument();
+  expect(oldSignal?.aborted).toBe(true);
 
-    await act(async () => resolveRange(YEAR_2003_BUCKET));
-    expect(request.mock.lastCall?.[0].formData.time_range).toBe(
-      YEAR_2003_BUCKET,
-    );
-    await act(async () => resolveNewRequest([]));
-    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
-    expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
-  },
-);
+  await act(async () => resolveRange(YEAR_2003_BUCKET));
+  expect(request.mock.lastCall?.[0].formData.time_range).toBe(YEAR_2003_BUCKET);
+  await act(async () => resolveNewRequest([]));
+  expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+  expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
+}
+
+test('ignores stale initial success during bucket resolution', async () => {
+  await expect(
+    assertLateRequestIgnored('initial', 'success'),
+  ).resolves.toBeUndefined();
+});
+
+test('ignores stale initial error during bucket resolution', async () => {
+  await expect(
+    assertLateRequestIgnored('initial', 'error'),
+  ).resolves.toBeUndefined();
+});
+
+test('ignores stale reload success during bucket resolution', async () => {
+  await expect(
+    assertLateRequestIgnored('reload', 'success'),
+  ).resolves.toBeUndefined();
+});
+
+test('ignores stale reload error during bucket resolution', async () => {
+  await expect(
+    assertLateRequestIgnored('reload', 'error'),
+  ).resolves.toBeUndefined();
+});
 
 test('should render radio buttons', async () => {
   await renderModal();
