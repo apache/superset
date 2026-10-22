@@ -17,12 +17,7 @@
  * under the License.
  */
 import type { canvas as canvasApi } from '@apache-superset/core';
-import {
-  fireEvent,
-  render,
-  screen,
-  within,
-} from 'spec/helpers/testing-library';
+import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import { canvas } from 'src/core';
 import CanvasGrid, { emptyScopeValues, ScopeValues } from './CanvasGrid';
 import { CanvasDefinitionResult, CanvasSettings } from './types';
@@ -233,9 +228,10 @@ test('an editable canvas gets a handle per placed widget', () => {
   expect(screen.getAllByRole('button', { name: 'Move widget' })).toHaveLength(
     Object.keys(result.placements).length,
   );
-  expect(screen.getAllByRole('button', { name: 'Resize widget' })).toHaveLength(
-    Object.keys(result.placements).length,
-  );
+  // Four corners each.
+  expect(
+    screen.getAllByRole('button', { name: /^Resize widget from/ }),
+  ).toHaveLength(Object.keys(result.placements).length * 4);
 });
 
 /**
@@ -279,10 +275,7 @@ test('a nested grid resizes against its own column count, not the root', () => {
   renderGrid(emptyScopeValues(), jest.fn(), result, place, true);
 
   const group = screen.getByRole('region', { name: 'group' });
-  dragRight(
-    within(group).getAllByRole('button', { name: 'Resize widget' })[0],
-    2000,
-  );
+  dragRight(group.querySelector('[data-corner="se"]') as HTMLElement, 2000);
 
   expect(place).toHaveBeenCalledWith('c1', {
     col: 1,
@@ -300,10 +293,9 @@ test("a nested resize honours the widget's declared minimum span", () => {
   renderGrid(emptyScopeValues(), jest.fn(), result, place, true);
 
   const group = screen.getByRole('region', { name: 'group' });
-  dragRight(
-    within(group).getAllByRole('button', { name: 'Resize widget' })[0],
-    -2000,
-  );
+  // The bottom-right corner, dragged left: the span shrinks while the origin
+  // stays put, so it is the minimum that stops it.
+  dragRight(group.querySelector('[data-corner="se"]') as HTMLElement, -2000);
 
   expect(place).toHaveBeenCalledWith('c1', {
     col: 1,

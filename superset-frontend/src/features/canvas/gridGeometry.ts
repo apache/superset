@@ -46,6 +46,11 @@ export interface GridDelta {
 
 export const NO_DELTA: GridDelta = { cols: 0, rows: 0 };
 
+/** Which corner of a widget a resize is being dragged by. */
+export type ResizeCorner = 'nw' | 'ne' | 'sw' | 'se';
+
+export const RESIZE_CORNERS: ResizeCorner[] = ['nw', 'ne', 'sw', 'se'];
+
 const clamp = (value: number, min: number, max: number) =>
   Math.min(Math.max(value, min), max);
 
@@ -115,18 +120,49 @@ export function resizedPlacement(
   delta: GridDelta,
   columns: number,
   constraints: SpanConstraints = {},
+  corner: ResizeCorner = 'se',
 ): GridPlacement {
-  const room = columns - placement.col + 1;
-  const maxColSpan = Math.min(constraints.maxColSpan ?? columns, room);
+  // The corner being dragged moves; the one opposite it stays put. Dragging a
+  // west or north edge outwards means a negative delta, so the span grows as
+  // the delta shrinks.
+  const west = corner === 'nw' || corner === 'sw';
+  const north = corner === 'nw' || corner === 'ne';
+  const right = placement.col + placement.colSpan - 1;
+  const bottom = placement.row + placement.rowSpan - 1;
+
+  // Room for the span, measured from whichever edge is anchored: to the
+  // grid's last column going east, or back to column 1 going west.
+  const colRoom = west ? right : columns - placement.col + 1;
+  const maxColSpan = Math.min(constraints.maxColSpan ?? columns, colRoom);
   // The stored placement already satisfies the widget's minimum, so this
   // range is non-empty; the guard only keeps it that way if limits change.
   const minColSpan = Math.min(constraints.minColSpan ?? 1, maxColSpan);
-  const maxRowSpan = constraints.maxRowSpan ?? Number.MAX_SAFE_INTEGER;
+  const colSpan = clamp(
+    placement.colSpan + (west ? -delta.cols : delta.cols),
+    minColSpan,
+    maxColSpan,
+  );
+
+  // Rows are unbounded downwards; going north they stop at row 1.
+  const rowRoom = north ? bottom : Number.MAX_SAFE_INTEGER;
+  const maxRowSpan = Math.min(
+    constraints.maxRowSpan ?? Number.MAX_SAFE_INTEGER,
+    rowRoom,
+  );
   const minRowSpan = Math.min(constraints.minRowSpan ?? 1, maxRowSpan);
+  const rowSpan = clamp(
+    placement.rowSpan + (north ? -delta.rows : delta.rows),
+    minRowSpan,
+    maxRowSpan,
+  );
+
+  // The anchored edge is what fixes col/row, so a span stopped by a limit
+  // stops the dragged edge with it rather than sliding the widget.
   return {
-    ...placement,
-    colSpan: clamp(placement.colSpan + delta.cols, minColSpan, maxColSpan),
-    rowSpan: clamp(placement.rowSpan + delta.rows, minRowSpan, maxRowSpan),
+    col: west ? right - colSpan + 1 : placement.col,
+    row: north ? bottom - rowSpan + 1 : placement.row,
+    colSpan,
+    rowSpan,
   };
 }
 
@@ -136,33 +172,3 @@ export const samePlacement = (a: GridPlacement, b: GridPlacement): boolean =>
   a.row === b.row &&
   a.colSpan === b.colSpan &&
   a.rowSpan === b.rowSpan;
-
-/** Whether two placements share at least one cell. */
-export const placementsOverlap = (
-  a: GridPlacement,
-  b: GridPlacement,
-): boolean =>
-  a.col < b.col + b.colSpan &&
-  b.col < a.col + a.colSpan &&
-  a.row < b.row + b.rowSpan &&
-  b.row < a.row + a.rowSpan;
-
-/**
- * The siblings `target` would land on top of, ignoring `moving` itself.
- *
- * Used to warn before a drop, not to resolve it: the server decides what
- * actually happens to an overlap (it pushes whichever widget comes later in
- * reading order straight down).
- */
-export function overlappedSiblings(
-  target: GridPlacement,
-  siblingIds: string[],
-  placements: Record<string, GridPlacement>,
-  moving: string,
-): string[] {
-  return siblingIds.filter(nodeId => {
-    if (nodeId === moving) return false;
-    const other = placements[nodeId];
-    return other !== undefined && placementsOverlap(target, other);
-  });
-}

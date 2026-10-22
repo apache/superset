@@ -74,3 +74,31 @@ def test_span_errors() -> None:
         "col 20 with colSpan 8 overflows 24 columns"
     ]
     assert span_errors({"col": 17, "row": 1, "colSpan": 8}, 24) == []
+
+
+def test_shared_cases_match_this_implementation() -> None:
+    """
+    The cases in ``grid_cases.json`` are read by the frontend's
+    ``resolveGrid.test.ts`` too, so the client's copy of these rules cannot
+    drift from this one. Changing a rule here fails this test until the
+    fixture is regenerated, and fails the frontend until it is ported.
+    """
+    from pathlib import Path
+
+    from superset.canvas.definition.grid import resolve_grid
+    from superset.utils import json
+
+    path = Path(__file__).parents[3] / "superset/canvas/definition/grid_cases.json"
+    cases = json.loads(path.read_text())["cases"]
+    assert len(cases) > 5, "the fixture must not be empty or this passes vacuously"
+
+    for case in cases:
+        rects, stored = resolve_grid(
+            [dict(layout) for layout in case["layouts"]], case["columns"]
+        )
+        resolved = [
+            {"col": r.col, "row": r.row, "colSpan": r.col_span, "rowSpan": r.row_span}
+            for r in rects
+        ]
+        assert resolved == case["expected"], case["name"]
+        assert stored == case["stored"], case["name"]

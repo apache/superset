@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ReactNode, useRef, useState } from 'react';
+import { ReactNode, useContext, useRef, useState } from 'react';
 import { t } from '@apache-superset/core/translation';
 import { css, styled, useTheme } from '@apache-superset/core/theme';
 import {
@@ -29,24 +29,33 @@ import { Icons } from '@superset-ui/core/components/Icons';
 import { Menu, MenuItem } from '@superset-ui/core/components/Menu';
 import type { SupportedLanguage } from '@superset-ui/core/components/CodeSyntaxHighlighter';
 import ViewQuery from 'src/explore/components/controls/ViewQuery';
+import { CanvasDraftContext } from './useWidgetRows';
 
-const Frame = styled.div`
-  position: relative;
-  height: 100%;
+const Frame = styled.div<{ editing?: boolean }>`
+  ${({ theme, editing }) => css`
+    position: relative;
+    height: 100%;
 
-  .canvas-widget-controls {
-    position: absolute;
-    top: 0;
-    right: 0;
-    z-index: 1;
-    opacity: 0;
-  }
+    .canvas-widget-controls {
+      position: absolute;
+      top: 0;
+      /*
+       * While a plan is open the top right corner belongs to the layout's
+       * resize handle, so these controls step aside by its width. Without
+       * that the handle would either sit under them or have to be pushed
+       * out of the corner, where it no longer matches the other three.
+       */
+      right: ${editing ? theme.sizeUnit * 5 : 0}px;
+      z-index: 1;
+      opacity: 0;
+    }
 
-  &:hover .canvas-widget-controls,
-  &:focus-within .canvas-widget-controls,
-  .canvas-widget-controls.ant-dropdown-open {
-    opacity: 1;
-  }
+    &:hover .canvas-widget-controls,
+    &:focus-within .canvas-widget-controls,
+    .canvas-widget-controls.ant-dropdown-open {
+      opacity: 1;
+    }
+  `}
 `;
 
 const VIEW_QUERY = 'view_query';
@@ -73,6 +82,8 @@ export default function WithQuery({
   children,
 }: WithQueryProps) {
   const theme = useTheme();
+  // A plan is open, so the layout's resize handle owns the top right corner.
+  const editing = Boolean(useContext(CanvasDraftContext));
   const [open, setOpen] = useState(false);
   const queryModal = useRef<ModalTriggerRef['current']>(null);
   if (!query) return <>{children}</>;
@@ -105,7 +116,7 @@ export default function WithQuery({
   ];
 
   return (
-    <Frame>
+    <Frame editing={editing}>
       {children}
       <NoAnimationDropdown
         popupRender={() => (

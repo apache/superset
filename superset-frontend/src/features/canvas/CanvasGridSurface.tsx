@@ -46,10 +46,12 @@ import {
   gridDelta,
   movedPlacement,
   NO_DELTA,
-  overlappedSiblings,
+  RESIZE_CORNERS,
+  type ResizeCorner,
   resizedPlacement,
   samePlacement,
 } from './gridGeometry';
+import { previewGrid } from './resolveGrid';
 import type { GridPlacement, SpanConstraints } from './types';
 
 type GestureKind = 'move' | 'resize';
@@ -77,7 +79,19 @@ interface Gesture {
    * the user never aimed at.
    */
   origin: GridPlacement;
+  /**
+   * Whether this gesture is actually dragging yet. One begun on a handle is
+   * armed at once; one begun on the widget body waits until the pointer has
+   * travelled `DRAG_THRESHOLD`, so a press that turns out to be a click
+   * reaches the widget underneath instead of nudging it.
+   */
+  armed: boolean;
+  /** For a resize, the corner being dragged; the opposite one stays put. */
+  corner: ResizeCorner;
 }
+
+/** Pixels of travel before a press on a widget body becomes a drag. */
+const DRAG_THRESHOLD = 4;
 
 /** A gesture's movement over the page content, scrolling included. */
 const travelled = (gesture: Gesture, clientX: number, clientY: number) => ({
@@ -122,20 +136,17 @@ const GridItem = styled.div<{
 `;
 
 /**
- * Where the widget being dragged would land. Turns red once it covers a
- * sibling, so the user sees an overlap before releasing rather than being
- * surprised when the server pushes a widget down to resolve it.
+ * Where the widget being dragged will land. No error state: the neighbours
+ * are already rendered where they will end up, so an overlap shows as them
+ * moving aside rather than as a warning colour here.
  */
-const DropPreview = styled.div<{
-  placement: GridPlacement;
-  colliding?: boolean;
-}>`
-  ${({ theme, placement, colliding }) => css`
+const DropPreview = styled.div<{ placement: GridPlacement }>`
+  ${({ theme, placement }) => css`
     grid-column: ${placement.col} / span ${placement.colSpan};
     grid-row: ${placement.row} / span ${placement.rowSpan};
-    border: 2px dashed ${colliding ? theme.colorError : theme.colorPrimary};
+    border: 2px dashed ${theme.colorPrimary};
     border-radius: ${theme.borderRadius}px;
-    background: ${colliding ? theme.colorErrorBg : theme.colorPrimaryBg};
+    background: ${theme.colorPrimaryBg};
     pointer-events: none;
     z-index: 1;
   `}
@@ -145,11 +156,17 @@ const DropPreview = styled.div<{
  * Wraps a widget so its handles can sit on top of it. The handles stay hidden
  * until the pointer is over the widget or a handle has focus, so a canvas at
  * rest looks the same whether or not the user may edit it.
+ *
+ * Only the innermost hovered widget shows its handles and its outline:
+ * `:hover` matches every ancestor, so a container would otherwise light up
+ * alongside whichever of its children the pointer is actually over.
  */
 const Interactive = styled.div`
   ${({ theme }) => css`
     height: 100%;
     position: relative;
+    border-radius: ${theme.borderRadius}px;
+    transition: box-shadow ${theme.motionDurationMid};
 
     /* Direct children only: hovering a container must not reveal the
        handles of every widget nested inside it. */
@@ -163,7 +180,13 @@ const Interactive = styled.div`
       transition: opacity ${theme.motionDurationMid};
     }
 
-    &:hover > .canvas-handle,
+    &:hover:not(:has(.canvas-interactive:hover)) {
+      /* Borderless widgets (a metric tile, say) otherwise give no clue which
+         widget the handles belong to. */
+      box-shadow: 0 0 0 1px ${theme.colorBorder};
+    }
+
+    &:hover:not(:has(.canvas-interactive:hover)) > .canvas-handle,
     & > .canvas-handle:focus-visible {
       opacity: 1;
       pointer-events: auto;
@@ -193,6 +216,19 @@ const handleOffset = (
   return Math.min(sizeUnit * (1 + depth * HANDLE_STEP), room);
 };
 
+/**
+ * The widget itself, kept inside the cells it was given.
+ *
+ * A widget renders at its natural height — a table with every row, say — so
+ * without this it spills past its own box and over whatever is below. The
+ * handles are siblings rather than children, so they stay pinned to the box
+ * while the content scrolls behind them.
+ */
+const Content = styled.div`
+  height: 100%;
+  overflow: auto;
+`;
+
 const Grip = styled.button<{ depth: number; extent: number }>`
   ${({ theme, depth, extent }) => css`
     position: absolute;
@@ -200,12 +236,13 @@ const Grip = styled.button<{ depth: number; extent: number }>`
     /* Deeper handles above shallower ones: the innermost wins a shared spot. */
     z-index: ${3 + depth};
     /*
-     * Clear of a widget's own controls, which sit at the top right corner and
-     * are 8 units wide (see WithQuery's .canvas-widget-controls): the grip is
-     * above them in the stack, so overlapping would swallow clicks meant for
-     * the menu.
+     * Left of both the north-east resize corner (4 units at the corner) and a
+     * widget's own controls, which step aside to 5 units while a plan is open
+     * and are 8 units wide (see WithQuery's .canvas-widget-controls). These
+     * handles sit above them in the stack, so overlapping would swallow
+     * presses meant for the menu.
      */
-    right: ${theme.sizeUnit * 9}px;
+    right: ${theme.sizeUnit * 14}px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -223,39 +260,56 @@ const Grip = styled.button<{ depth: number; extent: number }>`
   `}
 `;
 
-const ResizeCorner = styled.button<{ depth: number; extent: number }>`
-  ${({ theme, depth, extent }) => css`
-    position: absolute;
-    right: 0;
-    /*
-     * Stepped like the grip: a container's box ends where its last child's
-     * does, and the container's corner paints later, so sharing the pixel
-     * would make the child's corner unreachable.
-     */
-    bottom: ${
-      depth === 0 ? 0 : handleOffset(theme.sizeUnit, depth - 1, extent)
-    }px;
-    z-index: ${3 + depth};
-    width: ${theme.sizeUnit * 4}px;
-    height: ${theme.sizeUnit * 4}px;
-    padding: 0;
-    border: none;
-    background: transparent;
-    cursor: nwse-resize;
-    touch-action: none;
+/** Human-readable names for the four corners, for the handle labels. */
+const CORNER_NAMES: Record<ResizeCorner, () => string> = {
+  nw: () => t('top left'),
+  ne: () => t('top right'),
+  sw: () => t('bottom left'),
+  se: () => t('bottom right'),
+};
 
-    /* A two-line corner, the conventional resize affordance. */
-    &::after {
-      content: '';
+const ResizeCorner = styled.button<{
+  corner: ResizeCorner;
+  depth: number;
+  extent: number;
+}>`
+  ${({ theme, corner, depth, extent }) => {
+    const west = corner === 'nw' || corner === 'sw';
+    const north = corner === 'nw' || corner === 'ne';
+    /*
+     * Stepped like the grip: a container's box shares its edges with its
+     * first and last child's, and the container's handles paint later, so
+     * sharing the pixel would make the child's corner unreachable.
+     */
+    const inset =
+      depth === 0 ? 0 : handleOffset(theme.sizeUnit, depth - 1, extent);
+    return css`
       position: absolute;
-      right: ${theme.sizeUnit / 2}px;
-      bottom: ${theme.sizeUnit / 2}px;
-      width: ${theme.sizeUnit * 2}px;
-      height: ${theme.sizeUnit * 2}px;
-      border-right: 2px solid ${theme.colorTextTertiary};
-      border-bottom: 2px solid ${theme.colorTextTertiary};
-    }
-  `}
+      ${west ? 'left' : 'right'}: ${inset}px;
+      ${north ? 'top' : 'bottom'}: ${inset}px;
+      z-index: ${3 + depth};
+      width: ${theme.sizeUnit * 4}px;
+      height: ${theme.sizeUnit * 4}px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      cursor: ${west === north ? 'nwse-resize' : 'nesw-resize'};
+      touch-action: none;
+
+      /* A two-line corner, the conventional resize affordance. */
+      &::after {
+        content: '';
+        position: absolute;
+        ${west ? 'left' : 'right'}: ${theme.sizeUnit / 2}px;
+        ${north ? 'top' : 'bottom'}: ${theme.sizeUnit / 2}px;
+        width: ${theme.sizeUnit * 2}px;
+        height: ${theme.sizeUnit * 2}px;
+        border-${west ? 'left' : 'right'}: 2px solid ${theme.colorTextTertiary};
+        border-${north ? 'top' : 'bottom'}: 2px solid
+          ${theme.colorTextTertiary};
+      }
+    `;
+  }}
 `;
 
 /** The grid's content width, kept current as the viewport changes. */
@@ -326,12 +380,13 @@ export default function CanvasGridSurface({
       from: GridPlacement,
       dx: number,
       dy: number,
+      corner: ResizeCorner = 'se',
     ) => {
       const metrics: GridMetrics = { columns, gap, rowUnit };
       const delta = width > 0 ? gridDelta(dx, dy, width, metrics) : NO_DELTA;
       return kind === 'move'
         ? movedPlacement(from, delta, columns)
-        : resizedPlacement(from, delta, columns, constraints[nodeId]);
+        : resizedPlacement(from, delta, columns, constraints[nodeId], corner);
     },
     [width, columns, gap, rowUnit, constraints],
   );
@@ -358,8 +413,13 @@ export default function CanvasGridSurface({
   );
 
   const begin =
-    (nodeId: string, kind: GestureKind) =>
-    (event: ReactPointerEvent<HTMLButtonElement>) => {
+    (
+      nodeId: string,
+      kind: GestureKind,
+      armed = true,
+      corner: ResizeCorner = 'se',
+    ) =>
+    (event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
       // One gesture at a time. A second finger on another handle also reports
       // button 0, and letting it replace the live gesture would strand the
@@ -368,8 +428,12 @@ export default function CanvasGridSurface({
       if (live.current) return;
       const origin = placements[nodeId];
       if (!origin) return;
-      event.preventDefault();
-      event.stopPropagation();
+      // A deferred gesture must leave the press alone until it becomes a
+      // drag, or a click on a chart would never reach it.
+      if (armed) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
       event.currentTarget.setPointerCapture(event.pointerId);
       update({
         nodeId,
@@ -382,33 +446,48 @@ export default function CanvasGridSurface({
         dx: 0,
         dy: 0,
         origin,
+        armed,
+        corner,
       });
     };
 
-  const onPointerMove = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
     const { current } = live;
     if (!current || current.pointerId !== event.pointerId) return;
-    update({ ...current, ...travelled(current, event.clientX, event.clientY) });
+    const moved = travelled(current, event.clientX, event.clientY);
+    // A deferred gesture arms only once the pointer has really travelled.
+    const armed =
+      current.armed || Math.hypot(moved.dx, moved.dy) >= DRAG_THRESHOLD;
+    if (!armed) return;
+    update({ ...current, ...moved, armed });
   };
 
-  const onPointerUp = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const onPointerUp = (event: ReactPointerEvent<HTMLElement>) => {
     const { current } = live;
     if (!current || current.pointerId !== event.pointerId) return;
     update(undefined);
     // From the release event's own position: the pointer can travel between
     // the last move event and the release, and the drop belongs where the
     // user let go.
+    if (!current.armed) return;
     const { dx, dy } = travelled(current, event.clientX, event.clientY);
     commit(
       current.nodeId,
-      targetOf(current.nodeId, current.kind, current.origin, dx, dy),
+      targetOf(
+        current.nodeId,
+        current.kind,
+        current.origin,
+        dx,
+        dy,
+        current.corner,
+      ),
       current.origin,
     );
   };
 
   // Only the pointer that owns the gesture may cancel it, so a second
   // pointer going away elsewhere doesn't discard this one.
-  const onPointerCancel = (event: ReactPointerEvent<HTMLButtonElement>) => {
+  const onPointerCancel = (event: ReactPointerEvent<HTMLElement>) => {
     const { current } = live;
     if (!current || current.pointerId !== event.pointerId) return;
     update(undefined);
@@ -416,9 +495,7 @@ export default function CanvasGridSurface({
 
   // Losing capture ends the gesture even when no up or cancel event arrives,
   // which is what happens if the handle is unmounted mid-drag.
-  const onLostPointerCapture = (
-    event: ReactPointerEvent<HTMLButtonElement>,
-  ) => {
+  const onLostPointerCapture = (event: ReactPointerEvent<HTMLElement>) => {
     const { current } = live;
     if (!current || current.pointerId !== event.pointerId) return;
     update(undefined);
@@ -450,7 +527,7 @@ export default function CanvasGridSurface({
    * resize corner resizes it.
    */
   const onKeyDown =
-    (nodeId: string, kind: GestureKind) =>
+    (nodeId: string, kind: GestureKind, corner: ResizeCorner = 'se') =>
     (event: ReactKeyboardEvent<HTMLButtonElement>) => {
       const steps: Record<string, [number, number]> = {
         ArrowLeft: [-1, 0],
@@ -468,7 +545,13 @@ export default function CanvasGridSurface({
         nodeId,
         kind === 'move'
           ? movedPlacement(placement, delta, columns)
-          : resizedPlacement(placement, delta, columns, constraints[nodeId]),
+          : resizedPlacement(
+              placement,
+              delta,
+              columns,
+              constraints[nodeId],
+              corner,
+            ),
         placement,
       );
     };
@@ -480,19 +563,23 @@ export default function CanvasGridSurface({
     onLostPointerCapture,
   };
 
-  const preview = gesture
+  const preview = gesture?.armed
     ? targetOf(
         gesture.nodeId,
         gesture.kind,
         gesture.origin,
         gesture.dx,
         gesture.dy,
+        gesture.corner,
       )
     : undefined;
-  const covered =
+  // Where every widget sits for the layout being previewed. Runs the same
+  // rules the server will apply on the drop, so the neighbours move aside
+  // under the pointer and nothing jumps once the write lands.
+  const shown =
     preview && gesture
-      ? overlappedSiblings(preview, childIds, placements, gesture.nodeId)
-      : [];
+      ? previewGrid(childIds, placements, gesture.nodeId, preview, columns)
+      : placements;
 
   return (
     <Grid
@@ -503,19 +590,14 @@ export default function CanvasGridSurface({
       data-test="canvas-grid-surface"
     >
       {preview && gesture && !samePlacement(preview, gesture.origin) && (
-        <DropPreview
-          placement={preview}
-          colliding={covered.length > 0}
-          data-test="canvas-drop-preview"
-          data-colliding={covered.length > 0}
-          title={
-            covered.length > 0 ? t('This overlaps another widget') : undefined
-          }
-        />
+        <DropPreview placement={preview} data-test="canvas-drop-preview" />
       )}
       {childIds.map(childId => {
-        const dragging = gesture?.nodeId === childId;
-        const placed = placements[childId];
+        const dragging = gesture?.armed && gesture.nodeId === childId;
+        // Neighbours follow the previewed layout, so they move aside while
+        // the pointer is still down. The widget being dragged stays anchored
+        // where it was grabbed, and the pointer offset below moves it.
+        const placed = dragging ? placements[childId] : shown[childId];
         // Rows plus the gaps between them: how tall this widget renders.
         const extent = placed
           ? placed.rowSpan * rowUnit + (placed.rowSpan - 1) * gap
@@ -523,16 +605,22 @@ export default function CanvasGridSurface({
         return (
           <GridItem
             key={childId}
-            placement={
-              dragging && gesture ? gesture.origin : placements[childId]
-            }
+            placement={dragging && gesture ? gesture.origin : placed}
             dragging={dragging && gesture?.kind === 'move'}
             offset={dragging ? { x: gesture.dx, y: gesture.dy } : undefined}
             data-test="canvas-node"
             data-node-id={childId}
           >
-            <Interactive>
-              {renderNode(childId)}
+            <Interactive
+              className="canvas-interactive"
+              {...(editable && placements[childId]
+                ? {
+                    onPointerDown: begin(childId, 'move', false),
+                    ...handlers,
+                  }
+                : {})}
+            >
+              <Content>{renderNode(childId)}</Content>
               {editable && placements[childId] && (
                 <>
                   <Grip
@@ -548,17 +636,25 @@ export default function CanvasGridSurface({
                   >
                     <Icons.HolderOutlined iconSize="s" />
                   </Grip>
-                  <ResizeCorner
-                    type="button"
-                    depth={depth}
-                    extent={extent}
-                    className="canvas-handle"
-                    aria-label={t('Resize widget')}
-                    data-test="canvas-resize-handle"
-                    onPointerDown={begin(childId, 'resize')}
-                    onKeyDown={onKeyDown(childId, 'resize')}
-                    {...handlers}
-                  />
+                  {RESIZE_CORNERS.map(corner => (
+                    <ResizeCorner
+                      key={corner}
+                      type="button"
+                      corner={corner}
+                      depth={depth}
+                      extent={extent}
+                      className="canvas-handle"
+                      aria-label={t(
+                        'Resize widget from the %s corner',
+                        CORNER_NAMES[corner](),
+                      )}
+                      data-test="canvas-resize-handle"
+                      data-corner={corner}
+                      onPointerDown={begin(childId, 'resize', true, corner)}
+                      onKeyDown={onKeyDown(childId, 'resize', corner)}
+                      {...handlers}
+                    />
+                  ))}
                 </>
               )}
             </Interactive>

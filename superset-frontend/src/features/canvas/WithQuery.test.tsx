@@ -24,6 +24,7 @@ import {
   waitFor,
 } from 'spec/helpers/testing-library';
 import WithQuery from './WithQuery';
+import { CanvasDraftContext } from './useWidgetRows';
 
 test('shows the query that ran from the chart menu', async () => {
   // The query panel formats the query through SQL Lab when it opens.
@@ -62,4 +63,29 @@ test('offers nothing when the user may not see the query', () => {
 
   expect(screen.getByText('chart')).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'More Options' })).toBeNull();
+});
+
+test("the chart menu steps aside for the layout's corner handle in a plan", () => {
+  // In a plan the top right corner belongs to the resize handle, which sits
+  // above these controls in the stack. Without the inset it would either hide
+  // under them or have to be moved out of the corner, where it stops matching
+  // the other three.
+  const menu = (draftToken?: string) => {
+    const { container, unmount } = render(
+      <CanvasDraftContext.Provider value={draftToken}>
+        <WithQuery query="SELECT 1" language="sql" datasource="13__table">
+          <div>chart</div>
+        </WithQuery>
+      </CanvasDraftContext.Provider>,
+      { useRedux: true, useRouter: true },
+    );
+    const { right } = getComputedStyle(
+      container.querySelector('.canvas-widget-controls') as HTMLElement,
+    );
+    unmount();
+    return right;
+  };
+
+  expect(menu(undefined)).toBe('0px');
+  expect(menu('tok-123')).toBe('20px');
 });

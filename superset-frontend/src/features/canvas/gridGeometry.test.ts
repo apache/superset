@@ -21,8 +21,7 @@ import {
   columnWidth,
   gridDelta,
   movedPlacement,
-  overlappedSiblings,
-  placementsOverlap,
+  RESIZE_CORNERS,
   resizedPlacement,
   samePlacement,
 } from './gridGeometry';
@@ -148,46 +147,69 @@ test('placements compare by the cells they take', () => {
   );
 });
 
-test('placements overlap only when they share a cell', () => {
-  const widget = placement(5, 5, 4, 4); // cols 5-8, rows 5-8
+test('dragging the south-west corner keeps the right edge still', () => {
+  // cols 10-15, rows 5-8. Pulling left widens without moving the right edge.
+  const widget = placement(10, 5, 6, 4);
 
-  expect(placementsOverlap(widget, placement(8, 8, 2, 2))).toBe(true);
-  // Flush neighbours on each side touch but do not overlap.
-  expect(placementsOverlap(widget, placement(9, 5, 4, 4))).toBe(false);
-  expect(placementsOverlap(widget, placement(1, 5, 4, 4))).toBe(false);
-  expect(placementsOverlap(widget, placement(5, 9, 4, 4))).toBe(false);
-  expect(placementsOverlap(widget, placement(5, 1, 4, 4))).toBe(false);
-  // A placement always overlaps itself.
-  expect(placementsOverlap(widget, widget)).toBe(true);
+  expect(resizedPlacement(widget, { cols: -3, rows: 0 }, 24, {}, 'sw')).toEqual(
+    placement(7, 5, 9, 4),
+  );
+  // Pushing right narrows it, right edge still at column 15.
+  expect(resizedPlacement(widget, { cols: 2, rows: 0 }, 24, {}, 'sw')).toEqual(
+    placement(12, 5, 4, 4),
+  );
+  // It can reach column 1 and no further.
+  expect(
+    resizedPlacement(widget, { cols: -50, rows: 0 }, 24, {}, 'sw'),
+  ).toEqual(placement(1, 5, 15, 4));
 });
 
-test('overlapped siblings name what a drop would land on, never itself', () => {
-  const placements = {
-    a: placement(1, 1, 6, 4),
-    b: placement(7, 1, 6, 4),
-    c: placement(1, 5, 24, 4),
-  };
-  const siblings = ['a', 'b', 'c'];
+test('dragging the north-east corner keeps the bottom edge still', () => {
+  const widget = placement(10, 5, 6, 4);
 
-  // Dragging 'a' onto 'b'.
+  // Pulling up grows it upwards; bottom stays at row 8.
+  expect(resizedPlacement(widget, { cols: 0, rows: -2 }, 24, {}, 'ne')).toEqual(
+    placement(10, 3, 6, 6),
+  );
+  // It can reach row 1 and no further.
   expect(
-    overlappedSiblings(placement(7, 1, 6, 4), siblings, placements, 'a'),
-  ).toEqual(['b']);
-  // A wide drop can cover more than one.
+    resizedPlacement(widget, { cols: 0, rows: -50 }, 24, {}, 'ne'),
+  ).toEqual(placement(10, 1, 6, 8));
+  // Columns still grow eastward from the same origin.
+  expect(resizedPlacement(widget, { cols: 3, rows: 0 }, 24, {}, 'ne')).toEqual(
+    placement(10, 5, 9, 4),
+  );
+});
+
+test('dragging the north-west corner keeps the bottom-right still', () => {
+  const widget = placement(10, 5, 6, 4);
+
   expect(
-    overlappedSiblings(placement(1, 1, 24, 8), siblings, placements, 'a'),
-  ).toEqual(['b', 'c']);
-  // Free space collides with nothing.
+    resizedPlacement(widget, { cols: -2, rows: -1 }, 24, {}, 'nw'),
+  ).toEqual(placement(8, 4, 8, 5));
+  // Both edges stop at the grid's start.
   expect(
-    overlappedSiblings(placement(13, 1, 6, 4), siblings, placements, 'a'),
-  ).toEqual([]);
-  // An id with no placement is ignored rather than throwing.
+    resizedPlacement(widget, { cols: -50, rows: -50 }, 24, {}, 'nw'),
+  ).toEqual(placement(1, 1, 15, 8));
+});
+
+test('a span stopped by its minimum stops the dragged edge with it', () => {
+  // Shrinking from the west: once colSpan hits 4, `col` must stop too rather
+  // than sliding the widget across the grid.
+  const widget = placement(10, 5, 6, 4);
+  const limits = { minColSpan: 4 };
+
   expect(
-    overlappedSiblings(
-      placement(1, 1, 6, 4),
-      [...siblings, 'gone'],
-      placements,
-      'a',
-    ),
-  ).toEqual([]);
+    resizedPlacement(widget, { cols: 50, rows: 0 }, 24, limits, 'sw'),
+  ).toEqual(placement(12, 5, 4, 4));
+});
+
+test('every corner leaves a zero delta exactly where it was', () => {
+  const widget = placement(10, 5, 6, 4);
+
+  RESIZE_CORNERS.forEach(corner => {
+    expect(
+      resizedPlacement(widget, { cols: 0, rows: 0 }, 24, {}, corner),
+    ).toEqual(widget);
+  });
 });

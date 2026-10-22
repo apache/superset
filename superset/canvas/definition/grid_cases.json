@@ -1,0 +1,392 @@
+{
+  "comment": "Shared cases for the grid placement rules, so the server's resolve_grid and the client's resolveGrid cannot drift. Generated from the server, which is the authority; see grid.py.",
+  "cases": [
+    {
+      "name": "a single explicit child keeps its place",
+      "columns": 24,
+      "layouts": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 4
+        }
+      ],
+      "expected": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 4
+        }
+      ],
+      "stored": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 4
+        }
+      ]
+    },
+    {
+      "name": "an omitted span fills the grid width, one row tall",
+      "columns": 24,
+      "layouts": [
+        {}
+      ],
+      "expected": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 1
+        }
+      ],
+      "stored": [
+        {}
+      ]
+    },
+    {
+      "name": "auto-placed children sit side by side until the row is full",
+      "columns": 12,
+      "layouts": [
+        {
+          "colSpan": 5
+        },
+        {
+          "colSpan": 5
+        },
+        {
+          "colSpan": 5
+        }
+      ],
+      "expected": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 5,
+          "rowSpan": 1
+        },
+        {
+          "col": 6,
+          "row": 1,
+          "colSpan": 5,
+          "rowSpan": 1
+        },
+        {
+          "col": 1,
+          "row": 2,
+          "colSpan": 5,
+          "rowSpan": 1
+        }
+      ],
+      "stored": [
+        {
+          "colSpan": 5
+        },
+        {
+          "colSpan": 5
+        },
+        {
+          "colSpan": 5
+        }
+      ]
+    },
+    {
+      "name": "an explicit child that overlaps an earlier one is pushed straight down",
+      "columns": 24,
+      "layouts": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        },
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        }
+      ],
+      "expected": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        },
+        {
+          "col": 1,
+          "row": 5,
+          "colSpan": 12,
+          "rowSpan": 4
+        }
+      ],
+      "stored": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 4
+        },
+        {
+          "col": 1,
+          "row": 5,
+          "colSpan": 12,
+          "rowSpan": 4
+        }
+      ]
+    },
+    {
+      "name": "a push-down repeats until the child is clear",
+      "columns": 24,
+      "layouts": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        }
+      ],
+      "expected": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        {
+          "col": 1,
+          "row": 3,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        {
+          "col": 1,
+          "row": 5,
+          "colSpan": 24,
+          "rowSpan": 2
+        }
+      ],
+      "stored": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        {
+          "col": 1,
+          "row": 3,
+          "colSpan": 24,
+          "rowSpan": 2
+        },
+        {
+          "col": 1,
+          "row": 5,
+          "colSpan": 24,
+          "rowSpan": 2
+        }
+      ]
+    },
+    {
+      "name": "a span wider than the grid is clamped to it",
+      "columns": 12,
+      "layouts": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 40,
+          "rowSpan": 1
+        }
+      ],
+      "expected": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 1
+        }
+      ],
+      "stored": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 40,
+          "rowSpan": 1
+        }
+      ]
+    },
+    {
+      "name": "auto placement flows around an explicit child",
+      "columns": 24,
+      "layouts": [
+        {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 2
+        },
+        {
+          "colSpan": 12
+        },
+        {
+          "colSpan": 12
+        }
+      ],
+      "expected": [
+        {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 2
+        },
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 1
+        },
+        {
+          "col": 1,
+          "row": 2,
+          "colSpan": 12,
+          "rowSpan": 1
+        }
+      ],
+      "stored": [
+        {
+          "col": 13,
+          "row": 1,
+          "colSpan": 12,
+          "rowSpan": 2
+        },
+        {
+          "colSpan": 12
+        },
+        {
+          "colSpan": 12
+        }
+      ]
+    },
+    {
+      "name": "the auto cursor only moves forward",
+      "columns": 24,
+      "layouts": [
+        {
+          "colSpan": 20
+        },
+        {
+          "colSpan": 8
+        },
+        {
+          "colSpan": 4
+        }
+      ],
+      "expected": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 20,
+          "rowSpan": 1
+        },
+        {
+          "col": 1,
+          "row": 2,
+          "colSpan": 8,
+          "rowSpan": 1
+        },
+        {
+          "col": 9,
+          "row": 2,
+          "colSpan": 4,
+          "rowSpan": 1
+        }
+      ],
+      "stored": [
+        {
+          "colSpan": 20
+        },
+        {
+          "colSpan": 8
+        },
+        {
+          "colSpan": 4
+        }
+      ]
+    },
+    {
+      "name": "explicit and auto children interleave in reading order",
+      "columns": 12,
+      "layouts": [
+        {
+          "colSpan": 6
+        },
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 3
+        },
+        {
+          "colSpan": 6
+        }
+      ],
+      "expected": [
+        {
+          "col": 1,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 1
+        },
+        {
+          "col": 1,
+          "row": 2,
+          "colSpan": 6,
+          "rowSpan": 3
+        },
+        {
+          "col": 7,
+          "row": 1,
+          "colSpan": 6,
+          "rowSpan": 1
+        }
+      ],
+      "stored": [
+        {
+          "colSpan": 6
+        },
+        {
+          "col": 1,
+          "row": 2,
+          "colSpan": 6,
+          "rowSpan": 3
+        },
+        {
+          "colSpan": 6
+        }
+      ]
+    },
+    {
+      "name": "an empty grid resolves to nothing",
+      "columns": 24,
+      "layouts": [],
+      "expected": [],
+      "stored": []
+    }
+  ]
+}

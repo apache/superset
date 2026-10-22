@@ -20,6 +20,7 @@
 import { ReactNode, useState } from 'react';
 import { fireEvent, render, screen } from 'spec/helpers/testing-library';
 import CanvasGridSurface from './CanvasGridSurface';
+import { RESIZE_CORNERS } from './gridGeometry';
 import type { GridPlacement, SpanConstraints } from './types';
 
 // jsdom lays nothing out, so the grid is told how wide it is: 1000px over 24
@@ -77,10 +78,11 @@ const renderSurface = ({
   renderNode?: (nodeId: string) => ReactNode;
   depth?: number;
 } = {}) => {
-  const { rerender } = render(
+  const { rerender, container } = render(
     surface(live, editable, onPlace, constraints, childIds, renderNode, depth),
   );
   return Object.assign(onPlace, {
+    container,
     /** Simulate this grid's membership changing, e.g. a node reparented. */
     replaceChildren: (next: string[]) =>
       rerender(
@@ -130,7 +132,18 @@ const drag = (handle: HTMLElement, dx: number, dy: number) => {
 };
 
 const handles = (name: 'Move widget' | 'Resize widget') =>
-  screen.getAllByRole('button', { name });
+  screen.getAllByRole('button', {
+    name: name === 'Move widget' ? name : /^Resize widget from/,
+  });
+
+/**
+ * Resize handles for one corner only. Each widget has all four, so a test
+ * that means "the bottom-right one" has to say so.
+ */
+const corners = (container: HTMLElement, corner = 'se') =>
+  Array.from(
+    container.querySelectorAll(`[data-corner="${corner}"]`),
+  ) as HTMLElement[];
 
 /** jsdom never scrolls, so page scroll is simulated. */
 let pageScrollY = 0;
@@ -176,7 +189,7 @@ test('dragging a widget persists the cells it was dropped on', () => {
 test('resizing a widget persists the new spans and leaves its origin alone', () => {
   const onPlace = renderSurface();
 
-  drag(handles('Resize widget')[0], COL_PITCH * 3, ROW_PITCH);
+  drag(corners(onPlace.container)[0], COL_PITCH * 3, ROW_PITCH);
 
   expect(onPlace).toHaveBeenCalledWith('kpi', {
     col: 1,
@@ -189,7 +202,7 @@ test('resizing a widget persists the new spans and leaves its origin alone', () 
 test('a resize stops at the span limits the widget declares', () => {
   const onPlace = renderSurface({ constraints: { kpi: { maxColSpan: 8 } } });
 
-  drag(handles('Resize widget')[0], COL_PITCH * 10, 0);
+  drag(corners(onPlace.container)[0], COL_PITCH * 10, 0);
 
   expect(onPlace).toHaveBeenCalledWith('kpi', {
     col: 1,
@@ -250,7 +263,7 @@ test('arrow keys move a widget a cell at a time', () => {
 test('arrow keys on the resize corner resize a cell at a time', () => {
   const onPlace = renderSurface();
 
-  fireEvent.keyDown(handles('Resize widget')[0], { key: 'ArrowDown' });
+  fireEvent.keyDown(corners(onPlace.container)[0], { key: 'ArrowDown' });
 
   expect(onPlace).toHaveBeenCalledWith('kpi', {
     col: 1,
@@ -281,46 +294,6 @@ test('a view-only surface renders the widgets with no handles', () => {
   expect(
     screen.queryByRole('button', { name: 'Resize widget' }),
   ).not.toBeInTheDocument();
-});
-
-test('the drop preview warns while it covers another widget', () => {
-  renderSurface();
-  const handle = handles('Move widget')[0];
-
-  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
-  // 'kpi' is 6x4 at row 1; four rows down puts it on 'trend' at row 5.
-  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 4 });
-
-  const preview = screen.getByTestId('canvas-drop-preview');
-  expect(preview).toHaveAttribute('data-colliding', 'true');
-  expect(preview).toHaveAttribute('title', 'This overlaps another widget');
-});
-
-test('the drop preview stays neutral over free space', () => {
-  renderSurface();
-  const handle = handles('Move widget')[0];
-
-  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
-  // Straight right, staying on row 1 where nothing else sits.
-  pointer(handle, 'pointermove', { clientX: COL_PITCH * 8, clientY: 0 });
-
-  const preview = screen.getByTestId('canvas-drop-preview');
-  expect(preview).toHaveAttribute('data-colliding', 'false');
-  expect(preview).not.toHaveAttribute('title');
-});
-
-test('a resize that grows onto a neighbour warns too', () => {
-  renderSurface();
-  const handle = handles('Resize widget')[0];
-
-  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
-  // Grow 'kpi' four rows taller, reaching into 'trend'.
-  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 4 });
-
-  expect(screen.getByTestId('canvas-drop-preview')).toHaveAttribute(
-    'data-colliding',
-    'true',
-  );
 });
 
 test('the drop lands where the pointer was released, not where it last moved', () => {
@@ -427,7 +400,7 @@ test('a widget with no resolved placement renders, with no handles', () => {
 
   expect(screen.getByText('widget kpi')).toBeInTheDocument();
   expect(handles('Move widget')).toHaveLength(1);
-  expect(handles('Resize widget')).toHaveLength(1);
+  expect(handles('Resize widget')).toHaveLength(RESIZE_CORNERS.length);
 });
 
 test('a second pointer cannot steal a live gesture', () => {
@@ -638,20 +611,21 @@ test('a hidden handle does not take presses', () => {
   );
 });
 
-const cornerBottom = () => getComputedStyle(handles('Resize widget')[0]).bottom;
+const cornerBottom = (container: HTMLElement, corner = 'se') =>
+  getComputedStyle(corners(container, corner)[0]).bottom;
 
 test("the root grid's resize corner sits on the widget's own corner", () => {
-  renderSurface();
+  const onPlace = renderSurface();
 
-  expect(cornerBottom()).toBe('0px');
+  expect(cornerBottom(onPlace.container)).toBe('0px');
 });
 
 test("a nested grid lifts its resize corner clear of its container's", () => {
   // A container's box ends where its last child's does and the container's
   // corner paints later, so sharing the pixel makes the child's unreachable.
-  renderSurface({ depth: 1 });
+  const onPlace = renderSurface({ depth: 1 });
 
-  const bottom = Number.parseInt(cornerBottom(), 10);
+  const bottom = Number.parseInt(cornerBottom(onPlace.container), 10);
   expect(bottom).toBeGreaterThan(0);
   // Still inside the widget, like the grip offsets above.
   expect(bottom).toBeLessThan(placements.kpi.rowSpan * 40);
@@ -675,4 +649,227 @@ test('a drag follows the content when the page scrolls under it', () => {
     colSpan: 6,
     rowSpan: 4,
   });
+});
+
+test('each widget wrapper is marked so the innermost one can be detected', () => {
+  // The hover rule narrows to the innermost widget with
+  // `:not(:has(.canvas-interactive:hover))`, which silently stops working if
+  // this class goes away. jsdom cannot evaluate `:has()` against a hover
+  // state, so the class itself is what is pinned here.
+  const { container } = renderSurface();
+
+  expect(container.querySelectorAll('.canvas-interactive')).toHaveLength(2);
+});
+
+const rowOf = (container: HTMLElement, nodeId: string) =>
+  getComputedStyle(
+    container.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement,
+  ).gridRow;
+
+test('neighbours move aside while the pointer is still down', () => {
+  // Live reflow: the same rules the server will apply on the drop run on
+  // every move, so nothing jumps once the write lands.
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+  const before = rowOf(onPlace.container, 'trend');
+
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  // 'kpi' is 4 rows tall at row 1; four rows down puts it on 'trend'.
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 4 });
+
+  // 'kpi' comes first in reading order, so it takes row 5 and 'trend' is
+  // pushed below it -- visibly, before the drop.
+  expect(rowOf(onPlace.container, 'trend')).not.toBe(before);
+  expect(rowOf(onPlace.container, 'trend')).toContain('9');
+});
+
+test('neighbours go back when a gesture is abandoned', () => {
+  const onPlace = renderSurface();
+  const handle = handles('Move widget')[0];
+  const before = rowOf(onPlace.container, 'trend');
+
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 4 });
+  pointer(handle, 'pointercancel');
+
+  expect(rowOf(onPlace.container, 'trend')).toBe(before);
+});
+
+test('the drop outline no longer carries an error state', () => {
+  // Overlap is shown by the neighbours moving, not by colouring this red.
+  renderSurface();
+  const handle = handles('Move widget')[0];
+
+  pointer(handle, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(handle, 'pointermove', { clientX: 0, clientY: ROW_PITCH * 4 });
+
+  const outline = screen.getByTestId('canvas-drop-preview');
+  expect(outline).not.toHaveAttribute('data-colliding');
+  expect(outline).not.toHaveAttribute('title');
+});
+
+const widgetBody = (container: HTMLElement, nodeId: string) =>
+  container.querySelector(
+    `[data-node-id="${nodeId}"] .canvas-interactive`,
+  ) as HTMLElement;
+
+test('the widget body itself can be dragged in a plan', () => {
+  // The grip is small and hover-only, so the whole widget is a drag source
+  // where editing is allowed.
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+  pointer(body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 5,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});
+
+/** Widgets lift while being dragged, which is how "is it dragging" is read. */
+const liftedOpacity = (container: HTMLElement, nodeId: string) =>
+  getComputedStyle(
+    container.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement,
+  ).opacity;
+
+test('a press on a widget body that barely moves stays a click', () => {
+  // Otherwise every click on a chart in a plan would make the widget lift and
+  // follow the pointer for a frame before settling back.
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(body, 'pointermove', { clientX: 2, clientY: 1 });
+
+  // Not dragging: no lift (the property is only set while dragging), and
+  // nothing previewed.
+  expect(liftedOpacity(onPlace.container, 'kpi')).not.toBe('0.85');
+  expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
+
+  pointer(body, 'pointerup', { clientX: 2, clientY: 1 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('a body press past the threshold does start dragging', () => {
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(body, 'pointermove', { clientX: 10, clientY: 0 });
+
+  expect(liftedOpacity(onPlace.container, 'kpi')).toBe('0.85');
+});
+
+test('a body drag arms once the pointer has really travelled', () => {
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  // Past the threshold but less than a cell: armed, though it snaps back to
+  // where it started, so nothing is written on release.
+  pointer(body, 'pointermove', { clientX: 10, clientY: 0 });
+
+  expect(screen.queryByTestId('canvas-drop-preview')).not.toBeInTheDocument();
+
+  pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(screen.getByTestId('canvas-drop-preview')).toBeInTheDocument();
+});
+
+test('the body is not a drag source on a published canvas', () => {
+  const onPlace = renderSurface({ editable: false });
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+  pointer(body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('every widget offers all four resize corners, each named', () => {
+  const onPlace = renderSurface();
+
+  RESIZE_CORNERS.forEach(corner => {
+    expect(corners(onPlace.container, corner)).toHaveLength(2);
+  });
+  // Named individually, so a screen reader can tell them apart.
+  expect(
+    screen.getAllByRole('button', { name: /Resize widget from the top left/ }),
+  ).toHaveLength(2);
+});
+
+test('a north-west drag at the grid origin has nowhere to grow', () => {
+  // 'kpi' already starts at col 1 row 1, so pulling up and left cannot widen
+  // it; the placement is unchanged and nothing is written.
+  const onPlace = renderSurface();
+
+  drag(corners(onPlace.container, 'nw')[0], -COL_PITCH * 2, -ROW_PITCH);
+
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('a north-west drag on a widget away from the edge grows up and left', () => {
+  const onPlace = renderSurface({
+    live: { mid: { col: 10, row: 5, colSpan: 6, rowSpan: 4 } },
+    childIds: ['mid'],
+  });
+
+  drag(corners(onPlace.container, 'nw')[0], -COL_PITCH * 2, -ROW_PITCH * 1);
+
+  // Bottom-right stays at col 15, row 8.
+  expect(onPlace).toHaveBeenCalledWith('mid', {
+    col: 8,
+    row: 4,
+    colSpan: 8,
+    rowSpan: 5,
+  });
+});
+
+test('all four corners sit at the widget corners, none singled out', () => {
+  // The north-east one used to be pushed down to clear a widget's controls,
+  // which looked like a mistake. WithQuery steps those aside while a plan is
+  // open instead, so the four handles are symmetric.
+  const onPlace = renderSurface();
+  const edge = (corner: string, side: 'top' | 'bottom') =>
+    getComputedStyle(corners(onPlace.container, corner)[0])[side];
+
+  expect(edge('nw', 'top')).toBe('0px');
+  expect(edge('ne', 'top')).toBe('0px');
+  expect(edge('sw', 'bottom')).toBe('0px');
+  expect(edge('se', 'bottom')).toBe('0px');
+});
+
+test('a widget taller than its cells scrolls rather than spilling over', () => {
+  // A table renders every row at its natural height. Without a scroll
+  // container it overflows its own box and across whatever is below, while
+  // the outline and the handles still mark the box -- which is what made the
+  // handles look like they sat in the middle of the table.
+  const onPlace = renderSurface({
+    renderNode: nodeId => (
+      <div style={{ height: 4000 }}>{`tall ${nodeId}`}</div>
+    ),
+  });
+
+  const content = onPlace.container.querySelector(
+    '[data-node-id="kpi"] .canvas-interactive > div',
+  ) as HTMLElement;
+
+  expect(getComputedStyle(content).overflow).toBe('auto');
+  expect(getComputedStyle(content).height).toBe('100%');
+});
+
+test('the handles are not inside the scrolling area', () => {
+  // They are siblings of the content, so they stay pinned to the widget's
+  // corners instead of scrolling away with it.
+  const onPlace = renderSurface();
+  const handle = corners(onPlace.container, 'se')[0];
+
+  expect(handle.parentElement).toHaveClass('canvas-interactive');
 });
