@@ -220,31 +220,34 @@ test('an asynchronous field callback cannot resurrect the row it edited', () => 
   expect(onChange).not.toHaveBeenCalled();
 });
 
-test.each(['expand another row', 'add a row'] as const)(
+test.each([
+  'expand another row',
+  'add a row',
+  'receive a fresh collection array',
+] as const)(
   'a pending SQL expression survives when you %s before its debounce fires',
   async action => {
     const onChange = jest.fn();
-    const { container } = render(
-      <CollectionTable
-        {...tableProps}
-        onChange={onChange}
-        expandFieldset={
-          <Fieldset>
-            <Field
-              fieldKey="expression"
-              label="SQL expression"
-              control={
-                <TextAreaControl
-                  language="sql"
-                  offerEditInModal={false}
-                  debounceDelay={300}
-                />
-              }
-            />
-          </Fieldset>
-        }
-      />,
-    );
+    const sqlProps = {
+      ...tableProps,
+      onChange,
+      expandFieldset: (
+        <Fieldset>
+          <Field
+            fieldKey="expression"
+            label="SQL expression"
+            control={
+              <TextAreaControl
+                language="sql"
+                offerEditInModal={false}
+                debounceDelay={300}
+              />
+            }
+          />
+        </Fieldset>
+      ),
+    };
+    const { container, rerender } = render(<CollectionTable {...sqlProps} />);
     fireEvent.click(
       within(screen.getByRole('row', { name: /first/i })).getByRole('button', {
         name: /expand row/i,
@@ -268,8 +271,10 @@ test.each(['expand another row', 'add a row'] as const)(
           { name: /expand row/i },
         ),
       );
-    } else {
+    } else if (action === 'add a row') {
       fireEvent.click(screen.getByRole('button', { name: /add item/i }));
+    } else {
+      rerender(<CollectionTable {...sqlProps} collection={[...initialRows]} />);
     }
     act(() => jest.advanceTimersByTime(300));
 
