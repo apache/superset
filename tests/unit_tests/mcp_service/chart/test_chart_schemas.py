@@ -1463,3 +1463,24 @@ class TestXYChartConfigSortBy:
         assert isinstance(config.sort_by, SortByConfig)
         assert config.sort_by.column == "sales"
         assert config.sort_by.ascending is True
+
+
+def test_number_format_examples_are_currency_neutral() -> None:
+    """Published number-format examples must not infer a currency."""
+    from importlib import import_module
+
+    from superset.mcp_service.chart.schemas import (
+        BigNumberChartConfig,
+        TableColumnConfig,
+    )
+
+    assert "$,.2f" not in (
+        BigNumberChartConfig.model_fields["y_axis_format"].description or ""
+    )
+    assert "$,.2f" not in (
+        TableColumnConfig.model_fields["d3_number_format"].description or ""
+    )
+    metric_module = import_module(
+        "superset.mcp_service.dataset.tool.update_dataset_metric"
+    )
+    assert "$,.2f" not in (metric_module.update_dataset_metric.__doc__ or "")

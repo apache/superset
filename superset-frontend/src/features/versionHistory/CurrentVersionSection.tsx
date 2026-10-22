@@ -109,13 +109,23 @@ export interface CurrentVersionSectionProps {
   restoreNotice: string | null;
 }
 
+/**
+ * Whether the section renders. The panel uses the same rule to decide that
+ * the section, rather than the live dated row, marks the current state.
+ */
+export const hasCurrentVersionContent = ({
+  entries,
+  restoreNotice,
+}: CurrentVersionSectionProps): boolean =>
+  restoreNotice !== null || entries.length > 0;
+
 export default function CurrentVersionSection({
   entries,
   restoreNotice,
 }: CurrentVersionSectionProps) {
   const [expanded, setExpanded] = useState(false);
 
-  if (!restoreNotice && entries.length === 0) {
+  if (!hasCurrentVersionContent({ entries, restoreNotice })) {
     return null;
   }
 
