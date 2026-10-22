@@ -28,12 +28,12 @@
   "devDependencies": {
     "@types/jsonwebtoken": "^9.0.10",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "@types/ws": "^8.18.2",
     "esbuild": "^0.28.2",
-    "oxfmt": "^0.72.0",
-    "oxlint": "^1.87.0",
-    "oxlint-tsgolint": "^7.0.2003",
+    "oxfmt": "^0.73.0",
+    "oxlint": "^1.88.0",
+    "oxlint-tsgolint": "^7.0.2004",
     "tscw-config": "^1.1.2",
     "typescript": "^7.0.2",
     "vitest": "^5.0.3"

@@ -106,7 +106,10 @@ from superset.commands.distributed_lock.acquire import AcquireDistributedLock
 from superset.commands.distributed_lock.release import ReleaseDistributedLock
 from superset.commands.exceptions import TagForbiddenError
 from superset.commands.importers.exceptions import NoValidFilesFoundError
-from superset.commands.importers.v1.utils import get_contents_from_bundle
+from superset.commands.importers.v1.utils import (
+    get_contents_from_bundle,
+    open_import_bundle,
+)
 from superset.commands.purge import SoftDeleteBinding
 from superset.constants import MODEL_API_RW_METHOD_PERMISSION_MAP, RouteMethod
 from superset.daos.dashboard import DashboardDAO, EmbeddedDashboardDAO
@@ -207,7 +210,6 @@ from superset.tasks.thumbnails import (
     cache_dashboard_thumbnail,
 )
 from superset.tasks.utils import get_current_user
-from superset.utils import json
 from superset.utils.core import (
     get_user_id,
     parse_boolean_string,
@@ -234,6 +236,7 @@ from superset.versioning.etag import set_version_etag
 from superset.versioning.schemas import VersionListItemSchema
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -369,6 +372,7 @@ CUSTOM_TAG_LIST_COLUMNS = BASE_LIST_COLUMNS + [
 # needs to render its charts are kept. This is a stricter version of the
 # narrowing DashboardDatasetSchema.post_dump already applies to guest users.
 DASHBOARD_DATASET_INACCESSIBLE_FIELDS = (
+    "metadata_error",
     "sql",
     "select_star",
     "fetch_values_predicate",
@@ -3172,7 +3176,7 @@ class DashboardRestApi(
         if not upload:
             return self.response_400()
         if is_zipfile(upload):
-            with ZipFile(upload) as bundle:
+            with open_import_bundle(upload) as bundle:
                 contents = get_contents_from_bundle(bundle)
         else:
             upload.seek(0)
@@ -3181,28 +3185,14 @@ class DashboardRestApi(
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
         overwrite_all = parse_boolean_string(request.form.get("overwrite_all", "false"))
 
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
-        )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
 
         command = ImportDashboardsCommand(
@@ -3445,6 +3435,8 @@ class DashboardRestApi(
         except ValidationError as error:
             return self.response_400(message=error.messages)
 
+        # Read before the copy: its rollback expires ``original_dash``.
+        source_id: int = original_dash.id
         try:
             dash = CopyDashboardCommand(original_dash, data).run()
         except DashboardForbiddenError:
@@ -3452,6 +3444,7 @@ class DashboardRestApi(
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardCopyError:
+            logger.error("Error copying dashboard %s", source_id, exc_info=True)
             return self.response_400()
 
         return self.response(

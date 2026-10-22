@@ -512,7 +512,7 @@ function ChartList(props: ChartListProps) {
         Header: '',
         id: 'id',
         disableSortBy: true,
-        size: 'xs',
+        size: 'sm',
         hidden: !userId,
       },
       {
@@ -528,7 +528,11 @@ function ChartList(props: ChartListProps) {
           },
         }: any) => (
           <FlexRowContainer>
-            <Link to={url} data-test={`${sliceName}-list-chart-title`}>
+            <Link
+              to={url}
+              title={sliceName}
+              data-test={`${sliceName}-list-chart-title`}
+            >
               {certifiedBy && (
                 <>
                   <CertifiedBadge
@@ -544,6 +548,7 @@ function ChartList(props: ChartListProps) {
         ),
         Header: t('Name'),
         accessor: 'slice_name',
+        size: 'xxxl',
         id: 'slice_name',
       },
       {
@@ -724,9 +729,13 @@ function ChartList(props: ChartListProps) {
                   tooltip={
                     allowEdit
                       ? deleteActionLabel()
-                      : t(
-                          'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
-                        )
+                      : softDelete
+                        ? t(
+                            'You must be a chart editor in order to archive. Please reach out to a chart editor to request modifications or edit access.',
+                          )
+                        : t(
+                            'You must be a chart editor in order to delete. Please reach out to a chart editor to request modifications or edit access.',
+                          )
                   }
                   placement="bottom"
                   icon={<Icons.DeleteOutlined iconSize="l" />}
