@@ -3665,6 +3665,9 @@ msgstr ""
 msgid "Color scheme"
 msgstr ""
 
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid "Color used when the close value is greater than or equal to the open value."
 msgstr ""
 
@@ -6586,6 +6589,10 @@ msgstr ""
 msgid "Failed at retrieving results"
 msgstr ""
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
@@ -8183,6 +8190,9 @@ msgstr ""
 msgid "Lat"
 msgstr ""
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr ""
 
@@ -8979,6 +8989,9 @@ msgstr ""
 msgid "Minimum Font Size"
 msgstr ""
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr ""
 
@@ -8986,6 +8999,12 @@ msgid "Minimum Width"
 msgstr ""
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid "Minimum gap between two axis ticks. Only applies to numeric and time axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid "Minimum gap between two axis ticks. Useful to avoid fractional ticks on integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -12983,6 +13002,9 @@ msgstr ""
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 
+msgid "Some semantic views could not be added"
+msgstr ""
+
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
 
@@ -16777,6 +16799,9 @@ msgstr ""
 msgid "X Axis Label Interval"
 msgstr ""
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr ""
 
@@ -16821,6 +16846,9 @@ msgid "Y Axis Format"
 msgstr ""
 
 msgid "Y Axis Label"
+msgstr ""
+
+msgid "Y Axis Minimum Interval"
 msgstr ""
 
 msgid "Y Axis Title"
@@ -17228,6 +17256,11 @@ msgid "Your query was updated"
 msgstr ""
 
 msgid "Your report could not be deleted"
+msgstr ""
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
 msgstr ""
 
 msgid "Your session has ended. Please sign in again."
@@ -18292,8 +18325,25 @@ msgid ""
 "This semantic layer has no dependent semantic views. This cannot be undone."
 msgstr ""
 
+msgid "Views must be a list of objects"
+msgstr ""
+
+msgid "No views provided"
+msgstr ""
+
 #, python-format
 msgid ""
 "Deletion is blocked by %s dependent assets (%s archived). Remove or repoint "
 "them before deleting."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
 msgstr ""
