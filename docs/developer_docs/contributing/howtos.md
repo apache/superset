@@ -210,7 +210,7 @@ npm run playwright:report
 
 ### Testing Microsoft Teams notifications
 
-For deployment setup, see the [Microsoft Teams configuration guide](../../admin_docs/configuration/alerts-reports.mdx#microsoft-teams-configuration).
+For deployment setup, see the [Microsoft Teams configuration guide](/admin-docs/configuration/alerts-reports#microsoft-teams-configuration).
 
 Backend tests under `tests/unit_tests/integrations/teams/` exercise the real SDK
 with fake HTTP transports. Install the `teams` extra to run authentication and
