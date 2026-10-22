@@ -417,12 +417,14 @@ def test_non_sunburst_granularity_preserves_independent_filters(
 
 @pytest.mark.parametrize("result_type", ["samples", "drill_detail", "full"])
 @pytest.mark.parametrize("bucket", ["2026-08-01", "2026-09-01"])
+@pytest.mark.parametrize("viz_type", [None, "echarts_timeseries_line"])
 def test_timeseries_samples_with_swapped_time_column_drops_stale_drill_filter(
     events_table: SqlaTable,
     app: Flask,
     mocker: MockerFixture,
     result_type: str,
     bucket: str,
+    viz_type: str | None,
 ) -> None:
     """Minimal dashboard samples must not filter the replaced x-axis column."""
     from superset.common.chart_data import ChartDataResultType
@@ -453,11 +455,14 @@ def test_timeseries_samples_with_swapped_time_column_drops_stale_drill_filter(
         QueryContextFactory, "_convert_to_model", return_value=events_table
     )
     until = "2026-09-01" if bucket == "2026-08-01" else "2026-10-01"
+    form_data: dict[str, object] = {"dashboardId": 1}
+    if viz_type:
+        form_data["viz_type"] = viz_type
     with app.test_request_context():
         context = QueryContextFactory().create(
             datasource={"id": 1, "type": "table"},
             result_type=ChartDataResultType(result_type),
-            form_data={"dashboardId": 1},
+            form_data=form_data,
             queries=[
                 {
                     "columns": ["order_date", "ship_date", "kind"],
@@ -483,3 +488,81 @@ def test_timeseries_samples_with_swapped_time_column_drops_stale_drill_filter(
         ROWS[i][0] for i in ([0, 3, 5] if bucket == "2026-08-01" else [1, 2, 4])
     ]
     assert sorted(str(value) for value in df["order_date"]) == sorted(expected)
+
+
+@pytest.mark.parametrize("result_type", ["samples", "drill_detail", "full"])
+@pytest.mark.parametrize("time_column_source", ["dashboard", "saved"])
+def test_sunburst_factory_drill_keeps_bucket_on_different_time_column(
+    events_table: SqlaTable,
+    app: Flask,
+    mocker: MockerFixture,
+    result_type: str,
+    time_column_source: str,
+) -> None:
+    """An independent Sunburst ring remains filtered under a Time Column override."""
+    from superset.common.chart_data import ChartDataResultType
+
+    events_table.columns.append(
+        TableColumn(column_name="ship_date", is_dttm=True, type="TIMESTAMP")
+    )
+    with events_table.database.get_sqla_engine() as engine, engine.begin() as conn:
+        conn.execute(text("ALTER TABLE events ADD COLUMN ship_date TIMESTAMP"))
+        conn.execute(text("UPDATE events SET ship_date = '2026-08-15 12:00:00'"))
+    mocker.patch.object(
+        QueryContextFactory, "_convert_to_model", return_value=events_table
+    )
+    time_range = "2026-07-01 : 2026-10-01"
+    form_data: dict[str, object] = {
+        "viz_type": "sunburst_v2",
+        **(
+            {
+                "extra_form_data": {
+                    "granularity_sqla": "ship_date",
+                    "time_range": time_range,
+                }
+            }
+            if time_column_source == "dashboard"
+            else {"granularity_sqla": "ship_date", "time_range": time_range}
+        ),
+    }
+    with app.test_request_context():
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            result_type=ChartDataResultType(result_type),
+            form_data=form_data,
+            queries=[
+                {
+                    "columns": ["kind"]
+                    if result_type == "full"
+                    else ["order_date", "kind"],
+                    "metrics": [
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": "COUNT(*)",
+                            "label": "ct",
+                        }
+                    ]
+                    if result_type == "full"
+                    else [],
+                    "granularity": "ship_date",
+                    "time_range": time_range,
+                    "filters": [
+                        {
+                            "col": "order_date",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "No filter",
+                        },
+                        _drill_filter("2026-08-01"),
+                    ],
+                    "row_limit": 100,
+                }
+            ],
+        )
+        df = events_table.get_query_result(context.queries[0]).df
+    if result_type == "full":
+        assert dict(zip(df["kind"], df["ct"], strict=True)) == {"a": 2, "b": 2}
+    else:
+        assert sorted(str(value) for value in df["order_date"]) == sorted(
+            order_date for order_date, _ in ROWS[:4]
+        )
+        assert sorted(df["kind"].tolist()) == ["a", "a", "b", "b"]

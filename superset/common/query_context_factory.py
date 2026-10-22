@@ -426,8 +426,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
             # Keep independent predicates when the Time Column is unchanged.
-            # A drill on a replaced column may carry the overriding column's
-            # bucket, so it must be dropped along with the old range filter.
+            # A swapped x-axis drill can carry the overriding column's bucket.
+            # Sunburst levels are independent of the Time Column, so their
+            # predicates remain valid even when that column changes.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -438,7 +439,10 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     if filter["col"] != filter_to_remove
                     or (
                         filter["op"] != "TEMPORAL_RANGE"
-                        and filter_to_remove == granularity
+                        and (
+                            filter_to_remove == granularity
+                            or (form_data or {}).get("viz_type") == "sunburst_v2"
+                        )
                     )
                 ]
 
