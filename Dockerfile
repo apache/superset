@@ -28,7 +28,7 @@ ARG BUILD_TRANSLATIONS="false"
 
 ######################################################################
 # superset-node-manifests holds only the npm manifests of the frontend
-# tree (the root package.json + lockfile and every workspace package.json),
+# tree (the root package.json + lockfile, .npmrc, and every workspace package.json),
 # so the `npm ci` layer in superset-node-ci can see the workspaces and is
 # cached on dependency declarations alone, not on every source change.
 # Docker cannot COPY a glob while keeping the directory structure, hence
@@ -37,7 +37,7 @@ ARG BUILD_TRANSLATIONS="false"
 FROM --platform=${BUILDPLATFORM} node:24-trixie-slim AS superset-node-manifests
 WORKDIR /app/superset-frontend
 COPY superset-frontend /app/superset-frontend
-RUN find . -type f ! -name package.json ! -name package-lock.json -delete \
+RUN find . -type f ! -name package.json ! -name package-lock.json ! -name .npmrc -delete \
     && find . -depth -type d -empty -delete
 
 ######################################################################
