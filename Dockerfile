@@ -27,6 +27,20 @@ ARG BUILDPLATFORM=${BUILDPLATFORM:-amd64}
 ARG BUILD_TRANSLATIONS="false"
 
 ######################################################################
+# superset-node-manifests holds only the npm manifests of the frontend
+# tree (the root package.json + lockfile and every workspace package.json),
+# so the `npm ci` layer in superset-node-ci can see the workspaces and is
+# cached on dependency declarations alone, not on every source change.
+# Docker cannot COPY a glob while keeping the directory structure, hence
+# the copy-then-prune stage.
+######################################################################
+FROM --platform=${BUILDPLATFORM} node:24-trixie-slim AS superset-node-manifests
+WORKDIR /app/superset-frontend
+COPY superset-frontend /app/superset-frontend
+RUN find . -type f ! -name package.json ! -name package-lock.json -delete \
+    && find . -depth -type d -empty -delete
+
+######################################################################
 # superset-node-ci used as a base for building frontend assets and CI
 ######################################################################
 FROM --platform=${BUILDPLATFORM} node:24-trixie-slim AS superset-node-ci
@@ -62,14 +76,12 @@ ENV npm_config_fetch_retries=5 \
     npm_config_fetch_retry_maxtimeout=120000 \
     npm_config_fetch_timeout=600000
 
-# Mount package files and install dependencies if not in dev mode
-# NOTE: we mount packages and plugins as they are referenced in package.json as workspaces
-# ideally we'd COPY only their package.json. Here npm ci will be cached as long
-# as the full content of these folders don't change, yielding a decent cache reuse rate.
-# Note that it's not possible to selectively COPY or mount using blobs.
-RUN --mount=type=bind,source=./superset-frontend/package.json,target=./package.json \
-    --mount=type=bind,source=./superset-frontend/package-lock.json,target=./package-lock.json \
-    --mount=type=cache,target=/root/.cache \
+# Install dependencies from the manifests alone (root + workspaces) if not in
+# dev mode. With the workspace package.json files present, npm ci links the
+# workspaces and installs their dependencies too, so the CI jobs that run
+# in this image do not need an `npm i` of their own.
+COPY --from=superset-node-manifests /app/superset-frontend /app/superset-frontend
+RUN --mount=type=cache,target=/root/.cache \
     --mount=type=cache,target=/root/.npm \
     if [ "${DEV_MODE}" = "false" ]; then \
         npm ci; \
