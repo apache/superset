@@ -24,9 +24,11 @@ with exactly one change waiting for a reviewer.
     docker compose -p asset-approval-qa exec superset-light \
         python /app/local_extensions/asset-approval/qa/seed.py
 
-Two users, because the point of maker-checker is that an author cannot
-approve their own work: the gate looks for a *second* editor of the asset,
-so one account can never demonstrate the flow.
+The cast is the one the demo recording uses. Alex and Priya are two
+editors, because the point of maker-checker is that an author cannot approve
+their own work: the gate looks for a *second* editor of the asset, so one
+account can never demonstrate the flow. Sam only views, and Morgan is an
+admin who edits nothing, which is how a tester sees there is no admin bypass.
 """
 
 from __future__ import annotations
@@ -35,9 +37,19 @@ import sys
 
 from superset.app import create_app
 
-MAKER = "maker"
-CHECKER = "checker"
-VIEWER = "viewer"
+MAKER = "alex"  # the author: makes the changes
+CHECKER = "priya"  # the second editor: reviews them
+VIEWER = "sam"  # sees only what is live
+ADMIN = "morgan"  # an admin, but an editor of nothing: no bypass
+ADMIN_ROLE = "Admin"
+
+# Display names, so banners and the queue read like the recording.
+NAMES = {
+    MAKER: ("Alex", "Rivera"),
+    CHECKER: ("Priya", "Shah"),
+    VIEWER: ("Sam", "Carter"),
+    ADMIN: ("Morgan", "Lee"),
+}
 PASSWORD = "general"  # noqa: S105 -- a local QA fixture, never a deployment
 ROLE = "Alpha"
 
@@ -103,10 +115,11 @@ def ensure_user(username: str, role_name: str = ROLE):
     if user := security_manager.find_user(username=username):
         return user
     role = security_manager.find_role(role_name)
+    first_name, last_name = NAMES.get(username, (username.capitalize(), "(QA)"))
     user = security_manager.add_user(
         username=username,
-        first_name=username.capitalize(),
-        last_name="(QA)",
+        first_name=first_name,
+        last_name=last_name,
         email=f"{username}@example.invalid",
         role=role,
         password=PASSWORD,
@@ -184,6 +197,10 @@ def main() -> None:
         viewer = ensure_user(VIEWER, VIEWER_BASE_ROLE)
         grant_extra_role(viewer, VIEWER_ROLE)
 
+        # Admin, and deliberately an editor of nothing, so "no admin bypass"
+        # can be seen rather than taken on trust.
+        ensure_user(ADMIN, ADMIN_ROLE)
+
         # Either title: an approved run leaves the dashboard carrying the
         # proposed one, and resetting after walking the flow is exactly when
         # this is run. Looking only for the original name would fail there,
@@ -213,7 +230,7 @@ def main() -> None:
 
         # One asset with a single editor, so an author can reach the state
         # where there is no one to send the change to and the dialog has to
-        # say so. `maker` alone, because `maker` is who the walkthrough is.
+        # say so. Alex alone, because Alex is who the walkthrough is.
         solo = (
             db.session.query(Dashboard)
             .filter_by(dashboard_title=SOLO_DASHBOARD_TITLE)
@@ -270,8 +287,10 @@ def main() -> None:
 
     print()
     print("Ready.")
-    print(f"  logins       {MAKER} / {CHECKER} / {VIEWER}  (password: {PASSWORD})")
+    logins = " / ".join((MAKER, CHECKER, VIEWER, ADMIN))
+    print(f"  logins       {logins}  (password: {PASSWORD})")
     print(f"  {VIEWER:12} sees only what is live -- editor of nothing")
+    print(f"  {ADMIN:12} Admin, editor of nothing -- no bypass")
     print(f"  no approver  {SOLO_DASHBOARD_TITLE}: {MAKER} is its only editor")
     print(f"  waiting      {queue['count']} change(s) for {CHECKER}")
     if queue["count"]:

@@ -88,8 +88,8 @@ docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/superset 
 docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/python /app/local_extensions/asset-approval/qa/seed.py
 ```
 
-This creates the two test accounts, makes them both editors of an example
-dashboard, chart and dataset, and leaves exactly one change waiting for a
+This creates the cast (Alex, Priya, Sam and Morgan), makes Alex and Priya
+editors of an example dashboard, chart and dataset, and leaves exactly one change waiting for a
 reviewer. It prints what it set up, and it is safe to re-run at any time.
 
 ---
@@ -97,35 +97,38 @@ reviewer. It prints what it set up, and it is safe to re-run at any time.
 ## Logins
 
 Every account below is a local QA fixture created by `qa/seed.py` (or by
-Superset's own init, for `admin`). None of these passwords are used anywhere
-real.
+Superset's own init, for `admin`). It is the same cast as the demo
+recording. None of these passwords are used anywhere real.
 
-| user | password | role | editor of | use it for |
-|---|---|---|---|---|
-| `maker` | `general` | Alpha | USA Births Names, the first chart, the first dataset, Sales Dashboard (sole editor) | making changes |
-| `checker` | `general` | Alpha | USA Births Names, the first chart, the first dataset | reviewing them |
-| `viewer` | `general` | Gamma + "Viewer (data access)" | nothing | seeing what everyone else sees |
-| `admin` | `admin` | Admin | nothing | setup, and checking there is no admin bypass |
+| user | name | password | role | editor of | use it for |
+|---|---|---|---|---|---|
+| `alex` | Alex Rivera | `general` | Alpha | USA Births Names, the first chart, the first dataset, Sales Dashboard (sole editor) | the author: making changes |
+| `priya` | Priya Shah | `general` | Alpha | USA Births Names, the first chart, the first dataset | the approver: reviewing them |
+| `sam` | Sam Carter | `general` | Gamma + "Viewer (data access)" | nothing | the viewer: seeing what everyone else sees |
+| `morgan` | Morgan Lee | `general` | Admin | nothing | an admin who is not an editor: proving there is no admin bypass |
+| `admin` | Superset Admin | `admin` | Admin | nothing | setup only |
 
 The seeded assets, all from `superset load-examples`:
 
 | asset | editors | what it is for |
 |---|---|---|
-| **USA Births Names** (dashboard) | maker, checker | the main walkthrough: a change here can be approved |
-| **Sales Dashboard** (dashboard) | maker only | the state where nobody else can approve |
-| first chart by id (**Deck.gl Grid** on a fresh load) | maker, checker | the chart walkthrough |
-| first dataset by id (**bart_lines** on a fresh load) | maker, checker | the dataset walkthrough |
+| **USA Births Names** (dashboard) | alex, priya | the main walkthrough: a change here can be approved |
+| **Sales Dashboard** (dashboard) | alex only | the state where nobody else can approve |
+| first chart by id (**Deck.gl Grid** on a fresh load) | alex, priya | the chart walkthrough |
+| first dataset by id (**bart_lines** on a fresh load) | alex, priya | the dataset walkthrough |
 
-**Test as `maker`, `checker` and `viewer`, not as `admin`.** Admin's blanket
-access deliberately does not count as editorship for approval, so admin sees
+**Test as `alex`, `priya`, `sam` and `morgan`, never as `admin`.**
+Admin's blanket access deliberately does not count as editorship for approval, so admin sees
 a more permissive picture than a real user does. Permission and UI bugs only
 show up on the non-admin accounts.
 
-Two editor accounts exist because an author may never approve their own
+Alex and Priya are two editors because an author may never approve their own
 work: the gate looks for a *second* editor of the asset, so one account
-cannot demonstrate the flow at all. `viewer` is deliberately an editor of
-nothing: while a change sits in review its bell has no count, it has nothing
-in Approvals, and it sees the asset exactly as it was.
+cannot demonstrate the flow at all. Sam is deliberately an editor of
+nothing: while a change sits in review their bell has no count, they have
+nothing in Approvals, and they see the asset exactly as it was. Morgan is an
+admin who edits nothing, so nothing waits for them and they get no Approve
+button.
 
 Use one browser profile (or a private window) per account, so you can switch
 between them without signing out each time.
@@ -135,89 +138,89 @@ between them without signing out each time.
 ## The happy flow, step by step
 
 Run `qa/seed.py` first (see [Starting over](#starting-over)). It leaves one
-change already waiting: `maker` renamed **USA Births Names** to
+change already waiting: `alex` renamed **USA Births Names** to
 "USA Births Names (Q4)" and asked for review. Steps 1–3 look at that change
 from each side; step 4 onwards walks a full round yourself. Each step says
 what you should see; anything else is a finding.
 
 ### A. A change waits for review
 
-1. **As `viewer`** — open **USA Births Names**.
+1. **As `sam`** — open **USA Births Names**.
    - The title is still "USA Births Names". No banner, no badge, and the bell has no count.
    - Settings has no Approvals entry for you. Opening `/approvals/` directly says "Nothing needs you right now".
-2. **As `admin`** — open **USA Births Names**.
-   - No review banner and no Approve button. Admin is not an editor, and there is no admin bypass.
-3. **As `checker`** — find the change.
+2. **As `morgan`** — open **USA Births Names**.
+   - No review banner and no Approve button. Morgan is an admin but not an editor, and there is no admin bypass.
+3. **As `priya`** — find the change.
    - The bell shows **1**; its popover lists USA Births Names under "Needs your review".
    - Home → **Pending reviews** lists it.
    - **Settings → Manage → Approvals** (or the bell's "View all approvals") lists it as "Needs your review", with a **Review** button.
 
 ### B. Review it on the dashboard
 
-4. **As `checker`** — click **Review**. It opens the dashboard itself.
-   - A banner reads "Reviewing changes from Maker (QA) · N changes", with **Show changes**, **What changed** and **Open live version**.
+4. **As `priya`** — click **Review**. It opens the dashboard itself.
+   - A banner reads "Reviewing changes from Alex Rivera · N changes", with **Show changes**, **What changed** and **Open live version**.
    - The **Review changes** panel opens on its own, beside the charts. It shows the field diff (`dashboard_title`: old struck through, new in green), an "Add to the note" box, and **Request changes** / **Approve** pinned to its footer.
    - **Show changes** previews the dashboard as it would look approved.
-5. **As `checker`** — press **Edit dashboard**.
-   - A dialog says "Maker (QA) is changing this dashboard", with when it was saved and **View changes**. Only one change per asset can be open. Cancel.
-6. **As `checker`** — **Request changes**, type a note, send.
-7. **As `maker`** — open **USA Births Names**.
-   - The banner says checker requested changes and shows the note.
+5. **As `priya`** — press **Edit dashboard**.
+   - A dialog says "Alex Rivera is changing this dashboard", with when it was saved and **View changes**. Only one change per asset can be open. Cancel.
+6. **As `priya`** — **Request changes**, type a note, send.
+7. **As `alex`** — open **USA Births Names**.
+   - The banner says Priya requested changes and shows the note.
    - The bell lists it under "Returned to you".
 
 ### C. Make and send a change yourself
 
-8. **As `maker`** — **Edit dashboard**, change the title, **Save**.
+8. **As `alex`** — **Edit dashboard**, change the title, **Save**.
    - The toast says "Changes saved. Viewers still see the live version."
    - The banner reads "Viewing your changes … viewers still see the live version", with **Show changes**, **What changed** and **Request review**.
-   - Check as `viewer` in the other window: still the old title.
-9. **As `maker`** — **Request review**.
-   - The dialog shows "Who can approve: Checker (QA)", an optional "Ask someone specific" picker, and "Your changes lock while they wait. Editing withdraws the request."
-   - Add a note and send. The banner turns to "Awaiting review … Checker (QA) can approve", and you are never offered an Approve button.
+   - Check as `sam` in the other window: still the old title.
+9. **As `alex`** — **Request review**.
+   - The dialog shows "Who can approve: Priya Shah", an optional "Ask someone specific" picker, and "Your changes lock while they wait. Editing withdraws the request."
+   - Add a note and send. The banner turns to "Awaiting review … Priya Shah can approve", and you are never offered an Approve button.
 
 ### D. Approve it
 
-10. **As `checker`** — open the dashboard again (bell or Approvals) and press **Approve** in the panel.
+10. **As `priya`** — open the dashboard again (bell or Approvals) and press **Approve** in the panel.
     - It asks first: "Approve and publish? Viewers see these changes right away. The current version moves to version history."
     - Confirm. The banner disappears and the new title is live.
-11. **As `viewer`** — reload. The new title is there now.
-12. **As `checker`** — **⋯ → View version history**. The approval is the newest entry.
+11. **As `sam`** — reload. The new title is there now.
+12. **As `priya`** — **⋯ → View version history**. The approval is the newest entry.
 
 ### E. Charts
 
-13. **As `maker`** — open the seeded chart in Explore, change its name, **Save**.
-    - The chart shows the "viewers still see the live version" banner. **Charts** lists it with a **Changes pending** tag. As `viewer`, the chart keeps its old name.
-14. **As `maker`** — **Request review** from the chart's banner.
-15. **As `checker`** — **Settings → Manage → Approvals → Review**, then Approve. The new name goes live.
+13. **As `alex`** — open the seeded chart in Explore, change its name, **Save**.
+    - The chart shows the "viewers still see the live version" banner. **Charts** lists it with a **Changes pending** tag. As `sam`, the chart keeps its old name.
+14. **As `alex`** — **Request review** from the chart's banner.
+15. **As `priya`** — **Settings → Manage → Approvals → Review**, then Approve. The new name goes live.
 
 ### F. Datasets
 
-16. **As `maker`** — **Datasets → edit** the seeded dataset, change something (for example a metric label on the Metrics tab), **Save**, **Confirm**.
+16. **As `alex`** — **Datasets → edit** the seeded dataset, change something (for example a metric label on the Metrics tab), **Save**, **Confirm**.
     - The toast says the changes are saved and viewers still see the live version, with a **Review changes →** link.
-17. **As `maker`** — follow **Review changes →**. It opens Approvals filtered to "Submitted by me".
+17. **As `alex`** — follow **Review changes →**. It opens Approvals filtered to "Submitted by me".
     - The dataset row is a Draft with **Request review**. Send it. The row flips to "Awaiting review".
-18. **As `checker`** — **Approvals → Review** on the dataset row.
+18. **As `priya`** — **Approvals → Review** on the dataset row.
     - The "Review dataset changes" dialog opens on the tab that changed (Source / Metrics / Columns).
     - It shows live struck through beside proposed in green, and how many charts and dashboards use the dataset.
     - **Approve**. The change goes live.
 
 ### G. Deletes wait too
 
-19. **As `maker`** — delete the seeded chart from the **Charts** list and confirm.
+19. **As `alex`** — delete the seeded chart from the **Charts** list and confirm.
     - The toast says the delete was submitted for review and nothing has been removed. The chart is still listed.
-    - Approving it as `checker` removes it; request changes to keep it.
+    - Approving it as `priya` removes it; request changes to keep it.
 
 ### H. When nobody else can approve
 
-20. **As `maker`** — on **Sales Dashboard** (maker is its only editor), change the title, **Save**, **Request review**.
+20. **As `alex`** — on **Sales Dashboard** (Alex is its only editor), change the title, **Save**, **Request review**.
     - The dialog says "No one else can approve this dashboard. Add another editor to submit.", with an **Editors** picker and "Changing editors doesn't need approval."
-21. **As `maker`** — add **Checker (QA)** in that picker.
-    - The warning clears in place and the dialog switches to "Who can approve: Checker (QA)". Send.
-    - Run the seed again afterwards to make maker the only editor again.
+21. **As `alex`** — add **Priya Shah** in that picker.
+    - The warning clears in place and the dialog switches to "Who can approve: Priya Shah". Send.
+    - Run the seed again afterwards to make Alex the only editor again.
 
 ### I. The rules, from the outside
 
-22. **As `admin`** — **Settings → Manage → Change review** opens a read-only page.
+22. **As `morgan`** — **Settings → Manage → Change review** opens a read-only page.
     - "Require review before changes go live" — "Set in the instance configuration. Changing it needs a restart."
     - The four facts below it, including **Admin bypass: Not available**.
 23. **Any editor, through the API** — a direct save returns **202** with "Changes saved. Viewers still see the live version.", and the live object does not change:
