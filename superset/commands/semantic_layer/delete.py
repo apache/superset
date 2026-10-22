@@ -26,7 +26,7 @@ from flask_babel import gettext as _
 from sqlalchemy.exc import SQLAlchemyError
 
 from superset import db, security_manager
-from superset.charts.filters import ChartFilter
+from superset.charts.filters import ChartDeletedStateFilter, ChartFilter
 from superset.commands.base import BaseCommand
 from superset.commands.semantic_layer.exceptions import (
     SemanticDeleteDependentsError,
@@ -38,8 +38,12 @@ from superset.commands.semantic_layer.exceptions import (
     SemanticViewNotFoundError,
 )
 from superset.commands.utils import current_user_can_modify_object
+from superset.constants import SKIP_VISIBILITY_FILTER_CLASSES
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
-from superset.dashboards.filters import DashboardAccessFilter
+from superset.dashboards.filters import (
+    DashboardAccessFilter,
+    DashboardDeletedStateFilter,
+)
 from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.slice import Slice
@@ -51,6 +55,11 @@ from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
 _DEPENDENT_LIMIT: int = 20
+# Visibility subqueries see archived charts and dashboards; the restore-audience
+# filter then decides which of them may be named.
+_INCLUDE_ARCHIVED: dict[str, set[type]] = {
+    SKIP_VISIBILITY_FILTER_CLASSES: {Slice, Dashboard}
+}
 
 
 def _semantic_target_matches(target: object, view_ids: set[int]) -> bool:
@@ -179,8 +188,16 @@ def _dependent_assets(
     visible_chart_ids: sa.Select = (
         cast(
             sa.Select,
-            ChartFilter("id", SQLAInterface(Slice, db.session))
-            .apply(db.session.query(Slice.id).filter(Slice.deleted_at.is_(None)), None)
+            # Archived rows are named only to their Recently Archived audience.
+            ChartDeletedStateFilter(  # pylint: disable=protected-access
+                "id", SQLAInterface(Slice, db.session)
+            )
+            ._scope_to_restore_audience(
+                ChartFilter("id", SQLAInterface(Slice, db.session)).apply(
+                    db.session.query(Slice.id), None
+                ),
+                "include",
+            )
             .statement,
         )
         if security_manager.can_access("can_read", "Chart")
@@ -189,10 +206,14 @@ def _dependent_assets(
     visible_dashboard_ids: sa.Select = (
         cast(
             sa.Select,
-            DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session))
-            .apply(
-                db.session.query(Dashboard.id).filter(Dashboard.deleted_at.is_(None)),
-                None,
+            DashboardDeletedStateFilter(  # pylint: disable=protected-access
+                "id", SQLAInterface(Dashboard, db.session)
+            )
+            ._scope_to_restore_audience(
+                DashboardAccessFilter("id", SQLAInterface(Dashboard, db.session)).apply(
+                    db.session.query(Dashboard.id), None
+                ),
+                "include",
             )
             .statement,
         )
@@ -231,7 +252,8 @@ def _dependent_assets(
                 sa.func.count(),
                 sa.func.sum(sa.case((visibility, 1), else_=0)),
                 sa.func.sum(sa.case((dependents.c.archived, 1), else_=0)),
-            ).select_from(dependents)
+            ).select_from(dependents),
+            execution_options=_INCLUDE_ARCHIVED,
         ).one(),
     )
     total: int = int(counts[0])
@@ -239,10 +261,10 @@ def _dependent_assets(
         return 0, [], 0, 0
     visible_total: int = int(counts[1] or 0)
     visible: sa.Subquery = sa.select(dependents).where(visibility).subquery()
-    rows: list[tuple[str, int, str]] = cast(
-        list[tuple[str, int, str]],
+    rows: list[tuple[str, int, str, bool]] = cast(
+        list[tuple[str, int, str, bool]],
         db.session.execute(
-            sa.select(visible.c.type, visible.c.id, visible.c.name)
+            sa.select(visible.c.type, visible.c.id, visible.c.name, visible.c.archived)
             .order_by(
                 sa.case(
                     (visible.c.type == "chart", 0),
@@ -252,14 +274,15 @@ def _dependent_assets(
                 visible.c.type,
                 visible.c.id,
             )
-            .limit(_DEPENDENT_LIMIT)
+            .limit(_DEPENDENT_LIMIT),
+            execution_options=_INCLUDE_ARCHIVED,
         ).all(),
     )
     return (
         total,
         [
-            {"type": asset_type, "id": asset_id, "name": name}
-            for asset_type, asset_id, name in rows
+            {"type": asset_type, "id": asset_id, "name": name, "archived": archived}
+            for asset_type, asset_id, name, archived in rows
         ],
         total - visible_total,
         int(counts[2] or 0),

@@ -1052,8 +1052,8 @@ def test_semantic_delete_reports_dependents_as_conflict(
     assert response.json["dependents"] == [dependent]
     assert response.json["inaccessible_count"] == 24
     assert response.json["message"] == (
-        "Semantic source is used by 25 dependent assets and cannot be deleted. "
-        "Remove or repoint these assets before deleting the semantic source. "
+        "This semantic layer or view is used by 25 dependent assets and cannot "
+        "be deleted. Remove or repoint these assets before deleting it. "
         "3 dependent assets are archived. "
         "Go to Recently Archived to restore and repoint archived assets, "
         "or delete them permanently, or ask an admin for help."

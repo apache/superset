@@ -256,7 +256,7 @@ test('a genuinely empty layer says so instead of warning about nonexistent views
 
   expect(
     within(dialog).getByText(
-      'This semantic layer has no dependent semantic views. This cannot be undone.',
+      'This semantic layer has no semantic views. This cannot be undone.',
     ),
   ).toBeInTheDocument();
   expect(
