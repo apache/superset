@@ -48,6 +48,13 @@ _LICENSE_BOILERPLATE = """/*
 # from a dict, since the uk/usa branch uses a single combined condition
 # with `.toUpperCase()` rather than a per-country literal, and the exact
 # text has to match character-for-character for byte-identical output.
+#
+# The italy_regions_and_autonomous_provinces case below is NOT in the
+# notebook's current cell - it was lost there at some point even though
+# the hand-written label kept shipping in countries.ts. Restored here
+# rather than silently regressing to the auto-generated
+# "Italy (regions) And Autonomous Provinces" the notebook would now
+# produce if run as-is.
 _ADDITIONAL_EXPORTS = """
 export const countryOptions = Object.keys(countries).map(x => {
   if (x === 'uk' || x === 'usa') {
@@ -55,6 +62,9 @@ export const countryOptions = Object.keys(countries).map(x => {
   }
   if (x === 'italy_regions') {
     return [x, 'Italy (regions)'];
+  }
+  if (x === 'italy_regions_and_autonomous_provinces') {
+    return [x, 'Italy (regions and autonomous provinces)'];
   }
   if (x === 'france_regions') {
     return [x, 'France (regions)'];
@@ -97,11 +107,28 @@ def _build_countries_ts(countries_combined: list[str]) -> str:
     return f"{_LICENSE_BOILERPLATE}\n{imports}\n\n{exports}\n{_ADDITIONAL_EXPORTS}"
 
 
+# Same lost-case problem as _ADDITIONAL_EXPORTS above: the notebook's
+# generic " Regions"/" Overseas" string transforms don't know about this
+# one, so it'd otherwise regress to "Italy (regions) And Autonomous
+# Provinces" - restore the shipped display string directly.
+_DOCS_JSON_OVERRIDES = {
+    "italy_regions_and_autonomous_provinces": (
+        "Italy (regions and autonomous provinces)"
+    ),
+}
+
+
 def _build_docs_json(countries_combined: list[str]) -> str:
-    formatted = [c.replace("_", " ") for c in countries_combined]
-    formatted = [c.upper() if c in {"usa", "uk"} else c.title() for c in formatted]
-    formatted = [c.replace(" Regions", " (regions)") for c in formatted]
-    formatted = [c.replace(" Overseas", " (with overseas)") for c in formatted]
+    formatted = []
+    for raw in countries_combined:
+        if raw in _DOCS_JSON_OVERRIDES:
+            formatted.append(_DOCS_JSON_OVERRIDES[raw])
+            continue
+        c = raw.replace("_", " ")
+        c = c.upper() if c in {"usa", "uk"} else c.title()
+        c = c.replace(" Regions", " (regions)")
+        c = c.replace(" Overseas", " (with overseas)")
+        formatted.append(c)
     return json.dumps({"countries": formatted}, indent=2) + "\n"
 
 
