@@ -33,8 +33,15 @@ The Country Maps visualization already ships with the maps for the following cou
 To add a new country to the list, you'd have to edit files in
 [@superset-ui/plugin-chart-country-map](https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-country-map).
 
-1. Generate a new GeoJSON file for your country following the guide in [this Jupyter notebook](https://github.com/apache/superset/blob/master/superset-frontend/plugins/plugin-chart-country-map/scripts/Country%20Map%20GeoJSON%20Generator.ipynb).
-2. Edit the countries list in [plugin-chart-country-map/src/countries.ts](https://github.com/apache/superset/blob/master/superset-frontend/plugins/plugin-chart-country-map/src/countries.ts).
-3. Install superset-frontend dependencies: `cd superset-frontend && npm install`
-4. Verify your countries in Superset plugins storybook: `npm run plugins:storybook`.
-5. Build and install Superset from source code.
+1. Most countries need no correction at all - check whether yours already resolves via a plain
+   lookup in [`scripts/maps/catalog.py`](https://github.com/apache/superset/blob/master/superset-frontend/plugins/plugin-chart-country-map/scripts/maps/catalog.py)
+   before writing anything.
+2. If it needs a fix (a renamed region, a relocated territory, a replacement data source, ...),
+   add a module under [`scripts/maps/countries/`](https://github.com/apache/superset/tree/master/superset-frontend/plugins/plugin-chart-country-map/scripts/maps/countries) -
+   the existing modules there are the best reference for the pattern.
+3. Regenerate the GeoJSON files, `countries.ts` and `docs/data/countries.json`:
+   `cd superset-frontend && npm run update-maps`. Iterate on just your country with a rendered
+   preview via `python3 plugins/plugin-chart-country-map/scripts/build_maps.py --countries <name> --preview`.
+4. Install superset-frontend dependencies: `cd superset-frontend && npm install`
+5. Verify your countries in Superset plugins storybook: `npm run plugins:storybook`.
+6. Build and install Superset from source code.
