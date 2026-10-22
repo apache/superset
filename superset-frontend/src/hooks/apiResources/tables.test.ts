@@ -105,10 +105,9 @@ describe('useTables hook', () => {
     expect(fetchMock.callHistory.calls(schemaApiRoute).length).toBe(1);
     expect(
       fetchMock.callHistory.calls(
-        `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
-          force: false,
-          schema_name: expectedSchema,
-        })}`,
+        `end:api/v1/database/${expectDbId}/tables/?q=${encodeURIComponent(
+          rison.encode({ force: false, schema_name: expectedSchema }),
+        )}`,
       ).length,
     ).toBe(1);
     act(() => {
@@ -117,10 +116,9 @@ describe('useTables hook', () => {
     await waitFor(() =>
       expect(
         fetchMock.callHistory.calls(
-          `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
-            force: true,
-            schema_name: expectedSchema,
-          })}`,
+          `end:api/v1/database/${expectDbId}/tables/?q=${encodeURIComponent(
+            rison.encode({ force: true, schema_name: expectedSchema }),
+          )}`,
         ).length,
       ).toBe(1),
     );
@@ -158,10 +156,9 @@ describe('useTables hook', () => {
     expect(result.current.data).toEqual(undefined);
     expect(
       fetchMock.callHistory.calls(
-        `end:api/v1/database/${expectDbId}/tables/?q=${rison.encode({
-          force: false,
-          schema_name: unexpectedSchema,
-        })}`,
+        `end:api/v1/database/${expectDbId}/tables/?q=${encodeURIComponent(
+          rison.encode({ force: false, schema_name: unexpectedSchema }),
+        )}`,
       ).length,
     ).toBe(0);
   });
@@ -231,16 +228,24 @@ describe('useTables hook', () => {
     const { result, rerender } = renderHook(
       ({ catalog }) => useTables({ dbId, catalog, schema }),
       {
-        initialProps: { catalog: 'demo%2Emetrics' },
+        initialProps: { catalog: 'demo%2Emetrics with space:tag' },
         wrapper: createWrapper({ useRedux: true, store }),
       },
     );
     await waitFor(() =>
       expect(result.current.data?.options).toEqual(firstResult.result),
     );
-    expect(fetchMock.callHistory.calls(tableApiRoute)[0].url).toContain(
-      'demo%252Emetrics',
-    );
+    expect(
+      rison.decode(
+        new URL(
+          fetchMock.callHistory.calls(tableApiRoute)[0].url,
+        ).searchParams.get('q') ?? '',
+      ),
+    ).toEqual({
+      force: false,
+      schema_name: schema,
+      catalog_name: 'demo%2Emetrics with space:tag',
+    });
 
     rerender({ catalog: 'shared' });
     await waitFor(() =>
