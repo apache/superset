@@ -215,3 +215,13 @@ test('userOptionSortComparator orders users by display name, not id', () => {
       .map(o => o.value),
   ).toEqual([1, 2, 3]);
 });
+
+test('fetchUserOptions URL-encodes reserved characters in the search term', async () => {
+  mockUsersResponse([]);
+
+  await fetchUserOptions('jane+ops&co', 0, 100, jest.fn());
+
+  expect(decodeQuery().filters).toEqual([
+    { col: 'username', opr: 'user_all_text', value: 'jane+ops&co' },
+  ]);
+});
