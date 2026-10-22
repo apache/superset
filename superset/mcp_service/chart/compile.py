@@ -456,6 +456,20 @@ def _find_database_failure(exc: BaseException) -> _DatabaseFailure | None:
     return failure
 
 
+def _chart_annotation_layers(form_data: dict[str, Any]) -> list[dict[str, Any]]:
+    """Collect chart-backed annotation layers from both Mixed Timeseries queries."""
+    from superset.utils.core import ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+
+    return [
+        layer
+        for key in ("annotation_layers", "annotation_layers_b")
+        if isinstance(layers := form_data.get(key), list)
+        for layer in layers
+        if isinstance(layer, dict)
+        and layer.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
+    ]
+
+
 def _annotation_engine_specs(form_data: dict[str, Any]) -> tuple[list[Any], bool]:
     """Return the engine specs of the charts the annotation layers query.
 
@@ -465,18 +479,11 @@ def _annotation_engine_specs(form_data: dict[str, Any]) -> tuple[list[Any], bool
     them could be the failing one.
     """
     from superset.daos.chart import ChartDAO
-    from superset.utils.core import ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
 
-    layers = form_data.get("annotation_layers")
     specs: list[Any] = []
     unresolved = False
-    for layer in layers if isinstance(layers, list) else []:
-        if (
-            not isinstance(layer, dict)
-            or layer.get("sourceType")
-            not in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
-            or not isinstance(chart_id := layer.get("value"), (int, str))
-        ):
+    for layer in _chart_annotation_layers(form_data):
+        if not isinstance(chart_id := layer.get("value"), (int, str)):
             continue
         chart = ChartDAO.find_by_id(chart_id)
         database = getattr(getattr(chart, "datasource", None), "database", None)
@@ -490,14 +497,7 @@ def _annotation_engine_specs(form_data: dict[str, Any]) -> tuple[list[Any], bool
 
 def _has_chart_annotation_layers(form_data: dict[str, Any]) -> bool:
     """Whether the chart runs annotation queries against other charts."""
-    from superset.utils.core import ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
-
-    layers = form_data.get("annotation_layers")
-    return isinstance(layers, list) and any(
-        isinstance(layer, dict)
-        and layer.get("sourceType") in ANNOTATION_SOURCE_TYPES_WITH_CHART_REFERENCE
-        for layer in layers
-    )
+    return bool(_chart_annotation_layers(form_data))
 
 
 def _classify_as_database_error(

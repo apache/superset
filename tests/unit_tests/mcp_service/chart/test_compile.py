@@ -1268,6 +1268,8 @@ def _annotation_compile_result(
     dataset_engine_spec: Any,
     annotation_engine_spec: Any | None = None,
     other_annotation_engine_spec: Any | None = None,
+    annotation_key: str = "annotation_layers",
+    other_annotation_key: str = "annotation_layers",
 ) -> Any:
     """Compile a chart whose first line annotation chart fails.
 
@@ -1308,9 +1310,13 @@ def _annotation_compile_result(
         "sourceType": "line",
         "value": 2,
     }
-    layers = [layer]
+    form_data: dict[str, Any] = {"metrics": ["count"], annotation_key: [layer]}
+    if annotation_key == "annotation_layers_b":
+        form_data["viz_type"] = "mixed_timeseries"
     if other_annotation_engine_spec is not None:
-        layers.append({**layer, "name": "other annotation", "value": 3})
+        form_data.setdefault(other_annotation_key, []).append(
+            {**layer, "name": "other annotation", "value": 3}
+        )
 
     def get_payload(**kwargs: Any) -> dict[str, Any]:
         """Record the annotation error like the main query processor."""
@@ -1331,9 +1337,7 @@ def _annotation_compile_result(
     dataset.database.db_engine_spec = dataset_engine_spec
     mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
 
-    return _compile_chart(
-        {"metrics": ["count"], "annotation_layers": layers}, dataset_id=1
-    )
+    return _compile_chart(form_data, dataset_id=1)
 
 
 @pytest.mark.parametrize(
@@ -1508,3 +1512,49 @@ def test_compile_chart_annotation_connection_error_with_several_engines(
     assert result.error_obj is not None
     assert result.error_obj.error_type == "database_connection_error"
     assert "annotation layer's chart" in result.error_obj.message
+
+
+@pytest.mark.parametrize("with_query_a_layer", [False, True])
+@pytest.mark.parametrize(
+    ("message", "expected_error_type"),
+    [
+        (
+            "(MySQLdb.OperationalError) (2003, \"Can't connect to MySQL server "
+            "on 'mysql.example' (111)\")",
+            "database_connection_error",
+        ),
+        (
+            "(MySQLdb.ProgrammingError) (1064, 'You have an error in your SQL "
+            "syntax; check the manual that corresponds to your MySQL server "
+            "version for the right syntax to use near 'FROMM x' at line 1')",
+            "compile_error",
+        ),
+    ],
+)
+def test_compile_chart_mixed_timeseries_query_b_annotation_failure(
+    mocker: MockerFixture,
+    with_query_a_layer: bool,
+    message: str,
+    expected_error_type: str,
+) -> None:
+    """Query B contributes both the annotation source and possible failing engines."""
+    from superset.db_engine_specs.mysql import MySQLEngineSpec
+    from superset.db_engine_specs.postgres import PostgresEngineSpec
+
+    result = _annotation_compile_result(
+        mocker,
+        message,
+        dataset_engine_spec=PostgresEngineSpec,
+        annotation_engine_spec=MySQLEngineSpec,
+        other_annotation_engine_spec=(
+            PostgresEngineSpec if with_query_a_layer else None
+        ),
+        annotation_key="annotation_layers_b",
+    )
+
+    assert not result.success
+    assert result.error_obj is not None
+    assert result.error_obj.error_type == expected_error_type
+    assert message in result.error_obj.details
+    if expected_error_type == "database_connection_error":
+        assert "annotation layer's chart" in result.error_obj.message

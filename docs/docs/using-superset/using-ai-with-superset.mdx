@@ -106,6 +106,10 @@ comparison preserves other selected offsets, including custom comparisons.
 Forecasts use the x-axis time grain, resolved query grain, or panel grain, with a
 daily fallback.
 
+When chart compilation fails, MCP distinguishes database connection failures from
+query validation errors. For Mixed Timeseries charts, annotation failures on
+either query use the annotation charts' database engines for classification.
+
 ### Create Dashboards
 
 Build dashboards from a collection of charts:
