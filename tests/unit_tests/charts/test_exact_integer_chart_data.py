@@ -596,6 +596,188 @@ def test_mixed_result_type_query_shares_the_plain_cache_key(
     }
 
 
+MIXED_TABLE_RAW = {
+    "viz_type": "table",
+    "query_mode": "raw",
+    "all_columns": ["big", "val"],
+    "metrics": [],
+    "column_config": {
+        "big": {"d3NumberFormat": ",.2f"},
+        "val": {"currencyFormat": {"symbol": "USD", "symbolPosition": "prefix"}},
+    },
+}
+MIXED_TABLE_AGGREGATE = {
+    **TABLE_AGGREGATE,
+    "column_config": {
+        "big": {"d3NumberFormat": ",.2f"},
+        "sum_val": {"d3NumberFormat": ",.2f"},
+    },
+}
+MIXED_PIVOT = {**PIVOT, "valueFormat": ",.2f"}
+PIVOT_TOTALS = {"a": "30.00", "b": "70.00", "c": "50.00", "Total (Sum)": "150.00"}
+
+
+@pytest.mark.parametrize(
+    "form_data, query, control, mixed",
+    [
+        pytest.param(
+            MIXED_TABLE_RAW,
+            {**QUERY, "columns": ["big", "val"]},
+            {
+                "Big Value": {
+                    0: "333,466,480,986,292,416.00",
+                    1: "",
+                    2: "1,000.00",
+                    3: "333,466,480,986,292,416.00",
+                    4: "",
+                },
+                "val": {0: "$ 10", 1: "$ 20", 2: "$ 30", 3: "$ 40", 4: "$ 50"},
+            },
+            {
+                "Big Value": {
+                    0: "333466480986292423",
+                    1: None,
+                    2: 1000,
+                    3: "333466480986292423",
+                    4: None,
+                },
+                "val": {0: "$ 10", 1: "$ 20", 2: "$ 30", 3: "$ 40", 4: "$ 50"},
+            },
+            id="raw-table",
+        ),
+        pytest.param(
+            MIXED_TABLE_AGGREGATE,
+            {**QUERY, "columns": ["big"], "metrics": ["sum_val"]},
+            {
+                "Big Value": {0: "", 1: "1,000.00", 2: "333,466,480,986,292,416.00"},
+                "Sum Val": {0: "70.00", 1: "30.00", 2: "50.00"},
+            },
+            {
+                "Big Value": {0: None, 1: 1000, 2: "333466480986292423"},
+                "Sum Val": {0: "70.00", 1: "30.00", 2: "50.00"},
+            },
+            id="aggregate-table",
+        ),
+        pytest.param(
+            MIXED_PIVOT,
+            {**QUERY, "columns": ["big"], "metrics": ["sum_val"]},
+            {
+                "Sum Val": {
+                    "1000.0": "30.00",
+                    "3.334664809862924e+17": "50.00",
+                    "nan": "70.00",
+                    "Total (Sum)": "150.00",
+                },
+                "Total (Sum)": {
+                    "1000.0": "30.00",
+                    "3.334664809862924e+17": "50.00",
+                    "nan": "70.00",
+                    "Total (Sum)": "150.00",
+                },
+            },
+            {
+                "Sum Val": {
+                    "1000": "30.00",
+                    "333466480986292423": "50.00",
+                    "nan": "70.00",
+                    "Total (Sum)": "150.00",
+                },
+                "Total (Sum)": {
+                    "1000": "30.00",
+                    "333466480986292423": "50.00",
+                    "nan": "70.00",
+                    "Total (Sum)": "150.00",
+                },
+            },
+            id="pivot-table-rows",
+        ),
+        pytest.param(
+            {**MIXED_PIVOT, "groupbyRows": ["grp"], "groupbyColumns": ["big"]},
+            {**QUERY, "columns": ["grp", "big"], "metrics": ["sum_val"]},
+            {
+                "Sum Val 1000.0": {
+                    "a": "",
+                    "b": "30.00",
+                    "c": "",
+                    "Total (Sum)": "30.00",
+                },
+                "Sum Val 3.334664809862924e+17": {
+                    "a": "10.00",
+                    "b": "40.00",
+                    "c": "",
+                    "Total (Sum)": "50.00",
+                },
+                "Sum Val nan": {
+                    "a": "20.00",
+                    "b": "",
+                    "c": "50.00",
+                    "Total (Sum)": "70.00",
+                },
+                "Sum Val Subtotal": PIVOT_TOTALS,
+                "Total (Sum)": PIVOT_TOTALS,
+            },
+            {
+                "Sum Val 1000": {
+                    "a": "",
+                    "b": "30.00",
+                    "c": "",
+                    "Total (Sum)": "30.00",
+                },
+                "Sum Val 333466480986292423": {
+                    "a": "10.00",
+                    "b": "40.00",
+                    "c": "",
+                    "Total (Sum)": "50.00",
+                },
+                "Sum Val nan": {
+                    "a": "20.00",
+                    "b": "",
+                    "c": "50.00",
+                    "Total (Sum)": "70.00",
+                },
+                "Sum Val Subtotal": PIVOT_TOTALS,
+                "Total (Sum)": PIVOT_TOTALS,
+            },
+            id="pivot-table-columns",
+        ),
+    ],
+)
+def test_full_query_inside_post_processed_context_through_client_processing(
+    app_context: None,
+    table: SqlaTable,
+    form_data: dict[str, Any],
+    query: dict[str, Any],
+    control: dict[str, Any],
+    mixed: dict[str, Any],
+) -> None:
+    """A query that sets ``result_type="full"`` inside a POST_PROCESSED context
+    (the mixed construction) goes through the real client-processing path for a
+    Table and a Pivot Table without error, next to a control request whose query
+    inherits the context's type.
+
+    Documented residual, asserted as it is: the control request normalizes the
+    nullable large integer to a float, so its column is formatted from the
+    rounded value (``333,466,480,986,292,416.00``). The mixed query is gated as a
+    plain request, so the column reaches client processing exact but as an object
+    column: its digits are intact and its configured number format is skipped
+    (a Table prints ``"333466480986292423"``, ``1000`` and ``None`` unformatted;
+    Pivot Table labels carry the exact digits). Everything else is identical to
+    the control: formatting of the other columns (currency, number format,
+    ``valueFormat``) and every pivot value and total. Changing this is a
+    deliberate decision, for example normalizing an explicit per-query
+    ``result_type`` to the context's in ``QueryContextFactory.create``.
+    """
+    mixed_query = {**query, "result_type": "full"}
+    mixed_context = schema_context(
+        table, [mixed_query], ChartDataResultType.POST_PROCESSED, form_data
+    )
+    assert mixed_context.result_type == ChartDataResultType.POST_PROCESSED
+    assert mixed_context.queries[0].result_type == ChartDataResultType.FULL
+
+    assert client_processed(table, [query], form_data) == control
+    assert client_processed(table, [mixed_query], form_data) == mixed
+
+
 @pytest.fixture
 def result_cache(app: SupersetApp, tmp_path: Path) -> Iterator[Cache]:
     cache = Cache(
