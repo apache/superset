@@ -1003,7 +1003,7 @@ const Select = forwardRef(
             getPopupContainer ||
             ((triggerNode: HTMLElement) =>
               (triggerNode?.closest('.ant-modal-container') as HTMLElement) ||
-              (triggerNode.parentNode as HTMLElement))
+              document.body)
           }
           headerPosition={headerPosition}
           labelInValue={labelInValue}
