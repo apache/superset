@@ -548,7 +548,9 @@ def _classify_as_database_error(
                 return source
     except Exception:  # pylint: disable=broad-except
         logger.debug(
-            "Failed to classify error via engine spec for dataset %s: %s",
+            "Failed to classify %s error via candidate engine specs "
+            "(main dataset %s): %s",
+            source,
             dataset_id,
             exc,
         )

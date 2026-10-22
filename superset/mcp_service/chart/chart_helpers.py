@@ -1179,6 +1179,7 @@ def build_query_dicts_from_form_data(
     ``superset.common.form_data_query_context``. This production entry point
     only performs server filter normalization and the legacy Deck.gl spatial
     augmentation before delegating to that shared frontend-equivalent contract.
+    Normalization uses deep copies to preserve caller-owned form data.
     """
     from superset.common.form_data_query_context import (
         build_query_objects_from_form_data,
@@ -1188,7 +1189,7 @@ def build_query_dicts_from_form_data(
     # Typed chart configs carry enums such as TimeGrain. Every MCP query is
     # built here, so unwrap them once: template rendering rejects non-primitive
     # context values.
-    coerce_enum_values(form_data)
+    form_data = coerce_enum_values(deepcopy(form_data))
     if extra_form_data is not None:
         extra_form_data = coerce_enum_values(deepcopy(extra_form_data))
     viz_type: str = (

@@ -1439,27 +1439,28 @@ def test_compile_chart_annotation_failure_uses_annotation_engine_spec(
 
 def test_classify_as_database_error_stops_on_cyclic_cause_chain() -> None:
     """A cyclic ``__cause__`` chain ends the walk instead of looping forever."""
-    import threading
-
     from superset.commands.chart.exceptions import ChartDataQueryValidationError
     from superset.exceptions import QueryObjectValidationError
     from superset.mcp_service.chart.compile import _classify_as_database_error
 
     outer = ChartDataQueryValidationError("Error: annotation failed")
-    inner = QueryObjectValidationError("annotation failed")
+    cause_reads = 0
+
+    class BoundedValidationError(QueryObjectValidationError):
+        """Fail synchronously if the cycle guard stops bounding the walk."""
+
+        def __getattribute__(self, name: str) -> Any:
+            nonlocal cause_reads
+            if name == "__cause__":
+                cause_reads += 1
+                assert cause_reads <= 2, "cause-chain walk revisited the cycle"
+            return super().__getattribute__(name)
+
+    inner = BoundedValidationError("annotation failed")
     outer.__cause__ = inner
     inner.__cause__ = outer
-    results: list[Any] = []
-    worker = threading.Thread(
-        target=lambda: results.append(_classify_as_database_error(outer, {}, 1)),
-        daemon=True,
-    )
-
-    worker.start()
-    worker.join(timeout=5)
-
-    assert not worker.is_alive()
-    assert results == [None]
+    assert _classify_as_database_error(outer, {}, 1) is None
+    assert cause_reads == 1
 
 
 def test_compile_chart_annotation_syntax_error_with_several_engines_is_not_connection(
@@ -1558,3 +1559,41 @@ def test_compile_chart_mixed_timeseries_query_b_annotation_failure(
     assert message in result.error_obj.details
     if expected_error_type == "database_connection_error":
         assert "annotation layer's chart" in result.error_obj.message
+
+
+@pytest.mark.parametrize("source", ["dataset", "annotation"])
+def test_classification_debug_log_identifies_candidate_engine_source(
+    mocker: MockerFixture, source: str
+) -> None:
+    """Engine lookup failures identify the source, not an annotation dataset."""
+    from superset.commands.chart.exceptions import (
+        ChartDataQueryFailedError,
+        ChartDataQueryValidationError,
+    )
+    from superset.mcp_service.chart.compile import _classify_as_database_error
+
+    failure = ChartDataQueryFailedError("query failed")
+    exc: Exception = failure
+    form_data: dict[str, Any] = {}
+    spec = Mock()
+    spec.extract_errors.side_effect = RuntimeError("classification failed")
+    dataset = Mock()
+    dataset.database.db_engine_spec = spec
+    mocker.patch("superset.daos.dataset.DatasetDAO.find_by_id", return_value=dataset)
+    mocker.patch(
+        "superset.mcp_service.chart.compile._annotation_engine_specs",
+        return_value=([spec], True),
+    )
+    if source == "annotation":
+        exc = ChartDataQueryValidationError("annotation failed")
+        exc.__cause__ = failure
+        form_data["annotation_layers"] = [{"sourceType": "line", "value": 2}]
+    debug = mocker.patch("superset.mcp_service.chart.compile.logger.debug")
+
+    assert _classify_as_database_error(exc, form_data, 1) is None
+    debug.assert_called_once_with(
+        "Failed to classify %s error via candidate engine specs (main dataset %s): %s",
+        source,
+        1,
+        exc,
+    )

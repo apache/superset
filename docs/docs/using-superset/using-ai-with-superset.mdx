@@ -486,8 +486,12 @@ the underlying error in `details`, rather than as database connection failures.
 Check the chart configuration or dataset expressions before retrying.
 Connection failures in an annotation layer's chart query are still reported as
 `database_connection_error`, even when the annotation layer wraps the failure as
-a validation error. They are classified with that chart's database engine, and
-the error message names the annotation layer as the source.
+a validation error. Typed database exceptions are recognized directly; other
+failures are matched against candidate annotation-chart database engines. If
+multiple engines are candidates or a chart cannot be located, only specific
+connection-error patterns count, not an engine's generic error fallback. If no
+annotation engine can be determined, the main dataset's engine supplies those
+patterns. The error message names the annotation layer as the source.
 
 ### AI doesn't see Superset tools
 

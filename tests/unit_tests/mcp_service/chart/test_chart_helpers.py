@@ -2198,13 +2198,14 @@ def test_deck_path_metric_keeps_canonical_path_grouping(
 
 
 def test_build_query_dicts_from_form_data_passes_enum_values_as_strings(
-    monkeypatch,
-):
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
     """Enum members in form_data reach the query as plain strings.
 
     Template rendering rejects non-primitive context values, so an enum a mapper
-    forgets to unwrap must not leak into the queries or the form data.
+    forgets to unwrap must not leak into queries. Caller-owned data is preserved.
     """
+    from copy import deepcopy
     from enum import Enum
 
     from superset.constants import TimeGrain
@@ -2227,10 +2228,12 @@ def test_build_query_dicts_from_form_data_passes_enum_values_as_strings(
         "future_option": [{"nested": _FutureEnum.VALUE}],
     }
 
+    original_form_data = deepcopy(form_data)
     queries = build_query_dicts_from_form_data(form_data, 1, "table")
 
+    assert form_data == original_form_data
     grain = queries[0]["extras"]["time_grain_sqla"]
     assert grain == "P1M"
     assert type(grain) is str
-    assert type(form_data["time_grain_sqla"]) is str
-    assert form_data["future_option"] == [{"nested": "future"}]
+    assert form_data["time_grain_sqla"] is TimeGrain.MONTH
+    assert form_data["future_option"][0]["nested"] is _FutureEnum.VALUE
