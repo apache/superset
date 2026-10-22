@@ -1011,7 +1011,42 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
             # can be fetched exactly as after a synchronous ``execute``.
             cursor.get_async_execution_result()
         except Exception as ex:
+            try:
+                cls._raise_statement_error(cursor)
+            except Exception as statement_error:  # pylint: disable=broad-except
+                raise cls.get_dbapi_mapped_exception(
+                    statement_error
+                ) from statement_error
             raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @staticmethod
+    def _raise_statement_error(cursor: Any) -> None:
+        """
+        Raise the warehouse's error for a statement that didn't succeed.
+
+        ``get_async_execution_result`` reports any unsuccessful statement with
+        a generic "Operation status FAILED" error. The synchronous ``execute``
+        instead raises the server's error code and message, through the SEA
+        backend's state check. The driver exposes no public accessor for that
+        detail, so the same check is applied to the statement's latest status.
+        Returns without raising if the detail can't be retrieved, leaving the
+        caller to raise the driver's generic error.
+        """
+        backend = getattr(cursor, "backend", None)
+        poll_query = getattr(backend, "_poll_query", None)
+        check_state = getattr(
+            backend, "_check_command_not_in_failed_or_closed_state", None
+        )
+        command_id = getattr(cursor, "active_command_id", None)
+        if poll_query is None or check_state is None or command_id is None:
+            return
+        try:
+            status = poll_query(command_id).status
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            return
+        check_state(status, command_id)
 
     @classmethod
     def _poll_statement(cls, cursor: Any, query: Query) -> bool:

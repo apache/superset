@@ -1804,6 +1804,7 @@ class FakeSeaCursor:
     def __init__(self, statement_ids: list[str], pending_polls: int) -> None:
         self.connection = MagicMock()
         self.connection.session.use_sea = True
+        self.backend = MagicMock()
         self.active_command_id: Any = None
         self.statement_ids = iter(statement_ids)
         self.pending_polls = pending_polls
@@ -2139,3 +2140,62 @@ def test_execute_with_cursor_sea_timeout_during_poll_cancels(
         )
 
     assert cursor.cancelled == ["stmt-1"]
+
+
+def test_execute_with_cursor_sea_failed_statement_keeps_server_error(
+    sea_session: Any,
+) -> None:
+    """
+    A statement that fails on the warehouse surfaces the server's error code
+    and message, as the synchronous path does, not the driver's generic
+    "Operation status FAILED" error from ``get_async_execution_result``.
+    """
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    server_error = "Command failed: PARSE_SYNTAX_ERROR - syntax error at or near 'FOO'"
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=1)
+    cursor.get_async_execution_result = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError(
+            "get_execution_result failed with Operation status CommandState.FAILED"
+        )
+    )
+    cursor.backend._check_command_not_in_failed_or_closed_state.side_effect = (
+        RuntimeError(server_error)
+    )
+    query = Query(status=QueryStatus.RUNNING)
+
+    with pytest.raises(Exception, match="PARSE_SYNTAX_ERROR") as excinfo:
+        DatabricksPythonConnectorEngineSpec.execute_with_cursor(
+            cursor, "SELECT FOO", query
+        )
+
+    assert "Operation status" not in str(excinfo.value)
+    status = cursor.backend._poll_query.return_value.status
+    cursor.backend._poll_query.assert_called_once_with(cursor.active_command_id)
+    cursor.backend._check_command_not_in_failed_or_closed_state.assert_called_once_with(
+        status, cursor.active_command_id
+    )
+
+
+def test_execute_with_cursor_sea_failed_statement_without_detail(
+    sea_session: Any,
+) -> None:
+    """
+    If the server's error can't be retrieved, the driver's own error is raised
+    rather than the statement being reported as successful.
+    """
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=1)
+    cursor.get_async_execution_result = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("Operation status CommandState.FAILED")
+    )
+    cursor.backend._poll_query.side_effect = ConnectionResetError("reset")
+    query = Query(status=QueryStatus.RUNNING)
+
+    with pytest.raises(Exception, match="Operation status CommandState.FAILED"):
+        DatabricksPythonConnectorEngineSpec.execute_with_cursor(
+            cursor, "SELECT FOO", query
+        )
