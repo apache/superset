@@ -96,7 +96,7 @@ export default {
   transformIgnorePatterns: [
     // @ant-design/colors and @ant-design/fast-color are allowed through because
     // @ant-design/icons >= 6.3 deep-imports the ESM build of @ant-design/colors
-    // from its CJS output, so babel-jest must transform those files.
+    // from its CJS output, so the Jest transform must handle those files.
     //
     // react-markdown and the remark/rehype/vfile packages it pulls in are
     // ESM-only, so they are allowed through for the suites that opt out of the
@@ -110,12 +110,54 @@ export default {
     // its own dist/node_modules, so those nested files must be transformed too.
     //
     // @deck.gl/maplibre@9.4.0 ships ESM-only (no dist/*.cjs), unlike every
-    // other @deck.gl/* package - allowed through so babel-jest can convert
+    // other @deck.gl/* package - allowed through so the Jest transform can convert
     // its import/export syntax (see the moduleNameMapper entry above).
     'node_modules/(?!@ant-design/(colors|fast-color)|@formatjs/.*|d3-(array|interpolate|color|time|scale|time-format|format|selection)|internmap|@mapbox/tiny-sdf|@deck.gl/maplibre|remark-gfm|(?!@ngrx|(?!deck.gl)|d3-scale)|markdown-table|micromark-*.|decode-named-character-reference|character-entities|mdast-util-*.|unist-util-*.|ccount|escape-string-regexp|nanoid|uuid|@rjsf/*.|@x0k/.*|echarts|zrender|fetch-mock|pretty-ms|parse-ms|ol|@babel/runtime|@emotion|cheerio|cheerio/lib|parse5|dom-serializer|entities|htmlparser2|rehype-sanitize|hast-util-sanitize|unified|react-markdown|vfile|web-namespaces|html-void-elements|html-url-attributes|estree-util-is-identifier-name|trim-lines|is-plain-obj|trough|unist-.*|hast-.*|hastscript|refractor|rehype-.*|remark-.*|mdast-.*|micromark-.*|parse-entities|character-reference-invalid|is-alphanumerical|is-alphabetical|is-decimal|is-hexadecimal|property-information|space-separated-tokens|comma-separated-tokens|bail|devlop|zwitch|longest-streak|geostyler|geostyler-.*|@turf/.*|(?!geostyler)lodash|react-error-boundary|react-json-tree|react-base16-styling|lodash-es|rbush|quickselect|react-diff-viewer-continued|storybook/*.|json-stringify-pretty-compact|@x0k/json-schema-merge|content-disposition|gettext-parser|react-resize-detector)',
   ],
+  // SWC transform (the same toolchain webpack uses, see createSwcLoader in
+  // webpack.config.js) instead of babel-jest: it roughly halves transform time
+  // on a cold cache. Options mirror babel.config.js for the test environment:
+  // automatic JSX runtime via @emotion/react (matches tsconfig jsxImportSource),
+  // emotion labels on so css-in-js snapshots keep their `label` class names,
+  // `hidden.jest` so jest.mock() calls are hoisted above imports, and loose
+  // class/property output like the Babel `loose: true` plugins.
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
+    '^.+\\.(js|jsx|ts|tsx)$': [
+      '@swc/jest',
+      {
+        module: { type: 'commonjs' },
+        jsc: {
+          parser: {
+            syntax: 'typescript',
+            tsx: true,
+            decorators: false,
+            dynamicImport: true,
+          },
+          transform: {
+            react: {
+              runtime: 'automatic',
+              importSource: '@emotion/react',
+              development: false,
+            },
+            hidden: { jest: true },
+          },
+          target: 'es2020',
+          loose: true,
+          experimental: {
+            plugins: [
+              [
+                '@swc/plugin-emotion',
+                {
+                  sourceMap: false,
+                  autoLabel: 'always',
+                  labelFormat: '[local]',
+                },
+              ],
+            ],
+          },
+        },
+      },
+    ],
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
   globals: {
