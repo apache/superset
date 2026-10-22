@@ -66,6 +66,7 @@ import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmContent,
   archiveToastContent,
+  rememberArchivedType,
   ToastContent,
   archiveTitle,
   deleteActionLabel,
@@ -359,6 +360,7 @@ function DashboardList(props: DashboardListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
+        rememberArchivedType('dashboard');
         const toast: ToastContent = softDelete
           ? archiveToastContent(
               t('Archived %s item(s)', dashboardsToDelete.length),

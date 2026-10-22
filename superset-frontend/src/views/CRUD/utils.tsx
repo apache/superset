@@ -30,6 +30,7 @@ import { isMobileConsumptionEnabled } from 'src/hooks/useIsMobile';
 import Chart from 'src/types/Chart';
 import {
   deletedToastContent,
+  rememberArchivedType,
   ToastContent,
   deleteFailedToast,
 } from 'src/utils/softDeleteCopy';
@@ -381,6 +382,7 @@ export function handleChartDelete(
       if (chartFilter === 'Mine') refreshData(filters);
       else if (chartFilter && getData) getData(chartFilter as TableTab);
       else refreshData();
+      rememberArchivedType('chart');
       const toast = deletedToastContent(sliceName, 'chart');
       addSuccessToast(toast.text, toast.options);
     },
@@ -424,6 +426,7 @@ export function handleDashboardDelete(
       else if (dashboardFilter === 'Other' && getData)
         getData(dashboardFilter as TableTab);
       else refreshData();
+      rememberArchivedType('dashboard');
       const toast = deletedToastContent(dashboardTitle, 'dashboard');
       addSuccessToast(toast.text, toast.options);
     },

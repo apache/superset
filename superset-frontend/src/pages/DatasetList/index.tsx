@@ -78,6 +78,7 @@ import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
   archiveConfirmContent,
   archiveToastContent,
+  rememberArchivedType,
   archiveTitle,
   datasetArchiveImpact,
   deleteActionLabel,
@@ -1430,6 +1431,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       () => {
         refreshData();
         setDatasetCurrentlyDeleting(null);
+        rememberArchivedType('dataset');
         const toast = deletedToastContent(tableName, 'dataset');
         addSuccessToast(toast.text, toast.options);
       },
@@ -1485,6 +1487,7 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             : softDelete
               ? t('Archived %s item(s)', datasetsToDelete.length)
               : t('Deleted %s item(s)', datasetsToDelete.length);
+        if (datasets.length) rememberArchivedType('dataset');
         const toast: ToastContent =
           softDelete && datasets.length
             ? archiveToastContent(message, 'dataset')

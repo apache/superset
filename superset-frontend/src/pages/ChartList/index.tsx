@@ -48,6 +48,7 @@ import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmContent,
   archiveToastContent,
+  rememberArchivedType,
   ToastContent,
   archiveTitle,
   deleteActionLabel,
@@ -434,6 +435,7 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
+        rememberArchivedType('chart');
         const toast: ToastContent = softDelete
           ? archiveToastContent(
               t('Archived %s item(s)', chartsToDelete.length),

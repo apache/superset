@@ -29,7 +29,7 @@ import {
   selectOption,
 } from 'spec/helpers/testing-library';
 import { FeatureFlag, isFeatureEnabled } from '@superset-ui/core';
-import { deletedToastContent } from 'src/utils/softDeleteCopy';
+import { rememberArchivedType } from 'src/utils/softDeleteCopy';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { QueryParamProvider } from 'use-query-params';
 import { ReactRouter5Adapter } from 'use-query-params/adapters/react-router-5';
@@ -1025,7 +1025,7 @@ test.each([
   async (type, name) => {
     mockRoutes();
     (isFeatureEnabled as jest.Mock).mockReturnValue(true);
-    deletedToastContent('Archived object', type);
+    rememberArchivedType(type);
     renderArchivedList();
     expect(await screen.findByText(name)).toBeInTheDocument();
   },
@@ -1048,7 +1048,7 @@ test.each(['foo', 'DASHBOARD'])(
 test('a remembered archive type cannot bypass collection permissions', async () => {
   mockRoutes();
   (isFeatureEnabled as jest.Mock).mockReturnValue(true);
-  deletedToastContent('Dataset', 'dataset');
+  rememberArchivedType('dataset');
   renderArchivedList(storeWithReadAccess('Dashboard'));
   expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
   expect(fetchMock.callHistory.calls(datasetListEndpoint)).toHaveLength(0);
@@ -1057,7 +1057,7 @@ test('a remembered archive type cannot bypass collection permissions', async () 
 test('explicit archive links override the remembered collection', async () => {
   mockRoutes();
   (isFeatureEnabled as jest.Mock).mockReturnValue(true);
-  deletedToastContent('Dataset', 'dataset');
+  rememberArchivedType('dataset');
   renderArchivedList(store, '/archived/?type=dashboard');
   expect(await screen.findByText('Deleted Dashboard One')).toBeInTheDocument();
 });

@@ -20,6 +20,7 @@ import {
   archiveConfirmDescription,
   archiveConfirmContent,
   archiveToastContent,
+  rememberArchivedType,
   deletedToastContent,
   datasetArchiveImpact,
   getSoftDeleteRetentionDays,
@@ -27,6 +28,7 @@ import {
 } from './softDeleteCopy';
 import { isFeatureEnabled } from '@superset-ui/core';
 import { render, screen } from 'spec/helpers/testing-library';
+import { getItem, LocalStorageKeys } from 'src/utils/localStorageHelpers';
 import getBootstrapData, { applicationRoot } from 'src/utils/getBootstrapData';
 
 jest.mock('@superset-ui/core', () => ({
@@ -149,15 +151,14 @@ test('the confirm copy omits the clause when there is no window', () => {
 });
 
 test.each(['', '/superset'])(
-  'archive confirmation links directly to recovery under app root %s',
+  'archive confirmation gives a plain location hint under app root %s',
   root => {
     (applicationRoot as jest.Mock).mockReturnValue(root);
     const { container } = render(
       archiveConfirmContent('dashboard', 'dashboard'),
     );
-    expect(
-      screen.getByRole('link', { name: 'View in Recently Archived →' }),
-    ).toHaveAttribute('href', `${root}/archived/?type=dashboard`);
+    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(container.textContent?.match(/Recently Archived/g)).toHaveLength(1);
     expect(container).toHaveTextContent(
       'This dashboard will be moved to Recently Archived. You can recover it there.',
     );
@@ -218,3 +219,19 @@ test.each(['chart', 'dashboard', 'dataset'] as const)(
     expect(toast.options).toEqual({ allowHtml: true });
   },
 );
+
+test('formatting archive toasts does not change the remembered collection', () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  archiveToastContent('Archived 2 item(s)', 'dashboard');
+  deletedToastContent('Dataset', 'dataset');
+  expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBeNull();
+});
+
+test('remembering an archive is explicit and ignores permanent deletes', () => {
+  (isFeatureEnabled as jest.Mock).mockReturnValue(true);
+  rememberArchivedType('dashboard');
+  expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBe('dashboard');
+  (isFeatureEnabled as jest.Mock).mockReturnValue(false);
+  rememberArchivedType('chart');
+  expect(getItem(LocalStorageKeys.LastArchivedType, null)).toBe('dashboard');
+});

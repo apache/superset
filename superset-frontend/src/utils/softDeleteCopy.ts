@@ -175,9 +175,9 @@ function archiveHref(type: ArchivedObjectType): string {
   return ensureAppRoot(`/archived/?type=${type}`);
 }
 
-/** Explain recovery and link directly to the archived collection. */
+/** Explain where recovery is available without leaving the confirmation. */
 export function archiveConfirmContent(
-  type: ArchivedObjectType,
+  _type: ArchivedObjectType,
   typeLabel: string,
   plural = false,
 ): ReactElement {
@@ -185,23 +185,24 @@ export function archiveConfirmContent(
     Fragment,
     null,
     archiveConfirmDescription(typeLabel, plural),
-    ' ',
-    createElement(
-      'a',
-      { href: archiveHref(type) },
-      t('View in Recently Archived →'),
-    ),
   );
 }
 
-/** Link a successful archive to its collection and remember the navigation default. */
+/** Remember the collection after a successful recoverable archive. */
+export function rememberArchivedType(type: ArchivedObjectType): void {
+  if (isFeatureEnabled(FeatureFlag.SoftDelete)) {
+    setItem(LocalStorageKeys.LastArchivedType, type);
+  }
+}
+
+/** Build an escaped success toast linking to the archived collection. */
 export function archiveToastContent(
   text: string,
   type: ArchivedObjectType,
 ): ToastContent {
-  setItem(LocalStorageKeys.LastArchivedType, type);
+  const linkText = t('View in Recently Archived →');
   return {
-    text: `${escape(text)} <a href="${escape(archiveHref(type))}">${escape(t('View in Recently Archived →'))}</a>`,
+    text: `${escape(text)} <a href="${escape(archiveHref(type))}">${escape(linkText)}</a>`,
     options: { allowHtml: true },
   };
 }
