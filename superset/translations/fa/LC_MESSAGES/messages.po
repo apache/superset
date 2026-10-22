@@ -4277,6 +4277,9 @@ msgstr "بستن ویرایشگر نقطه شکست رنگ"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "بستن برگه"
 
@@ -8970,10 +8973,10 @@ msgstr "خط زمانبندی را پنهان می‌کند"
 msgid "Hierarchy"
 msgstr "سلسله‌مراتب"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10349,10 +10352,10 @@ msgstr "طول و عرض جغرافیایی"
 msgid "Longitude of default viewport"
 msgstr "طول جغرافیایی نمای پیش‌فرض"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10877,6 +10880,9 @@ msgstr "حداقل"
 msgid "Minimum Font Size"
 msgstr "اندازه حداقل قلم"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "حداقل شعاع"
 
@@ -10890,6 +10896,16 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "حداقل باید به‌طور دقیق کمتر از حداکثر باشد"
 
@@ -11903,9 +11919,6 @@ msgstr "شفافیت حباب‌ها، ۰ به معنی کاملاً شفاف و
 msgid "Opacity, expects values between 0 and 100"
 msgstr "شفافیت، انتظار مقادیر بین ۰ تا ۱۰۰ دارد."
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "برگه داده‌منبع را باز کنید"
 
@@ -11941,6 +11954,9 @@ msgstr "در SQL Lab باز کنید"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "در SQL Lab باز کنید"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "باز کردن کوئری در آزمایشگاه SQL"
@@ -20935,6 +20951,9 @@ msgid "X Axis Label Interval"
 msgstr "برچسب محور X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "قالب محور X"
 
@@ -20981,6 +21000,9 @@ msgstr "قالب محور Y"
 
 msgid "Y Axis Label"
 msgstr "برچسب محور Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "عنوان محور Y"

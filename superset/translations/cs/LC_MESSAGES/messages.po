@@ -4139,6 +4139,9 @@ msgstr "Zavřít editor barevných hranic"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Zavřít kartu"
 
@@ -8623,10 +8626,10 @@ msgstr "Skryje čáru pro časovou řadu"
 msgid "Hierarchy"
 msgstr "Hierarchie"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9930,10 +9933,10 @@ msgstr "Zeměpisná délka a šířka"
 msgid "Longitude of default viewport"
 msgstr "Zeměpisná délka výchozího zobrazení"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10430,6 +10433,9 @@ msgstr "Minimum"
 msgid "Minimum Font Size"
 msgstr "Minimální velikost písma"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Minimální poloměr"
 
@@ -10438,6 +10444,16 @@ msgid "Minimum Width"
 msgstr "Minimální šířka"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -11438,9 +11454,6 @@ msgstr "Neprůhlednost bublin, 0 znamená zcela průhledné, 1 znamená neprůhl
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Neprůhlednost, očekává hodnoty mezi 0 a 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Otevřít kartu Zdroje dat"
 
@@ -11476,6 +11489,9 @@ msgstr "Otevřít v SQL Labu"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Otevřít v SQL Labu"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Otevřít dotaz v SQL Labu"
@@ -20129,6 +20145,9 @@ msgid "X Axis Label Interval"
 msgstr "Interval popisků osy X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Formát čísla na osu X"
 
@@ -20175,6 +20194,9 @@ msgstr "Formát osy Y"
 
 msgid "Y Axis Label"
 msgstr "Popisek osy Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Název osy Y"

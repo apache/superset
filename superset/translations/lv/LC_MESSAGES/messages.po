@@ -4098,6 +4098,9 @@ msgstr "Aizvērt krāsu pārtraukuma redaktoru"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Aizvērt cilni"
 
@@ -8469,10 +8472,10 @@ msgstr "Paslēpj līniju laika sērijai"
 msgid "Hierarchy"
 msgstr "Hierarhija"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9741,10 +9744,10 @@ msgstr "Garums un platums"
 msgid "Longitude of default viewport"
 msgstr "Noklusējuma skata garums"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10235,6 +10238,9 @@ msgstr "Minimums"
 msgid "Minimum Font Size"
 msgstr "Minimālais fonta lielums"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Minimālais rādiuss"
 
@@ -10243,6 +10249,16 @@ msgid "Minimum Width"
 msgstr "Min platums"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -11230,9 +11246,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Caurspīdīgums, paredzētas vērtības no 0 līdz 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Atvērt datu avota cilni"
 
@@ -11266,6 +11279,9 @@ msgstr "Atvērt SQL laboratorijā"
 
 msgid "Open in SQL lab"
 msgstr "Atvērt SQL laboratorijā"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Atvērt vaicājumu SQL laboratorijā"
@@ -19763,6 +19779,9 @@ msgstr "X ass apzīmējums"
 msgid "X Axis Label Interval"
 msgstr "X ass apzīmējuma intervāls"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X ass skaitļu formāts"
 
@@ -19808,6 +19827,9 @@ msgstr "Y ass formāts"
 
 msgid "Y Axis Label"
 msgstr "Y ass apzīmējums"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y ass virsraksts"

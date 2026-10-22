@@ -4338,6 +4338,9 @@ msgstr "Închide editorul punctului de întrerupere de culoare"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Închide filă"
 
@@ -9039,10 +9042,10 @@ msgstr "Ascunde Linia pentru seria temporală"
 msgid "Hierarchy"
 msgstr "Ierarhie"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10409,10 +10412,10 @@ msgstr "Longitudine și Latitudine"
 msgid "Longitude of default viewport"
 msgstr "Longitudinea viewport-ului implicit"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10929,6 +10932,9 @@ msgstr "Minim"
 msgid "Minimum Font Size"
 msgstr "Dimensiune Font Minimă"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Rază Minimă"
 
@@ -10939,6 +10945,16 @@ msgid "Minimum Width"
 msgstr "Lățime minimă"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -11973,9 +11989,6 @@ msgstr "Opacitatea bulelor, 0 înseamnă complet transparent, 1 înseamnă opac"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacitate, se așteaptă valori între 0 și 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Deschide fila Sursă de Date"
 
@@ -12009,6 +12022,9 @@ msgstr "Deschide în SQL Lab"
 
 msgid "Open in SQL lab"
 msgstr "Deschide în SQL lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Deschide interogare în SQL Lab"
@@ -21046,6 +21062,9 @@ msgstr "Etichetă Axă X"
 msgid "X Axis Label Interval"
 msgstr "Interval Etichetă Axă X"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Format Număr Axă X"
 
@@ -21091,6 +21110,9 @@ msgstr "Format Axă Y"
 
 msgid "Y Axis Label"
 msgstr "Etichetă Axă Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Titlu Axă Y"
