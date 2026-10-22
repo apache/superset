@@ -409,3 +409,41 @@ test('updateUrlWithUnmatchedFilters cleanup is observable by history readers', (
 
   window.history.replaceState({}, '', originalLocation);
 });
+
+const mockConditionFilters: PartialFilters = {
+  condition_1: {
+    id: 'condition_1',
+    targets: [{ column: { name: 'price' }, datasetId: 1 }],
+    filterType: 'filter_condition',
+  },
+};
+
+test('should inject a comparison into a condition filter', () => {
+  const result = injectRisonFiltersIntelligently(
+    parseRisonFilters('(price:(gt:100))'),
+    mockConditionFilters,
+    {},
+  );
+
+  expect(result.updatedDataMask.condition_1.filterState?.value).toEqual({
+    op: '>',
+    val: 100,
+  });
+  expect(result.updatedDataMask.condition_1.extraFormData?.filters).toEqual([
+    { col: 'price', op: '>', val: 100 },
+  ]);
+  expect(result.unmatchedFilters).toHaveLength(0);
+});
+
+test('should inject a list into a condition filter as IN', () => {
+  const result = injectRisonFiltersIntelligently(
+    parseRisonFilters('(price:!(10,20))'),
+    mockConditionFilters,
+    {},
+  );
+
+  expect(result.updatedDataMask.condition_1.filterState?.value).toEqual({
+    op: 'IN',
+    val: [10, 20],
+  });
+});

@@ -35,6 +35,12 @@ export const FILTER_SUPPORTED_TYPES = {
     GenericDataType.Temporal,
   ],
   filter_range: [GenericDataType.Numeric],
+  filter_condition: [
+    GenericDataType.Boolean,
+    GenericDataType.String,
+    GenericDataType.Numeric,
+    GenericDataType.Temporal,
+  ],
 };
 
 export const CHART_CUSTOMIZATION_SUPPORTED_TYPES = {

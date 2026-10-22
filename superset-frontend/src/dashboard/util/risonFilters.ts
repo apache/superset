@@ -490,6 +490,11 @@ function convertRisonToNativeValue(
       }
       return comparator;
 
+    case 'filter_condition':
+      return Array.isArray(comparator) && !['IN', 'NOT IN'].includes(operator)
+        ? { op: operator, val: comparator[0] }
+        : { op: operator, val: comparator };
+
     case 'filter_time_range':
     case 'filter_timecolumn':
       return comparator;
