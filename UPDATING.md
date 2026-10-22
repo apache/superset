@@ -24,6 +24,14 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Bulk semantic view creation is capped and time-bounded.** With
+  `SEMANTIC_LAYERS` enabled, `POST /api/v1/semantic_view/` refuses requests with
+  more than `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (default 100) with a 400,
+  and views not checked within `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` seconds
+  (default 30) are reported with `error_type: "TIMEOUT"` instead of being looked
+  up. Clients adding more views should split them across requests and retry
+  timed-out views.
+
 - MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
   row-collapsing post-processing leaves input coverage unverified, not only when
   truncation is observed. Output row counts do not prove complete input coverage.

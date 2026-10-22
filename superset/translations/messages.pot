@@ -18294,3 +18294,20 @@ msgstr ""
 
 msgid "The view configuration must be a JSON object."
 msgstr ""
+
+msgid "Views must be a list of objects"
+msgstr ""
+
+msgid "No views provided"
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
+
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
