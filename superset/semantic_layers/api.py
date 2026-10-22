@@ -726,6 +726,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
                               type: string
                             description:
                               type: string
+                              nullable: true
                       extensions_status:
                         type: string
                         enum: [disabled, loaded, not_loaded]

@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { act, render, screen, waitFor } from 'spec/helpers/testing-library';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import { toasters } from 'src/components/MessageToasts/withToasts';
 import ExtensionsList from './ExtensionsList';
@@ -180,5 +186,53 @@ test('shows no restart notice when the list comes from a loaded server', async (
   renderWithStore();
 
   expect(await screen.findByText('Loaded Extension')).toBeInTheDocument();
+  expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
+});
+
+test('ignores an older list response that resolves after a newer one', async () => {
+  type ListResponse = Awaited<ReturnType<typeof SupersetClient.get>>;
+  const listResponse = (
+    status: 'loaded' | 'not_loaded',
+    names: string[],
+  ): ListResponse =>
+    ({
+      json: {
+        result: names.map((name, id) => ({ id, name, enabled: true })),
+        count: names.length,
+        status,
+      },
+      response: new Response(),
+    }) as ListResponse;
+  const resolvers: ((response: ListResponse) => void)[] = [];
+  const get = jest.spyOn(SupersetClient, 'get').mockImplementation(
+    () =>
+      new Promise<ListResponse>(resolve => {
+        resolvers.push(resolve);
+      }),
+  );
+  renderWithStore();
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
+  await act(async () => {
+    resolvers[0](listResponse('loaded', ['First Extension']));
+  });
+  expect(await screen.findByText('First Extension')).toBeInTheDocument();
+
+  // Two re-sorts issue two more list requests; both stay pending.
+  fireEvent.click(screen.getAllByRole('columnheader', { name: /Name/ })[0]);
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
+  fireEvent.click(screen.getAllByRole('columnheader', { name: /Name/ })[0]);
+  await waitFor(() => expect(get).toHaveBeenCalledTimes(3));
+
+  // The newer request comes back first, from a server that loaded extensions,
+  // and the older one afterwards, from a server that did not.
+  await act(async () => {
+    resolvers[2](listResponse('loaded', ['Newer Extension']));
+  });
+  expect(await screen.findByText('Newer Extension')).toBeInTheDocument();
+  await act(async () => {
+    resolvers[1](listResponse('not_loaded', []));
+  });
+
+  expect(screen.getByText('Newer Extension')).toBeInTheDocument();
   expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
 });

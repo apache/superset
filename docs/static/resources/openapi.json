@@ -35094,6 +35094,7 @@
                       "items": {
                         "properties": {
                           "description": {
+                            "nullable": true,
                             "type": "string"
                           },
                           "id": {
