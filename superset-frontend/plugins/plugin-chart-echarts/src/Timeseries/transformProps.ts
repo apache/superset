@@ -31,7 +31,6 @@ import {
   DTTM_ALIAS,
   ensureIsArray,
   tooltipHtml,
-  tooltipMarker,
   truncateLabel,
   getCustomFormatter,
   getMetricLabel,
@@ -1642,6 +1641,15 @@ export default function transformProps(
     }
   }
 
+  // Looked up per tooltip row; built once since the formatter runs on every mousemove.
+  const symbolBySeriesName = new Map<string, string>();
+  series.forEach(s => {
+    const { symbol } = s as { symbol?: unknown };
+    if (typeof s.name === 'string' && typeof symbol === 'string') {
+      symbolBySeriesName.set(s.name, symbol);
+    }
+  });
+
   const echartOptions: EChartsCoreOption = {
     useUTC: true,
     ...(seriesType === EchartsTimeseriesSeriesType.Bar &&
@@ -1749,13 +1757,11 @@ export default function transformProps(
             if (value.observation === 0 && stack) {
               return;
             }
-            const seriesForKey = series.find(s => s.name === key);
-            const symbolForSeries = (seriesForKey as any)?.symbol || 'circle';
             const row = formatForecastTooltipSeries({
               ...value,
               seriesName: key,
+              symbol: symbolBySeriesName.get(key),
               formatter: getSeriesFormatter(key),
-              marker: tooltipMarker(value.color, symbolForSeries),
               truncation: tooltipTruncation,
             });
 

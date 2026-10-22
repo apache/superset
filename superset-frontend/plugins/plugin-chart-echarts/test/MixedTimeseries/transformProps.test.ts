@@ -1024,7 +1024,6 @@ test('tooltip resolves per-metric formats through the display-keyed label map', 
   const html = formatter({
     value: [599616000000, 0.5],
     seriesId: 'sum__num, boy',
-    marker: '',
     color: '#333',
   });
 
@@ -1086,7 +1085,6 @@ test('tooltip resolves per-metric formats for secondary-query series', () => {
   const html = formatter({
     value: [599616000000, 2.5],
     seriesId: 'count__num, boy',
-    marker: '',
     color: '#333',
   });
 
