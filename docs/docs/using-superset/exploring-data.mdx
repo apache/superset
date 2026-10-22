@@ -345,6 +345,14 @@ previously.
 
 Save the chart as Tutorial Time Comparison and add it to the Tutorial Dashboard.
 
+:::note API post-processing
+
+For chart-data API requests using `compare` post-processing, percentage and ratio
+comparisons handle zero baselines consistently for raw SQL `DECIMAL` columns and
+floating-point inputs. Absolute-difference comparisons retain the input arithmetic.
+
+:::
+
 ### Resampling the data
 
 In this section, we’ll resample the data so that rather than having daily data we have weekly data.
