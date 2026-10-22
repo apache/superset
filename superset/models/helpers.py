@@ -2032,6 +2032,19 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         dataset_timezone = extra.get("timezone")
         return dataset_timezone if isinstance(dataset_timezone, str) else None
 
+    def _has_valid_dataset_timezone(self) -> bool:
+        """
+        Whether the dataset timezone resolves. ``normalize_dttm_col`` applies the
+        Hours offset instead when it does not, so filters must invert it too.
+        """
+        if not (dataset_timezone := self.get_dataset_timezone()):
+            return False
+        try:
+            ZoneInfo(dataset_timezone)
+        except (ZoneInfoNotFoundError, ValueError):
+            return False
+        return True
+
     def get_fetch_values_predicate(
         self,
         template_processor: Optional[  # pylint: disable=unused-argument
@@ -5535,8 +5548,13 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             utils.FilterOperator.GREATER_THAN_OR_EQUALS,
                             utils.FilterOperator.LESS_THAN_OR_EQUALS,
                         }
-                        and not db_engine_spec.supports_temporal_column_shift
-                        and not self.get_dataset_timezone()
+                        # A SQL-shifted grouping already matches the label.
+                        and not (
+                            db_engine_spec.supports_temporal_column_shift
+                            and not self.get_dataset_timezone()
+                        )
+                        # pandas skips the offset only for a valid timezone.
+                        and not self._has_valid_dataset_timezone()
                         else 0
                     ),
                 )

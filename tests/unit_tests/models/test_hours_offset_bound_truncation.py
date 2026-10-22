@@ -1055,3 +1055,120 @@ def test_grained_membership_filter_shifts_each_bucket_value(
         assert pd.to_datetime(detail.df["ts"]).isna().sum() == 0
         expected_rows = [pd.Timestamp(raw_rows[1])]
     assert sorted(pd.to_datetime(detail.df["ts"]).dropna()) == expected_rows
+
+
+@pytest.mark.parametrize("supports_sql_shift", [False, True])
+@pytest.mark.parametrize("offset", [1, -1])
+@pytest.mark.parametrize("operator", ["==", "IN", "NOT IN"])
+def test_grained_drill_with_invalid_dataset_timezone_uses_hours_offset(
+    mocker: MockerFixture, supports_sql_shift: bool, offset: int, operator: str
+) -> None:
+    """An unresolvable timezone falls back to Hours offset in pandas and filters."""
+    mocker.patch.object(
+        SqliteEngineSpec, "supports_temporal_column_shift", supports_sql_shift
+    )
+    raw_rows = ["2026-08-01 23:30:00", "2026-08-02 00:30:00"]
+    table, _engine = _sqlite_dataset(mocker, offset, "TIMESTAMP", raw_rows)
+    table.extra = '{"timezone": "Not/A_Zone"}'
+    grouped = table.get_query_result(_physical_axis_query(table, time_grain="P1D"))
+    # The SQL shift needs no configured timezone, so grouping stays unshifted
+    # on both engine groups; pandas then adds the Hours offset to each label.
+    assert grouped.df["__timestamp"].tolist() == [
+        pd.Timestamp("2026-08-01") + pd.Timedelta(hours=offset),
+        pd.Timestamp("2026-08-02") + pd.Timedelta(hours=offset),
+    ]
+    assert grouped.df["ct"].tolist() == [1, 1]
+    for bucket in grouped.df["__timestamp"]:
+        value = int(bucket.value // 10**6)
+        detail = table.get_query_result(
+            QueryObject(
+                datasource=table,
+                columns=["ts", "val"],
+                metrics=[],
+                is_timeseries=False,
+                filters=[
+                    {
+                        "col": "ts",
+                        "op": operator,
+                        "grain": "P1D",
+                        "val": [value] if operator in {"IN", "NOT IN"} else value,
+                    }
+                ],
+            )
+        )
+        assert len(detail.df) == 1
+
+
+@pytest.mark.parametrize("supports_sql_shift", [False, True])
+@pytest.mark.parametrize("offset", [0, 1, -1])
+def test_drill_by_bucket_range_returns_the_segment_rows_with_hours_offset(
+    mocker: MockerFixture, supports_sql_shift: bool, offset: int
+) -> None:
+    """
+    Drill by drops a filter grain, so a grained segment is sent as the
+    TEMPORAL_RANGE of its displayed bucket (the shape the Sunburst and
+    Timeseries Drill by requests carry after convertFilter).
+    """
+    mocker.patch.object(
+        SqliteEngineSpec, "supports_temporal_column_shift", supports_sql_shift
+    )
+    raw_rows = [
+        "2026-08-01 23:30:00",
+        "2026-08-02 00:30:00",
+        "2026-08-02 12:00:00",
+        "2026-08-02 23:30:00",
+    ]
+    table, _engine = _sqlite_dataset(mocker, offset, "TIMESTAMP", raw_rows)
+    grouped = table.get_query_result(_physical_axis_query(table, time_grain="P1D"))
+    assert grouped.df["ct"].sum() == len(raw_rows)
+    for _, segment in grouped.df.iterrows():
+        since = pd.Timestamp(segment["__timestamp"])
+        until = since + pd.Timedelta(days=1)
+        detail = table.get_query_result(
+            QueryObject(
+                datasource=table,
+                columns=["ts", "val"],
+                metrics=[],
+                is_timeseries=False,
+                filters=[
+                    {
+                        "col": "ts",
+                        "op": "TEMPORAL_RANGE",
+                        "val": f"{since:%Y-%m-%dT%H:%M:%S} : {until:%Y-%m-%dT%H:%M:%S}",
+                    }
+                ],
+            )
+        )
+        assert len(detail.df) == segment["ct"]
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (1785628800000, "= 1785628800000"),
+        ("2026-08-02T00:00:00", "= '2026-08-02T00:00:00'"),
+    ],
+)
+def test_adhoc_label_drill_comparator_is_not_coerced(
+    mocker: MockerFixture, app: Flask, value: FilterValues, expected: str
+) -> None:
+    """
+    A filter on an adhoc x-axis label reaches SQL as sent, so Drill by must send
+    a datetime literal rather than an epoch integer.
+    """
+    table, _engine = _sqlite_dataset(mocker, 0, "TIMESTAMP", rows=[])
+    axis: AdhocColumn = {
+        "sqlExpression": "DATETIME(ts, 'start of day')",
+        "label": "order_day",
+        "columnType": "BASE_AXIS",
+    }
+    query_object = QueryObject(
+        datasource=table,
+        columns=[axis],
+        metrics=[{"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "ct"}],
+        is_timeseries=False,
+        filters=[{"col": "order_day", "op": "==", "val": value}],
+    )
+    with app.test_request_context():
+        sql = table.get_query_str_extended(query_object.to_dict(), mutate=False).sql
+    assert f"WHERE (DATETIME(ts, 'start of day')) {expected} " in sql
