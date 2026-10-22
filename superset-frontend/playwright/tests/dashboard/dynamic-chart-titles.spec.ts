@@ -220,9 +220,8 @@ testWithAssets(
       'Revenue in Brazil',
     );
     await expect(page.locator('.ant-select-dropdown:visible')).toHaveCount(0);
-    await page.screenshot({
+    await page.getByRole('dialog').screenshot({
       path: testInfo.outputPath('title-editor.png'),
-      fullPage: true,
     });
     await page.getByRole('button', { name: 'Apply', exact: true }).click();
     await expect(page.getByTestId('header-save-button')).toBeEnabled();
@@ -262,7 +261,8 @@ testWithAssets(
     await dashboard.waitForChartsToLoad();
 
     const filterBar = await dashboard.waitForFilterBar();
-    await filterBar.selectOption('Portugal');
+    // Search the virtualized list when using the complete example dataset.
+    await filterBar.getFilterSelect().selectOption('Portugal');
     await expect(firstTitle).toHaveText('Revenue in Brazil');
     await filterBar.apply();
     await expect(firstTitle).toHaveText('Revenue in Portugal');
