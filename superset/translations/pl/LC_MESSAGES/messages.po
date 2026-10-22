@@ -4395,6 +4395,9 @@ msgstr "Zamknij edytor punktów przerwania koloru"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Zamknij zakładkę"
 
@@ -9333,10 +9336,10 @@ msgstr "Ukrywa linię dla serii czasowej"
 msgid "Hierarchy"
 msgstr "Hierarchia"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10720,10 +10723,10 @@ msgstr "Długość i szerokość geograficzna"
 msgid "Longitude of default viewport"
 msgstr "Długość geograficzna domyślnego widoku"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -11260,6 +11263,9 @@ msgstr "Minimum"
 msgid "Minimum Font Size"
 msgstr "Minimalny rozmiar czcionki"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Minimalny promień"
 
@@ -11273,6 +11279,16 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "Minimum musi być ściśle mniejsze niż maksimum"
 
@@ -12323,9 +12339,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Przezroczystość, oczekiwane wartości od 0 do 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Otwórz kartę Źródło danych"
 
@@ -12361,6 +12374,9 @@ msgstr "Otwórz w SQL Lab"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Otwórz w SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Otwórz zapytanie w SQL Lab"
@@ -21783,6 +21799,9 @@ msgid "X Axis Label Interval"
 msgstr "Etykieta osi X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Format osi X"
 
@@ -21835,6 +21854,9 @@ msgid "Y Axis Label"
 msgstr "Etykieta osi Y"
 
 #, fuzzy
+msgid "Y Axis Minimum Interval"
+msgstr ""
+
 msgid "Y Axis Title"
 msgstr "Tytuł osi Y"
 

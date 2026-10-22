@@ -24,8 +24,12 @@ jobs:
     permissions:
       contents: read
       pull-requests: read
+      # Lets the availability probe below tell "code scanning is not
+      # enabled" apart from "this token cannot read alerts".
+      security-events: read
     outputs:
       languages: ${{ steps.check.outputs.languages }}
+      code-scanning: ${{ steps.code-scanning.outputs.available }}
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -36,6 +40,14 @@ jobs:
         uses: $/.github/actions/change-detector/
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
+      # A repository without code scanning (e.g. a private fork or mirror
+      # without GitHub Code Security) rejects the SARIF upload, so the
+      # analysis would run to completion and then fail on every push.
+      - name: Check code scanning availability
+        id: code-scanning
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: .github/workflows/scripts/check-code-scanning-available.sh
 
   analyze:
     name: Analyze
@@ -43,7 +55,12 @@ jobs:
     # Skip on PRs that touch neither code group (e.g. docs-only) so the
     # analysis runners don't spin up. push/schedule runs always proceed:
     # the change-detector returns "all changed" for non-PR events.
-    if: ${{ contains(fromJSON(needs.changes.outputs.languages), 'python') || contains(fromJSON(needs.changes.outputs.languages), 'javascript') }}
+    # Skipped entirely where code scanning is unavailable, since the upload
+    # is this job's only product.
+    if: >-
+      needs.changes.outputs.code-scanning != 'false' &&
+      (contains(fromJSON(needs.changes.outputs.languages), 'python') ||
+       contains(fromJSON(needs.changes.outputs.languages), 'javascript'))
     runs-on: ubuntu-26.04
     timeout-minutes: 15
     permissions:

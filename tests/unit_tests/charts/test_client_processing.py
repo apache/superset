@@ -4750,6 +4750,194 @@ def test_apply_client_processing_xlsx_format_pivot_table_groupby_columns() -> No
     assert "value Corporate" in output_df.columns
 
 
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+@pytest.mark.parametrize("selection", ["columns", "all_columns", "groupby"])
+@pytest.mark.parametrize("verbose", [False, True])
+@pytest.mark.parametrize("values", [["Books", "Games"], [0, 1]])
+def test_table_export_preserves_selected_dimension(
+    result_format: ChartDataResultFormat,
+    selection: str,
+    verbose: bool,
+    values: list[str] | list[int],
+) -> None:
+    """Selected dimensions remain columns even with labels or index-like values."""
+    labels: dict[str, str] = (
+        {"category": "Category", "total_amount": "Total amount"} if verbose else {}
+    )
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"category": values, "total_amount": [15, 20]}
+    ).rename(columns=labels)
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": labels}
+    form_data: dict[str, Any] = {
+        "viz_type": "table",
+        selection: ["category"],
+        "metrics": ["total_amount"],
+    }
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": excel.df_to_excel(source_df, index=False)
+                if result_format == ChartDataResultFormat.XLSX
+                else source_df.to_csv(index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(output_df, source_df)
+    assert query["colnames"] == source_df.columns.tolist()
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+def test_serialized_export_does_not_rename_display_label_twice(
+    result_format: ChartDataResultFormat,
+) -> None:
+    """A display label can equal another column's raw name without remapping."""
+    # Avoid app-init regression: QueryContextProcessor imports SQL dataset models.
+    from superset.common.query_context_processor import QueryContextProcessor
+
+    labels: dict[str, str] = {
+        "category": "total_amount",
+        "total_amount": "Total amount",
+    }
+    source: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books", "Games"], "total_amount": [15, 20]}
+    )
+    expected: pd.DataFrame = source.rename(columns=labels)
+    datasource: MagicMock = MagicMock(data={"verbose_map": labels})
+    processor: QueryContextProcessor = QueryContextProcessor(
+        MagicMock(datasource=datasource, result_format=result_format)
+    )
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": processor.get_data(
+                    source, [GenericDataType.STRING, GenericDataType.NUMERIC]
+                ),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result,
+        {"viz_type": "table", "groupby": ["category"], "metrics": ["total_amount"]},
+        datasource,
+    )["queries"][0]
+    actual: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+    assert query["colnames"] == ["total_amount", "Total amount"]
+
+
+@pytest.mark.parametrize(
+    ("column", "values", "columns"),
+    [("Category", ["Books", "Games"], []), (2024, [0, 1], ["2024"])],
+)
+def test_table_xlsx_preserves_unlisted_and_numeric_headers(
+    column: str | int, values: list[str] | list[int], columns: list[str]
+) -> None:
+    """Retain fallback index names and recognize numeric-looking selections."""
+    source: pd.DataFrame = pd.DataFrame({column: values, "Total": [15, 20]})
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source, index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result, {"viz_type": "table", "groupby": columns, "metrics": ["Total"]}
+    )["queries"][0]
+    actual: pd.DataFrame = pd.read_excel(BytesIO(query["data"]))
+    pd.testing.assert_frame_equal(actual, source)
+
+
+def test_table_xlsx_preserves_percent_metric_header() -> None:
+    """A percent-only selection is a data column, not an unnamed row index."""
+    source_df: pd.DataFrame = pd.DataFrame({"%count": [0, 1]})
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": ChartDataResultFormat.XLSX,
+                "data": excel.df_to_excel(source_df, index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(
+        result, {"viz_type": "table", "percent_metrics": ["count"]}
+    )["queries"][0]
+    output_df: pd.DataFrame = pd.read_excel(BytesIO(query["data"]))
+    pd.testing.assert_frame_equal(output_df, source_df)
+
+
+@pytest.mark.parametrize("viz_type", ["table", "pivot_table_v2"])
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
+def test_sql_dataset_export_headers(
+    session: Session, viz_type: str, result_format: ChartDataResultFormat
+) -> None:
+    """SQL Table and multi-row Pivot exports preserve their header contract."""
+    # avoid app-init regression: SQL dataset models require initialized field factories.
+    from superset.connectors.sqla.models import SqlaTable, SqlMetric, TableColumn
+    from superset.models.core import Database
+
+    datasource: SqlaTable = SqlaTable(
+        table_name="orders",
+        columns=[
+            TableColumn(column_name="category", type="VARCHAR"),
+            TableColumn(column_name="region", type="VARCHAR"),
+        ],
+        metrics=[SqlMetric(metric_name="total_amount", expression="SUM(amount)")],
+        database=Database(database_name="export_test", sqlalchemy_uri="sqlite://"),
+    )
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"category": ["Books"], "region": ["West"], "total_amount": [15]}
+    )
+    form_data: dict[str, Any] = {
+        "viz_type": viz_type,
+        "columns": ["category", "region"],
+        "groupbyRows": ["category", "region"],
+        "groupbyColumns": [],
+        "metrics": ["total_amount"],
+    }
+    result: dict[str, Any] = {
+        "queries": [
+            {
+                "result_format": result_format,
+                "data": excel.df_to_excel(source_df, index=False)
+                if result_format == ChartDataResultFormat.XLSX
+                else source_df.to_csv(index=False),
+            }
+        ]
+    }
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]))
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]))
+    )
+    pd.testing.assert_frame_equal(output_df, source_df)
+
+
 @with_config({"CSV_EXPORT": {"sep": ";", "decimal": ","}})
 def test_apply_client_processing_csv_format_custom_delimiter():
     """

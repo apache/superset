@@ -4156,6 +4156,9 @@ msgstr "关闭颜色断点编辑器"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "关闭选项卡"
 
@@ -8699,10 +8702,10 @@ msgstr "隐藏时间序列的线"
 msgid "Hierarchy"
 msgstr "层次"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10049,10 +10052,10 @@ msgstr "经度/纬度"
 msgid "Longitude of default viewport"
 msgstr "默认视口经度"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 #, fuzzy
@@ -10569,6 +10572,9 @@ msgid "Minimum Font Size"
 msgstr "最小字体大小"
 
 #, fuzzy
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "最小半径"
 
@@ -10582,6 +10588,16 @@ msgstr "最小点大小"
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "最小值必须严格小于最大值"
 
@@ -11617,9 +11633,6 @@ msgstr "气泡的不透明度，0表示完全透明，1表示不透明"
 msgid "Opacity, expects values between 0 and 100"
 msgstr "不透明度，期望值在0到100之间"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "打开数据源选项卡"
 
@@ -11651,6 +11664,9 @@ msgstr "在 SQL Lab 中打开"
 
 msgid "Open in SQL lab"
 msgstr "在 SQL Lab 中打开"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "在 SQL Lab 中打开查询"
@@ -20226,6 +20242,9 @@ msgstr "X 轴标签"
 msgid "X Axis Label Interval"
 msgstr "X 轴标签间隔"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X 轴数字格式"
 
@@ -20273,6 +20292,9 @@ msgstr "Y 轴格式化"
 
 msgid "Y Axis Label"
 msgstr "Y 轴标签"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y 轴标题"
