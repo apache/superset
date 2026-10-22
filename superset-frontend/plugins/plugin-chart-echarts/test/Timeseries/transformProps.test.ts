@@ -3317,7 +3317,9 @@ describe('EchartsTimeseries tooltip truncation', () => {
 
   test('keeps the series color marker in every mode', () => {
     (['off', 'end', 'start', 'middle'] as const).forEach(mode => {
-      expect(buildTooltip(mode).replace(/\s/g, '')).toContain('style="color:#1f77b4;');
+      expect(buildTooltip(mode).replace(/\s/g, '')).toContain(
+        'style="color:#1f77b4;',
+      );
     });
   });
 
