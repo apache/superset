@@ -35,7 +35,7 @@ from superset.charts.data.form_data import set_query_context_form_data
 from superset.commands.exceptions import CommandException
 from superset.commands.explore.form_data.parameters import CommandParameters
 from superset.exceptions import SupersetException, SupersetSecurityException
-from superset.extensions import db, event_logger
+from superset.extensions import event_logger
 from superset.mcp_service.chart.chart_helpers import (
     build_query_context_from_form_data,
     extract_x_axis_col,
@@ -650,15 +650,6 @@ async def _handle_chart_sql_request(
             error=_SEMANTIC_VIEW_SQL_UNSUPPORTED,
             error_type="Unsupported",
         )
-
-    # Eagerly refresh all attributes while the session is still active. The
-    # log_context commit above (DBEventLogger.log) expires this instance via
-    # SQLAlchemy's expire_on_commit, and the awaits below are real event-loop
-    # yield points after which the MCP per-call session can be torn down —
-    # a later lazy reload (e.g. chart.params in _resolve_effective_form_data,
-    # chart.query_context in _sql_from_saved_query_context) would then raise
-    # DetachedInstanceError. See get_chart_preview.py for the same pattern.
-    db.session.refresh(chart)
 
     await ctx.info(
         "Chart found: chart_id=%s, chart_name=%s, viz_type=%s"
