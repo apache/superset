@@ -5413,7 +5413,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     pass
                 elif col_obj and filter_grain:
                     sqla_col = col_obj.get_timestamp_expression(
-                        time_grain=filter_grain, template_processor=template_processor
+                        time_grain=filter_grain,
+                        template_processor=template_processor,
+                        apply_dataset_offset=True,
                     )
                 elif col_obj:
                     sqla_col = self.convert_tbl_column_to_sqla_col(

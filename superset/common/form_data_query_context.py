@@ -579,7 +579,9 @@ def _base_query_object(  # noqa: C901
 def _temporalized_columns(form_data: dict[str, Any], columns: list[Any]) -> list[Any]:
     """Apply the pivot BASE_AXIS temporal-column contract."""
     time_grain = form_data.get("time_grain_sqla")
-    temporal_lookup = form_data.get("temporal_columns_lookup") or {}
+    temporal_lookup = form_data.get("temporal_columns_lookup")
+    if not isinstance(temporal_lookup, Mapping):
+        temporal_lookup = {}
     result: list[Any] = []
     for column in columns:
         if (
@@ -614,17 +616,17 @@ def _sunburst_temporal_grain(form_data: dict[str, Any], query: dict[str, Any]) -
     """
     extras = dict(query.get("extras") or {})
     time_grain = extras.get("time_grain_sqla")
-    temporal_lookup = form_data.get("temporal_columns_lookup") or {}
+    temporal_lookup = form_data.get("temporal_columns_lookup")
+    if not isinstance(temporal_lookup, Mapping):
+        temporal_lookup = {}
+    subject = query.get("granularity")
     grained = False
     columns: list[Any] = []
     for column in _as_list(query.get("columns")):
         if (
             time_grain
             and isinstance(column, str)
-            and (
-                temporal_lookup.get(column)
-                or form_data.get("granularity_sqla") == column
-            )
+            and (subject == column if subject else temporal_lookup.get(column))
         ):
             grained = True
             columns.append(

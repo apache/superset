@@ -489,8 +489,10 @@ the modal's toolbar to export the underlying result set as CSV or Excel (XLSX) w
 the export isn't limited to the page currently visible in the table.
 
 For Sunburst charts, drilling into a time-grained temporal segment filters the entire
-bucket rather than a single timestamp. Drill to detail and Drill by use the bucket's
-start and end, with the dataset's timezone or Hour Offset applied to the bounds.
+bucket rather than a single timestamp. Drill to detail and Drill by compare the
+raw bucket value against the grained time column, including the dataset's Hours offset.
+An explicit Time Column selection (including a dashboard override) determines which
+hierarchy level receives the grain; without one, all physical temporal levels do.
 
 :::resources
 

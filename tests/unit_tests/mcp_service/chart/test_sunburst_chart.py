@@ -5689,3 +5689,38 @@ def test_temporal_state_accepts_explore_saved_grain() -> None:
     error = validate_sunburst_temporal_state(orphan, context)
     assert error is not None
     assert error.error_code == "INVALID_TEMPORAL_STATE"
+
+
+@pytest.mark.parametrize("lookup", [None, {"order_date": True, "ship_date": True}])
+def test_mcp_time_column_override_grains_one_hierarchy_level(
+    lookup: dict[str, bool] | None,
+) -> None:
+    """MCP preparation and Explore metadata preserve the same effective subject."""
+    form_data = {
+        "viz_type": "sunburst_v2",
+        "columns": ["order_date", "ship_date"],
+        "metric": "count",
+        "granularity_sqla": "order_date",
+        "time_grain_sqla": "P1M",
+        "temporal_columns_lookup": lookup,
+    }
+    with patch(
+        "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
+        return_value="base",
+    ):
+        [query] = build_query_dicts_from_form_data(
+            form_data,
+            datasource_id=7,
+            datasource_type="table",
+            extra_form_data={"granularity_sqla": "ship_date"},
+        )
+    assert query["columns"][0] == "order_date"
+    assert query["columns"][1] == {
+        "timeGrain": "P1M",
+        "columnType": "BASE_AXIS",
+        "sqlExpression": "ship_date",
+        "label": "ship_date",
+        "expressionType": "SQL",
+        "isColumnReference": True,
+    }
+    assert query["granularity"] == "ship_date"

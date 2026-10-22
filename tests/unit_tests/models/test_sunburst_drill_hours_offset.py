@@ -18,16 +18,16 @@
 
 The Sunburst groups a grained temporal level through a ``BASE_AXIS`` column,
 which applies the dataset Hours offset before time grain truncation. Drill to
-detail and Drill by send the clicked bucket as a ``TEMPORAL_RANGE`` filter in
-local (offset) time, so the filter bounds must be shifted back by the offset to
-select the same rows the ring counted.
+detail and Drill by send equality plus grain. The filter must shift the
+column before truncation, just as grouping does, and survive query-context
+time-range and granularity overrides.
 """
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from contextlib import contextmanager
-from datetime import datetime
-from typing import Any
+from datetime import datetime, timezone
 
 import pytest
 from flask import Flask
@@ -37,6 +37,7 @@ from sqlalchemy.engine import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
 
+from superset.common.query_context_factory import QueryContextFactory
 from superset.common.query_object import QueryObject
 from superset.connectors.sqla.models import SqlaTable, TableColumn
 from superset.models.core import Database
@@ -51,16 +52,9 @@ ROWS = [
     ("2026-08-10 12:00:00", "a"),
     ("2026-08-20 12:00:00", "b"),
     ("2026-08-31 18:59:59", "b"),
-    ("2026-08-31 20:00:00", "a"),
+    ("2026-08-31 20:00:00", "c"),
     ("2026-09-15 12:00:00", "b"),
 ]
-
-# Bucket start (local time) -> exclusive end, the range the frontend sends.
-MONTH_RANGES = {
-    "2026-07-01T00:00:00": "2026-08-01T00:00:00",
-    "2026-08-01T00:00:00": "2026-09-01T00:00:00",
-    "2026-09-01T00:00:00": "2026-10-01T00:00:00",
-}
 
 
 @pytest.fixture
@@ -129,30 +123,43 @@ def _ring_counts(table: SqlaTable) -> dict[str, int]:
     }
 
 
-def _drill_filter(since: str, until: str) -> QueryObjectFilterClause:
-    return {"col": "order_date", "op": "TEMPORAL_RANGE", "val": f"{since} : {until}"}
+def _drill_filter(since: str) -> QueryObjectFilterClause:
+    """Use the raw chart-data bucket value and its grain, as the frontend does."""
+    return {
+        "col": "order_date",
+        "op": "==",
+        "val": int(
+            datetime.fromisoformat(since).replace(tzinfo=timezone.utc).timestamp()
+            * 1000
+        ),
+        "grain": "P1M",
+    }
 
 
-def _drill_to_detail_count(table: SqlaTable, since: str, until: str) -> int:
+def _drill_to_detail_counts(table: SqlaTable, since: str) -> dict[str, int]:
     query_object = QueryObject(
         datasource=table,
         columns=["order_date", "kind"],
         metrics=[],
-        filters=[_drill_filter(since, until)],
+        filters=[_drill_filter(since)],
         row_limit=100,
     )
-    return len(table.get_query_result(query_object).df)
+    counts = table.get_query_result(query_object).df["kind"].value_counts()
+    return {str(kind): int(count) for kind, count in counts.items()}
 
 
-def _drill_by_count(table: SqlaTable, since: str, until: str) -> int:
+def _drill_by_counts(table: SqlaTable, since: str) -> dict[str, int]:
     query_object = QueryObject(
         datasource=table,
         columns=["kind"],
         metrics=[{"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "ct"}],
-        filters=[_drill_filter(since, until)],
+        filters=[_drill_filter(since)],
         row_limit=100,
     )
-    return int(table.get_query_result(query_object).df["ct"].sum())
+    df = table.get_query_result(query_object).df
+    return {
+        str(kind): int(count) for kind, count in zip(df["kind"], df["ct"], strict=True)
+    }
 
 
 def test_sunburst_ring_buckets_apply_the_hours_offset(
@@ -167,40 +174,151 @@ def test_sunburst_ring_buckets_apply_the_hours_offset(
     }
 
 
-@pytest.mark.parametrize("drill_count", [_drill_to_detail_count, _drill_by_count])
-def test_sunburst_drill_range_matches_ring_bucket_with_hours_offset(
+@pytest.mark.parametrize("drill_count", [_drill_to_detail_counts, _drill_by_counts])
+def test_sunburst_drill_grain_matches_ring_bucket_with_hours_offset(
     events_table: SqlaTable,
     app: Flask,
-    drill_count: Any,
+    drill_count: Callable[[SqlaTable, str], dict[str, int]],
 ) -> None:
     """Every ring bucket's drill returns exactly the rows the ring counted."""
     with app.test_request_context():
         counts = _ring_counts(events_table)
-        drilled = {
-            since: drill_count(events_table, since, MONTH_RANGES[since])
-            for since in counts
-        }
+        drilled = {since: drill_count(events_table, since) for since in counts}
 
-    assert drilled == counts
-    assert sum(drilled.values()) == len(ROWS)
+    assert drilled == {
+        "2026-08-01T00:00:00": {"a": 2, "b": 2},
+        "2026-09-01T00:00:00": {"b": 1, "c": 1},
+    }
+    assert {bucket: sum(kinds.values()) for bucket, kinds in drilled.items()} == counts
 
 
-def test_sunburst_drill_range_bounds_are_shifted_by_hours_offset(
+def test_sunburst_drill_grained_column_is_shifted_by_hours_offset(
     events_table: SqlaTable, app: Flask
 ) -> None:
-    """The August bucket filter compiles to [07-31 19:00, 08-31 19:00) raw."""
+    """The drill filters the same offset-before-truncation expression as grouping."""
     query_obj: QueryObjectDict = {
         "granularity": None,
         "from_dttm": None,
         "to_dttm": None,
         "is_timeseries": False,
-        "filter": [_drill_filter("2026-08-01T00:00:00", "2026-09-01T00:00:00")],
+        "filter": [_drill_filter("2026-08-01T00:00:00")],
         "metrics": [],
         "columns": ["order_date", "kind"],
     }
     with app.test_request_context():
         sql = events_table.get_query_str_extended(query_obj, mutate=False).sql
 
-    assert "'2026-07-31 19:00:00'" in sql, sql
-    assert "'2026-08-31 19:00:00'" in sql, sql
-    assert datetime(2026, 8, 1).isoformat(" ") not in sql, sql
+    assert "DATETIME(order_date, '+5 hours')" in sql, sql
+    assert "'2026-08-01 00:00:00'" in sql, sql
+
+
+@pytest.mark.parametrize("result_type", ["samples", "full"])
+@pytest.mark.parametrize("granularity", [None, "order_date"])
+def test_sunburst_factory_drill_preserves_bucket_with_time_range(
+    events_table: SqlaTable,
+    app: Flask,
+    mocker: MockerFixture,
+    result_type: str,
+    granularity: str | None,
+) -> None:
+    """Samples and chart-data keep the grained equality beside range overrides."""
+    from superset.common.chart_data import ChartDataResultType
+
+    mocker.patch.object(
+        QueryContextFactory, "_convert_to_model", return_value=events_table
+    )
+    with app.test_request_context():
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            result_type=ChartDataResultType(result_type),
+            form_data={"extra_form_data": {"time_range": "2026-07-01 : 2026-10-01"}},
+            queries=[
+                {
+                    "columns": ["order_date", "kind"]
+                    if result_type == "samples"
+                    else ["kind"],
+                    "metrics": []
+                    if result_type == "samples"
+                    else [
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": "COUNT(*)",
+                            "label": "ct",
+                        }
+                    ],
+                    "granularity": granularity,
+                    "time_range": "2026-07-01 : 2026-10-01",
+                    "filters": [
+                        {
+                            "col": "order_date",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "No filter",
+                        },
+                        {
+                            "col": "order_date",
+                            "op": "==",
+                            "val": 1785542400000,
+                            "grain": "P1M",
+                        },
+                    ],
+                    "row_limit": 100,
+                }
+            ],
+        )
+        query = context.queries[0]
+        assert any(f.get("grain") == "P1M" for f in query.filter)
+        df = events_table.get_query_result(query).df
+    assert (len(df) if result_type == "samples" else int(df["ct"].sum())) == 4
+    if result_type == "samples":
+        assert sorted(df["kind"].tolist()) == ["a", "a", "b", "b"]
+    else:
+        assert dict(zip(df["kind"], df["ct"], strict=True)) == {"a": 2, "b": 2}
+
+
+@pytest.mark.parametrize("lookup", [["order_date"], "order_date", 1])
+def test_sunburst_malformed_lookup_is_ignored(lookup: object) -> None:
+    """Malformed metadata must not crash the form-data query entry point."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    [query] = build_query_objects_from_form_data(
+        {
+            "viz_type": "sunburst_v2",
+            "columns": ["order_date"],
+            "time_grain_sqla": "P1M",
+            "temporal_columns_lookup": lookup,
+        }
+    )
+    assert query["columns"] == ["order_date"]
+    assert "time_grain_sqla" not in query.get("extras", {})
+
+
+@pytest.mark.parametrize("dashboard_override", [False, True])
+def test_sunburst_explicit_subject_matches_explore_lookup(
+    dashboard_override: bool,
+) -> None:
+    """The server mirror shares the explicit-subject precedence with Explore."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    form_data = {
+        "viz_type": "sunburst_v2",
+        "columns": ["order_date", "ship_date"],
+        "time_grain_sqla": "P1M",
+        "granularity_sqla": "order_date",
+    }
+    if dashboard_override:
+        form_data["granularity_sqla"] = "ship_date"
+    [saved] = build_query_objects_from_form_data(form_data)
+    [explore] = build_query_objects_from_form_data(
+        {
+            **form_data,
+            "temporal_columns_lookup": {"order_date": True, "ship_date": True},
+        }
+    )
+    assert saved["columns"] == explore["columns"]
+    assert saved["columns"][0 if dashboard_override else 1] == (
+        "order_date" if dashboard_override else "ship_date"
+    )

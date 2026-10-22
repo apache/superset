@@ -111,3 +111,33 @@ test('semantic views get a column reference and cross-filter columns stay names'
   // dimension name rather than a column object.
   expect(formData.columns).toEqual(['ts', 'region']);
 });
+
+test('an explicit MCP time column grains the same level after Explore adds its lookup', () => {
+  const saved = {
+    ...exploreSaved,
+    columns: ['ts', 'ship_date'],
+    granularity_sqla: 'ts',
+    temporal_columns_lookup: undefined,
+  } as QueryFormData;
+  const [dashboard] = buildQuery(saved).queries;
+  const [explore] = buildQuery({
+    ...saved,
+    temporal_columns_lookup: { ts: true, ship_date: true },
+  } as QueryFormData).queries;
+  expect(dashboard.columns).toEqual([groupedTs('P1M'), 'ship_date']);
+  expect(explore.columns).toEqual(dashboard.columns);
+});
+
+test('a dashboard Time Column override selects the effective grained level', () => {
+  const [query] = buildQuery({
+    ...exploreSaved,
+    columns: ['ts', 'ship_date'],
+    granularity_sqla: 'ts',
+    temporal_columns_lookup: { ts: true, ship_date: true },
+    extra_form_data: { granularity_sqla: 'ship_date' },
+  } as QueryFormData).queries;
+  expect(query.columns).toEqual([
+    'ts',
+    { ...groupedTs('P1M'), sqlExpression: 'ship_date', label: 'ship_date' },
+  ]);
+});

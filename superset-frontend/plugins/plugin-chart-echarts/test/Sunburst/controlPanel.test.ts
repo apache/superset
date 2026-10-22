@@ -100,3 +100,8 @@ test('the temporal lookup control is part of the Sunburst panel', () => {
     .flat();
   expect(names).toContain('temporal_columns_lookup');
 });
+
+test('a hidden time grain resets to null rather than retaining an orphan grain', () => {
+  expect(timeGrainControl().config.default).toBeNull();
+  expect(visible(['region'])).toBe(false);
+});

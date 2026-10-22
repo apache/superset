@@ -22,14 +22,12 @@ import {
   getColumnLabel,
   getNumberFormatter,
   getTimeFormatter,
-  TimeGranularity,
 } from '@superset-ui/core';
-import { isGrainedLevel } from './buildQuery';
+import { getSunburstTimeGrain } from './timeGrain';
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
 import { formatSeriesName } from '../utils/series';
-import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 
 export const extractTreePathInfo = (treePathInfo: TreePathInfo[] | undefined) =>
   (treePathInfo ?? [])
@@ -123,24 +121,19 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const drillToDetailFilters: BinaryQueryObjectFilterClause[] = [];
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         if (columns?.length) {
-          const timeGrain = (formData.extraFormData?.time_grain_sqla ??
-            formData.timeGrainSqla) as TimeGranularity | undefined;
           treePath.forEach((path, i) => {
-            // Range filters apply the dataset timezone/offset to both bucket
-            // bounds. Equality on a truncated column bypasses that handling.
+            const grain = getSunburstTimeGrain(formData, columns[i]);
+            // Equality plus grain survives time-range overrides in samples and
+            // chart-data queries, and delegates engine-specific grains to SQL.
             const temporalFilter =
-              timeGrain &&
-              isGrainedLevel(
-                columns[i],
-                formData.temporalColumnsLookup,
-                formData.granularitySqla,
-              )
-                ? getTemporalXAxisDrillByFilter(
-                    columns[i],
-                    records[i],
-                    timeGrain,
-                    path,
-                  )
+              grain && records[i] != null
+                ? {
+                    col: columns[i],
+                    op: '==' as const,
+                    val: records[i],
+                    grain,
+                    formattedVal: path,
+                  }
                 : undefined;
             drillToDetailFilters.push(
               temporalFilter ?? {

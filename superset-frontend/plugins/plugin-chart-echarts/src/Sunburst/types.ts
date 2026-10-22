@@ -24,6 +24,7 @@ import {
   QueryFormColumn,
   QueryFormData,
   QueryFormMetric,
+  TimeGranularity,
 } from '@superset-ui/core';
 import type { SunburstSeriesNodeItemOption } from 'echarts/types/src/chart/sunburst/SunburstSeries';
 import {
@@ -34,6 +35,9 @@ import {
 
 export type EchartsSunburstFormData = QueryFormData & {
   groupby: QueryFormColumn[];
+  temporalColumnsLookup?: Record<string, boolean>;
+  granularitySqla?: string;
+  timeGrainSqla?: TimeGranularity;
   metric: QueryFormMetric;
   secondaryMetric?: QueryFormMetric;
   colorScheme?: string;

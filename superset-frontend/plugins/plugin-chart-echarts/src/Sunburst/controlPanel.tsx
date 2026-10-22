@@ -51,6 +51,7 @@ const config: ControlPanelConfig = {
               // new chart starts without a grain, so temporal levels keep
               // their raw values until one is chosen.
               initialValue: (control: ControlState) => control.value,
+              default: null,
               description: t(
                 'Time grain applied to the temporal levels of the hierarchy.',
               ),
@@ -71,6 +72,16 @@ const config: ControlPanelConfig = {
             },
           },
           'temporal_columns_lookup',
+          {
+            name: 'granularity_sqla',
+            config: {
+              // Retain an MCP-saved Time Column without choosing one for new
+              // charts. Dropping it changes which of two temporal levels grains.
+              type: 'TextControl',
+              hidden: true,
+              default: null,
+            },
+          },
         ],
         ['metric'],
         ['secondary_metric'],

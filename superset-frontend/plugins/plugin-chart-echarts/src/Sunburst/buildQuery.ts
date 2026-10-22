@@ -25,18 +25,7 @@ import {
   QueryFormData,
 } from '@superset-ui/core';
 
-// A hierarchy level takes the time grain when it is a physical column that the
-// temporal lookup (or the legacy ``granularity_sqla``) marks temporal.
-export function isGrainedLevel(
-  column: QueryFormColumn,
-  temporalColumnsLookup: Record<string, boolean> | undefined,
-  granularitySqla: string | undefined,
-): boolean {
-  return (
-    isPhysicalColumn(column) &&
-    (!!temporalColumnsLookup?.[column] || granularitySqla === column)
-  );
-}
+import { isGrainedLevel } from './timeGrain';
 
 // Wrap each temporal hierarchy level in the BASE_AXIS column reference that
 // carries the time grain, the shape ``normalizeTimeColumn`` uses for a physical
@@ -54,7 +43,7 @@ function applyTimeGrain(
       isGrainedLevel(
         column,
         formData.temporal_columns_lookup,
-        formData.granularity_sqla,
+        formData.extra_form_data?.granularity_sqla ?? formData.granularity_sqla,
       )
     ) {
       grained = true;

@@ -865,3 +865,24 @@ def test_big_number_saved_axis_keeps_monthly_range_binding(
     assert query["columns"][0]["timeGrain"] == "P1M"
     pivot = next(p for p in query["post_processing"] if p["operation"] == "pivot")
     assert pivot["options"]["index"] == ["ds"]
+
+
+@pytest.mark.parametrize("viz_type", ["pivot_table_v2", "ag-grid-pivot-table"])
+def test_temporal_lookup_non_mapping_on_pivot_siblings(viz_type: str) -> None:
+    """Sibling pivot adapters ignore malformed temporal metadata like Sunburst."""
+    from superset.common.form_data_query_context import (
+        build_query_objects_from_form_data,
+    )
+
+    [query] = build_query_objects_from_form_data(
+        {
+            "viz_type": viz_type,
+            "groupbyRows": ["ts"],
+            "groupbyColumns": [],
+            "groupby": ["ts"],
+            "metrics": ["count"],
+            "time_grain_sqla": "P1M",
+            "temporal_columns_lookup": ["ts"],
+        }
+    )
+    assert query["columns"] == ["ts"]

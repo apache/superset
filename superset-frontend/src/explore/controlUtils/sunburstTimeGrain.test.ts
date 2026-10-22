@@ -45,6 +45,7 @@ const datasource = {
   columns: [
     { column_name: 'ts', is_dttm: true },
     { column_name: 'region', is_dttm: false },
+    { column_name: 'ship_date', is_dttm: true },
   ],
   metrics: [{ metric_name: 'count' }],
   time_grain_sqla: [
@@ -130,4 +131,16 @@ test('a Sunburst saved without a grain stays raw in Explore until a grain is cho
     },
     'region',
   ]);
+});
+
+test('Explore preserves an MCP time-column subject in a two-temporal-level hierarchy', () => {
+  const saved = {
+    ...mcpSavedFormData,
+    columns: ['ship_date', 'ts'],
+  } as QueryFormData;
+  const explored = exploreFormData(saved);
+  expect(explored.granularity_sqla).toBe('ts');
+  expect(buildQuery(explored).queries[0].columns).toEqual(
+    buildQuery(saved).queries[0].columns,
+  );
 });
