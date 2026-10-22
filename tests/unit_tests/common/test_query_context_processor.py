@@ -297,6 +297,36 @@ def test_annotation_source_scope_keys_on_result_type_prepared_query(
     assert saved_query.metrics == ["count"]
 
 
+def test_annotation_source_scope_keys_on_query_level_samples_result_type(
+    processor: QueryContextProcessor, mock_annotation_chart: MagicMock
+) -> None:
+    """A query-level SAMPLES result type overrides a FULL saved context, so
+    the key must be derived from the metrics-cleared prepared query."""
+    from superset.common.query_object import QueryObject
+
+    mock_datasource = MagicMock()
+    mock_datasource.columns = []
+    saved_query = QueryObject(
+        datasource=mock_datasource,
+        metrics=["count"],
+        columns=["col1"],
+        result_type=ChartDataResultType.SAMPLES,
+    )
+    mock_query_context = MagicMock()
+    mock_query_context.result_type = ChartDataResultType.FULL
+    mock_query_context.queries = [saved_query]
+    mock_query_context.query_cache_key.side_effect = (
+        lambda query_object: f"metrics={query_object.metrics}"
+    )
+    mock_annotation_chart.get_query_context.return_value = mock_query_context
+
+    scope = processor._annotation_source_scope({"value": 1})
+
+    assert scope is not None
+    assert scope["data_key"] == ["metrics=None"]
+    assert saved_query.metrics == ["count"]
+
+
 def test_annotation_source_scope_none_when_referenced_chart_cache_disabled(
     processor: QueryContextProcessor, mock_annotation_chart: MagicMock
 ) -> None:
