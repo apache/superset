@@ -104,6 +104,8 @@ export default function ConditionFilterPlugin(
     appSection,
     filterBarOrientation = FilterBarOrientation.Vertical,
     isOverflowingFilterBar,
+    clearAllTrigger,
+    onClearAllComplete,
   } = props;
   const { groupby, enableEmptyFilter, defaultValue } = formData;
   const [col = ''] = ensureIsArray(groupby).map(getColumnLabel);
@@ -184,6 +186,16 @@ export default function ConditionFilterPlugin(
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [JSON.stringify(filterState.value), enableEmptyFilter, col, coltype]);
+
+  // "Clear all" in the filter bar. Invalid input is never sent to the
+  // dashboard, so the filter bar can't clear it; reset the local state here.
+  useEffect(() => {
+    if (clearAllTrigger) {
+      setCondition({ op: getAllowedOperators(coltype)[0] });
+      onClearAllComplete?.(formData.nativeFilterId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clearAllTrigger]);
 
   const handleOperatorChange = (op: ConditionOperator) => {
     let val: ConditionValue['val'];

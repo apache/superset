@@ -74,4 +74,6 @@ export type PluginFilterConditionProps = PluginFilterStylesProps & {
   appSection?: AppSection;
   filterBarOrientation?: FilterBarOrientation;
   isOverflowingFilterBar?: boolean;
+  clearAllTrigger?: boolean;
+  onClearAllComplete?: (filterId: string) => void;
 } & PluginFilterHooks;

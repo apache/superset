@@ -39,6 +39,8 @@ export default function transformProps(chartProps: ChartProps) {
     setHoveredFilter = noOp,
     unsetHoveredFilter = noOp,
     setFilterActive = noOp,
+    clearAllTrigger,
+    onClearAllComplete,
   } = hooks;
   const data = queriesData[0]?.data ?? [];
   const coltype = queriesData[0]?.coltypes?.[0];
@@ -59,6 +61,8 @@ export default function transformProps(chartProps: ChartProps) {
     setFilterActive,
     inputRef,
     appSection,
+    clearAllTrigger,
+    onClearAllComplete,
     isOverflowingFilterBar: displaySettings?.isOverflowingFilterBar,
     filterBarOrientation: displaySettings?.filterBarOrientation,
   };

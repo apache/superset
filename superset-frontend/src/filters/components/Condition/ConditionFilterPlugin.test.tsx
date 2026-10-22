@@ -216,3 +216,31 @@ test('formats temporal values in the value picker', async () => {
   );
   expect(await screen.findByTitle('2024-01-15')).toBeInTheDocument();
 });
+
+test('"Clear all" resets input that was never sent to the dashboard', async () => {
+  const onClearAllComplete = jest.fn();
+  const props = getProps({ op: '>' }, {}, GenericDataType.Numeric);
+  const { rerender } = render(
+    <ConditionFilterPlugin
+      {...props}
+      onClearAllComplete={onClearAllComplete}
+    />,
+  );
+  await userEvent.type(screen.getByLabelText('Condition value'), 'abc');
+  expect(
+    screen.getByText('This column is numeric. Please enter a number.'),
+  ).toBeInTheDocument();
+
+  rerender(
+    <ConditionFilterPlugin
+      {...props}
+      clearAllTrigger
+      onClearAllComplete={onClearAllComplete}
+    />,
+  );
+  expect(screen.getByLabelText('Condition value')).toHaveValue('');
+  expect(
+    screen.queryByText('This column is numeric. Please enter a number.'),
+  ).not.toBeInTheDocument();
+  expect(onClearAllComplete).toHaveBeenCalledWith('NATIVE_FILTER-1');
+});
