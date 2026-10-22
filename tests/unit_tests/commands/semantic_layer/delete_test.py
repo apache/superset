@@ -1156,6 +1156,8 @@ def test_archived_dashboard_blocks_delete_with_orm_listener(
         ("admin", {"Live chart": False, "Archived chart": True}),
         ("editor", {"Live chart": False, "Archived chart": True}),
         ("reader", {"Live chart": False}),
+        ("guest", {"Live chart": False}),
+        ("hidden-editor", {"Archived chart": True}),
     ],
 )
 def test_semantic_delete_names_archived_dependents_to_restore_audience(
@@ -1202,11 +1204,27 @@ def test_semantic_delete_names_archived_dependents_to_restore_audience(
             f"superset.commands.semantic_layer.delete.{access_filter}.apply",
             side_effect=lambda query, value: query,
         )
-    mocker.patch("superset.security_manager.is_admin", return_value=viewer == "admin")
+    if viewer == "hidden-editor":
+        # Editorship names archived rows only: a live row the base filter hides
+        # stays hidden even from its editor.
+        session.execute(chart_editors.insert().values(chart_id=961, subject_id=1))
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.ChartFilter.apply",
+            side_effect=lambda query, value: query.filter(sa.false()),
+        )
+    mocker.patch(
+        "superset.security_manager.is_admin",
+        return_value=viewer in ("admin", "guest"),
+    )
+    mocker.patch(
+        "superset.security_manager.is_guest_user", return_value=viewer == "guest"
+    )
     mocker.patch("superset.commands.semantic_layer.delete.get_user_id", return_value=7)
     mocker.patch(
         "superset.commands.semantic_layer.delete.get_user_subject_ids_subquery",
-        return_value=sa.select(sa.literal(1 if viewer == "editor" else 2)),
+        return_value=sa.select(
+            sa.literal(1 if viewer in ("editor", "hidden-editor") else 2)
+        ),
     )
 
     total: int

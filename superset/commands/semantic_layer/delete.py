@@ -126,6 +126,9 @@ def _archived_audience_ids(table: sa.Table, editors: sa.Table, fk: str) -> sa.Se
     Mirrors ``BaseDeletedStateFilter``: admins see every archived row, others
     only rows they edit. Core tables keep the soft-delete listener out of it.
     """
+    # A guest token never restores archived assets, whatever its role.
+    if security_manager.is_guest_user():
+        return sa.select(table.c.id).where(sa.false())
     if security_manager.is_admin():
         return sa.select(table.c.id)
     user_id: int | None = get_user_id()
