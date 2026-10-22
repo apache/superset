@@ -69,8 +69,13 @@ export default function SemanticDeleteBlockers({
       )
     : error.error;
   // Archived assets have no page to open; Recently Archived lists them.
-  const href = (item: Dependent): string | undefined =>
-    item.archived ? undefined : LIVE_LINKS[item.type]?.(item.id);
+  // The id comes from the error body, so only a whole number becomes a link.
+  const href = (item: Dependent): string | undefined => {
+    const id = Number(item.id);
+    return item.archived || !Number.isSafeInteger(id)
+      ? undefined
+      : LIVE_LINKS[item.type]?.(id);
+  };
   return (
     <Alert
       type="error"
@@ -80,22 +85,19 @@ export default function SemanticDeleteBlockers({
         <>
           {dependents.length > 0 && (
             <ul>
-              {dependents.map(item => (
-                <li key={`${item.type}-${item.id}`}>
-                  {href(item) ? (
-                    <a href={ensureAppRoot(href(item) as string)}>
-                      {item.name}
-                    </a>
-                  ) : (
-                    item.name
-                  )}{' '}
-                  (
-                  {item.archived
-                    ? t('archived %s', typeLabel(item.type))
-                    : typeLabel(item.type)}
-                  )
-                </li>
-              ))}
+              {dependents.map(item => {
+                const link = href(item);
+                const name = String(item.name);
+                return (
+                  <li key={`${item.type}-${item.id}`}>
+                    {link ? <a href={ensureAppRoot(link)}>{name}</a> : name} (
+                    {item.archived
+                      ? t('archived %s', typeLabel(item.type))
+                      : typeLabel(item.type)}
+                    )
+                  </li>
+                );
+              })}
             </ul>
           )}
           {unlisted > 0 && <p>{t('and %s more', unlisted)}</p>}
