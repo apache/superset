@@ -81,3 +81,36 @@ export function getSunburstFilter(
       : undefined;
   return temporalFilter ?? { col: column, op: '==', val: value, formattedVal };
 }
+
+/**
+ * Drill to detail matches a grained bucket by its label on the grained column,
+ * as Timeseries does. Samples queries replace every TEMPORAL_RANGE value with
+ * the chart's time_range, which would drop the bucket bounds.
+ */
+export function getSunburstDetailFilter(
+  column: QueryFormColumn,
+  value: DataRecordValue,
+  formData: EchartsSunburstFormData,
+  coltype: GenericDataType | undefined,
+  formattedVal?: string,
+): BinaryQueryObjectFilterClause {
+  const filter = getSunburstFilter(
+    column,
+    value,
+    formData,
+    coltype,
+    formattedVal,
+  );
+  if (filter.op !== 'TEMPORAL_RANGE') {
+    return filter;
+  }
+  const bucket = getTemporalXAxisDrillByFilter(
+    column,
+    value,
+    undefined,
+    formattedVal,
+  );
+  return bucket
+    ? { ...bucket, grain: getSunburstTimeGrain(formData, column) }
+    : filter;
+}

@@ -25,7 +25,11 @@ import {
 import { SunburstTransformedProps } from './types';
 import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
-import { getSunburstFilter, getSunburstSelectionKey } from './utils';
+import {
+  getSunburstDetailFilter,
+  getSunburstFilter,
+  getSunburstSelectionKey,
+} from './utils';
 
 export const extractTreePathInfo = (treePathInfo: TreePathInfo[] | undefined) =>
   (treePathInfo ?? [])
@@ -131,16 +135,26 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
         const drillByFilters: BinaryQueryObjectFilterClause[] = [];
         if (columns?.length) {
           records.forEach((record: DataRecordValue, i: number) => {
-            const filter = getSunburstFilter(
-              columns[i],
-              record,
-              formData,
-              coltypeMapping?.[getColumnLabel(columns[i])],
-              treePath[i],
+            const coltype = coltypeMapping?.[getColumnLabel(columns[i])];
+            drillToDetailFilters.push(
+              getSunburstDetailFilter(
+                columns[i],
+                record,
+                formData,
+                coltype,
+                treePath[i],
+              ),
             );
-            drillToDetailFilters.push(filter);
             if (i === records.length - 1) {
-              drillByFilters.push(filter);
+              drillByFilters.push(
+                getSunburstFilter(
+                  columns[i],
+                  record,
+                  formData,
+                  coltype,
+                  treePath[i],
+                ),
+              );
             }
           });
         }

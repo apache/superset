@@ -210,10 +210,25 @@ test('drilling into a grained temporal level uses the same bucket as cross-filte
     op: 'TEMPORAL_RANGE',
     val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
   });
-  expect(context.drillToDetail[1]).toEqual(context.drillBy.filters[0]);
   expect(context.crossFilter.dataMask.extraFormData.filters[0].val).toBe(
     context.drillBy.filters[0].val,
   );
+});
+
+test('drill to detail matches a grained bucket by its label and grain', () => {
+  // Samples queries replace TEMPORAL_RANGE values with the chart's time_range,
+  // so a range here would return every row of the dashboard time range.
+  const { eventHandlers, event, onContextMenu, path } = setup({
+    grain: TimeGranularity.MONTH,
+  });
+  eventHandlers.contextmenu(event());
+  expect(onContextMenu.mock.lastCall[2].drillToDetail[1]).toEqual({
+    col: 'order_date',
+    op: '==',
+    val: '2024-10-01T00:00:00',
+    grain: TimeGranularity.MONTH,
+    formattedVal: path[1].name,
+  });
 });
 
 test('temporal segments with identical custom labels do not toggle each other off', () => {
