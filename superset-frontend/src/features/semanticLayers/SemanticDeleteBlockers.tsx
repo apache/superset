@@ -47,7 +47,7 @@ const typeLabel = (type: string): string => {
 
 const LIVE_LINKS: Record<string, (id: number) => string> = {
   chart: id => `/explore/?slice_id=${id}`,
-  dashboard: id => `/superset/dashboard/${id}/`,
+  dashboard: id => `/dashboard/${id}/`,
 };
 
 /** The refusal shown inside a semantic layer or view delete dialog. */

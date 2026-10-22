@@ -133,12 +133,13 @@ test('single semantic view delete names its blockers, including archived ones', 
     status: 409,
     body: {
       message: 'blocked',
-      total: 5,
+      total: 6,
       archived_count: 1,
       inaccessible_count: 2,
       dependents: [
         { type: 'chart', id: 7, name: 'Revenue chart', archived: false },
         { type: 'dashboard', id: 8, name: 'Old board', archived: true },
+        { type: 'dashboard', id: 9, name: 'Live board', archived: false },
       ],
     },
   });
@@ -159,6 +160,9 @@ test('single semantic view delete names its blockers, including archived ones', 
     within(alert).getByRole('link', { name: 'Revenue chart' }),
   ).toHaveAttribute('href', '/explore/?slice_id=7');
   expect(alert).toHaveTextContent('Old board (archived dashboard)');
+  expect(
+    within(alert).getByRole('link', { name: 'Live board' }),
+  ).toHaveAttribute('href', '/dashboard/9/');
   expect(
     within(alert).queryByRole('link', { name: 'Old board' }),
   ).not.toBeInTheDocument();
