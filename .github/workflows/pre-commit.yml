@@ -142,8 +142,8 @@ jobs:
           if [ "${MODE}" = "all" ]; then
             frontend=true; docs=true
           elif [ "${MODE}" = "files" ]; then
-            if printf '%s\n' "${CHANGED_FILES}" | grep -qE '^(superset-frontend|superset-websocket)/'; then frontend=true; fi
-            if printf '%s\n' "${CHANGED_FILES}" | grep -qE '^docs/.*\.(js|jsx|ts|tsx)$'; then docs=true; fi
+            if grep -qE '^(superset-frontend|superset-websocket)/' <<< "${CHANGED_FILES}"; then frontend=true; fi
+            if grep -qE '^docs/.*\.(js|jsx|ts|tsx)$' <<< "${CHANGED_FILES}"; then docs=true; fi
           fi
           echo "frontend=${frontend}" >> "$GITHUB_OUTPUT"
           echo "docs=${docs}" >> "$GITHUB_OUTPUT"
