@@ -11747,6 +11747,9 @@
             "type": "string"
           }
         },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "SubjectResponse": {
