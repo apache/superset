@@ -20,6 +20,7 @@
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, omitBy } from 'lodash-es';
+import { QueryObject } from '@superset-ui/core';
 import {
   render,
   screen,
@@ -245,6 +246,12 @@ const getLastChartDataFormData = () =>
       ?.body as string,
   ).form_data;
 
+const getLastChartDataQuery = (): QueryObject =>
+  JSON.parse(
+    fetchMock.callHistory.lastCall(CHART_DATA_ENDPOINT)?.options
+      ?.body as string,
+  ).queries[0];
+
 test('Drill by from a grained temporal bucket queries that bucket as the time range', async () => {
   await renderModal({
     column: { column_name: 'name', verbose_name: null },
@@ -262,6 +269,7 @@ test('Drill by from a grained temporal bucket queries that bucket as the time ra
   // The backend replaces every TEMPORAL_RANGE filter value with time_range,
   // so the bucket only survives if it is the query's time range.
   expect(drilledFormData.time_range).toEqual(OCT_2003_BUCKET);
+  expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
   expect(drilledFormData.adhoc_filters).toContainEqual(
     expect.objectContaining({
       operator: 'TEMPORAL_RANGE',
@@ -291,6 +299,28 @@ test('Drill by from a grained temporal bucket overrides a dashboard time range',
   const drilledFormData = getLastChartDataFormData();
   expect(drilledFormData.time_range).toEqual(OCT_2003_BUCKET);
   expect(drilledFormData.extra_form_data.time_range).toEqual(OCT_2003_BUCKET);
+  expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
+});
+
+test('Drill by from a grained temporal bucket overrides a legacy dashboard time range', async () => {
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...formData,
+      time_range: 'No filter',
+      extra_filters: [
+        { col: '__time_range', op: '==', val: '2003-01-01 : 2005-01-01' },
+      ],
+    },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+  expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
 });
 
 test('Drill by from a grained temporal bucket shows one bucket label in the breadcrumb', async () => {
@@ -303,7 +333,10 @@ test('Drill by from a grained temporal bucket shows one bucket label in the brea
   });
 
   const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
-  expect(within(breadcrumbItems[0]).getByText(/\(Oct 2003\)$/)).toBeVisible();
+  await waitFor(() =>
+    expect(within(breadcrumbItems[0]).getByText(/\(Oct 2003\)$/)).toBeVisible(),
+  );
+  expect(screen.getAllByText(/\(Oct 2003\)$/)).toHaveLength(1);
   expect(breadcrumbItems[0]).not.toHaveTextContent(OCT_2003_BUCKET);
 });
 

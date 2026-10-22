@@ -55,6 +55,23 @@ test('getDrillByTimeRange returns the innermost bucket of nested drills', () => 
   ).toEqual(OCT_1_2003);
 });
 
+test('getDrillByTimeRange retains the temporal bucket through categorical drills and breadcrumb navigation', () => {
+  const configs = [
+    { groupbyFieldName: 'groupby', filters: [monthBucketFilter] },
+    {
+      groupbyFieldName: 'groupby',
+      filters: [{ ...monthBucketFilter, val: OCT_1_2003 }],
+    },
+    {
+      groupbyFieldName: 'groupby',
+      filters: [{ col: 'deal_size', op: '==' as const, val: 'Small' }],
+    },
+  ];
+  expect(getDrillByTimeRange(configs)).toEqual(OCT_1_2003);
+  expect(getDrillByTimeRange(configs.slice(0, 1))).toEqual(OCT_2003);
+  expect(getDrillByTimeRange(configs.slice(0, 0))).toBeUndefined();
+});
+
 test('getDrillByTimeRange ignores categorical and exact-match filters', () => {
   expect(
     getDrillByTimeRange([
@@ -71,7 +88,12 @@ test('getDrillByTimeRange ignores categorical and exact-match filters', () => {
 });
 
 test('applyDrillByTimeRange leaves form data unchanged without a bucket', () => {
-  const formData = { time_range: 'No filter', groupby: ['deal_size'] };
+  const formData = {
+    time_range: 'No filter',
+    groupby: ['deal_size'],
+    extra_filters: [{ col: '__time_range', op: '==', val: 'Last year' }],
+    extra_form_data: { time_range: 'Last month' },
+  };
   expect(applyDrillByTimeRange(formData, undefined)).toBe(formData);
 });
 
@@ -136,4 +158,61 @@ test('the drilled query object carries the bucket as its time range', () => {
   expect(
     buildQueryObject(applyDrillByTimeRange(formData, OCT_2003)).time_range,
   ).toEqual(OCT_2003);
+});
+
+test('the drilled query overrides a legacy dashboard time range without changing other filters', () => {
+  const formData: QueryFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries',
+    time_range: 'No filter',
+    extra_filters: [
+      { col: '__time_range', op: '==', val: '2003-01-01 : 2005-01-01' },
+      { col: 'country', op: 'IN', val: ['USA'] },
+    ],
+  };
+  const original = JSON.parse(JSON.stringify(formData));
+  const drilledQuery = buildQueryObject(
+    applyDrillByTimeRange(formData, OCT_2003),
+  );
+
+  expect(drilledQuery.time_range).toEqual(OCT_2003);
+  expect(drilledQuery.applied_time_extras).toEqual({
+    __time_range: OCT_2003,
+  });
+  expect(drilledQuery.filters).toContainEqual({
+    col: 'country',
+    op: 'IN',
+    val: ['USA'],
+    isExtra: true,
+  });
+  expect(formData).toEqual(original);
+});
+
+test('the drilled query keeps categorical cross-filters and narrows a temporal cross-filter override', () => {
+  const formData: QueryFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries',
+    time_range: 'No filter',
+    extra_form_data: {
+      time_range: OCT_2003,
+      filters: [
+        { col: 'order_date', op: 'TEMPORAL_RANGE', val: OCT_2003 },
+        { col: 'deal_size', op: 'IN', val: ['Small'] },
+      ],
+    },
+  };
+  const drilledQuery = buildQueryObject(
+    applyDrillByTimeRange(formData, OCT_1_2003),
+  );
+  expect(drilledQuery.time_range).toEqual(OCT_1_2003);
+  expect(drilledQuery.filters).toEqual([
+    {
+      col: 'order_date',
+      op: 'TEMPORAL_RANGE',
+      val: OCT_2003,
+      isExtra: true,
+    },
+    { col: 'deal_size', op: 'IN', val: ['Small'], isExtra: true },
+  ]);
+  expect(formData.extra_form_data?.time_range).toEqual(OCT_2003);
 });

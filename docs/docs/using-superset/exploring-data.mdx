@@ -489,6 +489,13 @@ The **Custom** time range picker accepts natural language expressions alongside 
 
 These expressions are evaluated at query time, so saved charts always display data relative to the current date.
 
+### Drill By Time Buckets
+
+On time-series charts, **Drill by** from a grained temporal axis keeps the clicked
+time bucket, such as a day, week, month, quarter, or year, rather than querying the
+chart's entire time range. The bucket also takes precedence over a dashboard Time
+range filter. The breadcrumb uses the bucket's formatted label.
+
 ### Downloading Drill to Detail and Drill By Results
 
 The **Drill to detail** and **Drill by** modals, available from a chart's context menu, show the row-level

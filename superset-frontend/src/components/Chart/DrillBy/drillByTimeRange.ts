@@ -19,6 +19,7 @@
 import {
   ContextMenuFilters,
   JsonObject,
+  QueryFormData,
   ensureIsArray,
 } from '@superset-ui/core';
 
@@ -56,8 +57,8 @@ export const getDrillByTimeRange = (
  * widened to the chart's (or dashboard's) whole time range. Carrying the
  * bucket as the query's time_range keeps it. A dashboard time range arrives
  * through extra_form_data, which overrides time_range, so it is replaced
- * there as well. The bucket lies inside the chart's displayed range, so
- * the result is the intersection of both.
+ * there as well. Legacy dashboard filters can also override the range
+ * through extra_filters, so their reserved __time_range value is replaced.
  *
  * TEMPORAL_RANGE is kept, rather than a >= / < pair, because only the
  * TEMPORAL_RANGE path applies the dataset's timezone or Hours offset to the
@@ -71,9 +72,15 @@ export const applyDrillByTimeRange = <T extends JsonObject>(
     return formData;
   }
   const extraFormData = formData.extra_form_data as JsonObject | undefined;
+  const extraFilters = formData.extra_filters as QueryFormData['extra_filters'];
   return {
     ...formData,
     time_range: timeRange,
+    ...(extraFilters && {
+      extra_filters: extraFilters.map(filter =>
+        filter.col === '__time_range' ? { ...filter, val: timeRange } : filter,
+      ),
+    }),
     ...(extraFormData?.time_range !== undefined && {
       extra_form_data: { ...extraFormData, time_range: timeRange },
     }),
