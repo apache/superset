@@ -4,16 +4,19 @@ name: Update Country Maps
 # and docs/data/countries.json from upstream Natural Earth + community geo
 # data, by running the same notebook `npm run update-maps` runs locally.
 #
-# This is workflow_dispatch-only, not scheduled: unlike a translation-string
-# catch-up, a border/region change here is the kind of thing that needs an
-# actual human look at the rendered maps before merging, not an unattended
-# auto-merge. Several sources the notebook reads from are community repos
-# tracked at a floating `main` ref rather than a pinned commit, and one is a
-# live WHO ArcGIS query, so a run can legitimately pick up an unreviewed
-# upstream change. A maintainer triggers this when they know upstream data
-# moved (e.g. a new Natural Earth release) and reviews the diff before
-# merging, the same way bump-python-package.yml's dispatch-only bot works.
+# Runs weekly and on workflow_dispatch, but only opens or updates a PR when
+# the regenerated output actually differs from what's on `master` - most
+# weeks this is a no-op. Unlike a translation-string catch-up, nothing here
+# auto-merges: a border/region change is the kind of thing that needs an
+# actual human look at the rendered maps. Community geo sources are pinned
+# to a commit where practical; the live WHO ArcGIS query can't be pinned
+# (it's a live service, not a repo), so a run can still legitimately pick up
+# an unreviewed upstream change there. The job itself fails (separately from
+# whether a PR was opened) if the notebook hits a cell error, so a broken
+# upstream source doesn't just quietly go green.
 on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays 07:00 UTC, an hour after sync-translation-catalogs.yml
   workflow_dispatch: {}
 
 permissions:
@@ -136,10 +139,10 @@ jobs:
             superset-frontend/plugins/plugin-chart-country-map/src/countries.ts \
             docs/data/countries.json
           git commit -m "chore(country-map): regenerate GeoJSON from upstream sources" \
-            -m "Automated run of the Country Map GeoJSON Generator notebook (npm run update-maps). Review the rendered diffs before merging - some sources are tracked at a floating ref rather than a pinned commit."
+            -m "Automated run of the Country Map GeoJSON Generator notebook (npm run update-maps). Review the rendered diffs before merging - one source (WHO ArcGIS) is a live query, not a pinned commit."
           git push --force origin "$BRANCH"
 
-          BODY="Automated run of \`npm run update-maps\` against current \`master\`. **Please review the rendered map diffs before merging** - this pulls from several community geo sources (some on a floating \`main\` ref, not a pinned commit) and a live WHO ArcGIS query, so an upstream change here hasn't had human eyes on it yet."
+          BODY="Automated run of \`npm run update-maps\` against current \`master\`. **Please review the rendered map diffs before merging** - this pulls from several community geo sources plus a live WHO ArcGIS query that can't be pinned to a commit, so an upstream change there hasn't had human eyes on it yet."
           if [ "$HAD_ERRORS" = "true" ]; then
             BODY="$BODY
 
@@ -155,3 +158,9 @@ jobs:
               --body "$BODY" \
               --base master --head "$BRANCH"
           fi
+
+      - name: Fail if the notebook hit cell errors
+        if: steps.notebook.outputs.had_errors == 'true'
+        run: |
+          echo "::error::Notebook hit cell errors - see the job summary above. Any resulting PR update still went out; the data for the affected countries may be stale rather than updated."
+          exit 1
