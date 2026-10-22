@@ -76,6 +76,7 @@ function getColumnNameAliasLabels(col: string): string[] {
   ];
 }
 
+/** Colnames plus dataset columns/metrics, so a real `Time` name is not remapped onto `__timestamp`. */
 export function getKnownColumnConfigKeys(
   colnames: string[] = [],
   datasource?: {
