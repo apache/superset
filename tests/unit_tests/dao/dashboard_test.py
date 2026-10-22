@@ -1166,6 +1166,75 @@ def _make_sample_native_filter_metadata(
     }
 
 
+@pytest.mark.parametrize("duplicate_slices", [False, True])
+def test_copy_dashboard_preserves_dynamic_titles_per_occurrence(
+    session: Session,
+    duplicate_slices: bool,
+) -> None:
+    """Copying shared or cloned charts retains each layout title and filter ID."""
+    dashboard, charts = _make_dashboard_with_slices(session)
+    metadata = _make_sample_native_filter_metadata(charts)
+    chart = charts[0]
+    node = metadata["positions"][f"CHART-{chart.id}"]
+    node["meta"].update(
+        {
+            "sliceNameOverride": "Revenue",
+            "dynamicTitle": {
+                "template": "{{chart_title}} in {{country}}",
+                "tokenMappings": {"country": "NATIVE_FILTER-1"},
+            },
+        }
+    )
+    metadata["positions"]["CHART-second-occurrence"] = {
+        **node,
+        "id": "CHART-second-occurrence",
+        "meta": {
+            **node["meta"],
+            "sliceNameOverride": "Comparison",
+            "dynamicTitle": {
+                "template": "Comparison for {{country}}",
+                "tokenMappings": {"country": "NATIVE_FILTER-1"},
+            },
+        },
+    }
+    dashboard.position_json = json.dumps(metadata["positions"])
+    source_layout = dashboard.position_json
+
+    with (
+        patch.object(security_manager, "is_editor", return_value=True),
+        patch("superset.daos.dashboard.g") as mock_g,
+    ):
+        mock_g.user = None
+        copied = DashboardDAO.copy_dashboard(
+            dashboard,
+            {
+                "dashboard_title": "Copied titles",
+                "duplicate_slices": duplicate_slices,
+                "json_metadata": json.dumps(metadata),
+            },
+        )
+
+    layout = json.loads(copied.position_json)
+    first = layout[f"CHART-{chart.id}"]["meta"]
+    second = layout["CHART-second-occurrence"]["meta"]
+    assert first["dynamicTitle"] == node["meta"]["dynamicTitle"]
+    assert (
+        second["dynamicTitle"]
+        == metadata["positions"]["CHART-second-occurrence"]["meta"]["dynamicTitle"]
+    )
+    assert first["sliceNameOverride"] == "Revenue"
+    assert second["sliceNameOverride"] == "Comparison"
+    assert first["chartId"] == second["chartId"]
+    assert (first["chartId"] != chart.id) is duplicate_slices
+    assert first["uuid"] == second["uuid"]
+    assert (
+        json.loads(copied.json_metadata)["native_filter_configuration"][0]["id"]
+        == "NATIVE_FILTER-1"
+    )
+    assert dashboard.position_json == source_layout
+    assert chart.slice_name == "chart_1"
+
+
 def test_copy_dashboard_duplicate_slices_remaps_native_filters(
     session: Session,
 ) -> None:

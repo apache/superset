@@ -19,6 +19,47 @@
 from typing import Any
 
 
+def test_update_id_refs_preserves_per_occurrence_dynamic_titles() -> None:
+    from superset.commands.dashboard.importers.v1.utils import update_id_refs
+
+    titles = [
+        {
+            "template": "Revenue in {{country}}",
+            "tokenMappings": {"country": "filter-id"},
+        },
+        {"template": "{{chart_title}} comparison", "tokenMappings": {}},
+    ]
+    config = {
+        "position": {
+            f"CHART{index}": {
+                "id": f"CHART{index}",
+                "type": "CHART",
+                "meta": {
+                    "chartId": 101,
+                    "uuid": "chart-uuid",
+                    "sliceNameOverride": f"Base {index}",
+                    "dynamicTitle": title,
+                },
+            }
+            for index, title in enumerate(titles)
+        },
+        "metadata": {
+            "native_filter_configuration": [
+                {"id": "filter-id", "scope": {"rootPath": ["ROOT_ID"], "excluded": []}}
+            ]
+        },
+    }
+
+    updated = update_id_refs(config, {"chart-uuid": 202}, {})
+
+    for index, title in enumerate(titles):
+        meta = updated["position"][f"CHART{index}"]["meta"]
+        assert meta["chartId"] == 202
+        assert meta["dynamicTitle"] == title
+        assert meta["sliceNameOverride"] == f"Base {index}"
+    assert updated["metadata"]["native_filter_configuration"][0]["id"] == "filter-id"
+
+
 def test_update_id_refs_immune_missing(  # pylint: disable=invalid-name
     app_context: None,
 ):

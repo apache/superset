@@ -17,9 +17,16 @@
  * under the License.
  */
 
-import { combineReducers, createStore, applyMiddleware, compose } from 'redux';
+import {
+  AnyAction,
+  combineReducers,
+  createStore,
+  applyMiddleware,
+  compose,
+} from 'redux';
 import { Provider } from 'react-redux';
-import thunk from 'redux-thunk';
+import thunk, { ThunkDispatch } from 'redux-thunk';
+import { ActionCreators } from 'redux-undo';
 import mockState from 'spec/fixtures/mockState';
 import reducerIndex from 'spec/helpers/reducerIndex';
 import { sliceId as chartId } from 'spec/fixtures/mockChartQueries';
@@ -29,7 +36,12 @@ import {
   waitFor,
   fireEvent,
   userEvent,
+  act,
 } from 'spec/helpers/testing-library';
+import { createSelectNativeFilter } from 'spec/fixtures/mockNativeFilters';
+import { updateDataMask } from 'src/dataMask/actions';
+import { updateComponents } from 'src/dashboard/actions/dashboardLayout';
+import type { RootState } from 'src/dashboard/types';
 import { nativeFiltersInfo } from 'src/dashboard/fixtures/mockNativeFilters';
 import newComponentFactory from 'src/dashboard/util/newComponentFactory';
 import { initialState } from 'src/SqlLab/fixtures';
@@ -117,6 +129,170 @@ describe('ChartHolder', () => {
       useRedux: true,
       store,
     });
+
+  test('updates display titles from applied filters and preserves the editable base title', async () => {
+    const filter = createSelectNativeFilter('country-filter', 'Country');
+    const store = createMockStore({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: { native_filter_configuration: [filter] },
+      },
+      dashboardLayout: {
+        ...mockState.dashboardLayout,
+        present: {
+          ...mockState.dashboardLayout.present,
+          'CHART-ID': defaultProps.component,
+        },
+      },
+      dataMask: {
+        [filter.id]: { id: filter.id, filterState: { value: ['Brazil'] } },
+      },
+    });
+    const component = {
+      ...defaultProps.component,
+      meta: {
+        ...defaultProps.component.meta,
+        sliceName: 'Revenue',
+        dynamicTitle: {
+          template: '{{chart_title}} in {{country}}',
+          tokenMappings: { country: filter.id },
+        },
+      },
+    };
+    const { rerender } = renderWrapper(store, { component, isInView: true });
+    expect(screen.getByText('Revenue in Brazil')).toBeVisible();
+    act(() =>
+      store.dispatch(
+        updateDataMask(filter.id, { filterState: { value: ['Portugal'] } }),
+      ),
+    );
+    expect(screen.getByText('Revenue in Portugal')).toBeVisible();
+    act(() =>
+      store.dispatch(updateDataMask(filter.id, { filterState: { value: [] } })),
+    );
+    expect(screen.getByText('Revenue')).toBeVisible();
+    rerender(
+      <Provider store={store}>
+        <ChartHolder
+          {...defaultProps}
+          component={component}
+          editMode
+          isInView
+        />
+      </Provider>,
+    );
+    expect(screen.getByText('Revenue')).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Configure chart title' }),
+    ).toBeInTheDocument();
+  });
+
+  test('applies a local title draft through the existing unsaved layout and undo history', async () => {
+    const store = createMockStore({
+      dashboardState: { ...mockState.dashboardState, hasUnsavedChanges: false },
+      dashboardLayout: {
+        past: [],
+        future: [],
+        present: {
+          ...mockState.dashboardLayout.present,
+          'CHART-ID': defaultProps.component,
+        },
+      },
+    });
+    const dispatch = store.dispatch as ThunkDispatch<
+      RootState,
+      undefined,
+      AnyAction
+    >;
+    renderWrapper(store, {
+      editMode: true,
+      updateComponents: (components: Parameters<typeof updateComponents>[0]) =>
+        dispatch(updateComponents(components)),
+    });
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Configure chart title' }),
+    );
+    fireEvent.change(screen.getByLabelText('Base title'), {
+      target: { value: 'Revenue' },
+    });
+    await userEvent.click(
+      screen.getByRole('checkbox', { name: 'Use a dynamic title' }),
+    );
+    fireEvent.change(screen.getByLabelText('Title template'), {
+      target: { value: '{{chart_title}} overview' },
+    });
+    await userEvent.click(screen.getByRole('button', { name: 'Apply' }));
+    const changed = store.getState().dashboardLayout.present['CHART-ID'];
+    expect(changed.meta).toMatchObject({
+      ...defaultProps.component.meta,
+      sliceNameOverride: 'Revenue',
+      dynamicTitle: { template: '{{chart_title}} overview', tokenMappings: {} },
+    });
+    expect(store.getState().dashboardState.hasUnsavedChanges).toBe(true);
+    act(() => store.dispatch(ActionCreators.undo()));
+    expect(store.getState().dashboardLayout.present['CHART-ID']).toEqual(
+      defaultProps.component,
+    );
+    act(() => store.dispatch(ActionCreators.redo()));
+    expect(store.getState().dashboardLayout.present['CHART-ID']).toEqual(
+      changed,
+    );
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  test('falls back when the backend rejects a filter in the chart scope', () => {
+    const filter = createSelectNativeFilter(
+      'country-filter',
+      'Country',
+      'country',
+    );
+    const store = createMockStore({
+      dashboardInfo: {
+        ...mockState.dashboardInfo,
+        metadata: { native_filter_configuration: [filter] },
+      },
+      dashboardLayout: {
+        ...mockState.dashboardLayout,
+        present: {
+          ...mockState.dashboardLayout.present,
+          'CHART-ID': defaultProps.component,
+        },
+      },
+      dataMask: {
+        [filter.id]: { id: filter.id, filterState: { value: ['Brazil'] } },
+      },
+      charts: {
+        ...mockState.charts,
+        [chartId]: {
+          ...mockState.charts[chartId],
+          queriesResponse: [
+            {
+              data: [],
+              rejected_filters: [
+                { column: 'country', reason: 'not_in_datasource' },
+              ],
+            },
+          ],
+        },
+      },
+    });
+    renderWrapper(store, {
+      isInView: true,
+      component: {
+        ...defaultProps.component,
+        meta: {
+          ...defaultProps.component.meta,
+          sliceName: 'Revenue',
+          dynamicTitle: {
+            template: '{{chart_title}} in {{country}}',
+            tokenMappings: { country: filter.id },
+          },
+        },
+      },
+    });
+    expect(screen.getByText('Revenue')).toBeVisible();
+    expect(screen.queryByText('Revenue in Brazil')).not.toBeInTheDocument();
+  });
 
   test('should render empty state', async () => {
     renderWrapper();
