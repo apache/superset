@@ -24,6 +24,7 @@ import {
   Metric,
 } from '@superset-ui/chart-controls';
 import { t } from '@apache-superset/core/translation';
+import { isTimeRangeFilter, ChartCustomizationPlugins } from 'src/constants';
 import {
   Behavior,
   ChartDataResponseResult,
@@ -99,7 +100,6 @@ import {
   mergeExtraFormData,
 } from 'src/dashboard/components/nativeFilters/utils';
 import { DatasetSelectLabel } from 'src/features/datasets/DatasetSelectLabel';
-import { ChartCustomizationPlugins } from 'src/constants';
 import {
   filterSupportsDependencies,
   getFiltersConfigModalTestId,
@@ -850,7 +850,7 @@ const FiltersConfigForm = (
   );
   const hasAvailableFilters = availableFilters.length > 0;
   const hasTimeDependency = availableFilters
-    .filter(filter => filter.type === 'filter_time')
+    .filter(filter => isTimeRangeFilter(filter.type))
     .some(filter => dependencies?.includes(filter.value));
 
   const extensionsRegistry = getExtensionsRegistry();
@@ -1264,7 +1264,7 @@ const FiltersConfigForm = (
                     </StyledFormItem>
                   )}
                 </StyledContainer>
-                {formFilter?.filterType === 'filter_time' && (
+                {isTimeRangeFilter(formFilter?.filterType) && (
                   <FilterTypeInfo expanded={expanded}>
                     {t(`Dashboard time range filters apply to temporal columns defined in
           the filter section of each chart. Add temporal columns to the chart
@@ -1379,7 +1379,7 @@ const FiltersConfigForm = (
                   expandIconPosition="end"
                   key={`native-filter-config-${filterId}`}
                   items={[
-                    ...(itemTypeField !== 'filter_time'
+                    ...(!isTimeRangeFilter(itemTypeField)
                       ? [
                           {
                             key: `${filterId}-${FilterPanels.configuration.key}`,
@@ -2072,7 +2072,7 @@ const FiltersConfigForm = (
                               </StyledRowFormItem>
                             )}
                           {!isChartCustomization &&
-                            itemTypeField === 'filter_time' && (
+                            isTimeRangeFilter(itemTypeField) && (
                               <StyledRowFormItem
                                 expanded={expanded}
                                 name={[

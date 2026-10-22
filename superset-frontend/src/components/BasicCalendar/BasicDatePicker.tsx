@@ -33,6 +33,7 @@ export interface BasicDatePickerProps {
   mode?: DatePickerMode;
   label: string;
   status?: 'error';
+  onFocus?: () => void;
 }
 
 const Field = styled.div`
@@ -167,6 +168,7 @@ export default function BasicDatePicker({
   mode = 'date',
   label,
   status,
+  onFocus,
 }: BasicDatePickerProps) {
   const format =
     mode === 'datetime' && value?.second()
@@ -194,6 +196,7 @@ export default function BasicDatePicker({
     onChange(date);
   };
   const openPicker = () => {
+    onFocus?.();
     const parsed = parseTypedDate(text, mode);
     const next = parsed ?? value ?? dayjs().startOf('minute');
     setPickerValue(next);
@@ -304,6 +307,7 @@ export default function BasicDatePicker({
       >
         <Input
           ref={inputRef}
+          onFocus={onFocus}
           aria-label={label}
           value={text}
           placeholder={

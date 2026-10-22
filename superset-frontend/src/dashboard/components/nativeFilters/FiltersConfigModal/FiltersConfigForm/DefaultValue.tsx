@@ -18,6 +18,7 @@
  */
 import { FC, useMemo } from 'react';
 import { t } from '@apache-superset/core/translation';
+import { isTimeRangeFilter } from 'src/constants';
 import {
   Behavior,
   SetDataMaskHook,
@@ -55,7 +56,7 @@ const DefaultValue: FC<DefaultValueProps> = ({
   const formFilter = form.getFieldValue('filters')?.[filterId];
   const queriesData = formFilter?.defaultValueQueriesData;
   const chartType = formFilter?.filterType;
-  const isTimeFilter = formFilter?.filterType === 'filter_time';
+  const isTimeFilter = isTimeRangeFilter(formFilter?.filterType);
   const hasQueriesData = queriesData && queriesData.length > 0;
   const emptyQueriesData = useMemo(() => [{ data: [{}] }], []);
   const loading = hasDataset && queriesData === null;

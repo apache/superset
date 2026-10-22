@@ -198,9 +198,17 @@ export enum FilterPlugins {
   Select = 'filter_select',
   Range = 'filter_range',
   Time = 'filter_time',
+  SimpleDateRange = 'filter_simple_date_range',
+  SimpleDateTimeRange = 'filter_simple_datetime_range',
   TimeColumn = 'filter_timecolumn',
   TimeGrain = 'filter_timegrain',
 }
+
+/** Dataset-less filters that apply the shared time_range query field. */
+export const isTimeRangeFilter = (type: string | undefined) =>
+  type === FilterPlugins.Time ||
+  type === FilterPlugins.SimpleDateRange ||
+  type === FilterPlugins.SimpleDateTimeRange;
 
 export enum ChartCustomizationPlugins {
   DynamicGroupBy = 'chart_customization_dynamic_groupby',

@@ -47,6 +47,9 @@ import {
 import { getActiveFilters } from 'src/dashboard/util/activeDashboardFilters';
 import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { URL_PARAMS } from 'src/constants';
+import { restoreQuickRangeDataMasks } from 'src/components/BasicCalendar/quickRangeStorage';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { isUser } from 'src/types/bootstrapTypes';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { sanitizeDocumentTitle } from 'src/utils/sanitizeDocumentTitle';
 import { setDatasetsStatus } from 'src/dashboard/actions/dashboardState';
@@ -139,6 +142,15 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   const dispatch = useDispatch();
   const history = useHistory();
   const dashboardPageId = useMemo(() => nanoid(), []);
+  const initialFilterUrl = useMemo(
+    () => ({
+      permalinkKey: getUrlParam(URL_PARAMS.permalinkKey),
+      nativeFilterKeyValue: getUrlParam(URL_PARAMS.nativeFiltersKey),
+      isOldRison: getUrlParam(URL_PARAMS.nativeFilters),
+      hasRisonFilters: !!getRisonFilterParam(),
+    }),
+    [idOrSlug],
+  );
   const hasDashboardInfoInitiated = useSelector<RootState, boolean>(
     ({ dashboardInfo }) =>
       dashboardInfo && Object.keys(dashboardInfo).length > 0,
@@ -226,9 +238,12 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
   useEffect(() => {
     // eslint-disable-next-line consistent-return
     async function getDataMaskApplied() {
-      const permalinkKey = getUrlParam(URL_PARAMS.permalinkKey);
-      const nativeFilterKeyValue = getUrlParam(URL_PARAMS.nativeFiltersKey);
-      const isOldRison = getUrlParam(URL_PARAMS.nativeFilters);
+      const {
+        permalinkKey,
+        nativeFilterKeyValue,
+        isOldRison,
+        hasRisonFilters,
+      } = initialFilterUrl;
 
       let dataMask = nativeFilterKeyValue || {};
       // activeTabs is initialized with undefined so that it doesn't override
@@ -265,6 +280,23 @@ export const DashboardPage: FC<PageProps> = ({ idOrSlug }: PageProps) => {
           );
         }
       }
+
+      const { user } = getBootstrapData();
+      dataMask = {
+        ...restoreQuickRangeDataMasks(
+          (dashboard?.metadata?.native_filter_configuration ??
+            []) as NativeFilterConfigEntry[],
+          isUser(user) ? user.userId : undefined,
+          id,
+          !!(
+            permalinkKey ||
+            nativeFilterKeyValue ||
+            isOldRison ||
+            hasRisonFilters
+          ),
+        ),
+        ...dataMask,
+      };
 
       // Parse Rison URL filters with intelligent native filter injection
       const risonFilterParam = getRisonFilterParam();

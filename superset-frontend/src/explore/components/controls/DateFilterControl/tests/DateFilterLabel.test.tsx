@@ -26,8 +26,6 @@ import {
   userEvent,
   waitFor,
   fireEvent,
-  selectOption as selectRangeOption,
-  within,
 } from 'spec/helpers/testing-library';
 
 import { NO_TIME_RANGE, fetchTimeRange } from '@superset-ui/core';
@@ -49,6 +47,7 @@ const mockedFetchTimeRange = fetchTimeRange as jest.MockedFunction<
 >;
 
 const FIELD_TOOLTIP = '2024-01-01 ≤ col < 2024-01-08';
+const DISPLAY_TOOLTIP = '01/01/2024 – 07/01/2024';
 const DESCRIPTION_TOOLTIP =
   'This control filters the whole chart based on the selected time range.';
 
@@ -225,7 +224,7 @@ test('applies a configured displayFormat to the evaluated range but leaves the h
   // the tooltip shows the evaluated range, formatted with displayFormat
   await userEvent.hover(screen.getByText('Last week'));
   expect(await screen.findByRole('tooltip')).toHaveTextContent(
-    '2024-01-01 ≤ col < 2024-01-08 (%d-%m-%Y)',
+    '2024-01-01 – 2024-01-08 (%d-%m-%Y)',
   );
 });
 
@@ -260,7 +259,7 @@ test('hovering the description icon does not show the date range tooltip', async
   });
 
   await userEvent.hover(screen.getByText('Last week'));
-  expect(await screen.findByRole('tooltip')).toHaveTextContent(FIELD_TOOLTIP);
+  expect(await screen.findByRole('tooltip')).toHaveTextContent(DISPLAY_TOOLTIP);
 
   const descriptionIcon = screen.getByRole('button', {
     name: 'Show info tooltip',
@@ -269,13 +268,13 @@ test('hovering the description icon does not show the date range tooltip', async
 
   await waitFor(() => {
     expect(screen.getByRole('tooltip')).toHaveTextContent(DESCRIPTION_TOOLTIP);
-    expect(screen.getByRole('tooltip')).not.toHaveTextContent(FIELD_TOOLTIP);
+    expect(screen.getByRole('tooltip')).not.toHaveTextContent(DISPLAY_TOOLTIP);
     expect(screen.getAllByRole('tooltip')).toHaveLength(1);
   });
 
   fireEvent.blur(descriptionIcon);
   await waitFor(() => {
-    expect(screen.getByRole('tooltip')).toHaveTextContent(FIELD_TOOLTIP);
+    expect(screen.getByRole('tooltip')).toHaveTextContent(DISPLAY_TOOLTIP);
     expect(screen.getAllByRole('tooltip')).toHaveLength(1);
   });
 
@@ -288,7 +287,7 @@ test('hovering the description icon does not show the date range tooltip', async
 
   const tooltip = await screen.findByRole('tooltip');
   expect(tooltip).toHaveTextContent(DESCRIPTION_TOOLTIP);
-  expect(tooltip).not.toHaveTextContent(FIELD_TOOLTIP);
+  expect(tooltip).not.toHaveTextContent(DISPLAY_TOOLTIP);
   expect(screen.getAllByRole('tooltip')).toHaveLength(1);
 
   await userEvent.unhover(descriptionIcon);
@@ -300,187 +299,55 @@ test('hovering the description icon does not show the date range tooltip', async
   expect(tooltipOnClick).toHaveBeenCalled();
 });
 
-const RANGE_TYPE_LABEL = 'Range type';
-const INVALID_EXPRESSION_ERROR = 'Invalid time range expression';
-
-const FRAME_MARKERS = {
-  Common: () => screen.queryByTestId(DateFilterTestKey.CommonFrame),
-  Calendar: () => screen.queryByText('Configure Time Range: Previous...'),
-  Current: () => screen.queryByText('Configure Time Range: Current...'),
-  Custom: () => screen.queryByText('Configure custom time range'),
-  Advanced: () => screen.queryByText('Configure Advanced Time Range'),
-  'No filter': () => screen.queryByTestId(DateFilterTestKey.NoFilter),
-};
-
-type FrameName = keyof typeof FRAME_MARKERS;
-
-async function openAdvancedOptions() {
-  const button = screen.queryByRole('button', { name: 'Advanced options' });
-  if (button) await userEvent.click(button);
-}
-
-async function selectOption(option: string, label: string) {
-  await openAdvancedOptions();
-  await selectRangeOption(option, label);
-}
-
-async function expectOnlyFrame(frame: FrameName) {
-  await openAdvancedOptions();
-  await waitFor(() => {
-    expect(FRAME_MARKERS[frame]()).toBeInTheDocument();
-  });
-  (Object.keys(FRAME_MARKERS) as FrameName[])
-    .filter(other => other !== frame)
-    .forEach(other => {
-      expect(FRAME_MARKERS[other]()).not.toBeInTheDocument();
-    });
-}
-
-test.each<[string, FrameName, string]>([
-  ['No filter', 'No filter', 'No filter'],
-  ['Last week', 'Common', 'Last'],
-  ['previous calendar month', 'Calendar', 'Previous'],
-  ['Current quarter', 'Current', 'Current'],
-  ['2021-03-16T00:00:00 : 2021-03-17T00:00:00', 'Custom', 'Custom'],
-  ['Last week : tomorrow', 'Advanced', 'Advanced'],
-])(
-  'opens on the frame that matches the value "%s"',
-  async (value, expectedFrame, expectedSelectLabel) => {
-    render(setup({ ...defaultProps, value }));
-
-    await userEvent.click(await screen.findByRole('button'));
-
-    await expectOnlyFrame(expectedFrame);
-    expect(screen.getByTitle(expectedSelectLabel)).toBeInTheDocument();
-  },
-);
-
-test.each<[string, FrameName]>([
-  ['Previous', 'Calendar'],
-  ['Current', 'Current'],
-  ['Custom', 'Custom'],
-  ['Advanced', 'Advanced'],
-  ['No filter', 'No filter'],
-])(
-  'range type select switches from the Last frame to the %s frame',
-  async (optionLabel, expectedFrame) => {
-    render(setup({ ...defaultProps, value: 'Last week' }));
+test.each([
+  ['date', 'Simple Date Range', 'Start date'],
+  ['datetime', 'Simple Date Time Range', 'Start date and time'],
+] as const)(
+  'locks the %s control to the author-selected mode without advanced UI',
+  async (calendarMode, title, inputName) => {
+    render(setup({ ...defaultProps, value: 'Last week', calendarMode }));
     await userEvent.click(screen.getByText('Last week'));
-    await expectOnlyFrame('Common');
-
-    await selectOption(optionLabel, RANGE_TYPE_LABEL);
-
-    await expectOnlyFrame(expectedFrame);
+    expect(screen.getByText(title)).toBeInTheDocument();
+    expect(
+      screen.getByRole('textbox', { name: inputName }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
+    expect(screen.queryByText('Advanced options')).not.toBeInTheDocument();
+    expect(screen.queryByText('Actual time range')).not.toBeInTheDocument();
+    expect(screen.queryByText(/≤ col </)).not.toBeInTheDocument();
   },
 );
 
-test('range type select switches back to the Last frame from another frame', async () => {
-  render(setup({ ...defaultProps, value: 'Last week' }));
-  await userEvent.click(screen.getByText('Last week'));
-  await selectOption('Advanced', RANGE_TYPE_LABEL);
-  await expectOnlyFrame('Advanced');
-
-  await selectOption('Last', RANGE_TYPE_LABEL);
-
-  await expectOnlyFrame('Common');
-});
-
-test('selecting the No filter frame previews No filter as the actual time range', async () => {
-  render(setup({ ...defaultProps, value: 'Last week' }));
-  await userEvent.click(screen.getByText('Last week'));
-
-  await selectOption('No filter', RANGE_TYPE_LABEL);
-
-  await expectOnlyFrame('No filter');
-  await waitFor(
-    () => {
-      expect(
-        within(screen.getByText('Actual time range').parentElement!).getByText(
-          'No filter',
-        ),
-      ).toBeInTheDocument();
-    },
-    { timeout: 3000 },
-  );
-});
-
-test('Apply after selecting the No filter frame saves the No filter range', async () => {
-  const onChange = jest.fn();
-  render(setup({ ...defaultProps, onChange, value: 'Last week' }));
-  await userEvent.click(screen.getByText('Last week'));
-  await selectOption('No filter', RANGE_TYPE_LABEL);
-
-  await userEvent.click(screen.getByTestId(DateFilterTestKey.ApplyButton));
-
-  expect(onChange).toHaveBeenCalledWith(NO_TIME_RANGE);
-});
-
-test('an invalid Advanced expression shows the error and disables Apply', async () => {
+test('backend validation errors block Apply and a corrected date range clears the error', async () => {
+  const error = 'Invalid time range expression';
   mockedFetchTimeRange.mockImplementation(async value =>
-    value.includes('bogus')
-      ? { error: INVALID_EXPRESSION_ERROR }
-      : { value: FIELD_TOOLTIP },
+    value === 'bogus' ? { error } : { value: FIELD_TOOLTIP },
   );
-  const onChange = jest.fn();
-  render(setup({ ...defaultProps, onChange, value: 'Last week' }));
-  await userEvent.click(screen.getByText('Last week'));
-  await selectOption('Advanced', RANGE_TYPE_LABEL);
-  await waitFor(() => {
-    expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeEnabled();
-  });
-
-  await userEvent.type(screen.getAllByRole('textbox')[0], 'bogus');
-
-  expect(
-    await screen.findByText(INVALID_EXPRESSION_ERROR, {}, { timeout: 3000 }),
-  ).toBeInTheDocument();
+  render(setup({ ...defaultProps, value: 'bogus', calendarMode: 'date' }));
+  await userEvent.click(await screen.findByRole('button'));
+  expect(await screen.findByRole('alert')).toHaveTextContent(error);
   expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeDisabled();
-  await userEvent.click(screen.getByTestId(DateFilterTestKey.ApplyButton));
-  expect(onChange).not.toHaveBeenCalled();
+  await userEvent.type(
+    screen.getByRole('textbox', { name: 'Start date' }),
+    '01/01/2024',
+  );
+  await userEvent.type(
+    screen.getByRole('textbox', { name: 'End date' }),
+    '07/01/2024',
+  );
+  await waitFor(() =>
+    expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeEnabled(),
+  );
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });
 
-test('correcting an invalid Advanced expression clears the error and re-enables Apply', async () => {
-  mockedFetchTimeRange.mockImplementation(async value =>
-    value.includes('bogus')
-      ? { error: INVALID_EXPRESSION_ERROR }
-      : { value: FIELD_TOOLTIP },
-  );
-  render(setup({ ...defaultProps, value: 'Last week' }));
-  await userEvent.click(screen.getByText('Last week'));
-  await selectOption('Advanced', RANGE_TYPE_LABEL);
-  const sinceInput = screen.getAllByRole('textbox')[0];
-  await userEvent.type(sinceInput, 'bogus');
-  await screen.findByText(INVALID_EXPRESSION_ERROR, {}, { timeout: 3000 });
-
-  await userEvent.clear(sinceInput);
-  await userEvent.type(sinceInput, 'today');
-
-  await waitFor(
-    () => {
-      expect(
-        screen.queryByText(INVALID_EXPRESSION_ERROR),
-      ).not.toBeInTheDocument();
-      expect(screen.getByTestId(DateFilterTestKey.ApplyButton)).toBeEnabled();
-    },
-    { timeout: 3000 },
-  );
-});
-
-test('Cancel restores the frame guessed from the saved value', async () => {
+test('All time clears the range without showing technical preview expressions', async () => {
   const onChange = jest.fn();
   render(setup({ ...defaultProps, onChange, value: 'Last week' }));
   await userEvent.click(screen.getByText('Last week'));
-  await selectOption('Advanced', RANGE_TYPE_LABEL);
-  await expectOnlyFrame('Advanced');
-
-  await userEvent.click(screen.getByTestId(DateFilterTestKey.CancelButton));
-  await waitFor(() => {
-    expect(screen.queryByText('Edit time range')).not.toBeInTheDocument();
-  });
-  await userEvent.click(screen.getByText('Last week'));
-
-  await expectOnlyFrame('Common');
-  expect(onChange).not.toHaveBeenCalled();
+  await userEvent.click(screen.getByRole('button', { name: 'All time' }));
+  await userEvent.click(screen.getByTestId(DateFilterTestKey.ApplyButton));
+  expect(onChange).toHaveBeenCalledWith(NO_TIME_RANGE);
 });
 
 test('Cancel discards an unsaved range selection', async () => {

@@ -17,6 +17,7 @@
  * under the License.
  */
 import { ReactNode } from 'react';
+import type { DatePickerMode } from 'src/components/BasicCalendar/utils';
 
 export type SelectOptionType = {
   value: string;
@@ -120,4 +121,5 @@ export interface DateFilterControlProps {
   label?: ReactNode;
   tooltipOnClick?: () => void;
   displayFormat?: string;
+  calendarMode?: DatePickerMode;
 }

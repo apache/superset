@@ -43,6 +43,7 @@ export default function transformProps(chartProps: ChartProps) {
   const { data } = queriesData[0];
 
   return {
+    appSection: chartProps.appSection,
     data,
     filterState,
     formData: {

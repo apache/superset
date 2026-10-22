@@ -35,6 +35,8 @@ import {
   SelectFilterPlugin,
   TimeColumnFilterPlugin,
   TimeFilterPlugin,
+  SimpleDateRangeFilterPlugin,
+  SimpleDateTimeRangeFilterPlugin,
   TimeGrainFilterPlugin,
 } from 'src/filters/components';
 import FiltersConfigModal, {
@@ -49,6 +51,12 @@ class MainPreset extends Preset {
         new SelectFilterPlugin().configure({ key: 'filter_select' }),
         new RangeFilterPlugin().configure({ key: 'filter_range' }),
         new TimeFilterPlugin().configure({ key: 'filter_time' }),
+        new SimpleDateRangeFilterPlugin().configure({
+          key: 'filter_simple_date_range',
+        }),
+        new SimpleDateTimeRangeFilterPlugin().configure({
+          key: 'filter_simple_datetime_range',
+        }),
         new TimeColumnFilterPlugin().configure({ key: 'filter_timecolumn' }),
         new TimeGrainFilterPlugin().configure({ key: 'filter_timegrain' }),
       ],
@@ -1264,3 +1272,15 @@ test('semantic filter reset requires reselection and survives save and reopen', 
   ).not.toBeInTheDocument();
   expect(screen.queryByText('old default')).not.toBeInTheDocument();
 });
+
+test.each(['Simple Date Range', 'Simple Date Time Range'])(
+  'authors can choose %s without dataset or column controls',
+  async type => {
+    defaultRender();
+    await userEvent.click(screen.getByText(VALUE_REGEX));
+    await userEvent.click(await screen.findByText(type));
+    expect(screen.queryByText(DATASET_REGEX)).not.toBeInTheDocument();
+    expect(screen.queryByText(COLUMN_REGEX)).not.toBeInTheDocument();
+    expect(getCheckbox(DEFAULT_VALUE_REGEX)).toBeInTheDocument();
+  },
+);

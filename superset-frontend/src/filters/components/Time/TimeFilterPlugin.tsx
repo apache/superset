@@ -16,9 +16,22 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NO_TIME_RANGE, getExtensionsRegistry } from '@superset-ui/core';
+import {
+  AppSection,
+  NO_TIME_RANGE,
+  getExtensionsRegistry,
+} from '@superset-ui/core';
 import { styled } from '@apache-superset/core/theme';
 import { useCallback, useEffect } from 'react';
+import { FilterPlugins } from 'src/constants';
+import SimpleDateRange from 'src/components/SimpleDateRange';
+import SimpleDateTimeRange from 'src/components/SimpleDateTimeRange';
+import {
+  quickRangeStorageKey,
+  rememberQuickRange,
+} from 'src/components/BasicCalendar/quickRangeStorage';
+import getBootstrapData from 'src/utils/getBootstrapData';
+import { isUser } from 'src/types/bootstrapTypes';
 import DateFilterControl from 'src/explore/components/controls/DateFilterControl';
 import { PluginFilterTimeProps } from './types';
 import { FilterPluginStyle } from '../common';
@@ -86,9 +99,31 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
   const DateFilterControlExtension = extensionsRegistry.get(
     'filter.dateFilterControl',
   );
-  const DateFilterComponent = DateFilterControlExtension ?? DateFilterControl;
+  const filterType = props.formData.vizType ?? props.formData.viz_type;
+  const mode =
+    filterType === FilterPlugins.SimpleDateTimeRange
+      ? 'datetime'
+      : filterType === FilterPlugins.SimpleDateRange
+        ? 'date'
+        : undefined;
+  const DateFilterComponent =
+    mode === 'datetime'
+      ? SimpleDateTimeRange
+      : mode === 'date'
+        ? SimpleDateRange
+        : (DateFilterControlExtension ?? DateFilterControl);
+  const { user } = getBootstrapData();
+  const storageKey =
+    mode && props.appSection !== AppSection.FilterConfigModal
+      ? quickRangeStorageKey(
+          isUser(user) ? user.userId : undefined,
+          props.formData.dashboardId,
+          props.formData.nativeFilterId,
+          mode,
+        )
+      : undefined;
 
-  const handleTimeRangeChange = useCallback(
+  const updateTimeRange = useCallback(
     (timeRange?: string): void => {
       const isSet = timeRange && timeRange !== NO_TIME_RANGE;
       setDataMask({
@@ -105,9 +140,14 @@ export default function TimeFilterPlugin(props: PluginFilterTimeProps) {
     [setDataMask],
   );
 
+  const handleTimeRangeChange = (timeRange?: string) => {
+    updateTimeRange(timeRange);
+    if (mode) rememberQuickRange(storageKey, timeRange, mode);
+  };
+
   useEffect(() => {
-    handleTimeRangeChange(filterState.value);
-  }, [filterState.value]);
+    updateTimeRange(filterState.value);
+  }, [filterState.value, updateTimeRange]);
 
   return props.formData?.inView ? (
     <TimeFilterStyles width={width} height={height}>

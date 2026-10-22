@@ -1421,13 +1421,7 @@ msgstr ""
 msgid "Advanced data type"
 msgstr ""
 
-msgid "Advanced options"
-msgstr ""
-
 msgid "Advanced settings"
-msgstr ""
-
-msgid "Advanced time range"
 msgstr ""
 
 msgid "Advanced-Analytics"
@@ -1588,9 +1582,6 @@ msgid "All %s hidden columns"
 msgstr ""
 
 msgid "All Text"
-msgstr ""
-
-msgid "All available dates are included."
 msgstr ""
 
 msgid "All changes"
@@ -2460,9 +2451,6 @@ msgstr ""
 msgid "Back to all"
 msgstr ""
 
-msgid "Back to calendar"
-msgstr ""
-
 #. i18n: the kind of system behind a connection: a database engine
 #. (PostgreSQL, MySQL) or a semantic layer; not a server tier or a driver
 msgid "Backend"
@@ -3250,9 +3238,6 @@ msgstr ""
 msgid "Checking for affected charts and dashboards…"
 msgstr ""
 
-msgid "Checking time range…"
-msgstr ""
-
 msgid "Child label position"
 msgstr ""
 
@@ -3839,9 +3824,6 @@ msgid "Comparison font size"
 msgstr ""
 
 msgid "Comparison suffix"
-msgstr ""
-
-msgid "Complete your date selection to preview the range."
 msgstr ""
 
 msgid "Compose multiple layers together to form complex visuals."
@@ -4845,16 +4827,16 @@ msgstr ""
 msgid "Date Time Format"
 msgstr ""
 
-msgid "Date and time range"
-msgstr ""
-
 msgid "Date format"
 msgstr ""
 
 msgid "Date format string"
 msgstr ""
 
-msgid "Date range"
+msgid "Date-only range with editable inputs and day-based quick ranges."
+msgstr ""
+
+msgid "Date-time range with editable inputs and minute/hour quick ranges."
 msgstr ""
 
 msgid "Date/Time"
@@ -10201,9 +10183,6 @@ msgstr ""
 msgid "Pick your favorite markup language"
 msgstr ""
 
-msgid "Picker type"
-msgstr ""
-
 msgid "Pie Chart"
 msgstr ""
 
@@ -11965,9 +11944,6 @@ msgstr ""
 msgid "Select a database to write a query"
 msgstr ""
 
-msgid "Select a date range"
-msgstr ""
-
 msgid "Select a delimiter for this data"
 msgstr ""
 
@@ -12763,6 +12739,12 @@ msgid "Significance Level"
 msgstr ""
 
 msgid "Simple"
+msgstr ""
+
+msgid "Simple Date Range"
+msgstr ""
+
+msgid "Simple Date Time Range"
 msgstr ""
 
 msgid "Simple ad-hoc metrics are not enabled for this dataset"
@@ -15468,12 +15450,6 @@ msgstr ""
 
 #, python-format
 msgid "Type \"%s\" to confirm"
-msgstr ""
-
-msgid "Type a date and time, or use the calendar icon. End time is exclusive."
-msgstr ""
-
-msgid "Type a date, or use the calendar icon. Both days are included."
 msgstr ""
 
 msgid "Type a value"

@@ -23,10 +23,10 @@ import transformProps from './transformProps';
 import thumbnail from './images/thumbnail.png';
 
 export default class TimeFilterPlugin extends ChartPlugin {
-  constructor() {
+  constructor(options: { name?: string; description?: string } = {}) {
     const metadata = new ChartMetadata({
-      name: t('Time filter'),
-      description: t('Custom time filter plugin'),
+      name: options.name ?? t('Time filter'),
+      description: options.description ?? t('Custom time filter plugin'),
       behaviors: [Behavior.InteractiveChart, Behavior.NativeFilter],
       supportsCascadeDependencies: true,
       thumbnail,

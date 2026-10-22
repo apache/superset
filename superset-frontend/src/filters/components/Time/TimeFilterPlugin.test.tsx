@@ -16,10 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { NO_TIME_RANGE } from '@superset-ui/core';
+import { AppSection, ChartProps, NO_TIME_RANGE } from '@superset-ui/core';
+import { DEFAULT_BOOTSTRAP_DATA, FilterPlugins } from 'src/constants';
+import * as bootstrapData from 'src/utils/getBootstrapData';
+import { quickRangeStorageKey } from 'src/components/BasicCalendar/quickRangeStorage';
+import { supersetTheme } from '@apache-superset/core/theme';
 import { act, render } from 'spec/helpers/testing-library';
 import TimeFilterPlugin from './TimeFilterPlugin';
 import { PluginFilterTimeProps } from './types';
+import transformProps from './transformProps';
 
 const capturedProps: Array<Record<string, unknown>> = [];
 jest.mock(
@@ -73,9 +78,27 @@ const defaultProps: PluginFilterTimeProps = {
 };
 
 beforeEach(() => {
+  localStorage.clear();
+  window.history.replaceState({}, '', '/');
+  jest.spyOn(bootstrapData, 'default').mockReturnValue({
+    ...DEFAULT_BOOTSTRAP_DATA,
+    user: {
+      username: 'demo',
+      userId: 1,
+      firstName: 'Demo',
+      lastName: 'User',
+      isActive: true,
+      isAnonymous: false,
+      permissions: {},
+      roles: {},
+      groups: [],
+    },
+  });
   capturedProps.length = 0;
   mockSetDataMask.mockClear();
 });
+
+afterEach(() => jest.restoreAllMocks());
 
 test('passes formData.displayFormat through to the underlying date filter control', () => {
   render(
@@ -130,4 +153,100 @@ test('clearing the time range emits an empty value through setDataMask', () => {
     extraFormData: {},
     filterState: { value: undefined },
   });
+});
+
+const simpleProps: PluginFilterTimeProps = {
+  ...defaultProps,
+  formData: {
+    ...defaultProps.formData,
+    viz_type: FilterPlugins.SimpleDateRange,
+    dashboardId: 7,
+    defaultValue: 'Last week',
+  },
+  filterState: { value: 'Last week' },
+};
+const rememberedKey = quickRangeStorageKey(1, 7, 'filter-1', 'date')!;
+
+test.each([
+  [FilterPlugins.SimpleDateRange, 'date'],
+  [FilterPlugins.SimpleDateTimeRange, 'datetime'],
+])(
+  'the %s plugin fixes the mode in the rendered component',
+  (viz_type, calendarMode) => {
+    render(
+      <TimeFilterPlugin
+        {...simpleProps}
+        formData={{ ...simpleProps.formData, viz_type }}
+      />,
+    );
+    expect(capturedProps[capturedProps.length - 1]).toMatchObject({
+      calendarMode,
+    });
+  },
+);
+
+test('configuring dashboard defaults neither restores nor changes viewer preferences', () => {
+  localStorage.setItem(rememberedKey, 'Last month');
+  render(
+    <TimeFilterPlugin
+      {...simpleProps}
+      appSection={AppSection.FilterConfigModal}
+    />,
+  );
+  expect(mockSetDataMask).toHaveBeenLastCalledWith({
+    extraFormData: { time_range: 'Last week' },
+    filterState: { value: 'Last week' },
+  });
+  chooseTimeRange('Last quarter');
+  expect(localStorage.getItem(rememberedKey)).toBe('Last month');
+});
+
+test('a confirmed quick range is stored as an expression, and manual dates clear it', () => {
+  render(<TimeFilterPlugin {...simpleProps} />);
+  chooseTimeRange('Last month');
+  expect(localStorage.getItem(rememberedKey)).toBe('Last month');
+  chooseTimeRange('2026-10-01 : 2026-10-08');
+  expect(localStorage.getItem(rememberedKey)).toBeNull();
+});
+
+test.each([
+  [FilterPlugins.SimpleDateRange, 'date'],
+  [FilterPlugins.SimpleDateTimeRange, 'datetime'],
+])(
+  'the %s runtime ChartProps transformation preserves the author-selected mode',
+  (viz_type, calendarMode) => {
+    const transformed = transformProps(
+      new ChartProps({
+        theme: supersetTheme,
+        formData: { ...simpleProps.formData, viz_type },
+        queriesData: [{ data: [] }],
+      }),
+    );
+    render(
+      <TimeFilterPlugin
+        {...simpleProps}
+        {...transformed}
+        formData={{ ...simpleProps.formData, ...transformed.formData }}
+        inputRef={simpleProps.inputRef}
+      />,
+    );
+    expect(capturedProps[capturedProps.length - 1]).toMatchObject({
+      calendarMode,
+    });
+  },
+);
+
+test('runtime camelCase chart props persist the confirmed preset', () => {
+  render(
+    <TimeFilterPlugin
+      {...simpleProps}
+      formData={{
+        ...simpleProps.formData,
+        vizType: FilterPlugins.SimpleDateRange,
+        viz_type: 'filter_time',
+      }}
+    />,
+  );
+  chooseTimeRange('Last month');
+  expect(localStorage.getItem(rememberedKey)).toBe('Last month');
 });

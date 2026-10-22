@@ -18,7 +18,7 @@
  */
 import { useSelector, useDispatch } from 'react-redux';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { URL_PARAMS } from 'src/constants';
+import { URL_PARAMS, isTimeRangeFilter } from 'src/constants';
 import { getUrlParam } from 'src/utils/urlUtils';
 import { RootState } from 'src/dashboard/types';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
@@ -70,7 +70,7 @@ export const useNativeFilters = (): UseNativeFiltersResult => {
         filter =>
           'requiredFirst' in filter &&
           filter.requiredFirst === true &&
-          filter.filterType !== 'filter_time',
+          !isTimeRangeFilter(filter.filterType),
       ),
     [filterValues],
   );

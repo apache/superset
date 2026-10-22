@@ -304,6 +304,8 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
         # Filter types that require at least one value
         requires_values = (
             "filter_time",
+            "filter_simple_date_range",
+            "filter_simple_datetime_range",
             "filter_timegrain",
             "filter_timecolumn",
             "filter_range",
@@ -316,7 +318,11 @@ class ReportSchedule(AuditMixinNullable, ExtraJSONMixin, Model):
             logger.warning(warning_msg)
             return {}, warning_msg
 
-        if filter_type == "filter_time":
+        if filter_type in {
+            "filter_time",
+            "filter_simple_date_range",
+            "filter_simple_datetime_range",
+        }:
             return (
                 {
                     native_filter_id or "": {

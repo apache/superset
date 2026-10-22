@@ -26,6 +26,8 @@ export const TIME_FILTER_INPUT_WIDTH = 350;
 
 export const FILTER_SUPPORTED_TYPES = {
   filter_time: [GenericDataType.Temporal],
+  filter_simple_date_range: [GenericDataType.Temporal],
+  filter_simple_datetime_range: [GenericDataType.Temporal],
   filter_timegrain: [GenericDataType.Temporal],
   filter_timecolumn: [GenericDataType.Temporal],
   filter_select: [

@@ -18,6 +18,7 @@
  */
 import { RefObject } from 'react';
 import {
+  AppSection,
   Behavior,
   DataRecord,
   FilterState,
@@ -27,6 +28,8 @@ import { PluginFilterHooks, PluginFilterStylesProps } from '../types';
 
 interface PluginFilterTimeCustomizeProps {
   defaultValue?: string | null;
+  dashboardId?: number;
+  vizType?: string;
   displayFormat?: string;
 }
 
@@ -35,6 +38,7 @@ export type PluginFilterSelectQueryFormData = QueryFormData &
   PluginFilterTimeCustomizeProps;
 
 export type PluginFilterTimeProps = PluginFilterStylesProps & {
+  appSection?: AppSection;
   behaviors: Behavior[];
   data: DataRecord[];
   formData: PluginFilterSelectQueryFormData;

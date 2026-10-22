@@ -25,6 +25,7 @@ import {
 } from 'spec/helpers/testing-library';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import BasicCalendar from '.';
+import { getQuickRanges } from './presets';
 import { decodeCalendarRange, encodeCalendarRange } from './utils';
 
 test('a selection includes the whole end date across month and year boundaries', () => {
@@ -97,9 +98,6 @@ test('keeps quick ranges relative and restores All time after a partial selectio
   await userEvent.click(screen.getByRole('button', { name: '2026-10-04' }));
   await userEvent.click(screen.getByRole('button', { name: 'All time' }));
   expect(onValidityChange).toHaveBeenLastCalledWith(true);
-  expect(
-    screen.getByText('All available dates are included.'),
-  ).toBeInTheDocument();
   expect(screen.getByLabelText('Start date')).toHaveValue('');
   await userEvent.click(screen.getByRole('button', { name: 'Last 7 days' }));
   expect(screen.getByRole('button', { name: 'Last 7 days' })).toHaveAttribute(
@@ -151,6 +149,7 @@ test('date-time range keeps entered times and supports relative hour shortcuts',
   const onChange = jest.fn();
   render(
     <BasicCalendar
+      mode="datetime"
       value="2026-10-09T12:10:00 : 2026-10-09T16:25:00"
       onChange={onChange}
       onValidityChange={jest.fn()}
@@ -167,4 +166,63 @@ test('date-time range keeps entered times and supports relative hour shortcuts',
   );
   await userEvent.click(screen.getByRole('button', { name: 'Last 4 hours' }));
   expect(onChange).toHaveBeenLastCalledWith('Last 4 hours');
+});
+
+test('keeps editing the end after a completed selection, including controlled rerenders', async () => {
+  const onChange = jest.fn();
+  function Harness() {
+    const [value, setValue] = useState('2026-10-01 : 2026-10-08');
+    return (
+      <BasicCalendar
+        value={value}
+        onValidityChange={jest.fn()}
+        onChange={next => {
+          onChange(next);
+          setValue(next);
+        }}
+      />
+    );
+  }
+  render(<Harness />);
+  await userEvent.click(screen.getByRole('button', { name: '2026-10-03' }));
+  await userEvent.click(screen.getByRole('button', { name: '2026-10-06' }));
+  await userEvent.click(screen.getByRole('button', { name: '2026-10-08' }));
+  expect(screen.getByRole('textbox', { name: 'Start date' })).toHaveValue(
+    '03/10/2026',
+  );
+  expect(screen.getByRole('textbox', { name: 'End date' })).toHaveValue(
+    '08/10/2026',
+  );
+  expect(onChange).toHaveBeenLastCalledWith('2026-10-03 : 2026-10-09');
+  await userEvent.click(screen.getByRole('textbox', { name: 'Start date' }));
+  await userEvent.click(screen.getByRole('button', { name: '2026-10-04' }));
+  expect(screen.getByRole('textbox', { name: 'Start date' })).toHaveValue(
+    '04/10/2026',
+  );
+});
+
+test('date-time quick ranges contain only minute/hour windows and no selection hints', () => {
+  render(
+    <BasicCalendar
+      mode="datetime"
+      value="Last 4 hours"
+      onChange={jest.fn()}
+      onValidityChange={jest.fn()}
+    />,
+  );
+  expect(getQuickRanges('datetime').map(preset => preset.value)).toEqual([
+    'Last 15 minutes',
+    'Last 30 minutes',
+    'Last hour',
+    'Last 4 hours',
+    'Last 8 hours',
+    'Last 12 hours',
+    'Last 24 hours',
+  ]);
+  expect(
+    screen.queryByRole('button', { name: 'Last 7 days' }),
+  ).not.toBeInTheDocument();
+  expect(screen.queryByText(/Type a date/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
 });

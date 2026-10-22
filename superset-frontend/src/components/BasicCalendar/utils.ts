@@ -95,3 +95,15 @@ export function decodeResolvedRange(
     ? decodeDateTimeRange(encoded)
     : decodeCalendarRange(encoded);
 }
+
+/** Present resolved bounds as dates without exposing the query placeholder. */
+export function formatResolvedRange(
+  value: string | undefined,
+  mode: DatePickerMode,
+): string {
+  if (!value) return '';
+  const [start, end] = decodeResolvedRange(value, mode);
+  return start && end
+    ? `${start.format(pickerFormat(mode))} – ${end.format(pickerFormat(mode))}`
+    : value.replace(' ≤ col < ', ' – ');
+}

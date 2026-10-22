@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import pytest
+
 from superset.reports.models import ReportDataFormat, ReportSchedule
 
 
@@ -333,10 +335,14 @@ def test_report_generate_native_filter_select_null_column():
     assert warning is None
 
 
-def test_generate_native_filter_time_normal():
+@pytest.mark.parametrize(
+    "filter_type",
+    ["filter_time", "filter_simple_date_range", "filter_simple_datetime_range"],
+)
+def test_generate_native_filter_time_normal(filter_type: str):
     report_schedule = ReportSchedule()
     result, warning = report_schedule._generate_native_filter(
-        "F2", "filter_time", "ignored", ["Last week"]
+        "F2", filter_type, "ignored", ["Last week"]
     )
     assert result == {
         "F2": {
@@ -515,17 +521,21 @@ def test_get_native_filters_params_unknown_filter_type():
     assert "filter_unknown_type" in warnings[0]
 
 
-def test_report_generate_native_filter_time_empty_values():
+@pytest.mark.parametrize(
+    "filter_type",
+    ["filter_time", "filter_simple_date_range", "filter_simple_datetime_range"],
+)
+def test_report_generate_native_filter_time_empty_values(filter_type: str):
     """
     Test filter_time with empty values returns empty dict and warning.
     """
     report_schedule = ReportSchedule()
     result, warning = report_schedule._generate_native_filter(
-        "filter_id", "filter_time", "column_name", []
+        "filter_id", filter_type, "column_name", []
     )
     assert result == {}
     assert warning is not None
-    assert "filter_time" in warning
+    assert filter_type in warning
     assert "empty filterValues" in warning
     assert "filter_id" in warning
 

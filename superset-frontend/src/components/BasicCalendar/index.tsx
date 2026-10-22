@@ -20,11 +20,11 @@ import { useEffect, useRef, useState } from 'react';
 import { Dayjs } from 'dayjs';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
-import { NO_TIME_RANGE } from '@superset-ui/core';
-import { Button, Radio, Tag } from '@superset-ui/core/components';
+import { Button, Tag } from '@superset-ui/core/components';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import BasicDatePicker from './BasicDatePicker';
 import CalendarMonth from './CalendarMonth';
+import { getQuickRanges } from './presets';
 import {
   CalendarRange,
   DatePickerMode,
@@ -43,13 +43,11 @@ export interface BasicCalendarProps {
   onChange: (value: string) => void;
   onValidityChange: (valid: boolean) => void;
   resolvedRange?: string;
+  mode?: DatePickerMode;
 }
 
 const CalendarLayout = styled.div`
   color: ${({ theme }) => theme.colorText};
-  .calendar-mode {
-    margin-bottom: ${({ theme }) => theme.marginSM}px;
-  }
   .calendar-body {
     display: grid;
     grid-template-columns: 150px minmax(0, 1fr);
@@ -127,22 +125,14 @@ const CalendarLayout = styled.div`
   }
 `;
 
-/** Detect whether a stored range requires time-of-day precision. */
-function initialMode(value: string): DatePickerMode {
-  return /^Last (?:\d+ )?(?:second|minute|hour)/.test(value) ||
-    (!decodeCalendarRange(value)[0] && !!decodeDateTimeRange(value)[0])
-    ? 'datetime'
-    : 'date';
-}
-
 /** Range picker with editable endpoints, relative presets and two month panels. */
 export default function BasicCalendar({
   value,
   onChange,
   onValidityChange,
   resolvedRange,
+  mode = 'date',
 }: BasicCalendarProps) {
-  const [mode, setMode] = useState<DatePickerMode>(() => initialMode(value));
   const initialRange =
     mode === 'date' ? decodeCalendarRange(value) : decodeDateTimeRange(value);
   const [range, setRange] = useState<CalendarRange>(initialRange);
@@ -166,7 +156,6 @@ export default function BasicCalendar({
       ? decoded
       : decodeResolvedRange(resolvedRange, mode);
     setRange(resolved);
-    setSelectingEnd(false);
     setHoveredDay(null);
     if (resolved[0]) {
       const resolvedStart = resolved[0];
@@ -179,33 +168,9 @@ export default function BasicCalendar({
     }
   }, [value, resolvedRange, mode]);
 
-  const presets = [
-    { value: 'Last 15 minutes', label: t('Last 15 minutes') },
-    { value: 'Last 30 minutes', label: t('Last 30 minutes') },
-    { value: 'Last hour', label: t('Last hour') },
-    { value: 'Last 4 hours', label: t('Last 4 hours') },
-    { value: 'Last 8 hours', label: t('Last 8 hours') },
-    { value: 'Last 12 hours', label: t('Last 12 hours') },
-    { value: 'Last 24 hours', label: t('Last 24 hours') },
-    { value: 'Current day', label: t('Today') },
-    { value: 'yesterday : today', label: t('Yesterday') },
-    { value: 'Current week', label: t('This week') },
-    { value: 'Last day', label: t('Last day') },
-    { value: 'Last week', label: t('Last 7 days') },
-    { value: 'Last 30 days', label: t('Last 30 days') },
-    { value: 'Last month', label: t('Last month') },
-    { value: 'Last quarter', label: t('Last quarter') },
-    { value: 'Last year', label: t('Last year') },
-    { value: 'Current month', label: t('This month') },
-    { value: 'previous calendar month', label: t('Previous month') },
-    { value: NO_TIME_RANGE, label: t('All time') },
-  ].filter(
-    preset =>
-      mode === 'datetime' ||
-      !/^Last (?:\d+ )?(?:second|minute|hour)/.test(preset.value),
-  );
+  const presets = getQuickRanges(mode);
   const [start, end] = range;
-  const previewEnd = selectingEnd ? hoveredDay : end;
+  const previewEnd = selectingEnd && hoveredDay ? hoveredDay : end;
   const first =
     start && previewEnd && previewEnd.isBefore(start) ? previewEnd : start;
   const last =
@@ -234,27 +199,6 @@ export default function BasicCalendar({
   const resetFields = () => {
     inputsValid.current = { start: true, end: true };
     setFieldVersion(previous => previous + 1);
-  };
-  const changeMode = (nextMode: DatePickerMode) => {
-    if (mode === nextMode) return;
-    draftEdited.current = true;
-    resetFields();
-    setMode(nextMode);
-    setSelectingEnd(false);
-    let next = range;
-    if (start && end) {
-      next =
-        nextMode === 'datetime'
-          ? [start.startOf('day'), end.add(1, 'day').startOf('day')]
-          : [
-              start.startOf('day'),
-              end.isSame(end.startOf('day'))
-                ? end.subtract(1, 'day').startOf('day')
-                : end.startOf('day'),
-            ];
-      setRange(next);
-      emitRange(next, nextMode);
-    }
   };
   const selectDay = (date: Dayjs) => {
     draftEdited.current = true;
@@ -285,7 +229,7 @@ export default function BasicCalendar({
       ? [nextEnd, start]
       : [start, nextEnd];
     setRange(ordered);
-    setSelectingEnd(false);
+    setSelectingEnd(true);
     setHoveredDay(null);
     emitRange(ordered);
   };
@@ -293,7 +237,7 @@ export default function BasicCalendar({
     draftEdited.current = true;
     const next: CalendarRange = isStart ? [date, end] : [start, date];
     setRange(next);
-    setSelectingEnd(false);
+    setSelectingEnd(!isStart);
     emitRange(next);
     if (date) setMonth(date.startOf('month'));
   };
@@ -312,19 +256,6 @@ export default function BasicCalendar({
       : null;
   return (
     <CalendarLayout data-test="basic-calendar">
-      <div className="calendar-mode">
-        <Radio.Group
-          aria-label={t('Picker type')}
-          optionType="button"
-          buttonStyle="solid"
-          value={mode}
-          onChange={event => changeMode(event.target.value as DatePickerMode)}
-          options={[
-            { value: 'date', label: t('Date range') },
-            { value: 'datetime', label: t('Date and time range') },
-          ]}
-        />
-      </div>
       <div className="calendar-body">
         <aside className="presets" aria-label={t('Quick ranges')}>
           <div className="eyebrow">{t('Quick ranges')}</div>
@@ -334,19 +265,14 @@ export default function BasicCalendar({
                 key={preset.value}
                 className="preset"
                 buttonStyle={value === preset.value ? 'secondary' : 'link'}
-                aria-pressed={value === preset.value && !selectingEnd}
+                aria-pressed={value === preset.value && !draftEdited.current}
                 onClick={() => {
                   draftEdited.current = false;
                   resetFields();
-                  const nextMode =
-                    initialMode(preset.value) === 'datetime'
-                      ? 'datetime'
-                      : mode;
-                  setMode(nextMode);
                   setSelectingEnd(false);
                   setRange(
                     preset.value === value
-                      ? decodeResolvedRange(resolvedRange, nextMode)
+                      ? decodeResolvedRange(resolvedRange, mode)
                       : [null, null],
                   );
                   onValidityChange(true);
@@ -371,6 +297,7 @@ export default function BasicCalendar({
                 label={
                   mode === 'date' ? t('Start date') : t('Start date and time')
                 }
+                onFocus={() => setSelectingEnd(false)}
                 onChange={date => changeEndpoint(date, true)}
                 onValidityChange={valid => fieldValidity(valid, true)}
               />
@@ -387,6 +314,7 @@ export default function BasicCalendar({
                 status={
                   start && end && !rangeComplete(range) ? 'error' : undefined
                 }
+                onFocus={() => setSelectingEnd(true)}
                 onChange={date => changeEndpoint(date, false)}
                 onValidityChange={valid => fieldValidity(valid, false)}
               />
@@ -409,24 +337,16 @@ export default function BasicCalendar({
               />
             ))}
           </div>
-          <output className="selection-hint">
-            {selectedDays && !selectingEnd && (
-              <Tag>{t('%s days', selectedDays)}</Tag>
-            )}
-            {selectingEnd
-              ? t('Choose an end date to complete your range.')
-              : start && end && !rangeComplete(range)
-                ? t('End must be after start.')
-                : value === NO_TIME_RANGE
-                  ? t('All available dates are included.')
-                  : mode === 'datetime'
-                    ? t(
-                        'Type a date and time, or use the calendar icon. End time is exclusive.',
-                      )
-                    : t(
-                        'Type a date, or use the calendar icon. Both days are included.',
-                      )}
-          </output>
+          {mode === 'date' && (
+            <output className="selection-hint">
+              {selectedDays && <Tag>{t('%s days', selectedDays)}</Tag>}
+              {selectingEnd && !end
+                ? t('Choose an end date to complete your range.')
+                : start && end && !rangeComplete(range)
+                  ? t('End must be after start.')
+                  : null}
+            </output>
+          )}
         </div>
       </div>
     </CalendarLayout>
