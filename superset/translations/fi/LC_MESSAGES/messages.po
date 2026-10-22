@@ -4556,6 +4556,9 @@ msgstr "Pylväiden suunta"
 msgid "Base"
 msgstr "Pohja"
 
+msgid "Base chart title"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # ja, lv, mi, ru, sk, uk]
 #, fuzzy
@@ -4590,6 +4593,9 @@ msgstr "Peruskerroksen karttatyyli. Katso Mapbox-dokumentaatio: %s"
 #, fuzzy
 msgid "Base slope"
 msgstr "Pohjan kaltevuus"
+
+msgid "Base title"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, es,
 # fr, ja, lv, mi, ru, sk, uk]
@@ -6100,6 +6106,9 @@ msgstr "Valitse tietokanta..."
 msgid "Choose a delimiter"
 msgstr "Valitse erottaja"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
@@ -7278,6 +7287,9 @@ msgstr "Määritä koontinäytön automaattinen päivitys"
 #, fuzzy
 msgid "Configure caching and performance settings"
 msgstr "Määritä välimuisti- ja suorituskykyasetukset"
+
+msgid "Configure chart title"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -11507,6 +11519,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Syötä osa objektin nimestä"
 
+msgid "Enter a title template."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fa, fr, ja, lv, mi, ru, sk, sl, uk]
 #, fuzzy
@@ -11921,6 +11936,9 @@ msgid "Example"
 msgstr "Esimerkki"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -14487,6 +14505,9 @@ msgstr "Lisää kerroksen URL"
 #, fuzzy
 msgid "Insert Layer title"
 msgstr "Lisää kerroksen otsikko"
+
+msgid "Insert token"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja, lv, ru,
 # uk]
@@ -17787,6 +17808,9 @@ msgstr "Vastaavia tuloksia ei löydy"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Tähän kojetauluun ei ole tällä hetkellä lisätty suodattimia."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -22122,6 +22146,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Tallenna kysely"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -26229,6 +26256,11 @@ msgstr "Huomautus on päivitetty"
 msgid "The background color of the charts."
 msgstr "Kaavioiden taustaväri."
 
+msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -29482,6 +29514,9 @@ msgstr "Otsikko on pakollinen"
 msgid "Title or Slug"
 msgstr "Otsikko tai URL-tunniste"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, ja, lv,
 # ru, sk, uk]
 #, fuzzy
@@ -30499,6 +30534,10 @@ msgstr "Aseta automaattinen päivitys"
 msgid "Update chart"
 msgstr "Päivitä kaavio"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, it, ja, lv, mi, nl, pt, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -30639,6 +30678,9 @@ msgstr ""
 "Käytettävissä olevat muuttujat perustuvat yllä valitsemaasi työkaluvinkin"
 " sisältöön."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
 #, fuzzy
@@ -30738,6 +30780,9 @@ msgstr "Käytä tätä osiota, jos haluat tehdä kyselyn yksittäisille riveille
 #, fuzzy
 msgid "Use this to define a static color for all circles"
 msgstr "Käytä tätä määrittääksesi kiinteän värin kaikille ympyröille"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
@@ -33213,6 +33258,9 @@ msgstr "Zoomaustaso"
 #, fuzzy
 msgid "Zoom level of the map"
 msgstr "Kartan zoomaustaso"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, tr, uk]

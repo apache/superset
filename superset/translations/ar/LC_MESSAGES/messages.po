@@ -3165,6 +3165,9 @@ msgstr "اتجاه الشريط"
 msgid "Base"
 msgstr "قاعدة"
 
+msgid "Base chart title"
+msgstr ""
+
 #, fuzzy
 msgid "Base exponent"
 msgstr "منفذ قاعدة البيانات"
@@ -3193,6 +3196,9 @@ msgstr "نمط خريطة الطبقة الأساسية. راجع وثائق Map
 #, fuzzy
 msgid "Base slope"
 msgstr "الانحدار الأساسي"
+
+msgid "Base title"
+msgstr ""
 
 #, fuzzy
 msgid "Base width"
@@ -4159,6 +4165,9 @@ msgstr "اختر قاعدة بيانات..."
 msgid "Choose a delimiter"
 msgstr "اختيار مجموعة بيانات"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "اختر مقياسا للمحور الأيمن"
 
@@ -4925,6 +4934,9 @@ msgstr "تكوين التحديث التلقائي للوحة التحكم"
 #, fuzzy
 msgid "Configure caching and performance settings"
 msgstr "تكوين إعدادات التخزين المؤقت والأداء"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "تكوين نطاق زمني مخصص"
@@ -7680,6 +7692,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "ما إذا كنت تريد ملء الكائنات"
 
+msgid "Enter a title template."
+msgstr ""
+
 #, fuzzy
 msgid "Enter alert name"
 msgstr "اسم التنبيه"
@@ -7959,6 +7974,9 @@ msgid "Example"
 msgstr "مثال"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -9654,6 +9672,9 @@ msgstr "إخفاء الطبقة"
 #, fuzzy
 msgid "Insert Layer title"
 msgstr "أدخل عنوان الطبقة"
+
+msgid "Insert token"
+msgstr ""
 
 #, fuzzy
 msgid "Inside"
@@ -11750,6 +11771,9 @@ msgstr "لم يتم العثور على سجلات مطابقة"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "لم تتم إضافة أي فلاتر حاليًا إلى لوحة التحكم هذه."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -14507,6 +14531,9 @@ msgstr ""
 msgid "Save query"
 msgstr "حفظ الاستعلام"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -17210,6 +17237,11 @@ msgid "The background color of the charts."
 msgstr "إضافة اسم المخطط"
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -19571,6 +19603,9 @@ msgstr "العنوان مطلوب"
 msgid "Title or Slug"
 msgstr "العنوان أو البزاقة"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -20289,6 +20324,10 @@ msgstr "تعيين الفاصل الزمني للتحديث التلقائي"
 msgid "Update chart"
 msgstr "تحديث المخطط"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "تم إيقاف تحديث المخطط"
 
@@ -20380,6 +20419,9 @@ msgstr ""
 "استخدم صياغة Handlebars لإنشاء تلميحات أدوات مخصصة. المتغيرات المتاحة "
 "تستند إلى تحديد محتوى التلميح أعلاه."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "استخدم مقياس لوغاريتمي"
 
@@ -20438,6 +20480,9 @@ msgstr "استخدم هذا القسم إذا كنت تريد الاستعلام
 
 msgid "Use this to define a static color for all circles"
 msgstr "استخدم هذا لتعريف لون ثابت لجميع الدوائر"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -22099,6 +22144,9 @@ msgstr "مستوى التكبير"
 
 msgid "Zoom level of the map"
 msgstr "مستوى التكبير/التصغير للخريطة"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[لوحة تحكم بدون عنوان]"

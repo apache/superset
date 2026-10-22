@@ -3007,6 +3007,9 @@ msgstr "Orientació de la barra"
 msgid "Base"
 msgstr "Base"
 
+msgid "Base chart title"
+msgstr ""
+
 msgid "Base exponent"
 msgstr "Exponent base"
 
@@ -3030,6 +3033,9 @@ msgstr "Estil de mapa de capa base. Consulta la documentació de Mapbox: %s"
 
 msgid "Base slope"
 msgstr "Pendent base"
+
+msgid "Base title"
+msgstr ""
 
 msgid "Base width"
 msgstr "Amplada base"
@@ -3982,6 +3988,9 @@ msgstr "Escull una base de dades..."
 msgid "Choose a delimiter"
 msgstr "Escull un delimitador"
 
+msgid "Choose a filter or the base title"
+msgstr ""
+
 msgid "Choose a metric for right axis"
 msgstr "Escull una mètrica per a l'eix dret"
 
@@ -4740,6 +4749,9 @@ msgstr "Configura l'actualització automàtica del tauler"
 #, fuzzy
 msgid "Configure caching and performance settings"
 msgstr "Configura els paràmetres de memòria cau i rendiment"
+
+msgid "Configure chart title"
+msgstr ""
 
 msgid "Configure custom time range"
 msgstr "Configurar rang de temps personalitzat"
@@ -7371,6 +7383,9 @@ msgstr ""
 msgid "Enter a part of the object name"
 msgstr "Si omplir els objectes"
 
+msgid "Enter a title template."
+msgstr ""
+
 msgid "Enter alert name"
 msgstr "Introdueix nom de l'alerta"
 
@@ -7630,6 +7645,9 @@ msgid "Example"
 msgstr "Exemple"
 
 msgid "Example export does not support charts or filters using semantic views."
+msgstr ""
+
+msgid "Example: {{chart_title}} - {{country}}"
 msgstr ""
 
 msgid "Examples"
@@ -9289,6 +9307,9 @@ msgstr "Inserir URL de Capa"
 
 msgid "Insert Layer title"
 msgstr "Inserir títol de Capa"
+
+msgid "Insert token"
+msgstr ""
 
 #, fuzzy
 msgid "Inside"
@@ -11324,6 +11345,9 @@ msgstr "Cap registre coincident trobat"
 #, fuzzy
 msgid "No multilayer deck.gl charts are currently added to this dashboard."
 msgstr "Cap filtre està afegit actualment a aquest dashboard."
+
+msgid "No native filters affect this chart."
+msgstr ""
 
 msgid "No provider query is available for this run."
 msgstr ""
@@ -14007,6 +14031,9 @@ msgstr ""
 msgid "Save query"
 msgstr "Desar consulta"
 
+msgid "Save the dashboard to persist these changes."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -16670,6 +16697,11 @@ msgid "The background color of the charts."
 msgstr "El color de fons dels gràfics."
 
 msgid ""
+"The base title is shown when a referenced filter has no value or no "
+"longer affects this chart."
+msgstr ""
+
+msgid ""
 "The category of source nodes used to assign colors. If a node is "
 "associated with more than one category, only the first will be used."
 msgstr ""
@@ -18999,6 +19031,9 @@ msgstr "El títol és obligatori"
 msgid "Title or Slug"
 msgstr "Títol o Slug"
 
+msgid "Title template"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, ja,
 # lv, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -19707,6 +19742,10 @@ msgstr "Establir interval d'actualització automàtica"
 msgid "Update chart"
 msgstr "Actualitzar gràfic"
 
+#, python-format
+msgid "Update or remove invalid tokens: %s"
+msgstr ""
+
 msgid "Updating chart was stopped"
 msgstr "L'actualització del gràfic s'ha aturat"
 
@@ -19788,6 +19827,9 @@ msgstr ""
 "personalitzades. Les variables disponibles es basen en la selecció del "
 "contingut de la indicació d'eina que heu fet a dalt."
 
+msgid "Use a dynamic title"
+msgstr ""
+
 msgid "Use a log scale"
 msgstr "Usar escala logarítmica"
 
@@ -19849,6 +19891,9 @@ msgstr "Usa aquesta secció si vols consultar files atòmiques"
 
 msgid "Use this to define a static color for all circles"
 msgstr "Usa això per definir un color estàtic per tots els cercles"
+
+msgid "Use tokens in the format {{filter_name}}."
+msgstr ""
 
 msgid ""
 "Used internally to identify the plugin. Should be set to the package name"
@@ -21485,6 +21530,9 @@ msgstr "Nivell de zoom"
 
 msgid "Zoom level of the map"
 msgstr "Nivell de zoom del mapa"
+
+msgid "[ untitled chart ]"
+msgstr ""
 
 msgid "[ untitled dashboard ]"
 msgstr "[ dashboard sense títol ]"
