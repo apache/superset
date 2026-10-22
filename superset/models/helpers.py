@@ -2721,6 +2721,8 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         df: pd.DataFrame,
         query_object: QueryObject,
         sql_shifted_temporal_labels: set[str] | None = None,
+        *,
+        keep_exact_integers: bool = False,
     ) -> pd.DataFrame:
         """
         Normalize the dataframe by converting datetime columns and ensuring
@@ -2729,6 +2731,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         :param df: The dataframe to normalize
         :param query_object: The query object with metadata about columns
         :param sql_shifted_temporal_labels: labels already shifted in generated SQL
+        :param keep_exact_integers: leave nullable integer dimension columns holding
+            values beyond ``JS_MAX_INTEGER`` as exact Python integers instead of
+            rounding them to float64; only for frames that are not processed further
         :return: Normalized dataframe
         """
         sql_shifted_temporal_labels = sql_shifted_temporal_labels or set()
@@ -2789,9 +2794,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
         if getattr(self, "enforce_numerical_metrics", True):
             dataframe_utils.df_metrics_to_num(df, query_object)
 
+        # Nullable integer dimensions beyond JS_MAX_INTEGER are set aside and put
+        # back below: ``infer_objects`` would round them to float64.
+        exact_columns = (
+            {
+                col: df[col]
+                for col in dataframe_utils.lossy_integer_columns(df, query_object)
+            }
+            if keep_exact_integers
+            else {}
+        )
+
         # ``mask`` + ``infer_objects`` rather than ``replace``, which emits a
         # FutureWarning about deprecated silent downcasting on object columns.
         df = df.mask(df.isin([np.inf, -np.inf])).infer_objects()
+        for col, series in exact_columns.items():
+            df[col] = series
 
         return df
 
@@ -2820,6 +2838,9 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                 df,
                 query_object,
                 result.sql_shifted_temporal_labels,
+                keep_exact_integers=dataframe_utils.can_keep_exact_integers(
+                    query_object
+                ),
             )
 
             # Process time offsets if requested
