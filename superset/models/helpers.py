@@ -225,12 +225,17 @@ def build_native_like_predicate(
     expr: ColumnElement[Any], search: str, engine_spec: type["BaseEngineSpec"]
 ) -> ColumnElement[Any]:
     """Build the internal native search predicate with dialect-specific literals."""
+    from superset.db_engine_specs.clickhouse import ClickHouseBaseEngineSpec
     from superset.db_engine_specs.mssql import MssqlEngineSpec
 
     lowered = sa.func.lower(expr)
     if engine_spec.engine == "bigquery":
         # STRPOS has no LIKE escape layer: trailing backslashes remain plain data.
         return sa.func.strpos(lowered, sa.func.lower(sa.literal(search))) > 0
+    if issubclass(engine_spec, ClickHouseBaseEngineSpec):
+        # ClickHouse compilers reject LIKE ... ESCAPE; position() matches the term
+        # as plain data, like STRPOS above.
+        return sa.func.position(lowered, sa.func.lower(sa.literal(search))) > 0
     escaped = search.replace("/", "//").replace("%", "/%").replace("_", "/_")
     if issubclass(engine_spec, MssqlEngineSpec):
         # SQL Server and its derivatives treat '[' as a wildcard-class opener.

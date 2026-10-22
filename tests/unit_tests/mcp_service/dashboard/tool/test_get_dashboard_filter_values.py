@@ -152,7 +152,8 @@ def test_native_query_authorized_before_run_and_targets_redacted(
     assert context.form_data["native_filter_id"] == "region"
     assert context.queries[0].columns == ["region"]
     assert context.queries[0].metrics == []
-    assert context.queries[0].row_limit == 26
+    # The dashboard dropdown's native row limit, not the smaller option bound.
+    assert context.queries[0].row_limit == 1000
     native_query["authorize"].assert_called_with(query_context=context)
 
 
@@ -257,7 +258,7 @@ def test_search_filters_domain_before_limit_with_literal_wildcards(
         {"col": "region", "op": "ILIKE", "val": "10%_O'Brien/\\", "is_literal": True}
     ]
     assert context.queries[0].orderby == []
-    assert context.queries[0].row_limit == 2
+    assert context.queries[0].row_limit == 1000
 
 
 @pytest.mark.parametrize(
@@ -1555,6 +1556,28 @@ def test_native_bigquery_search_has_no_like_escape_layer() -> None:
     assert "A%_\\" in compiled.params.values()
 
 
+@pytest.mark.parametrize("engine", ["clickhouse", "clickhousedb"])
+def test_native_clickhouse_search_has_no_like_escape_layer(engine: str) -> None:
+    """ClickHouse rejects LIKE ESCAPE, so search compiles to position()."""
+    dialect = pytest.importorskip("clickhouse_connect.cc_sqlalchemy.dialect")
+
+    from superset.db_engine_specs.clickhouse import (
+        ClickHouseConnectEngineSpec,
+        ClickHouseEngineSpec,
+    )
+    from superset.models.helpers import build_native_like_predicate
+
+    spec = {
+        "clickhouse": ClickHouseEngineSpec,
+        "clickhousedb": ClickHouseConnectEngineSpec,
+    }[engine]
+    expr = build_native_like_predicate(column("region", String), "A%_\\", spec)
+    compiled = expr.compile(dialect=dialect.ClickHouseDialect())
+    assert "position(lower(`region`), lower(" in str(compiled)
+    assert "LIKE" not in str(compiled)
+    assert "A%_\\" in compiled.params.values()
+
+
 def test_real_sqlite_acquisition_guest_rls_and_boolean_options(
     native_query: dict[str, Any], mocker: MockerFixture
 ) -> None:
@@ -2092,6 +2115,68 @@ def test_search_consumed_by_jinja_filter_macro_is_unsupported(
     assert _available(summaries[0]).status == "unsupported"
     assert _available(summaries[0]).reason == "unsupported_search"
     assert _available(summaries[0]).values == []
+
+
+def test_chained_proposals_validate_in_dependency_order(
+    sqlite_native_execution: dict[str, Any],
+) -> None:
+    """A child proposal is checked against its proposed parent, not the snapshot."""
+    snapshot = {"dataMask": {"region": _mask(["Americas"]), "country": _mask(["US"])}}
+    before = deepcopy(snapshot)
+    summaries, meta = choices.discover_filter_values(
+        _dashboard(
+            _filter(),
+            _filter("country", cascadeParentIds=["region"]),
+            _filter("amount", cascadeParentIds=["country"]),
+        ),
+        _request(
+            filter_value_requests=[{"filter_id": "amount"}],
+            proposed_filter_values=[
+                {"filter_id": "country", "values": ["France"]},
+                {"filter_id": "region", "values": ["EMEA"]},
+            ],
+        ),
+        snapshot_state=snapshot,
+    )
+    assert {
+        (proposal.filter_id, tuple(proposal.values))
+        for proposal in meta.validated_proposed_filter_values
+    } == {("region", ("EMEA",)), ("country", ("France",))}
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == [1]
+    assert meta.query_count == 3
+    assert sqlite_native_execution["database_reads"].call_count == 3
+    assert snapshot == before
+
+
+@with_feature_flags(ENABLE_TEMPLATE_PROCESSING=True)
+@pytest.mark.parametrize(
+    ("item", "expected"),
+    [
+        ({"filter_id": "country"}, ["A", "Z"]),
+        ({"filter_id": "country", "exact_value": "Z"}, ["Z"]),
+    ],
+)
+def test_jinja_row_limit_matches_the_dashboard_dropdown(
+    sqlite_native_execution: dict[str, Any],
+    item: dict[str, Any],
+    expected: list[str],
+) -> None:
+    """Virtual SQL sees the native row limit, not the smaller option bound."""
+    with sqlite_native_execution["engine"].begin() as connection:
+        connection.execute(text("create table letters (country text)"))
+        connection.execute(
+            text("insert into letters values (:country)"),
+            [{"country": "A"}] * 30 + [{"country": "Z"}],
+        )
+    sqlite_native_execution[
+        "dataset"
+    ].sql = "select country from letters order by country limit {{ row_limit }}"
+    summaries, _ = choices.discover_filter_values(
+        _dashboard(_filter("country")), _request(filter_value_requests=[item])
+    )
+    assert _available(summaries[0]).status == "complete"
+    assert _available(summaries[0]).values == expected
 
 
 _SWALLOWED_COUNTRY_SQL = (

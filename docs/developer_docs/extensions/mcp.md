@@ -703,12 +703,15 @@ carries predicates without a typed value return `parent_unresolved`, as select
 parents do. Analytical tools keep their existing dashboard scope.
 
 Virtual dataset SQL renders Jinja against the same form data as the dashboard
-dropdown, including the snapshot's `urlParams` (except `standalone` and `edit`)
-and inherited parent time ranges. When that SQL reads the target column through a
-filter macro such as `get_filters`, the macro receives discovery's own probe
-without its literal semantics, so search returns `unsupported/unsupported_search`,
-exact probes return `unsupported/unsupported_target`, and proposals for that
-column are not validated.
+dropdown, including the snapshot's `urlParams` (except `standalone` and `edit`),
+inherited parent time ranges, and the native filter row limit as `row_limit`
+(`NATIVE_FILTER_DEFAULT_ROW_LIMIT`, capped by the server row limit); a request's
+`limit` bounds only the returned options. When that SQL reads the target column
+through a filter macro such as `get_filters`, the macro receives discovery's own
+probe without its literal semantics, so search returns
+`unsupported/unsupported_search`, exact probes return
+`unsupported/unsupported_target`, and proposals for that column are not
+validated.
 
 For a simultaneous parent/child change, first establish the parent's exact choice,
 then supply `proposed_filter_values: [{"filter_id": "parent-id", "values": ["EMEA"]}]`

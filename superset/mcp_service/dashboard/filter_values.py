@@ -728,10 +728,13 @@ def _native_query(  # noqa: C901
     if metric is not None and not isinstance(metric, str):
         raise _DiscoveryUnavailableError("unsupported_target")
     configured_limit = current_app.config.get("NATIVE_FILTER_DEFAULT_ROW_LIMIT", 1000)
-    server_limit = apply_max_row_limit(item.limit + 1)
-    if type(configured_limit) is not int or configured_limit <= 0 or server_limit <= 0:
+    if type(configured_limit) is not int or configured_limit <= 0:
         raise _DiscoveryUnavailableError("query_budget")
-    limit = min(item.limit + 1, server_limit, configured_limit)
+    # Query with the dashboard dropdown's own row limit, which virtual dataset
+    # Jinja also renders as row_limit. item.limit only bounds returned options.
+    limit = apply_max_row_limit(configured_limit)
+    if limit <= 0:
+        raise _DiscoveryUnavailableError("query_budget")
     parents = _parent_extra(context, conf["id"])
     parent_filters = parents.pop("filters", [])
     form_data = {
