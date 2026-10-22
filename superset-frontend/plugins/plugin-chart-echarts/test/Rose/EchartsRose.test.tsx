@@ -184,3 +184,32 @@ test('clicking a different period while drilled returns to the rose view', () =>
   });
   expect(lastEchartCall().echartOptions).toBe(ROSE_ECHART_OPTIONS);
 });
+
+test('drilled Rose tooltips preserve literal series and period text', () => {
+  const name = 'Love <3 charts & <img src=x>';
+  const label = 'Users <30 & <b>period</b>';
+  renderRose({
+    ...baseProps,
+    seriesNames: [name],
+    periods: [
+      {
+        time: 1,
+        label,
+        entries: [{ seriesName: name, value: 30, increment: 1 }],
+      },
+    ],
+  });
+  act(() => {
+    lastEchartCall().eventHandlers.click({ dataIndex: 0 });
+  });
+  const html = lastEchartCall().echartOptions.tooltip.formatter({
+    name,
+    value: 30,
+    percent: 100,
+  });
+  const element = document.createElement('div');
+  element.innerHTML = html;
+  expect(element.textContent).toBe(`${label}${name}: 30 (100%)`);
+  expect(element.querySelector('img')).toBeNull();
+  expect(element.querySelectorAll('b')).toHaveLength(1);
+});

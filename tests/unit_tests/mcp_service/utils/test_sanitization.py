@@ -916,11 +916,13 @@ def test_data_label_followed_by_control_whitespace_is_preserved(
         "A < B",
         "A <",
         "A <> B",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
     ],
 )
 def test_strip_html_tags_preserves_non_tag_less_than(value: str) -> None:
     """Preserve display text without decoding tag-opening brackets."""
-    assert _strip_html_tags(value) == value.replace(">", "&gt;")
+    assert _strip_html_tags(value) == value
 
 
 @pytest.mark.parametrize(
@@ -996,3 +998,19 @@ def test_reject_entities_reconstructed_by_removal(
     """Do not store text whose rebuilt entities change on resubmission."""
     with pytest.raises(ValueError, match="malicious HTML"):
         sanitize(value)
+
+
+@pytest.mark.parametrize(
+    "value", ["Q3 <ſcript src=//example.invalid/x.js", 'x <Kbd title="y']
+)
+def test_strip_html_tags_keeps_casefolding_tag_openers_escaped(value: str) -> None:
+    """Case conversion must not turn a restored bracket into an HTML tag."""
+    result = _strip_html_tags(value)
+    assert "<" not in result
+    assert "&lt;" in result
+
+
+@pytest.mark.parametrize("value", [">5", "Users\u00a0>30"])
+def test_filter_value_preserves_greater_than_and_nbsp(value: str) -> None:
+    """Text comparisons must not gain entity semicolons rejected as shell syntax."""
+    assert sanitize_filter_value(value) == value

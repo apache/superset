@@ -28,17 +28,6 @@ under the License.
 
 Model Context Protocol (MCP) integration allows extensions to register custom AI agent capabilities that integrate seamlessly with Superset's MCP service. Extensions can provide both **tools** (executable functions) and **prompts** (interactive guidance) that AI agents can discover and use.
 
-## Chart and dashboard titles
-
-MCP chart names and dashboard titles preserve literal comparisons such as
-`Users aged <30`, `Revenue <$1M`, and `Love <3 charts`. HTML tags are stripped;
-script-only names, dangerous URL schemes, and entity-encoded markup that would
-leave tag-shaped text or rebuild entities that would change on resubmission
-are rejected. A title altered by sanitization
-includes a warning. Names are sanitized once before persistence, including by
-`generate_chart`'s schema revalidation, so a stored name does not change when
-it is sent back.
-
 ## Chart dataset changes
 
 The built-in `update_chart` tool requires a complete `config` when rebinding
@@ -598,17 +587,3 @@ governance concern from layout/theme/metadata edits.
 
 - **[Development](./development.md)** - Project structure, APIs, and dev workflow
 - **[Security](./security.md)** - Security best practices for extensions
-
-## Object-name validation
-
-MCP object names must fit their persisted model columns: chart and dataset names
-and theme names allow 250 characters, dashboard titles allow 500, saved-query
-labels and SQL Lab tab titles allow 256, and dashboard slugs allow 255.
-For fields that trim whitespace, length validation applies after trimming.
-Theme names retain their whitespace and count it toward the limit.
-
-Blank saved-query labels and explicit blank dashboard renames return
-`Text must not be empty`, matching required dataset names and duplicated dashboard
-titles. Omit an update field to retain the existing value.
-Chart creation and updates reject names reduced entirely to disallowed content;
-partial sanitization returns a warning alongside the normalized name.

@@ -918,6 +918,15 @@ _TITLE_SANITIZATION_CASES = [
         {
             "dataset_id": 1,
             "config": {"chart_type": "table", "columns": [{"name": "a"}]},
+            "save_chart": False,
+        },
+        "chart_name",
+    ),
+    (
+        GenerateChartRequest,
+        {
+            "dataset_id": 1,
+            "config": {"chart_type": "table", "columns": [{"name": "a"}]},
         },
         "chart_name",
     ),
@@ -931,7 +940,14 @@ _TITLE_SANITIZATION_CASES = [
 @pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
 @pytest.mark.parametrize(
     "value",
-    ["Users aged <30", "Revenue <$1M", "Love <3 charts", "Users aged <30 & “VIP” 📈"],
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged <30 & “VIP” 📈",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
 )
 def test_literal_less_than_title_round_trip(
     model: type[BaseModel], payload: dict[str, Any], field: str, value: str
@@ -1054,11 +1070,13 @@ _SIBLING_SANITIZATION_CASES = [
 
 
 @pytest.mark.parametrize("model,payload,field", _SIBLING_SANITIZATION_CASES)
+@pytest.mark.parametrize(
+    "value", ["Users aged <30", "Users aged >30", "Users\u00a0>30"]
+)
 def test_sibling_fields_preserve_literal_comparison(
-    model: type[BaseModel], payload: dict[str, Any], field: str
+    model: type[BaseModel], payload: dict[str, Any], field: str, value: str
 ) -> None:
     """Every sibling accepts a non-tag comparison and preserves its literal text."""
-    value = "Users aged <30"
     if model is InteractivePivotChartConfig:
         payload = {**payload, "comparison_type": "values"}
     expected = [value] if field.endswith("_labels") else value
@@ -1174,3 +1192,70 @@ async def test_duplicate_dashboard_removed_or_unstable_title_wire_reason(
             "a 'data:' label must not be followed by a comma",
         )
     ]
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize("character", [">", "\u00a0"])
+@pytest.mark.parametrize("at_limit", [True, False])
+def test_title_length_counts_plain_text(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    character: str,
+    at_limit: bool,
+) -> None:
+    """Entity serialization must not inflate persisted titles or reject valid ones."""
+    limit = 250 if field == "chart_name" else 500
+    value = "x" * (limit - 2 + (not at_limit)) + character + "y"
+    if not at_limit:
+        with pytest.raises(ValidationError) as exc:
+            model.model_validate({**payload, field: value})
+        assert exc.value.errors()[0]["type"] == "string_too_long"
+        return
+    request = model.model_validate({**payload, field: value})
+    assert getattr(request, field) == value
+    assert len(getattr(request, field)) == limit
+    assert request.sanitization_warnings == []
+    assert getattr(model.model_validate(request.model_dump()), field) == value
+
+
+def test_builtin_name_validation_documented_for_administrators() -> None:
+    """Built-in validation guidance belongs with server administration."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[3]
+    admin = (root / "docs/admin_docs/configuration/mcp-server.mdx").read_text()
+    extensions = (root / "docs/developer_docs/extensions/mcp.md").read_text()
+    for heading in ("Chart and dashboard titles", "Object-name validation"):
+        assert heading in admin
+        assert heading not in extensions
+    assert "Theme names retain their whitespace" in admin
+    assert "length validation applies after trimming" in admin
+
+
+def test_name_contract_changes_have_upgrade_guidance() -> None:
+    """Clients need migration guidance for blank renames and tighter name caps."""
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[3]
+    next_release = (
+        (root / "UPDATING.md").read_text().split("## Next", 1)[1].split("\n## ", 1)[0]
+    )
+    assert (
+        "`update_dashboard` rejects blank or whitespace-only `dashboard_title`"
+        in next_release
+    )
+    assert "chart names and theme names are capped at 250 characters" in next_release
+    assert "omit the field to keep the stored title" in next_release
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+def test_escaped_title_still_fits_model_column(
+    model: type[BaseModel], payload: dict[str, Any], field: str
+) -> None:
+    """Conservative bracket escaping cannot bypass a persisted title's length cap."""
+    limit = 250 if field == "chart_name" else 500
+    value = "x" * (limit - 2) + "<ſ"
+    with pytest.raises(ValidationError) as exc:
+        model.model_validate({**payload, field: value})
+    assert exc.value.errors()[0]["type"] == "string_too_long"

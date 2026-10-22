@@ -133,7 +133,10 @@ test('sanitizes series names in tooltips', () => {
     dataIndex: 0,
     seriesName: '<img src=x onerror=alert(1)>',
   });
-  expect(html).not.toContain('onerror');
+  const element = document.createElement('div');
+  element.innerHTML = html;
+  expect(element.querySelector('[onerror]')).toBeNull();
+  expect(element.textContent).toContain('<img src=x onerror=alert(1)>');
 });
 
 test('handles empty results without crashing', () => {
@@ -193,3 +196,27 @@ test('renders when __timestamp is serialized as a non-epoch string', () => {
   expect(seriesNames).toEqual(['East', 'West']);
   expect(series[0].data.map((d: any) => d.value)).toEqual([30, 10]);
 });
+
+test.each([true, false])(
+  'escapes literal series text in Rose tooltips (rich=%s)',
+  richTooltip => {
+    const name = 'Love <3 charts & <img src=x>';
+    const props = new ChartProps({
+      width: 800,
+      height: 600,
+      formData: { ...formData, richTooltip },
+      theme: supersetTheme,
+      queriesData: [{ data: [{ __timestamp: T1, [`sum__num, ${name}`]: 30 }] }],
+      hooks: {},
+    }) as unknown as EchartsRoseChartProps;
+    const { echartOptions } = transformProps(props);
+    const tooltip = echartOptions.tooltip as {
+      formatter: (params: { dataIndex: number; seriesName: string }) => string;
+    };
+    const element = document.createElement('div');
+    element.innerHTML = tooltip.formatter({ dataIndex: 0, seriesName: name });
+    expect(element.textContent).toContain(`${name}: 30`);
+    expect(element.querySelector('img')).toBeNull();
+    expect(element.querySelector('b')).not.toBeNull();
+  },
+);

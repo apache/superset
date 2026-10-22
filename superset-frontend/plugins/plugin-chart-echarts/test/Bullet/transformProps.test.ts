@@ -35,7 +35,7 @@ const formData: SqlaFormData = {
 
 const chartProps = (
   overrides: Partial<SqlaFormData> = {},
-  data: Array<Record<string, number>> = [{ sum__num: 120 }],
+  data: Array<Record<string, string | number>> = [{ sum__num: 120 }],
 ) =>
   new ChartProps({
     width: 800,
@@ -423,4 +423,39 @@ test('keeps exact-case dimensions and uses per-index fallbacks for short labels'
       .filter(series => series.type === 'line')
       .map(series => series.markLine?.data[0].label.formatter()),
   ).toEqual(['stretch', '260.0']);
+});
+
+test('escapes literal comparison text in every Bullet tooltip', () => {
+  const label = 'Users <30 & <img src=x>';
+  const metric = 'Total <3';
+  const props = chartProps(
+    {
+      metric,
+      rangeLabels: label,
+      ranges: '200',
+      markerLabels: label,
+      markers: '150',
+      groupby: ['group'],
+    },
+    [{ [metric]: 120, group: label }],
+  );
+  const { echartOptions } = transformProps(props);
+  const series = echartOptions.series as Array<{
+    tooltip?: { formatter: () => string };
+    data: Array<{ tooltip?: { formatter: () => string } }>;
+  }>;
+  const tips = [
+    series[0].tooltip!.formatter(),
+    ...series.slice(1).flatMap(s => s.data.map(d => d.tooltip!.formatter())),
+  ];
+  tips.forEach(html => {
+    const element = document.createElement('div');
+    element.innerHTML = html;
+    expect(element.textContent).toContain(label);
+    expect(element.querySelector('img')).toBeNull();
+  });
+  const element = document.createElement('div');
+  element.innerHTML = tips[0];
+  expect(element.textContent).toContain(metric);
+  expect(element.querySelector('b')).not.toBeNull();
 });

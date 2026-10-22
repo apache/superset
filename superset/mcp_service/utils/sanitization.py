@@ -70,13 +70,20 @@ def _strip_html_tags(value: str) -> str:
     # url_schemes=set() blocks all URL schemes in any remaining attributes
     cleaned = nh3.clean(decoded, tags=set(), url_schemes=set())
 
-    # HTML tag-open states require an ASCII letter, slash, bang or question
-    # mark. Preserve literal comparisons like <30 and <$1M, but never decode
-    # a tag opener reconstructed by stripping intervening markup.
+    # Restore brackets only before comparison punctuation, numbers or whitespace.
+    # Non-ASCII letters can case-fold into tag names in downstream renderers;
+    # leave those and reconstructed tag openers escaped.
     # Normalize removable characters before deciding whether a bracket is safe;
     # otherwise a later Unicode strip could turn <\u200bscript into markup.
     cleaned = _remove_dangerous_unicode(cleaned)
-    return re.sub(r"&lt;(?![A-Za-z/!?])", "<", cleaned).replace("&amp;", "&")
+    # Greater-than signs and NBSP cannot open tags. Restore them so plain text
+    # neither changes on display nor outgrows the model-column length limits.
+    return (
+        re.sub(r"&lt;(?=[\d\s$€£¥%+=.,:;)\]&-]|$)", "<", cleaned)
+        .replace("&gt;", ">")
+        .replace("&nbsp;", "\u00a0")
+        .replace("&amp;", "&")
+    )
 
 
 # A tag opener left escaped by _strip_html_tags: markup reconstructed by
@@ -327,6 +334,15 @@ def sanitize_user_input(
     # Reject rather than store tag-shaped text: a later sanitizer pass would
     # decode and strip it, so the stored value would not be stable.
     _check_stable_html(value, field_name)
+
+    # Conservative bracket escaping can expand text even after tags are removed.
+    # Enforce the storage cap for callers without a Pydantic Field length limit.
+    if len(value) > max_length:
+        raise PydanticCustomError(
+            "string_too_long",
+            f"{field_name} too long ({len(value)} characters). "
+            f"Maximum allowed length is {max_length} characters.",
+        )
 
     # Check for dangerous patterns (URL schemes, event handlers)
     _check_dangerous_patterns(value, field_name)
