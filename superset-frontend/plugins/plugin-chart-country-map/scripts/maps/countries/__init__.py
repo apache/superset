@@ -18,19 +18,64 @@
 
 Each module exposes `NAME` (its registry key, used on the CLI's
 --countries flag) and `build(ctx) -> dict[str, GeoDataFrame]` - a dict
-since one notebook section can produce more than one named output (Italy
-produces both "italy_regions" and
-"italy_regions_and_autonomous_provinces").
+since one notebook section can produce more than one named output (e.g.
+France produces "france", "france_regions" and "france_overseas").
 
-This is a prototype covering 4 of the ~26 countries the notebook special-
-cases, picked to cover distinct patterns: an external pinned GeoJSON
-fetch with validation (morocco), one section producing two outputs
-(italy), an external fetch that can legitimately fail (latvia), and a
-shared geometry helper (usa). The other ~22 aren't converted yet.
+This covers all ~26 special-cased sections of the notebook it replaces.
+Every other country Superset ships (the ~190 that don't need any
+correction) is handled generically - see `maps/catalog.py`.
 """
 
 from __future__ import annotations
 
-from . import italy, latvia, morocco, usa
+from . import (
+    china,
+    finland,
+    france,
+    india,
+    iran,
+    italy,
+    kenya,
+    latvia,
+    madagascar,
+    malawi,
+    morocco,
+    netherlands,
+    norway,
+    philippines,
+    portugal,
+    russia,
+    south_africa,
+    spain,
+    turkey,
+    uk,
+    ukraine,
+    usa,
+    vietnam,
+)
 
-REGISTRY = [morocco, italy, latvia, usa]
+REGISTRY = [
+    china,
+    finland,
+    france,
+    india,
+    iran,
+    italy,
+    kenya,
+    latvia,
+    madagascar,
+    malawi,
+    morocco,
+    netherlands,
+    norway,
+    philippines,
+    portugal,
+    russia,
+    south_africa,
+    spain,
+    turkey,
+    uk,
+    ukraine,
+    usa,
+    vietnam,
+]

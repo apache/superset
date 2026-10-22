@@ -25,7 +25,8 @@ import os
 import geopandas as gpd
 import shapely.ops
 
-from .context import BuildContext, COUNTRY_NAME_ALIASES
+from .catalog import COUNTRY_NAME_ALIASES
+from .context import BuildContext
 
 USEFUL_COLUMNS = ["ISO", "NAME_1", "geometry"]
 
@@ -57,7 +58,7 @@ def simplify_if_needed(ctx: BuildContext, name: str, gdf: gpd.GeoDataFrame) -> N
     from Natural Earth's 1:50m dataset).
     """
     alias = COUNTRY_NAME_ALIASES.get(name, name)
-    if alias in ctx.df_50m_admins:
+    if ctx.is_50m_sourced(alias):
         return
 
     factor = SIMPLIFY_FACTOR_OVERRIDES.get(name) or get_simplify_factor_by_size(gdf)

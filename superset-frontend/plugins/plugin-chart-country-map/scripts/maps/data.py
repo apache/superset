@@ -95,6 +95,7 @@ def load_natural_earth(data_dir: str, skip_existing: bool = True) -> BuildContex
 
     return BuildContext(
         df=df,
+        df_10m=df_10m,
+        df_50m=df_50m,
         df_admin0_10m=df_admin0_10m,
-        df_50m_admins=set(df_50m["admin"].str.lower().unique()),
     )
