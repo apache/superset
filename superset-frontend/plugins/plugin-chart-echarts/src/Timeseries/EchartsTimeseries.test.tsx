@@ -1556,7 +1556,7 @@ test('drillBy uses the swapped data index for a horizontal time-based axis', asy
     {
       col: 'order_date',
       op: '==',
-      val: '2021-02-01T00:00:00',
+      val: 1612137600000,
       formattedVal: '2021-02-01T00:00:00',
     },
   ]);
