@@ -39,11 +39,14 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import { init, type SeriesOption } from 'echarts';
 import type { GridComponentOption } from 'echarts/components';
-import transformProps from '../../src/Timeseries/transformProps';
+import transformProps, {
+  getLegendSeriesIcon,
+} from '../../src/Timeseries/transformProps';
 import {
   EchartsTimeseriesSeriesType,
   OrientationType,
   EchartsTimeseriesFormData,
+  type TimeseriesLegendIcon,
 } from '../../src/Timeseries/types';
 import { StackControlsValue, TIMESERIES_CONSTANTS } from '../../src/constants';
 import {
@@ -170,6 +173,7 @@ type CustomLegendResult = {
     };
     items: {
       color: string;
+      icon: TimeseriesLegendIcon;
       interactive: boolean;
       name: string;
       selected: boolean;
@@ -1820,6 +1824,148 @@ const timeCompareFormData: SqlaFormData = {
   metric: 'sum__num',
   viz_type: 'my_viz',
 };
+
+function getPlainTopLegendItems(
+  overrides: Parameters<typeof createTestChartProps>[0] = {},
+) {
+  const transformed = transformProps(
+    createTestChartProps({
+      ...overrides,
+      formData: {
+        ...formData,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+        ...overrides.formData,
+      },
+    }),
+  );
+  return getCustomLegend(transformed)?.items ?? [];
+}
+
+test('custom legend items describe a line series as a solid line with its symbol', () => {
+  const items = getPlainTopLegendItems();
+
+  expect(items.map(item => item.icon)).toEqual([
+    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'emptyCircle' },
+    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'emptyCircle' },
+  ]);
+});
+
+test('custom legend items describe a bar series as a box', () => {
+  const items = getPlainTopLegendItems({
+    formData: { seriesType: EchartsTimeseriesSeriesType.Bar },
+  });
+
+  expect(items.every(item => item.icon.shape === 'box')).toBe(true);
+});
+
+test('custom legend items describe a scatter series as its symbol', () => {
+  const items = getPlainTopLegendItems({
+    formData: { seriesType: EchartsTimeseriesSeriesType.Scatter },
+  });
+
+  expect(items.map(item => item.icon)).toEqual([
+    { shape: 'symbol', symbol: 'circle' },
+    { shape: 'symbol', symbol: 'circle' },
+  ]);
+});
+
+test('custom legend items keep the dash style of a formula annotation line', () => {
+  const formula: FormulaAnnotationLayer = {
+    name: 'Reporting limit',
+    annotationType: AnnotationType.Formula,
+    value: '2',
+    style: AnnotationStyle.Dashed,
+    width: 3,
+    show: true,
+    showLabel: false,
+  };
+  const items = getPlainTopLegendItems({
+    formData: { annotationLayers: [formula] },
+  });
+  const annotation = items.find(item => item.name === 'Reporting limit');
+
+  expect(annotation?.icon).toEqual({
+    shape: 'line',
+    lineType: 'dashed',
+    lineWidth: 2,
+    symbol: 'emptyCircle',
+  });
+});
+
+test('custom legend items carry the dash pattern and symbol of a time-shifted series', () => {
+  const transformed = transformProps(
+    createTestChartProps({
+      formData: {
+        ...timeCompareFormData,
+        time_compare: ['1 week ago'],
+        timeShiftColor: true,
+        comparison_type: ComparisonType.Values,
+        legendOrientation: LegendOrientation.Top,
+        legendType: LegendType.Plain,
+        showLegend: true,
+      },
+      queriesData: [
+        createTestQueryData([
+          { sum__num: 100, '1 week ago': 80, __timestamp: 599616000000 },
+          { sum__num: 150, '1 week ago': 120, __timestamp: 599916000000 },
+        ]),
+      ],
+    }),
+  );
+  const items = getCustomLegend(transformed)?.items ?? [];
+  const shifted = items.find(item => item.name === '1 week ago');
+
+  expect(shifted?.icon).toEqual({
+    shape: 'line',
+    lineType: 'dotted',
+    lineWidth: 2,
+    symbol: 'triangle',
+  });
+});
+
+test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
+  ['no series', undefined, { shape: 'box' }],
+  ['a bar series', { type: 'bar' }, { shape: 'box' }],
+  [
+    'a line series with ECharts defaults',
+    { type: 'line' },
+    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'emptyCircle' },
+  ],
+  [
+    'a line series whose symbol is none',
+    { type: 'line', symbol: 'none' },
+    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'circle' },
+  ],
+  [
+    'a line series with a numeric dash and a hidden line',
+    { type: 'line', lineStyle: { type: 5, width: 0 } } as SeriesOption,
+    { shape: 'line', lineType: [5], lineWidth: 0, symbol: 'emptyCircle' },
+  ],
+  [
+    'a line series with a dash array and a thick line',
+    { type: 'line', lineStyle: { type: [6, 15], width: 4 } } as SeriesOption,
+    { shape: 'line', lineType: [6, 15], lineWidth: 2, symbol: 'emptyCircle' },
+  ],
+  [
+    'a line series with an unknown dash style',
+    { type: 'line', lineStyle: { type: 'wavy' } } as unknown as SeriesOption,
+    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'emptyCircle' },
+  ],
+  [
+    'a scatter series with a non-string symbol',
+    { type: 'scatter', symbol: 42 } as unknown as SeriesOption,
+    { shape: 'symbol', symbol: 'circle' },
+  ],
+  [
+    'a scatter series with a rect symbol',
+    { type: 'scatter', symbol: 'rect' },
+    { shape: 'symbol', symbol: 'rect' },
+  ],
+])('getLegendSeriesIcon describes %s', (_label, series, expected) => {
+  expect(getLegendSeriesIcon(series)).toEqual(expected);
+});
 
 test('should apply dashed line style to time comparison series with single metric', () => {
   const queriesDataWithTimeCompare = [
