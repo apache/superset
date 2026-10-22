@@ -28,14 +28,19 @@ import { GenericDataType } from '@apache-superset/core/common';
 import { EchartsSunburstFormData } from './types';
 import { getTemporalXAxisDrillByFilter } from '../utils/xAxisDrillByFilter';
 
-/** Return the effective grain only for a grained physical hierarchy level. */
+/**
+ * Return the effective grain only for a grained physical hierarchy level. A
+ * dashboard Time Column filter supplies the grained column through
+ * ``extraFormData.granularity_sqla``, which the query uses as its granularity.
+ */
 export function getSunburstTimeGrain(
   formData: EchartsSunburstFormData,
   column: QueryFormColumn,
 ): TimeGranularity | undefined {
   return isPhysicalColumn(column) &&
     (formData.temporalColumnsLookup?.[column] ||
-      formData.granularitySqla === column)
+      formData.granularitySqla === column ||
+      formData.extraFormData?.granularity_sqla === column)
     ? (formData.extraFormData?.time_grain_sqla ?? formData.timeGrainSqla)
     : undefined;
 }

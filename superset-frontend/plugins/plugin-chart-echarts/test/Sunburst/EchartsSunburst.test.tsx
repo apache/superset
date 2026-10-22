@@ -44,6 +44,7 @@ function setup({
   temporalFirst = false,
   granularitySqla = 'order_date',
   temporalColumnsLookup,
+  timeColumnOverride,
 }: {
   grain?: TimeGranularity;
   override?: TimeGranularity;
@@ -53,6 +54,7 @@ function setup({
   temporalFirst?: boolean;
   granularitySqla?: string;
   temporalColumnsLookup?: Record<string, boolean>;
+  timeColumnOverride?: string;
 } = {}) {
   const setDataMask = jest.fn();
   const onContextMenu = jest.fn();
@@ -71,7 +73,10 @@ function setup({
         timeGrainSqla: grain,
         granularitySqla,
         temporalColumnsLookup,
-        extraFormData: override ? { time_grain_sqla: override } : {},
+        extraFormData: {
+          ...(override && { time_grain_sqla: override }),
+          ...(timeColumnOverride && { granularity_sqla: timeColumnOverride }),
+        },
       },
       width: 800,
       height: 600,
@@ -295,5 +300,25 @@ test('keeps categorical child filters unchanged beneath a temporal ancestor', ()
   eventHandlers.click(event());
   expect(setDataMask.mock.lastCall[0].extraFormData).toEqual({
     filters: [{ col: 'category', op: '==', val: 'A' }],
+  });
+});
+
+test('grains the level chosen by a dashboard Time Column filter', () => {
+  const { eventHandlers, event, setDataMask, path } = setup({
+    granularitySqla: '',
+    override: TimeGranularity.MONTH,
+    timeColumnOverride: 'order_date',
+  });
+  expect(path[1].name).toBe('Oct 2024');
+  eventHandlers.click(event());
+  expect(setDataMask.mock.lastCall[0].extraFormData).toEqual({
+    filters: [
+      {
+        col: 'order_date',
+        op: 'TEMPORAL_RANGE',
+        val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+      },
+    ],
+    time_range: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
   });
 });
