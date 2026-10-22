@@ -5467,3 +5467,33 @@ def test_semantic_drill_rejects_unsupported_filter_grain(mocker: MockerFixture) 
     )
     with pytest.raises(QueryObjectValidationError, match="not supported"):
         map_query_object(query)
+
+
+def test_semantic_drill_epoch_filter_keeps_timezone_aware_grain(
+    mocker: MockerFixture,
+) -> None:
+    """An epoch-ms drill bucket on a tz-aware grain keeps its UTC instant."""
+    dtype = pa.timestamp("us", tz="America/New_York")
+    raw = Dimension("order.raw", "order_date", dtype)
+    monthly = Dimension("order.month", "order_date", dtype, grain=Grains.MONTH)
+    datasource = mocker.MagicMock()
+    datasource.implementation = AbcOnlyView({raw, monthly}, set())
+    datasource.fetch_values_predicate = None
+    query = ValidatedQueryObject(
+        datasource=datasource,
+        columns=["order_date"],
+        metrics=[],
+        filters=[
+            {"col": "order_date", "op": "==", "val": 1785542400000, "grain": "P1M"}
+        ],
+    )
+    [semantic] = map_query_object(query)
+    # 2026-08-01T00:00Z, not 2026-08-01T00:00 local time.
+    assert semantic.filters == {
+        Filter(
+            PredicateType.WHERE,
+            monthly,
+            Operator.EQUALS,
+            datetime(2026, 7, 31, 20, tzinfo=ZoneInfo("America/New_York")),
+        )
+    }
