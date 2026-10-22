@@ -8838,9 +8838,6 @@ msgstr "Dopasuj dane"
 msgid "Fix the Extra JSON to edit certification"
 msgstr ""
 
-msgid "Fix the query cost warning settings before saving."
-msgstr ""
-
 msgid "Fix the query cost warning settings in Advanced."
 msgstr ""
 

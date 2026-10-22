@@ -594,28 +594,6 @@ export function getSqlEditorQuery(
   };
 }
 
-export function runQueryFromSqlEditor(
-  database: Database | null,
-  queryEditor: QueryEditor,
-  defaultQueryLimit: number,
-  tempTable?: string,
-  ctas?: boolean,
-  ctasMethod?: string,
-): SqlLabThunkAction {
-  return function (dispatch: AppDispatch, getState: GetState) {
-    const qe = getUpToDateQuery(getState(), queryEditor, queryEditor.id);
-    const query = getSqlEditorQuery(
-      database,
-      qe,
-      defaultQueryLimit,
-      tempTable,
-      ctas,
-      ctasMethod,
-    );
-    dispatch(runQuery(query));
-  };
-}
-
 export function reRunQuery(query: Query): SqlLabThunkAction {
   // run Query with a new id
   return function (dispatch: AppDispatch) {
