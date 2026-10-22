@@ -470,6 +470,11 @@ class BaseEngineSpec:  # pylint: disable=too-many-public-methods
             GenericDataType.NUMERIC,
         ),
         (
+            re.compile(r"^tinyint", re.IGNORECASE),
+            types.SmallInteger(),
+            GenericDataType.NUMERIC,
+        ),
+        (
             re.compile(r"^int(eger)?", re.IGNORECASE),
             types.Integer(),
             GenericDataType.NUMERIC,
