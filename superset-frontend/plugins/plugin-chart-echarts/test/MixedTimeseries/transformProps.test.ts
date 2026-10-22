@@ -2068,4 +2068,44 @@ describe('truncateMetric / truncateMetricB', () => {
     expect(seriesNames).toContain('boy, CA');
     expect(seriesNames).toContain('girl, NY');
   });
+
+  test('drops only the metric for multi-metric queries and keeps identifiers', () => {
+    const labelMap = {
+      ds: ['ds'],
+      'm1, boy': ['m1', 'boy'],
+      'm2, boy': ['m2', 'boy'],
+    };
+    const rows = [
+      { 'm1, boy': 1, 'm2, boy': 2, ds: 599616000000 },
+      { 'm1, boy': 3, 'm2, boy': 4, ds: 599916000000 },
+    ];
+    const queries = [
+      createTestQueryData(rows, { label_map: labelMap }),
+      createTestQueryData(rows, { label_map: labelMap }),
+    ];
+    const chartProps = createEchartsTimeseriesTestChartProps<
+      EchartsMixedTimeseriesFormData,
+      EchartsMixedTimeseriesProps
+    >({
+      ...MIXED_TIMESERIES_CHART_PROPS_DEFAULTS,
+      defaultQueriesData: queries,
+      formData: {
+        ...formData,
+        metrics: ['m1', 'm2'],
+        metricsB: ['m1', 'm2'],
+        truncateMetric: true,
+        truncateMetricB: true,
+        showQueryIdentifiers: true,
+      },
+      queriesData: queries,
+    });
+    const seriesNames = (
+      transformProps(chartProps).echartOptions.series as SeriesOption[]
+    ).map(s => s.name);
+
+    expect(seriesNames).toEqual(
+      expect.arrayContaining(['boy (Query A)', 'boy (Query B)']),
+    );
+    expect(seriesNames).not.toContain('m1, boy (Query A)');
+  });
 });
