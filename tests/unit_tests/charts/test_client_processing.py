@@ -5338,3 +5338,44 @@ def test_pivot_mixed_totals_preserve_integer_xlsx(combine: bool, transpose: bool
     assert any(cell.value == str(large) and cell.data_type == "s" for cell in cells)
     assert any(cell.value == 3 and cell.data_type == "n" for cell in cells)
     assert not any(str(cell.value).startswith(str(large - 1)) for cell in cells)
+
+
+@pytest.mark.parametrize("apply_number_format", [False, True])
+def test_pivot_mixed_str_int_big_integer_dimension(apply_number_format: bool) -> None:
+    """A dimension that mixes exact big-integer strings, numbers and nulls (the
+    shape the chart-data API uses for integers beyond 2**53 - 1) pivots without
+    error and keeps every label exact."""
+    wire = [
+        {"big": "4611686018427387905", "metric": 1},
+        {"big": None, "metric": 2},
+        {"big": 7, "metric": 3},
+        {"big": "4611686018427387905", "metric": 4},
+        {"big": "-4611686018427387905", "metric": 5},
+    ]
+    df = pd.DataFrame.from_dict(wire)
+    form_data = {
+        "groupbyRows": ["big"],
+        "groupbyColumns": [],
+        "metrics": ["metric"],
+        "aggregateFunction": "Sum",
+        "rowTotals": True,
+        "colTotals": True,
+    }
+
+    pivoted = pivot_table_v2(
+        df.copy(), form_data, apply_number_format=apply_number_format
+    )
+    unformatted = table(df.copy(), {"all_columns": ["big", "metric"]}, None, True)
+
+    sums = {
+        label: str(value)
+        for label, value, *_ in pivoted.reset_index().itertuples(index=False)
+        if isinstance(label, str)
+    }
+    assert sums == {
+        "7": "3",
+        "-4611686018427387905": "5",
+        "4611686018427387905": "5",
+        "Total (Sum)": "15",
+    }
+    assert unformatted["big"].tolist() == df["big"].tolist()
