@@ -1,5 +1,5 @@
 {
-  "comment": "Shared cases for the grid placement rules, so the server's resolve_grid and the client's resolveGrid cannot drift. Generated from the server, which is the authority; see grid.py.",
+  "comment": "Shared cases for the grid placement rules, so the server's resolve_grid (superset/canvas/definition/grid.py) and the client's resolveGrid cannot drift. Generated from the server, which is the authority. It lives here because the frontend's test image carries only superset-frontend, while the Python tests run on a full checkout and can read up into it.",
   "cases": [
     {
       "name": "a single explicit child keeps its place",
@@ -32,9 +32,7 @@
     {
       "name": "an omitted span fills the grid width, one row tall",
       "columns": 24,
-      "layouts": [
-        {}
-      ],
+      "layouts": [{}],
       "expected": [
         {
           "col": 1,
@@ -43,9 +41,7 @@
           "rowSpan": 1
         }
       ],
-      "stored": [
-        {}
-      ]
+      "stored": [{}]
     },
     {
       "name": "auto-placed children sit side by side until the row is full",

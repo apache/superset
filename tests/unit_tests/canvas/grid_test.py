@@ -88,7 +88,12 @@ def test_shared_cases_match_this_implementation() -> None:
     from superset.canvas.definition.grid import resolve_grid
     from superset.utils import json
 
-    path = Path(__file__).parents[3] / "superset/canvas/definition/grid_cases.json"
+    # In the frontend tree: its test image carries only `superset-frontend`,
+    # while these tests run on a full checkout and can read up into it.
+    path = (
+        Path(__file__).parents[3]
+        / "superset-frontend/src/features/canvas/gridCases.json"
+    )
     cases = json.loads(path.read_text())["cases"]
     assert len(cases) > 5, "the fixture must not be empty or this passes vacuously"
 

@@ -16,21 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import fs from 'fs';
-import path from 'path';
 import { previewGrid, resolveGrid, type GridLayout } from './resolveGrid';
+import gridCases from './gridCases.json';
 import type { GridPlacement } from './types';
 
 /**
- * The cases live next to the server's `grid.py`, which is the authority, and
- * are read by its test suite too. A rule that changes on one side without the
- * other fails here.
+ * These cases are generated from the server's `resolve_grid`, the authority
+ * for these rules, and its test suite reads this same file. A rule that
+ * changes on one side without the other fails here.
+ *
+ * The file sits in the frontend tree because this suite runs in an image that
+ * carries only `superset-frontend`; the Python tests run on a full checkout
+ * and can read up into it.
  */
-const CASES_PATH = path.join(
-  __dirname,
-  '../../../../superset/canvas/definition/grid_cases.json',
-);
-
 interface Case {
   name: string;
   columns: number;
@@ -38,9 +36,7 @@ interface Case {
   expected: GridPlacement[];
 }
 
-const { cases } = JSON.parse(fs.readFileSync(CASES_PATH, 'utf8')) as {
-  cases: Case[];
-};
+const cases = gridCases.cases as Case[];
 
 test('the shared cases are present, so this file cannot pass vacuously', () => {
   expect(cases.length).toBeGreaterThan(5);
