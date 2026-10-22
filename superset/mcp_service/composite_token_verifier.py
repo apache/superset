@@ -49,6 +49,22 @@ API_KEY_PASSTHROUGH_CLAIM = "_superset_mcp_api_key_passthrough"
 API_KEY_VALIDATED_USERNAME_CLAIM = "_superset_mcp_validated_username"
 
 
+def get_verifier_client_id(access_token: Any) -> str | None:
+    """Return the ``client_id`` set by the verifier that admitted the token.
+
+    FastMCP 4's ``MultiAuth`` replaces ``AccessToken.client_id`` with a
+    source-qualified JSON string and keeps the verifier's own value in
+    ``original_client_id``. Comparisons against the identifiers this module and
+    ``GuestTokenVerifier`` assign (``"api_key"``, ``"guest"``) must use the
+    verifier's value, which is ``client_id`` itself on FastMCP 3 or when no
+    ``MultiAuth`` wraps the verifier.
+    """
+    original = getattr(access_token, "original_client_id", None)
+    if isinstance(original, str):
+        return original
+    return getattr(access_token, "client_id", None)
+
+
 class CompositeTokenVerifier(TokenVerifier):
     """Routes Bearer tokens between API key validation and JWT verification.
 

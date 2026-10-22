@@ -65,6 +65,7 @@ from superset import is_feature_enabled, security_manager
 from superset.mcp_service.composite_token_verifier import (
     API_KEY_PASSTHROUGH_CLAIM,
     API_KEY_VALIDATED_USERNAME_CLAIM,
+    get_verifier_client_id,
 )
 from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
 from superset.mcp_service.mcp_config import (
@@ -595,6 +596,33 @@ def load_user_with_relationships(
     return security_manager.find_user_with_relationships(username=username, email=email)
 
 
+def _reverify_guest_bearer(access_token: Any) -> dict[str, Any]:
+    """Re-verify a guest-marked token's raw bearer as a Superset guest token.
+
+    The guest marker and ``client_id == "guest"`` identify a token admitted by
+    ``GuestTokenVerifier``, but neither is bound to the bearer: a token source
+    that does not strip the marker (e.g. a verifier wrapped next to the
+    ``CompositeTokenVerifier`` in a FastMCP ``MultiAuth``) can pass both through
+    from an external IdP JWT. Decoding the bearer with ``GUEST_TOKEN_JWT_SECRET``
+    binds the guest identity to a token only Superset can mint, and the decoded
+    claims (not the ``AccessToken`` copy) build the ``GuestUser``.
+
+    Raises:
+        ValueError: If the bearer is not a valid guest token (fail closed).
+    """
+    raw_token = getattr(access_token, "token", None)
+    parsed: Any = None
+    if isinstance(raw_token, str) and raw_token:
+        try:
+            parsed = security_manager.parse_jwt_guest_token(raw_token)
+        except Exception:  # noqa: BLE001 — bad signature / audience / expiry
+            parsed = None
+    if not isinstance(parsed, dict) or parsed.get("type") != "guest":
+        logger.warning("Guest-marked token is not a valid guest token; rejecting")
+        raise ValueError("Guest-marked token is not a valid guest token")
+    return parsed
+
+
 def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     """
     Resolve the current user from the MCP SDK's per-request JWT context.
@@ -609,13 +637,15 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     Returns:
         User object with relationships loaded, or None if no JWT context
         (i.e. no token present — caller should fall through to next source).
-        For a verified embedded guest token (``client_id == "guest"``) returns
-        the corresponding ``GuestUser`` built from the token's resources/RLS.
+        For a verified embedded guest token (verifier ``client_id == "guest"``,
+        see ``get_verifier_client_id``) returns the corresponding ``GuestUser``
+        built from the re-verified bearer's resources/RLS.
 
     Raises:
         ValueError: If JWT resolves a username that doesn't exist in the DB,
             or a guest-marked token is presented while guest auth is disabled
-            (fail closed — do NOT fall through to weaker auth sources).
+            or its bearer is not a valid guest token (fail closed — do NOT fall
+            through to weaker auth sources).
         MCPAuthConfigError: If more than one JWT issuer is trusted
             (``MCP_JWT_ISSUER`` is a list/tuple/set) and no issuer-aware
             ``MCP_USER_RESOLVER`` is configured (fail closed — see
@@ -642,12 +672,14 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
     # Embedded guest token (already admitted by the GuestTokenVerifier): resolve
     # as the highest-priority identity so a valid guest is never downgraded.
     # Anti-forgery: only the GuestTokenVerifier sets the marker (the composite
-    # verifier strips it from JWT tokens) and this branch requires guest auth
-    # enabled, so a crafted IdP JWT with the marker can't pose as a guest.
+    # verifier strips it from JWT tokens), this branch requires guest auth
+    # enabled, and the raw bearer is re-verified as a guest token below, so a
+    # crafted IdP JWT with the marker can't pose as a guest even when it reaches
+    # here through a token source that does not strip the marker.
     if (
         isinstance(claims, dict)
         and claims.get(GUEST_TOKEN_CLAIM)
-        and getattr(access_token, "client_id", None) == "guest"
+        and get_verifier_client_id(access_token) == "guest"
     ):
         if not (
             is_feature_enabled("EMBEDDED_SUPERSET")
@@ -665,17 +697,14 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
             raise ValueError(
                 "Guest-marked token presented but embedded guest auth is not enabled"
             )
+        guest_claims = _reverify_guest_bearer(access_token)
         logger.debug("Resolving MCP request as embedded guest user")
-        # Drop the internal marker so it does not leak into GuestUser.guest_token.
-        guest_claims: dict[str, Any] = {
-            k: v for k, v in claims.items() if k != GUEST_TOKEN_CLAIM
-        }
         return security_manager.get_guest_user_from_token(
             cast("GuestToken", guest_claims)
         )
 
     if isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM):
-        if getattr(access_token, "client_id", None) == "api_key":
+        if get_verifier_client_id(access_token) == "api_key":
             logger.debug(
                 "API key pass-through token detected, deferring to API key auth"
             )
@@ -823,7 +852,7 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
         return None
     # Defense-in-depth: require client_id=="api_key" (set by CompositeTokenVerifier)
     # to guard against rogue external IdP JWTs that include the passthrough claim.
-    if getattr(access_token, "client_id", None) != "api_key":
+    if get_verifier_client_id(access_token) != "api_key":
         return None
 
     # Fast path: transport layer already validated the key and stored the
