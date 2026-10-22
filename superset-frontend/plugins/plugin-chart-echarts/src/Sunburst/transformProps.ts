@@ -315,7 +315,7 @@ export default function transformProps(
             TimeGranularity.MONTH,
             TimeGranularity.QUARTER,
             TimeGranularity.YEAR,
-          ].includes(timeGrain)
+          ].some(grain => grain === timeGrain)
             ? getTimeFormatterForGranularity(timeGrain)
             : getTimeFormatter(dateFormat),
         ...(coltypeMapping[groupBy] && {

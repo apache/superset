@@ -47,7 +47,9 @@ from superset.db_engine_specs.base import BaseEngineSpec
 from superset.db_engine_specs.postgres import PostgresEngineSpec
 from superset.db_engine_specs.sqlite import SqliteEngineSpec
 from superset.models.core import Database
-from superset.superset_typing import AdhocColumn, QueryObjectDict
+from superset.models.helpers import ExploreMixin
+from superset.superset_typing import AdhocColumn, FilterValues, QueryObjectDict
+from superset.utils.core import GenericDataType
 
 # ---------------------------------------------------------------------------
 # Defect 1 -- DATE-column filter bound literal truncated to day precision
@@ -799,3 +801,180 @@ def test_grained_drill_filter_by_adhoc_label_applies_hours_offset(
         )
     )
     assert result.df["ct"].tolist() == [expected_count]
+
+
+@pytest.mark.parametrize("supports_sql_shift", [False, True])
+@pytest.mark.parametrize(
+    "filter_path", ["physical", "verbose", "timestamp", "adhoc", "label"]
+)
+@pytest.mark.parametrize("offset", [0, 1, -1, 25, -25])
+def test_grained_drill_matches_every_bucket_with_hours_offset(
+    mocker: MockerFixture,
+    supports_sql_shift: bool,
+    filter_path: str,
+    offset: int,
+) -> None:
+    """Drill filters invert pandas-only offsets or reuse SQL-shifted grouping."""
+    mocker.patch.object(
+        SqliteEngineSpec, "supports_temporal_column_shift", supports_sql_shift
+    )
+    raw_rows = [
+        "2026-08-01 23:30:00",
+        "2026-08-02 00:30:00",
+        "2026-08-02 01:30:00",
+        "2026-08-02 23:30:00",
+    ]
+    table, _engine = _sqlite_dataset(mocker, offset, "TIMESTAMP", raw_rows)
+    table.columns[0].verbose_name = "Event time"
+    axis: AdhocColumn = {
+        "sqlExpression": "ts",
+        "label": "bucket" if filter_path == "label" else "ts",
+        "isColumnReference": True,
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    grouped_query = _physical_axis_query(table, time_grain="P1D")
+    if filter_path in {"adhoc", "label"}:
+        grouped_query = QueryObject(
+            datasource=table,
+            columns=[axis],
+            metrics=[
+                {"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "ct"}
+            ],
+            is_timeseries=False,
+        )
+    grouped = table.get_query_result(grouped_query)
+    bucket_label = (
+        str(axis["label"]) if filter_path in {"adhoc", "label"} else "__timestamp"
+    )
+    assert grouped.df["ct"].sum() == len(raw_rows)
+    expected_buckets = [
+        (pd.Timestamp(value) + pd.Timedelta(hours=offset)).floor("D")
+        if supports_sql_shift
+        else pd.Timestamp(value).floor("D")
+        + pd.Timedelta(hours=0 if filter_path == "label" else offset)
+        for value in raw_rows
+    ]
+    for _, segment in grouped.df.iterrows():
+        bucket = pd.Timestamp(segment[bucket_label])
+        expected_rows = sorted(
+            pd.Timestamp(value)
+            for value, expected_bucket in zip(raw_rows, expected_buckets, strict=True)
+            if expected_bucket == bucket
+        )
+        assert segment["ct"] == len(expected_rows)
+        filter_columns: dict[str, str | AdhocColumn] = {
+            "physical": "ts",
+            "verbose": "Event time",
+            "timestamp": "__timestamp",
+            "adhoc": axis,
+            "label": "bucket",
+        }
+        filter_column = filter_columns[filter_path]
+        # Adhoc filter values use SQL-formatted dates; physical columns exercise
+        # epoch coercion into an engine-native timestamp literal.
+        value = (
+            str(bucket)
+            if filter_path in {"adhoc", "label"}
+            else int(bucket.value // 10**6)
+        )
+        query = QueryObject(
+            datasource=table,
+            columns=[axis] if filter_path == "label" else ["ts", "val"],
+            metrics=[
+                {"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "ct"}
+            ]
+            if filter_path == "label"
+            else [],
+            is_timeseries=filter_path == "timestamp",
+            granularity="ts" if filter_path == "timestamp" else None,
+            filters=[
+                {
+                    "col": filter_column,
+                    "op": "==",
+                    "val": value,
+                    **({} if filter_path in {"adhoc", "label"} else {"grain": "P1D"}),
+                }
+            ],
+        )
+        detail = table.get_query_result(query)
+        if filter_path == "label":
+            assert detail.df["ct"].tolist() == [len(expected_rows)]
+            assert pd.to_datetime(detail.df["bucket"]).tolist() == [bucket]
+        else:
+            assert len(detail.df) == len(expected_rows)
+            # A timeseries detail query also normalizes its returned time axis.
+            if filter_path == "timestamp":
+                expected_rows = [
+                    value + pd.Timedelta(hours=offset) for value in expected_rows
+                ]
+            assert sorted(pd.to_datetime(detail.df["ts"]).tolist()) == expected_rows
+
+
+@pytest.mark.parametrize(
+    "value,expected",
+    [
+        (1785632400000, 1785628800000),
+        (1785632400000.0, 1785628800000.0),
+        ("1785632400000", "1785628800000"),
+        ("2026-08-02T01:00:00", "2026-08-02 00:00:00"),
+        (datetime(2026, 8, 2, 1), datetime(2026, 8, 2)),
+        ([1785632400000, None], [1785628800000, None]),
+        (None, None),
+        (True, True),
+        ("not a date", "not a date"),
+    ],
+)
+def test_display_only_bucket_offset_value_formats(
+    value: FilterValues | None, expected: FilterValues | None
+) -> None:
+    """Fallback shifts retain value types and preserve invalid or null values."""
+    assert (
+        ExploreMixin.filter_values_handler(
+            values=value,
+            operator="IN" if isinstance(value, list) else "==",
+            target_generic_type=GenericDataType.TEMPORAL,
+            is_list_target=isinstance(value, list),
+            temporal_offset_hours=1,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize("supports_sql_shift", [False, True])
+@pytest.mark.parametrize("offset", [1, -1])
+def test_grained_drill_with_dataset_timezone_ignores_hours_offset(
+    mocker: MockerFixture, supports_sql_shift: bool, offset: int
+) -> None:
+    """Dataset timezone takes precedence over Hours offset on both engine paths."""
+    mocker.patch.object(
+        SqliteEngineSpec, "supports_temporal_column_shift", supports_sql_shift
+    )
+    table, _engine = _sqlite_dataset(
+        mocker, offset, "TIMESTAMP", ["2026-08-01 23:30:00", "2026-08-02 00:30:00"]
+    )
+    table.extra = '{"timezone": "UTC"}'
+    grouped = table.get_query_result(_physical_axis_query(table, time_grain="P1D"))
+    assert grouped.df["__timestamp"].tolist() == [
+        pd.Timestamp("2026-08-01"),
+        pd.Timestamp("2026-08-02"),
+    ]
+    assert grouped.df["ct"].tolist() == [1, 1]
+    for bucket in grouped.df["__timestamp"]:
+        detail = table.get_query_result(
+            QueryObject(
+                datasource=table,
+                columns=["ts", "val"],
+                metrics=[],
+                is_timeseries=False,
+                filters=[
+                    {
+                        "col": "ts",
+                        "op": "==",
+                        "grain": "P1D",
+                        "val": int(bucket.value // 10**6),
+                    }
+                ],
+            )
+        )
+        assert len(detail.df) == 1

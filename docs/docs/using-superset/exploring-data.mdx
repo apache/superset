@@ -497,7 +497,9 @@ entire bucket. Adaptive date formatting includes the year in month and quarter
 labels to distinguish buckets across years; other grains keep their compact labels.
 For supported bucket ranges, the selection replaces the target chart's Time Range
 and also applies to its other temporal range filters, even on another time column.
-Drill to detail and Drill by retain the selected bucket within the chart's time range.
+Drill to detail and Drill by retain the selected bucket within the chart's time range,
+including a dataset Hours offset. On engines without SQL temporal shifts, drilling
+uses the displayed bucket's original, unshifted grouping boundaries.
 
 ### Downloading Drill to Detail and Drill By Results
 
