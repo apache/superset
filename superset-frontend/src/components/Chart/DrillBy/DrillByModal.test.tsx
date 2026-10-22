@@ -20,8 +20,9 @@
 import { useState } from 'react';
 import fetchMock from 'fetch-mock';
 import { omit, omitBy } from 'lodash-es';
-import { QueryObject } from '@superset-ui/core';
+import { QueryData, QueryObject } from '@superset-ui/core';
 import {
+  act,
   render,
   screen,
   userEvent,
@@ -32,6 +33,10 @@ import chartQueries, { sliceId } from 'spec/fixtures/mockChartQueries';
 import mockState from 'spec/fixtures/mockState';
 import { setupAGGridModules } from '@superset-ui/core/components/ThemedAgGridReact';
 import { DashboardPageIdContext } from 'src/dashboard/containers/DashboardPage';
+import * as chartActions from '../chartAction';
+import * as contextMenu from '../ChartContextMenu/useContextMenu';
+import * as timeRangeUtils from './drillByTimeRange';
+import * as resultsTableView from './useResultsTableView';
 import DrillByModal, { DrillByModalProps } from './DrillByModal';
 
 setupAGGridModules();
@@ -134,6 +139,7 @@ const renderModal = async (
 };
 
 beforeEach(() => {
+  jest.spyOn(chartActions, 'requestChartDataResolved');
   fetchMock
     .post(CHART_DATA_ENDPOINT, { body: {} }, { name: CHART_DATA_ENDPOINT })
     .post(
@@ -143,7 +149,19 @@ beforeEach(() => {
     );
 });
 
-afterEach(() => fetchMock.removeRoutes().clearHistory());
+afterEach(async () => {
+  // Await query building as well as fetches before clearing the request history.
+  await act(async () => {
+    await Promise.allSettled(
+      jest
+        .spyOn(chartActions, 'requestChartDataResolved')
+        .mock.results.map(result => result.value),
+    );
+    await fetchMock.callHistory.flush(true);
+  });
+  fetchMock.removeRoutes().clearHistory();
+  jest.restoreAllMocks();
+});
 
 test('should render the title', async () => {
   await renderModal();
@@ -464,6 +482,83 @@ test('categorical Drill by keeps the chart and dashboard time range', async () =
     '2003-01-01 : 2005-01-01',
   );
 });
+
+test.each([
+  ['initial', 'success'],
+  ['initial', 'error'],
+  ['reload', 'success'],
+  ['reload', 'error'],
+])(
+  'ignores a late %s request %s while a drill bucket range is pending',
+  async (requestKind, outcome) => {
+    let resolveOldRequest!: (value: QueryData[]) => void;
+    let rejectOldRequest!: (reason: Error) => void;
+    const oldRequest = new Promise<QueryData[]>((resolve, reject) => {
+      resolveOldRequest = resolve;
+      rejectOldRequest = reject;
+    });
+    let resolveRange!: (value: string) => void;
+    const pendingRange = new Promise<string>(resolve => {
+      resolveRange = resolve;
+    });
+    let resolveNewRequest!: (value: QueryData[]) => void;
+    const newRequest = new Promise<QueryData[]>(resolve => {
+      resolveNewRequest = resolve;
+    });
+    const request = jest.spyOn(chartActions, 'requestChartDataResolved');
+    if (requestKind === 'reload') {
+      request.mockResolvedValueOnce([]);
+    }
+    request.mockReturnValueOnce(oldRequest).mockReturnValueOnce(newRequest);
+    jest
+      .spyOn(timeRangeUtils, 'fetchDrillByTimeRange')
+      .mockReturnValue(pendingRange);
+    const selection = jest.spyOn(contextMenu, 'useContextMenu');
+    const results = jest.spyOn(resultsTableView, 'useResultsTableView');
+
+    await renderModal({
+      column: { column_name: 'name', verbose_name: null },
+      formData: { ...formData, time_range: 'Last year' },
+    });
+    if (requestKind === 'reload') {
+      await waitFor(() =>
+        expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument(),
+      );
+      act(() => results.mock.lastCall?.[5]?.());
+    }
+    await waitFor(() =>
+      expect(request).toHaveBeenCalledTimes(requestKind === 'reload' ? 2 : 1),
+    );
+    const oldSignal = request.mock.lastCall?.[1];
+    act(() =>
+      selection.mock.lastCall?.[2]?.(
+        { column_name: 'gender', verbose_name: null },
+        { filters: [year2003BucketFilter], groupbyFieldName: 'groupby' },
+      ),
+    );
+    expect(timeRangeUtils.fetchDrillByTimeRange).toHaveBeenCalled();
+
+    await act(async () => {
+      if (outcome === 'success') {
+        resolveOldRequest([]);
+      } else {
+        rejectOldRequest(new Error('superseded request failed'));
+      }
+    });
+    expect(screen.getByLabelText('Loading')).toBeInTheDocument();
+    expect(results.mock.lastCall?.[0]).toBeUndefined();
+    expect(screen.queryByTestId('drill-by-chart')).not.toBeInTheDocument();
+    expect(oldSignal?.aborted).toBe(true);
+
+    await act(async () => resolveRange(YEAR_2003_BUCKET));
+    expect(request.mock.lastCall?.[0].formData.time_range).toBe(
+      YEAR_2003_BUCKET,
+    );
+    await act(async () => resolveNewRequest([]));
+    expect(screen.queryByLabelText('Loading')).not.toBeInTheDocument();
+    expect(screen.getByTestId('drill-by-chart')).toBeInTheDocument();
+  },
+);
 
 test('should render radio buttons', async () => {
   await renderModal();
