@@ -88,6 +88,7 @@ from pydantic import (
     StrictStr,
 )
 from pydantic.json_schema import SkipJsonSchema
+from pydantic_core import PydanticCustomError
 
 from superset.semantic_layers.access import is_semantic_layers_enabled
 
@@ -104,6 +105,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
     resolve_chart_datasource_id,
     resolve_chart_datasource_name,
+    UnknownFieldCheckMixin,
 )
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
@@ -140,7 +142,10 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
@@ -210,12 +215,26 @@ class DashboardFilter(ColumnOperator):
 
 
 class ListDashboardsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[DashboardFilter],
 ):
     """Request schema for list_dashboards with clear, unambiguous types."""
+
+    edited_by_me: bool = Field(
+        default=False,
+        description=(
+            "Only dashboards where the current user is a direct USER editor "
+            "(the dashboard ownership representation). Does not include access "
+            "inherited from roles or groups. Use this for dashboards I own. "
+            "Combining with created_by_me returns creator OR owner, not both."
+        ),
+    )
+
+    # Never silently discard a misspelled scope filter (e.g. owned_by_me).
+    model_config = ConfigDict(extra="forbid")
 
     order_column: Annotated[
         str | None,
@@ -1152,16 +1171,17 @@ class GenerateDashboardRequest(BaseModel):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text, "
-                "or omit it to auto-generate one from chart names."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text, "
+                    "or omit it to auto-generate one from chart names."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1316,15 +1336,16 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1663,9 +1684,10 @@ class ManageDashboardCertificationRequest(BaseModel):
             # Empty string means "clear the field", so an input that
             # sanitizes down to nothing (HTML-only or whitespace-only) must
             # not silently erase an existing certification.
-            raise ValueError(
+            raise PydanticCustomError(
+                "empty_certification_text",
                 "certified_by has no content left after sanitization; pass "
-                'an explicit empty string ("") to clear the field.'
+                'an explicit empty string ("") to clear the field.',
             )
         return sanitized
 
@@ -1681,10 +1703,11 @@ class ManageDashboardCertificationRequest(BaseModel):
         )
         if not sanitized:
             # Same guard as certified_by: only an explicit "" may clear.
-            raise ValueError(
+            raise PydanticCustomError(
+                "empty_certification_text",
                 "certification_details has no content left after "
                 'sanitization; pass an explicit empty string ("") to clear '
-                "the field."
+                "the field.",
             )
         return sanitized
 
@@ -1745,12 +1768,13 @@ class DuplicateDashboardRequest(BaseModel):
         validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
     duplicate_slices: bool = Field(
-        default=False,
+        default=True,
         description=(
-            "When true, every chart on the source dashboard is deep-copied "
+            "When true (default), every chart on the source dashboard is deep-copied "
             "into a new chart object owned by the caller. When false "
-            "(default), the new dashboard references the same charts as the "
-            "source."
+            "the new dashboard references the same charts as the "
+            "source; editing them also changes the source dashboard. "
+            "Use false only when shared charts are explicitly intended."
         ),
     )
     sanitization_warnings: SkipJsonSchema[List[str]] = Field(
@@ -1790,15 +1814,16 @@ class DuplicateDashboardRequest(BaseModel):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -3776,9 +3801,10 @@ class GetDashboardDataRequest(BaseModel):
         ge=1,
         le=1000,
         description=(
-            "Rows to query per chart. Only sample_rows of these are returned "
-            "per chart; total_rows reports the full count when the fetch was not "
-            "capped, and the per-chart truncated flag marks a capped fetch."
+            "Requested input row limit per query, subject to server caps. Only "
+            "sample_rows output rows are returned per chart. total_rows is null "
+            "when retrieval is capped or post-processing leaves input coverage "
+            "unverified; truncated is true in either case."
         ),
     )
     sample_rows: int = Field(
@@ -3821,7 +3847,10 @@ class DashboardChartQueryData(BaseModel):
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
-        False, description="True when this query returned fewer than the total"
+        False,
+        description=(
+            "True when query retrieval is capped or input coverage is unverified"
+        ),
     )
 
 
@@ -3839,13 +3868,30 @@ class DashboardChartData(BaseModel):
     total_rows: OptionalRowCount = Field(
         None,
         description=(
-            "Total rows available when known; null when the fetch was capped with "
-            "no authoritative total (see truncated)"
+            "Total rows available when known; null when retrieval is capped with "
+            "no authoritative total or post-processing leaves input coverage "
+            "unverified (see truncated)"
         ),
     )
     truncated: bool = Field(
         False,
-        description="True when fewer rows were returned than the total available",
+        description="True when retrieval is capped or input coverage is unverified",
+    )
+    fetch_row_limit: int | None = Field(
+        None,
+        description=(
+            "Row limit applied for this data retrieval, "
+            "not necessarily the saved chart limit"
+        ),
+    )
+    sample_rows_limit: int | None = Field(
+        None, description="Maximum example rows included in sample_data"
+    )
+    completeness_note: str | None = Field(
+        None,
+        description=(
+            "Limits on interpreting this retrieval as the full chart population"
+        ),
     )
     queries: list[DashboardChartQueryData] | None = Field(
         None,
@@ -3876,6 +3922,17 @@ class DashboardData(BaseModel):
     agent can answer analytical questions about the whole dashboard from a
     single call, instead of fetching each chart separately.
     """
+
+    completeness_note: str = Field(
+        default=(
+            "Example rows are not the full population. Query post-processing may "
+            "collapse or replace input rows capped by fetch_row_limit. For affected "
+            "queries, total_rows is unknown and truncated=true means input coverage "
+            "is unverified, not observed truncation. Verify the saved configuration "
+            "and source aggregates before making full-population claims."
+        ),
+        description="Shared guidance for interpreting per-chart retrieval coverage",
+    )
 
     dashboard_id: int = Field(..., description="Dashboard id")
     dashboard_name: str = Field(..., description="Dashboard title")

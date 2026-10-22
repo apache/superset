@@ -303,6 +303,10 @@ def _identify_large_fields(response: ToolResponse) -> List[str]:
 # the size guard passes the parsed payload to format_size_limit_error.
 RESPONSE_AWARE_SUGGESTION_TOOLS = frozenset({"get_dashboard_layout"})
 
+# Tools whose PNG-formatted responses are checked against png_max_bytes
+# instead of the normal text-response budget.
+PNG_PREVIEW_TOOLS = frozenset({"get_chart_preview"})
+
 _MAX_SUGGESTED_TAB_IDS = 5
 _MAX_SUGGESTED_TAB_ID_CHARS = 64
 
