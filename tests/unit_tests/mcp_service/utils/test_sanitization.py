@@ -30,6 +30,7 @@ from superset.mcp_service.utils.sanitization import (
     _strip_html_tags,
     sanitize_filter_value,
     sanitize_user_input,
+    sanitize_user_input_with_changes,
 )
 
 # --- _strip_html_tags tests ---
@@ -969,3 +970,29 @@ def test_sanitize_user_input_is_stable_on_resubmission(value: str) -> None:
     once = sanitize_user_input(value, "Title")
     assert once is not None
     assert sanitize_user_input(once, "Title") == once
+
+
+@pytest.mark.parametrize(
+    "sanitize",
+    [
+        partial(sanitize_user_input, field_name="Title"),
+        partial(sanitize_user_input_with_changes, field_name="Title"),
+        sanitize_filter_value,
+    ],
+)
+@pytest.mark.parametrize(
+    "value",
+    [
+        "Weekly &am<b></b>p;lt;b&amp;gt;KPIs",
+        "Weekly &l<b></b>t;b&gt;KPIs",
+        "Weekly &#x<b></b>3c;b&gt;KPIs",
+        "Weekly &co<b></b>py; KPIs",
+        "Weekly &am&#8203;p;lt;b&amp;gt;KPIs",
+    ],
+)
+def test_reject_entities_reconstructed_by_removal(
+    sanitize: Callable[[str], object], value: str
+) -> None:
+    """Do not store text whose rebuilt entities change on resubmission."""
+    with pytest.raises(ValueError, match="malicious HTML"):
+        sanitize(value)

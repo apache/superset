@@ -33,7 +33,8 @@ Model Context Protocol (MCP) integration allows extensions to register custom AI
 MCP chart names and dashboard titles preserve literal comparisons such as
 `Users aged <30`, `Revenue <$1M`, and `Love <3 charts`. HTML tags are stripped;
 script-only names, dangerous URL schemes, and entity-encoded markup that would
-leave tag-shaped text behind are rejected. A title altered by sanitization
+leave tag-shaped text or rebuild entities that would change on resubmission
+are rejected. A title altered by sanitization
 includes a warning. Names are sanitized once before persistence, including by
 `generate_chart`'s schema revalidation, so a stored name does not change when
 it is sent back.

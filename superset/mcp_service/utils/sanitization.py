@@ -84,6 +84,17 @@ def _strip_html_tags(value: str) -> str:
 _ESCAPED_TAG_OPENER_RE = re.compile(r"&lt;[A-Za-z/!?]")
 
 
+def _check_stable_html(value: str, field_name: str) -> None:
+    """Reject stripped text that would change when submitted again."""
+    # Tag or Unicode removal can join entity fragments (e.g. &am<b></b>p;).
+    # Check the complete stripping pass, including recursive entity decoding,
+    # rather than just looking for literal escaped tag openers.
+    if _ESCAPED_TAG_OPENER_RE.search(value) or _strip_html_tags(value) != value:
+        raise PydanticCustomError(
+            "unsafe_text", f"{field_name} contains potentially malicious HTML"
+        )
+
+
 def _scheme_pattern(scheme: str) -> str:
     """Match ``scheme:`` with ASCII tab, LF, or CR between its characters.
 
@@ -315,10 +326,7 @@ def sanitize_user_input(
 
     # Reject rather than store tag-shaped text: a later sanitizer pass would
     # decode and strip it, so the stored value would not be stable.
-    if _ESCAPED_TAG_OPENER_RE.search(value):
-        raise PydanticCustomError(
-            "unsafe_text", f"{field_name} contains potentially malicious HTML"
-        )
+    _check_stable_html(value, field_name)
 
     # Check for dangerous patterns (URL schemes, event handlers)
     _check_dangerous_patterns(value, field_name)
@@ -375,6 +383,8 @@ def sanitize_filter_value(
     # too, not just a raw one.
     value = _strip_html_tags(value)
     value = _remove_dangerous_unicode(value)
+
+    _check_stable_html(value, "Filter value")
 
     # Check for dangerous patterns
     _check_dangerous_patterns(value, "Filter value")

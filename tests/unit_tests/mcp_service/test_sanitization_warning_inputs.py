@@ -287,6 +287,7 @@ def make_name_server() -> FastMCP:
         "java\tscript:private-input",
         "vb\nscript:private-input",
         "dat\ra:text/html,private-input",
+        "Weekly &am<b></b>p;lt;b&amp;gt;KPIs",
     ],
 )
 async def test_title_sanitization_wire_error_names_field_with_actionable_reason(
@@ -350,6 +351,7 @@ async def test_title_sanitization_wire_error_names_field_with_actionable_reason(
     [
         "Exec (source data: source-a, source-b) private-input",
         "javascript:private-input",
+        "Weekly &am<b></b>p;lt;b&amp;gt;KPIs",
     ],
 )
 async def test_sibling_sanitization_wire_error_names_field_with_actionable_reason(
@@ -1152,3 +1154,28 @@ def test_sql_lab_title_remains_literal(value: str) -> None:
     from superset.mcp_service.sql_lab.schemas import OpenSqlLabRequest
 
     assert OpenSqlLabRequest(database_id=1, title=value).title == value
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("field", ["dashboard_title", "title", "name"])
+@pytest.mark.parametrize(
+    "rejected", ["<script>alert(1)</script>", "Weekly &am<b></b>p;lt;b&amp;gt;KPIs"]
+)
+async def test_duplicate_dashboard_removed_or_unstable_title_wire_reason(
+    field: str, rejected: str
+) -> None:
+    """Removed or unstable markup is unsafe content, not an empty input."""
+    async with Client(make_title_server()) as client:
+        result = await client.call_tool_mcp(
+            "duplicate_dashboard", {"request": {"dashboard_id": 1, field: rejected}}
+        )
+    assert result.isError is True
+    assert result.content == [
+        TextContent(
+            type="text",
+            text="Error: Validation error in duplicate_dashboard: "
+            "request.dashboard_title: Contains disallowed content "
+            "(HTML, script or data: URL, event handler, or SQL keyword); "
+            "a 'data:' label must not be followed by a comma",
+        )
+    ]
