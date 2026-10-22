@@ -33,7 +33,7 @@ from tests.unit_tests.security.manager_test import (
 
 
 def _grained_sunburst_guest_context(
-    mocker: MockerFixture, stored_metrics: list[AdhocMetric]
+    mocker: MockerFixture, metrics: list[AdhocMetric]
 ) -> tuple[MagicMock, list[dict[str, Any]]]:
     """
     A guest request for a Sunburst saved from Explore with a monthly grain on its
@@ -46,7 +46,7 @@ def _grained_sunburst_guest_context(
     params: dict[str, Any] = {
         "viz_type": "sunburst_v2",
         "columns": ["order_date", "region"],
-        "metric": stored_metrics[0],
+        "metric": metrics[0],
         "time_grain_sqla": "P1M",
         "temporal_columns_lookup": {"order_date": True},
     }
@@ -62,7 +62,7 @@ def _grained_sunburst_guest_context(
 def test_raise_for_access_guest_user_ok_grained_sunburst(
     mocker: MockerFixture,
     app_context: None,
-    stored_metrics: list[AdhocMetric],
+    stored_metrics: list[AdhocMetric],  # noqa: F811
 ) -> None:
     """
     An embedded guest loading a Sunburst whose temporal level carries a time grain

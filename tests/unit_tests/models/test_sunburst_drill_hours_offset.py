@@ -214,7 +214,7 @@ def test_sunburst_drill_grained_column_is_shifted_by_hours_offset(
 
 
 @pytest.mark.parametrize("via_adhoc", [False, True])
-@pytest.mark.parametrize("result_type", ["samples", "full"])
+@pytest.mark.parametrize("result_type", ["samples", "drill_detail", "full"])
 @pytest.mark.parametrize("granularity", [None, "order_date"])
 def test_sunburst_factory_drill_preserves_bucket_with_time_range(
     events_table: SqlaTable,
@@ -252,10 +252,10 @@ def test_sunburst_factory_drill_preserves_bucket_with_time_range(
             queries=[
                 {
                     "columns": ["order_date", "kind"]
-                    if result_type == "samples"
+                    if result_type != "full"
                     else ["kind"],
                     "metrics": []
-                    if result_type == "samples"
+                    if result_type != "full"
                     else [
                         {
                             "expressionType": "SQL",
@@ -273,8 +273,8 @@ def test_sunburst_factory_drill_preserves_bucket_with_time_range(
         query = context.queries[0]
         assert any(f.get("grain") == "P1M" for f in query.filter)
         df = events_table.get_query_result(query).df
-    assert (len(df) if result_type == "samples" else int(df["ct"].sum())) == 4
-    if result_type == "samples":
+    assert (len(df) if result_type != "full" else int(df["ct"].sum())) == 4
+    if result_type != "full":
         assert sorted(df["kind"].tolist()) == ["a", "a", "b", "b"]
     else:
         assert dict(zip(df["kind"], df["ct"], strict=True)) == {"a": 2, "b": 2}
@@ -327,3 +327,85 @@ def test_sunburst_explicit_subject_matches_explore_lookup(
     assert saved["columns"][0 if dashboard_override else 1] == (
         "order_date" if dashboard_override else "ship_date"
     )
+
+
+@pytest.mark.parametrize("viz_type", ["table", "echarts_timeseries_line"])
+@pytest.mark.parametrize(
+    "filter_, expected",
+    [
+        (
+            {"col": "order_date", "op": "==", "val": "2026-08-10 12:00:00"},
+            {"a": 1},
+        ),
+        (
+            {
+                "col": "order_date",
+                "op": "IN",
+                "val": ["2026-08-10 12:00:00", "2026-08-20 12:00:00"],
+            },
+            {"a": 1, "b": 1},
+        ),
+        (_drill_filter("2026-08-01T00:00:00"), {"a": 2, "b": 2}),
+        (
+            {"col": "order_date", "op": "==", "val": "2026-09-15 12:00:00"},
+            {},
+        ),
+    ],
+    ids=["equality", "membership", "grained-equality", "outside-range"],
+)
+def test_non_sunburst_granularity_preserves_independent_filters(
+    events_table: SqlaTable,
+    app: Flask,
+    mocker: MockerFixture,
+    viz_type: str,
+    filter_: QueryObjectFilterClause,
+    expected: dict[str, int],
+) -> None:
+    """Time Column overrides replace ranges, not equality/membership predicates."""
+    mocker.patch.object(
+        QueryContextFactory, "_convert_to_model", return_value=events_table
+    )
+    time_range = "2026-07-01 : 2026-09-10"
+    form_data: dict[str, object] = {
+        "viz_type": viz_type,
+        "extra_form_data": {"time_range": time_range},
+    }
+    columns: list[str] = ["kind"]
+    if viz_type == "echarts_timeseries_line":
+        # Exercise the temporal x-axis branch as well as Table's range fallback.
+        form_data["x_axis"] = "order_date"
+        columns.insert(0, "order_date")
+    with app.test_request_context():
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            form_data=form_data,
+            queries=[
+                {
+                    "columns": columns,
+                    "metrics": [
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": "COUNT(*)",
+                            "label": "ct",
+                        }
+                    ],
+                    "granularity": "order_date",
+                    "time_range": time_range,
+                    "extras": {"time_grain_sqla": "P1M"},
+                    "filters": [
+                        {
+                            "col": "order_date",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "No filter",
+                        },
+                        filter_,
+                    ],
+                    "row_limit": 100,
+                }
+            ],
+        )
+        query = context.queries[0]
+        df = events_table.get_query_result(query).df
+
+    assert df.groupby("kind")["ct"].sum().to_dict() == expected
+    assert query.filter == [filter_]
