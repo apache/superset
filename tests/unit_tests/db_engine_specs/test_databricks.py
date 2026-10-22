@@ -1793,3 +1793,246 @@ def test_cancel_query_propagates_errors(
     query = Query()
     with pytest.raises(RuntimeError):
         DatabricksPythonConnectorEngineSpec.cancel_query(cursor, query, "01ecc35f-abcd")
+
+
+class FakeSeaCursor:
+    """
+    Minimal SEA cursor: each ``execute_async`` publishes the next statement id,
+    and the statement reports as pending for a fixed number of polls.
+    """
+
+    def __init__(self, statement_ids: list[str], pending_polls: int) -> None:
+        self.connection = MagicMock()
+        self.connection.session.use_sea = True
+        self.active_command_id: Any = None
+        self.statement_ids = iter(statement_ids)
+        self.pending_polls = pending_polls
+        self.statement_id: str | None = None
+        self.remaining_polls = 0
+        self.cancelled: list[str | None] = []
+        self.results_loaded: list[str | None] = []
+
+    def execute_async(self, sql: str) -> None:
+        self.statement_id = next(self.statement_ids)
+        self.active_command_id = MagicMock()
+        self.active_command_id.to_sea_statement_id.return_value = self.statement_id
+        self.remaining_polls = self.pending_polls
+
+    def is_query_pending(self) -> bool:
+        if self.remaining_polls > 0:
+            self.remaining_polls -= 1
+            return True
+        return False
+
+    def cancel(self) -> None:
+        self.cancelled.append(self.statement_id)
+        self.remaining_polls = 0
+
+    def get_async_execution_result(self) -> None:
+        self.results_loaded.append(self.statement_id)
+
+
+@pytest.fixture
+def sea_session(mocker: MockerFixture) -> Any:
+    """Stub the metadata session and polling clock used by the SEA loop."""
+    mocker.patch("superset.db_engine_specs.databricks.time.sleep")
+    mocker.patch(
+        "superset.db_engine_specs.databricks.app",
+        config={"DB_POLL_INTERVAL_SECONDS": {}},
+    )
+    return mocker.patch("superset.db_engine_specs.databricks.db")
+
+
+def test_execute_with_cursor_sea_finished_statement(sea_session: Any) -> None:
+    """
+    A statement that finishes on its own has its results loaded onto the
+    cursor, and its id is retired once it's no longer running.
+    """
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=2)
+    query = Query(status=QueryStatus.RUNNING)
+    published: list[Any] = []
+    sea_session.session.refresh.side_effect = lambda q: published.append(
+        q.extra.get(QUERY_CANCEL_KEY)
+    )
+
+    DatabricksPythonConnectorEngineSpec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    assert "stmt-1" in published
+    assert cursor.results_loaded == ["stmt-1"]
+    assert cursor.cancelled == []
+    assert QUERY_CANCEL_KEY not in query.extra
+
+
+def test_execute_with_cursor_sea_cancels_in_flight_statement(
+    sea_session: Any,
+) -> None:
+    """
+    A stop that lands while the statement is still running on the warehouse
+    cancels it through the live cursor, and no results are loaded.
+    """
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    query = Query(status=QueryStatus.RUNNING)
+    polls = 0
+
+    def refresh(q: Query) -> None:
+        nonlocal polls
+        polls += 1
+        if polls == 3:
+            # The stop is persisted while the statement is mid-flight, and its
+            # published id is the one a stop request would cancel.
+            assert q.extra.get(QUERY_CANCEL_KEY) == "stmt-1"
+            q.status = QueryStatus.STOPPED
+
+    sea_session.session.refresh.side_effect = refresh
+
+    DatabricksPythonConnectorEngineSpec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    assert cursor.cancelled == ["stmt-1"]
+    assert cursor.remaining_polls == 0
+    assert cursor.results_loaded == []
+    assert QUERY_CANCEL_KEY not in query.extra
+
+
+def test_execute_with_cursor_sea_multi_statement_cancels_current(
+    sea_session: Any,
+) -> None:
+    """
+    On a multi-statement script, a stop cancels whichever statement is running:
+    the finished statement's id is retired and never targeted.
+    """
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1", "stmt-2"], pending_polls=5)
+    query = Query(status=QueryStatus.RUNNING)
+    published: list[Any] = []
+    stop_on_statement = "stmt-2"
+
+    def refresh(q: Query) -> None:
+        published.append(q.extra.get(QUERY_CANCEL_KEY))
+        if q.extra.get(QUERY_CANCEL_KEY) == stop_on_statement:
+            q.status = QueryStatus.STOPPED
+
+    sea_session.session.refresh.side_effect = refresh
+
+    spec = DatabricksPythonConnectorEngineSpec
+    spec.execute_with_cursor(cursor, "SELECT 1", query)
+    # Between the statements no id is published, so nothing stale is cancelled.
+    assert QUERY_CANCEL_KEY not in query.extra
+    spec.execute_with_cursor(cursor, "SELECT 2", query)
+
+    assert cursor.results_loaded == ["stmt-1"]
+    assert cursor.cancelled == ["stmt-2"]
+    assert "stmt-1" in published
+    assert "stmt-2" in published
+    assert QUERY_CANCEL_KEY not in query.extra
+
+
+def test_execute_with_cursor_sea_stop_between_statements(sea_session: Any) -> None:
+    """
+    A stop that arrives between statements finds no published id; it is routed
+    to the polling loop, which cancels the next statement as soon as it polls.
+    """
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1", "stmt-2"], pending_polls=5)
+    query = Query(status=QueryStatus.RUNNING)
+
+    spec = DatabricksPythonConnectorEngineSpec
+    spec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    spec.prepare_cancel_query(query)
+    assert query.extra.get(QUERY_EARLY_CANCEL_KEY) is True
+
+    spec.execute_with_cursor(cursor, "SELECT 2", query)
+
+    assert cursor.results_loaded == ["stmt-1"]
+    assert cursor.cancelled == ["stmt-2"]
+
+
+def test_prepare_cancel_query_with_published_id_is_noop() -> None:
+    """While a statement id is published, the stop cancels it by id."""
+    from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    query.set_extra_json_key(
+        DatabricksPythonConnectorEngineSpec.sea_async_execution_key, True
+    )
+    query.set_extra_json_key(QUERY_CANCEL_KEY, "stmt-1")
+
+    DatabricksPythonConnectorEngineSpec.prepare_cancel_query(query)
+
+    assert QUERY_EARLY_CANCEL_KEY not in query.extra
+
+
+def test_prepare_cancel_query_thrift_is_noop() -> None:
+    """
+    Thrift statements never run through the polling loop, so a stop is not
+    reported as handled by staging early-cancel intent.
+    """
+    from superset.constants import QUERY_EARLY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+
+    query = Query()
+    DatabricksPythonConnectorEngineSpec.prepare_cancel_query(query)
+
+    assert QUERY_EARLY_CANCEL_KEY not in query.extra
+
+
+def test_execute_with_cursor_thrift_uses_synchronous_path(
+    mocker: MockerFixture,
+) -> None:
+    """Thrift connections keep the base synchronous execution."""
+    from superset.models.sql_lab import Query
+
+    base = mocker.patch(
+        "superset.db_engine_specs.databricks."
+        "DatabricksDynamicBaseEngineSpec.execute_with_cursor"
+    )
+    cursor = mocker.MagicMock()
+    cursor.connection.session.use_sea = False
+    query = Query()
+
+    DatabricksPythonConnectorEngineSpec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    base.assert_called_once_with(cursor, "SELECT 1", query)
+    cursor.execute_async.assert_not_called()
+
+
+def test_execute_with_cursor_sea_soft_time_limit_cancels(sea_session: Any) -> None:
+    """Hitting the task's soft time limit cancels the running statement."""
+    from celery.exceptions import SoftTimeLimitExceeded
+
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    query = Query(status=QueryStatus.RUNNING)
+    polls = 0
+
+    def refresh(q: Query) -> None:
+        nonlocal polls
+        polls += 1
+        if polls == 2:
+            raise SoftTimeLimitExceeded()
+
+    sea_session.session.refresh.side_effect = refresh
+
+    with pytest.raises(SoftTimeLimitExceeded):
+        DatabricksPythonConnectorEngineSpec.execute_with_cursor(
+            cursor, "SELECT 1", query
+        )
+
+    assert cursor.cancelled == ["stmt-1"]

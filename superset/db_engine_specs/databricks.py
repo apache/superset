@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import logging
 import re
+import time
 from datetime import datetime
 from re import Pattern
 from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
@@ -25,7 +26,8 @@ from typing import Any, Callable, cast, TYPE_CHECKING, TypedDict, Union
 import sqlalchemy as sa
 from apispec import APISpec
 from apispec.ext.marshmallow import MarshmallowPlugin
-from flask import g
+from celery.exceptions import SoftTimeLimitExceeded
+from flask import current_app as app, g
 from flask_babel import gettext as __
 from marshmallow import fields, Schema
 from marshmallow.validate import Range
@@ -35,7 +37,8 @@ from sqlalchemy.engine.reflection import Inspector
 from sqlalchemy.engine.url import URL
 from sqlalchemy.sql.elements import ColumnElement
 
-from superset.constants import TimeGrain
+from superset import db
+from superset.constants import QUERY_CANCEL_KEY, QUERY_EARLY_CANCEL_KEY, TimeGrain
 from superset.databases.utils import make_url_safe
 from superset.db_engine_specs.base import (
     BaseEngineSpec,
@@ -47,8 +50,9 @@ from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
 from superset.exceptions import OAuth2Error
 from superset.models.sql_lab import Query
 from superset.utils import json
-from superset.utils.core import get_user_agent, QuerySource
+from superset.utils.core import get_user_agent, QuerySource, QueryStatus
 from superset.utils.network import is_hostname_valid, is_port_open
+from superset.utils.oauth2 import is_oauth2_retry_active
 
 if TYPE_CHECKING:
     from superset.models.core import Database
@@ -745,9 +749,14 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     parameters_schema = DatabricksPythonConnectorSchema()
 
     # The driver only populates `cursor.active_command_id` once a statement has
-    # actually been executed, so the cancel id can't be captured up front like
-    # it can for engines where it's tied to the session rather than the query.
+    # been submitted, so the cancel id can't be captured up front like it can
+    # for engines where it's tied to the session rather than the query.
     has_query_id_before_execute = False
+
+    # Query ``extra`` key recording that statements run asynchronously over SEA,
+    # so a stop that arrives while no statement id is published (before the
+    # first submit, or between statements) is routed to the polling loop.
+    sea_async_execution_key = "databricks_sea_async"
 
     sqlalchemy_uri_placeholder = (
         "databricks://token:{access_token}@{host}:{port}?http_path={http_path}"
@@ -937,10 +946,150 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
 
         return uri, connect_args
 
+    @staticmethod
+    def _uses_sea(cursor: Any) -> bool:
+        """Whether ``cursor`` runs over the Statement Execution API (SEA)."""
+        session = getattr(getattr(cursor, "connection", None), "session", None)
+        return bool(getattr(session, "use_sea", False))
+
+    @classmethod
+    def execute_with_cursor(cls, cursor: Any, sql: str, query: Query) -> None:
+        """
+        Run a statement so a stop can cancel it while it is still executing.
+
+        On SEA connections the statement is submitted with ``execute_async``,
+        which publishes its statement id before returning. The id is recorded
+        as the query's cancel id, and the statement is polled with
+        ``is_query_pending`` until it finishes or a stop is requested, in which
+        case the live cursor cancels it. Once the statement is no longer
+        running its id is retired, so a stop between statements of a
+        multi-statement script never targets an already finished statement.
+
+        Thrift connections keep the synchronous execution path, as their
+        statements can't be cancelled from the stop request's connection.
+        """
+        if not cls._uses_sea(cursor):
+            super().execute_with_cursor(cursor, sql, query)
+            return
+
+        logger.debug("Query %d: Running query: %s", query.id, sql)
+        if not query.extra.get(cls.sea_async_execution_key):
+            query.set_extra_json_key(cls.sea_async_execution_key, True)
+            db.session.commit()  # pylint: disable=consider-using-transaction
+
+        if cls.arraysize:
+            cursor.arraysize = cls.arraysize
+        try:
+            cursor.execute_async(sql)
+        except Exception as ex:
+            database = query.database
+            if (
+                not is_oauth2_retry_active()
+                and database.is_oauth2_enabled()
+                and cls.needs_oauth2(ex)
+            ):
+                cls.start_oauth2_dance(database)
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+        try:
+            if (cancel_query_id := cls.get_cancel_query_id(cursor, query)) is not None:
+                query.set_extra_json_key(QUERY_CANCEL_KEY, cancel_query_id)
+                db.session.commit()  # pylint: disable=consider-using-transaction
+            stopped = cls._poll_statement(cursor, query)
+        finally:
+            cls._retire_cancel_query_id(query)
+
+        if stopped:
+            return
+
+        try:
+            # Loads the finished statement's result set onto the cursor, so it
+            # can be fetched exactly as after a synchronous ``execute``.
+            cursor.get_async_execution_result()
+        except Exception as ex:
+            raise cls.get_dbapi_mapped_exception(ex) from ex
+
+    @classmethod
+    def _poll_statement(cls, cursor: Any, query: Query) -> bool:
+        """
+        Wait for the cursor's statement to finish, cancelling it on a stop.
+
+        :return: True if the query was stopped, False if the statement finished
+        """
+        # Short statements finish within moments, so polling starts with a
+        # short interval that backs off to the configured one.
+        sleep_interval = 0.1
+        max_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(cls.engine, 1)
+        try:
+            while True:
+                try:
+                    pending = cursor.is_query_pending()
+                except SoftTimeLimitExceeded:
+                    raise
+                except Exception:  # pylint: disable=broad-except
+                    # Retrieving the results reports the underlying failure.
+                    logger.warning("Query %d: polling statement state failed", query.id)
+                    pending = False
+                db.session.refresh(query)
+                if cls._is_stop_requested(query):
+                    if pending:
+                        cls._cancel_statement(cursor, query.id)
+                    return True
+                if not pending:
+                    return False
+                time.sleep(min(sleep_interval, max_interval))
+                sleep_interval *= 2
+        except SoftTimeLimitExceeded:
+            # SQL Lab marks the query TIMED_OUT once this propagates; cancel
+            # first so the statement doesn't keep running on the warehouse.
+            cls._cancel_statement(cursor, query.id)
+            raise
+
+    @staticmethod
+    def _is_stop_requested(query: Query) -> bool:
+        return bool(
+            query.extra.get(QUERY_EARLY_CANCEL_KEY)
+            or query.status == QueryStatus.STOPPED
+        )
+
+    @staticmethod
+    def _cancel_statement(cursor: Any, query_id: int) -> None:
+        """Cancel the statement running on the live cursor."""
+        try:
+            cursor.cancel()
+        except SoftTimeLimitExceeded:
+            raise
+        except Exception:  # pylint: disable=broad-except
+            logger.warning("Query %d: cancelling the statement failed", query_id)
+
+    @staticmethod
+    def _retire_cancel_query_id(query: Query) -> None:
+        """Drop the cancel id of a statement that is no longer running."""
+        db.session.refresh(query)
+        extra = query.extra
+        if extra.pop(QUERY_CANCEL_KEY, None) is not None:
+            query.extra = extra
+            db.session.commit()  # pylint: disable=consider-using-transaction
+
+    @classmethod
+    def prepare_cancel_query(cls, query: Query) -> None:
+        """
+        Route a stop to the polling loop while no statement id is published.
+
+        That is the case before a statement is submitted and between the
+        statements of a multi-statement script. The early-cancel flag lets the
+        stop succeed: the worker doesn't start further statements, and a
+        statement that is being submitted is cancelled as soon as it's polled.
+        """
+        if query.extra.get(cls.sea_async_execution_key) and (
+            QUERY_CANCEL_KEY not in query.extra
+        ):
+            query.set_extra_json_key(QUERY_EARLY_CANCEL_KEY, True)
+
     @classmethod
     def get_cancel_query_id(cls, cursor: Any, query: Query) -> str | None:
         """
-        Capture a cancel id for the query that was just executed on ``cursor``.
+        Capture a cancel id for the statement that was submitted on ``cursor``.
 
         Cancellation is only supported when the connection uses Databricks'
         Statement Execution API (SEA) backend, i.e. ``use_sea=True`` was set in
