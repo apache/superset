@@ -27,9 +27,7 @@ under the License.
 See [cache invalidation](../../semantic-layer-cache-clear.md) for the required
 cache-token factory argument and provider cache requirements.
 
-See the [execution context contract](../semantic-execution-context.md) for provider construction and connection-mode guarantees.
-
-See [semantic filter expressions](../semantic-filters.md) for the filter contract that providers must honor.
+See [Execution context](#execution-context) for provider construction and connection-mode guarantees, and [Filter expressions](#filter-expressions) for the filter contract providers must honor.
 
 Extensions can register custom semantic layer implementations that allow Superset to connect to external data modeling frameworks. Each semantic layer defines how to authenticate, discover semantic views (tables/metrics/dimensions), and execute queries against the external system.
 
@@ -148,6 +146,151 @@ provider test processes, not a live host. An executable, SDK-only example is in
 [`superset-core/tests/semantic_layers/example_provider.py`](https://github.com/apache/superset/blob/master/superset-core/tests/semantic_layers/example_provider.py).
 It demonstrates discovery and values only; unsupported table/count queries are
 explicitly refused, not claimed as a full provider implementation.
+
+## Execution context
+
+The unreleased SDK uses one `SemanticLayer.from_configuration` factory with
+required keyword-only `cache_token: str` and `context: SemanticExecutionContext`,
+and an optional `credentials: SemanticCredentials | None = None` reserved channel.
+Providers must migrate from the optional `from_configuration_with_cache_token`
+hook; there is no legacy-factory fallback. Configuration validation uses the
+provider's Pydantic `configuration_class`, without constructing a provider.
+
+The frozen context contains the server-authenticated `principal_id`, sorted
+`role_ids` (including group roles), `origin`, `is_guest`, `namespace`, and an
+opaque `identity_digest`. It contains no tokens, passwords or Flask objects.
+For unchanged identity inputs, the digest is stable within an installation across
+processes and requests, is non-reversible, and rotates with the host `SECRET_KEY`.
+Use it only as an opaque partition token, not as a durable user identifier or an
+upstream credential. Providers must treat an unrecognized origin as unsupported;
+they must not substitute `REQUEST` or silently fall back to a supported origin.
+The digest excludes per-view RLS and origin. The host binds a layer and its views
+in one session memo, with distinct bindings for different contexts. Providers
+must retain the supplied context and metadata token with their bound instance.
+
+The digest partitions installation, principal, roles and guest status, **not
+individual guest tokens**. Guests with the same roles and namespace share a
+digest even if their token's user, resources or row rules differ. It must not be
+used as a guest partition key. Semantic views refuse guest row rules; connection
+mode uses the same upstream account for every guest. Any future support for guest
+restrictions must include them in result-cache restriction material, not the
+provider catalog key. Non-connection methods remain disabled; enabling them must
+preserve the requirement to refuse guests.
+
+`ExecutionMethod.CONNECTION` is the only enabled method. Providers declare
+`supported_execution_methods` (default: connection only). Under this method,
+results and catalogs must not vary with the context: discovery and execution use
+the configured connection credentials. The host passes `credentials=None`.
+Unsupported methods and explicit policy refusals fail before provider construction
+or reuse. This contract does not replace route and object authorization.
+
+Include `cache_token` in metadata-cache keys before any lookup or eager discovery;
+never use secrets as cache keys. Views echo the captured token in
+`metadata_cache_token`. The context namespace uses `SEMANTIC_LAYER_CACHE_NAMESPACE`
+when set, otherwise an installation UUID read or created during app initialization
+when `SEMANTIC_LAYERS` is enabled, and held in app memory. Disabled startup skips
+namespace database access. If the runtime flag is enabled later, first semantic
+access loads or creates the same persisted identity across web and worker apps.
+If startup precedes database creation (for example, Helm's
+post-install upgrade), semantic access retries initialization once per access until
+it succeeds. Failed attempts remain fail-closed; no temporary identity is used.
+After successful initialization, namespace resolution needs no database access.
+An initialization retry uses an independent metadata-database connection in
+addition to any held by the caller. During repeated initialization failures or
+concurrent first access, a saturated pool can therefore time out; it never falls
+back to a temporary identity. Operators can configure a stable namespace to avoid
+the persisted fallback, or restart workers after the database upgrade completes.
+Callable tenant namespaces are evaluated at binding time and override the startup
+fallback. This is distinct from the
+existing metadata-generation namespace; chart, column-values and compatible-member
+cache keys are unchanged. Operator workspace namespaces must agree across processes.
+
+The existing containment `semantic_cache_scope`, context-identity and
+provider-identity hooks remain in effect. Providers must supply complete,
+secret-free identity material or bypass containment. A dbt manifest or compiled
+catalog is still provider metadata and follows the same token partitioning rule.
+Both host contexts derive role IDs from effective roles, including group grants.
+The host's containment context identity (`SemanticCacheExecutionContext.host_identity`)
+includes an effective-role derivation marker, so context-scoped containment keys
+change even when the role list is empty. This
+prevents reuse of direct-only identities after group grants are revoked and causes
+a cold context-scoped containment cache; connection-scoped keys are unchanged.
+The SDK `identity_digest` is unchanged. The two SDK context types coexist and
+will be unified before any `superset-core` release.
+`get_configuration_schema` and `get_runtime_schema` remain class methods outside
+this instance-binding contract.
+
+Only request/background origin inference is installed in this delivery; explicit
+MCP/export/async binders are deferred. Before enabling any non-connection method,
+the host must add async resolution pinning, effective-identity keys and refusal
+checks at every cache boundary, containment identity migration, namespace startup
+validation, and TTL enforcement. The reserved credentials channel and origin enum
+do not enable those methods by themselves.
+
+## Filter expressions
+
+`SemanticQuery.filters` and `GroupLimit.filters` are AND sets of
+`FilterExpression = Filter | OrFilter`. `OrFilter` is a frozen group of at least
+two distinct `Filter` leaves from the same predicate stage (WHERE or HAVING).
+Nested groups are unsupported. Preserve parentheses and parameterize every leaf.
+Render leaves in a deterministic order, keeping bound values paired with their
+predicates; frozenset iteration is not stable across processes.
+
+The host normalizes UI `<NULL>` and `<empty string>` sentinels before coercing
+values. NULL equality becomes `IS_NULL` (inequality becomes `IS_NOT_NULL`). Mixed
+positive membership becomes `OrFilter(IN(non_null_values), IS_NULL)`; mixed
+negative membership becomes two AND leaves, `NOT_IN` and `IS_NOT_NULL`. Empty
+membership and NULL comparison/LIKE operands are rejected before provider calls.
+Scalar comparisons use the first collection value, or NULL for an empty collection,
+matching native datasources.
+
+The host's `superset_typing.FilterValues` permits `None` inside list selections
+and variable-length tuples. SDK `FilterValues` also includes `None`.
+
+### Provider compatibility
+
+Semantic views do not define a dataset-level SQL fetch-values predicate. Setting
+`apply_fetch_values_predicate: true` on a chart-data query is therefore a no-op for
+semantic views; explicit query filters still apply, including group-limit filters.
+
+`OrFilter` is mandatory core vocabulary, not an optional capability. Every
+provider must render groups for main queries, row counts and group-limit
+subqueries. Upgrade adapters before, or atomically with, the host/SDK upgrade;
+leaf-only adapters cannot consume mixed positive NULL selections. `get_values` retains
+`set[Filter] | None`; its host caller supplies only a LIKE leaf or no filter.
+
+Query and group-limit readers need `isinstance` narrowing before accessing leaf
+attributes such as `operator` or `column`. Upgrading the SDK alone does not add
+adapter support. Pin and test a compatible host/SDK with the adapter.
+The host does not check a capability before sending groups. Never silently skip
+an `OrFilter`: doing so drops a query constraint. An un-upgraded adapter can fail
+during execution rather than return a host validation error.
+
+Adapters supporting older SDKs must guard the type import, including during
+rollback. Do not unconditionally import `OrFilter` at module load on those hosts:
+
+```python
+from superset_core.semantic_layers import types as semantic_types
+
+or_filter_type: type | None = getattr(semantic_types, "OrFilter", None)
+```
+
+Use the guarded type in runtime dispatch (`or_filter_type is not None` followed
+by `isinstance(expression, or_filter_type)`). Grouped rendering must be implemented
+before deploying against an SDK that emits groups. Keep annotations
+that reference new union types behind `TYPE_CHECKING` or in a version-specific
+adapter module so older SDKs can still load the legacy leaf path.
+
+### Result caches
+
+The host includes `semantic-null-filters-v1` in semantic result-cache keys. This
+separates legacy answers during rolling deployment without flushing unrelated
+caches. Keep this protocol marker alongside any metadata-generation cache keys.
+
+Containment-cache identities use format `v5`, separating grouped predicates from
+older leaf-only entries during rolling upgrades. OR groups require identical
+canonical group sets for reuse; they are not flattened or used in subset proofs
+or leftover row filtering. Queries with grouped predicates do not use rollup reuse.
 
 ## Declaring semantic view features
 
