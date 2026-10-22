@@ -148,8 +148,13 @@ import { safeParseEChartOptions } from '../utils/safeEChartOptionsParser';
 import { mergeCustomEChartOptions } from '../utils/mergeCustomEChartOptions';
 
 type LegendSeriesVisual = {
-  itemStyle?: { color?: unknown };
-  lineStyle?: { color?: unknown; type?: unknown; width?: unknown };
+  itemStyle?: { color?: unknown; opacity?: unknown };
+  lineStyle?: {
+    color?: unknown;
+    opacity?: unknown;
+    type?: unknown;
+    width?: unknown;
+  };
   name?: string | number;
   symbol?: unknown;
   type?: string;
@@ -161,6 +166,14 @@ function normalizeLegendSymbol(symbol: unknown, fallback: string): string {
     return 'circle';
   }
   return typeof symbol === 'string' ? symbol : fallback;
+}
+
+// The legend inherits the series opacity; a fully transparent line (a forecast
+// confidence band) still gets a visible icon.
+function normalizeLegendOpacity(opacity: unknown): number {
+  return typeof opacity === 'number' && opacity > 0 && opacity < 1
+    ? opacity
+    : 1;
 }
 
 /**
@@ -176,13 +189,17 @@ export function getLegendSeriesIcon(
   if (visual?.type === 'scatter') {
     return {
       shape: 'symbol',
+      opacity: normalizeLegendOpacity(visual.itemStyle?.opacity),
       symbol: normalizeLegendSymbol(visual.symbol, 'circle'),
     };
   }
   if (visual?.type !== 'line') {
-    return { shape: 'box' };
+    return {
+      shape: 'box',
+      opacity: normalizeLegendOpacity(visual?.itemStyle?.opacity),
+    };
   }
-  const { type, width } = visual.lineStyle ?? {};
+  const { opacity, type, width } = visual.lineStyle ?? {};
   let lineType: TimeseriesLegendLineType = 'solid';
   if (type === 'dashed' || type === 'dotted') {
     lineType = type;
@@ -195,6 +212,7 @@ export function getLegendSeriesIcon(
     shape: 'line',
     lineType,
     lineWidth: width === 0 ? 0 : 2,
+    opacity: normalizeLegendOpacity(opacity),
     symbol: normalizeLegendSymbol(visual.symbol, 'emptyCircle'),
   };
 }

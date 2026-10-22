@@ -1847,8 +1847,20 @@ test('custom legend items describe a line series as a solid line with its symbol
   const items = getPlainTopLegendItems();
 
   expect(items.map(item => item.icon)).toEqual([
-    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'emptyCircle' },
-    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'emptyCircle' },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+    },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+    },
   ]);
 });
 
@@ -1866,8 +1878,8 @@ test('custom legend items describe a scatter series as its symbol', () => {
   });
 
   expect(items.map(item => item.icon)).toEqual([
-    { shape: 'symbol', symbol: 'circle' },
-    { shape: 'symbol', symbol: 'circle' },
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
   ]);
 });
 
@@ -1890,6 +1902,7 @@ test('custom legend items keep the dash style of a formula annotation line', () 
     shape: 'line',
     lineType: 'dashed',
     lineWidth: 2,
+    opacity: 1,
     symbol: 'emptyCircle',
   });
 });
@@ -1917,51 +1930,115 @@ test('custom legend items carry the dash pattern and symbol of a time-shifted se
   const items = getCustomLegend(transformed)?.items ?? [];
   const shifted = items.find(item => item.name === '1 week ago');
 
+  // Time-shifted series are drawn at 0.7 opacity, and the ECharts legend inherits it.
   expect(shifted?.icon).toEqual({
     shape: 'line',
     lineType: 'dotted',
     lineWidth: 2,
+    opacity: 0.7,
     symbol: 'triangle',
   });
 });
 
 test.each<[string, SeriesOption | undefined, TimeseriesLegendIcon]>([
-  ['no series', undefined, { shape: 'box' }],
-  ['a bar series', { type: 'bar' }, { shape: 'box' }],
+  ['no series', undefined, { shape: 'box', opacity: 1 }],
+  ['a bar series', { type: 'bar' }, { shape: 'box', opacity: 1 }],
+  [
+    'a bar series with item opacity',
+    { type: 'bar', itemStyle: { opacity: 0.5 } },
+    { shape: 'box', opacity: 0.5 },
+  ],
+  [
+    'a line series with line opacity',
+    { type: 'line', lineStyle: { opacity: 0.7 } },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 0.7,
+      symbol: 'emptyCircle',
+    },
+  ],
+  [
+    'a line series whose line is fully transparent',
+    { type: 'line', lineStyle: { opacity: 0 } },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+    },
+  ],
+  [
+    'a scatter series with item opacity',
+    { type: 'scatter', itemStyle: { opacity: 0.3 } },
+    { shape: 'symbol', opacity: 0.3, symbol: 'circle' },
+  ],
   [
     'a line series with ECharts defaults',
     { type: 'line' },
-    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'emptyCircle' },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+    },
   ],
   [
     'a line series whose symbol is none',
     { type: 'line', symbol: 'none' },
-    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'circle' },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'circle',
+    },
   ],
   [
     'a line series with a numeric dash and a hidden line',
     { type: 'line', lineStyle: { type: 5, width: 0 } } as SeriesOption,
-    { shape: 'line', lineType: [5], lineWidth: 0, symbol: 'emptyCircle' },
+    {
+      shape: 'line',
+      lineType: [5],
+      lineWidth: 0,
+      opacity: 1,
+      symbol: 'emptyCircle',
+    },
   ],
   [
     'a line series with a dash array and a thick line',
     { type: 'line', lineStyle: { type: [6, 15], width: 4 } } as SeriesOption,
-    { shape: 'line', lineType: [6, 15], lineWidth: 2, symbol: 'emptyCircle' },
+    {
+      shape: 'line',
+      lineType: [6, 15],
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+    },
   ],
   [
     'a line series with an unknown dash style',
     { type: 'line', lineStyle: { type: 'wavy' } } as unknown as SeriesOption,
-    { shape: 'line', lineType: 'solid', lineWidth: 2, symbol: 'emptyCircle' },
+    {
+      shape: 'line',
+      lineType: 'solid',
+      lineWidth: 2,
+      opacity: 1,
+      symbol: 'emptyCircle',
+    },
   ],
   [
     'a scatter series with a non-string symbol',
     { type: 'scatter', symbol: 42 } as unknown as SeriesOption,
-    { shape: 'symbol', symbol: 'circle' },
+    { shape: 'symbol', opacity: 1, symbol: 'circle' },
   ],
   [
     'a scatter series with a rect symbol',
     { type: 'scatter', symbol: 'rect' },
-    { shape: 'symbol', symbol: 'rect' },
+    { shape: 'symbol', opacity: 1, symbol: 'rect' },
   ],
 ])('getLegendSeriesIcon describes %s', (_label, series, expected) => {
   expect(getLegendSeriesIcon(series)).toEqual(expected);

@@ -45,13 +45,14 @@ function lineIcon(
     shape: 'line',
     lineType: 'solid',
     lineWidth: 2,
+    opacity: 1,
     symbol: 'emptyCircle',
     ...overrides,
   };
 }
 
 test('sizes the icon like the ECharts legend item and hides it from readers', () => {
-  const svg = renderIcon({ shape: 'box' }).querySelector('svg');
+  const svg = renderIcon({ shape: 'box', opacity: 1 }).querySelector('svg');
 
   expect(svg).toHaveAttribute('width', '25');
   expect(svg).toHaveAttribute('height', '14');
@@ -60,7 +61,7 @@ test('sizes the icon like the ECharts legend item and hides it from readers', ()
 });
 
 test('draws a box icon as the rounded bar the ECharts legend uses', () => {
-  const container = renderIcon({ shape: 'box' });
+  const container = renderIcon({ shape: 'box', opacity: 1 });
   const rect = container.querySelector('rect');
 
   expect(rect).toHaveAttribute('width', '25');
@@ -147,12 +148,28 @@ test.each([
   },
 );
 
-test('draws the pin symbol as a teardrop path with its tip at the bottom', () => {
-  const path = renderIcon(lineIcon({ symbol: 'pin' })).querySelector('path');
+test('draws the pin symbol as a teardrop with its tip on the line and its head above it', () => {
+  const container = renderIcon(lineIcon({ symbol: 'pin' }));
+  const path = container.querySelector('path');
+  const d = path?.getAttribute('d') ?? '';
 
   expect(path).toHaveAttribute('fill', COLOR);
-  // The tail ends on the vertical centre line at the bottom of the symbol box.
-  expect(path?.getAttribute('d')).toMatch(/^M12\.5,12\.6/);
+  // ECharts puts the cusp at the symbol centre, so the tip sits on the line.
+  expect(d).toContain(' 12.5,7 C');
+  // The head is a circle 3/10 of the symbol size, centred above the line.
+  expect(d).toContain('A3.36,3.36 0 1 1');
+  expect(d).toMatch(/^M9\.46,2\.04 /);
+  // The head pokes above the 14px box, so the svg must not clip it.
+  expect(container.querySelector('svg')).toHaveStyle({ overflow: 'visible' });
+});
+
+test('applies the series opacity to the whole icon', () => {
+  expect(
+    renderIcon(lineIcon({ opacity: 0.7 })).querySelector('svg'),
+  ).toHaveAttribute('opacity', '0.7');
+  expect(
+    renderIcon({ shape: 'box', opacity: 0.5 }).querySelector('svg'),
+  ).toHaveAttribute('opacity', '0.5');
 });
 
 test('draws a hollow rect for emptyRect', () => {
@@ -165,7 +182,11 @@ test('draws a hollow rect for emptyRect', () => {
 });
 
 test('draws a symbol icon at the full item height with no line', () => {
-  const container = renderIcon({ shape: 'symbol', symbol: 'circle' });
+  const container = renderIcon({
+    shape: 'symbol',
+    opacity: 1,
+    symbol: 'circle',
+  });
   const symbol = container.querySelector('circle');
 
   expect(container.querySelector('line')).toBeNull();
@@ -176,7 +197,9 @@ test('draws a symbol icon at the full item height with no line', () => {
 });
 
 test('paints a deselected item in the disabled colour, like an inactive ECharts legend item', () => {
-  const box = renderIcon({ shape: 'box' }, false).querySelector('rect');
+  const box = renderIcon({ shape: 'box', opacity: 1 }, false).querySelector(
+    'rect',
+  );
   const lineContainer = renderIcon(lineIcon(), false);
 
   expect(box).toHaveAttribute('fill', DISABLED);
@@ -201,14 +224,14 @@ test('TimeseriesLegend draws one icon per item and none for row breaks', () => {
     },
     {
       color: COLOR,
-      icon: { shape: 'box' },
+      icon: { shape: 'box', opacity: 1 },
       interactive: false,
       name: '',
       selected: true,
     },
     {
       color: '#ff7f0e',
-      icon: { shape: 'box' },
+      icon: { shape: 'box', opacity: 1 },
       interactive: true,
       name: 'Sales',
       selected: false,

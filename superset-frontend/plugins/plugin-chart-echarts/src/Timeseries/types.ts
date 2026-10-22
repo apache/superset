@@ -140,7 +140,7 @@ export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimes
 export type TimeseriesLegendLineType = 'solid' | 'dashed' | 'dotted' | number[];
 
 /** What the legend draws for an item: the icon the ECharts legend would use for the series. */
-export type TimeseriesLegendIcon =
+export type TimeseriesLegendIcon = { opacity: number } & (
   | { shape: 'box' }
   | { shape: 'symbol'; symbol: string }
   | {
@@ -148,7 +148,8 @@ export type TimeseriesLegendIcon =
       lineType: TimeseriesLegendLineType;
       lineWidth: number;
       symbol: string;
-    };
+    }
+);
 
 export type TimeseriesLegendItem = {
   color: string;

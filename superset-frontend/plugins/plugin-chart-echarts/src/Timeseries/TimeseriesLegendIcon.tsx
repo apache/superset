@@ -107,14 +107,30 @@ function Symbol({
         />
       );
     case 'pin': {
-      // ECharts' pin: a circle 3/5 of the box wide whose tangents meet at the tip.
+      // ECharts' pin: the cusp sits at the symbol centre and a head 3/5 of the
+      // symbol wide rises above it, so the tip rests on the line.
       const r = (size * 3) / 10;
       const dy = (r * r) / (size - r);
-      const dx = Math.cos(Math.asin(dy / r)) * r;
-      const tangentY = round(y + r + dy);
+      const headCy = cy - size + r + dy;
+      const angle = Math.asin(dy / r);
+      const dx = Math.cos(angle) * r;
+      const tanX = Math.sin(angle);
+      const tanY = Math.cos(angle);
+      const cpLen = r * 0.6;
+      const cpLen2 = r * 0.7;
+      const tangentY = round(headCy + dy);
+      const left = round(cx - dx);
+      const right = round(cx + dx);
+      const controlY = round(headCy + dy + tanY * cpLen);
       return (
         <path
-          d={`M${cx},${bottom} L${round(cx - dx)},${tangentY} A${round(r)},${round(r)} 0 1 1 ${round(cx + dx)},${tangentY} Z`}
+          d={[
+            `M${left},${tangentY}`,
+            `A${round(r)},${round(r)} 0 1 1 ${right},${tangentY}`,
+            `C${round(cx + dx - tanX * cpLen)},${controlY} ${cx},${round(cy - cpLen2)} ${cx},${cy}`,
+            `C${cx},${round(cy - cpLen2)} ${round(cx - dx + tanX * cpLen)},${controlY} ${left},${tangentY}`,
+            'Z',
+          ].join(' ')}
           {...paintProps}
         />
       );
@@ -128,6 +144,7 @@ function Symbol({
 const Icon = styled.svg`
   flex: 0 0 auto;
   margin-top: 3px;
+  overflow: visible;
 `;
 
 export type TimeseriesLegendIconProps = {
@@ -152,6 +169,7 @@ export default function TimeseriesLegendIcon({
       width={WIDTH}
       height={HEIGHT}
       viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+      opacity={icon.opacity}
     >
       {icon.shape === 'box' && (
         <rect width={WIDTH} height={HEIGHT} rx={HEIGHT / 4} fill={paint} />
