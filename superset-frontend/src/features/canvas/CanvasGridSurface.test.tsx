@@ -53,6 +53,7 @@ const surface = (
     gap={16}
     rowUnit={40}
     placements={live}
+    layouts={live}
     constraints={constraints}
     editable={editable}
     depth={depth}
@@ -736,6 +737,46 @@ const liftedOpacity = (container: HTMLElement, nodeId: string) =>
   getComputedStyle(
     container.querySelector(`[data-node-id="${nodeId}"]`) as HTMLElement,
   ).opacity;
+
+test("an unmoved press reaches the widget's own controls", () => {
+  // The real point of the threshold: a press that is not a drag must not be
+  // captured by the wrapper, or the release and the click after it are
+  // retargeted and the widget's own button never fires. Pointer capture is
+  // stubbed here, so this asserts the click itself rather than the lift.
+  const clicked = jest.fn();
+  const onPlace = renderSurface({
+    renderNode: nodeId => (
+      <button type="button" onClick={clicked}>{`open ${nodeId}`}</button>
+    ),
+  });
+  const button = screen.getByRole('button', { name: 'open kpi' });
+
+  pointer(button, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(button, 'pointerup', { clientX: 0, clientY: 0 });
+  fireEvent.click(button);
+
+  expect(clicked).toHaveBeenCalledTimes(1);
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('an unmoved press never takes the pointer', () => {
+  // Capturing on pointerdown is what retargets the release, so the capture
+  // itself is asserted rather than only its visible consequence.
+  const capture = jest.spyOn(HTMLElement.prototype, 'setPointerCapture');
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+  capture.mockClear();
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(body, 'pointermove', { clientX: 2, clientY: 1 });
+
+  expect(capture).not.toHaveBeenCalled();
+
+  // Once it is really a drag, the pointer is taken.
+  pointer(body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+  expect(capture).toHaveBeenCalled();
+  capture.mockRestore();
+});
 
 test('a press on a widget body that barely moves stays a click', () => {
   // Otherwise every click on a chart in a plan would make the widget lift and

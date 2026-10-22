@@ -51,7 +51,7 @@ import {
   resizedPlacement,
   samePlacement,
 } from './gridGeometry';
-import { previewGrid } from './resolveGrid';
+import { previewGrid, type GridLayout } from './resolveGrid';
 import type { GridPlacement, SpanConstraints } from './types';
 
 type GestureKind = 'move' | 'resize';
@@ -92,6 +92,12 @@ interface Gesture {
 
 /** Pixels of travel before a press on a widget body becomes a drag. */
 const DRAG_THRESHOLD = 4;
+
+/**
+ * Presses already claimed by a grid, so one that bubbles through nested grids
+ * starts exactly one gesture: the innermost grid's.
+ */
+const claimedPresses = new WeakSet<Event>();
 
 /** A gesture's movement over the page content, scrolling included. */
 const travelled = (gesture: Gesture, clientX: number, clientY: number) => ({
@@ -336,6 +342,13 @@ export interface CanvasGridSurfaceProps {
   gap: number;
   rowUnit: number;
   placements: Record<string, GridPlacement>;
+  /**
+   * Each child's stored layout. The preview resolves from these, as the
+   * server does: an auto-placed child has no `col`/`row`, and resolving from
+   * the rectangle it currently occupies would pin it there in the preview
+   * while the server still places it freely.
+   */
+  layouts: Record<string, GridLayout>;
   constraints: Record<string, SpanConstraints>;
   /** Whether the user may drag and resize these widgets. */
   editable: boolean;
@@ -355,6 +368,7 @@ export default function CanvasGridSurface({
   gap,
   rowUnit,
   placements,
+  layouts,
   constraints,
   editable,
   depth,
@@ -428,13 +442,20 @@ export default function CanvasGridSurface({
       if (live.current) return;
       const origin = placements[nodeId];
       if (!origin) return;
-      // A deferred gesture must leave the press alone until it becomes a
-      // drag, or a click on a chart would never reach it.
+      // A deferred press does not stop propagation -- a click has to reach
+      // the widget -- so it bubbles to this grid and to every grid containing
+      // it, and each would start its own gesture. The innermost runs first
+      // and claims the press; the rest stand down.
+      if (claimedPresses.has(event.nativeEvent)) return;
+      claimedPresses.add(event.nativeEvent);
       if (armed) {
         event.preventDefault();
         event.stopPropagation();
+        // A handle owns the pointer from the first move. A deferred press
+        // must not, or the release and the click after it would be
+        // retargeted here from whatever was actually pressed.
+        event.currentTarget.setPointerCapture(event.pointerId);
       }
-      event.currentTarget.setPointerCapture(event.pointerId);
       update({
         nodeId,
         kind,
@@ -459,6 +480,10 @@ export default function CanvasGridSurface({
     const armed =
       current.armed || Math.hypot(moved.dx, moved.dy) >= DRAG_THRESHOLD;
     if (!armed) return;
+    if (!current.armed) {
+      // It is a drag after all, so take the pointer from here on.
+      event.currentTarget.setPointerCapture(event.pointerId);
+    }
     update({ ...current, ...moved, armed });
   };
 
@@ -578,7 +603,14 @@ export default function CanvasGridSurface({
   // under the pointer and nothing jumps once the write lands.
   const shown =
     preview && gesture
-      ? previewGrid(childIds, placements, gesture.nodeId, preview, columns)
+      ? previewGrid(
+          childIds,
+          layouts,
+          placements,
+          gesture.nodeId,
+          preview,
+          columns,
+        )
       : placements;
 
   return (

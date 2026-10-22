@@ -304,3 +304,26 @@ test("a nested resize honours the widget's declared minimum span", () => {
     rowSpan: 1,
   });
 });
+
+test('a press inside a group drags the widget, not the group', () => {
+  // A deferred body press does not stop propagation -- a click has to reach
+  // the widget -- so it bubbles to the nested grid and to the root one. Both
+  // would start a gesture, the outer one would win the pointer, and the
+  // group would move instead of the chart.
+  const place = jest.fn();
+  renderGrid(emptyScopeValues(), jest.fn(), result, place, true);
+
+  const group = screen.getByRole('region', { name: 'group' });
+  const inner = group.querySelector('.canvas-interactive') as HTMLElement;
+
+  // Downwards: the group is full width, so a sideways drag cannot move it and
+  // would never commit, hiding the very thing this guards.
+  [
+    new TestPointerEvent('pointerdown', { button: 0, clientX: 0, clientY: 0 }),
+    new TestPointerEvent('pointermove', { clientX: 0, clientY: 112 }),
+    new TestPointerEvent('pointerup', { clientX: 0, clientY: 112 }),
+  ].forEach(event => fireEvent(inner, event));
+
+  expect(place).toHaveBeenCalledTimes(1);
+  expect(place.mock.calls[0][0]).toBe('c1');
+});

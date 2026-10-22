@@ -152,6 +152,19 @@ export default function CanvasGrid({
   // How deeply a grid is nested, so its handles can sit clear of the handles
   // of the widgets inside it: a container's own box starts where its first
   // child's does, and the container's handles are painted last.
+  // What the server resolves placement from, as opposed to the rectangles it
+  // resolved last time; the drop preview needs these to agree with it.
+  const storedLayouts = useMemo(
+    () =>
+      Object.fromEntries(
+        Object.entries(definition.nodes).map(([nodeId, node]) => [
+          nodeId,
+          node.layout,
+        ]),
+      ),
+    [definition.nodes],
+  );
+
   const renderGrid = (
     childIds: string[],
     gridColumnCount: number,
@@ -164,6 +177,7 @@ export default function CanvasGrid({
       gap={gap}
       rowUnit={rowUnit}
       placements={placements}
+      layouts={storedLayouts}
       constraints={layoutConstraints}
       editable={editable}
       onPlace={place}

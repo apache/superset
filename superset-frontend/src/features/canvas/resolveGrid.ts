@@ -123,17 +123,23 @@ export function resolveGrid(
  */
 export function previewGrid(
   childIds: string[],
+  /** Each child's *stored* layout, which is what the server resolves from. */
+  layouts: Record<string, GridLayout>,
   placements: Record<string, GridPlacement>,
   moving: string,
   target: GridPlacement,
   columns: number,
 ): Record<string, GridPlacement> {
-  const layouts = childIds.map(nodeId =>
-    nodeId === moving ? target : placements[nodeId],
+  // Stored layouts, not resolved rectangles: an auto-placed child has no
+  // `col`/`row` of its own, and feeding back the rectangle it happens to
+  // occupy would make it explicit here while the server still auto-places
+  // it. The preview would then disagree with the drop.
+  const toResolve = childIds.map(nodeId =>
+    nodeId === moving ? target : layouts[nodeId],
   );
-  // A child with no resolved placement yet cannot take part in the preview.
-  if (layouts.some(layout => layout === undefined)) return placements;
+  // A child the caller knows nothing about cannot take part in the preview.
+  if (toResolve.some(layout => layout === undefined)) return placements;
 
-  const resolved = resolveGrid(layouts as GridLayout[], columns);
+  const resolved = resolveGrid(toResolve as GridLayout[], columns);
   return Object.fromEntries(childIds.map((id, index) => [id, resolved[index]]));
 }

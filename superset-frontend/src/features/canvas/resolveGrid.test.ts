@@ -16,8 +16,9 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fs from 'fs';
+import path from 'path';
 import { previewGrid, resolveGrid, type GridLayout } from './resolveGrid';
-import gridCases from './gridCases.json';
 import type { GridPlacement } from './types';
 
 /**
@@ -36,7 +37,12 @@ interface Case {
   expected: GridPlacement[];
 }
 
-const cases = gridCases.cases as Case[];
+// Read rather than imported: `tsconfig.json`'s `include` does not take
+// `.json` files into the program, and widening it for one test fixture would
+// pull every JSON under `src` in with it.
+const { cases } = JSON.parse(
+  fs.readFileSync(path.join(__dirname, 'gridCases.json'), 'utf8'),
+) as { cases: Case[] };
 
 test('the shared cases are present, so this file cannot pass vacuously', () => {
   expect(cases.length).toBeGreaterThan(5);
@@ -62,6 +68,7 @@ test('a preview pushes the widgets a drop lands on out of the way', () => {
   const preview = previewGrid(
     ['kpi', 'trend'],
     placements,
+    placements,
     'kpi',
     { ...KPI, col: 13 },
     24,
@@ -76,6 +83,7 @@ test('a preview leaves untouched neighbours where they are', () => {
 
   const preview = previewGrid(
     ['kpi', 'trend'],
+    placements,
     placements,
     'kpi',
     { ...KPI, row: 9 },
@@ -93,10 +101,36 @@ test('a preview is skipped when a child has no placement to reason about', () =>
   const preview = previewGrid(
     ['kpi', 'ghost'],
     placements,
+    placements,
     'kpi',
     { ...KPI, col: 13 },
     24,
   );
 
   expect(preview).toBe(placements);
+});
+
+test('an auto-placed sibling is previewed as the server will resolve it', () => {
+  // Two full-width auto-placed widgets land at rows 1 and 2. Dragging the
+  // first to row 3 frees row 1, and the server -- which resolves from the
+  // stored (auto) layouts -- moves the second up into it. Feeding back the
+  // rectangle it currently occupies would pin it at row 2 in the preview and
+  // the layout would jump after the save.
+  const layouts = { first: { rowSpan: 1 }, second: { rowSpan: 1 } };
+  const placements = {
+    first: { col: 1, row: 1, colSpan: 24, rowSpan: 1 },
+    second: { col: 1, row: 2, colSpan: 24, rowSpan: 1 },
+  };
+
+  const preview = previewGrid(
+    ['first', 'second'],
+    layouts,
+    placements,
+    'first',
+    { col: 1, row: 3, colSpan: 24, rowSpan: 1 },
+    24,
+  );
+
+  expect(preview.first).toEqual({ col: 1, row: 3, colSpan: 24, rowSpan: 1 });
+  expect(preview.second).toEqual({ col: 1, row: 1, colSpan: 24, rowSpan: 1 });
 });
