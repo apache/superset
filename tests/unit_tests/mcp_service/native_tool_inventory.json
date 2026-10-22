@@ -23,11 +23,11 @@
         "openWorldHint": false,
         "readOnlyHint": false
       },
-      "compact_description_chars": 252,
-      "description_chars": 2235,
+      "compact_description_chars": 284,
+      "description_chars": 2782,
       "entry_bytes": {
-        "structured": 8222,
-        "text_only": 5546
+        "structured": 8779,
+        "text_only": 6103
       },
       "input_schema_bytes": 2951,
       "output_schema_bytes": 2660
@@ -314,11 +314,11 @@
       "compact_description_chars": 111,
       "description_chars": 1247,
       "entry_bytes": {
-        "structured": 11427,
+        "structured": 11518,
         "text_only": 3601
       },
       "input_schema_bytes": 2101,
-      "output_schema_bytes": 7810
+      "output_schema_bytes": 7901
     },
     "get_chart_info": {
       "annotations": {
@@ -1267,12 +1267,12 @@
   },
   "totals": {
     "catalog_bytes": {
-      "structured": 527156,
-      "text_only": 215119
+      "structured": 527804,
+      "text_only": 215676
     },
     "compact_catalog_bytes": {
-      "structured": 473629,
-      "text_only": 161592
+      "structured": 473753,
+      "text_only": 161625
     },
     "largest_entry": {
       "structured": {

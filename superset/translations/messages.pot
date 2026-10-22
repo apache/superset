@@ -3759,6 +3759,9 @@ msgstr ""
 msgid "Color scheme"
 msgstr ""
 
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid "Color used when the close value is greater than or equal to the open value."
 msgstr ""
 

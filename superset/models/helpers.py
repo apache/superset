@@ -6610,11 +6610,22 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                             cond = or_(is_null_cond, sqla_col.in_(eq_without_none))
                         else:
                             cond = is_null_cond
+                        if op == utils.FilterOperator.NOT_IN:
+                            cond = ~cond
                     else:
                         cond = sqla_col.in_(eq)
-
-                    if op == utils.FilterOperator.NOT_IN:
-                        cond = ~cond
+                        if op == utils.FilterOperator.NOT_IN:
+                            # ``NULL NOT IN (...)`` is not true (three-valued
+                            # logic), so a plain negation would also drop NULL
+                            # rows. Only the listed values are meant to be
+                            # excluded, so keep NULL rows unless NULL itself is
+                            # in the list (handled above).
+                            cond = or_(
+                                db_engine_spec.handle_null_filter(
+                                    sqla_col, utils.FilterOperator.IS_NULL
+                                ),
+                                ~cond,
+                            )
                     target_clause_list.append(cond)
                 elif op in {
                     utils.FilterOperator.IS_NULL,

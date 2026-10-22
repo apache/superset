@@ -2565,6 +2565,14 @@ Charts and dashboards using these anchors will compute a different (correct) tim
 
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
 
+- `NOT IN` filters on SQLAlchemy-backed datasets now also return rows where the
+  column is NULL. Previously these rows were dropped by SQL three-valued logic
+  (`NULL NOT IN (...)` is not true), so a filter such as "Exclude selected values"
+  removed NULL rows in addition to the selected values. Dashboards, charts and
+  reports that use `NOT IN` may therefore show additional NULL rows. A `NOT IN`
+  list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
+  and `NOT ILIKE` are unchanged.
+
 ## 6.1.0
 
 ### ClickHouse minimum driver version bump
