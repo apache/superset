@@ -10301,6 +10301,9 @@ msgstr "குறைந்தபட்சம்"
 msgid "Minimum Font Size"
 msgstr "குறைந்தபட்ச எழுத்துரு அளவு"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "குறைந்தபட்ச ஆரம்"
 
@@ -10309,6 +10312,16 @@ msgid "Minimum Width"
 msgstr "குறைந்தபட்ச அகலம்"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -19607,6 +19620,9 @@ msgstr "X-அச்சு லேபிள்"
 msgid "X Axis Label Interval"
 msgstr "X-அச்சு லேபிள் இடைவெளி"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X-அச்சு எண் வடிவம்"
 
@@ -19652,6 +19668,9 @@ msgstr "Y-அச்சு வடிவம்"
 
 msgid "Y Axis Label"
 msgstr "Y-அச்சு லேபிள்"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y-அச்சு தலைப்பு"

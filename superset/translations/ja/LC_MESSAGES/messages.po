@@ -9708,6 +9708,9 @@ msgstr "最小"
 msgid "Minimum Font Size"
 msgstr "最小フォントサイズ"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "最小半径"
 
@@ -9715,6 +9718,16 @@ msgid "Minimum Width"
 msgstr "最小幅"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -18602,6 +18615,9 @@ msgstr "X軸ラベル"
 msgid "X Axis Label Interval"
 msgstr "X軸ラベルの間隔"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X軸の数値表示形式"
 
@@ -18647,6 +18663,9 @@ msgstr "Y軸の表示形式"
 
 msgid "Y Axis Label"
 msgstr "Y軸ラベル"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y軸のタイトル"
