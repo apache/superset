@@ -26,7 +26,9 @@ from superset.commands.dashboard.exceptions import (
     DashboardInvalidError,
 )
 from superset.daos.dashboard import DashboardDAO
+from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
+from superset.utils import json
 from superset.utils.decorators import on_error, transaction
 
 logger = logging.getLogger(__name__)
@@ -62,3 +64,17 @@ class CopyDashboardCommand(BaseCommand):
             raise DashboardInvalidError()
         if not security_manager.is_editor(self._original_dash):
             raise DashboardForbiddenError()
+
+        # A copy that rebuilds membership from a caller-supplied layout must not
+        # pull in a chart whose datasource the caller cannot access. The
+        # ``duplicate_slices`` (clone) mode is exempt: it duplicates charts from
+        # the source dashboard the caller already edits, so it grants nothing new.
+        try:
+            DashboardDAO.raise_for_added_member_datasource_access(
+                json.loads(self._properties["json_metadata"]),
+                old_to_new_slice_ids={0: 0}
+                if self._properties.get("duplicate_slices")
+                else None,
+            )
+        except SupersetSecurityException as ex:
+            raise DashboardForbiddenError() from ex
