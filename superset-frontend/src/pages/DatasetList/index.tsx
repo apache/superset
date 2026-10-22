@@ -1535,6 +1535,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
             );
           }
         }
+        if (datasets.length && results[0].status === 'fulfilled') {
+          // The datasets went through even though the semantic views did not.
+          addSuccessToast(
+            softDelete
+              ? t('Archived %s item(s)', datasets.length)
+              : t('Deleted %s item(s)', datasets.length),
+          );
+        }
         if (datasets.length && results[0].status === 'rejected') {
           addDangerToast(
             softDelete
@@ -1563,7 +1571,14 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
     }).then(
       () => {
         refreshData();
-        addSuccessToast(t('Deleted %s semantic view(s)', unblocked.length));
+        addSuccessToast(
+          tn(
+            'Deleted %s semantic view',
+            'Deleted %s semantic views',
+            unblocked.length,
+            unblocked.length,
+          ),
+        );
       },
       createErrorHandler(errMsg =>
         addDangerToast(
@@ -1705,8 +1720,12 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           description={
             <p>
               {t(
-                'Nothing was deleted because other assets depend on %s. Delete the other %s semantic view(s) (%s)? This cannot be undone.',
+                'No semantic views were deleted because other assets depend on %s.',
                 unblockedRetry.blocked.map(view => view.table_name).join(', '),
+              )}{' '}
+              {tn(
+                'Delete the other semantic view, %s? This cannot be undone.',
+                'Delete the other semantic views, %s? This cannot be undone.',
                 unblockedRetry.unblocked.length,
                 unblockedRetry.unblocked
                   .map(view => view.table_name)

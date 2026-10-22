@@ -18302,9 +18302,17 @@ msgid "Delete the other semantic views?"
 msgstr ""
 
 #, python-format
-msgid "Deleted %s semantic view(s)"
+msgid "Deleted %s semantic view"
+msgid_plural "Deleted %s semantic views"
+msgstr[0] ""
+msgstr[1] ""
+
+#, python-format
+msgid "No semantic views were deleted because other assets depend on %s."
 msgstr ""
 
 #, python-format
-msgid "Nothing was deleted because other assets depend on %s. Delete the other %s semantic view(s) (%s)? This cannot be undone."
-msgstr ""
+msgid "Delete the other semantic view, %s? This cannot be undone."
+msgid_plural "Delete the other semantic views, %s? This cannot be undone."
+msgstr[0] ""
+msgstr[1] ""

@@ -243,7 +243,7 @@ test('refused bulk delete names only the blocked view and offers to delete the o
     name: 'Delete the other semantic views?',
   });
   expect(retry).toHaveTextContent(
-    'Nothing was deleted because other assets depend on blocked_view. Delete the other 1 semantic view(s) (free_view)?',
+    'No semantic views were deleted because other assets depend on blocked_view. Delete the other semantic view, free_view?',
   );
   expect(addDangerToast).not.toHaveBeenCalled();
   await userEvent.type(
@@ -252,11 +252,72 @@ test('refused bulk delete names only the blocked view and offers to delete the o
   );
   await userEvent.click(within(retry).getByRole('button', { name: 'Delete' }));
   await waitFor(() =>
-    expect(addSuccessToast).toHaveBeenCalledWith('Deleted 1 semantic view(s)'),
+    expect(addSuccessToast).toHaveBeenCalledWith('Deleted 1 semantic view'),
   );
   expect(
     fetchMock.callHistory.calls('glob:*/api/v1/semantic_view/?q=!(99)'),
   ).toHaveLength(1);
+});
+
+test('refused bulk delete of a mixed selection reports the datasets that went through', async () => {
+  const dataset = mockDatasets[0];
+  const views = [
+    {
+      ...mockDatasets[1],
+      id: 98,
+      table_name: 'blocked_view',
+      kind: 'semantic_view',
+    },
+    {
+      ...mockDatasets[2],
+      id: 99,
+      table_name: 'free_view',
+      kind: 'semantic_view',
+    },
+  ];
+  const addSuccessToast = jest.fn();
+  mockDatasetListEndpoints({ result: [dataset, ...views], count: 3 });
+  fetchMock.get(API_ENDPOINTS.DATASET_BULK_RELATED_OBJECTS, {
+    charts: { count: 0, result: [] },
+    dashboards: { count: 0, result: [] },
+  });
+  fetchMock.delete(API_ENDPOINTS.DATASET_BULK_DELETE, { message: 'OK' });
+  fetchMock.delete('glob:*/api/v1/semantic_view/?q=*', {
+    status: 409,
+    body: { message: 'blocked', total: 1, blocked_view_ids: [98] },
+  });
+  renderDatasetList(mockAdminUser, {
+    addDangerToast: jest.fn(),
+    addSuccessToast,
+  });
+  await screen.findByText('free_view');
+  await userEvent.click(screen.getByRole('button', { name: /bulk select/i }));
+  const table = screen.getByTestId('listview-table');
+  for (const name of [dataset.table_name, 'blocked_view', 'free_view']) {
+    const cell = await within(table).findByText(name);
+    await userEvent.click(within(cell.closest('tr')!).getByRole('checkbox'));
+  }
+  await userEvent.click(
+    within(screen.getByTestId('bulk-select-controls')).getByRole('button', {
+      name: 'Delete',
+    }),
+  );
+  const bulkModal = await screen.findByRole('dialog');
+  await userEvent.type(
+    within(bulkModal).getByTestId('delete-modal-input'),
+    'DELETE',
+  );
+  await userEvent.click(
+    within(bulkModal).getByRole('button', { name: 'Delete' }),
+  );
+  const retry = await screen.findByRole('dialog', {
+    name: 'Delete the other semantic views?',
+  });
+  expect(retry).toHaveTextContent('No semantic views were deleted');
+  expect(retry).not.toHaveTextContent('Nothing was deleted');
+  expect(addSuccessToast).toHaveBeenCalledWith(
+    expect.stringMatching(/^(Archived|Deleted) 1 item\(s\)$/),
+  );
 });
 
 test('typing in search updates the input value correctly', async () => {
