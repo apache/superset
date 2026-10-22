@@ -1515,9 +1515,11 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
           const parsed = await getClientErrorObject(semanticResult.reason);
           const blockedIds = (parsed as { blocked_view_ids?: unknown })
             .blocked_view_ids;
-          const blocked = Array.isArray(blockedIds)
+          const named = Array.isArray(blockedIds)
             ? semanticViews.filter(view => blockedIds.includes(view.id))
-            : semanticViews;
+            : [];
+          // Without an attribution, every selected view may be the blocker.
+          const blocked = named.length ? named : semanticViews;
           const unblocked = semanticViews.filter(
             view => !blocked.includes(view),
           );
