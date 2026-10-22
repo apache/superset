@@ -341,6 +341,41 @@ const year2003BucketFilter = {
   formattedVal: '2003',
 };
 
+test('Drill by with a dashboard grain keeps only the cross-filtered part of the bucket', async () => {
+  mockTimeRange('2003-10-01T00:00:00', '2003-11-01T00:00:00');
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...formData,
+      time_range: 'No filter',
+      time_grain_sqla: 'P1M',
+      extra_form_data: {
+        time_grain_sqla: 'P1Y',
+        time_range: '2003-10-01 : 2003-11-01',
+        filters: [{ col: 'gender', op: 'IN', val: ['boy'] }],
+      },
+    },
+    drillByConfig: {
+      filters: [year2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+
+  expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
+  expect(getLastChartDataQuery().extras?.time_grain_sqla).toEqual('P1Y');
+  expect(getLastChartDataQuery().filters).toContainEqual(
+    expect.objectContaining({ col: 'gender', op: 'IN', val: ['boy'] }),
+  );
+  expect(fetchMock.callHistory.calls(CHART_DATA_ENDPOINT)).toHaveLength(1);
+  const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
+  await waitFor(() =>
+    expect(within(breadcrumbItems[0]).getByText(/\(2003\)$/)).toBeVisible(),
+  );
+});
+
 test('Drill by from a grained temporal bucket keeps only the part inside a narrower dashboard time range', async () => {
   mockTimeRange('2003-06-01T00:00:00', '2004-01-01T00:00:00');
   await renderModal({

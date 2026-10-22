@@ -685,7 +685,7 @@ export default function EchartsTimeseries({
           const xAxisFilter = getTemporalXAxisDrillByFilter(
             xAxisCol,
             xValue,
-            formData.timeGrainSqla,
+            resolvedTimeGrain,
             String(xValueFormatter(xValue as number)),
           );
           if (xAxisFilter) {
@@ -702,7 +702,7 @@ export default function EchartsTimeseries({
                 ? getTemporalXAxisDrillByFilter(
                     xAxisCol,
                     categoryAxisValue,
-                    formData.timeGrainSqla,
+                    resolvedTimeGrain,
                     String(eventParams.name ?? categoryAxisValue),
                   )
                 : {
