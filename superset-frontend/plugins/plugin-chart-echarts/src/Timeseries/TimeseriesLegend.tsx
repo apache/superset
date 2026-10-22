@@ -19,6 +19,7 @@
 import { memo } from 'react';
 import { styled } from '@apache-superset/core/theme';
 import { t } from '@apache-superset/core/translation';
+import TimeseriesLegendIcon from './TimeseriesLegendIcon';
 import type { TimeseriesCustomLegend } from './types';
 
 const LegendViewport = styled.div<{ maxHeight: number }>`
@@ -101,18 +102,6 @@ const ItemButton = styled.button<{ selected: boolean }>`
   `}
 `;
 
-const Swatch = styled.span<{ color: string; selected: boolean }>`
-  ${({ color, selected }) => `
-    background: ${selected ? color : 'transparent'};
-    border: 1px solid ${color};
-    box-sizing: border-box;
-    flex: 0 0 auto;
-    height: 12px;
-    margin-top: 2px;
-    width: 12px;
-  `}
-`;
-
 const Label = styled.span`
   overflow-wrap: anywhere;
   white-space: pre-line;
@@ -178,9 +167,9 @@ function TimeseriesLegend({
                 onMouseEnter={() => onHover?.(item.name)}
                 onMouseLeave={() => onHover?.(null)}
               >
-                <Swatch
-                  aria-hidden
+                <TimeseriesLegendIcon
                   color={item.color}
+                  icon={item.icon}
                   selected={item.selected}
                 />
                 <Label>{item.name}</Label>

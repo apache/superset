@@ -137,8 +137,22 @@ export interface EchartsTimeseriesChartProps extends BaseChartProps<EchartsTimes
   formData: EchartsTimeseriesFormData;
 }
 
+export type TimeseriesLegendLineType = 'solid' | 'dashed' | 'dotted' | number[];
+
+/** What the legend draws for an item: the icon the ECharts legend would use for the series. */
+export type TimeseriesLegendIcon =
+  | { shape: 'box' }
+  | { shape: 'symbol'; symbol: string }
+  | {
+      shape: 'line';
+      lineType: TimeseriesLegendLineType;
+      lineWidth: number;
+      symbol: string;
+    };
+
 export type TimeseriesLegendItem = {
   color: string;
+  icon: TimeseriesLegendIcon;
   interactive: boolean;
   name: string;
   selected: boolean;
