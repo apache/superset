@@ -23,6 +23,7 @@ import { ensureStaticPrefix } from 'src/utils/assetUrl';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import { getUrlParam, isUrlExternal } from 'src/utils/urlUtils';
 import { MainNav, MenuItem } from '@superset-ui/core/components/Menu';
+import { usePages } from 'src/core/pages';
 import { Tooltip, Grid, Row, Col, Image } from '@superset-ui/core/components';
 import { GenericLink } from 'src/components';
 import { NavLink, useLocation } from 'react-router-dom';
@@ -199,6 +200,108 @@ const StyledImage = styled(Image)`
 
 const { useBreakpoint } = Grid;
 
+/**
+ * What the two helpers below need of a contributed page, and no more, so the
+ * menu does not take a dependency on the pages registry. One shape shared by
+ * both, so a field one of them reads cannot go missing from the other.
+ */
+type ContributedPage = {
+  name: string;
+  path: string;
+  nav?: { label?: string; category?: string };
+  permitted?: boolean;
+};
+
+/**
+ * Folds pages contributed by extensions into the server-rendered menu.
+ *
+ * The navbar is built on the server from FAB's menu, which an extension
+ * cannot write to: an entry there needs a `menu_access` permission created
+ * at boot, and extensions register in the browser. A page that opted in with
+ * `nav` is therefore added here, client-side, so that a contributed page has
+ * somewhere a user could find it at all.
+ *
+ * A page without `nav.category` sits at the top level. One that names a
+ * category goes into that group of the Settings menu instead, which is
+ * where an administrative screen belongs -- see `withExtensionSettings`.
+ */
+export function withExtensionPages(
+  menu: MenuObjectProps[],
+  pages: ContributedPage[],
+): MenuObjectProps[] {
+  // A page the user may not open is left out rather than shown and refused:
+  // the server answers 403 for it, so an entry here would only advertise a
+  // dead end. The page stays registered, so a direct link still explains
+  // itself rather than rendering nothing.
+  const contributed = pages.filter(
+    page => page.nav && !page.nav.category && page.permitted !== false,
+  );
+  if (!contributed.length) {
+    return menu;
+  }
+
+  return [
+    ...menu,
+    ...contributed.map(
+      page =>
+        ({
+          label: page.nav?.label ?? page.name,
+          // `name` is the React key for the entry, and the label is the
+          // extension author's to choose -- a page labelled "Charts" would
+          // collide with the host's own entry. The path cannot collide,
+          // because the server refused any page that shared one.
+          name: `extension:${page.path}`,
+          url: page.path,
+        }) as unknown as MenuObjectProps,
+    ),
+  ];
+}
+
+/**
+ * Places a contributed page inside a group of the Settings menu.
+ *
+ * `MenuWrapper` splits the FAB menu into the top navbar and `settings` by
+ * group name -- Data, Security and Manage -- so a page that belongs under
+ * Settings cannot be appended to the navbar list and reach it. It has to
+ * join the group's own children, which is what this does.
+ *
+ * A group the host did not render is not invented: FAB builds Manage only
+ * when the user may see something in it, and a group conjured here would be
+ * one the rest of Superset does not agree exists. The page keeps its URL
+ * either way; it is the entry that is missing.
+ */
+export function withExtensionSettings(
+  settings: MenuObjectProps[],
+  pages: ContributedPage[],
+): MenuObjectProps[] {
+  const contributed = pages.filter(
+    page => page.nav?.category && page.permitted !== false,
+  );
+  if (!contributed.length) {
+    return settings;
+  }
+
+  return settings.map(group => {
+    const mine = contributed.filter(page => page.nav?.category === group.name);
+    if (!mine.length) {
+      return group;
+    }
+    return {
+      ...group,
+      childs: [
+        ...(group.childs ?? []),
+        ...mine.map(page => ({
+          label: page.nav?.label ?? page.name,
+          // The React key, as for the navbar entries: the label is the
+          // author's to choose and could collide with a host item.
+          name: `extension:${page.path}`,
+          url: page.path,
+        })),
+      ],
+    };
+  });
+}
+
 export function Menu({
   data: {
     menu,
@@ -211,6 +314,9 @@ export function Menu({
 }: MenuProps) {
   const screens = useBreakpoint();
   const isMobile = useIsMobile();
+  // Subscribed, not read once: extensions register after the menu first
+  // renders, so a contributed entry would otherwise never appear.
+  const contributedPages = usePages();
   const uiConfig = useUiConfig();
   const theme = useTheme();
   // screens.md is undefined on the first render before breakpoints are measured;
@@ -456,7 +562,7 @@ export function Menu({
               className="main-nav"
               selectedKeys={activeTabs}
               disabledOverflow
-              items={menu.map(item => {
+              items={withExtensionPages(menu, contributedPages).map(item => {
                 const props = {
                   ...item,
                   label: t(item.label),
@@ -481,7 +587,7 @@ export function Menu({
         <Col md={8} xs={isMobile ? 4 : 24}>
           <RightMenu
             align={isMd || isMobile ? 'flex-end' : 'flex-start'}
-            settings={settings}
+            settings={withExtensionSettings(settings, contributedPages)}
             navbarRight={navbarRight}
             isFrontendRoute={isFrontendRoute}
             environmentTag={environmentTag}

@@ -29,10 +29,83 @@ from pydantic import BaseModel, computed_field, Field  # noqa: I001
 
 from superset_core.extensions.constants import (
     DISPLAY_NAME_PATTERN,
+    PAGE_PATH_PATTERN,
+    PERMISSION_NAME_PATTERN,
     PUBLISHER_PATTERN,
     TECHNICAL_NAME_PATTERN,
     VERSION_PATTERN,
 )
+
+
+class PageNav(BaseModel):
+    """Placement of a page in the navigation."""
+
+    label: str = Field(
+        ...,
+        description="Text of the navigation entry",
+        min_length=1,
+    )
+    category: str | None = Field(
+        default=None,
+        description=(
+            "A group of the Settings menu to sit in, such as 'Manage', "
+            "rather than the top-level navigation bar. The group must be "
+            "one Superset already renders."
+        ),
+        min_length=1,
+    )
+
+
+class Page(BaseModel):
+    """A page an extension serves at a path of its own."""
+
+    path: str = Field(
+        ...,
+        description="Absolute path the page is served at, e.g. '/approvals'",
+        pattern=PAGE_PATH_PATTERN,
+        # Bounded because the host checks every declared path against every
+        # rule in the URL map, segment by segment. Without a limit a bundle
+        # within the size cap can make that work arbitrarily large at boot.
+        max_length=255,
+    )
+    name: str = Field(
+        ...,
+        description="Human-readable page name",
+        min_length=1,
+    )
+    nav: PageNav | None = Field(
+        default=None,
+        description="Navigation entry, when the page should appear in the menu",
+    )
+    permission: str | None = Field(
+        default=None,
+        description=(
+            "Permission a user must hold to open the page, granted on the "
+            "extension in the Roles screen. Omit to require only that the "
+            "user is signed in."
+        ),
+        pattern=PERMISSION_NAME_PATTERN,
+        max_length=100,
+    )
+
+
+class Contributions(BaseModel):
+    """What an extension adds to the host.
+
+    Declared rather than merely registered at runtime, because the host has to
+    act on it in two places that never see each other: Flask registers a rule
+    per page so a cold load resolves, and the React router mounts the
+    component. One declaration keeps them from disagreeing.
+    """
+
+    pages: list[Page] = Field(
+        default_factory=list,
+        description="Pages contributed by this extension",
+        # Same reason as the path limit: this list is checked against the
+        # whole URL map at boot, so it cannot be unbounded. Far above what a
+        # real extension needs.
+        max_length=100,
+    )
 
 
 class BaseExtension(BaseModel):
@@ -76,6 +149,10 @@ class BaseExtension(BaseModel):
     permissions: list[str] = Field(
         default_factory=list,
         description="Permissions required by this extension",
+    )
+    contributions: Contributions = Field(
+        default_factory=Contributions,
+        description="What this extension contributes to the host",
     )
 
     @computed_field(description="Composite extension ID (publisher.name)")  # type: ignore[prop-decorator]
