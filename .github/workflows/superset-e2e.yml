@@ -153,7 +153,7 @@ jobs:
           key: >-
             instrumented-assets-${{ hashFiles('.github/workflows/superset-e2e.yml',
             'superset-frontend/package-lock.json',
-            'superset-frontend/.nvmrc', 'superset-frontend/src/**',
+            'superset-frontend/.nvmrc', 'superset_text.yml', 'superset-frontend/src/**',
             'superset-frontend/packages/**', 'superset-frontend/plugins/**',
             'superset-frontend/*.js', 'superset-frontend/*.mjs', 'superset-frontend/*.cjs',
             'superset-frontend/*.json', '!superset-frontend/**/node_modules/**') }}
@@ -407,7 +407,7 @@ jobs:
           key: >-
             instrumented-assets-${{ hashFiles('.github/workflows/superset-e2e.yml',
             'superset-frontend/package-lock.json',
-            'superset-frontend/.nvmrc', 'superset-frontend/src/**',
+            'superset-frontend/.nvmrc', 'superset_text.yml', 'superset-frontend/src/**',
             'superset-frontend/packages/**', 'superset-frontend/plugins/**',
             'superset-frontend/*.js', 'superset-frontend/*.mjs', 'superset-frontend/*.cjs',
             'superset-frontend/*.json', '!superset-frontend/**/node_modules/**') }}
