@@ -98,7 +98,7 @@ test('keeps quick ranges relative and restores All time after a partial selectio
   await userEvent.click(screen.getByRole('button', { name: '2026-10-04' }));
   await userEvent.click(screen.getByRole('button', { name: 'All time' }));
   expect(onValidityChange).toHaveBeenLastCalledWith(true);
-  expect(screen.getByLabelText('Start date')).toHaveValue('');
+  expect(screen.getByLabelText('Start date')).toHaveValue('__/__/____');
   await userEvent.click(screen.getByRole('button', { name: 'Last 7 days' }));
   expect(screen.getByRole('button', { name: 'Last 7 days' })).toHaveAttribute(
     'aria-pressed',

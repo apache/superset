@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useEffect, useId, useRef, useState } from 'react';
+import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { Dayjs } from 'dayjs';
 import { t } from '@apache-superset/core/translation';
 import { styled } from '@apache-superset/core/theme';
@@ -24,6 +24,7 @@ import { Button, Input, InputRef, Popover } from '@superset-ui/core/components';
 import { Icons } from '@superset-ui/core/components/Icons';
 import { extendedDayjs as dayjs } from '@superset-ui/core/utils/dates';
 import CalendarMonth from './CalendarMonth';
+import { dateInputMask, editDateMask } from './dateInputMask';
 import { DatePickerMode, parseTypedDate, pickerFormat } from './utils';
 
 export interface BasicDatePickerProps {
@@ -174,7 +175,8 @@ export default function BasicDatePicker({
     mode === 'datetime' && value?.second()
       ? 'DD/MM/YYYY HH:mm:ss'
       : pickerFormat(mode);
-  const [text, setText] = useState(value?.format(format) ?? '');
+  const mask = dateInputMask(format);
+  const [text, setText] = useState(value?.format(format) ?? mask);
   const [invalid, setInvalid] = useState(false);
   const [open, setOpen] = useState(false);
   const [pickerValue, setPickerValue] = useState(
@@ -182,18 +184,50 @@ export default function BasicDatePicker({
   );
   const [month, setMonth] = useState((value ?? dayjs()).startOf('month'));
   const inputRef = useRef<InputRef>(null);
+  const pendingCaret = useRef<number | null>(null);
   const popupId = useId();
-  const displayValue = value?.format(format) ?? '';
+  const displayValue = value?.format(format) ?? mask;
   useEffect(() => {
+    if (!/[0-9]/.test(displayValue)) pendingCaret.current = 0;
     setText(displayValue);
     setInvalid(false);
   }, [displayValue]);
 
+  useLayoutEffect(() => {
+    if (pendingCaret.current !== null) {
+      inputRef.current?.input?.setSelectionRange(
+        pendingCaret.current,
+        pendingCaret.current,
+      );
+      pendingCaret.current = null;
+    }
+  }, [text]);
+
   const commit = (date: Dayjs | null) => {
-    setText(date?.format(format) ?? '');
+    setText(date?.format(format) ?? mask);
     setInvalid(false);
     onValidityChange?.(true);
     onChange(date);
+  };
+  const updateText = (nextText: string, caret: number) => {
+    pendingCaret.current = caret;
+    inputRef.current?.input?.setSelectionRange(caret, caret);
+    setText(nextText);
+    const empty = !/[0-9]/.test(nextText);
+    const parsed = parseTypedDate(nextText, mode);
+    const valid = empty || !!parsed;
+    setInvalid(!valid);
+    onValidityChange?.(valid);
+    if (empty || parsed) onChange(parsed);
+  };
+  const editText = (
+    start: number,
+    end: number,
+    inserted = '',
+    deletion?: 'backward' | 'forward',
+  ) => {
+    const next = editDateMask(text, mask, start, end, inserted, deletion);
+    updateText(next.text, next.caret);
   };
   const openPicker = () => {
     onFocus?.();
@@ -307,7 +341,16 @@ export default function BasicDatePicker({
       >
         <Input
           ref={inputRef}
-          onFocus={onFocus}
+          onFocus={event => {
+            onFocus?.();
+            if (!/[0-9]/.test(text))
+              event.currentTarget.setSelectionRange(0, 0);
+          }}
+          onClick={event => {
+            if (!/[0-9]/.test(text))
+              event.currentTarget.setSelectionRange(0, 0);
+          }}
+          inputMode="numeric"
           aria-label={label}
           value={text}
           placeholder={
@@ -317,23 +360,99 @@ export default function BasicDatePicker({
           status={invalid ? 'error' : status}
           aria-invalid={invalid || status === 'error'}
           aria-describedby={invalid ? `${popupId}-error` : undefined}
-          allowClear={{
-            clearIcon: <Icons.CloseCircleOutlined aria-label={t('Clear')} />,
+          allowClear={
+            /[0-9]/.test(text)
+              ? {
+                  clearIcon: (
+                    <Icons.CloseCircleOutlined aria-label={t('Clear')} />
+                  ),
+                }
+              : false
+          }
+          onPaste={event => {
+            event.preventDefault();
+            const { selectionStart, selectionEnd } = event.currentTarget;
+            const start = selectionStart ?? 0;
+            const end = selectionEnd ?? start;
+            let pasted = event.clipboardData.getData('text');
+            if (start === 0 && (end === text.length || !/[0-9]/.test(text))) {
+              const parsed = parseTypedDate(pasted, mode);
+              if (parsed) pasted = parsed.format(format);
+            }
+            if (/[0-9]/.test(pasted)) editText(start, end, pasted);
+          }}
+          onCut={event => {
+            const { selectionStart, selectionEnd } = event.currentTarget;
+            const start = selectionStart ?? 0;
+            const end = selectionEnd ?? start;
+            if (start === end) return;
+            event.preventDefault();
+            event.clipboardData.setData('text/plain', text.slice(start, end));
+            editText(start, end);
           }}
           onChange={event => {
+            // Mobile keyboards and autofill may change text without key events.
             const nextText = event.target.value;
-            setText(nextText);
-            if (!nextText.trim()) {
-              commit(null);
+            if (!nextText) {
+              updateText(mask, 0);
               return;
             }
-            const parsed = parseTypedDate(nextText, mode);
-            const valid = !!parsed;
-            setInvalid(!valid);
-            onValidityChange?.(valid);
-            if (parsed) onChange(parsed);
+            const { inputType, data } = event.nativeEvent as InputEvent;
+            const caret = event.target.selectionStart;
+            if (caret !== null && inputType?.startsWith('delete')) {
+              editText(
+                caret,
+                caret + text.length - nextText.length,
+                '',
+                inputType.endsWith('Backward') ? 'backward' : 'forward',
+              );
+              return;
+            }
+            if (caret !== null && data && inputType?.startsWith('insert')) {
+              if (/[0-9]/.test(data)) {
+                editText(
+                  caret - data.length,
+                  caret + text.length - nextText.length,
+                  data,
+                );
+              }
+              return;
+            }
+            let start = 0;
+            while (start < text.length && text[start] === nextText[start])
+              start += 1;
+            let end = text.length;
+            let nextEnd = nextText.length;
+            while (
+              end > start &&
+              nextEnd > start &&
+              text[end - 1] === nextText[nextEnd - 1]
+            ) {
+              end -= 1;
+              nextEnd -= 1;
+            }
+            const inserted = nextText.slice(start, nextEnd);
+            if (/[0-9]/.test(inserted)) editText(start, end, inserted);
           }}
           onKeyDown={event => {
+            if (event.ctrlKey || event.metaKey || event.altKey) return;
+            const { selectionStart, selectionEnd } = event.currentTarget;
+            const start = selectionStart ?? 0;
+            const end = selectionEnd ?? start;
+            if (/^[0-9]$/.test(event.key)) {
+              event.preventDefault();
+              editText(start, end, event.key);
+            } else if (event.key === 'Backspace' || event.key === 'Delete') {
+              event.preventDefault();
+              editText(
+                start,
+                end,
+                '',
+                event.key === 'Backspace' ? 'backward' : 'forward',
+              );
+            } else if (event.key.length === 1) {
+              event.preventDefault();
+            }
             if (event.key === 'ArrowDown') {
               event.preventDefault();
               openPicker();
@@ -345,7 +464,7 @@ export default function BasicDatePicker({
             if (event.key === 'Enter') {
               event.preventDefault();
               const parsed = parseTypedDate(text, mode);
-              if (parsed || !text.trim()) commit(parsed);
+              if (parsed || !/[0-9]/.test(text)) commit(parsed);
             }
           }}
           suffix={
