@@ -393,7 +393,7 @@ export function normalizeColumnConfigKeys<T>(
   });
   const next: Record<string, T> = Object.create(null);
   Object.entries(value).forEach(([key, config]) => {
-    if (colnamesSet.has(key)) {
+    if (colnamesSet.has(key) || knownKeySet.has(key)) {
       next[key] = config;
       return;
     }

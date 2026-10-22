@@ -428,6 +428,34 @@ describe('plugin-chart-table', () => {
       );
     });
 
+    test('does not apply a dropped Previous revenue dataset column config to Main revenue', () => {
+      const { columns } = transformProps({
+        ...testData.basic,
+        datasource: {
+          ...testData.basic.datasource,
+          columns: [{ column_name: 'Previous revenue' }],
+        },
+        queriesData: [
+          {
+            ...testData.basic.queriesData[0],
+            colnames: ['Main revenue', '# revenue'],
+            coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+            data: [{ 'Main revenue': 10, '# revenue': 2 }],
+          },
+        ],
+        rawFormData: {
+          ...testData.basic.rawFormData,
+          column_config: {
+            'Previous revenue': { visible: false },
+          },
+        },
+      });
+
+      expect(columns.find(col => col.key === 'Main revenue')?.config).toEqual(
+        {},
+      );
+    });
+
     test('applies legacy Time column_config to the __timestamp column', () => {
       const { columns } = transformProps({
         ...testData.basic,

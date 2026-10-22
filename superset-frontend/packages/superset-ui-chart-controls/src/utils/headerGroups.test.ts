@@ -390,6 +390,18 @@ test('normalizeColumnConfigKeys leaves real result columns alone when a sibling 
   });
 });
 
+test('normalizeColumnConfigKeys does not treat a known dataset column as a comparison slot', () => {
+  expect(
+    normalizeColumnConfigKeys(
+      { 'Previous revenue': { visible: false } },
+      ['Main revenue', '# revenue'],
+      ['Previous revenue', 'Main revenue', '# revenue'],
+    ),
+  ).toEqual({
+    'Previous revenue': { visible: false },
+  });
+});
+
 test('normalizeColumnConfigKeys remaps localized Main keys onto stored colnames', () => {
   expect(
     normalizeColumnConfigKeys(

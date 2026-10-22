@@ -824,6 +824,45 @@ test('does not remap a real Previous revenue column onto Main revenue', () => {
   ).toEqual({});
 });
 
+test('does not apply a dropped Previous revenue dataset column config to Main revenue', () => {
+  const result = transformProps(
+    createMockChartProps({
+      rawFormData: {
+        viz_type: 'table',
+        datasource: '1__table',
+        query_mode: QueryMode.Aggregate,
+        metrics: [],
+        percent_metrics: [],
+        column_config: {
+          'Previous revenue': { visible: false },
+        },
+        table_timestamp_format: '',
+      },
+      datasource: {
+        columns: [{ column_name: 'Previous revenue' }],
+        metrics: [],
+        columnFormats: {},
+        currencyFormats: {},
+        verboseMap: {},
+      } as unknown as TableChartProps['datasource'],
+      queriesData: [
+        {
+          data: [{ 'Main revenue': 10, '# revenue': 2 }],
+          colnames: ['Main revenue', '# revenue'],
+          coltypes: [GenericDataType.Numeric, GenericDataType.Numeric],
+          rowcount: 1,
+          applied_filters: [],
+          rejected_filters: [],
+        },
+      ] as unknown as TableChartProps['queriesData'],
+    }),
+  );
+
+  expect(result.columns.find(col => col.key === 'Main revenue')?.config).toEqual(
+    {},
+  );
+});
+
 test('applies legacy Time column_config to the __timestamp column', () => {
   const result = transformProps(
     createMockChartProps({
