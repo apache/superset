@@ -42,9 +42,14 @@ const assetsConfig = {
 // the dump has to match).
 const playwrightTestdataConfig = {
   path: ['/tmp/superset-playwright-testdata'],
+  // Python writes __pycache__ under these trees while the examples load, so
+  // bytecode must stay out of the hash or the key changes between the
+  // restore at the start of the step and the save at its end.
   hashFiles: [
     `${workspaceDirectory}/superset/examples/**/*`,
     `${workspaceDirectory}/superset/migrations/**/*`,
+    `!${workspaceDirectory}/superset/**/__pycache__/**`,
+    `!${workspaceDirectory}/superset/**/*.pyc`,
     `${workspaceDirectory}/superset/cli/examples.py`,
     `${workspaceDirectory}/superset/cli/test.py`,
     `${workspaceDirectory}/tests/integration_tests/superset_test_config.py`,
