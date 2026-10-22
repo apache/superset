@@ -28,6 +28,7 @@ concurrency:
 
 jobs:
   update-country-maps:
+    if: github.event_name != 'schedule' || github.repository == 'apache/superset'
     runs-on: ubuntu-26.04
     permissions:
       contents: write
@@ -157,6 +158,17 @@ jobs:
               --title "chore(country-map): regenerate GeoJSON from upstream sources" \
               --body "$BODY" \
               --base master --head "$BRANCH"
+          fi
+
+      - name: Close stale sync PR when no drift remains
+        if: steps.diff.outputs.has_changes == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: chore/update-country-maps-automated
+        run: |
+          if gh pr list --repo "$GITHUB_REPOSITORY" --head "$BRANCH" --state open --json number --jq 'length > 0' | grep -q true; then
+            gh pr close "$BRANCH" --repo "$GITHUB_REPOSITORY" --delete-branch \
+              --comment "Upstream sources no longer differ from \`master\`, so this regenerated data is stale. Closing automatically."
           fi
 
       - name: Fail if the notebook hit cell errors
