@@ -655,6 +655,13 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                         description: >-
                           Archived dependents are included in inaccessible_count;
                           these counts overlap and must not be added together.
+                      blocked_view_ids:
+                        type: array
+                        items:
+                          type: integer
+                        description: >-
+                          The selected views that have dependents. Nothing is
+                          deleted; the others can be deleted in a new request.
             422:
               $ref: '#/components/responses/422'
         """
@@ -684,6 +691,7 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
                 dependents=ex.dependents,
                 inaccessible_count=ex.inaccessible_count,
                 archived_count=ex.archived_count,
+                blocked_view_ids=ex.blocked_view_ids,
             )
         except SemanticViewDeleteFailedError as ex:
             logger.error(

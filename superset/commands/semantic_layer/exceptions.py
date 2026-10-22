@@ -87,8 +87,11 @@ class SemanticDeleteDependentsError(CommandException):
         dependents: list[dict[str, str | int]],
         inaccessible_count: int = 0,
         archived_count: int = 0,
+        blocked_view_ids: list[int] | None = None,
     ) -> None:
         self.archived_count: int = archived_count
+        # Bulk view deletes only: which of the selected views have dependents.
+        self.blocked_view_ids: list[int] | None = blocked_view_ids
         self.total: int = total
         self.dependents: list[dict[str, str | int]] = dependents
         self.inaccessible_count: int = inaccessible_count

@@ -34657,6 +34657,13 @@
                       "description": "Archived dependents are included in inaccessible_count; these counts overlap and must not be added together.",
                       "type": "integer"
                     },
+                    "blocked_view_ids": {
+                      "description": "The selected views that have dependents. Nothing is deleted; the others can be deleted in a new request.",
+                      "items": {
+                        "type": "integer"
+                      },
+                      "type": "array"
+                    },
                     "dependents": {
                       "items": {
                         "properties": {

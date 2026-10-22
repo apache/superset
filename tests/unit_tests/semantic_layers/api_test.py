@@ -1035,8 +1035,9 @@ def test_semantic_delete_reports_dependents_as_conflict(
         "name": "Revenue",
     }
     mock_command: MagicMock = mocker.patch(f"superset.semantic_layers.api.{command}")
+    bulk: bool = command == "BulkDeleteSemanticViewCommand"
     mock_command.return_value.run.side_effect = SemanticDeleteDependentsError(
-        25, [dependent], 24, 3
+        25, [dependent], 24, 3, [2] if bulk else None
     )
 
     request_path: str = (
@@ -1051,6 +1052,8 @@ def test_semantic_delete_reports_dependents_as_conflict(
     assert response.json["total"] == 25
     assert response.json["dependents"] == [dependent]
     assert response.json["inaccessible_count"] == 24
+    # Only bulk deletes name which selected views are blocked.
+    assert response.json.get("blocked_view_ids") == ([2] if bulk else None)
     assert response.json["message"] == (
         "Semantic source is used by 25 dependent assets and cannot be deleted. "
         "Remove or repoint these assets before deleting the semantic source. "

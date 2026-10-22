@@ -18297,3 +18297,14 @@ msgid ""
 "Deletion is blocked by %s dependent assets (%s archived). Remove or repoint "
 "them before deleting."
 msgstr ""
+
+msgid "Delete the other semantic views?"
+msgstr ""
+
+#, python-format
+msgid "Deleted %s semantic view(s)"
+msgstr ""
+
+#, python-format
+msgid "Nothing was deleted because other assets depend on %s. Delete the other %s semantic view(s) (%s)? This cannot be undone."
+msgstr ""
