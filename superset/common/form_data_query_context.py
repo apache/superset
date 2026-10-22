@@ -627,7 +627,7 @@ def _sunburst_temporal_grain(form_data: dict[str, Any], query: dict[str, Any]) -
         if (
             time_grain
             and isinstance(column, str)
-            and (subject == column if subject else temporal_lookup.get(column))
+            and (subject == column or temporal_lookup.get(column))
         ):
             grained = True
             columns.append(

@@ -425,8 +425,9 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # another temporal filter. A new filter based on the value of
             # the granularity will be added later in the code.
             # In practice, this is replacing the previous default temporal filter.
-            # Equality, membership, and other predicates remain independent
-            # constraints, including grained drill filters from any chart type.
+            # Keep independent predicates when the Time Column is unchanged.
+            # A drill on a replaced column may carry the overriding column's
+            # bucket, so it must be dropped along with the old range filter.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -435,7 +436,10 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                     filter
                     for filter in query_object.filter
                     if filter["col"] != filter_to_remove
-                    or filter["op"] != "TEMPORAL_RANGE"
+                    or (
+                        filter["op"] != "TEMPORAL_RANGE"
+                        and filter_to_remove == granularity
+                    )
                 ]
 
     def _apply_filters(

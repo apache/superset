@@ -5692,10 +5692,10 @@ def test_temporal_state_accepts_explore_saved_grain() -> None:
 
 
 @pytest.mark.parametrize("lookup", [None, {"order_date": True, "ship_date": True}])
-def test_mcp_time_column_override_grains_one_hierarchy_level(
+def test_mcp_time_column_override_keeps_lookup_marked_grains(
     lookup: dict[str, bool] | None,
 ) -> None:
-    """MCP preparation and Explore metadata preserve the same effective subject."""
+    """MCP uses its subject fallback without suppressing Explore lookup levels."""
     form_data = {
         "viz_type": "sunburst_v2",
         "columns": ["order_date", "ship_date"],
@@ -5714,7 +5714,11 @@ def test_mcp_time_column_override_grains_one_hierarchy_level(
             datasource_type="table",
             extra_form_data={"granularity_sqla": "ship_date"},
         )
-    assert query["columns"][0] == "order_date"
+    if lookup:
+        assert query["columns"][0]["sqlExpression"] == "order_date"
+        assert query["columns"][0]["timeGrain"] == "P1M"
+    else:
+        assert query["columns"][0] == "order_date"
     assert query["columns"][1] == {
         "timeGrain": "P1M",
         "columnType": "BASE_AXIS",

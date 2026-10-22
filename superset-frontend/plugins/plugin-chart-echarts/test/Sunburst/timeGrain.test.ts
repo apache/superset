@@ -32,7 +32,9 @@ const formData: EchartsSunburstFormData = {
 
 test('typed temporal fields select the same grain for rendering and querying', () => {
   expect(getSunburstTimeGrain(formData, 'ts')).toBe(TimeGranularity.MONTH);
-  expect(getSunburstTimeGrain(formData, 'ship_date')).toBeUndefined();
+  expect(getSunburstTimeGrain(formData, 'ship_date')).toBe(
+    TimeGranularity.MONTH,
+  );
   expect(
     getSunburstTimeGrain(
       {
@@ -57,4 +59,15 @@ test('Sunburst temporal field types reject malformed saved metadata', () => {
   // @ts-expect-error Time grain must follow the duration contract.
   const grain: EchartsSunburstFormData['timeGrainSqla'] = 42;
   expect([lookup, subject, grain]).toHaveLength(3);
+});
+
+test('a dashboard Time Column outside the hierarchy does not disable drill grains', () => {
+  const overridden = {
+    ...formData,
+    extraFormData: { granularity_sqla: 'created_at' },
+  };
+  expect(getSunburstTimeGrain(overridden, 'ts')).toBe(TimeGranularity.MONTH);
+  expect(getSunburstTimeGrain(overridden, 'ship_date')).toBe(
+    TimeGranularity.MONTH,
+  );
 });

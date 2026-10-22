@@ -23,7 +23,7 @@ import {
 } from '@superset-ui/core';
 import type { EchartsSunburstFormData } from './types';
 
-/** Identify grained levels, preserving an explicit Time Column selection. */
+/** Grain temporal hierarchy levels, with a legacy Time Column fallback. */
 export function isGrainedLevel(
   column: QueryFormColumn,
   temporalColumnsLookup: Record<string, boolean> | undefined,
@@ -31,9 +31,7 @@ export function isGrainedLevel(
 ): boolean {
   return (
     isPhysicalColumn(column) &&
-    (granularitySqla
-      ? granularitySqla === column
-      : !!temporalColumnsLookup?.[column])
+    (granularitySqla === column || !!temporalColumnsLookup?.[column])
   );
 }
 

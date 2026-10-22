@@ -72,28 +72,6 @@ const config: ControlPanelConfig = {
             },
           },
           'temporal_columns_lookup',
-          {
-            name: 'granularity_sqla',
-            config: {
-              // Retain an MCP-saved Time Column without choosing one for new
-              // charts. Dropping it changes which of two temporal levels grains.
-              type: 'TextControl',
-              hidden: true,
-              // Visibility drives resets, not query-time stashing of a legacy subject.
-              disableStash: true,
-              default: null,
-              // Preserve legacy subjects on load, but clear a selected subject
-              // when a hierarchy edit removes its physical level.
-              visibility: (
-                { controls }: ControlPanelsContainerProps,
-                control: ControlState,
-              ) =>
-                ensureIsArray(controls?.columns?.value).some(
-                  column =>
-                    isPhysicalColumn(column) && column === control.value,
-                ),
-            },
-          },
         ],
         ['metric'],
         ['secondary_metric'],

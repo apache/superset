@@ -33,7 +33,7 @@ from typing import cast
 import pytest
 from flask import Flask
 from pytest_mock import MockerFixture
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm.session import Session
 from sqlalchemy.pool import StaticPool
@@ -299,11 +299,11 @@ def test_sunburst_malformed_lookup_is_ignored(lookup: object) -> None:
     assert "time_grain_sqla" not in query.get("extras", {})
 
 
-@pytest.mark.parametrize("dashboard_override", [False, True])
-def test_sunburst_explicit_subject_matches_explore_lookup(
-    dashboard_override: bool,
+@pytest.mark.parametrize("subject", ["order_date", "ship_date", "created_at"])
+def test_sunburst_time_column_does_not_disable_lookup_grains(
+    subject: str,
 ) -> None:
-    """The server mirror shares the explicit-subject precedence with Explore."""
+    """A Time Column must not suppress other temporal hierarchy levels."""
     from superset.common.form_data_query_context import (
         build_query_objects_from_form_data,
     )
@@ -312,10 +312,8 @@ def test_sunburst_explicit_subject_matches_explore_lookup(
         "viz_type": "sunburst_v2",
         "columns": ["order_date", "ship_date"],
         "time_grain_sqla": "P1M",
-        "granularity_sqla": "order_date",
+        "granularity_sqla": subject,
     }
-    if dashboard_override:
-        form_data["granularity_sqla"] = "ship_date"
     [saved] = build_query_objects_from_form_data(form_data)
     [explore] = build_query_objects_from_form_data(
         {
@@ -323,10 +321,16 @@ def test_sunburst_explicit_subject_matches_explore_lookup(
             "temporal_columns_lookup": {"order_date": True, "ship_date": True},
         }
     )
-    assert saved["columns"] == explore["columns"]
-    assert saved["columns"][0 if dashboard_override else 1] == (
-        "order_date" if dashboard_override else "ship_date"
-    )
+    assert [column["sqlExpression"] for column in explore["columns"]] == [
+        "order_date",
+        "ship_date",
+    ]
+    assert all(column["timeGrain"] == "P1M" for column in explore["columns"])
+    for column, name in zip(saved["columns"], ["order_date", "ship_date"], strict=True):
+        if name == subject:
+            assert column["timeGrain"] == "P1M"
+        else:
+            assert column == name
 
 
 @pytest.mark.parametrize("viz_type", ["table", "echarts_timeseries_line"])
@@ -409,3 +413,73 @@ def test_non_sunburst_granularity_preserves_independent_filters(
 
     assert df.groupby("kind")["ct"].sum().to_dict() == expected
     assert query.filter == [filter_]
+
+
+@pytest.mark.parametrize("result_type", ["samples", "drill_detail", "full"])
+@pytest.mark.parametrize("bucket", ["2026-08-01", "2026-09-01"])
+def test_timeseries_samples_with_swapped_time_column_drops_stale_drill_filter(
+    events_table: SqlaTable,
+    app: Flask,
+    mocker: MockerFixture,
+    result_type: str,
+    bucket: str,
+) -> None:
+    """Minimal dashboard samples must not filter the replaced x-axis column."""
+    from superset.common.chart_data import ChartDataResultType
+
+    events_table.offset = 0
+    events_table.columns.append(
+        TableColumn(column_name="ship_date", is_dttm=True, type="TIMESTAMP")
+    )
+    with events_table.database.get_sqla_engine() as engine, engine.begin() as conn:
+        conn.execute(text("ALTER TABLE events ADD COLUMN ship_date TIMESTAMP"))
+        for (order_date, _), ship_date in zip(
+            ROWS,
+            [
+                "2026-08-01",
+                "2026-09-01",
+                "2026-09-02",
+                "2026-08-02",
+                "2026-09-03",
+                "2026-08-03",
+            ],
+            strict=True,
+        ):
+            conn.execute(
+                text("UPDATE events SET ship_date = :ship WHERE order_date = :order"),
+                {"ship": f"{ship_date} 12:00:00", "order": order_date},
+            )
+    mocker.patch.object(
+        QueryContextFactory, "_convert_to_model", return_value=events_table
+    )
+    until = "2026-09-01" if bucket == "2026-08-01" else "2026-10-01"
+    with app.test_request_context():
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            result_type=ChartDataResultType(result_type),
+            form_data={"dashboardId": 1},
+            queries=[
+                {
+                    "columns": ["order_date", "ship_date", "kind"],
+                    "metrics": [],
+                    "granularity": "ship_date",
+                    "time_range": f"{bucket} : {until}",
+                    "filters": [
+                        {
+                            "col": "order_date",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "No filter",
+                        },
+                        _drill_filter(bucket),
+                    ],
+                    "row_limit": 100,
+                }
+            ],
+        )
+        query = context.queries[0]
+        assert query.filter == []
+        df = events_table.get_query_result(query).df
+    expected = [
+        ROWS[i][0] for i in ([0, 3, 5] if bucket == "2026-08-01" else [1, 2, 4])
+    ]
+    assert sorted(str(value) for value in df["order_date"]) == sorted(expected)

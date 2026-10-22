@@ -112,7 +112,7 @@ test('semantic views get a column reference and cross-filter columns stay names'
   expect(formData.columns).toEqual(['ts', 'region']);
 });
 
-test('an explicit MCP time column grains the same level after Explore adds its lookup', () => {
+test('Explore metadata grains both temporal levels alongside the legacy MCP subject', () => {
   const saved = {
     ...exploreSaved,
     columns: ['ts', 'ship_date'],
@@ -125,10 +125,13 @@ test('an explicit MCP time column grains the same level after Explore adds its l
     temporal_columns_lookup: { ts: true, ship_date: true },
   } as QueryFormData).queries;
   expect(dashboard.columns).toEqual([groupedTs('P1M'), 'ship_date']);
-  expect(explore.columns).toEqual(dashboard.columns);
+  expect(explore.columns).toEqual([
+    groupedTs('P1M'),
+    { ...groupedTs('P1M'), sqlExpression: 'ship_date', label: 'ship_date' },
+  ]);
 });
 
-test('a dashboard Time Column override selects the effective grained level', () => {
+test('a dashboard Time Column override does not ungrain other temporal levels', () => {
   const [query] = buildQuery({
     ...exploreSaved,
     columns: ['ts', 'ship_date'],
@@ -137,12 +140,12 @@ test('a dashboard Time Column override selects the effective grained level', () 
     extra_form_data: { granularity_sqla: 'ship_date' },
   } as QueryFormData).queries;
   expect(query.columns).toEqual([
-    'ts',
+    groupedTs('P1M'),
     { ...groupedTs('P1M'), sqlExpression: 'ship_date', label: 'ship_date' },
   ]);
 });
 
-test('an explicit Time Column outside the hierarchy does not retarget grain when Explore adds metadata', () => {
+test('a Time Column outside the hierarchy does not disable lookup-marked grains', () => {
   const formData = {
     ...exploreSaved,
     granularity_sqla: 'ship_date',
@@ -152,6 +155,6 @@ test('an explicit Time Column outside the hierarchy does not retarget grain when
     ...formData,
     temporal_columns_lookup: undefined,
   } as QueryFormData).queries;
-  expect(withLookup.columns).toEqual(['ts', 'region']);
-  expect(withLookup.columns).toEqual(withoutLookup.columns);
+  expect(withLookup.columns).toEqual([groupedTs('P1M'), 'region']);
+  expect(withoutLookup.columns).toEqual(['ts', 'region']);
 });

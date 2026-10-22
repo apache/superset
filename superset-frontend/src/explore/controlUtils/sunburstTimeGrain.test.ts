@@ -16,8 +16,19 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { getChartControlPanelRegistry, QueryFormData } from '@superset-ui/core';
-import { ControlPanelState } from '@superset-ui/chart-controls';
+import {
+  DatasourceType,
+  getChartControlPanelRegistry,
+  QueryFormData,
+} from '@superset-ui/core';
+import {
+  ControlPanelState,
+  ControlStateMapping,
+} from '@superset-ui/chart-controls';
+import exploreReducer, {
+  ExploreState,
+} from 'src/explore/reducers/exploreReducer';
+import { SET_FIELD_VALUE } from 'src/explore/actions/exploreActions';
 import controlPanel from '../../../plugins/plugin-chart-echarts/src/Sunburst/controlPanel';
 import buildQuery from '../../../plugins/plugin-chart-echarts/src/Sunburst/buildQuery';
 import { getAllControlsState } from './getControlState';
@@ -46,6 +57,7 @@ const datasource = {
     { column_name: 'ts', is_dttm: true },
     { column_name: 'region', is_dttm: false },
     { column_name: 'ship_date', is_dttm: true },
+    { column_name: 'created_at', is_dttm: true },
   ],
   metrics: [{ metric_name: 'count' }],
   time_grain_sqla: [
@@ -67,7 +79,7 @@ function exploreFormData(savedFormData: QueryFormData): QueryFormData {
   // control on the Sunburst panel are dropped.
   const controls = getAllControlsState(
     VIZ_TYPE,
-    'table' as never,
+    DatasourceType.Table,
     {
       datasource,
       controls: {},
@@ -76,7 +88,7 @@ function exploreFormData(savedFormData: QueryFormData): QueryFormData {
     } as unknown as ControlPanelState,
     savedFormData,
   );
-  return getFormDataFromControls(controls as never);
+  return getFormDataFromControls(controls as ControlStateMapping);
 }
 
 test('an MCP-saved Sunburst opened in Explore queries its temporal level at the saved grain', () => {
@@ -133,14 +145,72 @@ test('a Sunburst saved without a grain stays raw in Explore until a grain is cho
   ]);
 });
 
-test('Explore preserves an MCP time-column subject in a two-temporal-level hierarchy', () => {
+test('Explore grains all temporal levels rather than retaining a hidden Time Column', () => {
   const saved = {
     ...mcpSavedFormData,
     columns: ['ship_date', 'ts'],
   } as QueryFormData;
   const explored = exploreFormData(saved);
-  expect(explored.granularity_sqla).toBe('ts');
-  expect(buildQuery(explored).queries[0].columns).toEqual(
-    buildQuery(saved).queries[0].columns,
-  );
+  expect(explored.granularity_sqla).toBeUndefined();
+  expect(buildQuery(explored).queries[0].columns).toEqual([
+    expect.objectContaining({ sqlExpression: 'ship_date', timeGrain: 'P1M' }),
+    expect.objectContaining({ sqlExpression: 'ts', timeGrain: 'P1M' }),
+  ]);
 });
+
+test.each(['created_at', 'ts'])(
+  'Edit dataset writing Time Column %s does not change Sunburst hierarchy grains',
+  timeColumn => {
+    const saved = {
+      ...mcpSavedFormData,
+      granularity_sqla: undefined,
+      columns: ['ts', 'ship_date', 'region'],
+    } as QueryFormData;
+    const controls = getAllControlsState(
+      VIZ_TYPE,
+      DatasourceType.Table,
+      {
+        datasource,
+        controls: {},
+        form_data: saved,
+        metadata: { owners: [] },
+      } as unknown as ControlPanelState,
+      saved,
+    ) as ControlStateMapping;
+    const before = getFormDataFromControls(controls);
+    const state: ExploreState = { controls, form_data: before };
+    const updated = exploreReducer(state, {
+      type: SET_FIELD_VALUE,
+      controlName: 'granularity_sqla',
+      value: timeColumn,
+    });
+    const after = getFormDataFromControls(updated.controls);
+    expect(after.granularity_sqla).toBeUndefined();
+    expect(buildQuery(after).queries[0].columns).toEqual(
+      buildQuery(before).queries[0].columns,
+    );
+    expect(buildQuery(after).queries[0].columns).toEqual([
+      expect.objectContaining({ sqlExpression: 'ts', timeGrain: 'P1M' }),
+      expect.objectContaining({ sqlExpression: 'ship_date', timeGrain: 'P1M' }),
+      'region',
+    ]);
+    expect(buildQuery(after).queries[0].granularity).toBeUndefined();
+  },
+);
+
+test.each(['created_at', 'ts'])(
+  'dashboard edit or chart-type carryover of Time Column %s is not retained by Sunburst controls',
+  timeColumn => {
+    const explored = exploreFormData({
+      ...mcpSavedFormData,
+      columns: ['ts', 'ship_date', 'region'],
+      granularity_sqla: timeColumn,
+    } as QueryFormData);
+    expect(explored.granularity_sqla).toBeUndefined();
+    expect(buildQuery(explored).queries[0].columns).toEqual([
+      expect.objectContaining({ sqlExpression: 'ts', timeGrain: 'P1M' }),
+      expect.objectContaining({ sqlExpression: 'ship_date', timeGrain: 'P1M' }),
+      'region',
+    ]);
+  },
+);
