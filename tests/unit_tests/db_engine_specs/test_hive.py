@@ -24,6 +24,7 @@ from pytest_mock import MockerFixture
 from sqlalchemy.engine.interfaces import Dialect
 from sqlalchemy.engine.url import make_url
 
+from superset.constants import TimeGrain
 from superset.sql.parse import Table
 from tests.unit_tests.db_engine_specs.utils import assert_convert_dttm
 from tests.unit_tests.fixtures.common import dttm  # noqa: F401
@@ -50,6 +51,27 @@ def test_convert_dttm(
     assert_convert_dttm(spec, target_type, expected_result, dttm)
 
 
+@pytest.mark.parametrize(
+    ("grain", "expected_expression"),
+    [
+        (
+            TimeGrain.WEEK,
+            "date_format(date_sub(my_col, "
+            "CAST(from_unixtime(unix_timestamp(my_col),'u') as int)-1), "
+            "'yyyy-MM-dd 00:00:00')",
+        ),
+    ],
+)
+def test_time_grain_expressions(grain: TimeGrain, expected_expression: str) -> None:
+    """
+    Test that time grain expressions generate the expected SQL.
+    """
+    from superset.db_engine_specs.hive import HiveEngineSpec
+
+    actual = HiveEngineSpec._time_grain_expressions[grain].format(col="my_col")
+    assert actual == expected_expression
+
+
 def test_week_time_grain_buckets_to_monday() -> None:
     """
     Evaluate the Hive ``WEEK`` grain expression and check that every day of a
@@ -61,7 +83,6 @@ def test_week_time_grain_buckets_to_monday() -> None:
     import sqlite3
     from datetime import date, timedelta, timezone
 
-    from superset.constants import TimeGrain
     from superset.db_engine_specs.hive import HiveEngineSpec
 
     def unix_timestamp(value: str) -> int:
@@ -69,6 +90,9 @@ def test_week_time_grain_buckets_to_monday() -> None:
         return int(day.timestamp())
 
     def from_unixtime(seconds: int, fmt: str) -> str:
+        # Assumes Java SimpleDateFormat semantics for ``'u'`` (ISO day of week,
+        # Monday=1 ... Sunday=7), as used by Hive 2.x/3.x ``from_unixtime``.
+        # Hive versions that format ``'u'`` differently are not covered here.
         assert fmt == "u"
         return str(datetime.fromtimestamp(seconds, timezone.utc).isoweekday())
 
