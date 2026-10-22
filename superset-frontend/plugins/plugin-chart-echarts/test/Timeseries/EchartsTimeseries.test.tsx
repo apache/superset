@@ -900,7 +900,7 @@ test('context menu cross-filter is available for a temporal bar point', async ()
 });
 
 test.each([undefined, 'PT6H' as TimeGranularity])(
-  'temporal drill by preserves native epoch coercion and fallback grain %s',
+  'temporal drill by compares a naive ISO datetime for grain %s',
   async grain => {
     const onContextMenu = jest.fn();
     renderTimeseries({
@@ -925,13 +925,15 @@ test.each([undefined, 'PT6H' as TimeGranularity])(
       name: '2024-10-07',
       event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
     });
+    // Drill by writes adhoc x-axis comparators straight into SQL, where an
+    // epoch integer would not compare with a timestamp.
     expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
-      expect.objectContaining({
+      {
         col: 'ds',
         op: '==',
-        val: raw,
-        ...(grain && { grain }),
-      }),
+        val: '2024-10-07T06:00:00',
+        formattedVal: expect.any(String),
+      },
     ]);
   },
 );

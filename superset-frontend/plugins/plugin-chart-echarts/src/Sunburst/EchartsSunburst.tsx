@@ -27,6 +27,7 @@ import Echart from '../components/Echart';
 import { EventHandlers, TreePathInfo } from '../types';
 import {
   getSunburstDetailFilter,
+  getSunburstDrillByFilter,
   getSunburstFilter,
   getSunburstSelectionKey,
 } from './utils';
@@ -148,7 +149,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
             );
             if (i === records.length - 1) {
               drillByFilters.push(
-                getSunburstDetailFilter(
+                getSunburstDrillByFilter(
                   columns[i],
                   record,
                   formData,

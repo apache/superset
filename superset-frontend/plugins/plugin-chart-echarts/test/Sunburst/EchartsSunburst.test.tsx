@@ -19,6 +19,7 @@
 import { render } from '@testing-library/react';
 import {
   ChartProps,
+  QueryFormColumn,
   TimeGranularity,
   createSmartDateFormatter,
   getTimeFormatterRegistry,
@@ -59,6 +60,7 @@ function setup({
   granularitySqla = 'order_date',
   temporalColumnsLookup,
   timeColumnOverride,
+  adhocTemporal = false,
 }: {
   grain?: TimeGranularity;
   override?: TimeGranularity;
@@ -69,12 +71,20 @@ function setup({
   granularitySqla?: string;
   temporalColumnsLookup?: Record<string, boolean>;
   timeColumnOverride?: string;
+  adhocTemporal?: boolean;
 } = {}) {
   const setDataMask = jest.fn();
   const onContextMenu = jest.fn();
+  const temporalColumn: QueryFormColumn = adhocTemporal
+    ? {
+        expressionType: 'SQL',
+        sqlExpression: "DATE_TRUNC('month', order_date)",
+        label: 'order_date',
+      }
+    : 'order_date';
   const columns = temporalFirst
-    ? ['order_date', 'category']
-    : ['category', 'order_date'];
+    ? [temporalColumn, 'category']
+    : ['category', temporalColumn];
   const props = transformProps(
     new ChartProps<EchartsSunburstFormData>({
       formData: {
@@ -203,31 +213,34 @@ test('keeps categorical cross-filters and click-to-clear behavior', () => {
   });
 });
 
-test('drill-by uses the raw temporal value and the displayed label', () => {
+test('drill-by sends an ungrained temporal value as a naive ISO datetime', () => {
   const { eventHandlers, event, onContextMenu, path } = setup();
   eventHandlers.contextmenu(event());
   expect(onContextMenu.mock.lastCall[2].drillBy.filters).toEqual([
     {
       col: 'order_date',
       op: '==',
-      val: Date.UTC(2024, 9, 1),
+      val: '2024-10-01T00:00:00',
       formattedVal: path[1].name,
     },
   ]);
 });
 
-test('drill by preserves a grained bucket when the chart has a time range', () => {
-  const { eventHandlers, event, onContextMenu } = setup({
+test('drill by selects a grained bucket with its TEMPORAL_RANGE', () => {
+  // Drill by keeps only column, operator and comparator, so a grain is lost.
+  const { eventHandlers, event, onContextMenu, path } = setup({
     grain: TimeGranularity.MONTH,
   });
   eventHandlers.contextmenu(event());
   const context = onContextMenu.mock.lastCall[2];
-  expect(context.drillBy.filters[0]).toMatchObject({
-    col: 'order_date',
-    op: '==',
-    val: Date.UTC(2024, 9, 1),
-    grain: TimeGranularity.MONTH,
-  });
+  expect(context.drillBy.filters).toEqual([
+    {
+      col: 'order_date',
+      op: 'TEMPORAL_RANGE',
+      val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+      formattedVal: path[1].name,
+    },
+  ]);
   expect(context.crossFilter.dataMask.extraFormData.filters[0].op).toBe(
     'TEMPORAL_RANGE',
   );
@@ -383,18 +396,22 @@ test.each(['PT6H', 'PT5S', 'PT30S', 'PT0.5H', 'P0.25Y', 'custom_grain'])(
       ],
     });
     eventHandlers.contextmenu(event());
-    for (const filter of [
-      onContextMenu.mock.lastCall[2].drillToDetail[1],
-      onContextMenu.mock.lastCall[2].drillBy.filters[0],
-    ]) {
-      expect(filter).toEqual({
+    expect(onContextMenu.mock.lastCall[2].drillToDetail[1]).toEqual({
+      col: 'order_date',
+      op: '==',
+      val: Date.UTC(2024, 9, 7, 6),
+      grain,
+      formattedVal: path[1].name,
+    });
+    // Drill by cannot carry a grain, so it matches the bucket start instant.
+    expect(onContextMenu.mock.lastCall[2].drillBy.filters).toEqual([
+      {
         col: 'order_date',
         op: '==',
-        val: Date.UTC(2024, 9, 7, 6),
-        grain,
+        val: '2024-10-07T06:00:00',
         formattedVal: path[1].name,
-      });
-    }
+      },
+    ]);
   },
 );
 
@@ -426,4 +443,32 @@ test('ungrained drill to detail keeps the epoch value for native engine coercion
     val: raw,
     formattedVal: path[1].name,
   });
+});
+
+test('adhoc temporal levels compare a naive ISO datetime, not an epoch integer', () => {
+  // An adhoc SQL expression has no native type for the backend to convert an
+  // epoch into, so `(expr) = 1727740800000` would fail on typed engines.
+  const { eventHandlers, event, onContextMenu, setDataMask, path } = setup({
+    adhocTemporal: true,
+    grain: TimeGranularity.MONTH,
+  });
+  const col = {
+    expressionType: 'SQL',
+    sqlExpression: "DATE_TRUNC('month', order_date)",
+    label: 'order_date',
+  };
+  eventHandlers.click(event());
+  expect(setDataMask.mock.lastCall[0].extraFormData).toEqual({
+    filters: [{ col, op: '==', val: '2024-10-01T00:00:00' }],
+  });
+  eventHandlers.contextmenu(event());
+  const context = onContextMenu.mock.lastCall[2];
+  for (const filter of [context.drillToDetail[1], context.drillBy.filters[0]]) {
+    expect(filter).toEqual({
+      col,
+      op: '==',
+      val: '2024-10-01T00:00:00',
+      formattedVal: path[1].name,
+    });
+  }
 });

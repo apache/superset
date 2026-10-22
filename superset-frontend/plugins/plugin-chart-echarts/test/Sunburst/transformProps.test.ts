@@ -197,3 +197,54 @@ test.each([
       .series[0].data[0].name,
   ).toBe(label);
 });
+
+test('a year label is not highlighted by digits inside a selected epoch key', () => {
+  const y2000 = Date.UTC(2000, 0, 1);
+  const y2004 = Date.UTC(2004, 0, 1);
+  // The selected key holds 1072915200000, which contains the digits "2000".
+  expect(String(y2004)).toContain('2000');
+  const props = new ChartProps<EchartsSunburstFormData>({
+    formData: {
+      ...formData,
+      viz_type: 'sunburst_v2',
+      columns: ['order_date', 'category'],
+      dateFormat: 'smart_date',
+      timeGrainSqla: TimeGranularity.YEAR,
+      granularitySqla: 'order_date',
+    },
+    width: 800,
+    height: 600,
+    theme: supersetTheme,
+    filterState: { selectedValues: [`${y2004},A`] },
+    queriesData: [
+      {
+        colnames: ['order_date', 'category', 'sum__value'],
+        coltypes: [
+          GenericDataType.Temporal,
+          GenericDataType.String,
+          GenericDataType.Numeric,
+        ],
+        data: [
+          { order_date: y2000, category: 'A', sum__value: 10 },
+          { order_date: y2004, category: 'A', sum__value: 20 },
+        ],
+      },
+    ],
+  });
+  const nodes = (
+    transformProps(props as EchartsSunburstChartProps).echartOptions as {
+      series: {
+        data: {
+          name: string;
+          itemStyle?: { opacity?: number };
+          children?: { itemStyle?: { opacity?: number } }[];
+        }[];
+      }[];
+    }
+  ).series[0].data;
+  expect(nodes.map(node => node.name)).toEqual(['2000', '2004']);
+  expect(nodes[0].itemStyle?.opacity).toBe(0.3);
+  expect(nodes[0].children?.[0].itemStyle?.opacity).toBe(0.3);
+  expect(nodes[1].itemStyle?.opacity).toBeUndefined();
+  expect(nodes[1].children?.[0].itemStyle?.opacity).toBeUndefined();
+});

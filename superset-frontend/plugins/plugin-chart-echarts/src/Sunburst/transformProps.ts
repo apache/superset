@@ -47,7 +47,11 @@ import {
   SunburstTransformedProps,
 } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
-import { getSunburstTimeGrain, getSunburstSelectionKey } from './utils';
+import {
+  getSunburstTimeGrain,
+  getSunburstSelectionKey,
+  isSunburstPathSelected,
+} from './utils';
 
 export function getLinearDomain(
   treeData: TreeNode[],
@@ -346,9 +350,11 @@ export default function transformProps(
         columns,
         coltypeMapping,
       );
+      const selectedValue = filterState.selectedValues?.[0];
       if (
-        filterState.selectedValues?.[0]?.includes(selectionKey) === false &&
-        filterState.selectedValues?.[0]?.includes(newPath.join(',')) === false
+        selectedValue != null &&
+        !isSunburstPathSelected(selectedValue, selectionKey) &&
+        !isSunburstPathSelected(selectedValue, newPath.join(','))
       ) {
         item = {
           ...item,
