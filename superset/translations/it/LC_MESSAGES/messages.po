@@ -5013,6 +5013,9 @@ msgstr "Chiudi l'editor dei punti di interruzione colore"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ro, ru, sk, sl, sr,
 # sr_Latn, tr, uk, zh, zh_TW]
@@ -10450,10 +10453,10 @@ msgstr "Nasconde la linea per la serie temporale"
 msgid "Hierarchy"
 msgstr "Gerarchia"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -12146,10 +12149,10 @@ msgstr "Longitudine e Latitudine"
 msgid "Longitude of default viewport"
 msgstr "Longitudine della visualizzazione predefinita"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -14022,9 +14025,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacità, prevede valori compresi tra 0 e 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Apri il tab Sorgente Dati"
 
@@ -14056,6 +14056,9 @@ msgstr "Esponi in SQL Lab"
 
 msgid "Open in SQL lab"
 msgstr "Apri in SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Apri query in SQL Lab"
@@ -16885,6 +16888,12 @@ msgstr "Scorri fino in fondo per abilitare la sovrascrittura delle modifiche. "
 msgid "Search"
 msgstr "Cerca"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Cerca %s record"
+msgstr[1] "Cerca %s record"
+
 msgid "Search / Filter"
 msgstr "Cerca / Filtra"
 
@@ -16938,9 +16947,6 @@ msgstr "Cerca nei filtri"
 
 msgid "Search metrics by key or label"
 msgstr "Cerca metriche per chiave o etichetta"
-
-msgid "Search records"
-msgstr "Cerca record"
 
 msgid "Search tags"
 msgstr "Cerca tag"
