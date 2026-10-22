@@ -31,8 +31,8 @@ from maps.context import BuildContext
 NAME = "madagascar"
 
 _URL = (
-    "https://maps.afro.who.int/server/rest/services/Hosted/AFROGDB_PUBLIC_DATA/"
-    "FeatureServer/0/query?where=iso3_code+%3D+%27MDG%27+and+boundary_type_id+%3D+1"
+    "https://maps.afro.who.int/server/rest/services/Hosted/AFROGDB_published_boundary/"
+    "FeatureServer/2/query?where=iso3_code+%3D+%27MDG%27+and+boundary_type_id+%3D+1"
     "&geometryType=esriGeometryEnvelope&defaultSR=&spatialRel=esriSpatialRelIntersects"
     "&units=esriSRUnit_Foot&outFields=level_id%2Cdisplay_name&returnGeometry=true&f=geojson"
 )
