@@ -49,6 +49,15 @@ jobs:
       - name: Check for drift
         id: diff
         run: |
+          # Re-extraction rewrites POT-Creation-Date in every catalog. Revert
+          # files whose only change is that header so timestamp churn alone
+          # never produces a sync PR.
+          git diff --name-only -- superset/translations | while read -r f; do
+            if ! git diff -U0 -- "$f" | grep -E '^[+-]' | grep -vE '^(\+\+\+|---)' | grep -qvE '^[+-]"POT-Creation-Date:'; then
+              git checkout -- "$f"
+            fi
+          done
+
           if git diff --quiet -- superset/translations; then
             echo "has_changes=false" >> "$GITHUB_OUTPUT"
           else
