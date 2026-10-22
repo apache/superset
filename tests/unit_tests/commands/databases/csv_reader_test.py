@@ -381,6 +381,24 @@ def test_csv_reader_encoding_detection_past_an_ascii_start():
         assert df.values.tolist()[-1] == ["José", "München"]
 
 
+def test_csv_reader_encoding_detection_reads_large_files_in_chunks():
+    """Detection past the largest sample never reads the whole file at once."""
+    content = "name,city\n" + "Anna,Berlin\n" * 7000 + "José,München\n"
+    file = FileStorage(io.BytesIO(content.encode("cp1252")))
+    original_read = file.read
+    read_sizes = []
+
+    def track_read(size=-1):
+        read_sizes.append(size)
+        return original_read(size)
+
+    file.read = track_read
+
+    assert CSVReader._detect_encoding(file) == "cp1252"
+    assert read_sizes
+    assert all(0 < size <= 65536 for size in read_sizes)
+
+
 def test_csv_reader_explicit_encoding():
     """Test that explicit encoding is respected."""
     csv_reader = CSVReader(

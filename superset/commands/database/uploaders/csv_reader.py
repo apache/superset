@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+import codecs
 import logging
 from importlib import util
 from typing import Any, Optional
@@ -96,16 +97,20 @@ class CSVReader(BaseDataReader):
                     return encoding
                 break
 
-        # Larger than every sample, and each one read as UTF-8: decide on the whole file
-        file.seek(0)
-        content = file.read()
-        file.seek(0)
+        # Larger than every sample, and each one read as UTF-8: decide on the whole
+        # file, decoded chunk by chunk so that no more than one chunk is in memory
         for encoding in ENCODING_FALLBACKS:
+            decoder = codecs.getincrementaldecoder(encoding)()
+            file.seek(0)
             try:
-                content.decode(encoding)
+                while chunk := file.read(sample_sizes[-1]):
+                    decoder.decode(chunk)
+                decoder.decode(b"", final=True)
             except UnicodeDecodeError:
                 continue
+            file.seek(0)
             return encoding
+        file.seek(0)
         return DEFAULT_ENCODING
 
     @staticmethod
