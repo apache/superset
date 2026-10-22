@@ -531,7 +531,7 @@ async def test_disabled_api_key_assertion_cannot_fall_through_to_dev_user(
         patch("superset.mcp_service.auth.g", SimpleNamespace(user=MagicMock())),
         patch("fastmcp.server.dependencies.get_access_token", return_value=token),
         patch("superset.mcp_service.auth.load_user_with_relationships") as load,
-        pytest.raises(ValueError, match="Authentication required"),
+        pytest.raises(PermissionError, match="Authentication required"),
     ):
         get_user_from_request()
     load.assert_not_called()
@@ -561,3 +561,29 @@ async def test_serialized_api_key_token_revalidates_bearer(app: SupersetApp) -> 
         assert _resolve_user_from_api_key(app) is alice
     validate.assert_called_once_with("sst_abc123")
     load.assert_called_once_with(username="alice")
+
+
+@pytest.mark.parametrize("entrypoint", ["tool_list", "tool_search"])
+def test_disabled_api_key_assertion_hides_tools(
+    app: SupersetApp, entrypoint: str
+) -> None:
+    """Discovery distinguishes rejected credentials from absent authentication."""
+    from superset.mcp_service.middleware import RBACToolVisibilityMiddleware
+    from superset.mcp_service.server import _tool_allowed_for_current_user
+
+    token = AccessToken(
+        token="external-bearer",  # noqa: S106
+        client_id="api_key",
+        scopes=[],
+        claims={API_KEY_PASSTHROUGH_CLAIM: True},
+    )
+    app.config["MCP_API_KEY_ENABLED"] = False
+    public_tool = SimpleNamespace(fn=lambda: None)
+    with (
+        patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+        patch("flask.g", SimpleNamespace(user=None)),
+    ):
+        if entrypoint == "tool_list":
+            assert RBACToolVisibilityMiddleware._visible_tools([public_tool]) == []
+        else:
+            assert not _tool_allowed_for_current_user(public_tool)

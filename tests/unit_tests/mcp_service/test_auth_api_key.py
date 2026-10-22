@@ -167,18 +167,17 @@ def test_invalid_api_key_raises(app: SupersetApp) -> None:
         app.config.pop("MCP_DEV_USERNAME", None)
 
 
-# -- API key disabled -> falls through to next auth method --
+# -- API key disabled -> rejects an explicit authentication attempt --
 
 
 @pytest.mark.usefixtures("_disable_api_keys")
-def test_api_key_disabled_skips_auth(app: SupersetApp) -> None:
-    """When FAB_API_KEY_ENABLED is False, API key auth is skipped entirely
-    even if an AccessToken is present."""
+def test_api_key_disabled_rejects_explicit_auth(app: SupersetApp) -> None:
+    """Disabled API-key authentication cannot fall through to weaker sources."""
     mock_sm = MagicMock()
 
     with _mock_sm_ctx(app, mock_sm):
         with _patch_access_token(_passthrough_access_token("sst_abc123")):
-            with pytest.raises(MCPNoAuthSourceError):
+            with pytest.raises(PermissionError, match="Authentication required"):
                 get_user_from_request()
 
     mock_sm.validate_api_key.assert_not_called()

@@ -715,7 +715,7 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
             if not get_mcp_api_key_enabled(app):
                 # An explicit authentication attempt must not fall through to
                 # a development or middleware identity when keys are disabled.
-                raise MCPNoAuthSourceError(
+                raise PermissionError(
                     "Authentication required. No valid credentials provided."
                 )
             logger.debug(
