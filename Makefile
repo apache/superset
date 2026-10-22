@@ -136,3 +136,114 @@ ports:
 
 open:
 	./scripts/docker-compose-up.sh open
+
+# ---------------------------------------------------------------------------
+# Asset approval QA environment (docker-compose-light)
+#
+#   make asset-demo-help   print these instructions, the logins and the happy flow
+#   make asset-demo        build the extension, start the stack, wait, seed the cast
+#
+# Needs Docker with ~8 GB. The first run takes 15-25 minutes (image builds and
+# example loading); later runs only rebuild the extension and re-seed.
+# Override the port or project:  make asset-demo ASSET_DEMO_PORT=9003 ASSET_DEMO_PROJECT=my-qa
+# The README's "Asset approval -- QA build" section has the full walkthrough.
+# ---------------------------------------------------------------------------
+ASSET_DEMO_PROJECT ?= asset-approval-qa
+ASSET_DEMO_PORT ?= 9002
+ASSET_DEMO_COMPOSE = NODE_PORT=$(ASSET_DEMO_PORT) docker compose -p $(ASSET_DEMO_PROJECT) -f docker-compose-light.yml
+ASSET_DEMO_EXT = local_extensions/asset-approval
+
+.PHONY: asset-demo asset-demo-help asset-demo-extension asset-demo-up asset-demo-seed asset-demo-examples asset-demo-logs asset-demo-down asset-demo-nuke
+
+asset-demo: asset-demo-extension asset-demo-up asset-demo-seed
+	@echo ""
+	@echo "Asset approval is up: http://localhost:$(ASSET_DEMO_PORT)"
+	@echo "Sign in as alex, priya, sam or morgan (password: general)."
+	@echo "Logins, commands and the happy flow: make asset-demo-help"
+
+asset-demo-help:
+	@echo ""
+	@echo "Asset approval -- QA environment"
+	@echo "================================"
+	@echo ""
+	@echo "Commands"
+	@echo "  make asset-demo            build the extension, start the stack, wait until healthy, seed"
+	@echo "  make asset-demo-seed       back to one change waiting for review"
+	@echo "  make asset-demo-examples   load the example dashboards if your environment skipped them"
+	@echo "  make asset-demo-logs       follow the init and Superset logs"
+	@echo "  make asset-demo-down       stop the stack, keeping its data"
+	@echo "  make asset-demo-nuke       stop the stack and delete its database"
+	@echo ""
+	@echo "Open  http://localhost:$(ASSET_DEMO_PORT)   (project: $(ASSET_DEMO_PROJECT))"
+	@echo ""
+	@echo "Logins (local QA fixtures, never used anywhere real)"
+	@echo "  alex     general   Alpha               Alex Rivera  -- the author: makes changes"
+	@echo "  priya    general   Alpha               Priya Shah   -- the approver: reviews them"
+	@echo "  sam      general   Gamma + data access Sam Carter   -- the viewer: sees only what is live"
+	@echo "  morgan   general   Admin               Morgan Lee   -- admin, editor of nothing: no bypass"
+	@echo "  admin    admin     Admin               setup only -- never test as admin"
+	@echo ""
+	@echo "Seeded assets"
+	@echo "  USA Births Names   editors alex + priya   the main walkthrough"
+	@echo "  Sales Dashboard    editor  alex only      nobody else can approve"
+	@echo "  first chart / first dataset   editors alex + priya"
+	@echo ""
+	@echo "Happy flow (the seed leaves one change from alex waiting for priya)"
+	@echo "  1. sam     USA Births Names still shows the old title; no banner, no bell count."
+	@echo "  2. morgan  no banner and no Approve button: admin is not an editor, no bypass."
+	@echo "  3. priya   bell shows 1; Settings > Manage > Approvals lists it; Review opens the dashboard."
+	@echo "  4. priya   banner + review panel beside the charts; Show changes previews it."
+	@echo "  5. priya   Edit dashboard -> lock dialog: Alex Rivera is changing this dashboard."
+	@echo "  6. priya   Request changes with a note -> alex sees it returned, with the note."
+	@echo "  7. alex    edit + Save -> toast: viewers still see the live version; Request review."
+	@echo "  8. priya   Approve -> confirm -> the new title is live; sam sees it; version history lists it."
+	@echo "  9. alex    chart: Explore save held, Charts list tag 'Changes pending'; request, priya approves."
+	@echo " 10. alex    dataset: save -> Review changes -> Submitted by me -> Request review;"
+	@echo "             priya reviews it from Approvals (Source / Metrics / Columns diff) and approves."
+	@echo " 11. alex    delete a chart -> held for review, still listed until approved."
+	@echo " 12. alex    Sales Dashboard -> Request review: 'No one else can approve'; add priya in"
+	@echo "             the Editors picker -> warning clears -> send. (make asset-demo-seed resets it.)"
+	@echo " 13. morgan  Settings > Manage > Change review: read-only, 'Admin bypass: Not available'."
+	@echo ""
+	@echo "Full step-by-step with what to expect: README.md, section 'The happy flow, step by step'."
+	@echo ""
+
+asset-demo-extension:
+	docker run --rm -v "$(CURDIR):/app" -w /app/$(ASSET_DEMO_EXT)/frontend node:20 bash -lc "npm install --legacy-peer-deps && npm run build"
+	docker run --rm -v "$(CURDIR):/app" -w /app/$(ASSET_DEMO_EXT) node:20 bash -lc "bash build.sh"
+
+asset-demo-up:
+	@echo "Starting the stack. The first run builds images and loads examples: 15-25 minutes."
+	@echo "Superset starts only after superset-init-light finishes, so this blocks until then."
+	$(ASSET_DEMO_COMPOSE) up -d
+	@code=$$(docker inspect --format '{{.State.ExitCode}}' $$($(ASSET_DEMO_COMPOSE) ps -aq superset-init-light) 2>/dev/null); \
+	  [ "$$code" = "0" ] || { echo "superset-init-light exited with $$code -- see: make asset-demo-logs"; exit 1; }
+	@echo "Waiting for Superset to report healthy..."
+	@for i in $$(seq 1 120); do \
+	  status=$$(docker inspect --format '{{.State.Health.Status}}' $$($(ASSET_DEMO_COMPOSE) ps -q superset-light) 2>/dev/null); \
+	  [ "$$status" = "healthy" ] && break; \
+	  [ $$i = 120 ] && { echo "superset-light did not become healthy in 10 minutes -- see: make asset-demo-logs"; exit 1; }; \
+	  sleep 5; \
+	done
+	@echo "Waiting for http://localhost:$(ASSET_DEMO_PORT) (the frontend compiles on first start)..."
+	@for i in $$(seq 1 120); do \
+	  curl -sf -o /dev/null --max-time 5 http://localhost:$(ASSET_DEMO_PORT)/health && break; \
+	  [ $$i = 120 ] && { echo "http://localhost:$(ASSET_DEMO_PORT) did not answer in 10 minutes -- see: make asset-demo-logs"; exit 1; }; \
+	  sleep 5; \
+	done
+
+asset-demo-seed:
+	@$(ASSET_DEMO_COMPOSE) exec superset-light /app/.venv/bin/python /app/$(ASSET_DEMO_EXT)/qa/seed.py || { \
+	  echo "Seeding failed. If it says there is no \"USA Births Names\", load the examples first: make asset-demo-examples"; exit 1; }
+
+asset-demo-examples:
+	$(ASSET_DEMO_COMPOSE) exec superset-light /app/.venv/bin/superset load-examples
+
+asset-demo-logs:
+	$(ASSET_DEMO_COMPOSE) logs -f superset-init-light superset-light superset-node-light
+
+asset-demo-down:
+	$(ASSET_DEMO_COMPOSE) down
+
+asset-demo-nuke:
+	$(ASSET_DEMO_COMPOSE) down -v

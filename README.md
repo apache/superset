@@ -35,6 +35,33 @@ You need Docker with roughly 8 GB available to it. Everything below runs
 from the root of this checkout. The first run takes 15–25 minutes, nearly
 all of it image building and example loading.
 
+### One command
+
+```bash
+make asset-demo
+```
+
+It runs the three steps below in order. It builds the extension, starts the
+`docker-compose-light` stack on port 9002 and waits until Superset reports
+healthy, then seeds the accounts and the waiting change. It finishes by
+printing the URL. Re-running it is safe; on a stack that is already up it
+only rebuilds the extension and re-seeds.
+
+| command | what it does |
+|---|---|
+| `make asset-demo` | build, start, wait, seed: everything |
+| `make asset-demo-help` | print the commands, the logins and the happy flow in the terminal |
+| `make asset-demo-seed` | back to one change waiting for review |
+| `make asset-demo-examples` | load the example dashboards, if your environment skipped them |
+| `make asset-demo-logs` | follow the init and Superset logs |
+| `make asset-demo-down` | stop the stack, keeping its data |
+| `make asset-demo-nuke` | stop the stack and delete its database |
+
+A different port or project name: `make asset-demo ASSET_DEMO_PORT=9003 ASSET_DEMO_PROJECT=my-qa`.
+
+The steps it runs are spelled out below, if you would rather run them one at
+a time or need to see where something failed.
+
 ### 1. Build the extension
 
 The review feature ships as a Superset extension. Its source is in the
@@ -263,12 +290,19 @@ data disagree, the API is the tie-breaker:
 Back to one change waiting for review, keeping everything else:
 
 ```bash
-docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/python /app/local_extensions/asset-approval/qa/seed.py
+make asset-demo-seed
 ```
 
-Back to nothing at all, database included:
+Back to nothing at all, database included (then `make asset-demo` to start again):
 
 ```bash
+make asset-demo-nuke
+```
+
+The equivalent raw commands, if `make` is not available:
+
+```bash
+docker compose -p asset-approval-qa exec superset-light /app/.venv/bin/python /app/local_extensions/asset-approval/qa/seed.py
 docker compose -p asset-approval-qa -f docker-compose-light.yml down -v
 ```
 
