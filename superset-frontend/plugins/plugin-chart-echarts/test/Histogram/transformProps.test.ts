@@ -118,6 +118,6 @@ test('tooltip rows start with a marker in the series color', () => {
   const html = tooltip.formatter([
     { name: '0 - 5', seriesName: 'price', value: 3, color: '#1f77b4' },
   ]);
-  expect(html.replace(/\s/g, '')).toContain('color:#1f77b4');
+  expect(html.replace(/\s/g, '')).toContain('style="color:#1f77b4;');
   expect(html).toContain('price');
 });

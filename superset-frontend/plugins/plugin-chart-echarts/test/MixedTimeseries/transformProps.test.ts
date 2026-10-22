@@ -1614,7 +1614,7 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
     const html = buildTooltip('start');
     expect(html).not.toContain('prod-us-east');
     expect(html).toContain('latency-p99');
-    expect(html.replace(/\s/g, '')).toContain('color:#1f77b4');
+    expect(html.replace(/\s/g, '')).toContain('style="color:#1f77b4;');
   });
 
   test('keeps both ends when truncating the middle', () => {
