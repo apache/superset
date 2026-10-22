@@ -23,6 +23,7 @@ import {
   fetchUserOptions,
   toUserSelectOption,
   USER_OPTION_FILTER_PROPS,
+  userOptionSortComparator,
 } from './utils';
 
 type GetResponse = Awaited<ReturnType<typeof SupersetClient.get>>;
@@ -193,4 +194,24 @@ test('toUserSelectOption falls back to the username and omits a missing email', 
     textLabel: 'svc_reporting',
     subjectDetail: undefined,
   });
+});
+
+test('userOptionSortComparator orders users by display name, not id', () => {
+  const options = [
+    toUserSelectOption({ id: 1, first_name: 'Zoe', last_name: 'Adams' }),
+    toUserSelectOption({ id: 2, first_name: 'Amy', last_name: 'Young' }),
+    toUserSelectOption({ id: 3, first_name: 'Max', last_name: 'Ng' }),
+  ];
+
+  expect(
+    [...options]
+      .sort((a, b) => userOptionSortComparator(a, b))
+      .map(o => o.value),
+  ).toEqual([2, 3, 1]);
+  // With a search term, names containing it rank first
+  expect(
+    [...options]
+      .sort((a, b) => userOptionSortComparator(a, b, 'ad'))
+      .map(o => o.value),
+  ).toEqual([1, 2, 3]);
 });

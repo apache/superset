@@ -20,6 +20,7 @@ import pytest
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from flask_appbuilder.security.sqla.models import User
 from sqlalchemy import create_engine
+from sqlalchemy.dialects import postgresql
 from sqlalchemy.orm import Session, sessionmaker
 
 from superset.security.manager import SupersetUserApi, UserSearchFilter
@@ -51,6 +52,20 @@ def session() -> Iterator[Session]:
                 first_name="Service",
                 last_name="Account",
                 email="svc@example.com",
+                active=True,
+            ),
+            User(
+                username="pct%user",
+                first_name="Percent",
+                last_name="User",
+                email="pct@example.com",
+                active=True,
+            ),
+            User(
+                username="back\\slash",
+                first_name="Backslash",
+                last_name="User",
+                email="backslash@example.com",
                 active=True,
             ),
         ]
@@ -94,8 +109,10 @@ def test_user_search_filter_matches(
         ("svc_reporting", ["svc_reporting"]),
         ("svc_", ["svc_reporting"]),
         ("_", ["svc_reporting"]),
-        ("%", []),
-        ("\\", []),
+        ("%", ["pct%user"]),
+        ("pct%", ["pct%user"]),
+        ("\\", ["back\\slash"]),
+        ("back\\s", ["back\\slash"]),
         ("jane%", []),
     ],
 )
@@ -104,7 +121,8 @@ def test_user_search_filter_treats_like_metacharacters_literally(
 ) -> None:
     """
     ``%``, ``_`` and ``\\`` in the search term are matched literally, so a
-    lone wildcard character cannot turn the search into "match everyone".
+    lone wildcard character cannot turn the search into "match everyone",
+    and a user whose username contains one is still found by it.
     """
     assert _search(session, value) == expected
 
@@ -122,7 +140,9 @@ def test_user_search_filter_blank_value_matches_everyone(
     """
     assert _search(session, value) == [
         "00f09b2e-f4fb-48a3-80fc-53ccd9528021",
+        "back\\slash",
         "jsmith",
+        "pct%user",
         "svc_reporting",
     ]
 
@@ -133,6 +153,21 @@ def test_user_search_filter_none_matches_nobody(session: Session) -> None:
     LIKE operators, rather than degrading into an unfiltered listing.
     """
     assert _search(session, None) == []  # type: ignore[arg-type]
+
+
+def test_user_search_filter_is_case_insensitive_on_postgres(session: Session) -> None:
+    """
+    Every column is matched with ``ILIKE`` on PostgreSQL.
+
+    SQLite's ``LIKE`` is already case-insensitive, so the case-insensitive
+    cases above would still pass if the filter used ``.like()``. Compiling
+    against the PostgreSQL dialect pins the operator itself.
+    """
+    filter_ = UserSearchFilter("username", SQLAInterface(User))
+    query = filter_.apply(session.query(User), "jane")
+    sql = str(query.statement.compile(dialect=postgresql.dialect()))
+    assert sql.count(" ILIKE ") == 5
+    assert " LIKE " not in sql.replace(" ILIKE ", " ")
 
 
 def test_superset_user_api_wires_user_search_filter() -> None:

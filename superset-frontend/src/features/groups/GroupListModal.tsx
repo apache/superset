@@ -35,6 +35,7 @@ import {
   toUserSelectOption,
   updateGroup,
   USER_OPTION_FILTER_PROPS,
+  userOptionSortComparator,
 } from './utils';
 
 function GroupListModal({
@@ -155,6 +156,7 @@ function GroupListModal({
           // The server matches on username and email too; re-filter on the
           // option's plain-text name, email and username, not its React label.
           optionFilterProps={USER_OPTION_FILTER_PROPS}
+          sortComparator={userOptionSortComparator}
         />
       </FormItem>
     </FormModal>

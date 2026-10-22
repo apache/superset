@@ -18,6 +18,10 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { SupersetClient } from '@superset-ui/core';
+import {
+  DEFAULT_SORT_COMPARATOR,
+  type LabeledValue,
+} from '@superset-ui/core/components';
 import rison from 'rison';
 import {
   SUBJECT_DETAIL_PROP,
@@ -66,6 +70,22 @@ export const toUserSelectOption = (user: UserRecord) => {
     username: user.username,
   };
 };
+
+/**
+ * Sort comparator for user pickers. AsyncSelect's default comparator only
+ * ranks string labels and falls back to the option value, which would order
+ * users by id, so rank on the plain-text display name instead.
+ */
+export const userOptionSortComparator = (
+  a: LabeledValue & { title?: string },
+  b: LabeledValue & { title?: string },
+  search?: string,
+) =>
+  DEFAULT_SORT_COMPARATOR(
+    { ...a, label: a.title ?? a.label },
+    { ...b, label: b.title ?? b.label },
+    search,
+  );
 
 export const createGroup = async (values: FormValues) => {
   await SupersetClient.post({
