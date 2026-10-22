@@ -211,6 +211,29 @@ npm run playwright:debug tests/auth/login.spec.ts
 npm run playwright:report
 ```
 
+### Testing Microsoft Teams notifications
+
+For deployment setup, see the [Microsoft Teams configuration guide](/admin-docs/configuration/alerts-reports#microsoft-teams-configuration).
+
+Backend tests under `tests/unit_tests/integrations/teams/` exercise the real SDK
+with fake HTTP transports. Install the `teams` extra to run authentication and
+transport tests rather than skipping them. Notification contract tests at
+`tests/unit_tests/reports/notifications/teams_tests.py` run without the SDK.
+
+The browser regression at `playwright/tests/reports/teams-alerts.spec.ts` requires a
+running Superset instance, an admin test user, Reports and Teams enabled, at least
+one configured destination, and a selectable test database. An unconfigured
+integration skips this optional browser test. Use an isolated test deployment
+with placeholder UUIDs and a dummy secret; no Microsoft app or installation is
+needed for this test. It mocks destination availability, creates only inactive
+alerts, blocks execution requests, verifies saved recipient keys, and deletes its
+schedule afterward. It never clicks **Trigger now**. Run it from
+`superset-frontend`:
+
+```bash
+npx playwright test playwright/tests/reports/teams-alerts.spec.ts --project=chromium
+```
+
 ### Debugging Server App
 
 For debugging the Flask backend:
