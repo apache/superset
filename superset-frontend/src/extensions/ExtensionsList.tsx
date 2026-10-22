@@ -18,7 +18,7 @@
  */
 import { t } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
-import { SupersetClient } from '@superset-ui/core';
+import { SupersetClient, SupersetClientResponse } from '@superset-ui/core';
 import { Loading } from '@superset-ui/core/components';
 import { FunctionComponent, useEffect, useMemo, useRef, useState } from 'react';
 import { useListViewResource } from 'src/views/CRUD/hooks';
@@ -67,8 +67,8 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
   useEffect(() => {
     SupersetClient.get({ endpoint: '/api/v1/extensions/_info' }).then(
       () => setAvailability('available'),
-      (error: { status?: number }) => {
-        if (error?.status === 404) {
+      (error: SupersetClientResponse) => {
+        if ((error as Response).status === 404) {
           setAvailability('not_enabled');
           return;
         }
@@ -81,7 +81,7 @@ const ExtensionsList: FunctionComponent<ExtensionsListProps> = ({
               errMsg,
             ),
           ),
-        )(error as never);
+        )(error);
       },
     );
   }, []);

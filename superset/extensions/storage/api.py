@@ -86,7 +86,13 @@ def _wire_value_for_request(value: Any, is_binary: bool) -> Any:
 
 
 class ExtensionStorageRestApi(BaseApi):
-    """REST API for extension ephemeral (Tier 2) and persistent (Tier 3) storage."""
+    """REST API for extension ephemeral (Tier 2) and persistent (Tier 3) storage.
+
+    Docstring descriptions below use backticks rather than double quotes: FAB
+    re-parses each operation's parsed YAML through ``str(dict)``, and a value
+    that mixes ``'`` and ``"`` comes back with escapes YAML rejects, which
+    breaks ``/api/v1/_openapi`` and ``superset update-api-docs``.
+    """
 
     allow_browser_login = True
     # FAB's BaseApi exempts its blueprint from CSRF; the write routes are

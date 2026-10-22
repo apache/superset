@@ -664,8 +664,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             extensions = get_extensions()
         except Exception:  # pylint: disable=broad-except
             # A discovery failure (for example an unreadable LOCAL_EXTENSIONS
-            # or EXTENSIONS_PATH entry, or a database that is not initialized
-            # yet) must not stop the app from starting.
+            # or EXTENSIONS_PATH entry) must not stop the app from starting.
             logger.warning("Extensions not loaded: discovery failed", exc_info=True)
             return
 
