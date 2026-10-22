@@ -120,10 +120,12 @@ export default {
   // automatic JSX runtime via @emotion/react (matches tsconfig jsxImportSource),
   // emotion labels on so css-in-js snapshots keep their `label` class names,
   // `hidden.jest` so jest.mock() calls are hoisted above imports, and loose
-  // class/property output like the Babel `loose: true` plugins.
+  // class/property output like the Babel `loose: true` plugins. The wrapper in
+  // spec/helpers/swcJestTransformer.js keeps jest.spyOn on module exports
+  // working (see the comment there).
   transform: {
     '^.+\\.(js|jsx|ts|tsx)$': [
-      '@swc/jest',
+      '<rootDir>/spec/helpers/swcJestTransformer.js',
       {
         module: { type: 'commonjs' },
         jsc: {

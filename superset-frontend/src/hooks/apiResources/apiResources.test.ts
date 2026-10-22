@@ -39,7 +39,7 @@ jest.mock('@superset-ui/core', () => ({
   ...jest.requireActual<any>('@superset-ui/core'),
   makeApi: jest
     .fn()
-    .mockReturnValue(jest.fn().mockResolvedValue(fakeApiResult)),
+    .mockReturnValue(jest.fn(() => Promise.resolve(fakeApiResult))),
 }));
 
 // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks

@@ -146,7 +146,7 @@ describe('exploreUtils', () => {
 
   // eslint-disable-next-line no-restricted-globals -- TODO: Migrate from describe blocks
   describe('domain sharding', () => {
-    let stub: jest.ReplaceProperty<typeof hostNamesConfig.availableDomains>;
+    let stub: jest.SpyInstance;
     const availableDomains = [
       'http://localhost/',
       'domain1.com',
@@ -154,14 +154,12 @@ describe('exploreUtils', () => {
       'domain3.com',
     ];
     beforeEach(() => {
-      stub = jest.replaceProperty(
-        hostNamesConfig,
-        'availableDomains',
-        availableDomains,
-      );
+      stub = jest
+        .spyOn(hostNamesConfig, 'availableDomains', 'get')
+        .mockReturnValue(availableDomains);
     });
     afterEach(() => {
-      stub.restore();
+      stub.mockRestore();
     });
 
     test('generate url to different domains', () => {
