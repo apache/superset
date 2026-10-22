@@ -752,7 +752,16 @@ class TestUpdateDashboard:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("title", ["Users aged <30", "Revenue <$1M", "Love <3 charts"])
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
 async def test_update_dashboard_literal_less_than_storage_round_trip(
     title: str, mcp_server: object
 ) -> None:

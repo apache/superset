@@ -3461,7 +3461,16 @@ def test_big_number_rebind_does_not_inherit_saved_temporal_column() -> None:
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("title", ["Users aged <30", "Revenue <$1M", "Love <3 charts"])
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
 async def test_update_chart_literal_less_than_storage_round_trip(title: str) -> None:
     """Rename persistence and the tool response use the same literal text."""
     chart = Mock(id=1, datasource_id=10, slice_name="Old", viz_type="table", uuid="abc")

@@ -1178,7 +1178,16 @@ async def test_generate_saved_chart_retains_id_after_response_size_failure() -> 
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("title", ["Users aged <30", "Revenue <$1M", "Love <3 charts"])
+@pytest.mark.parametrize(
+    "title",
+    [
+        "Users aged <30",
+        "Revenue <$1M",
+        "Love <3 charts",
+        "Users aged >30",
+        "Revenue\u00a0>\u00a0$1M",
+    ],
+)
 async def test_generate_chart_literal_less_than_storage_round_trip(title: str) -> None:
     """The create command and readback retain literal non-tag less-than signs."""
     result, _, create = await _generate_saved_chart(
