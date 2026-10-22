@@ -135,6 +135,21 @@ jobs:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
+      # The instrumented production assets, keyed on the frontend sources and
+      # lockfile. `build-instrumented-assets` skips the webpack build when the
+      # manifest is already there. (The cached-dependencies helpers that used
+      # to cache these call a retired cache API and never saved anything, so
+      # every Playwright job was rebuilding.)
+      - name: Restore instrumented assets
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: superset/static/assets
+          key: >-
+            instrumented-assets-${{ hashFiles('superset-frontend/package-lock.json',
+            'superset-frontend/.nvmrc', 'superset-frontend/src/**',
+            'superset-frontend/packages/**', 'superset-frontend/plugins/**',
+            'superset-frontend/*.js', 'superset-frontend/*.mjs', 'superset-frontend/*.cjs',
+            'superset-frontend/*.json', '!superset-frontend/**/node_modules/**') }}
       - name: Install npm dependencies
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -367,6 +382,21 @@ jobs:
           node-version-file: "./superset-frontend/.nvmrc"
           cache: "npm"
           cache-dependency-path: "superset-frontend/package-lock.json"
+      # The instrumented production assets, keyed on the frontend sources and
+      # lockfile. `build-instrumented-assets` skips the webpack build when the
+      # manifest is already there. (The cached-dependencies helpers that used
+      # to cache these call a retired cache API and never saved anything, so
+      # every Playwright job was rebuilding.)
+      - name: Restore instrumented assets
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: superset/static/assets
+          key: >-
+            instrumented-assets-${{ hashFiles('superset-frontend/package-lock.json',
+            'superset-frontend/.nvmrc', 'superset-frontend/src/**',
+            'superset-frontend/packages/**', 'superset-frontend/plugins/**',
+            'superset-frontend/*.js', 'superset-frontend/*.mjs', 'superset-frontend/*.cjs',
+            'superset-frontend/*.json', '!superset-frontend/**/node_modules/**') }}
       - name: Install npm dependencies
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
