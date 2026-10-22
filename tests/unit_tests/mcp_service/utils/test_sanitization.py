@@ -1014,3 +1014,46 @@ def test_strip_html_tags_keeps_casefolding_tag_openers_escaped(value: str) -> No
 def test_filter_value_preserves_greater_than_and_nbsp(value: str) -> None:
     """Text comparisons must not gain entity semicolons rejected as shell syntax."""
     assert sanitize_filter_value(value) == value
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r", "\v", "\f", "\x85"])
+@pytest.mark.parametrize(
+    "sanitize",
+    [_strip_html_tags, partial(sanitize_user_input, field_name="title")],
+)
+def test_control_whitespace_keeps_less_than_escaped(
+    sanitize: Callable[[str], str], whitespace: str
+) -> None:
+    """All sanitization entry points keep control-separated brackets inert."""
+    from superset.utils.file import sanitize_title
+
+    result = sanitize(f"Q3 <{whitespace}!channel>")
+    assert "<" not in sanitize_title(result)
+
+
+@pytest.mark.parametrize("value", ["A <\t", "A <\n\u00a0", "A <\u00a0 10"])
+def test_strip_html_tags_preserves_safe_comparison_whitespace(value: str) -> None:
+    """Trailing whitespace and visible comparison spacing cannot join controls."""
+    assert _strip_html_tags(value) == value
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r"])
+def test_filter_rejects_control_separated_slack_markup(whitespace: str) -> None:
+    """Escaped control-separated brackets retain the filter shell-character gate."""
+    with pytest.raises(ValueError, match="shell"):
+        sanitize_filter_value(f"Q3 <{whitespace}!channel>")
+
+
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r", "&#9;", "&#10;", "&#13;"])
+def test_control_whitespace_warning_wrapper_keeps_slack_markup_inert(
+    whitespace: str,
+) -> None:
+    """The warning wrapper must persist the escaped result, not the raw title."""
+    from superset.utils.file import sanitize_title
+
+    result, changed = sanitize_user_input_with_changes(
+        f"Q3 <{whitespace}!channel>", field_name="title"
+    )
+    assert result is not None
+    assert sanitize_title(result) == "Q3 &lt;!channel>"
+    assert changed is True

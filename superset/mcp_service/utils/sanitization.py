@@ -79,7 +79,13 @@ def _strip_html_tags(value: str) -> str:
     # Greater-than signs and NBSP cannot open tags. Restore them so plain text
     # neither changes on display nor outgrows the model-column length limits.
     return (
-        re.sub(r"&lt;(?=[\d\s$€£¥%+=.,:;)\]&-]|$)", "<", cleaned)
+        re.sub(
+            # Control whitespace stays escaped: report titles strip it, which
+            # could join "<" to a Slack control sequence such as <!channel>.
+            r"&lt;(?=[\d$€£¥%+=.,:;)\]&-]|[^\S\x00-\x1f\x7f-\x9f]|(?:\s|&nbsp;)*$)",
+            "<",
+            cleaned,
+        )
         .replace("&gt;", ">")
         .replace("&nbsp;", "\u00a0")
         .replace("&amp;", "&")

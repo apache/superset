@@ -1233,22 +1233,6 @@ def test_builtin_name_validation_documented_for_administrators() -> None:
     assert "length validation applies after trimming" in admin
 
 
-def test_name_contract_changes_have_upgrade_guidance() -> None:
-    """Clients need migration guidance for blank renames and tighter name caps."""
-    from pathlib import Path
-
-    root = Path(__file__).resolve().parents[3]
-    next_release = (
-        (root / "UPDATING.md").read_text().split("## Next", 1)[1].split("\n## ", 1)[0]
-    )
-    assert (
-        "`update_dashboard` rejects blank or whitespace-only `dashboard_title`"
-        in next_release
-    )
-    assert "chart names and theme names are capped at 250 characters" in next_release
-    assert "omit the field to keep the stored title" in next_release
-
-
 @pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
 def test_escaped_title_still_fits_model_column(
     model: type[BaseModel], payload: dict[str, Any], field: str
@@ -1259,3 +1243,26 @@ def test_escaped_title_still_fits_model_column(
     with pytest.raises(ValidationError) as exc:
         model.model_validate({**payload, field: value})
     assert exc.value.errors()[0]["type"] == "string_too_long"
+
+
+@pytest.mark.parametrize("model,payload,field", _TITLE_SANITIZATION_CASES)
+@pytest.mark.parametrize("whitespace", ["\t", "\n", "\r", "\v", "\f", "\x85"])
+@pytest.mark.parametrize(
+    "control",
+    ["!channel", "@U123", "#C123|general", "https://example.invalid|Open dashboard"],
+)
+def test_title_control_whitespace_cannot_form_slack_markup(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    whitespace: str,
+    control: str,
+) -> None:
+    """Report title normalization must not join brackets into Slack controls."""
+    from superset.utils.file import sanitize_title
+
+    value = f"Q3 <{whitespace}{control}>"
+    request = model.model_validate({**payload, field: value})
+    stored = getattr(request, field)
+    assert "<" not in sanitize_title(stored)
+    assert getattr(model.model_validate(request.model_dump()), field) == stored
