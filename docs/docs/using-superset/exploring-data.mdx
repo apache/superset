@@ -497,10 +497,12 @@ entire bucket. Adaptive date formatting includes the year in month and quarter
 labels to distinguish buckets across years; other grains keep their compact labels.
 For supported bucket ranges, the selection replaces the target chart's Time Range
 and also applies to its other temporal range filters, even on another time column.
-Drill to detail retains the selected bucket within the chart's time range, including
-a dataset Hours offset. Drill by filters a time-grained segment by its bucket range.
-As with Time-series charts, a chart or dashboard Time Range replaces that range, and an
-engine-specific grain without a fixed length matches only the start of the bucket.
+Drill to detail matches the selected bucket, including a dataset Hours offset, unless
+the chart also has a Time Range filter on the grained Time Column. Drill by matches the
+bucket only when the chart has no Time Range filter. Otherwise the query rebuilds its
+time bounds from the chart or dashboard Time Range, so the drill returns every row in
+that range. An engine-specific grain without a fixed length matches only the start of
+the bucket.
 
 On engines without SQL temporal shifts, grained comparisons (Drill to detail, grained
 `IN` / `NOT IN` cross-filters and other bucket comparisons) use the displayed bucket's
