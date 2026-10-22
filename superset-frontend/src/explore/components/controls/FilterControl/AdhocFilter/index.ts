@@ -139,6 +139,15 @@ export default class AdhocFilter {
   }
 
   duplicateWith(nextFields: Partial<AdhocFilterInput>): AdhocFilter {
+    // A changed bucket predicate becomes an ordinary filter. Metadata-only
+    // updates and unchanged duplicates retain the drill's grain.
+    const preservesBucket =
+      (!('subject' in nextFields) || nextFields.subject === this.subject) &&
+      (!('operator' in nextFields) || nextFields.operator === this.operator) &&
+      (!('comparator' in nextFields) ||
+        nextFields.comparator === this.comparator) &&
+      (!('expressionType' in nextFields) ||
+        nextFields.expressionType === this.expressionType);
     // Spread class properties as plain object for constructor input
     const currentFields: AdhocFilterInput = {
       expressionType: this.expressionType,
@@ -146,10 +155,7 @@ export default class AdhocFilter {
       operator: this.operator,
       operatorId: this.operatorId,
       comparator: this.comparator,
-      timeGrain:
-        nextFields.subject !== undefined && nextFields.subject !== this.subject
-          ? undefined
-          : this.timeGrain,
+      timeGrain: preservesBucket ? this.timeGrain : undefined,
       clause: this.clause,
       sqlExpression: this.sqlExpression,
       isExtra: this.isExtra,
@@ -208,11 +214,17 @@ export default class AdhocFilter {
 
   getDefaultLabel(columns?: VerboseColumn[]): string {
     const label = this.translateToSql({ columns });
-    return label.length < 43 ? label : `${label.substring(0, 40)}...`;
+    const displayLabel = this.timeGrain
+      ? `[${this.timeGrain}] ${label}`
+      : label;
+    return displayLabel.length < 43
+      ? displayLabel
+      : `${displayLabel.substring(0, 40)}...`;
   }
 
   getTooltipTitle(): string {
-    return this.translateToSql();
+    const label = this.translateToSql();
+    return this.timeGrain ? `[${this.timeGrain}] ${label}` : label;
   }
 
   translateToSql(params: { columns?: VerboseColumn[] } = {}): string {

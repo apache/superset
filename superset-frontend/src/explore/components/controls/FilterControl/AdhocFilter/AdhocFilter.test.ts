@@ -433,7 +433,7 @@ describe('AdhocFilter', () => {
   });
 });
 
-test('Explore filter edits preserve a temporal grain and distinguish changed grains', () => {
+test('Explore filter duplicates preserve grains but bucket edits clear them', () => {
   const filter = new AdhocFilter({
     expressionType: 'SIMPLE',
     subject: 'ts',
@@ -441,9 +441,13 @@ test('Explore filter edits preserve a temporal grain and distinguish changed gra
     comparator: '2026-08-01',
     timeGrain: TimeGranularity.MONTH,
   });
-  expect(filter.duplicateWith({ comparator: '2026-09-01' })).toMatchObject({
+  expect(filter.duplicateWith({})).toMatchObject({
     timeGrain: TimeGranularity.MONTH,
   });
+  expect(filter.duplicateWith({ comparator: '2026-09-01' })).not.toHaveProperty(
+    'timeGrain',
+    TimeGranularity.MONTH,
+  );
   expect(
     filter.equals(filter.duplicateWith({ timeGrain: TimeGranularity.YEAR })),
   ).toBe(false);
@@ -451,4 +455,23 @@ test('Explore filter edits preserve a temporal grain and distinguish changed gra
     'timeGrain',
     'P1M',
   );
+});
+
+test('a grained drill filter displays its grain and drops it on operator or SQL edits', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: 'ts',
+    operator: '==',
+    comparator: '2026-08-01',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.getDefaultLabel()).toContain('[P1M]');
+  expect(filter.getTooltipTitle()).toContain('[P1M]');
+  expect(filter.duplicateWith({ operator: '>' })).not.toHaveProperty(
+    'timeGrain',
+    TimeGranularity.MONTH,
+  );
+  expect(
+    filter.duplicateWith({ expressionType: ExpressionTypes.Sql }),
+  ).not.toHaveProperty('timeGrain', TimeGranularity.MONTH);
 });

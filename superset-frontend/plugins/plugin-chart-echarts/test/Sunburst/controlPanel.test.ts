@@ -105,3 +105,13 @@ test('a hidden time grain resets to null rather than retaining an orphan grain',
   expect(timeGrainControl().config.default).toBeNull();
   expect(visible(['region'])).toBe(false);
 });
+
+test('the retained Time Column is not stashed when its subject starts outside the hierarchy', () => {
+  const subject = controlPanel.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(
+      item => (item as CustomControlItem)?.name === 'granularity_sqla',
+    ) as CustomControlItem;
+  expect(subject.config.disableStash).toBe(true);
+});

@@ -23,7 +23,11 @@ import {
   userEvent,
   fireEvent,
 } from 'spec/helpers/testing-library';
-import { CustomControlItem } from '@superset-ui/chart-controls';
+import {
+  CustomControlItem,
+  ControlPanelsContainerProps,
+  ControlState,
+} from '@superset-ui/chart-controls';
 import sunburstPanel from '../../../plugins/plugin-chart-echarts/src/Sunburst/controlPanel';
 import Control, { ControlProps } from 'src/explore/components/Control';
 
@@ -199,6 +203,52 @@ test('hiding the Sunburst grain control clears the saved grain', async () => {
   await waitFor(() =>
     expect(setControlValue).toHaveBeenCalledWith(
       'time_grain_sqla',
+      null,
+      undefined,
+      { programmatic: true },
+    ),
+  );
+});
+
+test('removing an MCP temporal level clears its hidden Time Column subject', async () => {
+  const subject = sunburstPanel.controlPanelSections
+    .flatMap(section => section?.controlSetRows ?? [])
+    .flat()
+    .find(
+      item => (item as CustomControlItem)?.name === 'granularity_sqla',
+    ) as CustomControlItem;
+  const isVisible = (columns: string[]) =>
+    subject.config.visibility
+      ? (
+          subject.config.visibility as (
+            props: ControlPanelsContainerProps,
+            control: ControlState,
+          ) => boolean
+        )(
+          {
+            controls: { columns: { value: columns } },
+          } as unknown as ControlPanelsContainerProps,
+          { value: 'order_date' } as ControlState,
+        )
+      : true;
+  const setControlValue = jest.fn();
+  const control = (columns: string[]) => (
+    <Control
+      {...defaultProps}
+      name="granularity_sqla"
+      type="TextControl"
+      value="order_date"
+      default={subject.config.default}
+      hidden
+      isVisible={isVisible(columns)}
+      actions={{ setControlValue }}
+    />
+  );
+  const { rerender } = render(control(['order_date', 'region']));
+  rerender(control(['ship_date', 'region']));
+  await waitFor(() =>
+    expect(setControlValue).toHaveBeenCalledWith(
+      'granularity_sqla',
       null,
       undefined,
       { programmatic: true },

@@ -494,6 +494,11 @@ raw bucket value against the grained time column, including the dataset's Hours 
 An explicit Time Column selection (including a dashboard override) determines which
 hierarchy level receives the grain; without one, all physical temporal levels do.
 If the explicit Time Column is outside the hierarchy, no ring receives the grain.
+Removing a selected temporal level in Explore clears its retained Time Column subject.
+
+Drill-generated filters display their ISO time grain in brackets (for example, `[P1M]`).
+Editing the filter's column, operator, value, or expression type clears the bucket grain;
+unchanged duplicates retain it.
 
 :::resources
 
