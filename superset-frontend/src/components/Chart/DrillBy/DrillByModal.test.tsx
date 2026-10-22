@@ -231,6 +231,106 @@ test('should generate Explore url', async () => {
   ).toHaveAttribute('href', '/explore/?form_data_key=123&dashboard_page_id=1');
 });
 
+const OCT_2003_BUCKET = '2003-10-01T00:00:00 : 2003-11-01T00:00:00';
+const oct2003BucketFilter = {
+  col: 'ds',
+  op: 'TEMPORAL_RANGE' as const,
+  val: OCT_2003_BUCKET,
+  formattedVal: 'Oct 2003',
+};
+
+const getLastChartDataFormData = () =>
+  JSON.parse(
+    fetchMock.callHistory.lastCall(CHART_DATA_ENDPOINT)?.options
+      ?.body as string,
+  ).form_data;
+
+test('Drill by from a grained temporal bucket queries that bucket as the time range', async () => {
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: { ...formData, time_range: 'No filter' },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+
+  const drilledFormData = getLastChartDataFormData();
+  // The backend replaces every TEMPORAL_RANGE filter value with time_range,
+  // so the bucket only survives if it is the query's time range.
+  expect(drilledFormData.time_range).toEqual(OCT_2003_BUCKET);
+  expect(drilledFormData.adhoc_filters).toContainEqual(
+    expect.objectContaining({
+      operator: 'TEMPORAL_RANGE',
+      subject: 'ds',
+      comparator: OCT_2003_BUCKET,
+    }),
+  );
+});
+
+test('Drill by from a grained temporal bucket overrides a dashboard time range', async () => {
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...formData,
+      time_range: 'No filter',
+      extra_form_data: { time_range: '2003-01-01 : 2005-01-01' },
+    },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+
+  const drilledFormData = getLastChartDataFormData();
+  expect(drilledFormData.time_range).toEqual(OCT_2003_BUCKET);
+  expect(drilledFormData.extra_form_data.time_range).toEqual(OCT_2003_BUCKET);
+});
+
+test('Drill by from a grained temporal bucket shows one bucket label in the breadcrumb', async () => {
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    drillByConfig: {
+      filters: [oct2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+
+  const breadcrumbItems = screen.getAllByTestId('drill-by-breadcrumb-item');
+  expect(within(breadcrumbItems[0]).getByText(/\(Oct 2003\)$/)).toBeVisible();
+  expect(breadcrumbItems[0]).not.toHaveTextContent(OCT_2003_BUCKET);
+});
+
+test('categorical Drill by keeps the chart and dashboard time range', async () => {
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...formData,
+      time_range: 'Last year',
+      extra_form_data: { time_range: '2003-01-01 : 2005-01-01' },
+    },
+    drillByConfig: {
+      filters: [{ col: 'gender', op: '==', val: 'boy' }],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+
+  const drilledFormData = getLastChartDataFormData();
+  expect(drilledFormData.time_range).toEqual('Last year');
+  expect(drilledFormData.extra_form_data.time_range).toEqual(
+    '2003-01-01 : 2005-01-01',
+  );
+});
+
 test('should render radio buttons', async () => {
   await renderModal();
   const chartRadio = screen.getByRole('radio', { name: /chart/i });

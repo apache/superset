@@ -64,6 +64,7 @@ import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { requestChartDataResolved } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
 import { useResultsTableView } from './useResultsTableView';
+import { applyDrillByTimeRange, getDrillByTimeRange } from './drillByTimeRange';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
@@ -361,6 +362,11 @@ export default function DrillByModal({
       };
     });
 
+    updatedFormData = applyDrillByTimeRange(
+      updatedFormData,
+      getDrillByTimeRange(drillByConfigs),
+    );
+
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
     delete updatedFormData.dashboards;
@@ -372,6 +378,7 @@ export default function DrillByModal({
     getFiltersFromConfigsByFieldName,
     getNewGroupby,
     formData,
+    drillByConfigs,
   ]);
 
   const handleDownload = useCallback(
