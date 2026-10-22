@@ -177,6 +177,14 @@ export default function ConditionFilterPlugin(
     if (isConditionComplete(value)) {
       setCondition(value);
       updateDataMask(value, { restored: true });
+    } else if (
+      value === undefined &&
+      !clearAllTrigger &&
+      isConditionComplete(defaultValue)
+    ) {
+      // Never set (as opposed to cleared, which is null): apply the default.
+      setCondition(defaultValue);
+      updateDataMask(defaultValue, { restored: true });
     } else if (value === null || value === undefined) {
       // Cleared from outside: keep the chosen operator, drop the value.
       setCondition(prev => ({ op: prev.op }));

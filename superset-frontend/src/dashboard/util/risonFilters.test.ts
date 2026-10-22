@@ -447,3 +447,15 @@ test('should inject a list into a condition filter as IN', () => {
     val: [10, 20],
   });
 });
+
+test('should leave BETWEEN unmatched for a condition filter', () => {
+  const result = injectRisonFiltersIntelligently(
+    parseRisonFilters('(price:(between:!(1,10)))'),
+    mockConditionFilters,
+    {},
+  );
+
+  expect(result.updatedDataMask.condition_1).toBeUndefined();
+  expect(result.unmatchedFilters).toHaveLength(1);
+  expect(result.unmatchedFilters[0].operator).toBe('BETWEEN');
+});

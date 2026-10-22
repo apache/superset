@@ -77,6 +77,21 @@ test('applies a restored value on mount', async () => {
   );
 });
 
+test('applies the default value when the filter state was never set', async () => {
+  const props = getProps(null, { defaultValue: { op: '==', val: 'CA' } });
+  render(<ConditionFilterPlugin {...props} filterState={{}} />);
+  await waitFor(() =>
+    expect(lastDataMask()).toEqual({
+      extraFormData: { filters: [{ col: 'country', op: '==', val: 'CA' }] },
+      filterState: {
+        value: { op: '==', val: 'CA' },
+        label: 'country == CA',
+        validateStatus: undefined,
+      },
+    }),
+  );
+});
+
 test('hides the value input for unary operators', () => {
   render(<ConditionFilterPlugin {...getProps({ op: 'IS NOT NULL' })} />);
   expect(

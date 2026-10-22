@@ -151,6 +151,22 @@ test('numeric columns reject non-numeric values', () => {
   ).toBeNull();
 });
 
+test('numeric columns reject values that overflow to Infinity', () => {
+  expect(
+    getConditionError({ op: '>', val: '1e309' }, GenericDataType.Numeric),
+  ).toBe('This column is numeric. Please enter a number.');
+  expect(
+    getConditionExtraFormData(
+      'price',
+      { op: '>', val: '1e309' },
+      GenericDataType.Numeric,
+    ),
+  ).toEqual({});
+  expect(coerceConditionValue('1e309', '>', GenericDataType.Numeric)).toBe(
+    '1e309',
+  );
+});
+
 test('boolean columns cast typed true/false', () => {
   expect(coerceConditionValue('TRUE', '==', GenericDataType.Boolean)).toBe(
     true,

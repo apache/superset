@@ -115,6 +115,13 @@ export function isConditionComplete(
   return !Array.isArray(value.val) && !isBlank(value.val);
 }
 
+// Finite only: Number('1e309') is Infinity, which JSON serializes as null.
+const isNumeric = (val: unknown) =>
+  (typeof val === 'number' && Number.isFinite(val)) ||
+  (typeof val === 'string' &&
+    val.trim() !== '' &&
+    Number.isFinite(Number(val)));
+
 /**
  * Values typed into the filter arrive as strings. Cast them to numbers for
  * numeric columns so comparisons like `>` behave numerically, and true/false
@@ -129,8 +136,7 @@ export function coerceConditionValue(
     op !== 'LIKE' &&
     coltype === GenericDataType.Numeric &&
     typeof val === 'string' &&
-    val.trim() !== '' &&
-    !Number.isNaN(Number(val))
+    isNumeric(val)
   ) {
     return Number(val);
   }
@@ -142,10 +148,6 @@ export function coerceConditionValue(
   }
   return val;
 }
-
-const isNumeric = (val: unknown) =>
-  typeof val === 'number' ||
-  (typeof val === 'string' && val.trim() !== '' && !Number.isNaN(Number(val)));
 
 /**
  * Explains why a condition can't be applied to a column of the given type, or
