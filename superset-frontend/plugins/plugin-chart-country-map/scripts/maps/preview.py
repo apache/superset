@@ -50,7 +50,7 @@ def render_preview(
 
 
 def build_contact_sheet(
-    manifest: list[dict[str, str]], out_dir: str, columns: int = 4
+    manifest: list[dict[str, object]], out_dir: str, columns: int = 4
 ) -> str:
     """Assembles every entry's thumbnail into one grid image, so a reviewer
     (or the docs site) can see every converted country at a glance.
@@ -64,9 +64,9 @@ def build_contact_sheet(
     axes = axes.flatten() if hasattr(axes, "flatten") else [axes]
 
     for ax, entry in zip(axes, entries, strict=False):
-        img = plt.imread(os.path.join(out_dir, entry["thumbnail"]))
+        img = plt.imread(os.path.join(out_dir, str(entry["thumbnail"])))
         ax.imshow(img)
-        ax.set_title(entry["name"], fontsize=10)
+        ax.set_title(str(entry["name"]), fontsize=10)
         ax.set_axis_off()
     for ax in axes[len(entries) :]:
         ax.set_axis_off()
