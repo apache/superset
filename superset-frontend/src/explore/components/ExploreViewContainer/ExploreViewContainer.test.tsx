@@ -1968,3 +1968,40 @@ test.each<Axis>(['x', 'y'])(
     }
   },
 );
+
+test.each<Axis>(['x', 'y'])(
+  'automatic %s axis title margin adjustment is cancelled when the container unmounts inside the debounce window',
+  async axis => {
+    setupTableChartControlPanel();
+    jest.useFakeTimers();
+    try {
+      const setControlValueSpy = jest.spyOn(exploreActions, 'setControlValue');
+
+      const initialState = axisTitleState(axis, '', 0);
+      const store = createStore(initialState, reducerIndex);
+      const { unmount } = renderWithRouter({
+        initialState,
+        store: store as Store,
+      });
+      setControlValueSpy.mockClear();
+
+      act(() => {
+        store.dispatch(
+          exploreActions.setControlValue(`${axis}_axis_title`, 'Axis Label'),
+        );
+      });
+      // navigate away before the adjustment timer fires
+      unmount();
+      act(() => jest.advanceTimersByTime(600));
+
+      expect(setControlValueSpy).not.toHaveBeenCalledWith(
+        ...programmaticMarginWrite(axis),
+      );
+      expect(marginIn(store, axis)).toBe(0);
+    } finally {
+      jest.useRealTimers();
+      getChartControlPanelRegistry().remove('table');
+      jest.restoreAllMocks();
+    }
+  },
+);
