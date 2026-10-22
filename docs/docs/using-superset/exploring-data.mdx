@@ -502,9 +502,11 @@ Time Column, while opening it in Explore can grain additional temporal levels.
 
 Time-range overrides replace the default temporal-range filter, not independent
 equality or membership filters on the same Time Column. When a Time Column
-override replaces a different temporal column, filters on the replaced column
-are discarded, including drill predicates that may carry the new column's bucket.
-This applies to all chart types, including Table and time-series charts.
+override replaces a different temporal column, Sunburst retains independent
+equality and membership filters on the replaced column because its hierarchy
+levels are independent of the Time Column. Other chart types, including Table
+and time-series charts, discard filters on the replaced column, including drill
+predicates that may carry the new column's bucket.
 
 Drill-generated filters display their ISO time grain in brackets (for example, `[P1M]`).
 Editing the filter's column, operator, value, or expression type clears the bucket grain;
