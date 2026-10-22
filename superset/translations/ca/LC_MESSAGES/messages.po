@@ -4280,6 +4280,9 @@ msgstr "Tanca l'editor de punts de ruptura de color"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "Tancar pestanya"
 
@@ -8933,10 +8936,10 @@ msgstr "Amaga la línia per les sèries temporals"
 msgid "Hierarchy"
 msgstr "Jerarquia"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -10284,10 +10287,10 @@ msgstr "Longitud i Latitud"
 msgid "Longitude of default viewport"
 msgstr "Longitud de la vista per defecte"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10804,6 +10807,9 @@ msgstr "Mínim"
 msgid "Minimum Font Size"
 msgstr "Mida Mínima de Font"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Radi Mínim"
 
@@ -10812,6 +10818,16 @@ msgid "Minimum Width"
 msgstr "Amplada Mínima"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -11834,9 +11850,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Opacitat, espera valors entre 0 i 100"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "Obrir pestanya de Font de Dades"
 
@@ -11872,6 +11885,9 @@ msgstr "Obrir al SQL Lab"
 #, fuzzy
 msgid "Open in SQL lab"
 msgstr "Obrir al SQL Lab"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "Obrir consulta al SQL Lab"
@@ -14142,6 +14158,12 @@ msgstr "Desplaça't cap avall fins al final per habilitar sobreescriure canvis. 
 msgid "Search"
 msgstr "Cercar"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Cercar %s registre"
+msgstr[1] "Cercar %s registres"
+
 msgid "Search / Filter"
 msgstr "Cercar / Filtrar"
 
@@ -14201,9 +14223,6 @@ msgstr "Cercar en filtres"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "Cercar Mètriques i Columnes"
-
-msgid "Search records"
-msgstr ""
 
 #, fuzzy
 msgid "Search tags"
@@ -20846,6 +20865,9 @@ msgid "X Axis Label Interval"
 msgstr "Etiqueta de l'Eix X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Format de l'Eix X"
 
@@ -20891,6 +20913,9 @@ msgstr "Format de l'Eix Y"
 
 msgid "Y Axis Label"
 msgstr "Etiqueta de l'Eix Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Títol de l'Eix Y"

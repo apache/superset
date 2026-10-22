@@ -4933,6 +4933,9 @@ msgstr "Затвори едитор преломних тачака боје"
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 # de, es, fa, fr, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Close tab"
@@ -10266,10 +10269,10 @@ msgstr "Сакрива линију за временску серију"
 msgid "Hierarchy"
 msgstr "Хијерархија"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -11823,10 +11826,10 @@ msgstr "Географска дужина и ширина"
 msgid "Longitude of default viewport"
 msgstr "Географска дужина подразумеваног приказа"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, ru, sk, sl, uk]
@@ -12397,6 +12400,9 @@ msgid "Minimum Font Size"
 msgstr "Минимална величина фонта"
 
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk]
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Минимални радијус"
 
@@ -12407,6 +12413,16 @@ msgid "Minimum dot size"
 msgstr ""
 
 # fr, ja, lv, mi, ru, sk, uk]
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "Минимум мора бити строго мањи од максимума"
 
@@ -13610,9 +13626,6 @@ msgstr "Провидност балончића, 0 значи потпуно п�
 msgid "Opacity, expects values between 0 and 100"
 msgstr "Провидност, очекује вредности између 0 и 100"
 
-msgid "Open"
-msgstr ""
-
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt_BR, ru, sk, sl, uk, zh,
 # zh_TW]
 msgid "Open Datasource tab"
@@ -13652,6 +13665,9 @@ msgstr "Отвори у SQL Lab-у"
 # uk]
 msgid "Open in SQL lab"
 msgstr "Отвори у SQL Лаб-у"
+
+msgid "Open price"
+msgstr ""
 
 # de, es, fa, fr, it, ja, ko, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk,
 # zh, zh_TW]
@@ -16345,6 +16361,13 @@ msgstr "Скролујте до дна да бисте омогућили пре
 msgid "Search"
 msgstr "Претрага"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] "Претражи %s запис"
+msgstr[1] "Претражи %s записа"
+msgstr[2] "Претражи %s записа"
+
 # de, es, fa, fr, it, ja, lv, mi, nl, pl, pt, pt_BR, ru, sk, sl, tr, uk, zh,
 # zh_TW]
 msgid "Search / Filter"
@@ -16408,9 +16431,6 @@ msgstr "Претрага у филтерима"
 
 msgid "Search metrics by key or label"
 msgstr "Претражи метрике по кључу или ознаци"
-
-msgid "Search records"
-msgstr ""
 
 # uk]
 msgid "Search tags"
@@ -23724,6 +23744,9 @@ msgid "X Axis Label Interval"
 msgstr "Интервал ознака X осе"
 
 # ru, uk]
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Формат бројева X осе"
 
@@ -23784,6 +23807,9 @@ msgid "Y Axis Label"
 msgstr "Ознака Y осе"
 
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ru, sk, sl, uk, zh, zh_TW]
+msgid "Y Axis Minimum Interval"
+msgstr ""
+
 msgid "Y Axis Title"
 msgstr "Наслов Y осе"
 
