@@ -137,7 +137,7 @@ test('Uses rowcount instead of sql_rowcount for each of multiple queries', async
   expect(screen.getByText('4 rows')).toBeInTheDocument();
   expect(screen.queryByText('57 rows')).not.toBeInTheDocument();
 
-  userEvent.click(screen.getByText('Results 2'));
+  await userEvent.click(screen.getByText('Results 2'));
 
   await waitFor(() => {
     expect(screen.getByText('2 rows')).toBeInTheDocument();
