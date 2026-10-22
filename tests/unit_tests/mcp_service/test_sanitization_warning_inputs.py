@@ -1001,93 +1001,88 @@ def test_empty_sanitized_title_never_uses_fallback(
     assert exc.value.errors()[0]["type"] == "unsafe_text"
 
 
-@pytest.mark.parametrize(
-    "model,payload,field",
-    [
-        (ManageDashboardCertificationRequest, {"identifier": 1}, "certified_by"),
-        (
-            ManageDashboardCertificationRequest,
-            {"identifier": 1},
-            "certification_details",
-        ),
-        (BaseChartConfig, {}, "temporal_column"),
-        (ColumnRef, {}, "name"),
-        (ColumnRef, {"name": "amount"}, "label"),
-        (FilterConfig, {"op": "=", "value": "safe"}, "column"),
-        (FilterConfig, {"column": "region", "op": "="}, "value"),
-        (GanttSortByConfig, {}, "column"),
-        (
-            SunburstChartConfig,
-            {
-                "hierarchy": [{"name": "region"}],
-                "metric": {"name": "amount", "aggregate": "SUM"},
-            },
-            "time_range",
-        ),
-        (
-            InteractivePivotChartConfig,
-            {
-                "rows": [{"name": "region"}],
-                "metrics": [{"name": "amount", "aggregate": "SUM"}],
-            },
-            "comparison_period",
-        ),
-        (
-            BulletChartConfig,
-            {"metric": {"name": "amount", "aggregate": "SUM"}},
-            "time_range",
-        ),
-        (
-            BulletChartConfig,
-            {"metric": {"name": "amount", "aggregate": "SUM"}},
-            "range_labels",
-        ),
-        (
-            BulletChartConfig,
-            {"metric": {"name": "amount", "aggregate": "SUM"}},
-            "marker_labels",
-        ),
-        (
-            BulletChartConfig,
-            {"metric": {"name": "amount", "aggregate": "SUM"}},
-            "marker_line_labels",
-        ),
-    ],
-)
-@pytest.mark.parametrize(
-    "value", ["Users aged <30", "&#x3c;&#x3c;</b>x", "&amp;lt;</script>click= <b>📈"]
-)
-def test_sibling_fields_use_single_sanitizer_result(
-    model: type[BaseModel], payload: dict[str, Any], field: str, value: str
-) -> None:
-    """Shared-sanitizer siblings preserve comparisons and never re-sanitize output."""
-    from superset.mcp_service.utils.sanitization import sanitize_user_input
+_SIBLING_SANITIZATION_CASES = [
+    (ManageDashboardCertificationRequest, {"identifier": 1}, "certified_by"),
+    (
+        ManageDashboardCertificationRequest,
+        {"identifier": 1},
+        "certification_details",
+    ),
+    (BaseChartConfig, {}, "temporal_column"),
+    (ColumnRef, {}, "name"),
+    (ColumnRef, {"name": "amount"}, "label"),
+    (FilterConfig, {"op": "=", "value": "safe"}, "column"),
+    (FilterConfig, {"column": "region", "op": "="}, "value"),
+    (GanttSortByConfig, {}, "column"),
+    (
+        SunburstChartConfig,
+        {
+            "hierarchy": [{"name": "region"}],
+            "metric": {"name": "amount", "aggregate": "SUM"},
+        },
+        "time_range",
+    ),
+    (
+        InteractivePivotChartConfig,
+        {
+            "rows": [{"name": "region"}],
+            "metrics": [{"name": "amount", "aggregate": "SUM"}],
+        },
+        "comparison_period",
+    ),
+    (
+        BulletChartConfig,
+        {"metric": {"name": "amount", "aggregate": "SUM"}},
+        "time_range",
+    ),
+    (
+        BulletChartConfig,
+        {"metric": {"name": "amount", "aggregate": "SUM"}},
+        "range_labels",
+    ),
+    (
+        BulletChartConfig,
+        {"metric": {"name": "amount", "aggregate": "SUM"}},
+        "marker_labels",
+    ),
+    (
+        BulletChartConfig,
+        {"metric": {"name": "amount", "aggregate": "SUM"}},
+        "marker_line_labels",
+    ),
+]
 
+
+@pytest.mark.parametrize("model,payload,field", _SIBLING_SANITIZATION_CASES)
+def test_sibling_fields_preserve_literal_comparison(
+    model: type[BaseModel], payload: dict[str, Any], field: str
+) -> None:
+    """Every sibling accepts a non-tag comparison and preserves its literal text."""
+    value = "Users aged <30"
     if model is InteractivePivotChartConfig:
         payload = {**payload, "comparison_type": "values"}
-    sql_identifier = field in ("column", "temporal_column", "name")
-    expected: str | int | float | None
-    try:
-        if model is FilterConfig and field == "value":
-            from superset.mcp_service.utils.sanitization import sanitize_filter_value
+    expected = [value] if field.endswith("_labels") else value
+    request = model.model_validate({**payload, field: expected})
+    assert getattr(request, field) == expected
 
-            expected = sanitize_filter_value(value)
-        else:
-            expected = sanitize_user_input(
-                value,
-                "Value",
-                max_length=500,
-                check_sql_keywords=sql_identifier,
-                allow_empty=True,
-            )
-    except ValueError:
-        # SQL identifiers intentionally reject ampersands in the encoded result.
-        with pytest.raises(ValidationError):
-            model.model_validate({**payload, field: value})
-        return
-    is_list = field.endswith("_labels")
-    request = model.model_validate({**payload, field: [value] if is_list else value})
-    assert getattr(request, field) == ([expected] if is_list else expected)
+
+@pytest.mark.parametrize("model,payload,field", _SIBLING_SANITIZATION_CASES)
+@pytest.mark.parametrize(
+    "value", ["&#x3c;&#x3c;</b>x", "&amp;lt;</script>click= <b>📈"]
+)
+def test_sibling_fields_reject_reconstructed_tag(
+    model: type[BaseModel], payload: dict[str, Any], field: str, value: str
+) -> None:
+    """Reconstructed tag openers fail with a canonical field and typed reason."""
+    if model is InteractivePivotChartConfig:
+        payload = {**payload, "comparison_type": "values"}
+    with pytest.raises(ValidationError) as exc:
+        model.model_validate(
+            {**payload, field: [value] if field.endswith("_labels") else value}
+        )
+    assert [(error["type"], error["loc"]) for error in exc.value.errors()] == [
+        ("unsafe_text", (field,))
+    ]
 
 
 @pytest.mark.parametrize(
