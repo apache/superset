@@ -64,7 +64,15 @@ def _authorize_datasource(
     """
     if slc:
         security_manager.raise_for_access(chart=slc)
-    elif isinstance(datasource, Query):
+        # Chart access covers only the chart's own datasource. The request's
+        # form_data can name a different one, which then needs its own check.
+        if (slc.datasource_id, slc.datasource_type) == (
+            datasource.id,
+            datasource.type,
+        ):
+            return
+
+    if isinstance(datasource, Query):
         # A "query" datasource_type resolves to the actual SQL Lab
         # Query row, not a registered dataset -- its .perm is a
         # synthetic string no role is ever granted, so the generic

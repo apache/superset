@@ -80,12 +80,101 @@ def test_query_datasource_still_reaches_extra_bypass_hook(
 
 def test_saved_chart_path_unaffected(mocker: MockerFixture) -> None:
     """A saved chart keeps going through the chart-based access check."""
-    slc = Slice()
+    slc = Slice(datasource_id=1, datasource_type="table")
     mock_sm = mocker.patch("superset.commands.explore.get.security_manager")
 
-    _authorize_datasource(SqlaTable(), slc)
+    _authorize_datasource(SqlaTable(id=1), slc)
 
     mock_sm.raise_for_access.assert_called_once_with(chart=slc)
+
+
+def test_saved_chart_with_other_query_checks_the_query(
+    mocker: MockerFixture,
+) -> None:
+    """
+    ``form_data`` in the request overrides the chart's saved datasource, so
+    ``?slice_id=<chart>&form_data={"datasource": "<id>__query"}`` resolves to
+    a SQL Lab query the chart doesn't use. Access to the chart must not
+    authorize it: the query goes through the same check as without a chart.
+    """
+    slc = Slice(datasource_id=1, datasource_type="table")
+    query = Query(id=1)
+    mock_sm = mocker.patch("superset.commands.explore.get.security_manager")
+
+    _authorize_datasource(query, slc)
+
+    assert mock_sm.raise_for_access.call_args_list == [
+        mocker.call(chart=slc),
+        mocker.call(
+            query=query,
+            datasource=query,
+            allow_query_authorship_bypass=True,
+            allow_editorship=False,
+        ),
+    ]
+
+
+def test_saved_chart_with_other_dataset_checks_the_dataset(
+    mocker: MockerFixture,
+) -> None:
+    """A dataset the chart doesn't use needs its own datasource check."""
+    slc = Slice(datasource_id=1, datasource_type="table")
+    dataset = SqlaTable(id=2)
+    mock_sm = mocker.patch("superset.commands.explore.get.security_manager")
+
+    _authorize_datasource(dataset, slc)
+
+    assert mock_sm.raise_for_access.call_args_list == [
+        mocker.call(chart=slc),
+        mocker.call(datasource=dataset),
+    ]
+
+
+def test_explore_with_slice_denies_query_from_form_data(
+    mocker: MockerFixture,
+) -> None:
+    """
+    End to end through ``GetExploreCommand.run()``: a readable chart plus a
+    ``form_data`` that points at another user's query is denied instead of
+    returning the query's SQL.
+    """
+    from superset.commands.explore.get import GetExploreCommand
+    from superset.commands.explore.parameters import CommandParameters
+    from superset.exceptions import SupersetSecurityException
+
+    slc = Slice(id=10, datasource_id=1, datasource_type="table")
+    query = Query(id=7, sql="SELECT secret FROM public.customer_pii")
+    mocker.patch(
+        "superset.commands.explore.get.get_form_data",
+        return_value=({"slice_id": 10, "datasource": "7__query"}, slc),
+    )
+    mocker.patch(
+        "superset.commands.explore.get.DatasourceDAO.get_datasource",
+        return_value=query,
+    )
+    mock_sm = mocker.patch(
+        "superset.commands.explore.get.security_manager", new_callable=Mock
+    )
+
+    def raise_for_access(**kwargs: object) -> None:
+        if "query" in kwargs:
+            raise SupersetSecurityException(mocker.MagicMock())
+
+    mock_sm.raise_for_access.side_effect = raise_for_access
+
+    command = GetExploreCommand(
+        CommandParameters(
+            permalink_key=None,
+            form_data_key=None,
+            datasource_id=None,
+            datasource_type=None,
+            slice_id=10,
+        )
+    )
+    with pytest.raises(SupersetSecurityException):
+        command.run()
+
+    mock_sm.raise_for_access.assert_any_call(chart=slc)
 
 
 def test_table_datasource_path_unaffected(mocker: MockerFixture) -> None:
