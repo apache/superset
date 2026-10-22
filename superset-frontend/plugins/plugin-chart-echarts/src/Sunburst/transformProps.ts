@@ -25,6 +25,8 @@ import {
   getNumberFormatter,
   getSequentialSchemeRegistry,
   getTimeFormatter,
+  getTimeFormatterForGranularity,
+  SMART_DATE_ID,
   getValueFormatter,
   NumberFormats,
   tooltipHtml,
@@ -44,6 +46,7 @@ import {
   SunburstTransformedProps,
 } from './types';
 import { getDefaultTooltip } from '../utils/tooltip';
+import { getSunburstTimeGrain, getSunburstSelectionKey } from './utils';
 
 export function getLinearDomain(
   treeData: TreeNode[],
@@ -298,9 +301,16 @@ export default function transformProps(
     treeNodes.map(treeNode => {
       const { name: nodeName, value, secondaryValue, groupBy } = treeNode;
       const records = [...(pathRecords || []), nodeName];
+      const timeGrain = getSunburstTimeGrain(
+        formData,
+        columns[records.length - 1],
+      );
       let name = formatSeriesName(nodeName, {
         numberFormatter,
-        timeFormatter: getTimeFormatter(dateFormat),
+        timeFormatter:
+          dateFormat === SMART_DATE_ID && timeGrain
+            ? getTimeFormatterForGranularity(timeGrain)
+            : getTimeFormatter(dateFormat),
         ...(coltypeMapping[groupBy] && {
           coltype: coltypeMapping[groupBy],
         }),
@@ -323,7 +333,13 @@ export default function transformProps(
         name = newPath.join(',');
       }
       columnsLabelMap.set(name, newPath);
-      if (filterState.selectedValues?.[0]?.includes(name) === false) {
+      const selectionKey = getSunburstSelectionKey(
+        records,
+        newPath,
+        columns,
+        coltypeMapping,
+      );
+      if (filterState.selectedValues?.[0]?.includes(selectionKey) === false) {
         item = {
           ...item,
           itemStyle: {
