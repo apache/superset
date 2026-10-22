@@ -130,40 +130,31 @@ def ensure_user(username: str, role_name: str = ROLE):
     return user
 
 
-def grant_editorship(model, user_ids: list[int]) -> None:
-    """Make these users editors of an asset, which is what lets them review it.
+def set_editors(model, user_ids: list[int]) -> None:
+    """Make these users the editors of an asset -- exactly these, no others.
 
     Editorship is a subject on the asset, not a role: a reviewer has to be an
     editor of *this* object. Admin's blanket access deliberately does not
     count -- see `eligibility.is_strict_editor`.
+
+    It sets the list rather than adding to it, because the seed's job is to
+    produce a known state and appending cannot. An editor left over from an
+    earlier run, or from someone else's session, silently hands the author an
+    approver they should not have -- which is how a one-editor asset stops
+    being able to show "nobody can approve this yet", and how a run on a
+    used stack stops matching the walkthrough that describes it.
     """
     from superset import db
     from superset.subjects.utils import get_or_create_user_subject
 
-    existing = {s.user_id for s in model.editors}
-    for user_id in user_ids:
-        if user_id in existing:
-            continue
-        if subject := get_or_create_user_subject(user_id):
-            model.editors.append(subject)
-    db.session.commit()
-
-
-def set_sole_editor(model, user_id: int) -> None:
-    """Exactly one editor, whoever else was there before.
-
-    Adding an editor is not enough: anyone else already holding this asset
-    gives the author an approver, and then the state this is here to produce
-    -- an author with nobody to send to -- cannot be reached. The seed claims
-    this asset has one editor, so it has to make that true rather than hope.
-    """
-    from superset import db
-    from superset.subjects.utils import get_or_create_user_subject
-
-    subject = get_or_create_user_subject(user_id)
-    if subject is None:
+    subjects = [
+        subject
+        for subject in (get_or_create_user_subject(user_id) for user_id in user_ids)
+        if subject is not None
+    ]
+    if not subjects:
         return
-    model.editors = [subject]
+    model.editors = subjects
     db.session.commit()
 
 
@@ -226,7 +217,7 @@ def main() -> None:
             db.session.query(SqlaTable).order_by(SqlaTable.id).first(),
         ):
             if model is not None:
-                grant_editorship(model, both)
+                set_editors(model, both)
 
         # One asset with a single editor, so an author can reach the state
         # where there is no one to send the change to and the dialog has to
@@ -237,7 +228,7 @@ def main() -> None:
             .first()
         )
         if solo is not None:
-            set_sole_editor(solo, maker.id)
+            set_editors(solo, [maker.id])
 
         # Start from nothing pending, and from the title the examples ship.
         from asset_approval.models import ChangeRequest
@@ -263,8 +254,9 @@ def main() -> None:
         )
 
     with app.app_context():
-        from superset import db
         from asset_approval.models import ChangeRequest
+
+        from superset import db
 
         change = (
             db.session.query(ChangeRequest).order_by(ChangeRequest.id.desc()).first()
