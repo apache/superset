@@ -271,8 +271,8 @@ def has_aggregate(
 def is_constant_expression(expression: str, engine: str = "base") -> bool:
     """
     Return True if the SQL expression is a bare constant: a string or numeric
-    literal, ``NULL``, or (outside SQLite) a boolean literal, optionally wrapped
-    in parentheses.
+    literal (including a negated number such as ``-1``), ``NULL``, or (outside
+    SQLite) a boolean literal, optionally wrapped in parentheses.
 
     Anything that merely contains a constant (``CASE WHEN 1=1 THEN 'x' END``,
     ``CAST('x' AS VARCHAR)``, ``'a' || col``) is not a bare constant. Fails closed
@@ -292,7 +292,7 @@ def is_constant_expression(expression: str, engine: str = "base") -> bool:
     node = parsed.expressions[0].unnest()
     if isinstance(node, exp.Boolean):
         return dialect != Dialects.SQLITE
-    return isinstance(node, (exp.Literal, exp.Null))
+    return node.is_number or isinstance(node, (exp.Literal, exp.Null))
 
 
 class LimitMethod(enum.Enum):

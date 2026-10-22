@@ -133,7 +133,7 @@ def test_literal_custom_sql_dimension_is_not_a_bare_constant_in_group_by(
 
 @pytest.mark.parametrize(
     "expression",
-    ["'Other'", "('Other')", "3", "1.5", "NULL", "TRUE"],
+    ["'Other'", "('Other')", "3", "1.5", "-1", "(-1.5)", "NULL", "TRUE"],
 )
 def test_constant_custom_sql_dimension_is_omitted_from_group_by(
     table: SqlaTable, expression: str
