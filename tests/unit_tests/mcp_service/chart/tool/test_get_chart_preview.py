@@ -920,6 +920,7 @@ class TestGetChartPreview:
                         {
                             "data": [{"region": "North"}],
                             "colnames": ["region"],
+                            "coltypes": [int(GenericDataType.STRING)],
                             "rowcount": 1,
                         }
                     ]

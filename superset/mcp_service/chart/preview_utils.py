@@ -190,7 +190,6 @@ def generate_preview_from_form_data(
         set_query_context_form_data(query_context_obj, dataset_id, datasource_type)
 
         # Execute query
-        set_query_context_form_data(query_context_obj, dataset_id, "table")
         command = ChartDataCommand(query_context_obj)
         command.validate()
         result = command.run()

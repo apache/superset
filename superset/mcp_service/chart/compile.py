@@ -120,7 +120,6 @@ def _compile_chart(  # noqa: C901
             error_obj=temporal_state_error,
         )
 
-    from superset.charts.data.form_data import set_query_context_form_data
     from superset.commands.chart.data.get_data_command import ChartDataCommand
     from superset.commands.chart.exceptions import (
         ChartDataCacheLoadError,
@@ -151,7 +150,6 @@ def _compile_chart(  # noqa: C901
         except TypeError:
             logger.debug("Query-context form data could not be serialized")
 
-        set_query_context_form_data(query_context, dataset_id, "table")
         command = ChartDataCommand(query_context)
         command.validate()
         result = command.run()

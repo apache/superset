@@ -33,6 +33,7 @@ from superset.mcp_service.chart import preview_utils
 from superset.mcp_service.chart.preview_utils import _canonical_preview_value
 from superset.mcp_service.chart.query_result import MAX_RESULT_VALUE_DEPTH
 from superset.mcp_service.chart.schemas import ChartError, TablePreview, VegaLitePreview
+from superset.utils.core import GenericDataType
 from tests.unit_tests.mcp_service.chart.query_result_fixtures import (
     chart_data_command_result,
 )
@@ -200,13 +201,15 @@ def test_generate_preview_seeds_form_data_before_query_execution() -> None:
         query_form_data: dict[str, object], **kwargs: object
     ) -> SimpleNamespace:
         """Keep the builder boundary isolated but serialize real macro inputs."""
+        from superset.common.query_object import QueryObject
+
         return SimpleNamespace(
             form_data=query_form_data,
             queries=[
-                SimpleNamespace(
-                    to_dict=lambda: {"columns": [], "metrics": ["count"]},
-                    filter=[{"col": "region", "op": "==", "val": "EMEA"}],
-                    time_range=None,
+                QueryObject(
+                    filters=[{"col": "region", "op": "==", "val": "EMEA"}],
+                    columns=[],
+                    metrics=["count"],
                 )
             ],
         )
@@ -659,15 +662,11 @@ def test_generate_preview_from_form_data_exposes_jinja_context(
         def run(self) -> dict[str, Any]:
             assert_request_dependent_jinja_macros()
             observed["ran"] = True
-            return {
-                "queries": [
-                    {
-                        "data": [{"region": "North"}],
-                        "colnames": ["region"],
-                        "rowcount": 1,
-                    }
-                ]
-            }
+            return chart_data_command_result(
+                [{"region": "North"}],
+                columns=["region"],
+                coltypes=[GenericDataType.STRING],
+            )
 
     monkeypatch.setattr(
         "superset.common.query_context_factory.QueryContextFactory",
