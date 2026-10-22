@@ -85,6 +85,9 @@ from superset.utils.core import (
 )
 
 if TYPE_CHECKING:
+    from sqlalchemy.engine.base import Connection
+    from sqlalchemy.orm.mapper import Mapper
+
     from superset.connectors.sqla.models import TableColumn
     from superset.db_engine_specs import BaseEngineSpec
 
@@ -603,6 +606,84 @@ class SavedQuery(
         }
 
     @property
+    def type(self) -> str:
+        """Datasource type discriminator, mirroring ``Query.type``."""
+        return "saved_query"
+
+    @property
+    def name(self) -> str:
+        """
+        Expose ``label`` as ``name`` so callers that treat a ``SavedQuery`` as
+        a generic datasource (e.g. chart create/update commands) can rely on
+        a uniform ``name`` attribute across all datasource types.
+
+        ``label`` is a nullable column, so fall back to an id-based name
+        rather than returning ``None`` from a property typed as ``str``.
+        """
+        return self.label or f"Saved query {self.id}"
+
+    @property
+    def schema_perm(self) -> Optional[str]:
+        """
+        Schema-level permission string, mirroring ``Query.schema_perm``.
+
+        Required so that ``SecurityManager.raise_for_access(datasource=...)``
+        and the ``Slice`` ``before_insert``/``before_update`` listener (which
+        copies ``perm``/``catalog_perm``/``schema_perm`` onto the chart) can
+        treat a ``SavedQuery`` like any other datasource instead of raising
+        ``AttributeError``.
+
+        ``catalog`` is nullable, same as on ``Query``: a saved query against a
+        database that has a default catalog can leave it unset, so fall back
+        to ``self.database.get_default_catalog()`` the same way
+        ``Query.schema_perm`` does -- otherwise this builds a ``[db].[schema]``
+        permission string that never matches the ``[db].[catalog].[schema]``
+        grant a schema-authorized user actually holds.
+        """
+        if not self.database:
+            return None
+        return security_manager.get_schema_perm(
+            self.database.database_name,
+            self.catalog or self.database.get_default_catalog(),
+            self.schema,
+        )
+
+    @property
+    def catalog_perm(self) -> Optional[str]:
+        """Catalog-level permission string; see ``schema_perm`` above."""
+        return security_manager.get_catalog_perm(
+            self.database.database_name, self.catalog
+        )
+
+    @property
+    def perm(self) -> str:
+        """Object-level permission string; see ``schema_perm`` above."""
+        return f"[{self.database.database_name}].[{self.name}](id:{self.id})"
+
+    @property
+    def data(self) -> ExplorableData:
+        """
+        Minimal explorable payload.
+
+        ``SecurityManager`` builds access-denied error messages (and a few
+        dashboard-RBAC lookups) off ``datasource.data["id"]``/``["name"]``
+        for *every* datasource type it can be asked to authorize, not just
+        ones that are actually explorable; without this a denied saved-query
+        chart request fails with ``AttributeError`` instead of the intended
+        403.
+        """
+        result: ExplorableData = {
+            "id": self.id,
+            "name": self.name,
+            "type": "saved_query",
+            "schema": self.schema,
+            "catalog": self.catalog,
+        }
+        if self.database:
+            result["database"] = {"id": self.db_id, "backend": self.database.backend}
+        return result
+
+    @property
     def pop_tab_link(self) -> Markup:
         return Markup(
             f"""
@@ -634,6 +715,41 @@ class SavedQuery(
     @renders("changed_on")
     def last_run_delta_humanized(self) -> str:
         return self._last_run_delta_humanized
+
+    def load_database(self) -> None:
+        """Reload ``self.database`` from ``db_id`` if it's out of sync.
+
+        Mirrors ``SqlaTable.load_database``: needed in ``before_update``
+        because ``db_id`` may have just changed in-memory while the
+        ``database`` relationship still points at the previously loaded row.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.core import Database
+
+        if self.db_id and (not self.database or self.database.id != self.db_id):
+            session = sqla.inspect(self).session  # pylint: disable=disallowed-name
+            self.database = session.query(Database).filter_by(id=self.db_id).one()
+
+    @staticmethod
+    def before_update(
+        mapper: "Mapper",
+        connection: "Connection",
+        target: "SavedQuery",
+    ) -> None:
+        target.load_database()
+        security_manager.saved_query_before_update(mapper, connection, target)
+
+    @staticmethod
+    def after_delete(
+        mapper: "Mapper",
+        connection: "Connection",
+        target: "SavedQuery",
+    ) -> None:
+        security_manager.saved_query_after_delete(mapper, connection, target)
+
+
+sqla.event.listen(SavedQuery, "before_update", SavedQuery.before_update)
+sqla.event.listen(SavedQuery, "after_delete", SavedQuery.after_delete)
 
 
 class TabState(AuditMixinNullable, ExtraJSONMixin, Model):

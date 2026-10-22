@@ -123,7 +123,7 @@ if TYPE_CHECKING:
     from superset.models.core import Database
     from superset.models.dashboard import Dashboard
     from superset.models.slice import Slice
-    from superset.models.sql_lab import Query
+    from superset.models.sql_lab import Query, SavedQuery
     from superset.semantic_layers.models import SemanticLayer, SemanticView
 
 logger = logging.getLogger(__name__)
@@ -3763,6 +3763,11 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         self._update_vm_datasources_access(
             mapper, connection, old_database_name, target
         )
+        # Saved-query-backed charts carry the saved query's computed perm
+        # strings as well (see ``saved_query_before_update``), and the dataset
+        # walk above never reaches them: there is no PVM to rename, so rewrite
+        # the chart rows directly.
+        self._update_saved_query_chart_perms(connection, target)
         # Note schema permissions are updated at the API level
         # (database.commands.update). Since we need to fetch all existing schemas from
         # the db
@@ -4681,6 +4686,175 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                 )
                 .values(perm=new_perm)
             )
+
+    def saved_query_before_update(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SavedQuery",
+    ) -> None:
+        """
+        Keep a saved query's dependent charts' denormalized permission
+        columns in sync when its database, catalog, or schema changes.
+
+        ``SavedQuery.perm``/``catalog_perm``/``schema_perm`` are computed
+        properties, not persisted columns (unlike ``SqlaTable`` and
+        ``SemanticView``, which each get a PVM-rename dance in
+        ``dataset_before_update``/``semantic_view_before_update``), so there
+        is no FAB ViewMenu here to rename -- saved queries never get a
+        ``datasource_access`` PVM of their own. But ``Slice``'s
+        ``before_insert``/``before_update`` listener (``set_related_perm``)
+        copies those computed strings onto the chart at save time, and
+        nothing re-copies them if the saved query moves afterwards: a chart
+        would otherwise keep matching stale schema/catalog grants
+        indefinitely. This is the dependent-chart half of
+        ``semantic_view_before_update``, without the PVM-rename half.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.sql_lab import SavedQuery
+
+        sq_table = SavedQuery.__table__  # pylint: disable=no-member
+        current = connection.execute(
+            sq_table.select().where(sq_table.c.id == target.id)
+        ).one()
+
+        if (
+            current.db_id == target.db_id
+            and current.catalog == target.catalog
+            and current.schema == target.schema
+        ):
+            return
+
+        if target.database is None:
+            return
+
+        # Skip the perm computation (which may hit the warehouse via
+        # ``get_default_catalog``) when no chart references this saved query.
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        has_charts = connection.execute(
+            select(chart_table.c.id)
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id == target.id,
+            )
+            .limit(1)
+        ).first()
+        if has_charts is None:
+            return
+
+        self._sync_saved_query_chart_perms(connection, target, target.database)
+
+    def _saved_query_chart_perm_values(
+        self,
+        saved_query: "SavedQuery",
+        database: "Database",
+    ) -> dict[str, Optional[str]]:
+        """
+        Compute the denormalized ``perm``/``catalog_perm``/``schema_perm`` a
+        chart backed by ``saved_query`` should carry, given ``database``.
+
+        ``database`` is passed explicitly rather than read off the saved query
+        because callers run inside a flush: ``SavedQuery.before_update`` may
+        have just reloaded it from a changed ``db_id``, and on a database
+        rename (``database_after_update``) the new ``database_name`` only
+        exists on the in-memory target.
+        """
+        database_name = database.database_name
+        return {
+            "perm": f"[{database_name}].[{saved_query.name}](id:{saved_query.id})",
+            "catalog_perm": self.get_catalog_perm(database_name, saved_query.catalog),
+            "schema_perm": self.get_schema_perm(
+                database_name,
+                saved_query.catalog or database.get_default_catalog(),
+                saved_query.schema,
+            ),
+        }
+
+    def _sync_saved_query_chart_perms(
+        self,
+        connection: Connection,
+        saved_query: "SavedQuery",
+        database: "Database",
+    ) -> None:
+        """Re-copy ``saved_query``'s perm strings onto its dependent charts."""
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id == saved_query.id,
+            )
+            .values(**self._saved_query_chart_perm_values(saved_query, database))
+        )
+
+    def _update_saved_query_chart_perms(
+        self,
+        connection: Connection,
+        target: "Database",
+    ) -> None:
+        """
+        Rewrite the denormalized perm columns on every chart backed by one of
+        ``target``'s saved queries after the database is renamed.
+
+        ``_update_vm_datasources_access`` only walks datasets, so saved-query
+        charts would otherwise keep their ``[old_name].[...]`` strings and
+        match a schema or catalog grant on an unrelated connection that later
+        takes the old name.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.sql_lab import SavedQuery
+
+        saved_queries = (
+            self.session.query(SavedQuery).filter(SavedQuery.db_id == target.id).all()
+        )
+        for saved_query in saved_queries:
+            self._sync_saved_query_chart_perms(connection, saved_query, target)
+
+    def saved_query_after_delete(
+        self,
+        mapper: Mapper,
+        connection: Connection,
+        target: "SavedQuery",
+    ) -> None:
+        """
+        Detach a deleted saved query's dependent charts.
+
+        ``slices`` has no foreign key to ``saved_query``, so an ORM delete of
+        a saved query would otherwise leave its charts pointing at a dead
+        ``datasource_id`` with the saved query's ``perm``/``catalog_perm``/
+        ``schema_perm`` still denormalized on the row: a surviving schema or
+        catalog grant would keep listing a chart whose datasource no longer
+        resolves, and on a backend that reuses ids a later saved query could
+        be silently adopted by the orphaned chart. Clear the datasource
+        reference and the perm columns the way the dataset purge detaches a
+        purged dataset's charts (``_detach_dataset_charts``); no chart is
+        deleted. There is no PVM to drop here, unlike
+        ``dataset_after_delete``/``semantic_view_after_delete``, because a
+        saved query never gets a ``datasource_access`` ViewMenu of its own.
+        """
+        # pylint: disable=import-outside-toplevel
+        from superset.models.slice import Slice
+
+        chart_table = Slice.__table__  # pylint: disable=no-member
+        connection.execute(
+            chart_table.update()
+            .where(
+                chart_table.c.datasource_type == DatasourceType.SAVEDQUERY,
+                chart_table.c.datasource_id == target.id,
+            )
+            .values(
+                datasource_id=None,
+                perm=None,
+                catalog_perm=None,
+                schema_perm=None,
+            )
+        )
 
     def semantic_view_after_delete(
         self,
