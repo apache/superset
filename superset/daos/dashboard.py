@@ -695,7 +695,14 @@ class DashboardDAO(BaseDAO[Dashboard]):
                     db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
                 )
                 _install_membership_baseline(dashboard)
-                dashboard.slices = current_slices
+                # Preserve archived membership even when no layout slot represents it.
+                layout_ids: set[int] = {chart.id for chart in current_slices}
+                kept_archived: list[Slice] = [
+                    chart
+                    for chart in dashboard.slices
+                    if chart.deleted_at is not None and chart.id not in layout_ids
+                ]
+                dashboard.slices = current_slices + kept_archived
 
             # add UUID to positions
             uuid_map = {slice.id: str(slice.uuid) for slice in current_slices}

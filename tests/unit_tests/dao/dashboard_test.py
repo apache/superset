@@ -19,7 +19,7 @@ from typing import Any
 from unittest.mock import patch
 
 import pytest
-from sqlalchemy import event, inspect
+from sqlalchemy import event, inspect, select
 from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
@@ -33,7 +33,7 @@ from superset.daos.dashboard import (
     reconcile_position_json,
 )
 from superset.dashboards.filter_scope import derive_metadata_scopes
-from superset.models.dashboard import Dashboard
+from superset.models.dashboard import Dashboard, dashboard_slices
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
 from superset.subjects.models import Subject
@@ -135,6 +135,57 @@ def test_set_dash_metadata_preserves_soft_deleted_members(
     )
     # And the position slot kept its UUID rather than being nulled.
     assert positions["CHART-trashed"]["meta"]["uuid"] == str(trashed_chart.uuid)
+
+
+@pytest.mark.parametrize("previously_in_layout", [False, True])
+@with_feature_flags(SOFT_DELETE=True)
+def test_set_dash_metadata_preserves_archived_member_missing_from_layout(
+    session: Session, previously_in_layout: bool
+) -> None:
+    """A layout save keeps omitted archived members but removes omitted live ones."""
+    Dashboard.metadata.create_all(session.get_bind())
+    live: Slice = Slice(slice_name="layout_member", datasource_type="table")
+    archived: Slice = Slice(
+        slice_name="archived_member",
+        datasource_type="table",
+        deleted_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+    )
+    removed: Slice = Slice(slice_name="removed_member", datasource_type="table")
+    positions: dict[str, dict[str, Any]] = {
+        "CHART-live": {"type": "CHART", "meta": {"chartId": None}}
+    }
+    dashboard: Dashboard = Dashboard(
+        dashboard_title="archived_outside_layout", slices=[live, archived, removed]
+    )
+    db.session.add(dashboard)
+    db.session.flush()
+    positions["CHART-live"]["meta"]["chartId"] = live.id
+    stored_positions: dict[str, dict[str, Any]] = dict(positions)
+    if previously_in_layout:
+        stored_positions["CHART-archived"] = {
+            "type": "CHART",
+            "meta": {"chartId": archived.id},
+        }
+    dashboard.position_json = json.dumps(stored_positions)
+    # The layout save runs in a separate transaction from the initial membership.
+    db.session.commit()
+    dashboard_id: int = dashboard.id
+    expected_ids: set[int] = {live.id, archived.id}
+    db.session.expunge(dashboard)
+    dashboard = db.session.query(Dashboard).filter_by(id=dashboard_id).one()
+
+    DashboardDAO.set_dash_metadata(dashboard, {"positions": positions})
+    db.session.flush()
+
+    member_ids: set[int] = set(
+        db.session.scalars(
+            select(dashboard_slices.c.slice_id).where(
+                dashboard_slices.c.dashboard_id == dashboard_id
+            )
+        )
+    )
+    assert member_ids == expected_ids
+    assert json.loads(dashboard.position_json) == positions
 
 
 def test_install_membership_baseline_skips_transient_dashboard(
