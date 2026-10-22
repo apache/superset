@@ -31,6 +31,24 @@ describe('NumberFormatterRegistry', () => {
   test('has SMART_NUMBER as default formatter out of the box', () => {
     expect(registry.getDefaultKey()).toBe(NumberFormats.SMART_NUMBER);
   });
+  describe('.setD3Format(d3Format)', () => {
+    test('applies the locale to new formatters', () => {
+      registry.setD3Format({ decimal: ',', thousands: '.' });
+      expect(registry.format(',.2f', 1234.5)).toEqual('1.234,50');
+    });
+    test('applies the locale to the adaptive formatters', () => {
+      registry.setD3Format({ decimal: ',', thousands: '.' });
+      expect(registry.format(NumberFormats.SMART_NUMBER, 10.5)).toEqual('10,5');
+      expect(registry.format(NumberFormats.SMART_NUMBER_SIGNED, 10.5)).toEqual(
+        '+10,5',
+      );
+      expect(registry.format(undefined, 1500)).toEqual('1,5k');
+    });
+    test('keeps the default output without a locale', () => {
+      registry.setD3Format({});
+      expect(registry.format(NumberFormats.SMART_NUMBER, 1500)).toEqual('1.5k');
+    });
+  });
   describe('.get(format)', () => {
     test('creates and returns a new formatter if does not exist', () => {
       const formatter = registry.get('.2f');
