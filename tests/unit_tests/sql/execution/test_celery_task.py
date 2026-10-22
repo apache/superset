@@ -1496,31 +1496,31 @@ def test_execute_sql_task_unhandled_exception(
     assert result["status"] == QueryStatusEnum.FAILED
 
 
-def test_execute_sql_task_overwrites_stopped_status_with_failed(
+def test_execute_sql_task_preserves_stopped_status_despite_dispatch_exception(
     mocker: MockerFixture,
     app_context: None,
     mock_query: MagicMock,
 ) -> None:
     """
-    CHARACTERIZATION TEST, not a desired behavior: documents a pre-existing
-    gap, not introduced by any ClickHouse-specific change. `_handle_query_error`
-    only special-cases TIMED_OUT ("Preserve TIMED_OUT status if already set");
-    it has no equivalent STOPPED check, unlike the sync path's
-    `execute_query()` in `sql_lab.py`, which explicitly refreshes and checks
-    for STOPPED before converting to `SqlLabException`. So on this async/
-    Celery path, ANY exception that reaches `execute_sql_task`'s outer
-    handler while `query.status` is already STOPPED gets overwritten to
-    FAILED here -- regardless of engine, and regardless of why the exception
-    was raised (a real cancel-induced driver error for any engine whose
-    cancellation mechanism can make a subsequent/concurrent `cursor.execute()`
-    fail, not something specific to a new check).
+    Regression guard, not a characterization of a gap: an exception that
+    reaches `execute_sql_task`'s outer handler while `query.status` is
+    already STOPPED must not get overwritten to FAILED -- regardless of
+    engine, and regardless of why the exception was raised (a real
+    cancel-induced driver error for any engine whose cancellation mechanism
+    can make a subsequent/concurrent `cursor.execute()` fail, not something
+    specific to ClickHouse).
 
-    This is deliberately not fixed here: doing so would mean changing
-    `_handle_query_error`/`execute_sql_task` (shared code well outside
-    `db_engine_specs/clickhouse.py`) to special-case STOPPED the way the
-    sync path already does -- out of scope for this ticket, and a decision
-    that affects every engine, not just ClickHouse. See RCA.md for the full
-    reasoning and why this isn't something introduced by this ticket's fix.
+    This used to be a real, disclosed gap in `_handle_query_error`, which
+    only special-cased TIMED_OUT and had no equivalent STOPPED check. It is
+    now fixed upstream on master (independently of this PR, picked up via
+    merge): `_handle_query_error` checks
+    `_make_check_stopped_fn(query, preserve_pending=True)()` first and
+    returns the recorded STOPPED outcome via `_stopped_query_payload()`
+    instead of overwriting it. Kept as a regression guard for this
+    property, since it's exactly the invariant this PR's own
+    `ClickHouseQueryStoppedBeforeDispatchError` (see
+    `db_engine_specs/clickhouse.py::execute_with_cursor`) relies on holding
+    on the Celery path too.
     """
     from superset.sql.execution.celery_task import execute_sql_task
 
@@ -1539,8 +1539,8 @@ def test_execute_sql_task_overwrites_stopped_status_with_failed(
 
     result = execute_sql_task(123, "SELECT * FROM users")
 
-    assert result["status"] == QueryStatusEnum.FAILED
-    assert mock_query.status == QueryStatusEnum.FAILED
+    assert result["status"] == QueryStatusEnum.STOPPED
+    assert mock_query.status == QueryStatusEnum.STOPPED
 
 
 def test_execute_sql_task_success_final_commit(
