@@ -29,6 +29,15 @@ assists people when migrating to a new version.
   MCP chart names and theme names are capped at 250 characters, matching their
   model columns (the published chart-name limit was 255).
 
+- **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
+  query (no post-processing or time offsets, and not a report's client-processed
+  result), a dimension column of nullable integers that holds a value beyond
+  `2**53 - 1` is no longer rounded to a float. JSON responses carry such values as
+  strings (the existing contract for large integers), and CSV, Excel and Arrow
+  exports carry the exact integer. Consumers that parsed these values as JSON
+  numbers receive a string for them. Metric columns are unchanged, and results
+  cached before the upgrade keep the old values until they expire.
+
 - **Bulk semantic view creation is capped and time-bounded.** With
   `SEMANTIC_LAYERS` enabled, `POST /api/v1/semantic_view/` refuses requests with
   more than `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (default 100) with a 400,
