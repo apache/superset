@@ -119,7 +119,7 @@ function UserListModal({
             >
               <Input
                 name="first_name"
-                autoComplete="given-name"
+                autoComplete="off"
                 placeholder={t("Enter the user's first name")}
               />
             </FormItem>
@@ -130,7 +130,7 @@ function UserListModal({
             >
               <Input
                 name="last_name"
-                autoComplete="family-name"
+                autoComplete="off"
                 placeholder={t("Enter the user's last name")}
               />
             </FormItem>
@@ -141,7 +141,7 @@ function UserListModal({
             >
               <Input
                 name="username"
-                autoComplete="username"
+                autoComplete="off"
                 placeholder={t("Enter the user's username")}
               />
             </FormItem>
@@ -165,7 +165,7 @@ function UserListModal({
             >
               <Input
                 name="email"
-                autoComplete="email"
+                autoComplete="off"
                 placeholder={t("Enter the user's email")}
               />
             </FormItem>
