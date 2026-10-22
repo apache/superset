@@ -583,7 +583,7 @@ def test_resolve_returns_none_when_the_feature_flag_is_off(app: Flask) -> None:
 
 def test_an_array_partition_column_resolves_no_mapping(app: Flask) -> None:
     """
-    SC-128852, page 3: with only the per-value refusal the chart stopped
+    With only the per-value refusal the chart stopped
     failing, but the glyph stayed lit -- the probe of ``:value`` succeeds and
     records a working transform. An array partition column can never take a
     mirror, so the mapping itself is refused, and the summary the glyph reads
