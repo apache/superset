@@ -185,13 +185,29 @@ async def test_guest_verifier_rejects_missing_structural_claims() -> None:
 
 @pytest.mark.asyncio
 async def test_guest_verifier_rejects_invalid_identity() -> None:
+    # enforce path: with the rollout flag on, a bad identity is rejected
+    verifier, _ = _make_guest_verifier(
+        parsed=_parsed_guest_claims(user={"username": "embed\nguest"})
+    )
+    with (
+        patch("superset.is_feature_enabled", return_value=True),
+        patch("superset.security.guest_token.GUEST_TOKEN_IDENTITY_ENFORCE", True),
+    ):
+        token = await verifier.verify_token("raw-guest-token")
+
+    assert token is None
+
+
+@pytest.mark.asyncio
+async def test_guest_verifier_warns_but_accepts_invalid_identity() -> None:
+    # warn-first default: a bad identity is logged but still accepted
     verifier, _ = _make_guest_verifier(
         parsed=_parsed_guest_claims(user={"username": "embed\nguest"})
     )
     with patch("superset.is_feature_enabled", return_value=True):
         token = await verifier.verify_token("raw-guest-token")
 
-    assert token is None
+    assert token is not None
 
 
 @pytest.mark.asyncio

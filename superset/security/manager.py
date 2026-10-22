@@ -87,6 +87,7 @@ from superset.exceptions import (
 )
 from superset.security.guest_token import (
     DEFAULT_GUEST_TOKEN_REVOCATION_VERSION,
+    enforce_guest_token_identity,
     get_current_guest_token_revocation_version,
     GUEST_TOKEN_REVOCATION_CLAIM,
     GuestToken,
@@ -95,7 +96,6 @@ from superset.security.guest_token import (
     GuestTokenRlsRule,
     GuestTokenUser,
     GuestUser,
-    validate_guest_token_identity,
 )
 from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
@@ -6163,7 +6163,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         rls: list[GuestTokenRlsRule],
         datasets: Optional[list[int]] = None,
     ) -> bytes:
-        validate_guest_token_identity(user)
+        enforce_guest_token_identity(user)
         secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
         algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = get_conf()["GUEST_TOKEN_JWT_EXP_SECONDS"]
@@ -6220,7 +6220,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             token = self.parse_jwt_guest_token(raw_token)
             if token.get("user") is None:
                 raise ValueError("Guest token does not contain a user claim")
-            validate_guest_token_identity(token["user"])
+            enforce_guest_token_identity(token["user"])
             if token.get("resources") is None:
                 raise ValueError("Guest token does not contain a resources claim")
             if token.get("rls_rules") is None:

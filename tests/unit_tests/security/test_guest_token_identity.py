@@ -102,7 +102,9 @@ def test_non_string_value_is_rejected(field: str) -> None:
         validate_guest_token_identity(_identity(field, 123))
 
 
+@patch("superset.security.guest_token.GUEST_TOKEN_IDENTITY_ENFORCE", True)
 def test_mint_rejects_invalid_identity(app_context: None) -> None:
+    # enforce path: with the rollout flag on, minting a bad identity is rejected
     sm = SupersetSecurityManager(appbuilder)
     with pytest.raises(GuestTokenIdentityError):
         sm.create_guest_access_token({"username": "bob\nalice"}, RESOURCES, [])
@@ -120,13 +122,15 @@ def _guest_request(mocker: MockerFixture, raw_token: bytes) -> Any:
     ["x" * (GUEST_TOKEN_IDENTITY_MAX_LENGTH + 1), "trailing-newline\n"],
     ids=["overlong", "trailing-newline"],
 )
+@patch("superset.security.guest_token.GUEST_TOKEN_IDENTITY_ENFORCE", True)
 def test_invalid_identity_rejected_through_request_flow(
     mocker: MockerFixture, app_context: None, username: str
 ) -> None:
-    """A token minted without identity validation no longer resolves to a guest."""
+    """Enforce path: a token carrying a bad identity no longer resolves to a guest."""
     sm = SupersetSecurityManager(appbuilder)
-    # Stand in for a token minted before identity validation existed.
-    with patch("superset.security.manager.validate_guest_token_identity"):
+    # Stand in for a token minted before identity validation existed (skip the
+    # mint-time check so the consume-side check is what rejects it).
+    with patch("superset.security.manager.enforce_guest_token_identity"):
         raw_token = sm.create_guest_access_token({"username": username}, RESOURCES, [])
 
     assert sm.get_guest_user_from_request(_guest_request(mocker, raw_token)) is None

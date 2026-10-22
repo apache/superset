@@ -44,8 +44,8 @@ from fastmcp.server.auth import AccessToken
 from fastmcp.server.auth.providers.jwt import TokenVerifier
 
 from superset.security.guest_token import (
+    enforce_guest_token_identity,
     GuestTokenIdentityError,
-    validate_guest_token_identity,
 )
 
 logger = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ class GuestTokenVerifier(TokenVerifier):
                     return None
 
                 try:
-                    validate_guest_token_identity(parsed["user"])
+                    enforce_guest_token_identity(parsed["user"])
                 except GuestTokenIdentityError:
                     logger.debug("Guest token carries an invalid identity; deferring")
                     return None

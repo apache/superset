@@ -368,6 +368,7 @@ class TestSecurityGuestTokenApi(SupersetTestCase):
         assert "attributes" not in decoded_token["user"]
         assert resource == decoded_token["resources"][0]
 
+    @patch("superset.security.guest_token.GUEST_TOKEN_IDENTITY_ENFORCE", True)
     @pytest.mark.usefixtures("load_birth_names_dashboard_with_slices")
     def test_post_guest_token_invalid_identity(self) -> None:
         self.dash = db.session.query(Dashboard).filter_by(slug="births").first()
@@ -459,6 +460,7 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
             )
         }
     )
+    @patch("superset.security.guest_token.GUEST_TOKEN_IDENTITY_ENFORCE", True)
     def test_guest_token_invalid_identity_after_hook(self):
         """
         Security API: an identity made invalid after schema validation is a 400
@@ -485,8 +487,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_positive(self):
@@ -501,8 +504,9 @@ class TestSecurityGuestTokenApiTokenValidator(SupersetTestCase):
 
     @with_config(
         {
-            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: len(x["rls"]) == 1
-            and "tenant_id=" in x["rls"][0]["clause"]
+            "GUEST_TOKEN_VALIDATOR_HOOK": lambda x: (
+                len(x["rls"]) == 1 and "tenant_id=" in x["rls"][0]["clause"]
+            )
         }
     )
     def test_guest_validator_hook_real_world_example_negative(self):

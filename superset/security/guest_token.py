@@ -193,6 +193,28 @@ def validate_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
             )
 
 
+# Warn-first rollout flag. While False, enforce_guest_token_identity logs an
+# invalid identity instead of raising, so a host already sending a long or
+# multi-line value is not broken on deploy. Flip to True to enforce.
+GUEST_TOKEN_IDENTITY_ENFORCE = False
+
+
+def enforce_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
+    """Validate a guest token identity, honoring the warn-first rollout flag.
+
+    While ``GUEST_TOKEN_IDENTITY_ENFORCE`` is False an invalid identity is logged
+    and allowed through; once it is True the underlying ``GuestTokenIdentityError``
+    propagates and the caller rejects the token. Mint and consume paths call this
+    rather than ``validate_guest_token_identity`` directly.
+    """
+    try:
+        validate_guest_token_identity(user)
+    except GuestTokenIdentityError as exc:
+        if GUEST_TOKEN_IDENTITY_ENFORCE:
+            raise
+        logger.warning("Guest token identity violation (warn-only): %s", exc)
+
+
 class GuestTokenResourceType(StrEnum):
     DASHBOARD = "dashboard"
 

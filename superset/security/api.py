@@ -61,10 +61,10 @@ from superset.extensions import db, event_logger
 from superset.security import password_recovery
 from superset.security.guest_token import (
     build_guest_token_audit_payload,
+    enforce_guest_token_identity,
     GuestTokenIdentityError,
     GuestTokenResourceType,
     GuestTokenUser,
-    validate_guest_token_identity,
 )
 from superset.utils.core import get_user_id
 from superset.views.base_api import (
@@ -97,7 +97,7 @@ class UserSchema(PermissiveSchema):
     @validates_schema
     def validate_identity(self, data: dict[str, Any], **kwargs: Any) -> None:
         try:
-            validate_guest_token_identity(cast(GuestTokenUser, data))
+            enforce_guest_token_identity(cast(GuestTokenUser, data))
         except GuestTokenIdentityError as ex:
             raise ValidationError(str(ex)) from ex
 
