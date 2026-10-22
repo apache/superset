@@ -65,7 +65,16 @@ def test_openapi_spec_includes_extension_apis(
     list_schema: dict[str, Any] = paths["/api/v1/extensions/"]["get"]["responses"][
         "200"
     ]["content"]["application/json"]["schema"]
-    assert "result" in list_schema["properties"]
+    assert list_schema["properties"]["result"]["type"] == "array"
+    detail_schema: dict[str, Any] = paths["/api/v1/extensions/{publisher}/{name}"][
+        "get"
+    ]["responses"]["200"]["content"]["application/json"]["schema"]
+    assert detail_schema["properties"]["result"]["type"] == "object"
+    chunk_content: dict[str, Any] = paths[
+        "/api/v1/extensions/{publisher}/{name}/{file}"
+    ]["get"]["responses"]["200"]["content"]
+    assert "application/json" not in chunk_content
+    assert chunk_content["application/octet-stream"]["schema"]["format"] == "binary"
     assert any(path.endswith("/storage/persistent/{key}") for path in paths)
 
 

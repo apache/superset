@@ -142,12 +142,10 @@ class ExtensionsRestApi(BaseApi):
                     type: object
                     properties:
                         result:
-                            type: array
-                            items:
-                              type: object
-                              properties:
-                                remoteEntry:
-                                  type: string
+                            type: object
+                            properties:
+                              remoteEntry:
+                                type: string
             400:
               $ref: '#/components/responses/400'
             401:
@@ -192,14 +190,13 @@ class ExtensionsRestApi(BaseApi):
             description: name of the requested chunk
           responses:
             200:
-              description: Extension import result
+              description: The chunk's bytes. The media type follows the
+                file's extension, falling back to application/octet-stream.
               content:
-                application/json:
+                application/octet-stream:
                   schema:
-                    type: object
-                    properties:
-                      message:
-                        type: string
+                    type: string
+                    format: binary
             400:
               $ref: '#/components/responses/400'
             401:
