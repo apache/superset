@@ -240,6 +240,9 @@ def test_df_to_escaped_csv_keeps_backslashes():
     assert df_to_escaped_csv(df, index=False, quoting=QUOTE_NONE) == (
         "path,n\nC:\\\\Users\\\\ann,1\na\\\\b\\, c,2\n"
     )
+    assert df_to_escaped_csv(
+        df, index=False, quoting=QUOTE_NONE, escapechar=None
+    ) == df_to_escaped_csv(df, index=False, quoting=QUOTE_NONE)
 
 
 def test_df_to_escaped_csv_preserves_numeric_columns():

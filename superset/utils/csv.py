@@ -120,8 +120,8 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
     # (C:\Users becomes C:\\Users). Only QUOTE_NONE, which cannot quote a
     # delimiter or a line break, needs one; Python 3.10's writer also wanted one
     # for a NUL character (#28755), which Python 3.11 writes without it.
-    if kwargs.get("quoting") == QUOTE_NONE:
-        kwargs.setdefault("escapechar", "\\")
+    if kwargs.get("quoting") == QUOTE_NONE and kwargs.get("escapechar") is None:
+        kwargs["escapechar"] = "\\"
     return df.to_csv(**kwargs)
 
 
