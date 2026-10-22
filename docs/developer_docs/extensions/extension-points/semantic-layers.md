@@ -390,7 +390,7 @@ class MySemanticLayer(SemanticLayer[MyConfig, MySemanticView]):
 
     def get_semantic_cache_provider_identity(self) -> SemanticCacheIdentityMaterial:
         return SemanticCacheIdentityMaterial(
-            {"provider_version": "v1", "catalog": self.config.catalog}
+            {"provider_version": "v1", "catalog": self.configuration.catalog}
         )
 
     def get_semantic_cache_context_identity(
