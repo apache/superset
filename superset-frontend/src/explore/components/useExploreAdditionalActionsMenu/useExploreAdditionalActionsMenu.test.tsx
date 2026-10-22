@@ -520,3 +520,29 @@ test('Export All Data JPEG screenshot passes addWarningToast to downloadAsImage'
     mockAddWarningToast,
   );
 });
+
+test('A Big Number chart keeps only the image exports in Data Export Options', async () => {
+  render(
+    <TestComponent
+      {...defaultProps}
+      latestQueryFormData={{
+        datasource: '1__table',
+        viz_type: 'big_number_total',
+      }}
+    />,
+    {
+      useRedux: true,
+      initialState: { explore: { can_export_image: true } },
+    },
+  );
+
+  await userEvent.hover(await screen.findByText('Data Export Options'));
+  await userEvent.hover(await screen.findByText('Export All Data'));
+  expect(
+    await screen.findByText('Export screenshot (jpeg)'),
+  ).toBeInTheDocument();
+  expect(screen.getByText('Export screenshot (png)')).toBeInTheDocument();
+  expect(screen.queryByText('Export to .CSV')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export to Excel')).not.toBeInTheDocument();
+  expect(screen.queryByText('Export as PDF')).not.toBeInTheDocument();
+});
