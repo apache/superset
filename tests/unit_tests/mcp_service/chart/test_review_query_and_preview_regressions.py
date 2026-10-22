@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+from copy import deepcopy
 from datetime import datetime
 from types import SimpleNamespace
 from typing import Any
@@ -81,6 +82,7 @@ def test_table_inherited_offset_survives_filter_preparation(
     }
     if not saved_viz:
         form_data.pop("viz_type")
+    original_form_data = deepcopy(form_data)
     with patch(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         return_value="base",
@@ -95,7 +97,7 @@ def test_table_inherited_offset_survives_filter_preparation(
             else None,
         )[0]
     offset = request_offset or "1 year ago"
-    assert "extra_form_data" not in form_data
+    assert form_data == original_form_data
     assert query["time_offsets"] == [offset]
     assert query["post_processing"][0]["options"]["compare_columns"] == [
         f"revenue__{offset}"
@@ -349,6 +351,7 @@ def test_table_inherited_custom_offset_preserves_other_comparisons(
     }
     if not saved_viz:
         form_data.pop("viz_type")
+    original_form_data = deepcopy(form_data)
     with patch(
         "superset.mcp_service.chart.chart_helpers.resolve_datasource_engine",
         return_value="base",
@@ -367,7 +370,7 @@ def test_table_inherited_custom_offset_preserves_other_comparisons(
         if request_offset == "3 weeks ago"
         else ["1 year ago", "2 weeks ago"]
     )
-    assert "extra_form_data" not in form_data
+    assert form_data == original_form_data
     assert query["time_offsets"] == offsets
     assert query["post_processing"][0]["options"]["compare_columns"] == [
         f"revenue__{offset}" for offset in offsets

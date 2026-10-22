@@ -44,6 +44,26 @@ shared cursor reads the schema the script switched to. Chart and Explore
 checks are unchanged. Reports, alerts, MetaDB, and SQL validation keep
 requiring a dataset match.
 
+- **Bulk semantic view creation is capped and time-bounded.** With
+  `SEMANTIC_LAYERS` enabled, `POST /api/v1/semantic_view/` refuses requests with
+  more than `SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS` views (default 100) with a 400,
+  and views not checked within `SEMANTIC_VIEW_BULK_CREATE_TIMEOUT` seconds
+  (default 30) are reported with `error_type: "TIMEOUT"` instead of being looked
+  up. Clients adding more views should split them across requests and retry
+  timed-out views.
+
+- MCP `get_dashboard_data` reports `total_rows=null` and `truncated=true` when
+  row-collapsing post-processing leaves input coverage unverified, not only when
+  truncation is observed. Output row counts do not prove complete input coverage.
+  `fetch_row_limit` reports the executed query limit, including server caps.
+
+- MCP `duplicate_dashboard` deep-copies charts by default. Callers that intentionally
+  share charts with the source dashboard must pass `duplicate_slices=false`.
+  MCP `list_dashboards`, `list_charts`, `list_datasets`, `list_reports` and
+  `list_databases` reject unknown request fields instead of silently ignoring
+  them, with suggestions for supported fields. Use `created_by_me` for authorship
+  or `edited_by_me` for direct user ownership where supported, not `owned_by_me`.
+
 - **Pivot Table mixed-metric export totals.** CSV/Excel exports and scheduled
   CSV/text reports leave Total and Subtotal cells blank when they combine different
   metrics, including two SUM metrics. Metric-specific values and totals remain
@@ -886,14 +906,17 @@ them had no effect and they can be deleted from custom configs.
 ### Default Docker image is now batteries-included; the minimal image moves to `-lean`
 
 The default `apache/superset` Docker image (the plain tags: `latest`, `master`,
-`5.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
+`7.0.0`, per-SHA) is now a batteries-included, production-grade image. It bundles
 the common metadata/analytics drivers (`psycopg2-binary` for PostgreSQL,
 `mysqlclient` for MySQL), the MCP server dependencies (`fastmcp`), and a headless
 Chromium (via Playwright) for Alerts & Reports and thumbnail generation. It still
 runs as the non-root `superset` user and is byte-compiled like before.
 
 The previous minimal image — with **no** database drivers — is still published,
-but under `-lean` tags: `latest-lean`, `master-lean`, `5.0.0-lean`, `<sha>-lean`.
+but under `-lean` tags: `latest-lean`, `master-lean`, `7.0.0-lean`, `<sha>-lean`.
+This naming starts with 7.0.0. For earlier releases (6.1.0 and before), the plain tag
+(e.g. `6.1.0`) is the minimal image; where a `-lean` tag exists for one of those
+releases, it is the same minimal image.
 
 **What operators should expect:**
 
@@ -981,21 +1004,22 @@ tags are included in asset export and import.
 
 **What operators should expect:**
 
-- **Implicit tags accrue.** Saving a chart, dashboard, dataset or saved query,
-  and favoriting an asset, write rows to `tag` and `tagged_object` (`type:chart`,
-  `editor:<user id>`, `favorited_by:<user id>`). These have always been created
-  when the flag was on; they are simply no longer opt-in.
+- **Implicit tags no longer accrue.** Saving a chart, dashboard, dataset or
+  saved query, and favoriting an asset, used to write rows to `tag` and
+  `tagged_object` (`type:chart`, `editor:<user id>`, `favorited_by:<user id>`).
+  That generation has since been removed; see "Superset no longer
+  auto-generates `type:`/`editor:`/`favorited_by:` tags" below for what
+  happens to rows created before upgrading.
 - **Exports gain a `tags` key and a `tags.yaml` file.** Chart and dashboard
   export bundles carry custom tags. Importers on 6.0 and later understand both;
   older importers skip the unrecognized `tags.yaml` file but reject chart and
   dashboard YAML that contains a `tags` key, so strip that key before importing
   a bundle into Superset 5.x or earlier.
-- **The flag is honored at write time.** The tagging SQLA event listeners are
-  always attached at startup; the ones that create tags check `TAGGING_SYSTEM`
-  when they fire, so the flag, including a runtime override through
-  `GET_FEATURE_FLAGS_FUNC` or `IS_FEATURE_ENABLED_FUNC`, takes effect without a
-  restart. The cleanup listeners run regardless of the flag, so deleting an
-  asset never leaves orphaned `tagged_object` rows behind.
+- **Only the cleanup listeners remain, and they run unconditionally.** The
+  creation listeners from the bullet above are gone entirely; the tagging
+  SQLA event listeners still attached at startup are deletion-only, and they
+  run regardless of `TAGGING_SYSTEM`, so deleting an asset never leaves
+  orphaned `tagged_object` rows behind.
 
 Set `FEATURE_FLAGS = {"TAGGING_SYSTEM": False}` to restore the previous
 behavior. Existing tag rows are left untouched.
@@ -1399,6 +1423,36 @@ Discover the value from datasource metadata (or each external metric returned by
 MCP `list_metrics`). The server never adds a missing marker from metadata.
 Explore query controls remain unavailable until explicit field initialization,
 so legacy filter subjects cannot trigger value suggestions before reselection.
+
+### Superset no longer auto-generates `type:`/`editor:`/`favorited_by:` tags
+
+With `TAGGING_SYSTEM` enabled, Superset used to auto-tag every chart,
+dashboard, saved query, and dataset with implicit tags derived from
+metadata (object type, editors, and who favorited it), and generate a
+`favorited_by:<user id>` tag on every favorite/unfavorite. Nothing in the
+UI ever surfaced these tags to users — every tags list and filter in the
+frontend explicitly excluded them — so the generation added continuous
+write overhead (13 SQLAlchemy event listeners across 5 models) with no
+user-visible benefit. That generation is removed.
+
+Manually-created (custom) tags are unaffected: creating, editing,
+listing, and filtering tags still works exactly as before, including the
+`custom_tag` API filter used to distinguish custom from implicit tags.
+
+Deployments already running with `TAGGING_SYSTEM` enabled keep any
+`type:`/`editor:`/`favorited_by:` tag rows created before upgrading — they
+remain queryable via the API and MCP's `list_tags`/`get_tag_info` tools,
+and are still exempt from bulk tag deletion — but no new ones are created,
+and the `superset sync_tags` CLI command that backfilled them has been
+removed. Nothing maintains those retained rows any more: un-favoriting no
+longer deletes a `favorited_by:` row, and editor changes no longer prune
+`editor:` rows, so they are a frozen snapshot that drifts from current
+favorites and editorship. No migration removes them; delete them manually.
+The `DASHBOARD_LIST_CUSTOM_TAGS_ONLY` config flag and the
+dashboard-list filtering it enables are kept, defaulting to `False`, so
+deployments that already set it to `True` to hide legacy implicit tags from
+dashboard-list responses keep that filtering; new deployments with no
+implicit tags left over have no reason to turn it on.
 
 ### MCP tool results preserve stored string values
 
@@ -2499,6 +2553,14 @@ Custom time ranges that use the "Now" or "Today" anchor (for the Start, End, or 
 Charts and dashboards using these anchors will compute a different (correct) timestamp after upgrading; if a chart's filters or drill-downs were tuned to compensate for the old offset, review them after upgrading.
 
 - [43916](https://github.com/apache/superset/pull/43916): The `docker-compose` dev loop now skips re-running `superset load_examples` on every `docker compose up` once the example data and dashboards are present in the databases (set `SUPERSET_FORCE_LOAD_EXAMPLES=yes` to reload them anyway), and the `superset-node` service now defaults `DISABLE_TS_CHECKER=true` like `docker-compose-light.yml` already did, skipping webpack's TypeScript type-checking pass in dev by default.
+
+- `NOT IN` filters on SQLAlchemy-backed datasets now also return rows where the
+  column is NULL. Previously these rows were dropped by SQL three-valued logic
+  (`NULL NOT IN (...)` is not true), so a filter such as "Exclude selected values"
+  removed NULL rows in addition to the selected values. Dashboards, charts and
+  reports that use `NOT IN` may therefore show additional NULL rows. A `NOT IN`
+  list that explicitly contains NULL still excludes NULL rows. `!=`, `NOT LIKE`
+  and `NOT ILIKE` are unchanged.
 
 ## 6.1.0
 

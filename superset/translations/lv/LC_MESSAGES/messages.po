@@ -10238,6 +10238,9 @@ msgstr "Minimums"
 msgid "Minimum Font Size"
 msgstr "Minimālais fonta lielums"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Minimālais rādiuss"
 
@@ -10246,6 +10249,16 @@ msgid "Minimum Width"
 msgstr "Min platums"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -19766,6 +19779,9 @@ msgstr "X ass apzīmējums"
 msgid "X Axis Label Interval"
 msgstr "X ass apzīmējuma intervāls"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X ass skaitļu formāts"
 
@@ -19811,6 +19827,9 @@ msgstr "Y ass formāts"
 
 msgid "Y Axis Label"
 msgstr "Y ass apzīmējums"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y ass virsraksts"
