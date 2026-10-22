@@ -21,7 +21,12 @@
 
 /* eslint-disable no-console */
 /**
- * Build packages/plugins filtered by globs
+ * Build packages/plugins filtered by globs.
+ *
+ * `--types-only` skips the two Babel passes (lib/ and esm/, which only the
+ * npm publish needs: webpack and Jest resolve the workspaces from src/) and
+ * runs just `tsc --build`, which writes the packages' .d.ts output that the
+ * root type check depends on.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -31,7 +36,7 @@ import { hideBin } from 'yargs/helpers';
 
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const { globs } = yargs(hideBin(process.argv)).parse();
+const { globs, typesOnly } = yargs(hideBin(process.argv)).parse();
 const glob = globs?.length > 1 ? `{${globs.join(',')}}` : globs?.[0] || '*';
 
 const BABEL_CONFIG = '--config-file=../../babel.config.js';
@@ -116,16 +121,20 @@ function getPackages(packagePattern, tsOnly = false) {
 
 let scope = getPackages(glob);
 
-console.log('--- Run babel --------');
-const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}\
-        -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
-run(`${babelCommand} --out-dir lib`);
+if (typesOnly) {
+  console.log('--- Skipping babel (--types-only) ---');
+} else {
+  console.log('--- Run babel --------');
+  const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}\
+          -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
+  run(`${babelCommand} --out-dir lib`);
 
-console.log('--- Run babel esm ---');
-// run again with
-run(`${babelCommand} --out-dir esm`, {
-  env: { ...process.env, NODE_ENV: 'production', BABEL_OUTPUT: 'esm' },
-});
+  console.log('--- Run babel esm ---');
+  // run again with
+  run(`${babelCommand} --out-dir esm`, {
+    env: { ...process.env, NODE_ENV: 'production', BABEL_OUTPUT: 'esm' },
+  });
+}
 
 console.log('--- Run tsc ---');
 // only run tsc for packages with ts files
