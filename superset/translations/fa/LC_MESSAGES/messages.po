@@ -10946,6 +10946,9 @@ msgstr "حداقل"
 msgid "Minimum Font Size"
 msgstr "اندازه حداقل قلم"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "حداقل شعاع"
 
@@ -10959,6 +10962,16 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "حداقل باید به‌طور دقیق کمتر از حداکثر باشد"
 
@@ -21106,6 +21119,9 @@ msgid "X Axis Label Interval"
 msgstr "برچسب محور X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "قالب محور X"
 
@@ -21152,6 +21168,9 @@ msgstr "قالب محور Y"
 
 msgid "Y Axis Label"
 msgstr "برچسب محور Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "عنوان محور Y"

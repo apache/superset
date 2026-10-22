@@ -10873,6 +10873,9 @@ msgstr "Mínim"
 msgid "Minimum Font Size"
 msgstr "Mida Mínima de Font"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Radi Mínim"
 
@@ -10881,6 +10884,16 @@ msgid "Minimum Width"
 msgstr "Amplada Mínima"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -21020,6 +21033,9 @@ msgid "X Axis Label Interval"
 msgstr "Etiqueta de l'Eix X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Format de l'Eix X"
 
@@ -21065,6 +21081,9 @@ msgstr "Format de l'Eix Y"
 
 msgid "Y Axis Label"
 msgstr "Etiqueta de l'Eix Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Títol de l'Eix Y"

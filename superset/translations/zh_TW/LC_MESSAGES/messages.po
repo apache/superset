@@ -11327,6 +11327,9 @@ msgid "Minimum Font Size"
 msgstr "最小字體大小"
 
 #, fuzzy
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "最小半徑"
 
@@ -11340,6 +11343,16 @@ msgstr ""
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, fr, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
+msgstr ""
+
 msgid "Minimum must be strictly less than maximum"
 msgstr "最小值必須嚴格小於最大值"
 
@@ -21705,6 +21718,9 @@ msgid "X Axis Label Interval"
 msgstr "X 軸標籤"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X 軸格式化"
 
@@ -21753,6 +21769,9 @@ msgstr "Y 軸格式化"
 
 msgid "Y Axis Label"
 msgstr "Y 軸標籤"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y 軸標題"

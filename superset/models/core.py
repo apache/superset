@@ -1633,7 +1633,10 @@ class Database(CoreDatabase, AuditMixinNullable, ImportExportMixin):  # pylint: 
         try:
             client_config = self.get_oauth2_config()
         except ValidationError:
-            logger.warning("Invalid OAuth2 client configuration for database %s", self)
+            logger.warning(
+                "Invalid OAuth2 client configuration for database %s",
+                self.database_name,
+            )
             client_config = None
 
         return client_config is not None or self.db_engine_spec.is_oauth2_enabled()
