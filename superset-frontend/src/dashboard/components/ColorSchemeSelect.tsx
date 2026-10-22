@@ -200,7 +200,10 @@ const ColorSchemeSelect = ({
             placeholder={t('Select scheme')}
             value={currentScheme}
             showSearch
-            getPopupContainer={() => document.body}
+            getPopupContainer={triggerNode =>
+              (triggerNode.closest('.ant-modal-container') as HTMLElement) ||
+              document.body
+            }
             options={options}
             optionFilterProps={['label', 'value', 'searchText']}
           />

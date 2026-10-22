@@ -81,22 +81,22 @@ const getBoundInputs = () => ({
 // the open dropdown via `document.querySelector('.ant-select-dropdown-list')`
 // -- the first match anywhere in the document -- which is safe only when a
 // test opens a single Select. This `Select` (from `@superset-ui/core/components`)
-// renders its popup through `getPopupContainer={trigger => trigger.parentNode}`
-// (inline, as a sibling of the trigger, rather than portaled to <body>), and
-// antd never removes a closed dropdown's list node afterward. Because "Bound
-// unit" sits earlier in the DOM than "Percent denominator", opening "Bound
-// unit" once leaves a stale, closed dropdown list that permanently wins any
-// *unscoped* "first match" query -- a later interaction with "Percent
-// denominator" via the shared helper would silently re-read "Bound unit"'s
-// stale list and time out looking for an option that was never there.
-// Scope explicitly to the target Select's own popup container (its trigger's
-// parent) to sidestep that.
+// portals its popup to <body>, and antd never removes a closed dropdown's list
+// node afterward, so a stale closed list from an earlier Select would win any
+// *unscoped* "first match" query. Scope explicitly to the target Select's own
+// popup, located through the trigger's `aria-controls` listbox id.
 const selectFieldOption = async (option: string, selectName: string) => {
   const trigger = await screen.findByRole('combobox', { name: selectName });
-  const container = trigger.closest('.ant-select')!
-    .parentElement as HTMLElement;
+  const listboxId = trigger.getAttribute('aria-controls')!;
   await userEvent.click(trigger);
-  const item = await within(container).findByText(option);
+  const dropdown = await waitFor(() => {
+    const el = document
+      .getElementById(listboxId)
+      ?.closest<HTMLElement>('.ant-select-dropdown');
+    expect(el).toBeTruthy();
+    return el as HTMLElement;
+  });
+  const item = await within(dropdown).findByText(option);
   await userEvent.click(item);
 };
 
