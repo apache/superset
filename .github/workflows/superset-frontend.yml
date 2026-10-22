@@ -7,6 +7,7 @@ on:
       - "[0-9].[0-9]*"
   pull_request:
     types: [synchronize, opened, reopened, ready_for_review]
+  workflow_dispatch:
 
 # cancel previous workflow jobs for PRs
 concurrency:
@@ -214,7 +215,11 @@ jobs:
   # (forks), which is what the old workflow did too.
   chromatic:
     needs: frontend-build
-    if: needs.frontend-build.outputs.should-run == 'true'
+    # Pushes publish only from master; release-branch pushes would otherwise
+    # auto-accept their changes as that branch's baseline unreviewed.
+    if: >-
+      needs.frontend-build.outputs.should-run == 'true' &&
+      (github.event_name != 'push' || github.ref == 'refs/heads/master')
     runs-on: ubuntu-26.04
     timeout-minutes: 30
     permissions:
@@ -259,7 +264,7 @@ jobs:
           storybookBuildDir: storybook-static
           onlyChanged: true
           exitZeroOnChanges: true
-          autoAcceptChanges: ${{ github.event_name == 'push' }}
+          autoAcceptChanges: ${{ github.ref == 'refs/heads/master' }}
           zip: true
 
   actions-timeline:
