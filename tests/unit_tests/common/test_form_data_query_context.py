@@ -23,6 +23,7 @@ from superset.common.form_data_query_context import (
     FORM_DATA_QUERY_FIELD_ALIASES,
     query_fields_from_form_data,
 )
+from superset.utils.core import QueryObjectFilterClause
 
 DATASOURCE = {"id": 7, "type": "table"}
 
@@ -886,3 +887,35 @@ def test_temporal_lookup_non_mapping_on_pivot_siblings(viz_type: str) -> None:
         }
     )
     assert query["columns"] == ["ts"]
+
+
+@pytest.mark.parametrize("entry_point", ["common", "mcp-normalizer", "legacy-to-adhoc"])
+def test_temporal_drill_grain_survives_adhoc_adapters(entry_point: str) -> None:
+    """A modal filter retains its grain through every server filter adapter."""
+    from superset.utils.core import (
+        simple_filter_to_adhoc,
+        split_adhoc_filters_into_base_filters,
+    )
+
+    expected: QueryObjectFilterClause = {
+        "col": "ts",
+        "op": "==",
+        "val": 1785542400000,
+        "grain": "P1M",
+    }
+    adhoc = {
+        "expressionType": "SIMPLE",
+        "clause": "WHERE",
+        "subject": "ts",
+        "operator": "==",
+        "comparator": 1785542400000,
+        "timeGrain": "P1M",
+    }
+    if entry_point == "common":
+        assert adhoc_filters_to_query_filters([adhoc]) == [expected]
+    elif entry_point == "mcp-normalizer":
+        form_data = {"adhoc_filters": [adhoc]}
+        split_adhoc_filters_into_base_filters(form_data)
+        assert form_data["filters"] == [expected]
+    else:
+        assert simple_filter_to_adhoc(expected)["timeGrain"] == "P1M"

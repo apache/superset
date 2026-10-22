@@ -493,6 +493,7 @@ bucket rather than a single timestamp. Drill to detail and Drill by compare the
 raw bucket value against the grained time column, including the dataset's Hours offset.
 An explicit Time Column selection (including a dashboard override) determines which
 hierarchy level receives the grain; without one, all physical temporal levels do.
+If the explicit Time Column is outside the hierarchy, no ring receives the grain.
 
 :::resources
 

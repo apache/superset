@@ -16,6 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import { TimeGranularity } from '@superset-ui/core';
 import AdhocFilter from 'src/explore/components/controls/FilterControl/AdhocFilter';
 import { Operators } from 'src/explore/constants';
 import { ExpressionTypes, Clauses } from '../types';
@@ -430,4 +431,24 @@ describe('AdhocFilter', () => {
     expect(adhocFilter.getDefaultLabel([])).toBe('num > 500');
     expect(adhocFilter.getDefaultLabel()).toBe('num > 500');
   });
+});
+
+test('Explore filter edits preserve a temporal grain and distinguish changed grains', () => {
+  const filter = new AdhocFilter({
+    expressionType: 'SIMPLE',
+    subject: 'ts',
+    operator: '==',
+    comparator: '2026-08-01',
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(filter.duplicateWith({ comparator: '2026-09-01' })).toMatchObject({
+    timeGrain: TimeGranularity.MONTH,
+  });
+  expect(
+    filter.equals(filter.duplicateWith({ timeGrain: TimeGranularity.YEAR })),
+  ).toBe(false);
+  expect(filter.duplicateWith({ subject: 'category' })).not.toHaveProperty(
+    'timeGrain',
+    'P1M',
+  );
 });

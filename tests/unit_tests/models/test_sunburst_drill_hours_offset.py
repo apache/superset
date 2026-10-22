@@ -28,6 +28,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from contextlib import contextmanager
 from datetime import datetime, timezone
+from typing import cast
 
 import pytest
 from flask import Flask
@@ -212,6 +213,7 @@ def test_sunburst_drill_grained_column_is_shifted_by_hours_offset(
     assert "'2026-08-01 00:00:00'" in sql, sql
 
 
+@pytest.mark.parametrize("via_adhoc", [False, True])
 @pytest.mark.parametrize("result_type", ["samples", "full"])
 @pytest.mark.parametrize("granularity", [None, "order_date"])
 def test_sunburst_factory_drill_preserves_bucket_with_time_range(
@@ -220,9 +222,24 @@ def test_sunburst_factory_drill_preserves_bucket_with_time_range(
     mocker: MockerFixture,
     result_type: str,
     granularity: str | None,
+    via_adhoc: bool,
 ) -> None:
     """Samples and chart-data keep the grained equality beside range overrides."""
     from superset.common.chart_data import ChartDataResultType
+    from superset.common.form_data_query_context import adhoc_filters_to_query_filters
+    from superset.utils.core import simple_filter_to_adhoc
+
+    filters: list[QueryObjectFilterClause] = [
+        {"col": "order_date", "op": "TEMPORAL_RANGE", "val": "No filter"},
+        {"col": "order_date", "op": "==", "val": 1785542400000, "grain": "P1M"},
+    ]
+    if via_adhoc:
+        filters = cast(
+            list[QueryObjectFilterClause],
+            adhoc_filters_to_query_filters(
+                [dict(simple_filter_to_adhoc(filter_)) for filter_ in filters]
+            ),
+        )
 
     mocker.patch.object(
         QueryContextFactory, "_convert_to_model", return_value=events_table
@@ -248,19 +265,7 @@ def test_sunburst_factory_drill_preserves_bucket_with_time_range(
                     ],
                     "granularity": granularity,
                     "time_range": "2026-07-01 : 2026-10-01",
-                    "filters": [
-                        {
-                            "col": "order_date",
-                            "op": "TEMPORAL_RANGE",
-                            "val": "No filter",
-                        },
-                        {
-                            "col": "order_date",
-                            "op": "==",
-                            "val": 1785542400000,
-                            "grain": "P1M",
-                        },
-                    ],
+                    "filters": filters,
                     "row_limit": 100,
                 }
             ],

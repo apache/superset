@@ -16,7 +16,10 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import type { AdhocFilter as CoreAdhocFilter } from '@superset-ui/core';
+import type {
+  AdhocFilter as CoreAdhocFilter,
+  TimeGranularity,
+} from '@superset-ui/core';
 import {
   CUSTOM_OPERATORS,
   DISABLE_INPUT_OPERATORS,
@@ -45,6 +48,7 @@ interface AdhocFilterInput {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
+  timeGrain?: TimeGranularity;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra?: boolean;
@@ -63,6 +67,7 @@ export default class AdhocFilter {
   operator?: string | null;
   operatorId?: string;
   comparator?: unknown;
+  timeGrain?: TimeGranularity;
   clause?: string | null;
   sqlExpression?: string | null;
   isExtra: boolean;
@@ -79,6 +84,7 @@ export default class AdhocFilter {
       this.operator = adhocFilter.operator?.toUpperCase();
       this.operatorId = adhocFilter.operatorId;
       this.comparator = adhocFilter.comparator;
+      this.timeGrain = adhocFilter.timeGrain;
       if (
         adhocFilter.operatorId &&
         DISABLE_INPUT_OPERATORS.indexOf(adhocFilter.operatorId as Operators) >=
@@ -140,6 +146,10 @@ export default class AdhocFilter {
       operator: this.operator,
       operatorId: this.operatorId,
       comparator: this.comparator,
+      timeGrain:
+        nextFields.subject !== undefined && nextFields.subject !== this.subject
+          ? undefined
+          : this.timeGrain,
       clause: this.clause,
       sqlExpression: this.sqlExpression,
       isExtra: this.isExtra,
@@ -161,7 +171,8 @@ export default class AdhocFilter {
       adhocFilter.operator === this.operator &&
       adhocFilter.operatorId === this.operatorId &&
       adhocFilter.comparator === this.comparator &&
-      adhocFilter.subject === this.subject
+      adhocFilter.subject === this.subject &&
+      adhocFilter.timeGrain === this.timeGrain
     );
   }
 

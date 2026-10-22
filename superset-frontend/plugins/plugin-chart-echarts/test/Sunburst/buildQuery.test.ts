@@ -141,3 +141,17 @@ test('a dashboard Time Column override selects the effective grained level', () 
     { ...groupedTs('P1M'), sqlExpression: 'ship_date', label: 'ship_date' },
   ]);
 });
+
+test('an explicit Time Column outside the hierarchy does not retarget grain when Explore adds metadata', () => {
+  const formData = {
+    ...exploreSaved,
+    granularity_sqla: 'ship_date',
+  } as QueryFormData;
+  const [withLookup] = buildQuery(formData).queries;
+  const [withoutLookup] = buildQuery({
+    ...formData,
+    temporal_columns_lookup: undefined,
+  } as QueryFormData).queries;
+  expect(withLookup.columns).toEqual(['ts', 'region']);
+  expect(withLookup.columns).toEqual(withoutLookup.columns);
+});
