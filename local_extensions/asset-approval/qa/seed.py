@@ -115,15 +115,20 @@ def main() -> None:
         checker = ensure_user(CHECKER)
         both = [maker.id, checker.id]
 
+        # Either title: an approved run leaves the dashboard carrying the
+        # proposed one, and resetting after walking the flow is exactly when
+        # this is run. Looking only for the original name would fail there,
+        # at the moment it is most needed.
         dashboard = (
             db.session.query(Dashboard)
-            .filter_by(dashboard_title=DASHBOARD_TITLE)
+            .filter(Dashboard.dashboard_title.in_([DASHBOARD_TITLE, PROPOSED_TITLE]))
+            .order_by(Dashboard.id)
             .first()
         )
         if not dashboard:
             sys.exit(
-                f'no dashboard called "{DASHBOARD_TITLE}" -- run '
-                "`superset load-examples` first (see the README)"
+                f'no dashboard called "{DASHBOARD_TITLE}" -- load the examples '
+                "first (see the README)"
             )
         dashboard_id = dashboard.id
 
