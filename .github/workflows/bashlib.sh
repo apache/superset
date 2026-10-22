@@ -128,14 +128,15 @@ playwright_testdata() {
   uv pip install --system -e .
 
   # Loading the examples takes 5+ minutes per job and every Playwright job
-  # loads the same data, so keep a pg_dump of the result in the Actions cache
-  # (see playwright-testdata in caches.js). pg_dump/pg_restore run inside the
-  # Postgres service container so the client always matches the server;
+  # loads the same data, so the workflow keeps a pg_dump of the result in the
+  # Actions cache (the "Restore cached examples dump" step, actions/cache).
+  # That step restores the dump here on a hit and saves whatever is here
+  # after the job on a miss. pg_dump/pg_restore run inside the Postgres
+  # service container so the client always matches the server;
   # POSTGRES_CONTAINER is `job.services.postgres.id`, set on the step.
   local dump_dir="/tmp/superset-playwright-testdata"
   local dump="$dump_dir/superset.dump"
   mkdir -p "$dump_dir"
-  cache-restore playwright-testdata
 
   if [[ -f "$dump" && -n "${POSTGRES_CONTAINER:-}" ]]; then
     say "Restoring the examples database from the cached dump"
@@ -163,7 +164,6 @@ playwright_testdata() {
       # setup-postgres before this runs, so leave them out of the dump.
       docker exec "$POSTGRES_CONTAINER" \
         pg_dump -U superset -Fc -N sqllab_test_db -N admin_database superset > "$dump"
-      cache-save playwright-testdata
     fi
   fi
 

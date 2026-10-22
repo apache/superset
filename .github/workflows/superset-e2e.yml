@@ -119,6 +119,21 @@ jobs:
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
+      # A pg_dump of the loaded examples database. Keyed on everything that
+      # shapes the loaded rows: every backend Python file (loaders, importers,
+      # models), the example configs, migrations, the dependency pins, the CI
+      # config, and this workflow (it pins the Postgres image). The post-job
+      # save only happens on a miss; `playwright_testdata` in bashlib.sh
+      # restores the dump on a hit and writes it on a miss.
+      - name: Restore cached examples dump
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /tmp/superset-playwright-testdata
+          key: >-
+            playwright-testdata-${{ hashFiles('superset/**/*.py', '!superset/**/__pycache__/**',
+            'superset/examples/**', 'superset/migrations/**', 'requirements/*.txt',
+            'pyproject.toml', 'tests/integration_tests/superset_test_config.py',
+            '.github/workflows/superset-e2e.yml', '.github/workflows/bashlib.sh') }}
       - name: Import test data
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -353,6 +368,21 @@ jobs:
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
         with:
           run: setup-postgres
+      # A pg_dump of the loaded examples database. Keyed on everything that
+      # shapes the loaded rows: every backend Python file (loaders, importers,
+      # models), the example configs, migrations, the dependency pins, the CI
+      # config, and this workflow (it pins the Postgres image). The post-job
+      # save only happens on a miss; `playwright_testdata` in bashlib.sh
+      # restores the dump on a hit and writes it on a miss.
+      - name: Restore cached examples dump
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /tmp/superset-playwright-testdata
+          key: >-
+            playwright-testdata-${{ hashFiles('superset/**/*.py', '!superset/**/__pycache__/**',
+            'superset/examples/**', 'superset/migrations/**', 'requirements/*.txt',
+            'pyproject.toml', 'tests/integration_tests/superset_test_config.py',
+            '.github/workflows/superset-e2e.yml', '.github/workflows/bashlib.sh') }}
       - name: Import test data
         # cached-dependencies is a submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
