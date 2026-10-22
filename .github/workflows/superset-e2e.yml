@@ -143,7 +143,13 @@ jobs:
       - name: Restore instrumented assets
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: superset/static/assets
+          # webpack writes the service worker one level up from the assets
+          # directory (see the `../service-worker.js` filename rule in
+          # webpack.config.js), and the GAQ tests assert on console errors,
+          # so it has to travel with the assets.
+          path: |
+            superset/static/assets
+            superset/static/service-worker.js
           key: >-
             instrumented-assets-${{ hashFiles('superset-frontend/package-lock.json',
             'superset-frontend/.nvmrc', 'superset-frontend/src/**',
@@ -390,7 +396,13 @@ jobs:
       - name: Restore instrumented assets
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
-          path: superset/static/assets
+          # webpack writes the service worker one level up from the assets
+          # directory (see the `../service-worker.js` filename rule in
+          # webpack.config.js), and the GAQ tests assert on console errors,
+          # so it has to travel with the assets.
+          path: |
+            superset/static/assets
+            superset/static/service-worker.js
           key: >-
             instrumented-assets-${{ hashFiles('superset-frontend/package-lock.json',
             'superset-frontend/.nvmrc', 'superset-frontend/src/**',
