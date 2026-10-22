@@ -128,6 +128,7 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
         with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           python-version: current
       - name: Install db2 driver (ibm-db-sa)
         # ibm-db (the db2 DBAPI) ships no Linux arm64 wheel, so it's kept out

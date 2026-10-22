@@ -126,6 +126,8 @@ jobs:
           submodules: recursive
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
       - name: Setup MySQL
         # cached-dependencies is a git submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from
@@ -224,6 +226,7 @@ jobs:
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
         with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
           python-version: ${{ matrix.python-version }}
       - name: Setup Postgres
         # cached-dependencies is a git submodule (not a plain directory), and
@@ -285,6 +288,8 @@ jobs:
           submodules: recursive
       - name: Setup Python
         uses: $/.github/actions/setup-backend/
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
       - name: Install dependencies
         # cached-dependencies is a git submodule (not a plain directory), and
         # the $/ self-repository syntax resolves action files directly from

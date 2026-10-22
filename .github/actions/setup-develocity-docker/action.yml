@@ -1,0 +1,16 @@
+name: "Setup Develocity for Docker"
+description: "Starts the Develocity Docker agent so that image builds publish Build Scans to develocity.apache.org"
+inputs:
+  develocity-access-key:
+    description: "Access key for develocity.apache.org; the action exchanges it for a short-lived token"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Develocity for Docker
+      uses: gradle/develocity-actions/setup-docker@9d8792ab22712b19790c2abce53e9ebb2694c312 # v2.5
+      with:
+        develocity-url: https://develocity.apache.org
+        develocity-access-key: ${{ inputs.develocity-access-key }}
+        develocity-package-scan-enabled: false
+        develocity-project-id: superset

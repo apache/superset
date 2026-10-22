@@ -15,6 +15,16 @@ concurrency:
 
 env:
   TAG: apache/superset:GHA-${{ github.run_id }}
+  DEVELOCITY_PROJECT_ID: superset
+  DEVELOCITY_TAG_CI: "true"
+  DEVELOCITY_VALUE_CI_commit_sha: ${{ github.sha }}
+  DEVELOCITY_VALUE_CI_run: ${{ github.run_id }}
+  DEVELOCITY_DOCKER_ARGS: >-
+    -v /tmp/develocity-npm:/opt/develocity-npm:ro
+    -e NODE_PATH=/opt/develocity-npm -e NODE_OPTIONS=--require=@gradle-tech/develocity-agent/preload
+    -e DEVELOCITY_URL -e DEVELOCITY_ACCESS_KEY -e DEVELOCITY_VALUE_CIAutoInjection
+    -e DEVELOCITY_INTERNAL_ENABLE_JEST_REPORTER_INJECTION=true -e DEVELOCITY_PACKAGE_JSON_SEARCH_BOUNDARY=/app
+    -e DEVELOCITY_PROJECT_ID -e DEVELOCITY_TAG_CI -e DEVELOCITY_VALUE_CI_commit_sha -e DEVELOCITY_VALUE_CI_run
 
 permissions:
   contents: read
@@ -31,6 +41,8 @@ jobs:
       pull-requests: read
     outputs:
       should-run: ${{ steps.check.outputs.frontend }}
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Checkout Code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -45,6 +57,13 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Setup Develocity for Docker
+        if: steps.check.outputs.frontend && env.DEVELOCITY_ENABLED == 'true'
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-docker
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+
       - name: Build Docker Image
         if: steps.check.outputs.frontend
         shell: bash
@@ -57,6 +76,7 @@ jobs:
           git show -s --format=raw HEAD
           docker buildx build \
             -t $TAG \
+            --build-arg DEVELOCITY_VALUE_CI_commit_sha="$GITHUB_SHA" \
             --cache-from=type=registry,ref=apache/superset-cache:3.11-slim-trixie \
             --target superset-node-ci \
             .
@@ -82,6 +102,8 @@ jobs:
       fail-fast: false
     runs-on: ubuntu-26.04
     timeout-minutes: 20
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -92,10 +114,21 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
+      - name: Setup Develocity for npm
+        id: develocity-npm
+        if: env.DEVELOCITY_ENABLED == 'true'
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+
       - name: npm run test with coverage
+        env:
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           mkdir -p ${{ github.workspace }}/superset-frontend/coverage
           docker run \
+          $DEVELOCITY_DOCKER_ENV \
           -v ${{ github.workspace }}/superset-frontend/coverage:/app/superset-frontend/coverage \
           -e CI=true \
           --rm $TAG \
@@ -146,6 +179,8 @@ jobs:
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 20
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -156,15 +191,27 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
+      - name: Setup Develocity for npm
+        id: develocity-npm
+        if: env.DEVELOCITY_ENABLED == 'true'
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+
       # The last weird node command is to run tests fo custom Superset lint rules
       - name: lint
+        env:
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
-          docker run --rm $TAG bash -c \
+          docker run --rm $DEVELOCITY_DOCKER_ENV $TAG bash -c \
           "npm i && npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
 
       - name: tsc
+        env:
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
-          docker run --rm $TAG bash -c \
+          docker run --rm $DEVELOCITY_DOCKER_ENV $TAG bash -c \
           "npm i && npm run plugins:build && npm run type"
 
   validate-frontend:
@@ -172,6 +219,8 @@ jobs:
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 20
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -182,9 +231,19 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
+      - name: Setup Develocity for npm
+        id: develocity-npm
+        if: env.DEVELOCITY_ENABLED == 'true'
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+
       - name: Validate dependency tree
+        env:
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
-          docker run --rm $TAG bash -c \
+          docker run --rm $DEVELOCITY_DOCKER_ENV $TAG bash -c \
           "npm ls --all --package-lock-only --depth=0 --json > /dev/null"
 
   test-storybook:
@@ -192,6 +251,8 @@ jobs:
     if: needs.frontend-build.outputs.should-run == 'true'
     runs-on: ubuntu-26.04
     timeout-minutes: 25
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     steps:
       - name: Download Docker Image Artifact
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
@@ -202,9 +263,19 @@ jobs:
         run: |
           zstd -d < docker-image.tar.zst | docker load
 
+      - name: Setup Develocity for npm
+        id: develocity-npm
+        if: env.DEVELOCITY_ENABLED == 'true'
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
+
       - name: Build Storybook and Run Tests
+        env:
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
-          docker run --rm $TAG bash -c \
+          docker run --rm $DEVELOCITY_DOCKER_ENV $TAG bash -c \
           "npx playwright install-deps && npx playwright install chromium && npm run test-storybook"
 
   actions-timeline:
@@ -229,6 +300,8 @@ jobs:
     if: needs.frontend-build.outputs.should-run == 'true' && github.event_name == 'pull_request'
     runs-on: ubuntu-26.04
     timeout-minutes: 15
+    env:
+      DEVELOCITY_ENABLED: ${{ secrets.DEVELOCITY_ACCESS_KEY != '' }}
     permissions:
       contents: read
       pull-requests: write
@@ -247,6 +320,14 @@ jobs:
       - name: Load Docker Image
         run: |
           zstd -d < docker-image.tar.zst | docker load
+
+      - name: Setup Develocity for npm
+        id: develocity-npm
+        if: env.DEVELOCITY_ENABLED == 'true'
+        continue-on-error: true
+        uses: $/.github/actions/setup-develocity-npm
+        with:
+          develocity-access-key: ${{ secrets.DEVELOCITY_ACCESS_KEY }}
 
       # webpack's persistent filesystem cache (superset-frontend/webpack.config.js)
       # turns a warm production build into ~20s instead of several minutes,
@@ -277,10 +358,13 @@ jobs:
             bundle-size-history-
 
       - name: Build production bundle with stats
+        env:
+          DEVELOCITY_DOCKER_ENV: ${{ steps.develocity-npm.outputs.agent-installed == 'true' && env.DEVELOCITY_DOCKER_ARGS || '' }}
         run: |
           mkdir -p ${{ github.workspace }}/superset-frontend/bundle-stats
           mkdir -p ${{ github.workspace }}/superset-frontend/.temp_cache
           docker run \
+          $DEVELOCITY_DOCKER_ENV \
           -v ${{ github.workspace }}/superset-frontend/bundle-stats:/app/superset-frontend/bundle-stats \
           -v ${{ github.workspace }}/superset-frontend/.temp_cache:/app/superset-frontend/.temp_cache \
           --rm $TAG \
