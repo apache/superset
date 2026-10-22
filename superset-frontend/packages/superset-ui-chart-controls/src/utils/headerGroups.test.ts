@@ -454,6 +454,23 @@ test('getKnownColumnConfigKeys includes colnames, dataset columns, and metrics',
   ).toEqual(['__timestamp', 'Time', 'region', 'count']);
 });
 
+test('getKnownColumnConfigKeys ignores missing colnames and unnamed datasource fields', () => {
+  expect(getKnownColumnConfigKeys()).toEqual([]);
+  expect(getKnownColumnConfigKeys(undefined, null)).toEqual([]);
+  expect(
+    getKnownColumnConfigKeys(['kept'], {
+      columns: null,
+      metrics: [{}, { metric_name: '' }],
+    }),
+  ).toEqual(['kept']);
+  expect(
+    getKnownColumnConfigKeys(['kept'], {
+      columns: [{}, { column_name: 'region' }],
+      metrics: null,
+    }),
+  ).toEqual(['kept', 'region']);
+});
+
 test('normalizeColumnConfigKeys remaps display aliases onto real column keys', () => {
   expect(
     normalizeColumnConfigKeys(
