@@ -140,7 +140,7 @@ test('should export a dashboard as a zip file', async ({
 
   // Wait for export API response and validate zip contents
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'dashboards',
     expectedNames: [dashboardName],
   });
@@ -271,7 +271,7 @@ test('should bulk export multiple dashboards', async ({
 
   // Wait for export API response and validate zip contains both dashboards
   const exportResponse = expectStatusOneOf(await exportResponsePromise, [200]);
-  await expectValidExportZip(exportResponse, {
+  await expectValidExportZip(page, exportResponse, {
     resourceDir: 'dashboards',
     minCount: 2,
     expectedNames: [dashboard1.name, dashboard2.name],
