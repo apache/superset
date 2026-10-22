@@ -858,9 +858,9 @@ test('does not apply a dropped Previous revenue dataset column config to Main re
     }),
   );
 
-  expect(result.columns.find(col => col.key === 'Main revenue')?.config).toEqual(
-    {},
-  );
+  expect(
+    result.columns.find(col => col.key === 'Main revenue')?.config,
+  ).toEqual({});
 });
 
 test('applies legacy Time column_config to the __timestamp column', () => {
