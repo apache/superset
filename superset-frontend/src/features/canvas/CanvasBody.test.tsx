@@ -78,6 +78,7 @@ const result = {
   crossFilterScopes: {},
   customizationScopes: {},
   placements: { kpi: KPI, trend: TREND },
+  layouts: { kpi: KPI, trend: TREND },
   widgetTypes: { kpi: 'test.plain', trend: 'test.plain' },
   gridColumns: {},
   layoutConstraints: {},

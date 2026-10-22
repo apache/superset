@@ -86,6 +86,12 @@ interface Gesture {
    * reaches the widget underneath instead of nudging it.
    */
   armed: boolean;
+  /**
+   * The element the press landed on, so a gesture that arms later can take
+   * the pointer from it. Held rather than looked up when it arms: by then the
+   * pointer may be over something else entirely.
+   */
+  capture: HTMLElement;
   /** For a resize, the corner being dragged; the opposite one stays put. */
   corner: ResizeCorner;
 }
@@ -98,6 +104,64 @@ const DRAG_THRESHOLD = 4;
  * starts exactly one gesture: the innermost grid's.
  */
 const claimedPresses = new WeakSet<Event>();
+
+/**
+ * Controls that handle press-and-drag themselves, so a press on one must not
+ * also move the widget: a filter's slider, a form control, a link, a handle
+ * for reordering something inside a widget. `data-canvas-no-drag` lets a
+ * widget opt anything else out.
+ */
+const OWN_GESTURE = [
+  'input',
+  'textarea',
+  'select',
+  'button',
+  'a[href]',
+  '[role="slider"]',
+  '[role="button"]',
+  '[role="scrollbar"]',
+  '[contenteditable=""]',
+  '[contenteditable="true"]',
+  '[draggable="true"]',
+  '[data-canvas-no-drag]',
+].join(',');
+
+/**
+ * Whether a press landed on a scrollbar rather than inside the content.
+ *
+ * A scrollbar belongs to the element it scrolls and dragging it scrolls, so a
+ * widget tall enough to scroll -- a table, usually -- would otherwise be
+ * impossible to scroll by hand in a plan. `clientWidth`/`clientHeight` stop
+ * short of the scrollbar, so a press past either is on it; the comparison is
+ * skipped for an element that isn't overflowing, which has no scrollbar to
+ * press. A left-hand scrollbar (RTL) is not detected.
+ */
+const onScrollbar = (
+  target: Element,
+  clientX: number,
+  clientY: number,
+): boolean => {
+  const box = target.getBoundingClientRect();
+  return (
+    (target.scrollHeight > target.clientHeight &&
+      clientX > box.left + target.clientWidth) ||
+    (target.scrollWidth > target.clientWidth &&
+      clientY > box.top + target.clientHeight)
+  );
+};
+
+/** Whether something inside the widget owns this press, so the grid doesn't. */
+const ownsPress = (event: ReactPointerEvent<HTMLElement>): boolean => {
+  const { target } = event;
+  if (!(target instanceof Element)) return false;
+  const owner = target.closest(OWN_GESTURE);
+  // Bounded to this widget: a control that happens to sit above the grid in
+  // the page isn't what the press landed on.
+  return (
+    (owner !== null && event.currentTarget.contains(owner)) ||
+    onScrollbar(target, event.clientX, event.clientY)
+  );
+};
 
 /** A gesture's movement over the page content, scrolling included. */
 const travelled = (gesture: Gesture, clientX: number, clientY: number) => ({
@@ -230,9 +294,22 @@ const handleOffset = (
  * handles are siblings rather than children, so they stay pinned to the box
  * while the content scrolls behind them.
  */
-const Content = styled.div`
-  height: 100%;
-  overflow: auto;
+const Content = styled.div<{ editable: boolean }>`
+  ${({ editable }) => css`
+    height: 100%;
+    overflow: auto;
+    ${
+      editable &&
+      css`
+        /*
+       * Dragging across text would otherwise select it and move the widget at
+       * once. In a plan the drag wins -- arranging is what a plan is for --
+       * and the published canvas selects normally.
+       */
+        user-select: none;
+      `
+    }
+  `}
 `;
 
 const Grip = styled.button<{ depth: number; extent: number }>`
@@ -435,6 +512,9 @@ export default function CanvasGridSurface({
     ) =>
     (event: ReactPointerEvent<HTMLElement>) => {
       if (event.button !== 0) return;
+      // Only a deferred press is checked. A handle press is unambiguous, and
+      // a handle is itself a button, so checking it would reject every one.
+      if (!armed && ownsPress(event)) return;
       // One gesture at a time. A second finger on another handle also reports
       // button 0, and letting it replace the live gesture would strand the
       // first pointer: its move and up events fail the pointerId guards, so
@@ -468,63 +548,89 @@ export default function CanvasGridSurface({
         dy: 0,
         origin,
         armed,
+        capture: event.currentTarget,
         corner,
       });
     };
 
-  const onPointerMove = (event: ReactPointerEvent<HTMLElement>) => {
-    const { current } = live;
-    if (!current || current.pointerId !== event.pointerId) return;
-    const moved = travelled(current, event.clientX, event.clientY);
-    // A deferred gesture arms only once the pointer has really travelled.
-    const armed =
-      current.armed || Math.hypot(moved.dx, moved.dy) >= DRAG_THRESHOLD;
-    if (!armed) return;
-    if (!current.armed) {
-      // It is a drag after all, so take the pointer from here on.
-      event.currentTarget.setPointerCapture(event.pointerId);
-    }
-    update({ ...current, ...moved, armed });
-  };
+  /**
+   * A live gesture is moved and released from the window, not from the widget
+   * it started on.
+   *
+   * An unarmed body press holds no pointer capture -- it has to let a click
+   * through to the widget -- so its events go wherever the pointer is: over a
+   * neighbour, outside the grid, or onto a child that stops them. None of
+   * those reach the widget that was pressed, so it would never see the
+   * release, and since only one gesture may be live at a time the grid would
+   * then refuse every later drag and resize. The window sees every pointer
+   * event, captured or not, which makes it the one place a gesture can always
+   * be released from. It is also how a fast drag arms at all: the first move
+   * after the press can already be well outside the widget.
+   */
+  const gestureLive = gesture !== undefined;
+  useEffect(() => {
+    if (!gestureLive) return undefined;
 
-  const onPointerUp = (event: ReactPointerEvent<HTMLElement>) => {
-    const { current } = live;
-    if (!current || current.pointerId !== event.pointerId) return;
-    update(undefined);
-    // From the release event's own position: the pointer can travel between
-    // the last move event and the release, and the drop belongs where the
-    // user let go.
-    if (!current.armed) return;
-    const { dx, dy } = travelled(current, event.clientX, event.clientY);
-    commit(
-      current.nodeId,
-      targetOf(
+    const onMove = (event: PointerEvent) => {
+      const { current } = live;
+      if (!current || current.pointerId !== event.pointerId) return;
+      const moved = travelled(current, event.clientX, event.clientY);
+      // A deferred gesture arms only once the pointer has really travelled.
+      const armed =
+        current.armed || Math.hypot(moved.dx, moved.dy) >= DRAG_THRESHOLD;
+      if (!armed) return;
+      if (!current.armed && current.capture.isConnected) {
+        // It is a drag after all, so take the pointer from here on. Capturing
+        // on the press instead would retarget the release and the click after
+        // it, and the widget's own controls would never fire.
+        current.capture.setPointerCapture(current.pointerId);
+      }
+      update({ ...current, ...moved, armed });
+    };
+
+    const onUp = (event: PointerEvent) => {
+      const { current } = live;
+      if (!current || current.pointerId !== event.pointerId) return;
+      update(undefined);
+      if (!current.armed) return;
+      // From the release event's own position: the pointer can travel between
+      // the last move event and the release, and the drop belongs where the
+      // user let go.
+      const { dx, dy } = travelled(current, event.clientX, event.clientY);
+      commit(
         current.nodeId,
-        current.kind,
+        targetOf(
+          current.nodeId,
+          current.kind,
+          current.origin,
+          dx,
+          dy,
+          current.corner,
+        ),
         current.origin,
-        dx,
-        dy,
-        current.corner,
-      ),
-      current.origin,
-    );
-  };
+      );
+    };
 
-  // Only the pointer that owns the gesture may cancel it, so a second
-  // pointer going away elsewhere doesn't discard this one.
-  const onPointerCancel = (event: ReactPointerEvent<HTMLElement>) => {
-    const { current } = live;
-    if (!current || current.pointerId !== event.pointerId) return;
-    update(undefined);
-  };
+    // Only the pointer that owns the gesture may cancel it, so a second
+    // pointer going away elsewhere doesn't discard this one.
+    const onCancel = (event: PointerEvent) => {
+      const { current } = live;
+      if (!current || current.pointerId !== event.pointerId) return;
+      update(undefined);
+    };
 
-  // Losing capture ends the gesture even when no up or cancel event arrives,
-  // which is what happens if the handle is unmounted mid-drag.
-  const onLostPointerCapture = (event: ReactPointerEvent<HTMLElement>) => {
-    const { current } = live;
-    if (!current || current.pointerId !== event.pointerId) return;
-    update(undefined);
-  };
+    // Capture phase, so these run before anything in the document: a widget
+    // that stops `pointerup` for its own reasons would otherwise keep the
+    // release from ever reaching here.
+    window.addEventListener('pointermove', onMove, true);
+    window.addEventListener('pointerup', onUp, true);
+    window.addEventListener('pointercancel', onCancel, true);
+    return () => {
+      window.removeEventListener('pointermove', onMove, true);
+      window.removeEventListener('pointerup', onUp, true);
+      window.removeEventListener('pointercancel', onCancel, true);
+    };
+  }, [gestureLive, commit, targetOf, update]);
 
   // A gesture whose node stops being placeable, or that editing has stopped
   // allowing, can never be released by its own handle: that handle is gone,
@@ -580,13 +686,6 @@ export default function CanvasGridSurface({
         placement,
       );
     };
-
-  const handlers = {
-    onPointerMove,
-    onPointerUp,
-    onPointerCancel,
-    onLostPointerCapture,
-  };
 
   const preview = gesture?.armed
     ? targetOf(
@@ -646,13 +745,10 @@ export default function CanvasGridSurface({
             <Interactive
               className="canvas-interactive"
               {...(editable && placements[childId]
-                ? {
-                    onPointerDown: begin(childId, 'move', false),
-                    ...handlers,
-                  }
+                ? { onPointerDown: begin(childId, 'move', false) }
                 : {})}
             >
-              <Content>{renderNode(childId)}</Content>
+              <Content editable={editable}>{renderNode(childId)}</Content>
               {editable && placements[childId] && (
                 <>
                   <Grip
@@ -664,7 +760,6 @@ export default function CanvasGridSurface({
                     data-test="canvas-drag-handle"
                     onPointerDown={begin(childId, 'move')}
                     onKeyDown={onKeyDown(childId, 'move')}
-                    {...handlers}
                   >
                     <Icons.HolderOutlined iconSize="s" />
                   </Grip>
@@ -684,7 +779,6 @@ export default function CanvasGridSurface({
                       data-corner={corner}
                       onPointerDown={begin(childId, 'resize', true, corner)}
                       onKeyDown={onKeyDown(childId, 'resize', corner)}
-                      {...handlers}
                     />
                   ))}
                 </>

@@ -24,6 +24,7 @@ import { DRAFT_TOKEN_HEADER } from './useCanvasDefinition';
 import type {
   ApplyOperationsResult,
   CanvasDefinitionResult,
+  GridLayout,
   GridPlacement,
 } from './types';
 
@@ -31,11 +32,22 @@ import type {
 interface AppliedLayout {
   revision: number;
   placements: Record<string, GridPlacement>;
+  /** The stored layouts behind `placements`; see `CanvasLayout.layouts`. */
+  layouts: Record<string, GridLayout>;
 }
 
 export interface CanvasLayout {
   /** Placements to render: the newest local ones, else the server's. */
   placements: Record<string, GridPlacement>;
+  /**
+   * The stored layouts behind those placements, which is what the server
+   * resolves from. Kept in step with every write rather than read from the
+   * fetched definition: a write can change a node's stored layout without
+   * being asked to, since a collided sibling is pushed down and its new `row`
+   * written back. A drag preview resolving from the fetched layouts would
+   * then disagree with the server until the next refetch.
+   */
+  layouts: Record<string, GridLayout>;
   /**
    * The newest revision the server is known to hold — the one the last write
    * returned, else the one the definition was fetched at. Never an optimistic
@@ -99,6 +111,7 @@ export function useCanvasLayout(
   // The definition's placements, for an optimistic view that has no newer
   // local layout to build on.
   const fetchedPlacements = useRef(result.placements);
+  const fetchedLayouts = useRef(result.layouts);
   // The last layout the server acknowledged, without any optimistic overlay.
   // A failed write falls back to this rather than to the fetched definition,
   // which may be several acknowledged drags behind.
@@ -107,13 +120,20 @@ export function useCanvasLayout(
   useEffect(() => {
     fetched.current = revision;
     fetchedPlacements.current = result.placements;
-  }, [revision, result.placements]);
+    fetchedLayouts.current = result.layouts;
+  }, [revision, result.placements, result.layouts]);
+
+  // Which surface this state belongs to. A request already in flight when the
+  // surface changes still returns, and its response has to be dropped rather
+  // than written over the new surface's.
+  const generation = useRef(0);
 
   useEffect(() => {
     // A different canvas, or switching between a draft and the published
     // canvas, shares none of this state -- a draft counts its own revisions
     // from zero, so a revision confirmed on one surface means nothing on the
     // other.
+    generation.current += 1;
     confirmed.current = undefined;
     acknowledged.current = undefined;
     writing.current = false;
@@ -127,6 +147,10 @@ export function useCanvasLayout(
     (ops: Map<string, GridPlacement>) => {
       writing.current = true;
       setSaving(true);
+      // The surface this write belongs to, as of now. Everything below runs
+      // after the response, by which time the user may have published or
+      // discarded the plan, or navigated to another canvas.
+      const era = generation.current;
       const base = Math.max(fetched.current, confirmed.current ?? 0);
       const placeOps = [...ops].map(([id, layout]) => ({
         op: 'place',
@@ -148,12 +172,18 @@ export function useCanvasLayout(
           };
       SupersetClient.request({ ...target, method: 'PATCH' })
         .then(({ json }) => {
+          // A response that outlived its surface. Letting it through would put
+          // the old surface's revision in `confirmed`, and the new surface's
+          // next write would be based on a revision it never had -- a draft
+          // counts from zero, so that is a 409 or the wrong layout.
+          if (era !== generation.current) return;
           const written = json?.result as ApplyOperationsResult | undefined;
           if (!written) return;
           confirmed.current = written.revision;
           acknowledged.current = {
             revision: written.revision,
             placements: written.placements,
+            layouts: written.layouts,
           };
           // Gestures queued while this write was in flight are newer than the
           // placements it resolved, so they stay on top -- otherwise the
@@ -167,9 +197,14 @@ export function useCanvasLayout(
               waiting.length > 0
                 ? { ...written.placements, ...Object.fromEntries(waiting) }
                 : written.placements,
+            layouts:
+              waiting.length > 0
+                ? { ...written.layouts, ...Object.fromEntries(waiting) }
+                : written.layouts,
           });
         })
         .catch(async response => {
+          if (era !== generation.current) return;
           queued.current.clear();
           // Back to the last layout the server acknowledged, not to the
           // fetched definition: dropping to the latter would make an earlier
@@ -194,6 +229,7 @@ export function useCanvasLayout(
           );
         })
         .finally(() => {
+          if (era !== generation.current) return;
           writing.current = false;
           if (queued.current.size > 0) {
             const next = new Map(queued.current);
@@ -215,15 +251,24 @@ export function useCanvasLayout(
       // Show the drop straight away, built on the newest layout so an earlier
       // gesture isn't undone -- including one from this same batch, which a
       // ref read wouldn't see since refs only advance on render.
-      setApplied(current => ({
-        revision: Math.max(fetched.current, confirmed.current ?? 0) + 1,
-        placements: {
-          ...(current && current.revision > fetched.current
-            ? current.placements
-            : fetchedPlacements.current),
-          [nodeId]: placement,
-        },
-      }));
+      setApplied(current => {
+        const newer =
+          current && current.revision > fetched.current ? current : undefined;
+        return {
+          revision: Math.max(fetched.current, confirmed.current ?? 0) + 1,
+          placements: {
+            ...(newer?.placements ?? fetchedPlacements.current),
+            [nodeId]: placement,
+          },
+          // The op sends this placement as the node's layout, so that is
+          // exactly what the server will store for it. The siblings it pushes
+          // keep their old stored layout until the response lands.
+          layouts: {
+            ...(newer?.layouts ?? fetchedLayouts.current),
+            [nodeId]: placement,
+          },
+        };
+      });
       if (writing.current) {
         queued.current.set(nodeId, placement);
         return;
@@ -236,13 +281,11 @@ export function useCanvasLayout(
   const dismissError = useCallback(() => setError(undefined), []);
 
   // The definition wins once a fetch catches up to what was applied locally.
-  const placements =
-    applied && applied.revision > revision
-      ? applied.placements
-      : result.placements;
+  const newer = applied && applied.revision > revision ? applied : undefined;
 
   return {
-    placements,
+    placements: newer?.placements ?? result.placements,
+    layouts: newer?.layouts ?? result.layouts,
     revision: Math.max(revision, confirmed.current ?? 0),
     saving,
     place,

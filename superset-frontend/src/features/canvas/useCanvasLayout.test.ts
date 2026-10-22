@@ -39,6 +39,9 @@ const resultAt = (
     revision,
     canEdit,
     placements,
+    // The stored layouts behind them. These happen to match because the
+    // fixture places everything explicitly.
+    layouts: placements,
   }) as CanvasDefinitionResult;
 
 beforeEach(() => {
@@ -343,6 +346,95 @@ test('switching surface drops the revision confirmed on the other one', async ()
   await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
   const draftCall = fetchMock.callHistory.calls()[1];
   expect(JSON.parse(draftCall.options.body as string).revision).toBe(0);
+});
+
+test('a write still in flight when the surface changes is dropped', async () => {
+  // The test above switches surface only after the canvas write has returned.
+  // A pending one still returns, and consuming it would put revision 29 into
+  // `confirmed` for a draft that counts from zero -- so the draft's next
+  // write would be based on a revision it never had. It would also clear
+  // `writing`, letting a second draft write go out alongside the first.
+  let answerCanvas: () => void = () => {};
+  const canvasResponse = new Promise<Response>(resolve => {
+    answerCanvas = () =>
+      resolve(
+        new Response(
+          JSON.stringify({
+            result: {
+              revision: 29,
+              ops: [],
+              placements: { kpi: MOVED, trend: TREND },
+              layouts: { kpi: MOVED, trend: TREND },
+            },
+          }),
+          { headers: { 'Content-Type': 'application/json' } },
+        ),
+      );
+  });
+  fetchMock.patch(endpoint, () => canvasResponse);
+  fetchMock.patch('glob:*/api/v1/canvas/draft', {
+    result: {
+      revision: 1,
+      ops: [],
+      placements: { kpi: MOVED, trend: TREND },
+      layouts: { kpi: MOVED, trend: TREND },
+    },
+  });
+
+  const { result, rerender } = renderHook(
+    ({ token, revision }: { token?: string; revision: number }) =>
+      useCanvasLayout(7, resultAt(revision), jest.fn(), token),
+    { initialProps: { token: undefined as string | undefined, revision: 28 } },
+  );
+
+  act(() => result.current.place('kpi', MOVED));
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(1));
+
+  // The plan opens while that write is still open, and only then does the
+  // canvas answer.
+  rerender({ token: 'tok-123', revision: 0 });
+  await act(async () => {
+    answerCanvas();
+  });
+
+  act(() => result.current.place('kpi', MOVED));
+
+  await waitFor(() => expect(fetchMock.callHistory.calls()).toHaveLength(2));
+  const draftCall = fetchMock.callHistory.calls()[1];
+  expect(JSON.parse(draftCall.options.body as string).revision).toBe(0);
+  // And the stale revision never surfaced as the draft's own.
+  expect(result.current.revision).toBe(1);
+});
+
+test("a write's stored layouts replace the fetched ones", async () => {
+  // The server resolves placement from stored layouts and writes a pushed
+  // node's new row back into its own, so after one drop the fetched layouts
+  // are behind. A drag preview resolving from them would disagree with the
+  // write that follows it.
+  const pushedLayout = { col: 1, row: 9, colSpan: 24, rowSpan: 8 };
+  fetchMock.patch(endpoint, {
+    result: {
+      revision: 4,
+      ops: [],
+      placements: { kpi: MOVED, trend: pushedLayout },
+      layouts: { kpi: MOVED, trend: pushedLayout },
+    },
+  });
+  const { result } = renderHook(() =>
+    useCanvasLayout(7, resultAt(3), jest.fn()),
+  );
+
+  expect(result.current.layouts).toEqual({ kpi: KPI, trend: TREND });
+
+  act(() => result.current.place('kpi', MOVED));
+
+  // The moved node's layout is known at once: the op sends this placement as
+  // its layout, so that is what the server will store.
+  expect(result.current.layouts.kpi).toEqual(MOVED);
+
+  await waitFor(() =>
+    expect(result.current.layouts.trend).toEqual(pushedLayout),
+  );
 });
 
 test('the reported revision follows the writes, so a commit can use it', async () => {

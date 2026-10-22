@@ -37,15 +37,9 @@
  *   fits its span, scanning from a cursor that only moves forward.
  */
 
-import type { GridPlacement } from './types';
+import type { GridLayout, GridPlacement } from './types';
 
-/** A child's stored layout: any of these may be absent. */
-export interface GridLayout {
-  col?: number;
-  row?: number;
-  colSpan?: number;
-  rowSpan?: number;
-}
+export type { GridLayout };
 
 const cells = (rect: GridPlacement): string[] => {
   const out: string[] = [];

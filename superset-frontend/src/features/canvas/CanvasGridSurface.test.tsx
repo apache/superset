@@ -834,6 +834,198 @@ test('the body is not a drag source on a published canvas', () => {
   expect(onPlace).not.toHaveBeenCalled();
 });
 
+/**
+ * Drags a *different* widget and asserts it moved, as proof the grid is free.
+ *
+ * It has to be a different one: a stranded gesture reuses the same pointer id,
+ * so a recovery drag on the same widget from the same point would be
+ * indistinguishable from the stranded gesture finally committing.
+ */
+const recover = (onPlace: jest.Mock & { container: HTMLElement }) => {
+  drag(handles('Move widget')[1], 0, ROW_PITCH * 2);
+
+  expect(onPlace).toHaveBeenCalledWith('trend', {
+    col: 1,
+    row: 7,
+    colSpan: 24,
+    rowSpan: 8,
+  });
+};
+
+test('a press released away from the widget still frees the grid', () => {
+  // An unarmed press holds no pointer capture -- it has to let a click
+  // through -- so its release lands wherever the pointer is, which need not
+  // be this widget or even this grid. A release the grid never sees would
+  // leave the gesture live, and since only one may be live at a time, every
+  // later drag and resize here would be refused.
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(document.body, 'pointerup', { clientX: 0, clientY: 0 });
+
+  // Nothing was dragged, and the grid still takes a new gesture.
+  expect(onPlace).not.toHaveBeenCalled();
+  recover(onPlace);
+});
+
+/** A widget that handles `pointerup` itself and stops it going any further. */
+const Swallow = ({ label }: { label: string }) => (
+  <div
+    ref={node => {
+      node?.addEventListener('pointerup', event => event.stopPropagation());
+    }}
+  >
+    {label}
+  </div>
+);
+
+test('a widget that swallows the release does not strand the gesture', () => {
+  const onPlace = renderSurface({
+    renderNode: nodeId => <Swallow label={`widget ${nodeId}`} />,
+  });
+  const body = widgetBody(onPlace.container, 'kpi');
+  const swallow = screen.getByText('widget kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(swallow, 'pointerup', { clientX: 0, clientY: 0 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+  recover(onPlace);
+});
+
+test('a drag that leaves the widget before the threshold still arms', () => {
+  // A flick can put the first move event well outside the widget, so arming
+  // cannot depend on the widget seeing the move either.
+  const onPlace = renderSurface();
+  const body = widgetBody(onPlace.container, 'kpi');
+
+  pointer(body, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+  pointer(document.body, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+  pointer(document.body, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 5,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});
+
+const controls: [string, (nodeId: string) => ReactNode][] = [
+  ['a form control', nodeId => <input aria-label={`control ${nodeId}`} />],
+  [
+    'a range slider',
+    nodeId => (
+      <input type="range" aria-label={`control ${nodeId}`} defaultValue={5} />
+    ),
+  ],
+  [
+    'a slider handle',
+    // Antd's Slider handle is a div carrying the role, not an input, which is
+    // why the role is matched as well as the tag.
+    nodeId => (
+      // eslint-disable-next-line jsx-a11y/prefer-tag-over-role
+      <div role="slider" aria-valuenow={5} aria-label={`control ${nodeId}`} />
+    ),
+  ],
+  [
+    'an opted-out element',
+    nodeId => <div data-canvas-no-drag aria-label={`control ${nodeId}`} />,
+  ],
+];
+
+test.each(controls)(
+  'a press on %s inside a widget does not move it',
+  (_name, control) => {
+    // These handle press-and-drag themselves. Turning that into a widget move
+    // would make a range filter impossible to set while a plan is open.
+    const onPlace = renderSurface({ renderNode: control });
+    const target = screen.getByLabelText('control kpi');
+
+    pointer(target, 'pointerdown', { button: 0, clientX: 0, clientY: 0 });
+    pointer(target, 'pointermove', { clientX: COL_PITCH * 4, clientY: 0 });
+    pointer(target, 'pointerup', { clientX: COL_PITCH * 4, clientY: 0 });
+
+    expect(onPlace).not.toHaveBeenCalled();
+  },
+);
+
+/** A widget whose content overflows, so its scroll container has a scrollbar. */
+const scrolling = (container: HTMLElement, nodeId: string) => {
+  const content = container.querySelector(
+    `[data-node-id="${nodeId}"] .canvas-interactive > div`,
+  ) as HTMLElement;
+  // jsdom lays nothing out, so the overflow is declared rather than produced.
+  Object.defineProperty(content, 'scrollHeight', {
+    configurable: true,
+    value: 4000,
+  });
+  Object.defineProperty(content, 'clientHeight', {
+    configurable: true,
+    value: 200,
+  });
+  return content;
+};
+
+test("a press on a tall widget's scrollbar scrolls it rather than moving it", () => {
+  // A table is the common case: it scrolls inside its cells, and dragging the
+  // scrollbar has to keep scrolling it once a plan is open.
+  const onPlace = renderSurface({
+    renderNode: nodeId => (
+      <div style={{ height: 4000 }}>{`tall ${nodeId}`}</div>
+    ),
+  });
+  const content = scrolling(onPlace.container, 'kpi');
+
+  // Past the right edge of the content box, which is where the scrollbar is.
+  const onBar = { clientX: WIDTH + 4, clientY: 50 };
+  pointer(content, 'pointerdown', { button: 0, ...onBar });
+  pointer(content, 'pointermove', { ...onBar, clientY: ROW_PITCH * 2 });
+  pointer(content, 'pointerup', { ...onBar, clientY: ROW_PITCH * 2 });
+
+  expect(onPlace).not.toHaveBeenCalled();
+});
+
+test('a press inside a tall widget still drags it', () => {
+  // The other side of the check above: only the scrollbar is excluded, not
+  // the whole of a widget that happens to scroll.
+  const onPlace = renderSurface({
+    renderNode: nodeId => (
+      <div style={{ height: 4000 }}>{`tall ${nodeId}`}</div>
+    ),
+  });
+  const content = scrolling(onPlace.container, 'kpi');
+
+  pointer(content, 'pointerdown', { button: 0, clientX: 10, clientY: 50 });
+  pointer(content, 'pointermove', { clientX: 10 + COL_PITCH * 4, clientY: 50 });
+  pointer(content, 'pointerup', { clientX: 10 + COL_PITCH * 4, clientY: 50 });
+
+  expect(onPlace).toHaveBeenCalledWith('kpi', {
+    col: 5,
+    row: 1,
+    colSpan: 6,
+    rowSpan: 4,
+  });
+});
+
+test('text in a widget is not selectable while a plan is open', () => {
+  // Dragging across a table would otherwise select its text and move the
+  // widget at once. In a plan the drag wins; a published canvas selects
+  // normally.
+  const editing = renderSurface();
+  const published = renderSurface({ editable: false });
+  const content = (container: HTMLElement) =>
+    container.querySelector(
+      '[data-node-id="kpi"] .canvas-interactive > div',
+    ) as HTMLElement;
+
+  expect(getComputedStyle(content(editing.container)).userSelect).toBe('none');
+  expect(getComputedStyle(content(published.container)).userSelect).not.toBe(
+    'none',
+  );
+});
+
 test('every widget offers all four resize corners, each named', () => {
   const onPlace = renderSurface();
 

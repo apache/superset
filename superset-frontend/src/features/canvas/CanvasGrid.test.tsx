@@ -66,6 +66,15 @@ const result: CanvasDefinitionResult = {
     unknown: { col: 1, row: 7, colSpan: 24, rowSpan: 1 },
     c1: { col: 1, row: 1, colSpan: 6, rowSpan: 1 },
   },
+  // Every node auto-placed, as the stored layouts above are.
+  layouts: {
+    f: {},
+    g: {},
+    lost: {},
+    odd: { colSpan: 12 },
+    unknown: {},
+    c1: { colSpan: 6 },
+  },
   widgetTypes: {
     f: 'test.filter',
     g: 'test.group',
@@ -118,6 +127,7 @@ const layoutOf = (
   place = jest.fn(),
 ): CanvasLayout => ({
   placements: gridResult.placements,
+  layouts: gridResult.layouts,
   revision: gridResult.revision,
   saving: false,
   place,

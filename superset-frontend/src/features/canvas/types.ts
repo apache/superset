@@ -25,6 +25,17 @@ export interface GridPlacement {
 }
 
 /**
+ * A child's *stored* layout, as opposed to the rectangle it resolved to. Any
+ * field may be absent: an auto-placed child has no `col`/`row` at all.
+ */
+export interface GridLayout {
+  col?: number;
+  row?: number;
+  colSpan?: number;
+  rowSpan?: number;
+}
+
+/**
  * The span limits a widget declares. Absent limits are open; the client
  * clamps to these so a drag or resize can't produce a layout the server
  * would reject.
@@ -94,6 +105,14 @@ export interface CanvasDefinitionResult {
   customizationScopes: Record<string, string[]>;
   /** Resolved grid placement of every node on a grid. */
   placements: Record<string, GridPlacement>;
+  /**
+   * The stored layout of every node on a grid, which the server resolves
+   * placement from. Not derivable from `placements`: an auto-placed node has
+   * no stored `col`/`row`, and a collided node's stored `row` is the
+   * pushed-down one. A drag preview has to resolve from these to agree with
+   * the write that follows.
+   */
+  layouts: Record<string, GridLayout>;
   /** Node id -> widget type, for nodes whose widget resolves. */
   widgetTypes: Record<string, string>;
   /** Grid container node id -> its column count. */
@@ -113,6 +132,13 @@ export interface ApplyOperationsResult {
   revision: number;
   ops: Record<string, unknown>[];
   placements: Record<string, GridPlacement>;
+  /**
+   * The stored layouts the write produced. A write can change a node's stored
+   * layout without being asked to: a collided sibling is pushed down and its
+   * new `row` is written back. Without these the next drag's preview would
+   * resolve from a layout the server has already moved on from.
+   */
+  layouts: Record<string, GridLayout>;
   widgetTypes: Record<string, string>;
   gridColumns: Record<string, number>;
   layoutConstraints: Record<string, SpanConstraints>;

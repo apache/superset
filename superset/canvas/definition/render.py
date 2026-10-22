@@ -26,6 +26,12 @@ placements that don't resolve are left out and render as placeholders.
 children's placements are in its own grid units. ``layoutConstraints`` gives
 the span limits a widget declares, so a client that lets the user drag and
 resize clamps to the same bounds the server validates against.
+
+``layouts`` gives each node's *stored* layout, which is what placement is
+resolved from and is not recoverable from ``placements``: an auto-placed node
+has no stored ``col``/``row`` at all, and validation writes a collided node's
+pushed-down ``row`` back to its layout. A client previewing a drag has to
+resolve from these to reach the same answer the server will.
 """
 
 from __future__ import annotations
@@ -69,19 +75,22 @@ def render_context(
             grid_columns[node_id] = columns
 
     placements: dict[str, dict[str, int]] = {}
+    stored_layouts: dict[str, dict[str, Any]] = {}
     for children, columns in grids:
         layouts = [_grid_layout(nodes[c]["layout"]) for c in children]
         rects, _ = resolve_grid(layouts, columns)
-        for child, rect in zip(children, rects, strict=True):
+        for child, rect, layout in zip(children, rects, layouts, strict=True):
             placements[child] = {
                 "col": rect.col,
                 "row": rect.row,
                 "colSpan": rect.col_span,
                 "rowSpan": rect.row_span,
             }
+            stored_layouts[child] = layout
     return {
         "widgetTypes": type_ids,
         "placements": placements,
+        "layouts": stored_layouts,
         "gridColumns": grid_columns,
         "layoutConstraints": {
             node_id: constraints

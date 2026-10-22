@@ -17062,6 +17062,10 @@
                           "description": "The span limits each node's widget declares, for a client that lets the user resize",
                           "type": "object"
                         },
+                        "layouts": {
+                          "description": "The stored layout of every node on a grid, which placement is resolved from, for a client that previews a drag before writing it",
+                          "type": "object"
+                        },
                         "placements": {
                           "description": "Resolved grid position of every node on a grid, auto-placed nodes included",
                           "type": "object"

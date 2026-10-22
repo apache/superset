@@ -55,6 +55,7 @@ const result: CanvasDefinitionResult = {
   crossFilterScopes: {},
   customizationScopes: {},
   placements: {},
+  layouts: {},
   widgetTypes: {
     overview: 'tabs',
     emea: 'tab',
@@ -77,6 +78,7 @@ test('renders core containers and markdown without extensions', async () => {
       onValueChange={jest.fn()}
       layout={{
         placements: result.placements,
+        layouts: result.layouts,
         revision: result.revision,
         saving: false,
         place: jest.fn(),

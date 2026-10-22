@@ -576,6 +576,12 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                             description: >-
                               Resolved grid position of every node on a grid,
                               auto-placed nodes included
+                          layouts:
+                            type: object
+                            description: >-
+                              The stored layout of every node on a grid, which
+                              placement is resolved from, for a client that
+                              previews a drag before writing it
                           widgetTypes:
                             type: object
                             description: The widget type of each resolvable node
