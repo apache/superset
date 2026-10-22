@@ -1024,7 +1024,6 @@ test('tooltip resolves per-metric formats through the display-keyed label map', 
   const html = formatter({
     value: [599616000000, 0.5],
     seriesId: 'sum__num, boy',
-    marker: '',
     color: '#333',
   });
 
@@ -1086,7 +1085,6 @@ test('tooltip resolves per-metric formats for secondary-query series', () => {
   const html = formatter({
     value: [599616000000, 2.5],
     seriesId: 'count__num, boy',
-    marker: '',
     color: '#333',
   });
 
@@ -1569,7 +1567,7 @@ test('y-axis title position: non-Left sets nameLocation to end', () => {
 
 describe('EchartsMixedTimeseries tooltip truncation', () => {
   const longSeriesName = 'prod-us-east-1-service-checkout-latency-p99';
-  const marker = '<span style="background-color:#1f77b4;"></span>';
+  const color = '#1f77b4';
 
   const buildTooltip = (tooltipTruncation?: TooltipTruncationMode) => {
     const chartProps = createEchartsTimeseriesTestChartProps<
@@ -1594,7 +1592,7 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
       seriesId: longSeriesName,
       seriesName: longSeriesName,
       value: [599616000000, 1],
-      marker,
+      color,
     });
   };
 
@@ -1614,7 +1612,7 @@ describe('EchartsMixedTimeseries tooltip truncation', () => {
     const html = buildTooltip('start');
     expect(html).not.toContain('prod-us-east');
     expect(html).toContain('latency-p99');
-    expect(html).toContain('background-color:#1f77b4');
+    expect(html.replace(/\s/g, '')).toContain('style="color:#1f77b4;');
   });
 
   test('keeps both ends when truncating the middle', () => {

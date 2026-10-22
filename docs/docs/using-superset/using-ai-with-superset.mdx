@@ -90,6 +90,26 @@ built-in `pivot_table` chart type and is not offered when the host visualization
 is unavailable.
 :::
 
+For saved Bullet charts, updates that omit dimensions preserve Explore's
+hierarchy, including SQL expressions, along with native query metadata such as
+URL parameters. Replacing a metric also updates inherited expression-based
+ordering for that metric output. Raw chart data and CSV/Excel exports do not
+require the selected number formatter to be supported by MCP previews.
+MCP Vega-Lite previews of grouped time-series charts retain each series from
+post-processed chart data, including charts with multiple grouping dimensions.
+Saved line, bar, area, and scatter previews honor the requested width and height
+and include the chart name in their description.
+When rebuilding queries for saved charts without a query context, MCP honors
+resampling across the requested time range, inherited table time comparisons,
+and temporal column references for semantic views. A matching inherited table
+comparison preserves other selected offsets, including custom comparisons.
+Forecasts use the x-axis time grain, resolved query grain, or panel grain, with a
+daily fallback.
+
+When chart compilation fails, MCP distinguishes database connection failures from
+query validation errors. For Mixed Timeseries charts, annotation failures on
+either query use the annotation charts' database engines for classification.
+
 ### Create Dashboards
 
 Build dashboards from a collection of charts:
@@ -286,7 +306,10 @@ Ask your admin for the MCP server URL and any authentication tokens you need.
 | `get_catalog`       | Compact, permission-filtered page of databases, datasets, charts, or dashboards (id, uuid, name, description, url) |
 
 Catalog pages are ordered oldest first (by id) and stay within 32 KiB. URLs longer than 2,048 characters are returned as
-`null` with `truncated: true`, rather than shortened into unusable links.
+`null` with `fields_shortened: true`, rather than shortened into unusable links.
+`truncated: true` means byte-bound pagination held entries back, not that fields were shortened;
+otherwise `truncated` is `false`. Use `next_cursor` as the continuation signal: pass it back as
+`cursor` to fetch the next page, or stop when it is `null`.
 Resource-specific read scopes (for example, `superset:dataset:read`) authorize only
 the corresponding catalog asset type, subject to the caller's permissions.
 
@@ -454,12 +477,49 @@ also have `data: null`. For each statement, `executed_sql` is `null` when it equ
 - Ask for smaller result sets: use filters, reduce `page_size`, or request specific columns
 - Example: "Show me the top 10 rows from the sales dataset" instead of "Show me all sales data"
 
+### Chart query and template errors
+
+MCP chart tools accept ISO-8601 time grains such as `P1M` for monthly
+buckets, including Big Number trendlines with saved metrics. Template-rendering
+and query-processing validation failures are reported as `compile_error`, with
+the underlying error in `details`, rather than as database connection failures.
+Check the chart configuration or dataset expressions before retrying.
+Connection failures in an annotation layer's chart query are still reported as
+`database_connection_error`, even when the annotation layer wraps the failure as
+a validation error. Typed database exceptions are recognized directly; other
+failures are matched against candidate annotation-chart database engines. If
+multiple engines are candidates or a chart cannot be located, only specific
+connection-error patterns count, not an engine's generic error fallback. If no
+annotation engine can be determined, the main dataset's engine supplies those
+patterns. The error message names the annotation layer as the source.
+
 ### AI doesn't see Superset tools
 
 - Verify the connection in your AI client (e.g., the hammer icon in Claude Desktop)
 - Ask the AI "What Superset tools are available?" to confirm the connection
 - Restart your AI client if you recently changed the configuration
 
+
+### Sunburst chart data
+
+MCP chart tools support ordered Sunburst hierarchies with a primary metric and
+an optional secondary metric. When supplied, the secondary-to-primary ratio
+drives a sequential color scale (for example, profit divided by revenue shows
+margin); when omitted, arc colors are categorical. Use `chart_type: "sunburst"`
+in typed requests; the native chart uses `viz_type: "sunburst_v2"`.
+
+SQL NULL aggregate values are rendered as zero, matching the Sunburst frontend,
+including during compile checks, previews, and data exports. Non-finite floating-point
+metric values (including infinities and NaN) are normalized to null and then to
+zero in those same paths; an overflowing aggregate can therefore appear as zero,
+not as a validation error. Missing result columns, numeric strings, and booleans
+remain invalid.
+Chart queries also accept Superset's `cache_timeout = -1` setting to disable caching.
+
+Sunburst ASCII previews reserve space for an omitted-row count and mark clipped
+lines with dots. Preview width is bounded in terminal columns, including wide
+Unicode labels. Standard pandas timestamps using pytz UTC or named time zones
+retain their offsets and nanosecond precision in MCP results.
 
 ## Gantt charts through MCP
 

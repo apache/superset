@@ -39,11 +39,21 @@ import {
 import tableControlPanel from '../../../plugins/plugin-chart-table/src/controlPanel';
 import exploreReducer, { ExploreState } from './exploreReducer';
 import {
+  SLICE_UPDATED,
   setCompatibility,
   setControlValue,
   setStashFormData,
 } from '../actions/exploreActions';
 import { CompatibilityResult } from '../types';
+import { canOverwriteSlice } from '../exploreUtils/canOverwriteSlice';
+
+jest.mock('src/utils/getBootstrapData', () =>
+  jest
+    .requireActual<typeof import('spec/helpers/mockBootstrapData')>(
+      'spec/helpers/mockBootstrapData',
+    )
+    .mockUserSubjectsBootstrapData([8]),
+);
 
 test('reset hiddenFormData on SET_STASH_FORM_DATA', () => {
   const initialState: ExploreState = {
@@ -500,4 +510,20 @@ test('SET_FIELD_VALUE refreshes semantic ordering choices and removes stale sort
     '["song_name",true]',
   ]);
   expect(afterChange.form_data.order_by_cols).toEqual(['["song_name",true]']);
+});
+
+test.each([
+  { name: 'API subject', editors: [{ id: 8, label: 'Alice' }] },
+  { name: 'select option', editors: [{ value: 8, label: 'Alice' }] },
+  { name: 'subject ID', editors: [8] },
+])('properties save preserves $name editorship in Redux', ({ editors }) => {
+  const state: ExploreState = { form_data: {} as QueryFormData, controls: {} };
+  const action = {
+    type: SLICE_UPDATED,
+    slice: { slice_name: 'Renamed', editors },
+  } as Parameters<typeof exploreReducer>[1];
+  const updated = exploreReducer(state, action);
+  expect(canOverwriteSlice({ slice: updated.slice })).toBe(true);
+  expect(updated.slice?.editors).toEqual([8]);
+  expect(updated.sliceName).toBe('Renamed');
 });

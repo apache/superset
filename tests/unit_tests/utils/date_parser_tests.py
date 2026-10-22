@@ -1043,3 +1043,50 @@ def test_get_since_until_end_of_quarter_and_day() -> None:
     ]:
         _, until = get_since_until(time_range)
         assert until == expected_until, time_range
+
+
+@pytest.mark.parametrize(
+    "time_range",
+    [
+        "2025-03-15 - 2025-04-01",
+        "2025-03-15:",
+        "last week",
+        "",
+        ": 2025-04-01",
+        "garbage",
+        "2025-03-15 :",
+        "2025-03-15 :2025-04-01",
+        "2025-03-15: 2025-04-01",
+    ],
+)
+def test_reject_malformed_time_range(time_range: str) -> None:
+    """Explicit malformed ranges must not become an upper-bound-only scan."""
+    error: pytest.ExceptionInfo[TimeRangeParseFailError]
+    with pytest.raises(TimeRangeParseFailError) as error:
+        get_since_until(time_range=time_range)
+    assert error.value.field_name == "time_range"
+
+
+@pytest.mark.parametrize(
+    ("time_range", "expected"),
+    [
+        ("2025-03-15 : 2025-04-01", (datetime(2025, 3, 15), datetime(2025, 4, 1))),
+        ("2025-03-15 : ", (datetime(2025, 3, 15), None)),
+        (" : 2025-04-01", (None, datetime(2025, 4, 1))),
+        (" : ", (None, None)),
+        ("No filter", (None, None)),
+    ],
+)
+def test_explicit_time_ranges_remain_valid(
+    time_range: str, expected: tuple[datetime | None, datetime | None]
+) -> None:
+    """Explicit open bounds and the no-filter sentinel retain their meaning."""
+    assert get_since_until(time_range=time_range) == expected
+
+
+def test_legacy_bounds_without_time_range() -> None:
+    """Omitting time_range still permits legacy separately supplied bounds."""
+    assert get_since_until(since="2025-03-15", until="2025-04-01") == (
+        datetime(2025, 3, 15),
+        datetime(2025, 4, 1),
+    )

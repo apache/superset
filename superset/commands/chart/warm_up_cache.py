@@ -29,6 +29,10 @@ from superset.common.db_query_status import QueryStatus
 from superset.exceptions import SupersetSecurityException
 from superset.extensions import db, security_manager
 from superset.models.slice import Slice
+from superset.semantic_layers.access import (
+    is_semantic_layers_enabled,
+    SemanticLayersDisabledError,
+)
 from superset.utils import json
 from superset.utils.core import error_msg_from_exception, QueryObjectFilterClause
 from superset.views.utils import get_dashboard_extra_filters
@@ -87,9 +91,20 @@ class ChartWarmUpCacheCommand(BaseCommand):
 
         return None, QueryStatus.SUCCESS
 
-    def run(self) -> dict[str, Any]:
-        self.validate()
-        chart = cast(Slice, self._chart_or_id)
+    def run(self, *, skip_disabled: bool = False) -> dict[str, Any]:
+        """Warm one chart, optionally returning a disabled result for batch callers."""
+        try:
+            self.validate()
+        except SemanticLayersDisabledError:
+            if not skip_disabled:
+                raise
+            disabled_chart: Slice = cast(Slice, self._chart_or_id)
+            return {
+                "chart_id": disabled_chart.id,
+                "viz_error": SemanticLayersDisabledError.message,
+                "viz_status": None,
+            }
+        chart: Slice = cast(Slice, self._chart_or_id)
 
         try:
             error, status = self._warm_up_non_legacy_cache(chart)
@@ -107,6 +122,11 @@ class ChartWarmUpCacheCommand(BaseCommand):
             if not chart:
                 raise WarmUpCacheChartNotFoundError()
             self._chart_or_id = chart
+        if (
+            chart.datasource_type == "semantic_view"
+            and not is_semantic_layers_enabled()
+        ):
+            raise SemanticLayersDisabledError()
         try:
             security_manager.raise_for_access(chart=chart)
         except SupersetSecurityException as ex:

@@ -83,6 +83,9 @@ from pydantic import (
     model_validator,
 )
 from pydantic.json_schema import SkipJsonSchema
+from pydantic_core import PydanticCustomError
+
+from superset.semantic_layers.access import is_semantic_layers_enabled
 
 if TYPE_CHECKING:
     from superset.connectors.sqla.models import SqlaTable
@@ -97,6 +100,7 @@ from superset.mcp_service.chart.schemas import (
     BigNumberHeadline,
     resolve_chart_datasource_id,
     resolve_chart_datasource_name,
+    UnknownFieldCheckMixin,
 )
 from superset.mcp_service.common.cache_schemas import (
     CreatedByMeMixin,
@@ -133,7 +137,10 @@ from superset.mcp_service.utils.sanitization import (
     sanitize_user_input,
     sanitize_user_input_with_changes,
 )
-from superset.mcp_service.utils.schema_utils import OmittedMeansUnchanged
+from superset.mcp_service.utils.schema_utils import (
+    field_validation_error,
+    OmittedMeansUnchanged,
+)
 from superset.mcp_service.utils.serialization import JsonSafeRows, OptionalRowCount
 from superset.mcp_service.utils.url_utils import get_superset_base_url
 from superset.utils.core import DatasourceType
@@ -173,12 +180,7 @@ def serialize_tag_object(tag: Any) -> TagInfo | None:
 
 
 class DashboardFilter(ColumnOperator):
-    """
-    Filter object for dashboard listing.
-    col: The column to filter on. Must be one of the allowed filter fields.
-    opr: The operator to use. Must be one of the supported operators.
-    value: The value to filter by (type depends on col and opr).
-    """
+    """Filter object for dashboard listing."""
 
     col: Literal[  # pyright: ignore[reportIncompatibleVariableOverride]
         "dashboard_title",
@@ -208,12 +210,26 @@ class DashboardFilter(ColumnOperator):
 
 
 class ListDashboardsRequest(
+    UnknownFieldCheckMixin,
     EditedByMeMixin,
     CreatedByMeMixin,
     MetadataCacheControl,
     PaginatedListRequest[DashboardFilter],
 ):
     """Request schema for list_dashboards with clear, unambiguous types."""
+
+    edited_by_me: bool = Field(
+        default=False,
+        description=(
+            "Only dashboards where the current user is a direct USER editor "
+            "(the dashboard ownership representation). Does not include access "
+            "inherited from roles or groups. Use this for dashboards I own. "
+            "Combining with created_by_me returns creator OR owner, not both."
+        ),
+    )
+
+    # Never silently discard a misspelled scope filter (e.g. owned_by_me).
+    model_config = ConfigDict(extra="forbid")
 
     order_column: Annotated[
         str | None,
@@ -248,12 +264,9 @@ class ListDashboardsRequest(
                 "just trashed dashboards, 'include' returns live and trashed "
                 "together. Omit for live dashboards only (default). Trashed "
                 "rows carry a non-null deleted_at and are limited to "
-                "dashboards the caller can edit (the same audience that can "
-                "restore them, not merely the ones they own; admins see "
-                "all). This omits EXTRA_EDITORS_RESOLVER-granted and guest "
-                "role-derived editorship, so some restorable dashboards may "
-                "be under-enumerated. Requires the SOFT_DELETE feature flag "
-                "to have produced trashed rows."
+                "dashboards the caller can edit (admins see all); some "
+                "restorable dashboards may be missing. Requires the "
+                "SOFT_DELETE feature flag to have produced trashed rows."
             ),
         ),
     ]
@@ -682,7 +695,28 @@ class AddChartToDashboardRequest(BaseModel):
     )
 
 
-class AddChartToDashboardResponse(BaseModel):
+class DashboardMutationErrorFields(BaseModel):
+    """Shared error and permission fields for governance mutations."""
+
+    error: str | None = Field(None, description="Error message, if operation failed")
+    permission_denied: bool = Field(
+        default=False,
+        description=(
+            "True when the user lacks edit rights on the target dashboard. "
+            "Remediation: ask the user to grant access; do not retry as-is."
+        ),
+    )
+    managed_externally: bool = Field(
+        default=False,
+        description=(
+            "True when the mutation was refused because the dashboard is "
+            "managed externally. This is not an access denial: permissions "
+            "and retries cannot change it; its source of truth is external."
+        ),
+    )
+
+
+class AddChartToDashboardResponse(DashboardMutationErrorFields):
     """Response schema for adding chart to dashboard."""
 
     dashboard: DashboardInfo | None = Field(
@@ -694,7 +728,6 @@ class AddChartToDashboardResponse(BaseModel):
     position: dict[str, Any] | None = Field(
         None, description="Position information for the added chart"
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -717,7 +750,7 @@ class RemoveChartFromDashboardRequest(BaseModel):
     )
 
 
-class RemoveChartFromDashboardResponse(BaseModel):
+class RemoveChartFromDashboardResponse(DashboardMutationErrorFields):
     """Response schema for removing a chart from a dashboard."""
 
     dashboard: DashboardInfo | None = Field(
@@ -734,7 +767,6 @@ class RemoveChartFromDashboardResponse(BaseModel):
             "became empty as a result)."
         ),
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -848,16 +880,17 @@ class GenerateDashboardRequest(BaseModel):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text, "
-                "or omit it to auto-generate one from chart names."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text, "
+                    "or omit it to auto-generate one from chart names."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1012,15 +1045,16 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -1066,7 +1100,7 @@ class UpdateDashboardRequest(OmittedMeansUnchanged):
         return normalized
 
 
-class UpdateDashboardResponse(BaseModel):
+class UpdateDashboardResponse(DashboardMutationErrorFields):
     """Response schema for ``update_dashboard``.
 
     Distinct from ``GenerateDashboardResponse`` because the semantics
@@ -1078,7 +1112,6 @@ class UpdateDashboardResponse(BaseModel):
         None, description="The updated dashboard info, if successful"
     )
     dashboard_url: str | None = Field(None, description="URL to view the dashboard")
-    error: str | None = Field(None, description="Error message, if update failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -1172,28 +1205,6 @@ class ManageDashboardOwnersRequest(BaseModel):
                 f"remove_owner_ids: {overlap}."
             )
         return self
-
-
-class DashboardMutationErrorFields(BaseModel):
-    """Shared error and permission fields for governance mutations."""
-
-    error: str | None = Field(None, description="Error message, if operation failed")
-    permission_denied: bool = Field(
-        default=False,
-        description=(
-            "True when the user lacks edit rights on the target dashboard. "
-            "Remediation: ask the user to grant access; do not retry as-is."
-        ),
-    )
-    managed_externally: bool = Field(
-        default=False,
-        description=(
-            "True when the mutation was refused because the dashboard is "
-            "managed externally. Structural, not an access denial: granting "
-            "permissions cannot resolve it and the call should not be "
-            "retried — the entity's source of truth lives outside Superset."
-        ),
-    )
 
 
 class ManageDashboardOwnersResponse(DashboardMutationErrorFields):
@@ -1317,9 +1328,9 @@ class ManageDashboardRolesResponse(DashboardMutationErrorFields):
         default=False,
         description=(
             "Whether the ENABLE_VIEWERS feature flag is enabled on this "
-            "instance. When False, dashboard viewers are stored but have no "
-            "effect on access control — access still follows normal "
-            "Superset permissions/editorship."
+            "instance. Access checks restrict access to any nonempty viewers "
+            "list regardless of this flag, so role changes take effect "
+            "either way."
         ),
     )
     warnings: list[str] = Field(
@@ -1382,9 +1393,10 @@ class ManageDashboardCertificationRequest(BaseModel):
             # Empty string means "clear the field", so an input that
             # sanitizes down to nothing (HTML-only or whitespace-only) must
             # not silently erase an existing certification.
-            raise ValueError(
+            raise PydanticCustomError(
+                "empty_certification_text",
                 "certified_by has no content left after sanitization; pass "
-                'an explicit empty string ("") to clear the field.'
+                'an explicit empty string ("") to clear the field.',
             )
         return sanitized
 
@@ -1400,10 +1412,11 @@ class ManageDashboardCertificationRequest(BaseModel):
         )
         if not sanitized:
             # Same guard as certified_by: only an explicit "" may clear.
-            raise ValueError(
+            raise PydanticCustomError(
+                "empty_certification_text",
                 "certification_details has no content left after "
                 'sanitization; pass an explicit empty string ("") to clear '
-                "the field."
+                "the field.",
             )
         return sanitized
 
@@ -1464,12 +1477,13 @@ class DuplicateDashboardRequest(BaseModel):
         validation_alias=AliasChoices("dashboard_title", "title", "name"),
     )
     duplicate_slices: bool = Field(
-        default=False,
+        default=True,
         description=(
-            "When true, every chart on the source dashboard is deep-copied "
+            "When true (default), every chart on the source dashboard is deep-copied "
             "into a new chart object owned by the caller. When false "
-            "(default), the new dashboard references the same charts as the "
-            "source."
+            "the new dashboard references the same charts as the "
+            "source; editing them also changes the source dashboard. "
+            "Use false only when shared charts are explicitly intended."
         ),
     )
     sanitization_warnings: SkipJsonSchema[List[str]] = Field(
@@ -1509,15 +1523,16 @@ class DuplicateDashboardRequest(BaseModel):
             raw = None
         if not isinstance(raw, str) or not raw.strip():
             return data
-        sanitized, was_modified = sanitize_user_input_with_changes(
-            raw, "Dashboard title", max_length=500, allow_empty=True
-        )
-        if was_modified and not sanitized:
-            raise ValueError(
-                "dashboard_title contained only disallowed content "
-                "(HTML/script/URL schemes) and was removed entirely by "
-                "sanitization. Provide a dashboard_title with plain text."
+        with field_validation_error("dashboard_title"):
+            sanitized, was_modified = sanitize_user_input_with_changes(
+                raw, "Dashboard title", max_length=500, allow_empty=True
             )
+            if was_modified and not sanitized:
+                raise ValueError(
+                    "dashboard_title contained only disallowed content "
+                    "(HTML/script/URL schemes) and was removed entirely by "
+                    "sanitization. Provide a dashboard_title with plain text."
+                )
         if was_modified:
             data["sanitization_warnings"].append(
                 "dashboard_title was modified during sanitization to "
@@ -2273,7 +2288,7 @@ class DeleteDashboardRequest(BaseModel):
         return value
 
 
-class DeleteDashboardResponse(BaseModel):
+class DeleteDashboardResponse(DashboardMutationErrorFields):
     """Result of a delete_dashboard operation."""
 
     success: bool = Field(description="Whether the dashboard was deleted")
@@ -2288,7 +2303,6 @@ class DeleteDashboardResponse(BaseModel):
         ),
     )
     message: str | None = Field(None, description="Human-readable outcome message")
-    error: str | None = Field(None, description="Error message if the delete failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
@@ -2324,9 +2338,8 @@ class BaseNewFilterSpec(BaseModel):
     scope_chart_ids: List[int] | None = Field(
         None,
         description=(
-            "Chart IDs this filter should apply to. When omitted the filter "
-            "applies to all charts on the dashboard. All IDs must belong to "
-            "charts that are on the dashboard."
+            "IDs of charts on the dashboard this filter applies to. Omit to "
+            "apply it to all charts on the dashboard."
         ),
     )
 
@@ -2605,7 +2618,7 @@ class ManageNativeFiltersRequest(BaseModel):
         return self
 
 
-class ManageNativeFiltersResponse(BaseModel):
+class ManageNativeFiltersResponse(DashboardMutationErrorFields):
     """Response schema for the manage_native_filters tool."""
 
     dashboard_id: int | None = Field(None, description="ID of the dashboard")
@@ -2628,7 +2641,6 @@ class ManageNativeFiltersResponse(BaseModel):
         default_factory=list,
         description="Final native filter configuration after the operation, in order",
     )
-    error: str | None = Field(None, description="Error message, if operation failed")
     permission_denied: bool = Field(
         default=False,
         description=(
@@ -2651,22 +2663,15 @@ class BaseNewDashboardComponentSpec(BaseModel):
     target_tab: str | None = Field(
         None,
         description=(
-            "Tab to add the component to, matched by display name or "
-            "component ID (see get_dashboard_layout for available tabs). "
-            "Omit to use the first tab, or the grid if there are no tabs; "
-            "specify a target when the component should land in a "
-            "specific one rather than the first tab."
+            "Tab to add the component to, by display name or component ID "
+            "(see get_dashboard_layout). Omit for the first tab, or the grid "
+            "if there are no tabs."
         ),
     )
 
 
 class MarkdownComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new markdown/text tile.
-
-    Placed in its own new row (a MARKDOWN component sits alongside charts,
-    not as a full-width band), so it composes with existing rows/charts on
-    the target grid or tab.
-    """
+    """Spec for a new markdown/text tile, placed in its own new row."""
 
     component_type: Literal["markdown"] = Field(
         ..., description="Discriminator - must be 'markdown'"
@@ -2718,12 +2723,7 @@ def _sanitize_header_text(value: str) -> str:
 
 
 class HeaderComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new section header band.
-
-    Placed directly on the target grid/tab (not inside a row) so it spans
-    the full dashboard width, matching how the dashboard builder places
-    dragged header components.
-    """
+    """Spec for a new full-width section header band."""
 
     component_type: Literal["header"] = Field(
         ..., description="Discriminator - must be 'header'"
@@ -2744,11 +2744,7 @@ class HeaderComponentSpec(BaseNewDashboardComponentSpec):
 
 
 class DividerComponentSpec(BaseNewDashboardComponentSpec):
-    """Spec for a new horizontal divider.
-
-    Placed directly on the target grid/tab (not inside a row), same as
-    ``HeaderComponentSpec``. Carries no content — only placement.
-    """
+    """Spec for a new full-width horizontal divider; it has no content."""
 
     component_type: Literal["divider"] = Field(
         ..., description="Discriminator - must be 'divider'"
@@ -2934,8 +2930,9 @@ class ApplyFilterValueSpec(BaseModel):
     values: List[FilterSelectValue] | None = Field(
         None,
         description=(
-            "Values to select, for a filter_select filter. Pass an empty "
-            "list to clear the filter's current selection."
+            "Values to select, for a filter_select filter; each must exist "
+            "in the filter's column. Pass an empty list to clear the "
+            "filter's current selection."
         ),
     )
     time_range: str | None = Field(
@@ -3380,9 +3377,12 @@ def dashboard_datasets_serializer(
             slc
         )
 
+    semantic_layers_enabled: bool = is_semantic_layers_enabled()
     datasets: List[DashboardDatasetSummary] = []
     inaccessible_count: int = 0
     for (_, source_type), slices in slices_by_datasource.items():
+        if source_type == DatasourceType.SEMANTIC_VIEW and not semantic_layers_enabled:
+            continue
         kind: Literal["table", "semantic_view"] = (
             "semantic_view" if source_type == DatasourceType.SEMANTIC_VIEW else "table"
         )
@@ -3456,7 +3456,7 @@ class RestoreDashboardRequest(BaseModel):
         return value
 
 
-class RestoreDashboardResponse(BaseModel):
+class RestoreDashboardResponse(DashboardMutationErrorFields):
     """Result of a restore_dashboard operation."""
 
     success: bool = Field(description="Whether the dashboard was restored from trash")
@@ -3465,7 +3465,6 @@ class RestoreDashboardResponse(BaseModel):
         None, description="Title of the restored dashboard"
     )
     message: str | None = Field(None, description="Human-readable outcome message")
-    error: str | None = Field(None, description="Error message if the restore failed")
     error_type: str | None = Field(None, description="Type of error if failed")
     permission_denied: bool = Field(
         False,
@@ -3511,9 +3510,10 @@ class GetDashboardDataRequest(BaseModel):
         ge=1,
         le=1000,
         description=(
-            "Rows to query per chart. Only sample_rows of these are returned "
-            "per chart; total_rows reports the full count when the fetch was not "
-            "capped, and the per-chart truncated flag marks a capped fetch."
+            "Requested input row limit per query, subject to server caps. Only "
+            "sample_rows output rows are returned per chart. total_rows is null "
+            "when retrieval is capped or post-processing leaves input coverage "
+            "unverified; truncated is true in either case."
         ),
     )
     sample_rows: int = Field(
@@ -3556,7 +3556,10 @@ class DashboardChartQueryData(BaseModel):
         None, description="Total rows available for this query when known"
     )
     truncated: bool = Field(
-        False, description="True when this query returned fewer than the total"
+        False,
+        description=(
+            "True when query retrieval is capped or input coverage is unverified"
+        ),
     )
 
 
@@ -3574,13 +3577,30 @@ class DashboardChartData(BaseModel):
     total_rows: OptionalRowCount = Field(
         None,
         description=(
-            "Total rows available when known; null when the fetch was capped with "
-            "no authoritative total (see truncated)"
+            "Total rows available when known; null when retrieval is capped with "
+            "no authoritative total or post-processing leaves input coverage "
+            "unverified (see truncated)"
         ),
     )
     truncated: bool = Field(
         False,
-        description="True when fewer rows were returned than the total available",
+        description="True when retrieval is capped or input coverage is unverified",
+    )
+    fetch_row_limit: int | None = Field(
+        None,
+        description=(
+            "Row limit applied for this data retrieval, "
+            "not necessarily the saved chart limit"
+        ),
+    )
+    sample_rows_limit: int | None = Field(
+        None, description="Maximum example rows included in sample_data"
+    )
+    completeness_note: str | None = Field(
+        None,
+        description=(
+            "Limits on interpreting this retrieval as the full chart population"
+        ),
     )
     queries: list[DashboardChartQueryData] | None = Field(
         None,
@@ -3611,6 +3631,17 @@ class DashboardData(BaseModel):
     agent can answer analytical questions about the whole dashboard from a
     single call, instead of fetching each chart separately.
     """
+
+    completeness_note: str = Field(
+        default=(
+            "Example rows are not the full population. Query post-processing may "
+            "collapse or replace input rows capped by fetch_row_limit. For affected "
+            "queries, total_rows is unknown and truncated=true means input coverage "
+            "is unverified, not observed truncation. Verify the saved configuration "
+            "and source aggregates before making full-population claims."
+        ),
+        description="Shared guidance for interpreting per-chart retrieval coverage",
+    )
 
     dashboard_id: int = Field(..., description="Dashboard id")
     dashboard_name: str = Field(..., description="Dashboard title")

@@ -32,6 +32,9 @@ from superset.explore.exceptions import DatasetAccessDeniedError, WrongEndpointE
 from superset.explore.permalink.exceptions import ExplorePermalinkGetFailedError
 from superset.explore.schemas import ExploreContextSchema
 from superset.extensions import event_logger
+from superset.semantic_layers.access import (
+    SemanticLayersDisabledError,
+)
 from superset.views.base_api import BaseSupersetApi, statsd_metrics
 
 logger = logging.getLogger(__name__)
@@ -117,6 +120,8 @@ class ExploreRestApi(BaseSupersetApi):
             if not result:
                 return self.response_404()
             return self.response(200, result=result)
+        except SemanticLayersDisabledError as ex:
+            return self.response(404, message=str(ex))
         except ValueError as ex:
             return self.response(400, message=str(ex))
         except SupersetSecurityException as ex:

@@ -105,6 +105,23 @@ def _has_jinja_markers(sql: str) -> bool:
     return "{%" in sql or "{{" in sql
 
 
+def _raise_for_unsafe_script(script: SQLScript) -> None:
+    """Reject a script that is not a single read-only statement."""
+    if script.has_mutation():
+        message = _("Only `SELECT` statements are allowed")
+    elif len(script.statements) > 1:
+        message = _("Only single queries supported")
+    else:
+        return
+    raise SupersetSecurityException(
+        SupersetError(
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            message=message,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
 def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
     """Use SQLparser to get virtual dataset metadata"""
     if not dataset.sql:
@@ -164,22 +181,7 @@ def get_virtual_table_metadata(dataset: SqlaTable) -> list[ResultSetColumnType]:
         raise SupersetGenericDBErrorException(
             message=_("Invalid SQL: %(error)s", error=ex.error.message),
         ) from ex
-    if parsed_script.has_mutation():
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only `SELECT` statements are allowed"),
-                level=ErrorLevel.ERROR,
-            )
-        )
-    if len(parsed_script.statements) > 1:
-        raise SupersetSecurityException(
-            SupersetError(
-                error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
-                message=_("Only single queries supported"),
-                level=ErrorLevel.ERROR,
-            )
-        )
+    _raise_for_unsafe_script(parsed_script)
     return get_columns_description(
         dataset.database,
         dataset.catalog,
@@ -203,6 +205,21 @@ def get_columns_description(
             limit = database.get_column_description_limit_size()
             query = database.apply_limit_to_sql(query, limit=limit)
             mutated_query = database.mutate_sql_based_on_config(query)
+            # Callers validate the pre-mutation SQL is a single read-only
+            # statement, but the mutator runs afterwards. Re-assert both on the
+            # mutated text so a mutator that rewrites the query cannot turn it
+            # into several statements or a write. Fail open when the dialect's
+            # parser cannot read the mutated text, to avoid blocking a
+            # legitimate probe.
+            if mutated_query != query:
+                try:
+                    mutated_script = SQLScript(
+                        mutated_query, engine=db_engine_spec.engine
+                    )
+                except SupersetParseError:
+                    pass
+                else:
+                    _raise_for_unsafe_script(mutated_script)
             db_engine_spec.execute(cursor, mutated_query, database)
             result = db_engine_spec.fetch_data(cursor, limit=limit)
             result_set = SupersetResultSet(result, cursor.description, db_engine_spec)
@@ -221,7 +238,7 @@ def get_columns_description(
                 result_set = SupersetResultSet(
                     result, cursor.description, db_engine_spec
                 )
-            return result_set.columns
+            return db_engine_spec.expand_nested_columns(cursor, result_set.columns)
     except (SupersetErrorException, SupersetDBAPIError):
         # Preserve exceptions that already carry specific, actionable typing
         # (e.g. OAuth2RedirectError, or a driver connection/timeout error
