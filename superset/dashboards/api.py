@@ -1058,6 +1058,8 @@ class DashboardRestApi(
             # logger cannot derive it from the route.
             add_extra_log_payload(dashboard_id=new_model.id)
             return self.response(201, id=new_model.id, result=item, uuid=new_model.uuid)
+        except DashboardForbiddenError:
+            return self.response_403()
         except DashboardInvalidError as ex:
             return self.response_422(message=ex.normalized_messages())
         except DashboardCreateFailedError as ex:

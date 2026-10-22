@@ -22,7 +22,7 @@ import logging
 import re
 import time
 from collections import defaultdict
-from collections.abc import Set as AbstractSet
+from collections.abc import Iterable, Set as AbstractSet
 from math import ceil
 from types import SimpleNamespace
 from typing import (
@@ -6111,6 +6111,29 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
                     self._raise_for_guest_token_datasource_access(dashboard, datasets)
                 except SupersetSecurityException as ex:
                     raise EmbeddedDashboardAccessDeniedError() from ex
+
+    def raise_for_datasources_access(
+        self, datasources: Iterable["BaseDatasource | Explorable | None"]
+    ) -> None:
+        """
+        Require the current user's access to each of ``datasources``.
+
+        Centralizes the member-datasource access rule used when a chart is
+        added to a dashboard (dashboard create/update/copy and chart ->
+        dashboard linking): a chart's datasource can be served through a
+        dashboard it belongs to (see ``can_drill_dataset_via_dashboard_access``
+        and ``has_drill_access``), so adding one must not grant data the user
+        could not otherwise read. Admins and a context with no request user
+        (CLI / background) are exempt; a ``None`` datasource is skipped (there
+        is no datasource-access grant to check, and the read paths resolve
+        access again at query time). Raises ``SupersetSecurityException`` for
+        the first datasource the user cannot access.
+        """
+        if get_user_id() is None or self.is_admin():
+            return
+        for datasource in datasources:
+            if datasource is not None:
+                self.raise_for_access(datasource=datasource)
 
     def _raise_for_guest_token_datasource_access(
         self, dashboard: "Dashboard", datasets: Optional[list[int]]

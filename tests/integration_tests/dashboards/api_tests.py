@@ -2212,6 +2212,78 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             db.session.delete(chart)
             db.session.commit()
 
+    def test_dashboard_requires_datasource_access_for_added_chart(self):
+        """Adding a chart to a dashboard requires the editor's access to that
+        chart's datasource (it can be served through the dashboard). Without the
+        grant, create and update are refused with 403 and nothing is linked;
+        granting access lets the same save through.
+        """
+        from superset.connectors.sqla.models import SqlaTable
+
+        admin = self.get_user("admin")
+        gamma = self.get_user("gamma")
+        gamma_role = security_manager.find_role("Gamma")
+        dataset = db.session.query(SqlaTable).get(1)
+        chart = self.insert_chart("acc_added_chart", [admin.id], 1, params="{}")
+        positions = {
+            f"CHART-{chart.id}": {
+                "type": "CHART",
+                "id": f"CHART-{chart.id}",
+                "children": [],
+                "meta": {"chartId": chart.id, "width": 4, "height": 50},
+            }
+        }
+        json_metadata = json.dumps({"positions": positions})
+        dashboard = self.insert_dashboard(
+            "acc_added_dash", "acc-added-dash", [gamma.id]
+        )
+        put_uri = f"api/v1/dashboard/{dashboard.id}"
+        post_body = {
+            "dashboard_title": "acc_added_create",
+            "slug": "acc-added-create",
+            "json_metadata": json_metadata,
+            "position_json": json.dumps(positions),
+        }
+        created_id: int | None = None
+        try:
+            self.login(GAMMA_USERNAME)
+
+            # Update is refused and nothing is linked.
+            rv = self.client.put(put_uri, json={"json_metadata": json_metadata})
+            assert rv.status_code == 403
+            db.session.expire_all()
+            assert chart.id not in {slc.id for slc in dashboard.slices}
+
+            # Create is refused too.
+            rv = self.client.post("api/v1/dashboard/", json=post_body)
+            assert rv.status_code == 403
+
+            # With datasource access, both saves succeed.
+            pvm = security_manager.add_permission_view_menu(
+                "datasource_access", dataset.perm
+            )
+            gamma_role.permissions.append(pvm)
+            db.session.commit()
+
+            rv = self.client.put(put_uri, json={"json_metadata": json_metadata})
+            assert rv.status_code == 200
+            rv = self.client.post("api/v1/dashboard/", json=post_body)
+            assert rv.status_code == 201
+            created_id = json.loads(rv.data.decode("utf-8")).get("id")
+        finally:
+            pvm = security_manager.find_permission_view_menu(
+                "datasource_access", dataset.perm
+            )
+            if pvm:
+                security_manager.del_permission_role(gamma_role, pvm)
+            if created_id:
+                created = db.session.query(Dashboard).get(created_id)
+                if created:
+                    db.session.delete(created)
+            db.session.delete(dashboard)
+            db.session.delete(chart)
+            db.session.commit()
+
     def test_create_simple_dashboard(self):
         """
         Dashboard API: Test create simple dashboard

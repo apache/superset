@@ -140,6 +140,16 @@ def _layout_chart_id(node: Any) -> int | None:
     return None
 
 
+def _slice_ids_from_positions(positions: dict[str, Any]) -> list[int]:
+    """Return the chart ids referenced by a dashboard layout's ``positions``."""
+    chart_id: int | None
+    return [
+        chart_id
+        for value in positions.values()
+        if (chart_id := _layout_chart_id(value)) is not None
+    ]
+
+
 def _is_empty_chart_slot(node: object) -> bool:
     """Recognize legacy copy slots with object metadata but no chart reference."""
     return (
@@ -609,6 +619,58 @@ class DashboardDAO(BaseDAO[Dashboard]):
             return not db.session.query(dashboard_query.exists()).scalar()
         return True
 
+    @classmethod
+    def raise_for_added_member_datasource_access(
+        cls,
+        data: dict[str, Any],
+        existing_dashboard: Dashboard | None = None,
+        old_to_new_slice_ids: dict[int, int] | None = None,
+    ) -> None:
+        """Require the acting user's access to each chart newly added to a dashboard.
+
+        A chart's datasource can be served through a dashboard it belongs to
+        (see ``can_drill_dataset_via_dashboard_access`` / ``has_drill_access``),
+        so adding one must not grant data the user could not otherwise read.
+        This runs from the command ``validate()`` layer (not the DAO write
+        path) so a refusal is translated to ``DashboardForbiddenError`` -> 403
+        before any side effects, and the rule lives in one place.
+
+        Datasources are resolved across types and deduplicated; the admin,
+        no-request-user and unresolvable-datasource exemptions live in
+        ``security_manager.raise_for_datasources_access``. The clone path (a
+        truthy ``old_to_new_slice_ids``) is exempt: it duplicates charts from a
+        source dashboard the caller already edits, so it grants nothing new;
+        the copy-with-layout mode passes no map and is checked like
+        create/update. Raises ``SupersetSecurityException`` when refused.
+        """
+        if old_to_new_slice_ids:
+            return
+        positions = data.get("positions")
+        if not positions:
+            return
+        slice_ids = _slice_ids_from_positions(positions)
+        if not slice_ids:
+            return
+        with skip_visibility_filter(db.session, Slice):
+            # Read the existing membership with the visibility filter lifted, the
+            # same as ``set_dash_metadata``'s rebuild, so a soft-deleted member
+            # still referenced by the layout is recognised as already present
+            # and not mistaken for a new addition.
+            prior_slice_ids = (
+                {slc.id for slc in existing_dashboard.slices}
+                if existing_dashboard
+                else set()
+            )
+            current_slices = (
+                db.session.query(Slice).filter(Slice.id.in_(slice_ids)).all()
+            )
+            added_slices = [
+                slc for slc in current_slices if slc.id not in prior_slice_ids
+            ]
+        security_manager.raise_for_datasources_access(
+            Slice.iter_resolved_datasources(added_slices)
+        )
+
     @staticmethod
     def set_dash_metadata(  # noqa: C901
         dashboard: Dashboard,
@@ -637,12 +699,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # failed the save too, but with a 500 from the bad ``IN`` value).
             _reject_malformed_chart_nodes(positions)
             # find slices in the position data
-            chart_id: int | None
-            slice_ids = [
-                chart_id
-                for value in positions.values()
-                if (chart_id := _layout_chart_id(value)) is not None
-            ]
+            slice_ids = _slice_ids_from_positions(positions)
 
             # Bypass the soft-delete visibility filter when resolving the
             # incoming chart ids: a dashboard's ``position_json`` may still
