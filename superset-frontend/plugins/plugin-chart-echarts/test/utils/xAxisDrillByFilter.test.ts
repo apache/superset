@@ -171,7 +171,7 @@ test('getTemporalXAxisDrillByFilter falls back to exact match without a grain', 
   ).toEqual({
     col: 'ds',
     op: '==',
-    val: '2021-01-01T12:34:56',
+    val: utc('2021-01-01T12:34:56').getTime(),
     formattedVal: '2021-01-01 12:34:56',
   });
 });
@@ -187,7 +187,7 @@ test('getTemporalXAxisDrillByFilter preserves sub-second precision in the exact-
   ).toEqual({
     col: 'ds',
     op: '==',
-    val: '2021-01-01T12:34:56.123',
+    val: utc('2021-01-01T12:34:56.123').getTime(),
     formattedVal: '2021-01-01 12:34:56.123',
   });
 });
@@ -199,7 +199,11 @@ test('getTemporalXAxisDrillByFilter falls back to exact match for unknown grains
       utc('2021-01-01T00:00:00').getTime(),
       'P1D2H' as TimeGranularity,
     ),
-  ).toMatchObject({ op: '==', val: '2021-01-01T00:00:00' });
+  ).toMatchObject({
+    op: '==',
+    val: utc('2021-01-01T00:00:00').getTime(),
+    grain: 'P1D2H',
+  });
 });
 
 test('getTemporalXAxisDrillByFilter accepts parseable date strings and Dates', () => {
@@ -235,4 +239,14 @@ test('getTemporalXAxisDrillByFilter returns undefined for unusable input', () =>
   expect(
     getTemporalXAxisDrillByFilter('', 1609459200000, TimeGranularity.DAY),
   ).toBeUndefined();
+});
+
+test('exact temporal matches serialize Dates as epoch values for native timestamp coercion', () => {
+  expect(
+    getTemporalXAxisDrillByFilter('ds', utc('2021-01-01T00:00:00')),
+  ).toEqual({
+    col: 'ds',
+    op: '==',
+    val: 1609459200000,
+  });
 });

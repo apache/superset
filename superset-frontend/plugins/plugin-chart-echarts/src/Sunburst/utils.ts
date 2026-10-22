@@ -37,10 +37,18 @@ export function getSunburstTimeGrain(
   formData: EchartsSunburstFormData,
   column: QueryFormColumn,
 ): TimeGranularity | undefined {
-  return isPhysicalColumn(column) &&
-    (formData.temporalColumnsLookup?.[column] ||
-      formData.granularitySqla === column ||
-      formData.extraFormData?.granularity_sqla === column)
+  if (!isPhysicalColumn(column)) {
+    return undefined;
+  }
+  const effectiveColumn =
+    formData.extraFormData?.granularity_sqla ?? formData.granularitySqla;
+  const temporalLevels = (formData.columns ?? []).filter(
+    level => isPhysicalColumn(level) && formData.temporalColumnsLookup?.[level],
+  );
+  const grainedColumn =
+    effectiveColumn ||
+    (temporalLevels.length === 1 ? temporalLevels[0] : undefined);
+  return grainedColumn === column
     ? (formData.extraFormData?.time_grain_sqla ?? formData.timeGrainSqla)
     : undefined;
 }
@@ -56,7 +64,7 @@ export function getSunburstSelectionKey(
     .map((value, index) =>
       coltypeMapping[getColumnLabel(columns[index])] ===
       GenericDataType.Temporal
-        ? String(value)
+        ? String(value instanceof Date ? value.getTime() : value)
         : labels[index],
     )
     .join(',');
@@ -83,9 +91,8 @@ export function getSunburstFilter(
 }
 
 /**
- * Drill to detail matches a grained bucket by its label on the grained column,
- * as Timeseries does. Samples queries replace every TEMPORAL_RANGE value with
- * the chart's time_range, which would drop the bucket bounds.
+ * Both drill actions compare bucket labels on the grained column. Unlike
+ * TEMPORAL_RANGE, equality survives the query time_range override.
  */
 export function getSunburstDetailFilter(
   column: QueryFormColumn,
@@ -94,23 +101,15 @@ export function getSunburstDetailFilter(
   coltype: GenericDataType | undefined,
   formattedVal?: string,
 ): BinaryQueryObjectFilterClause {
-  const filter = getSunburstFilter(
-    column,
-    value,
-    formData,
-    coltype,
+  const grain =
+    coltype === GenericDataType.Temporal
+      ? getSunburstTimeGrain(formData, column)
+      : undefined;
+  return {
+    col: column,
+    op: '==',
+    val: value instanceof Date ? value.getTime() : value,
     formattedVal,
-  );
-  if (filter.op !== 'TEMPORAL_RANGE') {
-    return filter;
-  }
-  const bucket = getTemporalXAxisDrillByFilter(
-    column,
-    value,
-    undefined,
-    formattedVal,
-  );
-  return bucket
-    ? { ...bucket, grain: getSunburstTimeGrain(formData, column) }
-    : filter;
+    ...(grain && { grain }),
+  };
 }

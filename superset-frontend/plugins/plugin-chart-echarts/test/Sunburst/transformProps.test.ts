@@ -16,7 +16,13 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { ChartProps, TimeGranularity } from '@superset-ui/core';
+import {
+  ChartProps,
+  TimeGranularity,
+  createSmartDateFormatter,
+  getTimeFormatterRegistry,
+  SMART_DATE_ID,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import {
@@ -29,6 +35,14 @@ type SunburstSeries = {
   label?: Record<string, unknown>;
   data: { value: number }[];
 };
+// Match the app bootstrap's formatter registration.
+beforeAll(() => {
+  getTimeFormatterRegistry().registerValue(
+    SMART_DATE_ID,
+    createSmartDateFormatter(),
+  );
+});
+
 const firstSeries = (echartOptions: unknown) =>
   (echartOptions as { series: SunburstSeries[] }).series[0];
 
@@ -108,45 +122,78 @@ test('removes null values when showNullValues is false', () => {
   expect(seriesValues(nullValueProps(false))).toEqual([10, 20]);
 });
 
-test.each([TimeGranularity.MONTH, TimeGranularity.YEAR])(
-  'smart_date labels distinguish %s buckets across years',
-  grain => {
-    const month = grain === TimeGranularity.YEAR ? 0 : 9;
-    const props = new ChartProps<EchartsSunburstFormData>({
-      formData: {
-        ...formData,
-        viz_type: 'sunburst_v2',
-        columns: ['order_date'],
-        dateFormat: 'smart_date',
-        timeGrainSqla: grain,
-        granularitySqla: 'order_date',
+test.each([
+  TimeGranularity.MONTH,
+  TimeGranularity.QUARTER,
+  TimeGranularity.YEAR,
+])('smart_date labels distinguish %s buckets across years', grain => {
+  const month = grain === TimeGranularity.YEAR ? 0 : 9;
+  const props = new ChartProps<EchartsSunburstFormData>({
+    formData: {
+      ...formData,
+      viz_type: 'sunburst_v2',
+      columns: ['order_date'],
+      dateFormat: 'smart_date',
+      timeGrainSqla: grain,
+      granularitySqla: 'order_date',
+    },
+    width: 800,
+    height: 600,
+    theme: supersetTheme,
+    queriesData: [
+      {
+        colnames: ['order_date', 'sum__value'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        data: [
+          { order_date: Date.UTC(2023, month, 1), sum__value: 10 },
+          { order_date: Date.UTC(2024, month, 1), sum__value: 20 },
+        ],
       },
-      width: 800,
-      height: 600,
-      theme: supersetTheme,
-      queriesData: [
-        {
-          colnames: ['order_date', 'sum__value'],
-          coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
-          data: [
-            { order_date: Date.UTC(2023, month, 1), sum__value: 10 },
-            { order_date: Date.UTC(2024, month, 1), sum__value: 20 },
-          ],
-        },
-      ],
-    });
-    const result = transformProps(props as EchartsSunburstChartProps);
-    const nodes = (
-      result.echartOptions as {
-        series: { data: { name: string; records: number[] }[] }[];
-      }
-    ).series[0].data;
-    expect(nodes[0].name).toContain('2023');
-    expect(nodes[1].name).toContain('2024');
-    expect(nodes[0].name).not.toBe(nodes[1].name);
-    expect(nodes.map(node => node.records[0])).toEqual([
-      Date.UTC(2023, month, 1),
-      Date.UTC(2024, month, 1),
-    ]);
-  },
-);
+    ],
+  });
+  const result = transformProps(props as EchartsSunburstChartProps);
+  const nodes = (
+    result.echartOptions as {
+      series: { data: { name: string; records: number[] }[] }[];
+    }
+  ).series[0].data;
+  expect(nodes[0].name).toContain('2023');
+  expect(nodes[1].name).toContain('2024');
+  expect(nodes[0].name).not.toBe(nodes[1].name);
+  expect(nodes.map(node => node.records[0])).toEqual([
+    Date.UTC(2023, month, 1),
+    Date.UTC(2024, month, 1),
+  ]);
+});
+
+test.each([
+  [TimeGranularity.WEEK, Date.UTC(2024, 9, 7), 'Mon 07'],
+  [TimeGranularity.DAY, Date.UTC(2024, 9, 7), 'Mon 07'],
+  [TimeGranularity.HOUR, Date.UTC(2024, 9, 7, 6), '06 AM'],
+])('keeps compact smart_date labels for %s', (grain, raw, label) => {
+  const props = new ChartProps<EchartsSunburstFormData>({
+    formData: {
+      ...formData,
+      viz_type: 'sunburst_v2',
+      columns: ['order_date'],
+      dateFormat: 'smart_date',
+      timeGrainSqla: grain,
+      granularitySqla: 'order_date',
+    },
+    width: 800,
+    height: 600,
+    theme: supersetTheme,
+    queriesData: [
+      {
+        colnames: ['order_date', 'sum__value'],
+        coltypes: [GenericDataType.Temporal, GenericDataType.Numeric],
+        data: [{ order_date: raw, sum__value: 10 }],
+      },
+    ],
+  });
+  const result = transformProps(props as EchartsSunburstChartProps);
+  expect(
+    (result.echartOptions as { series: { data: { name: string }[] }[] })
+      .series[0].data[0].name,
+  ).toBe(label);
+});

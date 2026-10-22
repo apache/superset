@@ -17,7 +17,13 @@
  * under the License.
  */
 import { render } from '@testing-library/react';
-import { ChartProps, TimeGranularity } from '@superset-ui/core';
+import {
+  ChartProps,
+  TimeGranularity,
+  createSmartDateFormatter,
+  getTimeFormatterRegistry,
+  SMART_DATE_ID,
+} from '@superset-ui/core';
 import { GenericDataType } from '@apache-superset/core/common';
 import { supersetTheme } from '@apache-superset/core/theme';
 import EchartsSunburst from '../../src/Sunburst/EchartsSunburst';
@@ -28,6 +34,14 @@ import {
   NodeItemOption,
 } from '../../src/Sunburst/types';
 import { EchartsProps } from '../../src/types';
+
+// Match the app bootstrap's formatter registration.
+beforeAll(() => {
+  getTimeFormatterRegistry().registerValue(
+    SMART_DATE_ID,
+    createSmartDateFormatter(),
+  );
+});
 
 const mockEchart = jest.fn();
 jest.mock('../../src/components/Echart', () => (props: EchartsProps) => {
@@ -48,7 +62,7 @@ function setup({
 }: {
   grain?: TimeGranularity;
   override?: TimeGranularity;
-  raw?: number | string | null;
+  raw?: number | string | Date | null;
   selectedValues?: string[];
   dateFormat?: string;
   temporalFirst?: boolean;
@@ -69,6 +83,7 @@ function setup({
         groupby: [],
         columns,
         metric: 'count',
+        time_range: '2024-01-01 : 2025-01-01',
         dateFormat,
         timeGrainSqla: grain,
         granularitySqla,
@@ -130,7 +145,9 @@ test('cross-filters a raw temporal segment with the timestamp rather than its la
   expect(setDataMask).toHaveBeenCalledWith(
     expect.objectContaining({
       extraFormData: {
-        filters: [{ col: 'order_date', op: '==', val: '2024-10-14T12:30:00' }],
+        filters: [
+          { col: 'order_date', op: '==', val: Date.UTC(2024, 9, 14, 12, 30) },
+        ],
       },
     }),
   );
@@ -193,13 +210,13 @@ test('drill-by uses the raw temporal value and the displayed label', () => {
     {
       col: 'order_date',
       op: '==',
-      val: '2024-10-01T00:00:00',
+      val: Date.UTC(2024, 9, 1),
       formattedVal: path[1].name,
     },
   ]);
 });
 
-test('drilling into a grained temporal level uses the same bucket as cross-filtering', () => {
+test('drill by preserves a grained bucket when the chart has a time range', () => {
   const { eventHandlers, event, onContextMenu } = setup({
     grain: TimeGranularity.MONTH,
   });
@@ -207,11 +224,12 @@ test('drilling into a grained temporal level uses the same bucket as cross-filte
   const context = onContextMenu.mock.lastCall[2];
   expect(context.drillBy.filters[0]).toMatchObject({
     col: 'order_date',
-    op: 'TEMPORAL_RANGE',
-    val: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+    op: '==',
+    val: Date.UTC(2024, 9, 1),
+    grain: TimeGranularity.MONTH,
   });
-  expect(context.crossFilter.dataMask.extraFormData.filters[0].val).toBe(
-    context.drillBy.filters[0].val,
+  expect(context.crossFilter.dataMask.extraFormData.filters[0].op).toBe(
+    'TEMPORAL_RANGE',
   );
 });
 
@@ -225,7 +243,7 @@ test('drill to detail matches a grained bucket by its label and grain', () => {
   expect(onContextMenu.mock.lastCall[2].drillToDetail[1]).toEqual({
     col: 'order_date',
     op: '==',
-    val: '2024-10-01T00:00:00',
+    val: Date.UTC(2024, 9, 1),
     grain: TimeGranularity.MONTH,
     formattedVal: path[1].name,
   });
@@ -277,7 +295,7 @@ test("does not apply another temporal column's grain to a raw level", () => {
   });
   eventHandlers.click(event());
   expect(setDataMask.mock.lastCall[0].extraFormData).toEqual({
-    filters: [{ col: 'order_date', op: '==', val: '2024-10-01T00:00:00' }],
+    filters: [{ col: 'order_date', op: '==', val: Date.UTC(2024, 9, 1) }],
   });
 });
 
@@ -335,5 +353,77 @@ test('grains the level chosen by a dashboard Time Column filter', () => {
       },
     ],
     time_range: '2024-10-01T00:00:00 : 2024-11-01T00:00:00',
+  });
+});
+
+test('uses only the effective dashboard time column, not the saved one', () => {
+  const { eventHandlers, event, setDataMask, path } = setup({
+    grain: TimeGranularity.MONTH,
+    timeColumnOverride: 'other_date',
+  });
+  expect(path[1].name).toBe('October');
+  eventHandlers.click(event());
+  expect(setDataMask.mock.lastCall[0].extraFormData).toEqual({
+    filters: [{ col: 'order_date', op: '==', val: Date.UTC(2024, 9, 1) }],
+  });
+});
+
+test.each(['PT6H', 'PT5S', 'PT30S', 'PT0.5H', 'P0.25Y', 'custom_grain'])(
+  'preserves the engine grain %s for cross-filter and drill equality',
+  grain => {
+    const { eventHandlers, event, setDataMask, onContextMenu, path } = setup({
+      grain: grain as TimeGranularity,
+      raw: Date.UTC(2024, 9, 7, 6),
+    });
+    expect(path[1].name).toBe('06 AM');
+    eventHandlers.click(event());
+    expect(setDataMask.mock.lastCall[0].extraFormData).toEqual({
+      filters: [
+        { col: 'order_date', op: '==', val: Date.UTC(2024, 9, 7, 6), grain },
+      ],
+    });
+    eventHandlers.contextmenu(event());
+    for (const filter of [
+      onContextMenu.mock.lastCall[2].drillToDetail[1],
+      onContextMenu.mock.lastCall[2].drillBy.filters[0],
+    ]) {
+      expect(filter).toEqual({
+        col: 'order_date',
+        op: '==',
+        val: Date.UTC(2024, 9, 7, 6),
+        grain,
+        formattedVal: path[1].name,
+      });
+    }
+  },
+);
+
+test('Date selection keys use epoch milliseconds', () => {
+  const raw = new Date(Date.UTC(2024, 9, 1));
+  const { eventHandlers, event, setDataMask } = setup({ raw });
+  eventHandlers.click(event());
+  expect(setDataMask.mock.lastCall[0].filterState.selectedValues).toEqual([
+    `A,${raw.getTime()}`,
+  ]);
+});
+
+test('legacy label-based temporal selections remain highlighted and click to clear', () => {
+  const { eventHandlers, event, setDataMask, path } = setup({
+    selectedValues: ['A,October'],
+  });
+  expect(path[1].itemStyle?.opacity).not.toBe(0.3);
+  eventHandlers.click(event());
+  expect(setDataMask.mock.lastCall[0].extraFormData).toEqual({ filters: [] });
+});
+
+test('ungrained drill to detail keeps the epoch value for native engine coercion', () => {
+  const raw = Date.UTC(2003, 10, 14);
+  const { eventHandlers, event, onContextMenu, path } = setup({ raw });
+  eventHandlers.contextmenu(event());
+  expect(onContextMenu.mock.lastCall[2].drillToDetail[1]).toEqual({
+    col: 'order_date',
+    op: '==',
+    val: raw,
+    formattedVal: path[1].name,
   });
 });

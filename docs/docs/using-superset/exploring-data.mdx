@@ -489,17 +489,22 @@ The **Custom** time range picker accepts natural language expressions alongside 
 
 These expressions are evaluated at query time, so saved charts always display data relative to the current date.
 
+### Sunburst cross-filtering
+
+Sunburst cross-filters use the underlying hierarchy values, not the formatted
+segment labels. For time-grained temporal levels, selecting a segment filters the
+entire bucket. Adaptive date formatting includes the year in month and quarter
+labels to distinguish buckets across years; other grains keep their compact labels.
+For supported bucket ranges, the selection replaces the target chart's Time Range
+and also applies to its other temporal range filters, even on another time column.
+Drill to detail and Drill by retain the selected bucket within the chart's time range.
+
 ### Downloading Drill to Detail and Drill By Results
 
 The **Drill to detail** and **Drill by** modals, available from a chart's context menu, show the row-level
 data behind a chart (or behind a specific data point, when one is selected). Use the **Download** button in
 the modal's toolbar to export the underlying result set as CSV or Excel (XLSX) without leaving the modal —
 the export isn't limited to the page currently visible in the table.
-
-Sunburst cross-filters use the underlying hierarchy values, not the formatted
-segment labels. For time-grained temporal levels, selecting a segment filters the
-entire bucket, with an exclusive upper bound. Adaptive date formatting includes
-the year in monthly bucket labels to distinguish months across years.
 
 :::resources
 

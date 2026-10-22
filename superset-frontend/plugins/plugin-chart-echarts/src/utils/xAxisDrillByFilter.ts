@@ -118,8 +118,9 @@ const parseAsUtc = (value: string): Date =>
 /**
  * Build a drill-by filter clause matching the clicked value on a temporal
  * x-axis. When a known time grain is active, the clause is a TEMPORAL_RANGE
- * covering the clicked bucket; otherwise it falls back to an exact match on
- * the timestamp.
+ * covering the clicked bucket; otherwise it compares the epoch timestamp on the grained
+ * column (or the raw column when no grain is set). Numeric values allow the
+ * backend to coerce engine-native timestamp literals.
  */
 export const getTemporalXAxisDrillByFilter = (
   col: QueryFormColumn,
@@ -151,7 +152,8 @@ export const getTemporalXAxisDrillByFilter = (
     return {
       col,
       op: '==',
-      val: formatNaiveDateTime(bucketLabel),
+      val: bucketLabel.getTime(),
+      ...(grain && { grain }),
       formattedVal,
     };
   }

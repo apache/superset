@@ -542,10 +542,10 @@ def test_grained_physical_filter_sql_is_unchanged(
     assert query.sql_shifted_temporal_labels == set()
 
 
-def test_grained_adhoc_filter_sql_is_unchanged(
+def test_grained_adhoc_equality_filter_applies_dataset_offset(
     mocker: MockerFixture, app: Flask
 ) -> None:
-    """A BASE_AXIS-shaped adhoc filter does not opt into the axis-only shift."""
+    """A BASE_AXIS equality filter shifts before truncation, like its grouping."""
     table, _engine = _sqlite_dataset(
         mocker,
         offset=1,
@@ -578,7 +578,8 @@ def test_grained_adhoc_filter_sql_is_unchanged(
     assert query.sql == (
         "SELECT val AS val \n"
         "FROM events \n"
-        "WHERE (DATETIME(ts, 'start of day')) = '2026-08-02 00:00:00' GROUP BY val"
+        "WHERE (DATETIME(DATETIME(ts, '+1 hours'), 'start of day')) "
+        "= '2026-08-02 00:00:00' GROUP BY val"
     )
     assert query.sql_shifted_temporal_labels == set()
 
@@ -700,3 +701,101 @@ def test_hours_offset_is_applied_before_time_grain_truncation(
     assert bucket_days == {date(2026, 8, 2)}, (
         f"All rows should bucket to 2026-08-02; got {sorted(bucket_days)}"
     )
+
+
+@pytest.mark.parametrize("adhoc", [False, True])
+@pytest.mark.parametrize("offset", [1, -1])
+def test_grained_drill_equality_returns_the_segment_rows_with_hours_offset(
+    mocker: MockerFixture,
+    offset: int,
+    adhoc: bool,
+) -> None:
+    """Drill equality uses the same shifted bucket as the segment grouping."""
+    table, _engine = _sqlite_dataset(
+        mocker,
+        offset=offset,
+        column_type="TIMESTAMP",
+        rows=[
+            "2026-08-01 23:30:00",
+            "2026-08-02 00:30:00",
+            "2026-08-02 01:30:00",
+            "2026-08-02 23:30:00",
+        ],
+    )
+    grouped = table.get_query_result(_physical_axis_query(table, time_grain="P1D"))
+    segment = grouped.df.loc[grouped.df["__timestamp"] == pd.Timestamp("2026-08-02")]
+    expected_count = 3 if offset == 1 else 2
+    assert segment["ct"].tolist() == [expected_count]
+    col: str | AdhocColumn = "ts"
+    if adhoc:
+        col = {
+            "sqlExpression": "ts",
+            "label": "ts",
+            "isColumnReference": True,
+            "columnType": "BASE_AXIS",
+            "timeGrain": "P1D",
+        }
+    query = QueryObject(
+        datasource=table,
+        columns=["ts", "val"],
+        metrics=[],
+        is_timeseries=False,
+        filters=[
+            {
+                "col": col,
+                "op": "==",
+                "val": "2026-08-02 00:00:00" if adhoc else 1785628800000,
+                "grain": "P1D",
+            }
+        ],
+    )
+    detail = table.get_query_result(query)
+    assert len(detail.df) == expected_count
+    assert detail.df["val"].tolist() == [1] * expected_count
+    expected_rows = (
+        ["2026-08-01 23:30:00", "2026-08-02 00:30:00", "2026-08-02 01:30:00"]
+        if offset == 1
+        else ["2026-08-02 01:30:00", "2026-08-02 23:30:00"]
+    )
+    assert sorted(pd.to_datetime(detail.df["ts"]).tolist()) == [
+        pd.Timestamp(value) for value in expected_rows
+    ]
+
+
+@pytest.mark.parametrize("offset,expected_count", [(1, 3), (-1, 2)])
+def test_grained_drill_filter_by_adhoc_label_applies_hours_offset(
+    mocker: MockerFixture,
+    offset: int,
+    expected_count: int,
+) -> None:
+    """A filter referring to an adhoc axis by label uses its shifted expression."""
+    table, _engine = _sqlite_dataset(
+        mocker,
+        offset=offset,
+        column_type="TIMESTAMP",
+        rows=[
+            "2026-08-01 23:30:00",
+            "2026-08-02 00:30:00",
+            "2026-08-02 01:30:00",
+            "2026-08-02 23:30:00",
+        ],
+    )
+    axis: AdhocColumn = {
+        "sqlExpression": "ts",
+        "label": "bucket",
+        "isColumnReference": True,
+        "columnType": "BASE_AXIS",
+        "timeGrain": "P1D",
+    }
+    result = table.get_query_result(
+        QueryObject(
+            datasource=table,
+            columns=[axis],
+            metrics=[
+                {"expressionType": "SQL", "sqlExpression": "COUNT(*)", "label": "ct"}
+            ],
+            is_timeseries=False,
+            filters=[{"col": "bucket", "op": "==", "val": "2026-08-02 00:00:00"}],
+        )
+    )
+    assert result.df["ct"].tolist() == [expected_count]

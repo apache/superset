@@ -5344,6 +5344,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                         cast("AdhocColumn", flt_col),
                         force_type_check=True,
                         template_processor=template_processor,
+                        apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
                     )
                     applied_adhoc_filters_columns.append(flt_col)
                     is_adhoc_sqla_col = True
@@ -5381,6 +5382,7 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     sqla_col, _unused = self.adhoc_column_to_sqla(
                         col=adhoc_columns_by_label[flt_col],
                         template_processor=template_processor,
+                        apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
                     )
                     if isinstance(sqla_col, ColumnElement):
                         applied_adhoc_filters_columns.append(flt_col)
@@ -5413,7 +5415,11 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     pass
                 elif col_obj and filter_grain:
                     sqla_col = col_obj.get_timestamp_expression(
-                        time_grain=filter_grain, template_processor=template_processor
+                        time_grain=filter_grain,
+                        template_processor=template_processor,
+                        # Bucket comparisons must use the grouping expression.
+                        # Range bounds are shifted separately by get_time_filter.
+                        apply_dataset_offset=op != utils.FilterOperator.TEMPORAL_RANGE,
                     )
                 elif col_obj:
                     sqla_col = self.convert_tbl_column_to_sqla_col(

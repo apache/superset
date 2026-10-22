@@ -23,6 +23,7 @@ import { supersetTheme, ThemeProvider } from '@apache-superset/core/theme';
 import { logging } from '@apache-superset/core/utils';
 import type { ECElementEvent } from 'echarts/types/src/util/types';
 import EchartsTimeseries from '../../src/Timeseries/EchartsTimeseries';
+import { DEFAULT_FORM_DATA } from '../../src/Timeseries/constants';
 import {
   OrientationType,
   TimeseriesChartTransformedProps,
@@ -897,3 +898,40 @@ test('context menu cross-filter is available for a temporal bar point', async ()
     },
   ]);
 });
+
+test.each([undefined, 'PT6H' as TimeGranularity])(
+  'temporal drill by preserves native epoch coercion and fallback grain %s',
+  async grain => {
+    const onContextMenu = jest.fn();
+    renderTimeseries({
+      onContextMenu,
+      groupby: [],
+      formData: {
+        ...DEFAULT_FORM_DATA,
+        datasource: '1__table',
+        viz_type: 'echarts_timeseries_line',
+        metric: 'count',
+        groupby: [],
+        granularitySqla: 'ds',
+        timeGrainSqla: grain,
+      },
+      xAxis: { label: DTTM_ALIAS, type: AxisType.Time },
+    });
+    const raw = Date.UTC(2024, 9, 7, 6);
+    await getLatestEchartProps().eventHandlers?.contextmenu?.({
+      componentType: 'series',
+      seriesName: 'Sales',
+      data: [raw, 100],
+      name: '2024-10-07',
+      event: { stop: jest.fn(), event: { clientX: 10, clientY: 20 } },
+    });
+    expect(onContextMenu.mock.lastCall[2].drillBy.xAxisFilters).toEqual([
+      expect.objectContaining({
+        col: 'ds',
+        op: '==',
+        val: raw,
+        ...(grain && { grain }),
+      }),
+    ]);
+  },
+);

@@ -64,7 +64,8 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
       const value = treePath[treePath.length - 1];
 
       const isCurrentValueSelected =
-        Object.values(selectedValues).includes(joinedTreePath);
+        Object.values(selectedValues).includes(joinedTreePath) ||
+        Object.values(selectedValues).includes(treePath.join(','));
 
       if (!columns?.length || !records.length || isCurrentValueSelected) {
         return {
@@ -147,7 +148,7 @@ export default function EchartsSunburst(props: SunburstTransformedProps) {
             );
             if (i === records.length - 1) {
               drillByFilters.push(
-                getSunburstFilter(
+                getSunburstDetailFilter(
                   columns[i],
                   record,
                   formData,

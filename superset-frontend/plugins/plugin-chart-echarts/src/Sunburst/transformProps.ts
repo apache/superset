@@ -27,6 +27,7 @@ import {
   getTimeFormatter,
   getTimeFormatterForGranularity,
   SMART_DATE_ID,
+  TimeGranularity,
   getValueFormatter,
   NumberFormats,
   tooltipHtml,
@@ -308,7 +309,13 @@ export default function transformProps(
       let name = formatSeriesName(nodeName, {
         numberFormatter,
         timeFormatter:
-          dateFormat === SMART_DATE_ID && timeGrain
+          dateFormat === SMART_DATE_ID &&
+          timeGrain &&
+          [
+            TimeGranularity.MONTH,
+            TimeGranularity.QUARTER,
+            TimeGranularity.YEAR,
+          ].includes(timeGrain)
             ? getTimeFormatterForGranularity(timeGrain)
             : getTimeFormatter(dateFormat),
         ...(coltypeMapping[groupBy] && {
@@ -339,7 +346,10 @@ export default function transformProps(
         columns,
         coltypeMapping,
       );
-      if (filterState.selectedValues?.[0]?.includes(selectionKey) === false) {
+      if (
+        filterState.selectedValues?.[0]?.includes(selectionKey) === false &&
+        filterState.selectedValues?.[0]?.includes(newPath.join(',')) === false
+      ) {
         item = {
           ...item,
           itemStyle: {
