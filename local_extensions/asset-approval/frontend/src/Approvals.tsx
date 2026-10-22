@@ -38,10 +38,17 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { pages, theme, translation } from '@apache-superset/core';
 import { Avatar, Input, Select, Table, Tag } from 'antd';
 import { Button } from './host';
-import { approveChange, fetchList, requestChanges } from './api';
+import {
+  approveChange,
+  fetchChangeRequest,
+  fetchList,
+  requestChanges,
+  submitForReview,
+} from './api';
 import ApprovePublishModal from './ApprovePublishModal';
 import DatasetReviewModal from './DatasetReviewModal';
 import RequestChangesModal from './RequestChangesModal';
+import RequestReviewModal from './RequestReviewModal';
 import { age, ago, assetUrl, isStale } from './display';
 import { displayName } from './types';
 import type { ApprovalsView, ChangeRequest } from './types';
@@ -158,6 +165,7 @@ export default function Approvals() {
   const [reviewing, setReviewing] = useState<ChangeRequest | null>(null);
   const [changesFor, setChangesFor] = useState<ChangeRequest | null>(null);
   const [approving, setApproving] = useState<ChangeRequest | null>(null);
+  const [submitting, setSubmitting] = useState<ChangeRequest | null>(null);
   const [busy, setBusy] = useState(false);
 
   const requested = subPath.split('/')[1] ?? '';
@@ -217,9 +225,41 @@ export default function Approvals() {
       setReviewing(null);
       setChangesFor(null);
       setApproving(null);
+      setSubmitting(null);
       await load();
     } finally {
       setBusy(false);
+    }
+  };
+
+  /**
+   * Whether this row is the reader's own, waiting on them to send it.
+   *
+   * A dashboard or a chart is submitted from its own banner, which is on
+   * the asset. A dataset has no page to put a banner on, so without this
+   * its author has nowhere to submit from at all -- the row's only other
+   * action, Open, leads to the dataset list.
+   *
+   * `changes_requested` counts too: a change sent back is the author's to
+   * send again, by the same route.
+   */
+  const canSubmit = (row: ChangeRequest) =>
+    row.is_author === true &&
+    (row.status === 'draft' || row.status === 'changes_requested');
+
+  /**
+   * Open the request dialog on the full record, not on the list row.
+   *
+   * `fetchList` leaves out `eligible_approvers` -- the dialog's whole
+   * "who can approve" section reads it, and an absent list is indistinguishable
+   * from an empty one, so handing it a row makes it tell an author with a
+   * perfectly good reviewer that nobody can approve their change.
+   */
+  const openSubmit = async (row: ChangeRequest) => {
+    try {
+      setSubmitting(await fetchChangeRequest(row.id));
+    } catch {
+      setSubmitting(row);
     }
   };
 
@@ -279,18 +319,33 @@ export default function Approvals() {
     {
       title: t('Actions'),
       key: 'actions',
-      render: (_: unknown, row: ChangeRequest) =>
-        row.can_approve ? (
-          <Button
-            buttonSize="small"
-            onClick={() => review(row)}
-            data-test="review-action"
-          >
-            {t('Review')}
-          </Button>
-        ) : (
-          // Nothing for this reader to decide, so the row offers the asset
-          // rather than a review they cannot give.
+      render: (_: unknown, row: ChangeRequest) => {
+        if (row.can_approve) {
+          return (
+            <Button
+              buttonSize="small"
+              onClick={() => review(row)}
+              data-test="review-action"
+            >
+              {t('Review')}
+            </Button>
+          );
+        }
+        if (canSubmit(row)) {
+          return (
+            <Button
+              buttonSize="small"
+              buttonStyle="primary"
+              onClick={() => openSubmit(row)}
+              data-test="submit-action"
+            >
+              {t('Request review')}
+            </Button>
+          );
+        }
+        // Nothing for this reader to decide or to send, so the row offers
+        // the asset rather than a review they cannot give.
+        return (
           <Button
             buttonSize="small"
             href={assetUrl(row)}
@@ -298,7 +353,8 @@ export default function Approvals() {
           >
             {t('Open')}
           </Button>
-        ),
+        );
+      },
     },
   ];
 
@@ -393,6 +449,18 @@ export default function Approvals() {
                 }
               : undefined
           }
+        />
+      ) : null}
+
+      {submitting ? (
+        <RequestReviewModal
+          changeRequest={submitting}
+          open
+          onClose={() => setSubmitting(null)}
+          onSubmit={(note, approverId) =>
+            act(() => submitForReview(submitting.id, note, approverId))
+          }
+          onEditorsChanged={load}
         />
       ) : null}
 
