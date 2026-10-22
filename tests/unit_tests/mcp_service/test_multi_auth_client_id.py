@@ -26,6 +26,7 @@ that a forged guest-marked token still cannot pose as a guest.
 """
 
 import time
+from collections.abc import Iterator
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import MagicMock, patch
@@ -45,7 +46,6 @@ from superset.mcp_service.composite_token_verifier import (
     API_KEY_PASSTHROUGH_CLAIM,
     API_KEY_VALIDATED_USERNAME_CLAIM,
     CompositeTokenVerifier,
-    get_verifier_client_id,
 )
 from superset.mcp_service.guest_token_verifier import (
     GUEST_TOKEN_CLAIM,
@@ -57,6 +57,13 @@ GUEST_SECRET = "a-strong-guest-token-secret-for-tests"  # noqa: S105
 
 # FastMCP 4's MultiAuth qualifies client_id; FastMCP 3's passes it through.
 MULTI_AUTH_QUALIFIES_CLIENT_ID = "original_client_id" in AccessToken.model_fields
+
+
+@pytest.fixture(autouse=True)
+def isolate_identity_config(app: SupersetApp) -> Iterator[None]:
+    """Restore the module-scoped app's auth configuration after each test."""
+    with patch.dict(app.config):
+        yield
 
 
 class _StubVerifier(TokenVerifier):
@@ -128,6 +135,7 @@ def _resolve_guest(app: SupersetApp, access_token: Any) -> tuple[Any, MagicMock]
             "fastmcp.server.dependencies.get_access_token", return_value=access_token
         ),
         patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
+        patch.object(security_manager, "_is_guest_token_revoked", return_value=False),
         patch.object(
             security_manager, "get_guest_user_from_token", return_value=fake_guest
         ) as get_guest_user,
@@ -190,7 +198,6 @@ async def test_forged_guest_marker_cannot_pose_as_guest(
             forged_raw
         )
         assert access_token is not None
-        assert get_verifier_client_id(access_token) == "guest"
 
     with (
         patch(
@@ -227,24 +234,23 @@ def test_guest_resolution_uses_verified_claims(guest_app: SupersetApp) -> None:
 # -- API-key tokens --
 
 
+@pytest.mark.parametrize("multi_auth", [False, True])
 @pytest.mark.asyncio
-async def test_api_key_fast_path_through_multi_auth(app: SupersetApp) -> None:
+async def test_api_key_fast_path_through_multi_auth(
+    app: SupersetApp, multi_auth: bool
+) -> None:
     """A transport-validated API key wrapped by ``MultiAuth`` defers from the
     JWT path and loads the validated user on the API-key path."""
-    validated = AccessToken(
-        token="sst_abc123",  # noqa: S106
-        client_id="api_key",
-        scopes=[],
-        claims={
-            API_KEY_PASSTHROUGH_CLAIM: True,
-            API_KEY_VALIDATED_USERNAME_CLAIM: "alice",
-        },
+    composite = CompositeTokenVerifier(
+        jwt_verifier=None, api_key_prefixes=["sst_"], app=app
     )
-    access_token = await MultiAuth(verifiers=[_StubVerifier(validated)]).verify_token(
-        "sst_abc123"
-    )
+    with patch.object(composite, "_validate_api_key_sync", return_value=("alice", [])):
+        verifier: Any = MultiAuth(verifiers=[composite]) if multi_auth else composite
+        access_token = await verifier.verify_token("sst_abc123")
     assert access_token is not None
-    if MULTI_AUTH_QUALIFIES_CLIENT_ID:
+    # Editing the JWT-style claims must not alter the FAB-validated identity.
+    access_token.claims[API_KEY_VALIDATED_USERNAME_CLAIM] = "admin"
+    if multi_auth and MULTI_AUTH_QUALIFIES_CLIENT_ID:
         assert access_token.client_id != "api_key"
 
     alice = MagicMock(username="alice")
@@ -257,10 +263,12 @@ async def test_api_key_fast_path_through_multi_auth(app: SupersetApp) -> None:
             "superset.mcp_service.auth.load_user_with_relationships",
             return_value=alice,
         ) as load_user,
+        patch.object(app.appbuilder.sm, "validate_api_key") as validate,
     ):
         assert _resolve_user_from_jwt_context(app) is None
         assert _resolve_user_from_api_key(app) is alice
     load_user.assert_called_once_with(username="alice")
+    validate.assert_not_called()
 
 
 @pytest.mark.asyncio
@@ -310,6 +318,8 @@ async def test_default_user_resolver_uses_unqualified_client_id(
 
 def test_get_verifier_client_id_without_original_attribute() -> None:
     """Tokens without ``original_client_id`` (FastMCP 3) use ``client_id``."""
+    from superset.mcp_service.composite_token_verifier import get_verifier_client_id
+
     assert get_verifier_client_id(SimpleNamespace(client_id="guest")) == "guest"
     assert get_verifier_client_id(MagicMock(client_id="guest")) == "guest"
     assert (
@@ -321,3 +331,233 @@ def test_get_verifier_client_id_without_original_attribute() -> None:
         == "guest"
     )
     assert get_verifier_client_id(SimpleNamespace()) is None
+
+
+@pytest.mark.parametrize(
+    "chain", ["plain", "composite", "external_first", "composite_first"]
+)
+@pytest.mark.asyncio
+async def test_idp_api_key_claims_cannot_select_another_user(
+    app: SupersetApp, chain: str
+) -> None:
+    """Internal API-key claims in a signed IdP JWT are not validation evidence."""
+    from fastmcp.server.auth.providers.jwt import JWTVerifier
+
+    secret = "independent-idp-signing-secret-for-tests"  # noqa: S105
+    raw = jwt.encode(
+        {
+            "sub": "alice",
+            "client_id": "api_key",
+            "original_client_id": "api_key",
+            "exp": int(time.time()) + 300,
+            API_KEY_PASSTHROUGH_CLAIM: True,
+            API_KEY_VALIDATED_USERNAME_CLAIM: "admin",
+        },
+        secret,
+        algorithm="HS256",
+    )
+    external = JWTVerifier(public_key=secret, algorithm="HS256")
+    composite = CompositeTokenVerifier(external, ["sst_"], app=app)
+    verifier: Any = external
+    if chain == "composite":
+        verifier = composite
+    elif chain == "external_first":
+        verifier = MultiAuth(verifiers=[external, composite])
+    elif chain == "composite_first":
+        verifier = MultiAuth(verifiers=[composite, external])
+    access_token = await verifier.verify_token(raw)
+    assert access_token is not None
+    app.config["FAB_API_KEY_ENABLED"] = True
+    alice = MagicMock(username="alice")
+    with (
+        patch(
+            "fastmcp.server.dependencies.get_access_token", return_value=access_token
+        ),
+        patch.object(
+            app.appbuilder.sm, "validate_api_key", return_value=None
+        ) as validate,
+        patch(
+            "superset.mcp_service.auth.load_user_with_relationships", return_value=alice
+        ) as load,
+    ):
+        # A stripped token retains its JWT identity; an unwrapped external
+        # source's forged API-key assertion must fail closed at FAB validation.
+        user = _resolve_user_from_jwt_context(app)
+        if user is None:
+            with pytest.raises(PermissionError, match="Invalid or expired API key"):
+                _resolve_user_from_api_key(app)
+            validate.assert_called_once_with(raw)
+            load.assert_not_called()
+        else:
+            assert user is alice
+            load.assert_called_once_with("alice")
+            validate.assert_not_called()
+
+
+@pytest.mark.parametrize("revocation", ["version", "dashboard"])
+@pytest.mark.parametrize("chain", ["plain", "guest_first", "external_first"])
+@pytest.mark.asyncio
+async def test_revoked_guest_cannot_bypass_guest_verifier(
+    guest_app: SupersetApp, chain: str, revocation: str
+) -> None:
+    """A different token source cannot bypass core guest-token revocation."""
+    claims = _guest_claims()
+    raw = _mint_guest_token(claims)
+    marked = AccessToken(
+        token=raw,
+        client_id="guest",
+        scopes=[],
+        claims={GUEST_TOKEN_CLAIM: True, **claims},
+    )
+    verifier: Any = _StubVerifier(marked)
+    if chain != "plain":
+        sources = [GuestTokenVerifier(guest_app), verifier]
+        verifier = MultiAuth(
+            verifiers=sources if chain == "guest_first" else sources[::-1]
+        )
+    guest_app.config["GUEST_TOKEN_REVOCATION_ENABLED"] = revocation == "version"
+    cutoff = SimpleNamespace(guest_token_revoked_before=int(time.time()) + 1)
+    with (
+        patch("superset.is_feature_enabled", return_value=True),
+        patch(
+            "superset.security.manager.get_current_guest_token_revocation_version",
+            return_value=1,
+        ),
+        patch(
+            "superset.daos.dashboard.EmbeddedDashboardDAO.find_by_id",
+            return_value=cutoff,
+        ),
+        patch.object(guest_app.appbuilder.sm, "find_role", return_value=object()),
+    ):
+        access_token = await verifier.verify_token(raw)
+        assert access_token is not None
+        with (
+            patch(
+                "fastmcp.server.dependencies.get_access_token",
+                return_value=access_token,
+            ),
+            patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
+            patch.object(security_manager, "get_guest_user_from_token") as build,
+            pytest.raises(ValueError, match="not a valid guest token"),
+        ):
+            _resolve_user_from_jwt_context(guest_app)
+        build.assert_not_called()
+
+
+@pytest.mark.parametrize("client_id", ["guest", "api_key"])
+def test_crafted_original_client_id_is_not_validation_evidence(
+    guest_app: SupersetApp, client_id: str
+) -> None:
+    """An original_client_id field cannot authorize either internal identity."""
+    raw = _mint_guest_token(_guest_claims(), secret="independent-idp-secret")  # noqa: S106
+    token = SimpleNamespace(
+        token=raw,
+        client_id="external",
+        original_client_id=client_id,
+        claims={
+            GUEST_TOKEN_CLAIM: True,
+            API_KEY_PASSTHROUGH_CLAIM: True,
+            API_KEY_VALIDATED_USERNAME_CLAIM: "admin",
+        },
+    )
+    guest_app.config["FAB_API_KEY_ENABLED"] = True
+    with (
+        patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+        patch("superset.mcp_service.auth.is_feature_enabled", return_value=True),
+        patch.object(guest_app.appbuilder.sm, "validate_api_key", return_value=None),
+        patch("superset.mcp_service.auth.load_user_with_relationships") as load,
+        patch.object(security_manager, "get_guest_user_from_token") as build,
+    ):
+        if client_id == "guest":
+            with pytest.raises(ValueError, match="not a valid guest token"):
+                _resolve_user_from_jwt_context(guest_app)
+        else:
+            assert _resolve_user_from_jwt_context(guest_app) is None
+            with pytest.raises(PermissionError, match="Invalid or expired API key"):
+                _resolve_user_from_api_key(guest_app)
+        load.assert_not_called()
+        build.assert_not_called()
+
+
+@pytest.mark.parametrize("missing", ["user", "resources", "rls_rules"])
+def test_guest_reverification_requires_core_structure(
+    guest_app: SupersetApp, missing: str
+) -> None:
+    """Other token sources cannot bypass the embedded flow's structural checks."""
+    claims = _guest_claims()
+    del claims[missing]
+    token = AccessToken(
+        token=_mint_guest_token(claims),
+        client_id="guest",
+        scopes=[],
+        claims={GUEST_TOKEN_CLAIM: True, **claims},
+    )
+    with pytest.raises(ValueError, match="not a valid guest token"):
+        _resolve_guest(guest_app, token)
+
+
+@pytest.mark.parametrize("fallback", ["dev", "middleware"])
+@pytest.mark.parametrize("multi_auth", [False, True])
+@pytest.mark.parametrize(
+    "disabled_setting", ["FAB_API_KEY_ENABLED", "MCP_API_KEY_ENABLED"]
+)
+@pytest.mark.asyncio
+async def test_disabled_api_key_assertion_cannot_fall_through_to_dev_user(
+    app: SupersetApp, multi_auth: bool, disabled_setting: str, fallback: str
+) -> None:
+    """An explicit API-key assertion must not degrade to a development identity."""
+    from superset.mcp_service.auth import get_user_from_request
+
+    token = AccessToken(
+        token="external-bearer",  # noqa: S106
+        client_id="api_key",
+        scopes=[],
+        claims={
+            API_KEY_PASSTHROUGH_CLAIM: True,
+            API_KEY_VALIDATED_USERNAME_CLAIM: "admin",
+        },
+    )
+    if multi_auth:
+        token = await MultiAuth(verifiers=[_StubVerifier(token)]).verify_token(
+            token.token
+        )
+    app.config.update(
+        FAB_API_KEY_ENABLED=True,
+        MCP_API_KEY_ENABLED=None,
+        MCP_DEV_USERNAME="admin" if fallback == "dev" else None,
+    )
+    app.config[disabled_setting] = False
+    with (
+        patch("superset.mcp_service.auth.g", SimpleNamespace(user=MagicMock())),
+        patch("fastmcp.server.dependencies.get_access_token", return_value=token),
+        patch("superset.mcp_service.auth.load_user_with_relationships") as load,
+        pytest.raises(ValueError, match="Authentication required"),
+    ):
+        get_user_from_request()
+    load.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_serialized_api_key_token_revalidates_bearer(app: SupersetApp) -> None:
+    """Losing the internal token type requires FAB validation, not claim trust."""
+    composite = CompositeTokenVerifier(None, ["sst_"], app=app)
+    with patch.object(composite, "_validate_api_key_sync", return_value=("alice", [])):
+        verified = await composite.verify_token("sst_abc123")
+    assert verified is not None
+    serialized = AccessToken.model_validate(verified.model_dump())
+    serialized.claims[API_KEY_VALIDATED_USERNAME_CLAIM] = "admin"
+    app.config["FAB_API_KEY_ENABLED"] = True
+    alice = MagicMock(username="alice")
+    with (
+        patch("fastmcp.server.dependencies.get_access_token", return_value=serialized),
+        patch.object(
+            app.appbuilder.sm, "validate_api_key", return_value=alice
+        ) as validate,
+        patch(
+            "superset.mcp_service.auth.load_user_with_relationships", return_value=alice
+        ) as load,
+    ):
+        assert _resolve_user_from_jwt_context(app) is None
+        assert _resolve_user_from_api_key(app) is alice
+    validate.assert_called_once_with("sst_abc123")
+    load.assert_called_once_with(username="alice")

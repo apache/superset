@@ -64,8 +64,8 @@ from flask_appbuilder.security.sqla.models import User
 from superset import is_feature_enabled, security_manager
 from superset.mcp_service.composite_token_verifier import (
     API_KEY_PASSTHROUGH_CLAIM,
-    API_KEY_VALIDATED_USERNAME_CLAIM,
     get_verifier_client_id,
+    TransportValidatedAPIKeyToken,
 )
 from superset.mcp_service.guest_token_verifier import GUEST_TOKEN_CLAIM
 from superset.mcp_service.mcp_config import (
@@ -617,7 +617,14 @@ def _reverify_guest_bearer(access_token: Any) -> dict[str, Any]:
             parsed = security_manager.parse_jwt_guest_token(raw_token)
         except Exception:  # noqa: BLE001 — bad signature / audience / expiry
             parsed = None
-    if not isinstance(parsed, dict) or parsed.get("type") != "guest":
+    if (
+        not isinstance(parsed, dict)
+        or parsed.get("type") != "guest"
+        or parsed.get("user") is None
+        or parsed.get("resources") is None
+        or parsed.get("rls_rules") is None
+        or security_manager._is_guest_token_revoked(parsed)  # noqa: SLF001
+    ):
         logger.warning("Guest-marked token is not a valid guest token; rejecting")
         raise ValueError("Guest-marked token is not a valid guest token")
     return parsed
@@ -705,6 +712,12 @@ def _resolve_user_from_jwt_context(app: Any) -> MCPUser | None:  # noqa: C901
 
     if isinstance(claims, dict) and claims.get(API_KEY_PASSTHROUGH_CLAIM):
         if get_verifier_client_id(access_token) == "api_key":
+            if not get_mcp_api_key_enabled(app):
+                # An explicit authentication attempt must not fall through to
+                # a development or middleware identity when keys are disabled.
+                raise MCPNoAuthSourceError(
+                    "Authentication required. No valid credentials provided."
+                )
             logger.debug(
                 "API key pass-through token detected, deferring to API key auth"
             )
@@ -855,14 +868,14 @@ def _resolve_user_from_api_key(app: Any) -> User | None:
     if get_verifier_client_id(access_token) != "api_key":
         return None
 
-    # Fast path: transport layer already validated the key and stored the
-    # username in the claim — skip the second DB call.
-    if validated_username := claims.get(API_KEY_VALIDATED_USERNAME_CLAIM):
+    # Fast path: only our FAB-validating verifier can produce this token type.
+    # A username claim and client_id alone can both come from an external IdP.
+    if isinstance(access_token, TransportValidatedAPIKeyToken):
         _redact_access_token(access_token)
-        return _load_api_key_user_by_username(validated_username)
+        return _load_api_key_user_by_username(access_token.validated_username)
 
-    # Fallback: no transport-level validation (app=None in CompositeTokenVerifier).
-    # Validate the raw token against FAB here instead.
+    # Fallback: prefix-only acceptance, a deserialized token, or an external
+    # source's claims. Validate the raw token against FAB here instead.
     api_key_string = getattr(access_token, "token", None)
     _redact_access_token(access_token)
     return _validate_api_key_fallback(app, api_key_string)

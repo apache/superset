@@ -338,6 +338,7 @@ def test_jwt_access_token_skips_api_key_auth(app: SupersetApp) -> None:
 # -- API key pass-through detection in JWT context resolver --
 
 
+@pytest.mark.usefixtures("_enable_api_keys")
 def test_jwt_context_with_api_key_passthrough_returns_none(app: SupersetApp) -> None:
     """When CompositeTokenVerifier passes through an API key token,
     _resolve_user_from_jwt_context should detect the namespaced

@@ -271,6 +271,7 @@ def test_resolve_builds_guest_user_from_token(app: SupersetApp) -> None:
             mock_sm.parse_jwt_guest_token = MagicMock(
                 return_value=_parsed_guest_claims()
             )
+            mock_sm._is_guest_token_revoked = MagicMock(return_value=False)
             result = _resolve_user_from_jwt_context(app)
 
     assert result is fake_guest
