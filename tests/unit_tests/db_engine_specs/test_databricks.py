@@ -1811,6 +1811,8 @@ class FakeSeaCursor:
         self.remaining_polls = 0
         self.cancelled: list[str | None] = []
         self.results_loaded: list[str | None] = []
+        # Exceptions raised by successive status polls before they succeed.
+        self.poll_errors: list[BaseException] = []
 
     def execute_async(self, sql: str) -> None:
         self.statement_id = next(self.statement_ids)
@@ -1819,6 +1821,8 @@ class FakeSeaCursor:
         self.remaining_polls = self.pending_polls
 
     def is_query_pending(self) -> bool:
+        if self.poll_errors:
+            raise self.poll_errors.pop(0)
         if self.remaining_polls > 0:
             self.remaining_polls -= 1
             return True
@@ -2031,6 +2035,105 @@ def test_execute_with_cursor_sea_soft_time_limit_cancels(sea_session: Any) -> No
     sea_session.session.refresh.side_effect = refresh
 
     with pytest.raises(SoftTimeLimitExceeded):
+        DatabricksPythonConnectorEngineSpec.execute_with_cursor(
+            cursor, "SELECT 1", query
+        )
+
+    assert cursor.cancelled == ["stmt-1"]
+
+
+def test_execute_with_cursor_sea_transient_poll_failure_stays_cancellable(
+    sea_session: Any,
+) -> None:
+    """
+    A failed status request doesn't count as the statement finishing: its id
+    stays published and a stop that follows still cancels the live statement.
+    """
+    from superset.constants import QUERY_CANCEL_KEY
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    cursor.poll_errors = [ConnectionResetError("connection reset by peer")]
+    query = Query(status=QueryStatus.RUNNING)
+    published: list[Any] = []
+
+    def refresh(q: Query) -> None:
+        published.append(q.extra.get(QUERY_CANCEL_KEY))
+        if len(published) == 3:
+            q.status = QueryStatus.STOPPED
+
+    sea_session.session.refresh.side_effect = refresh
+
+    DatabricksPythonConnectorEngineSpec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    # The poll after the failure still saw the statement's published id.
+    assert published[:3] == ["stmt-1", "stmt-1", "stmt-1"]
+    assert cursor.cancelled == ["stmt-1"]
+    assert cursor.results_loaded == []
+
+
+def test_execute_with_cursor_sea_transient_poll_failure_then_finishes(
+    sea_session: Any,
+) -> None:
+    """Polling resumes after a failed status request and loads the results."""
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=2)
+    cursor.poll_errors = [RuntimeError("503 Service Unavailable")]
+    query = Query(status=QueryStatus.RUNNING)
+
+    DatabricksPythonConnectorEngineSpec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    assert cursor.cancelled == []
+    assert cursor.results_loaded == ["stmt-1"]
+
+
+def test_execute_with_cursor_sea_persistent_poll_failure_cancels(
+    sea_session: Any,
+) -> None:
+    """
+    When status requests keep failing, the statement is cancelled rather than
+    left running unmonitored, and the error is raised.
+    """
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    spec = DatabricksPythonConnectorEngineSpec
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    cursor.poll_errors = [
+        RuntimeError("429 Too Many Requests") for _ in range(spec.sea_max_poll_failures)
+    ]
+    query = Query(status=QueryStatus.RUNNING)
+
+    with pytest.raises(Exception, match="429 Too Many Requests"):
+        spec.execute_with_cursor(cursor, "SELECT 1", query)
+
+    assert cursor.cancelled == ["stmt-1"]
+    assert cursor.results_loaded == []
+
+
+def test_execute_with_cursor_sea_timeout_during_poll_cancels(
+    sea_session: Any,
+) -> None:
+    """A Superset timeout raised during a status request cancels the statement."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+    from superset.models.sql_lab import Query
+    from superset.utils.core import QueryStatus
+
+    cursor = FakeSeaCursor(["stmt-1"], pending_polls=100)
+    cursor.poll_errors = [
+        SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="timed out",
+            level=ErrorLevel.ERROR,
+        )
+    ]
+    query = Query(status=QueryStatus.RUNNING)
+
+    with pytest.raises(SupersetTimeoutException):
         DatabricksPythonConnectorEngineSpec.execute_with_cursor(
             cursor, "SELECT 1", query
         )

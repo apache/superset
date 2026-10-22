@@ -47,7 +47,7 @@ from superset.db_engine_specs.base import (
 )
 from superset.db_engine_specs.hive import HiveEngineSpec, SparkSqlBooleanEqualityMixin
 from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
-from superset.exceptions import OAuth2Error
+from superset.exceptions import OAuth2Error, SupersetTimeoutException
 from superset.models.sql_lab import Query
 from superset.utils import json
 from superset.utils.core import get_user_agent, QuerySource, QueryStatus
@@ -758,6 +758,10 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
     # first submit, or between statements) is routed to the polling loop.
     sea_async_execution_key = "databricks_sea_async"
 
+    # Consecutive failed status requests tolerated while polling a statement
+    # before it's cancelled and the error is raised.
+    sea_max_poll_failures = 10
+
     sqlalchemy_uri_placeholder = (
         "databricks://token:{access_token}@{host}:{port}?http_path={http_path}"
         "&catalog={default_catalog}&schema={default_schema}"
@@ -1014,22 +1018,35 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         """
         Wait for the cursor's statement to finish, cancelling it on a stop.
 
+        A failed status request doesn't mean the statement finished, so it's
+        treated as still running and polled again; the statement stays
+        cancellable meanwhile. After ``sea_max_poll_failures`` consecutive
+        failures the statement is cancelled and the error is raised.
+
         :return: True if the query was stopped, False if the statement finished
         """
         # Short statements finish within moments, so polling starts with a
         # short interval that backs off to the configured one.
         sleep_interval = 0.1
         max_interval = app.config["DB_POLL_INTERVAL_SECONDS"].get(cls.engine, 1)
+        failures = 0
         try:
             while True:
                 try:
                     pending = cursor.is_query_pending()
-                except SoftTimeLimitExceeded:
+                    failures = 0
+                except (SoftTimeLimitExceeded, SupersetTimeoutException):
                     raise
-                except Exception:  # pylint: disable=broad-except
-                    # Retrieving the results reports the underlying failure.
-                    logger.warning("Query %d: polling statement state failed", query.id)
-                    pending = False
+                except Exception as ex:  # pylint: disable=broad-except
+                    failures += 1
+                    if failures >= cls.sea_max_poll_failures:
+                        cls._cancel_statement(cursor, query.id)
+                        raise cls.get_dbapi_mapped_exception(ex) from ex
+                    logger.warning(
+                        "Query %s: polling statement state failed, retrying",
+                        query.id,
+                    )
+                    pending = True
                 db.session.refresh(query)
                 if cls._is_stop_requested(query):
                     if pending:
@@ -1039,9 +1056,9 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
                     return False
                 time.sleep(min(sleep_interval, max_interval))
                 sleep_interval *= 2
-        except SoftTimeLimitExceeded:
-            # SQL Lab marks the query TIMED_OUT once this propagates; cancel
-            # first so the statement doesn't keep running on the warehouse.
+        except (SoftTimeLimitExceeded, SupersetTimeoutException):
+            # The query is marked timed out once this propagates; cancel first
+            # so the statement doesn't keep running on the warehouse.
             cls._cancel_statement(cursor, query.id)
             raise
 
@@ -1057,10 +1074,10 @@ class DatabricksPythonConnectorEngineSpec(DatabricksDynamicBaseEngineSpec):
         """Cancel the statement running on the live cursor."""
         try:
             cursor.cancel()
-        except SoftTimeLimitExceeded:
+        except (SoftTimeLimitExceeded, SupersetTimeoutException):
             raise
         except Exception:  # pylint: disable=broad-except
-            logger.warning("Query %d: cancelling the statement failed", query_id)
+            logger.warning("Query %s: cancelling the statement failed", query_id)
 
     @staticmethod
     def _retire_cancel_query_id(query: Query) -> None:
