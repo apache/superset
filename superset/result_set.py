@@ -288,9 +288,15 @@ class SupersetResultSet:
                                 series = pd.to_datetime(
                                     series, utc=True, errors="coerce"
                                 )
+                                # Match the column's own resolution instead of
+                                # hardcoding "ns": a far-future timestamp valid
+                                # at a wider resolution (e.g. "us") would
+                                # otherwise raise ArrowInvalid casting down to
+                                # nanoseconds for no reason -- the original
+                                # column is already at this resolution.
                                 pa_data[i] = pa.Array.from_pandas(
                                     series,
-                                    type=pa.timestamp("ns", tz=tz),
+                                    type=pa.timestamp(pa_data[i].type.unit, tz=tz),
                                 )
                         except Exception as ex:  # pylint: disable=broad-except
                             logger.exception(ex)
