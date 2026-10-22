@@ -396,6 +396,16 @@ def test_semantic_delete_counts_and_names_archived_dependents(
         "superset.commands.semantic_layer.delete.ChartFilter.apply",
         return_value=session.query(Slice.id).filter(sa.false()),
     )
+    # A user who cannot see the charts is not an admin or their editor either.
+    mocker.patch("superset.security_manager.is_admin", return_value=False)
+    for access_filter in ("DashboardAccessFilter", "ReportScheduleFilter"):
+        mocker.patch(
+            f"superset.commands.semantic_layer.delete.{access_filter}.apply",
+            side_effect=lambda query, value: query,
+        )
+    mocker.patch(
+        "superset.commands.semantic_layer.delete.get_user_id", return_value=None
+    )
     hidden_total: int
     hidden_dependents: list[dict[str, str | int]]
     hidden_count: int
@@ -575,6 +585,10 @@ def test_semantic_delete_finds_native_filter_dashboards(
         mocker.patch(
             "superset.commands.semantic_layer.delete.DashboardAccessFilter.apply",
             return_value=session.query(Dashboard.id).filter(sa.false()),
+        )
+        mocker.patch("superset.security_manager.is_admin", return_value=False)
+        mocker.patch(
+            "superset.commands.semantic_layer.delete.get_user_id", return_value=None
         )
         hidden_total: int
         hidden_dependents: list[dict[str, str | int]]
@@ -1189,9 +1203,9 @@ def test_semantic_delete_names_archived_dependents_to_restore_audience(
             side_effect=lambda query, value: query,
         )
     mocker.patch("superset.security_manager.is_admin", return_value=viewer == "admin")
-    mocker.patch("superset.views.filters.get_user_id", return_value=7)
+    mocker.patch("superset.commands.semantic_layer.delete.get_user_id", return_value=7)
     mocker.patch(
-        "superset.subjects.utils.get_user_subject_ids_subquery",
+        "superset.commands.semantic_layer.delete.get_user_subject_ids_subquery",
         return_value=sa.select(sa.literal(1 if viewer == "editor" else 2)),
     )
 
@@ -1206,5 +1220,3 @@ def test_semantic_delete_names_archived_dependents_to_restore_audience(
     assert (total, archived_count) == (2, 1)
     assert {str(item["name"]): item["archived"] for item in dependents} == named
     assert inaccessible_count == 2 - len(named)
-    # The bypass is per statement: later queries still hide archived charts.
-    assert session.scalar(sa.select(Slice.id).where(Slice.id == 962)) is None
