@@ -15,6 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
 # Translations template for Superset.
 # Copyright (C) 2026 Superset
 # This file is distributed under the same license as the Superset project.
@@ -1083,6 +1099,9 @@ msgstr ""
 msgid "About"
 msgstr ""
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr ""
 
@@ -1475,6 +1494,9 @@ msgid "Aggregation"
 msgstr ""
 
 msgid "Aggregation Method"
+msgstr ""
+
+msgid "Aggregation function"
 msgstr ""
 
 msgid "Aggregation used for the summary row. By default each metric keeps its own aggregation; Sum and Average override it for the summary row only. The override applies to simple metrics (a metric built from custom SQL always keeps its own aggregation). Overriding a count or a distinct count sums the counted column instead, which fails outright on a non-numeric column."
@@ -3070,6 +3092,12 @@ msgstr ""
 msgid "Changing this semantic view is forbidden"
 msgstr ""
 
+msgid ""
+"Changing this setting may change the casing for all columns in this dataset, "
+"which may break any existing charts and dashboard filters that reference the "
+"current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr ""
 
@@ -3523,6 +3551,9 @@ msgstr ""
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr ""
 
@@ -3652,6 +3683,9 @@ msgid "Color of the target location"
 msgstr ""
 
 msgid "Color scheme"
+msgstr ""
+
+msgid "Color scheme: %s"
 msgstr ""
 
 msgid "Color used when the close value is greater than or equal to the open value."
@@ -4181,6 +4215,18 @@ msgid "Could not verify which dimensions are compatible. All dimensions are show
 msgstr ""
 
 msgid "Count"
+msgstr ""
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
 msgstr ""
 
 msgid "Country"
@@ -6566,6 +6612,10 @@ msgstr ""
 msgid "Failed at retrieving results"
 msgstr ""
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
@@ -6836,7 +6886,15 @@ msgid "Filter charts"
 msgstr ""
 
 #, python-format
-msgid "Filter column '%(column)s' is a metric; semantic views only filter on dimensions"
+msgid ""
+"Filter column '%(column)s' is a metric; semantic views only filter on "
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -7370,10 +7428,10 @@ msgstr ""
 msgid "Hierarchy"
 msgstr ""
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -8155,6 +8213,9 @@ msgstr ""
 msgid "Lat"
 msgstr ""
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr ""
 
@@ -8398,6 +8459,9 @@ msgstr ""
 msgid "List Roles"
 msgstr ""
 
+msgid "List Unique Values"
+msgstr ""
+
 msgid "List Users"
 msgstr ""
 
@@ -8526,10 +8590,10 @@ msgstr ""
 msgid "Longitude of default viewport"
 msgstr ""
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -8738,6 +8802,9 @@ msgid "Mean of values over specified period"
 msgstr ""
 
 msgid "Mean values"
+msgstr ""
+
+msgid "Median"
 msgstr ""
 
 msgid "Median edge width, the thickest edge will be 4 times thicker than the thinnest."
@@ -9845,9 +9912,6 @@ msgstr ""
 msgid "Opacity, expects values between 0 and 100"
 msgstr ""
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr ""
 
@@ -9876,6 +9940,9 @@ msgid "Open in SQL Lab"
 msgstr ""
 
 msgid "Open in SQL lab"
+msgstr ""
+
+msgid "Open price"
 msgstr ""
 
 msgid "Open query in SQL Lab"
@@ -11848,6 +11915,12 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr ""
 
@@ -11900,9 +11973,6 @@ msgid "Search in filters"
 msgstr ""
 
 msgid "Search metrics by key or label"
-msgstr ""
-
-msgid "Search records"
 msgstr ""
 
 msgid "Search tags"
@@ -12696,10 +12766,10 @@ msgstr ""
 msgid "Show column headers"
 msgstr ""
 
-msgid "Show columns subtotal"
+msgid "Show column summaries"
 msgstr ""
 
-msgid "Show columns total"
+msgid "Show columns subtotal"
 msgstr ""
 
 msgid "Show empty columns"
@@ -12774,10 +12844,10 @@ msgstr ""
 msgid "Show row labels"
 msgstr ""
 
-msgid "Show rows subtotal"
+msgid "Show row summaries"
 msgstr ""
 
-msgid "Show rows total"
+msgid "Show rows subtotal"
 msgstr ""
 
 msgid "Show series values on the chart"
@@ -12959,6 +13029,9 @@ msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some required filters on other tabs have values and will not be cleared"
+msgstr ""
+
+msgid "Some semantic views could not be added"
 msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
@@ -13391,6 +13464,15 @@ msgstr ""
 msgid "Sum"
 msgstr ""
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr ""
 
@@ -13668,6 +13750,9 @@ msgid "Template for cell titles. Use Handlebars templating syntax (a popular tem
 msgstr ""
 
 msgid "Template parameters"
+msgstr ""
+
+msgid "Template parameters must be a valid JSON object."
 msgstr ""
 
 #, python-format
@@ -14869,6 +14954,9 @@ msgstr ""
 msgid "This chart version can't be restored because the semantic view it used has been permanently deleted. Restore a version that uses an existing semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -15072,6 +15160,9 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid "This pivot table used a legacy per-table aggregation setting that could be stale or incorrect, depending on which version you upgraded from. It now computes correctly, so totals and subtotals may look different than before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid "This saved filter state predates the member-ID format. Reset it and explicitly choose its values again."
@@ -16008,10 +16099,16 @@ msgstr ""
 msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
+msgid "Use each metric’s own definition for cells and summaries (the default since SIP-216), or aggregate a second time over the metric’s own grouped results — e.g. the median of a set of per-store averages. Query limits apply before a result aggregation runs."
+msgstr ""
+
 msgid "Use example.com for an exact domain, *.example.com for subdomains, or preset.* for preset.io and preset.ai. A trailing wildcard matches one segment. Leave empty to allow any domain."
 msgstr ""
 
 msgid "Use gradient"
+msgstr ""
+
+msgid "Use metric definition"
 msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
@@ -17202,6 +17299,11 @@ msgstr ""
 msgid "Your report could not be deleted"
 msgstr ""
 
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
+
 msgid "Your session has ended. Please sign in again."
 msgstr ""
 
@@ -18206,4 +18308,12 @@ msgstr[0] ""
 msgstr[1] ""
 
 msgid "№"
+msgstr ""
+
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic layer"
+" is unreachable."
+msgstr ""
+
+msgid "The view configuration must be a JSON object."
 msgstr ""

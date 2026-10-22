@@ -39,6 +39,10 @@ and variable-length tuples. SDK `FilterValues` also includes `None`.
 
 ## Provider compatibility
 
+Semantic views do not define a dataset-level SQL fetch-values predicate. Setting
+`apply_fetch_values_predicate: true` on a chart-data query is therefore a no-op for
+semantic views; explicit query filters still apply, including group-limit filters.
+
 `OrFilter` is mandatory core vocabulary, not an optional capability. Every
 provider must render groups for main queries, row counts and group-limit
 subqueries. Upgrade adapters before, or atomically with, the host/SDK upgrade;
