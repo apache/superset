@@ -23,10 +23,10 @@
 /**
  * Build packages/plugins filtered by globs.
  *
- * `--types-only` skips the two Babel passes (lib/ and esm/, which only the
- * npm publish needs: webpack and Jest resolve the workspaces from src/) and
- * runs just `tsc --build`, which writes the packages' .d.ts output that the
- * root type check depends on.
+ * `--skip-lib` skips the CommonJS Babel pass (lib/), which only the npm
+ * publish needs: webpack and Jest resolve the workspaces from src/. The
+ * production esm/ Babel pass and `tsc --build` (the .d.ts output the root
+ * type check depends on) still run, so Babel config breaks surface pre-merge.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -36,7 +36,7 @@ import { hideBin } from 'yargs/helpers';
 
 process.env.PATH = `./node_modules/.bin:${process.env.PATH}`;
 
-const { globs, typesOnly } = yargs(hideBin(process.argv)).parse();
+const { globs, skipLib } = yargs(hideBin(process.argv)).parse();
 const glob = globs?.length > 1 ? `{${globs.join(',')}}` : globs?.[0] || '*';
 
 const BABEL_CONFIG = '--config-file=../../babel.config.js';
@@ -121,20 +121,21 @@ function getPackages(packagePattern, tsOnly = false) {
 
 let scope = getPackages(glob);
 
-if (typesOnly) {
-  console.log('--- Skipping babel (--types-only) ---');
+const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}\
+        -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
+
+if (skipLib) {
+  console.log('--- Skipping babel lib (--skip-lib) ---');
 } else {
   console.log('--- Run babel --------');
-  const babelCommand = `lerna exec --stream --concurrency 10 --scope ${scope}\
-          -- babel ${BABEL_CONFIG} src --extensions ".ts,.tsx,.js,.jsx" --copy-files`;
   run(`${babelCommand} --out-dir lib`);
-
-  console.log('--- Run babel esm ---');
-  // run again with
-  run(`${babelCommand} --out-dir esm`, {
-    env: { ...process.env, NODE_ENV: 'production', BABEL_OUTPUT: 'esm' },
-  });
 }
+
+console.log('--- Run babel esm ---');
+// run again with
+run(`${babelCommand} --out-dir esm`, {
+  env: { ...process.env, NODE_ENV: 'production', BABEL_OUTPUT: 'esm' },
+});
 
 console.log('--- Run tsc ---');
 // only run tsc for packages with ts files
