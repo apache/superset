@@ -16,27 +16,17 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { useTheme } from '@apache-superset/core/theme';
-import {
-  colorSchemeDark,
-  colorSchemeLight,
-  themeQuartz,
-} from '@superset-ui/core/components/ThemedAgGridReact';
-// eslint-disable-next-line import/no-extraneous-dependencies
-import tinycolor from 'tinycolor2';
+import { ChartProps } from '@superset-ui/core';
+import baseTransformProps from '../transformProps';
 
-export const useIsDark = () => {
-  const theme = useTheme();
-  return tinycolor(theme.colorBgContainer).isDark();
-};
-
-const useTableTheme = (): ReturnType<typeof themeQuartz.withPart> => {
-  const baseTheme = themeQuartz;
-  const isDarkTheme = useIsDark();
-  const tableTheme = isDarkTheme
-    ? baseTheme.withPart(colorSchemeDark)
-    : baseTheme.withPart(colorSchemeLight);
-  return tableTheme;
-};
-
-export default useTableTheme;
+/**
+ * The shared deck.gl props plus `isRefreshing`. ChartRenderer keeps this chart
+ * mounted through a dashboard auto-refresh, and since its layers fetch their
+ * own data, the chart needs the signal to reload them.
+ */
+export default function transformProps(chartProps: ChartProps) {
+  return {
+    ...baseTransformProps(chartProps),
+    isRefreshing: chartProps.isRefreshing,
+  };
+}

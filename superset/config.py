@@ -49,6 +49,7 @@ from pandas._libs.parsers import STR_NA_VALUES
 from sqlalchemy.engine.url import URL
 from sqlalchemy.orm import Session
 from sqlalchemy.orm.query import Query
+from sqlalchemy.sql.expression import Select, Subquery
 
 from superset.advanced_data_type.plugins.internet_address import internet_address
 from superset.advanced_data_type.plugins.internet_port import internet_port
@@ -2538,6 +2539,22 @@ DISALLOWED_SQL_FUNCTIONS: dict[str, set[str]] = {
         # Other potentially dangerous functions
         "pg_sleep",
         "pg_terminate_backend",
+        # dblink functions can open separate connections and auto-commit
+        # writes, bypassing the read-only gate entirely
+        "dblink",
+        "dblink_exec",
+        "dblink_connect",
+        "dblink_connect_u",
+        "dblink_send_query",
+        # State-mutating functions callable via SELECT
+        "pg_cancel_backend",
+        "pg_reload_conf",
+        "pg_rotate_logfile",
+        "pg_stat_reset",
+        "pg_switch_wal",
+        "pg_logical_emit_message",
+        "pg_create_restore_point",
+        "pg_drop_replication_slot",
     },
     # MySQL functions and variables that could reveal sensitive information
     "mysql": {
@@ -3523,9 +3540,44 @@ class ExtraAccessQueryFilters(TypedDict, total=False):
     dashboards: Callable[[int], Query]
 
 
+# Extra access query exclusions inject an AND NOT condition into ChartFilter
+# and DashboardAccessFilter, letting a deployment *withhold* asset visibility.
+# ``EXTRA_ACCESS_QUERY_FILTERS`` can only widen a result set, because its
+# conditions are OR'd with the role paths -- so a deployment that needs to keep
+# an asset out of the list, an export or a related-field lookup has no way to
+# express that through it.
+#
+# Exclusions are applied before the ``is_admin`` / ``can_access_all_datasources``
+# short-circuits, so they hold for every principal except embedded guests,
+# whose scope is set by their token alone.
+#
+# The callable receives the current user ID and returns a subquery of the asset
+# IDs to withhold.
+# Receives the current user id, or ``None`` for an anonymous request -- a
+# withholding rule is consulted even then, since skipping it would reveal
+# rather than hide. May return an ORM ``Query``, a Core ``select()`` or an
+# explicit ``.subquery()``; all three are accepted and normalised, matching
+# what the sibling ``EXTRA_ACCESS_QUERY_FILTERS`` hooks may hand to ``.in_()``.
+ExclusionEntry = Callable[[int | None], Query | Select | Subquery]
+
+
+class ExtraAccessQueryExclusions(TypedDict, total=False):
+    charts: ExclusionEntry
+    dashboards: ExclusionEntry
+    # Narrower than the two above: assets selectable as the target of a
+    # scheduled report, which renders as the configured executor rather than
+    # as the user who created it. A deployment may hold assets a user can read
+    # but cannot schedule a report on.
+    report_target_charts: ExclusionEntry
+    report_target_dashboards: ExclusionEntry
+
+
 # Extension hooks for deployments to plug in custom access logic.
 # Additional query filters for chart/dashboard list views.
 EXTRA_ACCESS_QUERY_FILTERS: ExtraAccessQueryFilters = {}
+# Asset IDs to withhold from chart/dashboard list views, exports and
+# related-field lookups. See ``ExtraAccessQueryExclusions`` above.
+EXTRA_ACCESS_QUERY_EXCLUSIONS: ExtraAccessQueryExclusions = {}
 # Bypass raise_for_access for specific assets. Return True to skip checks.
 # The hook receives the complete query context, so setting it turns off the
 # semantic-view chart-data check that otherwise denies before provider metadata

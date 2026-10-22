@@ -67,6 +67,7 @@ from superset.sql.parse import SQLScript
 from superset.tasks.types import ExecutorType
 from superset.utils import json
 from superset.utils.core import get_user
+from superset.utils.filters import is_excluded_by_extra_access
 
 if TYPE_CHECKING:
     from flask_appbuilder.security.sqla.models import User
@@ -80,6 +81,9 @@ _JINJA_BLOCK_RE = re.compile(r"\{\{.*?\}\}|\{%.*?%\}|\{#.*?#\}", re.DOTALL)
 
 class BaseReportScheduleCommand(BaseCommand):
     _properties: dict[str, Any]
+    # Set by the update/delete subclasses, absent on create -- read with
+    # ``getattr(self, "_model", None)`` where both cases are possible.
+    _model: Any
 
     def run(self) -> Any:
         pass
@@ -133,6 +137,25 @@ class BaseReportScheduleCommand(BaseCommand):
                     )
                 )
 
+    def _result_is_active(self) -> bool:
+        """Whether this request leaves the schedule running.
+
+        What the exclusion checks guard is delivery, not editing. Refusing a
+        request that leaves the schedule paused would trap its owner: they could
+        neither pause the report nor stop the scheduler selecting it, which is
+        strictly worse than not checking at all.
+
+        Both access paths consult this, because either can carry the pause. The
+        list page's toggle sends ``{"active": false}`` on its own and reaches the
+        stored-target path, while the edit modal always resends the stored
+        chart/dashboard id alongside its own active switch and so reaches the
+        submitted-target path. Answering it in one place and asking it from both
+        is the point; an exemption that only one path could see is what made
+        pausing from the modal a 403.
+        """
+        model = getattr(self, "_model", None)
+        return bool(self._properties.get("active", getattr(model, "active", True)))
+
     def _check_object_access(
         self,
         object_id: int,
@@ -147,6 +170,15 @@ class BaseReportScheduleCommand(BaseCommand):
         if not obj:
             exceptions.append(not_found_exc())
         else:
+            # The related-field filter narrows the picker, but a list filter is
+            # not an authorisation boundary: ``find_by_id`` above applies the
+            # ordinary access filter, so an excluded id posted directly would
+            # otherwise be accepted. Ask the report-target question here, where
+            # the id is actually resolved.
+            if self._result_is_active() and is_excluded_by_extra_access(
+                f"report_target_{kind}s", object_id
+            ):
+                raise ReportScheduleForbiddenError()
             try:
                 security_manager.raise_for_access(**{kind: obj})
             except SupersetSecurityException as ex:
@@ -222,6 +254,47 @@ class BaseReportScheduleCommand(BaseCommand):
             )
             if not effective_chart and not effective_dashboard:
                 exceptions.append(ReportScheduleEitherChartOrDashboardError())
+                return
+
+            self._check_stored_target_access(
+                model, effective_chart, effective_dashboard
+            )
+
+    def _check_stored_target_access(
+        self,
+        model: Any,
+        effective_chart: Any,
+        effective_dashboard: Any,
+    ) -> None:
+        """Ask of a stored target what is asked of a submitted one.
+
+        Without this, activating a paused report resumes a schedule whose asset
+        has since been withheld, while resubmitting that same asset is refused.
+
+        Only when the result is a *scheduled* report; see
+        :meth:`_result_is_active`.
+        """
+        if not self._result_is_active():
+            return
+
+        kind, target = (
+            ("chart", effective_chart)
+            if effective_chart
+            else ("dashboard", effective_dashboard)
+        )
+        target_id = getattr(target, "id", target)
+        if not isinstance(target_id, int):
+            return
+
+        # Both keys: a submitted target reaches the ordinary one through
+        # ``find_by_id``'s base filter and the report-target one through
+        # ``_check_object_access``, so a stored target asking only the latter
+        # would accept what resubmitting it refuses.
+        if any(
+            is_excluded_by_extra_access(key, target_id)
+            for key in (f"report_target_{kind}s", f"{kind}s")
+        ):
+            raise ReportScheduleForbiddenError()
 
     def _validate_report_extra(  # noqa: C901
         self, exceptions: list[ValidationError]

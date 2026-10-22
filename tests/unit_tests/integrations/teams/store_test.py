@@ -289,3 +289,20 @@ def test_store_rejects_invalid_team_ids_consistently(
     with pytest.raises(ValueError, match="Teams team ID"):
         method(*args)
     assert session.query(TeamsInstallation).count() == 0
+
+
+def test_migration_preserves_bootstrapped_installations(
+    engine: Engine, session: Session
+) -> None:
+    """Fresh database bootstrap may create the model table before Alembic runs."""
+    installation = TeamsInstallationStore(session).install(
+        TENANT, APPLICATION, "team-1", SERVICE_URL
+    )
+    session.commit()
+    installation_id = installation.id
+    with engine.begin() as connection:
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+            assert connection.execute(select(TeamsInstallation.id)).scalars().all() == [
+                installation_id
+            ]
