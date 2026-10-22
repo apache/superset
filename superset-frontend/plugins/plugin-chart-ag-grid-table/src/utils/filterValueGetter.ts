@@ -24,7 +24,9 @@ import { ValueGetterParams } from '@superset-ui/core/components/ThemedAgGridReac
 // value scaled by 100, so the filter compares against that scaled number,
 // shifted in decimal notation to avoid binary noise (0.07 * 100).
 const filterValueGetter = (params: ValueGetterParams, percent: boolean) => {
-  const raw = params.data?.[params.colDef.field as string];
+  // `field` has "Main " stripped on time comparison columns, row data does not
+  const key = params.colDef.context?.dataKey ?? params.colDef.field;
+  const raw = params.data?.[key as string];
   if (typeof raw !== 'number' && (typeof raw !== 'string' || !raw.trim())) {
     return null;
   }

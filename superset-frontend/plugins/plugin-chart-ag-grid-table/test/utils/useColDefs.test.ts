@@ -295,6 +295,36 @@ test('percent metric filters on the value shown by its format', () => {
   expect(filterValue(1)).toBe(0.25);
 });
 
+test('percent metric Main comparison column filters on its row value', () => {
+  const mainCol = makeColumn({
+    key: 'Main %share',
+    label: 'Main',
+    dataType: GenericDataType.Numeric,
+    isNumeric: true,
+    isPercentMetric: true,
+    formatter: getNumberFormatter(NumberFormats.PERCENT_3_POINT),
+  });
+  const data = { 'Main %share': 0.25 };
+
+  const { result } = renderHook(
+    () =>
+      useColDefs({
+        ...defaultProps,
+        columns: [mainCol],
+        data: [data],
+        isUsingTimeComparison: true,
+      }),
+    { wrapper: defaultThemeWrapper },
+  );
+
+  const colDef = result.current[0];
+  const getter = colDef.filterValueGetter as (
+    params: ValueGetterParams,
+  ) => unknown;
+  expect(colDef.field).toBe('%share');
+  expect(getter({ data, colDef } as unknown as ValueGetterParams)).toBe(25);
+});
+
 test('temporal columns use custom TextCellRenderer', () => {
   const temporalCol = makeColumn({
     key: 'created_at',
