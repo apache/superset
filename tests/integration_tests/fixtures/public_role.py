@@ -49,20 +49,44 @@ def _public_role_like(role_name: str) -> Iterator[None]:
 
 @pytest.fixture
 def public_role_like_gamma(app_context: AppContext) -> Iterator[None]:
-    """Temporarily give Public the Gamma role's permissions."""
+    """Give Public Gamma permissions, then clear the shared test role."""
+    app.config["PUBLIC_ROLE_LIKE"] = "Gamma"
+    security_manager.sync_role_definitions()
+
+    yield
+
+    security_manager.get_public_role().permissions = []
+    db.session.commit()
+
+
+@pytest.fixture
+def public_role_like_gamma_scoped(app_context: AppContext) -> Iterator[None]:
+    """Grant Gamma permissions without changing Public's surrounding state."""
     with _public_role_like("Gamma"):
         yield
 
 
 @pytest.fixture
 def public_role_like_test_role(app_context: AppContext) -> Iterator[None]:
-    """Temporarily give Public the configured TestRole permissions."""
-    with _public_role_like("TestRole"):
-        yield
+    """Give Public TestRole permissions, then clear the shared test role."""
+    app.config["PUBLIC_ROLE_LIKE"] = "TestRole"
+    security_manager.sync_role_definitions()
+
+    yield
+
+    security_manager.get_public_role().permissions = []
+    db.session.commit()
 
 
 @pytest.fixture
 def public_role_builtin(app_context: AppContext) -> Iterator[None]:
-    """Temporarily give Public its built-in minimal read-only permissions."""
-    with _public_role_like("Public"):
-        yield
+    """Give Public its built-in permissions, then clear the shared test role."""
+    original_value = app.config.get("PUBLIC_ROLE_LIKE")
+    app.config["PUBLIC_ROLE_LIKE"] = "Public"
+    security_manager.sync_role_definitions()
+
+    yield
+
+    app.config["PUBLIC_ROLE_LIKE"] = original_value
+    security_manager.get_public_role().permissions = []
+    db.session.commit()

@@ -96,6 +96,9 @@ from tests.integration_tests.fixtures.importexport import (
     dashboard_metadata_config,
     dataset_config,
 )
+from tests.integration_tests.fixtures.public_role import (
+    public_role_like_gamma_scoped,  # noqa: F401
+)
 from tests.integration_tests.fixtures.tags import (
     create_custom_tags,  # noqa: F401
     get_filter_params,
@@ -533,7 +536,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             ),
         ]
     )
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_get_dashboard_datasets_chart_display_labels_visualizations(
         self, viz_type: str, controls: dict[str, Any], expected: dict[str, str]
@@ -710,7 +715,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
             len(dataset.get("chart_display_labels", {})) for dataset in data["result"]
         )
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_get_dashboard_datasets_chart_display_labels_guest_query_count(
         self,
@@ -845,7 +852,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         for excluded_key in ("verbose_map", "columns", "column_names", "metrics"):
             assert excluded_key not in dataset
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_get_dashboard_datasets_labels_ignore_viewer_query_context_update(
         self,
@@ -935,7 +944,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
                 dashboard.published, dashboard.viewers = previous_dashboard
                 db.session.commit()
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_get_dashboard_datasets_chart_display_labels_as_guest(self) -> None:
         """A real embedded guest gets the authorized labels and every redaction."""
@@ -967,7 +978,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         ):
             assert excluded_key not in dataset
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_get_dashboard_datasets_chart_display_labels_guest_dataset_allowlist(
         self,
@@ -984,7 +997,9 @@ class TestDashboardApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCa
         assert "verbose_map" not in dataset
         assert "Population" not in response.data.decode("utf-8")
 
-    @pytest.mark.usefixtures("load_world_bank_dashboard_with_slices")
+    @pytest.mark.usefixtures(
+        "load_world_bank_dashboard_with_slices", "public_role_like_gamma_scoped"
+    )
     @with_feature_flags(EMBEDDED_SUPERSET=True)
     def test_get_dashboard_datasets_chart_display_labels_guest_wrong_dashboard(
         self,
@@ -8015,6 +8030,11 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
 
     Note: DASHBOARD_LIST_CUSTOM_TAGS_ONLY config is checked at app startup in
     DashboardRestApi.__init__(), so these tests verify the current runtime behavior.
+
+    ``editor:``/``type:`` tags are no longer auto-generated (see
+    superset/tags/models.py), so this test creates them manually to simulate
+    the legacy rows an upgraded deployment may still carry, and verifies the
+    custom_tags relationship/API path still filters them out.
     """
 
     def setUp(self) -> None:
@@ -8026,7 +8046,7 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         """Verify custom_tags filtering at model and API level.
 
         With DASHBOARD_LIST_CUSTOM_TAGS_ONLY=True in superset_test_config.py:
-        1. dashboard.tags returns ALL tags (custom + editor + type)
+        1. dashboard.tags returns ALL tags (custom + legacy editor/type)
         2. dashboard.custom_tags returns ONLY custom tags
         3. API response returns ONLY custom tags in the "tags" property
         """
@@ -8039,15 +8059,21 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         db.session.flush()
 
         custom_tag = Tag(name="critical", type=TagType.custom)
-        db.session.add(custom_tag)
+        # Legacy implicit tags: no longer generated, but rows from before an
+        # upgrade may still exist and must keep being filtered out.
+        editor_tag = Tag(name="editor:admin", type=TagType.editor)
+        type_tag = Tag(name="type:dashboard", type=TagType.type)
+        db.session.add_all([custom_tag, editor_tag, type_tag])
         db.session.flush()
 
-        tagged_obj = TaggedObject(
-            tag_id=custom_tag.id,
-            object_id=dashboard.id,
-            object_type="dashboard",
+        db.session.add_all(
+            [
+                TaggedObject(
+                    tag_id=tag.id, object_id=dashboard.id, object_type="dashboard"
+                )
+                for tag in (custom_tag, editor_tag, type_tag)
+            ]
         )
-        db.session.add(tagged_obj)
         db.session.commit()
 
         try:
@@ -8110,5 +8136,6 @@ class TestDashboardCustomTagsFiltering(SupersetTestCase):
         finally:
             db.session.delete(dashboard)
             db.session.commit()
-            db.session.delete(custom_tag)
+            for tag in (custom_tag, editor_tag, type_tag):
+                db.session.delete(tag)
             db.session.commit()

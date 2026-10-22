@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from contextlib import nullcontext
+from uuid import uuid4
 
 import pytest
 from flask.ctx import AppContext
@@ -35,13 +36,21 @@ def test_public_role_restored_after_commits(
     original_permission_ids = {
         permission.id for permission in security_manager.get_public_role().permissions
     }
+    suffix = uuid4().hex
+    permission_pairs = [
+        (f"can_read_{suffix}", f"PublicRoleFixtureRead_{suffix}"),
+        (f"can_write_{suffix}", f"PublicRoleFixtureWrite_{suffix}"),
+    ]
     try:
         # Use a custom set that cannot be restored by re-syncing a built-in role.
         app.config["PUBLIC_ROLE_LIKE"] = None
-        permissions = [
-            security_manager.find_permission_view_menu("can_read", "Dashboard"),
-            security_manager.find_permission_view_menu("menu_access", "Security"),
-        ]
+        permissions = []
+        for permission_name, view_name in permission_pairs:
+            permission = security_manager.add_permission_view_menu(
+                permission_name, view_name
+            )
+            assert permission is not None
+            permissions.append(permission)
         expected_permission_ids = {permission.id for permission in permissions}
         security_manager.get_public_role().permissions = permissions
         db.session.commit()
@@ -72,3 +81,13 @@ def test_public_role_restored_after_commits(
             .all()
         )
         db.session.commit()
+        for permission_name, view_name in permission_pairs:
+            permission = security_manager.find_permission_view_menu(
+                permission_name, view_name
+            )
+            if permission is not None:
+                for role in list(permission.role):
+                    role.permissions.remove(permission)
+                db.session.commit()
+                security_manager.del_permission_view_menu(permission_name, view_name)
+            security_manager.del_view_menu(view_name)
