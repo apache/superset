@@ -10433,6 +10433,9 @@ msgstr "Minimum"
 msgid "Minimum Font Size"
 msgstr "Minimální velikost písma"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "Minimální poloměr"
 
@@ -10441,6 +10444,16 @@ msgid "Minimum Width"
 msgstr "Minimální šířka"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -20132,6 +20145,9 @@ msgid "X Axis Label Interval"
 msgstr "Interval popisků osy X"
 
 #, fuzzy
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "Formát čísla na osu X"
 
@@ -20178,6 +20194,9 @@ msgstr "Formát osy Y"
 
 msgid "Y Axis Label"
 msgstr "Popisek osy Y"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Název osy Y"

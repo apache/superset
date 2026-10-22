@@ -3720,6 +3720,19 @@ SEMANTIC_CACHE_COORDINATION_WAIT_SECONDS: float = 1.0
 # Expiry for owner-token semantic-cache descriptor leases.
 SEMANTIC_CACHE_COORDINATION_LEASE_SECONDS: int = 30
 
+# Maximum number of views accepted by one bulk semantic view creation request.
+# Each view costs one semantic layer lookup; larger batches are refused with a 400
+# before any lookup runs.
+SEMANTIC_VIEW_BULK_CREATE_MAX_VIEWS: int = 100
+
+# Time budget, in seconds, for validating the views of one bulk creation request.
+# The budget is checked before each view's lookup: views not started in time fail
+# with a "TIMEOUT" error and can be retried. A lookup already in progress is bounded
+# only by the semantic layer's own timeouts, so keep this well below
+# SUPERSET_WEBSERVER_TIMEOUT and any proxy timeout, leaving room for that lookup;
+# otherwise the client receives a gateway timeout instead of the per-view results.
+SEMANTIC_VIEW_BULK_CREATE_TIMEOUT: float = 30
+
 # Default lock TTL (time-to-live) in seconds for distributed locks.
 # Can be overridden per-call via the `ttl_seconds` parameter.
 # After TTL expires, the lock is automatically released to prevent deadlocks.
