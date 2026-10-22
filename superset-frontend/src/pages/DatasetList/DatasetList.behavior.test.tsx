@@ -164,7 +164,7 @@ test('single semantic view delete names its blockers, including archived ones', 
   ).not.toBeInTheDocument();
   expect(alert).toHaveTextContent('and 1 more');
   expect(alert).toHaveTextContent(
-    "2 dependent asset(s) you can't see. Ask an admin for help.",
+    "2 dependent assets are ones you can't see. Ask an admin for help.",
   );
 });
 

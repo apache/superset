@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import { t } from '@apache-superset/core/translation';
+import { t, tn } from '@apache-superset/core/translation';
 import { Alert } from '@apache-superset/core/components';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 
@@ -101,8 +101,10 @@ export default function SemanticDeleteBlockers({
           {unlisted > 0 && <p>{t('and %s more', unlisted)}</p>}
           {hidden > 0 && (
             <p>
-              {t(
-                "%s dependent asset(s) you can't see. Ask an admin for help.",
+              {tn(
+                "%s dependent asset is one you can't see. Ask an admin for help.",
+                "%s dependent assets are ones you can't see. Ask an admin for help.",
+                hidden,
                 hidden,
               )}
             </p>

@@ -18308,5 +18308,7 @@ msgid "and %s more"
 msgstr ""
 
 #, python-format
-msgid "%s dependent asset(s) you can't see. Ask an admin for help."
-msgstr ""
+msgid "%s dependent asset is one you can't see. Ask an admin for help."
+msgid_plural "%s dependent assets are ones you can't see. Ask an admin for help."
+msgstr[0] ""
+msgstr[1] ""
