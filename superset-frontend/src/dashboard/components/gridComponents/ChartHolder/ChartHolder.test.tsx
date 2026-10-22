@@ -167,10 +167,6 @@ describe('ChartHolder', () => {
       ),
     );
     expect(screen.getByText('Revenue in Portugal')).toBeVisible();
-    act(() =>
-      store.dispatch(updateDataMask(filter.id, { filterState: { value: [] } })),
-    );
-    expect(screen.getByText('Revenue')).toBeVisible();
     rerender(
       <Provider store={store}>
         <ChartHolder
@@ -181,10 +177,27 @@ describe('ChartHolder', () => {
         />
       </Provider>,
     );
-    expect(screen.getByText('Revenue')).toBeVisible();
+    expect(screen.getByText('Revenue', { exact: true })).toBeVisible();
     expect(
       screen.getByRole('button', { name: 'Configure chart title' }),
     ).toBeInTheDocument();
+    rerender(
+      <Provider store={store}>
+        <ChartHolder
+          {...defaultProps}
+          component={component}
+          editMode={false}
+          isInView
+        />
+      </Provider>,
+    );
+    expect(
+      screen.getByText('Revenue in Portugal', { exact: true }),
+    ).toBeVisible();
+    act(() =>
+      store.dispatch(updateDataMask(filter.id, { filterState: { value: [] } })),
+    );
+    expect(screen.getByText('Revenue', { exact: true })).toBeVisible();
   });
 
   test('applies a local title draft through the existing unsaved layout and undo history', async () => {
