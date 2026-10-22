@@ -6540,12 +6540,7 @@ msgstr ""
 msgid "Extensions"
 msgstr ""
 
-msgid ""
-"Extensions are enabled but were not loaded when this server started. "
-"Restart the server to load them."
-msgstr ""
-
-msgid "Extensions not loaded"
+msgid "Extensions are not enabled on this server"
 msgstr ""
 
 msgid "Extent"
@@ -13798,6 +13793,9 @@ msgstr ""
 
 #, python-format
 msgid "The Custom SQL metric \"%(metric)s\" is not an aggregate and can't be combined with a GROUP BY. Wrap it in an aggregate function, e.g. %(example)s."
+msgstr ""
+
+msgid "The ENABLE_EXTENSIONS feature flag must be on when the server starts. Enable it in the server configuration and restart."
 msgstr ""
 
 msgid "The GeoJsonLayer takes in GeoJSON formatted data and renders it as interactive polygons, lines and points (circles, icons and/or texts)."

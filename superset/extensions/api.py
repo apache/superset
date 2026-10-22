@@ -22,19 +22,17 @@ from flask import send_file
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
-from superset.extensions.availability import (
-    are_extensions_loaded,
-    get_extensions_state,
-    get_servable_extensions,
-    NOT_LOADED_MESSAGE,
-    RuntimeGuardedExtensionsApiMixin,
+from superset.extensions.utils import (
+    build_extension_data,
+    get_extensions,
 )
-from superset.extensions.types import LoadedExtension
-from superset.extensions.utils import build_extension_data
 
 
-class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
+class ExtensionsRestApi(BaseApi):
     allow_browser_login = True
+    # FAB's BaseApi exempts its blueprint from CSRF; keep the protection that
+    # other cookie-authenticated Superset APIs have.
+    csrf_exempt = False
     resource_name = "extensions"
 
     def response(self, status_code: int, **kwargs: Any) -> Response:
@@ -43,11 +41,11 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
 
         return jsonify(kwargs), status_code
 
-    def response_404(self, message: str = "Not found") -> Response:
+    def response_404(self) -> Response:
         """Helper method to create 404 responses."""
         from flask import jsonify
 
-        return jsonify({"message": message}), 404
+        return jsonify({"message": "Not found"}), 404
 
     @expose("/_info", methods=("GET",))
     @protect()
@@ -69,16 +67,8 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
                         type: array
                         items:
                           type: string
-                      status:
-                        type: string
-                        enum: [loaded, not_loaded]
-                        description: >-
-                          `not_loaded` when extensions are enabled for this
-                          request but were not loaded at server startup
-                      message:
-                        type: string
         """
-        return self.response(200, permissions=["can_read"], **get_extensions_state())
+        return self.response(200, permissions=["can_read"])
 
     # TODO: Support the q parameter
     @protect()
@@ -104,13 +94,6 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
                               properties:
                                 remoteEntry:
                                   type: string
-                        count:
-                            type: integer
-                        status:
-                            type: string
-                            enum: [loaded, not_loaded]
-                        message:
-                            type: string
             400:
               $ref: '#/components/responses/400'
             401:
@@ -120,17 +103,15 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        # Empty on a server that did not initialize extensions at startup, so
-        # the browser loads no extension code.
         result = []
-        for extension in get_servable_extensions().values():
+        extensions = get_extensions()
+        for extension in extensions.values():
             extension_data = build_extension_data(extension)
             result.append(extension_data)
 
         response = {
             "result": result,
             "count": len(result),
-            **get_extensions_state(),
         }
 
         return self.response(200, **response)
@@ -167,8 +148,6 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
                               properties:
                                 remoteEntry:
                                   type: string
-                                remoteEntry:
-                                  type: string
             400:
               $ref: '#/components/responses/400'
             401:
@@ -178,11 +157,10 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not are_extensions_loaded():
-            return self.response_404(NOT_LOADED_MESSAGE)
         # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
-        extension: LoadedExtension | None = get_servable_extensions().get(composite_id)
+        extensions = get_extensions()
+        extension = extensions.get(composite_id)
         if not extension:
             return self.response_404()
         extension_data = build_extension_data(extension)
@@ -231,11 +209,10 @@ class ExtensionsRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
             500:
               $ref: '#/components/responses/500'
         """
-        if not are_extensions_loaded():
-            return self.response_404(NOT_LOADED_MESSAGE)
         # Reconstruct composite ID from publisher and name
         composite_id = f"{publisher}.{name}"
-        extension: LoadedExtension | None = get_servable_extensions().get(composite_id)
+        extensions = get_extensions()
+        extension = extensions.get(composite_id)
         if not extension:
             return self.response_404()
 

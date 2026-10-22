@@ -82,42 +82,6 @@ wait until every web and worker process has the runtime guards before enabling
 the feature through a host hook. Disable the flag to roll back availability
 without deleting stored semantic layers, views or charts.
 
-## Runtime extensions availability
-
-`ENABLE_EXTENSIONS` combines a startup decision with a per-request one.
-Extension code is loaded only by a server that starts with the flag on, and
-changing whether extensions load still requires a restart. The startup log
-records the decision: how many extensions loaded and how many failed to
-initialize, or that the flag was off. "Loaded" is tracked per server, not per
-extension. The extensions APIs are registered at startup regardless, and each request
-evaluates the active flag decision (for example through `IS_FEATURE_ENABLED_FUNC`).
-
-When the flag is off for a request:
-
-- every `/api/v1/extensions/` route returns 404 and the Extensions menu is
-  hidden, so the browser receives no extension bundles and runs no extension
-  code (a write without a CSRF token is rejected with 400 before this check);
-- semantic-layer types contributed by extensions are omitted from
-  `/api/v1/semantic_layer/types`, and layers of those types cannot be created
-  or have their configuration changed.
-
-What an extension backend registered at startup is otherwise not gated per
-request: its own REST APIs, its MCP tools, and queries against semantic layers
-that already use an extension-contributed type keep working on a server that
-loaded them. Use the startup setting to keep that code from loading at all.
-
-When the flag is on for a request but the server did not load extensions at
-startup, the extensions list is empty and reports `status: "not_loaded"`, the
-Extensions page shows a restart notice, and `/api/v1/semantic_layer/types`
-reports `extensions_status: "not_loaded"`. No extension bundle is served until
-the server restarts with the flag on. The same state is reported when extension
-discovery failed at startup; the startup log then records the failure.
-
-When upgrading, run `superset init` before enabling the flag at runtime, so the
-existing extensions API permissions exist. To roll back exposure, turn the flag
-off for the affected requests; to stop extension code from running, turn it off
-at startup and restart.
-
 ## Lifecycle
 
 Feature flags progress through lifecycle stages:

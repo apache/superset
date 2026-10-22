@@ -16,13 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from 'spec/helpers/testing-library';
+import { render, screen, waitFor } from 'spec/helpers/testing-library';
 import { SupersetClient } from '@superset-ui/core';
 import { toasters } from 'src/components/MessageToasts/withToasts';
 import ExtensionsList from './ExtensionsList';
@@ -95,144 +89,74 @@ test('calls toast functions when provided', () => {
   expect(addSuccessToast).toBeDefined();
 });
 
-const mockExtensionsInfo = (status: 'loaded' | 'not_loaded') =>
+type ClientResponse = Awaited<ReturnType<typeof SupersetClient.get>>;
+
+const mockApi = (infoStatus: number) =>
   jest.spyOn(SupersetClient, 'get').mockImplementation(({ endpoint }) =>
-    Promise.resolve({
-      json: endpoint?.startsWith('/api/v1/extensions/_info')
-        ? { permissions: ['can_read'], status }
-        : { result: [], count: 0, status },
-      response: new Response(),
-    } as Awaited<ReturnType<typeof SupersetClient.get>>),
+    endpoint?.startsWith('/api/v1/extensions/_info') && infoStatus !== 200
+      ? Promise.reject(
+          new Response('{"message": "Not found"}', { status: infoStatus }),
+        )
+      : Promise.resolve({
+          json: endpoint?.startsWith('/api/v1/extensions/_info')
+            ? { permissions: ['can_read'] }
+            : {
+                result: [
+                  { id: 1, name: 'Registered Extension', enabled: true },
+                ],
+                count: 1,
+              },
+          response: new Response(),
+        } as ClientResponse),
   );
 
 afterEach(() => jest.restoreAllMocks());
 
-test('explains an empty list when extensions were not loaded at startup', async () => {
-  mockExtensionsInfo('not_loaded');
+test('explains that extensions are not enabled when the API is absent', async () => {
+  // The flag is on for the browser, but the server started with it off and
+  // never registered the extensions APIs.
+  const get = mockApi(404);
+  const addDangerToast = jest.spyOn(toasters, 'addDangerToast');
   renderWithStore();
 
-  expect(await screen.findByText('Extensions not loaded')).toBeInTheDocument();
   expect(
-    screen.getByText(/Restart the server to load them/),
+    await screen.findByText('Extensions are not enabled on this server'),
   ).toBeInTheDocument();
+  expect(screen.getByText(/ENABLE_EXTENSIONS/)).toBeInTheDocument();
+  expect(addDangerToast).not.toHaveBeenCalled();
+  // The list is never requested from a server without the API.
+  expect(
+    get.mock.calls.some(([request]) =>
+      request.endpoint?.startsWith('/api/v1/extensions/?'),
+    ),
+  ).toBe(false);
 });
 
-test('shows no restart notice when extensions are loaded', async () => {
-  const get = mockExtensionsInfo('loaded');
+test('lists extensions once the API answers', async () => {
+  mockApi(200);
   renderWithStore();
 
-  await waitFor(() =>
-    expect(get).toHaveBeenCalledWith({ endpoint: '/api/v1/extensions/' }),
-  );
-  // Let the resolved list response render before asserting its absence.
-  await act(async () => {});
-  expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
-  // The load status rides on the list response; no separate _info request.
-  const infoCalls = get.mock.calls.filter(([request]) =>
-    request.endpoint?.startsWith('/api/v1/extensions/_info'),
-  );
-  expect(infoCalls).toHaveLength(0);
+  expect(await screen.findByText('Registered Extension')).toBeInTheDocument();
+  expect(
+    screen.queryByText('Extensions are not enabled on this server'),
+  ).not.toBeInTheDocument();
 });
 
-test('reports a list failure through the danger toast', async () => {
-  jest
-    .spyOn(SupersetClient, 'get')
-    .mockImplementation(() =>
-      Promise.reject(new Response('{"message": "Not found"}', { status: 404 })),
-    );
+test('reports other _info failures through the danger toast', async () => {
+  mockApi(500);
   // withToasts binds its own action creators over any passed toast props.
   const addDangerToast = jest.spyOn(toasters, 'addDangerToast');
   renderWithStore();
 
   await waitFor(() =>
     expect(addDangerToast).toHaveBeenCalledWith(
-      expect.stringContaining('An error occurred while fetching Extensionss'),
+      expect.stringContaining(
+        'An error occurred while fetching Extensions info',
+      ),
     ),
   );
-  expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
-});
-
-test('takes the restart notice from the list response, not a separate _info call', async () => {
-  // Mixed fleet: _info reaches a pod that loaded extensions while the list
-  // reaches one that did not.
-  jest.spyOn(SupersetClient, 'get').mockImplementation(({ endpoint }) =>
-    Promise.resolve({
-      json: endpoint?.startsWith('/api/v1/extensions/_info')
-        ? { permissions: ['can_read'], status: 'loaded' }
-        : { result: [], count: 0, status: 'not_loaded' },
-      response: new Response(),
-    } as Awaited<ReturnType<typeof SupersetClient.get>>),
-  );
-  renderWithStore();
-
-  expect(await screen.findByText('Extensions not loaded')).toBeInTheDocument();
-});
-
-test('shows no restart notice when the list comes from a loaded server', async () => {
-  // The opposite pairing: _info reaches a pod that did not load extensions
-  // while the list reaches one that did.
-  jest.spyOn(SupersetClient, 'get').mockImplementation(({ endpoint }) =>
-    Promise.resolve({
-      json: endpoint?.startsWith('/api/v1/extensions/_info')
-        ? { permissions: ['can_read'], status: 'not_loaded' }
-        : {
-            result: [{ id: 1, name: 'Loaded Extension', enabled: true }],
-            count: 1,
-            status: 'loaded',
-          },
-      response: new Response(),
-    } as Awaited<ReturnType<typeof SupersetClient.get>>),
-  );
-  renderWithStore();
-
-  expect(await screen.findByText('Loaded Extension')).toBeInTheDocument();
-  expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
-});
-
-test('ignores an older list response that resolves after a newer one', async () => {
-  type ListResponse = Awaited<ReturnType<typeof SupersetClient.get>>;
-  const listResponse = (
-    status: 'loaded' | 'not_loaded',
-    names: string[],
-  ): ListResponse =>
-    ({
-      json: {
-        result: names.map((name, id) => ({ id, name, enabled: true })),
-        count: names.length,
-        status,
-      },
-      response: new Response(),
-    }) as ListResponse;
-  const resolvers: ((response: ListResponse) => void)[] = [];
-  const get = jest.spyOn(SupersetClient, 'get').mockImplementation(
-    () =>
-      new Promise<ListResponse>(resolve => {
-        resolvers.push(resolve);
-      }),
-  );
-  renderWithStore();
-  await waitFor(() => expect(get).toHaveBeenCalledTimes(1));
-  await act(async () => {
-    resolvers[0](listResponse('loaded', ['First Extension']));
-  });
-  expect(await screen.findByText('First Extension')).toBeInTheDocument();
-
-  // Two re-sorts issue two more list requests; both stay pending.
-  fireEvent.click(screen.getAllByRole('columnheader', { name: /Name/ })[0]);
-  await waitFor(() => expect(get).toHaveBeenCalledTimes(2));
-  fireEvent.click(screen.getAllByRole('columnheader', { name: /Name/ })[0]);
-  await waitFor(() => expect(get).toHaveBeenCalledTimes(3));
-
-  // The newer request comes back first, from a server that loaded extensions,
-  // and the older one afterwards, from a server that did not.
-  await act(async () => {
-    resolvers[2](listResponse('loaded', ['Newer Extension']));
-  });
-  expect(await screen.findByText('Newer Extension')).toBeInTheDocument();
-  await act(async () => {
-    resolvers[1](listResponse('not_loaded', []));
-  });
-
-  expect(screen.getByText('Newer Extension')).toBeInTheDocument();
-  expect(screen.queryByText('Extensions not loaded')).not.toBeInTheDocument();
+  expect(await screen.findByText('Registered Extension')).toBeInTheDocument();
+  expect(
+    screen.queryByText('Extensions are not enabled on this server'),
+  ).not.toBeInTheDocument();
 });

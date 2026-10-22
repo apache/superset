@@ -64,10 +64,6 @@ from superset.daos.semantic_layer import SemanticLayerDAO
 from superset.databases.filters import DatabaseFilter
 from superset.datasets.schemas import get_delete_ids_schema
 from superset.exceptions import SupersetSecurityException
-from superset.extensions.availability import (
-    get_extensions_status,
-    is_contribution_available,
-)
 from superset.models.core import Database
 from superset.semantic_layers.access import is_semantic_layers_enabled
 from superset.semantic_layers.masking import mask_configuration
@@ -710,41 +706,14 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
           responses:
             200:
               description: A list of semantic layer types
-              content:
-                application/json:
-                  schema:
-                    type: object
-                    properties:
-                      result:
-                        type: array
-                        items:
-                          type: object
-                          properties:
-                            id:
-                              type: string
-                            name:
-                              type: string
-                            description:
-                              type: string
-                              nullable: true
-                      extensions_status:
-                        type: string
-                        enum: [disabled, loaded, not_loaded]
-                        description: >-
-                          Types contributed by extensions are listed only
-                          while this is `loaded`; `not_loaded` means the
-                          server must be restarted to load them
             401:
               $ref: '#/components/responses/401'
         """
         result = [
             {"id": key, "name": cls.name, "description": cls.description}  # type: ignore[attr-defined]
             for key, cls in registry.items()
-            if is_contribution_available(key)
         ]
-        return self.response(
-            200, result=result, extensions_status=get_extensions_status().value
-        )
+        return self.response(200, result=result)
 
     @expose("/schema/configuration", methods=("POST",))
     @protect()
@@ -779,7 +748,7 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
         sl_type = body.get("type")
 
         cls = registry.get(sl_type)  # type: ignore[arg-type]
-        if not cls or not is_contribution_available(str(sl_type)):
+        if not cls:
             return self.response_400(message=f"Unknown type: {sl_type}")
 
         # Enriching the schema hands the submitted configuration to the

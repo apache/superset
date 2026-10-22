@@ -34,7 +34,6 @@ from flask import g, request
 from flask.wrappers import Response
 from flask_appbuilder.api import BaseApi, expose, protect, safe
 
-from superset.extensions.availability import RuntimeGuardedExtensionsApiMixin
 from superset.extensions.storage.codecs import DEFAULT_CODEC, get_codec, SAFE_CODECS
 from superset.extensions.storage.ephemeral_dao import (
     ExtensionEphemeralDAO,
@@ -86,10 +85,13 @@ def _wire_value_for_request(value: Any, is_binary: bool) -> Any:
     return value
 
 
-class ExtensionStorageRestApi(RuntimeGuardedExtensionsApiMixin, BaseApi):
+class ExtensionStorageRestApi(BaseApi):
     """REST API for extension ephemeral (Tier 2) and persistent (Tier 3) storage."""
 
     allow_browser_login = True
+    # FAB's BaseApi exempts its blueprint from CSRF; the write routes are
+    # cookie-authenticated, so keep the protection.
+    csrf_exempt = False
     route_base = "/api/v1/extensions"
 
     def response(self, status_code: int, **kwargs: Any) -> Response:

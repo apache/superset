@@ -25,7 +25,6 @@ import pytest
 from flask import Flask, g
 from superset_core.extensions.types import Manifest
 
-from superset.extensions.availability import mark_extensions_loaded
 from superset.extensions.context import ConcreteExtensionContext
 
 
@@ -38,8 +37,6 @@ def app() -> Flask:
     # present in a real Superset app.
     flask_app.config["EXTENSIONS_EPHEMERAL_STORAGE"] = {}
     flask_app.config["EXTENSIONS_PERSISTENT_STORAGE"] = {}
-    # Storage serves only extensions this server loaded at startup.
-    mark_extensions_loaded(flask_app)
     return flask_app
 
 

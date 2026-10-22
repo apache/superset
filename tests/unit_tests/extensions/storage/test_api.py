@@ -50,7 +50,7 @@ from superset.extensions.storage.persistent_dao import (
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_get_delegates_to_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -79,7 +79,7 @@ def test_ephemeral_get_delegates_to_dao(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_get_response_is_marked_no_store(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -105,7 +105,7 @@ def test_ephemeral_get_response_is_marked_no_store(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_get_returns_none_when_entry_missing(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -130,7 +130,7 @@ def test_ephemeral_get_returns_none_when_entry_missing(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_get_returns_400_for_unsafe_stored_codec(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -155,7 +155,7 @@ def test_ephemeral_get_returns_400_for_unsafe_stored_codec(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_get_returns_binary_value_base64_encoded(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -186,7 +186,7 @@ def test_ephemeral_get_returns_binary_value_base64_encoded(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_passes_ttl_and_value_to_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -214,7 +214,7 @@ def test_ephemeral_set_passes_ttl_and_value_to_dao(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_with_binary_flag_decodes_base64(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -249,7 +249,7 @@ def test_ephemeral_set_with_binary_flag_decodes_base64(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_rejects_invalid_base64_when_binary_flag_set(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -276,7 +276,7 @@ def test_ephemeral_set_rejects_invalid_base64_when_binary_flag_set(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_rejects_unsafe_codec(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -305,7 +305,7 @@ def test_ephemeral_set_rejects_unsafe_codec(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_rejects_non_string_codec(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -333,7 +333,7 @@ def test_ephemeral_set_rejects_non_string_codec(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_returns_400_on_ttl_invalid(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -360,7 +360,7 @@ def test_ephemeral_set_returns_400_on_ttl_invalid(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_set_returns_400_on_value_too_large(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -387,7 +387,7 @@ def test_ephemeral_set_returns_400_on_value_too_large(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_delete_delegates_to_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -414,7 +414,7 @@ def test_ephemeral_delete_delegates_to_dao(
 
 
 @patch("superset.extensions.storage.api.ExtensionEphemeralDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_ephemeral_shared_query_param_uses_shared_scope(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -445,7 +445,7 @@ def test_ephemeral_shared_query_param_uses_shared_scope(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_get_user_scoped(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -467,7 +467,7 @@ def test_persistent_get_user_scoped(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_get_shared_scope(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -488,7 +488,7 @@ def test_persistent_get_shared_scope(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_encodes_and_stores(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -511,7 +511,7 @@ def test_persistent_set_encodes_and_stores(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_encrypt_flag(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -534,7 +534,7 @@ def test_persistent_set_encrypt_flag(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_delete_calls_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -554,7 +554,7 @@ def test_persistent_delete_calls_dao(
 
 @patch("superset.db")
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_returns_413_on_quota_exceeded(
     mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
@@ -585,7 +585,7 @@ def test_persistent_set_returns_413_on_quota_exceeded(
 
 @patch("superset.db")
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_returns_400_on_value_too_large(
     mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
@@ -617,7 +617,7 @@ def test_persistent_set_returns_400_on_value_too_large(
 
 @patch("superset.db")
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_rejects_unsafe_codec(
     mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
@@ -647,7 +647,7 @@ def test_persistent_set_rejects_unsafe_codec(
 
 @patch("superset.db")
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_rejects_non_string_codec(
     mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
@@ -676,7 +676,7 @@ def test_persistent_set_rejects_non_string_codec(
 
 @patch("superset.db")
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_returns_400_when_isbinary_codec_mismatch(
     mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
@@ -704,7 +704,7 @@ def test_persistent_set_returns_400_when_isbinary_codec_mismatch(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_defaults_codec_to_json(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -738,7 +738,7 @@ def test_persistent_set_defaults_codec_to_json(
 
 @patch("superset.db")
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_with_binary_flag_decodes_base64(
     mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
@@ -778,7 +778,7 @@ def test_persistent_set_with_binary_flag_decodes_base64(
 
 @patch("superset.db")
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_set_rejects_invalid_base64_when_binary_flag_set(
     mock_get_ext: MagicMock, mock_dao: MagicMock, mock_db: MagicMock, app: Flask
 ) -> None:
@@ -805,7 +805,7 @@ def test_persistent_set_rejects_invalid_base64_when_binary_flag_set(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_get_returns_400_for_unsafe_stored_codec(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -833,7 +833,7 @@ def test_persistent_get_returns_400_for_unsafe_stored_codec(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_get_returns_none_when_entry_missing(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -858,7 +858,7 @@ def test_persistent_get_returns_none_when_entry_missing(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_persistent_get_returns_binary_value_base64_encoded(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -894,7 +894,7 @@ def test_persistent_get_returns_binary_value_base64_encoded(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_list_persistent_returns_decoded_entries_and_count(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -947,7 +947,7 @@ def test_list_persistent_returns_decoded_entries_and_count(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_list_persistent_omits_value_for_unsafe_codec(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -991,7 +991,7 @@ def test_list_persistent_omits_value_for_unsafe_codec(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_list_persistent_flags_binary_entries_as_base64(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -1035,7 +1035,7 @@ def test_list_persistent_flags_binary_entries_as_base64(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_list_persistent_passes_query_params_to_dao(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -1067,7 +1067,7 @@ def test_list_persistent_passes_query_params_to_dao(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_list_persistent_returns_400_for_non_integer_page(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -1092,7 +1092,7 @@ def test_list_persistent_returns_400_for_non_integer_page(
 
 
 @patch("superset.extensions.storage.api.ExtensionStorageDAO")
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_list_persistent_returns_400_on_payload_too_large(
     mock_get_ext: MagicMock, mock_dao: MagicMock, app: Flask
 ) -> None:
@@ -1116,7 +1116,7 @@ def test_list_persistent_returns_400_on_payload_too_large(
         assert status_code == 400
 
 
-@patch("superset.extensions.availability.get_extensions")
+@patch("superset.extensions.storage.utils.get_extensions")
 def test_list_persistent_returns_404_for_missing_extension(
     mock_get_ext: MagicMock, app: Flask
 ) -> None:

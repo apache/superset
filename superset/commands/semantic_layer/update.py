@@ -39,7 +39,6 @@ from superset.commands.utils import current_user_can_modify_object
 from superset.constants import PASSWORD_MASK
 from superset.daos.semantic_layer import SemanticLayerDAO, SemanticViewDAO
 from superset.exceptions import SupersetSecurityException
-from superset.extensions.availability import is_contribution_available
 from superset.semantic_layers.masking import (
     mask_configuration,
     MaskedListUpdateError,
@@ -240,7 +239,7 @@ class UpdateSemanticLayerCommand(BaseCommand):
         if "configuration" in self._properties:
             configuration: dict[str, Any] = self._properties["configuration"]
             sl_type: str = self._model.type
-            if sl_type not in registry or not is_contribution_available(sl_type):
+            if sl_type not in registry:
                 raise SemanticLayerInvalidError(f"Unknown type: {sl_type}")
             validate_configuration(registry[sl_type], configuration)
 

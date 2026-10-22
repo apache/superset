@@ -74,7 +74,6 @@ from superset.extensions import (
     stats_logger_manager,
     talisman,
 )
-from superset.extensions.availability import is_extensions_enabled
 from superset.extensions.context import extension_context
 from superset.openapi import SupersetOpenApi, SupersetSwaggerView
 from superset.security import SupersetSecurityManager
@@ -332,11 +331,12 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
         appbuilder.add_api(SubjectRestApi)
         appbuilder.add_api(LogRestApi)
 
-        from superset.extensions.api import ExtensionsRestApi
-        from superset.extensions.storage.api import ExtensionStorageRestApi
+        if feature_flag_manager.is_feature_enabled("ENABLE_EXTENSIONS"):
+            from superset.extensions.api import ExtensionsRestApi
+            from superset.extensions.storage.api import ExtensionStorageRestApi
 
-        appbuilder.add_api(ExtensionsRestApi)
-        appbuilder.add_api(ExtensionStorageRestApi)
+            appbuilder.add_api(ExtensionsRestApi)
+            appbuilder.add_api(ExtensionStorageRestApi)
 
         if feature_flag_manager.is_feature_enabled("GLOBAL_TASK_FRAMEWORK"):
             from superset.tasks.api import TaskRestApi
@@ -476,7 +476,9 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             label=_("Extensions"),
             category="Manage",
             category_label=_("Manage"),
-            menu_cond=is_extensions_enabled,
+            menu_cond=lambda: feature_flag_manager.is_feature_enabled(
+                "ENABLE_EXTENSIONS"
+            ),
         )
 
         appbuilder.add_view(
@@ -640,9 +642,7 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
 
         Core dependencies are always initialized.
         Extensions are only initialized if the ENABLE_EXTENSIONS feature flag
-        is enabled at startup. The extensions APIs are always registered and
-        check the flag per request; a request that enables extensions on a
-        server that did not initialize them is told a restart is required.
+        is enabled.
         """
         # Always initialize core dependencies
         self.init_core_dependencies()
@@ -654,7 +654,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             logger.info("ENABLE_EXTENSIONS is off at startup; extensions not loaded")
 
     def init_extensions(self) -> None:
-        from superset.extensions.availability import mark_extensions_loaded
         from superset.extensions.utils import (
             eager_import,
             get_extensions,
@@ -665,8 +664,8 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
             extensions = get_extensions()
         except Exception:  # pylint: disable=broad-except
             # A discovery failure (for example an unreadable LOCAL_EXTENSIONS
-            # or EXTENSIONS_PATH entry) must not stop the app from starting;
-            # the server stays unloaded and says so per request.
+            # or EXTENSIONS_PATH entry, or a database that is not initialized
+            # yet) must not stop the app from starting.
             logger.warning("Extensions not loaded: discovery failed", exc_info=True)
             return
 
@@ -696,7 +695,6 @@ class SupersetAppInitializer:  # pylint: disable=too-many-public-methods
                     )
                     failed += 1
 
-        mark_extensions_loaded(self.superset_app)
         logger.info(
             "Loaded %d extension(s) at startup; %d failed to initialize",
             len(extensions) - failed,
