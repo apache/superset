@@ -34,6 +34,7 @@ from superset.commands.chart.exceptions import (
 )
 from superset.commands.chart.utils import (
     touch_dashboards,
+    raise_for_saved_query_ownership,
     validate_chart_datasource_type,
     validate_query_context_datasource,
 )
@@ -82,6 +83,7 @@ class CreateChartCommand(CreateMixin, BaseCommand):
             validate_chart_datasource_type(datasource_type)
             datasource = get_datasource_by_id(datasource_id, datasource_type)
             self._properties["datasource_name"] = datasource.name
+            raise_for_saved_query_ownership(datasource)
             security_manager.raise_for_access(datasource=datasource)
         except SupersetSecurityException as ex:
             raise ChartForbiddenError() from ex
