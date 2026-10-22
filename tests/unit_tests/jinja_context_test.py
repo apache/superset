@@ -262,6 +262,80 @@ def test_get_filters_remove_not_present() -> None:
     assert cache.removed_filters == []
 
 
+@pytest.mark.parametrize("value", [0, False])
+def test_get_filters_falsy_value(value: Any) -> None:
+    """
+    Test that ``get_filters`` returns filters whose value is falsy but set.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "adhoc_filters": [
+                        {
+                            "clause": "WHERE",
+                            "comparator": value,
+                            "expressionType": "SIMPLE",
+                            "operator": "==",
+                            "subject": "amount",
+                        }
+                    ],
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.get_filters("amount", remove_filter=True) == [
+            {"op": "==", "col": "amount", "val": value}
+        ]
+        assert cache.removed_filters == ["amount"]
+        assert cache.applied_filters == ["amount"]
+
+
+def test_get_filters_range_filter_starting_at_zero() -> None:
+    """
+    Test that both bounds of a native Range filter starting at 0 are returned.
+    """
+    with current_app.test_request_context(
+        data={
+            "form_data": json.dumps(
+                {
+                    "extra_form_data": {
+                        "filters": [
+                            {"col": "amount", "op": ">=", "val": 0},
+                            {"col": "amount", "op": "<=", "val": 100},
+                        ]
+                    }
+                }
+            )
+        }
+    ):
+        cache = ExtraCache()
+        assert cache.get_filters("amount") == [
+            {"op": ">=", "col": "amount", "val": 0},
+            {"op": "<=", "col": "amount", "val": 100},
+        ]
+
+
+@pytest.mark.parametrize("value", [0, False])
+def test_filter_values_falsy_value(value: Any) -> None:
+    """
+    Test that ``filter_values`` returns falsy but set values.
+    """
+    cache = ExtraCache(
+        query_context_filters=[{"col": "amount", "op": "==", "val": value}]
+    )
+    assert cache.filter_values("amount", default="fallback") == [value]
+
+
+def test_filter_values_empty_string_uses_default() -> None:
+    """
+    Test that ``filter_values`` treats an empty-string value as absent.
+    """
+    cache = ExtraCache(query_context_filters=[{"col": "amount", "op": "==", "val": ""}])
+    assert cache.filter_values("amount", default="fallback") == ["fallback"]
+
+
 def test_get_filters_query_context_filters() -> None:
     """
     Test that ``get_filters`` falls back to native query_context_filters when no

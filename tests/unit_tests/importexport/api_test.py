@@ -20,7 +20,7 @@
 from io import BytesIO
 from pathlib import Path
 from typing import Any
-from zipfile import is_zipfile, ZipFile
+from zipfile import is_zipfile, ZIP_DEFLATED, ZipFile
 
 from pytest_mock import MockerFixture
 
@@ -298,6 +298,73 @@ def test_import_assets_corrupt_zip(
             }
         ]
     }
+
+
+def test_import_assets_unsafe_zip(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a ZIP failing the safety checks (here, a compress ratio above
+    ``ZIP_FILE_MAX_COMPRESS_RATIO``) returns a 422, not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w", compression=ZIP_DEFLATED) as bundle:
+        bundle.writestr("bundle/metadata.yaml", "0" * 1024 * 1024)
+    buf.seek(0)
+    form_data = {
+        "bundle": (buf, "unsafe.zip"),
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 422
+    assert response.json == {
+        "errors": [
+            {
+                "message": "Zip compress ratio above allowed threshold",
+                "error_type": "GENERIC_COMMAND_ERROR",
+                "level": "warning",
+                "extra": {
+                    "issue_codes": [
+                        {
+                            "code": 1010,
+                            "message": (
+                                "Issue 1010 - Superset encountered an error while "
+                                "running a command."
+                            ),
+                        }
+                    ]
+                },
+            }
+        ]
+    }
+
+
+def test_import_assets_non_utf8_member(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+) -> None:
+    """
+    Test that a ZIP with a config member that is not valid UTF-8 returns a 422,
+    not a 500.
+    """
+    buf = BytesIO()
+    with ZipFile(buf, "w") as bundle:
+        bundle.writestr("bundle/metadata.yaml", b"\xff\xfe\x00bad")
+    buf.seek(0)
+    form_data = {
+        "bundle": (buf, "bundle.zip"),
+    }
+    response = client.post(
+        "/api/v1/assets/import/", data=form_data, content_type="multipart/form-data"
+    )
+    assert response.status_code == 422
+    assert response.json["errors"][0]["message"] == (
+        "File metadata.yaml is not valid UTF-8"
+    )
 
 
 def test_import_assets_no_form_data(

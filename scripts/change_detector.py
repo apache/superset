@@ -46,6 +46,7 @@ PATTERNS = {
         r"^docker-compose-image-tag\.yml$",
         r"^tests/",
         r"^superset/",
+        r"^superset-core/",
         r"^scripts/",
         r"^setup\.py",
         r"^pyproject\.toml$",
