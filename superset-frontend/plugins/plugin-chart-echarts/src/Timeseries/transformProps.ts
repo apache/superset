@@ -233,6 +233,19 @@ const visibleSymbols = [
 ] as const;
 
 /**
+ * Parses a user supplied minimum axis interval into a positive number.
+ * Returns undefined when the control is empty or not a valid number, so
+ * ECharts falls back to its automatic tick calculation.
+ */
+function parseMinInterval(
+  value: number | string | null | undefined,
+): number | undefined {
+  if (value === null || value === undefined || value === '') return undefined;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+/**
  * Given the fully-built ECharts series (each already carrying its resolved
  * `stack` id, see `getTimeCompareStackId`), find the largest per-index total
  * across all series sharing a stack, then return the largest such total
@@ -372,9 +385,11 @@ export default function transformProps(
     xAxisNumberFormat,
     xAxisTitle,
     xAxisTitleMargin,
+    xAxisMinInterval,
     yAxisBounds,
     yAxisFormat,
     currencyFormat,
+    yAxisMinInterval,
     yAxisTitle,
     yAxisTitleMargin,
     yAxisTitlePosition,
@@ -1481,6 +1496,9 @@ export default function transformProps(
     zoomable,
   );
 
+  const parsedXAxisMinInterval = parseMinInterval(xAxisMinInterval);
+  const parsedYAxisMinInterval = parseMinInterval(yAxisMinInterval);
+
   let xAxis: any = {
     type: xAxisType,
     name: xAxisTitle,
@@ -1497,11 +1515,12 @@ export default function transformProps(
     },
     ...(gridlines ? {} : { splitLine: { show: false } }),
     minInterval:
-      xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
+      parsedXAxisMinInterval ??
+      (xAxisType === AxisType.Time && resolvedTimeGrain && !forceMaxInterval
         ? (TIMEGRAIN_TO_TIMESTAMP[
             resolvedTimeGrain as keyof typeof TIMEGRAIN_TO_TIMESTAMP
           ] ?? 0)
-        : 0,
+        : 0),
     maxInterval:
       xAxisType === AxisType.Time && resolvedTimeGrain && forceMaxInterval
         ? TIMEGRAIN_TO_TIMESTAMP[
@@ -1537,6 +1556,9 @@ export default function transformProps(
     ...(yAxisSplitNumber !== undefined && { splitNumber: yAxisSplitNumber }),
     min: yAxisMin,
     max: yAxisMax,
+    ...(parsedYAxisMinInterval !== undefined && {
+      minInterval: parsedYAxisMinInterval,
+    }),
     minorTick: { show: isSmallChart ? false : minorTicks },
     minorSplitLine: { show: isSmallChart ? false : minorSplitLine },
     splitLine: { show: isSmallChart ? false : gridlines },

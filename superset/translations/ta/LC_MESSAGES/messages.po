@@ -4063,6 +4063,9 @@ msgstr "வண்ண பிரேக்பாயிண்ட் எடிட்�
 msgid "Close preview"
 msgstr ""
 
+msgid "Close price"
+msgstr ""
+
 msgid "Close tab"
 msgstr "தாவலை மூடு"
 
@@ -8390,10 +8393,10 @@ msgstr "காலத் தொடருக்கான கோட்டை மற
 msgid "Hierarchy"
 msgstr "படிநிலை (Hierarchy)"
 
-msgid "High"
+msgid "High color"
 msgstr ""
 
-msgid "High color"
+msgid "High price"
 msgstr ""
 
 msgid "Highest value for each period."
@@ -9642,10 +9645,10 @@ msgstr "தீர்க்கரேகை மற்றும் அட்சர�
 msgid "Longitude of default viewport"
 msgstr "இயல்புநிலை வியூபோர்ட்டின் தீர்க்கரேகை"
 
-msgid "Low"
+msgid "Low color"
 msgstr ""
 
-msgid "Low color"
+msgid "Low price"
 msgstr ""
 
 msgid "Lower Threshold"
@@ -10100,6 +10103,9 @@ msgstr "குறைந்தபட்சம்"
 msgid "Minimum Font Size"
 msgstr "குறைந்தபட்ச எழுத்துரு அளவு"
 
+msgid "Minimum Interval"
+msgstr ""
+
 msgid "Minimum Radius"
 msgstr "குறைந்தபட்ச ஆரம்"
 
@@ -10108,6 +10114,16 @@ msgid "Minimum Width"
 msgstr "குறைந்தபட்ச அகலம்"
 
 msgid "Minimum dot size"
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Only applies to numeric and time "
+"axes, where time is expressed in milliseconds. Leave empty for automatic."
+msgstr ""
+
+msgid ""
+"Minimum gap between two axis ticks. Useful to avoid fractional ticks on "
+"integer metrics. Leave empty for automatic."
 msgstr ""
 
 msgid "Minimum must be strictly less than maximum"
@@ -11054,9 +11070,6 @@ msgstr "குமிழ்களின் ஒளிப்புகாமை (0 -
 msgid "Opacity, expects values between 0 and 100"
 msgstr "ஒளிப்புகாமை, 0 முதல் 100 வரையிலான மதிப்புகளை எதிர்பார்க்கிறது"
 
-msgid "Open"
-msgstr ""
-
 msgid "Open Datasource tab"
 msgstr "தரவு ஆதாரம் (Datasource) தாவலைத் திற"
 
@@ -11088,6 +11101,9 @@ msgstr "SQL லேப்பில் திற"
 
 msgid "Open in SQL lab"
 msgstr "SQL லேப்பில் திற"
+
+msgid "Open price"
+msgstr ""
 
 msgid "Open query in SQL Lab"
 msgstr "வினவலை SQL லேப்பில் திற"
@@ -13211,6 +13227,12 @@ msgstr "மாற்றங்களை மேலெழுத கீழே ஸ்
 msgid "Search"
 msgstr "தேடு"
 
+#, python-format
+msgid "Search %s record"
+msgid_plural "Search %s records"
+msgstr[0] ""
+msgstr[1] ""
+
 msgid "Search / Filter"
 msgstr "தேடு / வடிகட்டு"
 
@@ -13270,9 +13292,6 @@ msgstr "வடிகட்டிகளில் தேடு"
 #, fuzzy
 msgid "Search metrics by key or label"
 msgstr "அளவீடுகள் & நெடுவரிசைகளைத் தேடு"
-
-msgid "Search records"
-msgstr ""
 
 msgid "Search tags"
 msgstr "குறிச்சொற்களைத் (tags) தேடு"
@@ -19198,6 +19217,9 @@ msgstr "X-அச்சு லேபிள்"
 msgid "X Axis Label Interval"
 msgstr "X-அச்சு லேபிள் இடைவெளி"
 
+msgid "X Axis Minimum Interval"
+msgstr ""
+
 msgid "X Axis Number Format"
 msgstr "X-அச்சு எண் வடிவம்"
 
@@ -19243,6 +19265,9 @@ msgstr "Y-அச்சு வடிவம்"
 
 msgid "Y Axis Label"
 msgstr "Y-அச்சு லேபிள்"
+
+msgid "Y Axis Minimum Interval"
+msgstr ""
 
 msgid "Y Axis Title"
 msgstr "Y-அச்சு தலைப்பு"
