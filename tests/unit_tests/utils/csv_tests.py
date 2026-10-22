@@ -16,6 +16,7 @@
 # under the License.
 
 
+from csv import QUOTE_NONE
 from typing import Any
 from unittest import mock
 
@@ -216,7 +217,7 @@ def test_df_to_escaped_csv():
         ["col_a"],
         ["'=func()"],
         ["-10"],
-        [r"'=cmd\\|' /C calc'!A0"],
+        [r"'=cmd\|' /C calc'!A0"],
         ['"\'""""=b"'],
         ["' =a"],
         ["\x00"],
@@ -224,6 +225,21 @@ def test_df_to_escaped_csv():
 
     df = pa.array([1, None]).to_pandas(integer_object_nulls=True).to_frame()
     assert df_to_escaped_csv(df, encoding="utf8", index=False) == '0\n1\n""\n'
+
+
+def test_df_to_escaped_csv_keeps_backslashes():
+    """
+    Backslashes are written as they are, and QUOTE_NONE still gets an escape
+    character for its delimiters.
+    """
+    df = pd.DataFrame(data={"path": ["C:\\Users\\ann", "a\\b, c"], "n": [1, 2]})
+
+    assert df_to_escaped_csv(df, index=False) == (
+        'path,n\nC:\\Users\\ann,1\n"a\\b, c",2\n'
+    )
+    assert df_to_escaped_csv(df, index=False, quoting=QUOTE_NONE) == (
+        "path,n\nC:\\\\Users\\\\ann,1\na\\\\b\\, c,2\n"
+    )
 
 
 def test_df_to_escaped_csv_preserves_numeric_columns():
