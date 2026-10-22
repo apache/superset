@@ -61,16 +61,19 @@ separate integration tests.
 
 Required query cases are `identity`, `grain`, `null`, `not_null`, `or`, and
 `order_limit`. Use member names distinct from private IDs and display labels.
-Use a grain-bearing dimension with data whose aggregation distinguishes the selected grain from raw values. Multiple grain variants for one name are allowed, not required.
+For `grain`, use a grain-bearing dimension with data whose aggregation distinguishes the selected grain from raw values. Multiple grain variants for one name are allowed, not required. When the catalog declares no grain-bearing dimension, the case skips with an explicit reason before looking up its fixture entry; such providers may omit the `grain` entry. This reports unexercised grain coverage, not a passing grain check.
 NULL and grouped-OR fixtures must select NULL and non-NULL branches observably;
 the `or` case must use the host-normalized shape: one `OrFilter` containing
 `IN frozenset({value_a, value_b, ...})` (at least two non-NULL values) and
 `IS_NULL` for the same member, combined with an outer AND comparison in the same
 predicate stage. Seed data so both IN values and the NULL branch contribute,
 and removing the parentheses or dropping the outer comparison changes the result.
+Also seed an excluded non-NULL category that satisfies the outer comparison,
+so dropping the whole OR group changes the result.
 The SQLite example uses a February lower bound, with A and NULL rows on both sides
 of that bound: the correct totals are NULL=1, A=5, B=8. This distinguishes either
-ordering of the outer AND and the OR group.
+ordering of the outer AND and the OR group. A February C row with amount 6 must
+be excluded; dropping the OR group incorrectly adds C=6 to the result.
 Seed more result rows than the limit, in an order that differs from the requested
 sort. The suite compares exact Arrow column names, types, values and row order,
 without prescribing column order or field nullability.

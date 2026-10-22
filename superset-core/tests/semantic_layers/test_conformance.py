@@ -100,8 +100,8 @@ def semantic_query_cases(
             SemanticQuery([total], [category], order=[(total, OrderDirection.ASC)]),
             pa.table(
                 {
-                    "category": pa.array([None, "A", "B"], type=pa.string()),
-                    "total": [4, 7, 8],
+                    "category": pa.array([None, "C", "A", "B"], type=pa.string()),
+                    "total": [4, 6, 7, 8],
                 }
             ),
         ),
@@ -112,7 +112,7 @@ def semantic_query_cases(
                     "occurred": pa.array(
                         [date(2026, 1, 1), date(2026, 2, 1)], type=pa.date32()
                     ),
-                    "total": [5, 14],
+                    "total": [5, 20],
                 }
             ),
         ),
@@ -129,7 +129,7 @@ def semantic_query_cases(
                 },
                 order=[(total, OrderDirection.ASC)],
             ),
-            pa.table({"category": ["A", "B"], "total": [7, 8]}),
+            pa.table({"category": ["C", "A", "B"], "total": [6, 7, 8]}),
         ),
         "or": (
             SemanticQuery(
@@ -411,9 +411,9 @@ def test_query_comparison_preserves_typed_ordered_values(
             1, "total", expected.column("total").cast(pa.float64())
         )
     elif variant == "value":
-        actual = expected.set_column(1, "total", pa.array([4, 7, 99]))
+        actual = expected.set_column(1, "total", pa.array([4, 6, 7, 99]))
     elif variant == "order":
-        actual = expected.take([2, 1, 0])
+        actual = expected.take([3, 2, 1, 0])
     else:
         actual = expected.append_column("total", expected.column("total"))
 
@@ -435,7 +435,7 @@ def test_query_comparison_preserves_typed_ordered_values(
 
 @pytest.mark.parametrize("group_first", [False, True])
 @pytest.mark.parametrize(
-    "mutation", ["drop_parentheses", "drop_comparisons", "one_in_value"]
+    "mutation", ["drop_parentheses", "drop_comparisons", "one_in_value", "drop_group"]
 )
 def test_or_witness_rejects_provider_mutations(
     semantic_view: "QueryView",
@@ -483,6 +483,15 @@ def test_or_witness_rejects_provider_mutations(
 
     def mutated_table(query: SemanticQuery) -> SemanticResult:
         query = replace(query, filters=OrderedFilters(query.filters or set()))
+        if mutation == "drop_group":
+            query = replace(
+                query,
+                filters={
+                    item
+                    for item in query.filters or set()
+                    if not isinstance(item, OrFilter)
+                },
+            )
         if mutation == "drop_comparisons":
             query = replace(
                 query,
@@ -501,6 +510,35 @@ def test_or_witness_rejects_provider_mutations(
         SemanticProviderConformance().test_query_outputs(
             "or", semantic_view, semantic_query_cases
         )
+
+
+@pytest.mark.parametrize("include_case", [False, True])
+def test_grain_lane_skips_categorical_only_catalog(
+    semantic_view: "QueryView",
+    semantic_query_cases: dict[str, tuple[SemanticQuery, pa.Table]],
+    monkeypatch: pytest.MonkeyPatch,
+    include_case: bool,
+) -> None:
+    """Categorical providers need neither a fabricated grain nor a grain fixture."""
+    dimensions: set[Dimension] = {
+        dimension
+        for dimension in semantic_view.get_dimensions()
+        if dimension.name == "category"
+    }
+
+    def categorical_dimensions() -> set[Dimension]:
+        return dimensions
+
+    def must_not_execute(query: SemanticQuery) -> SemanticResult:
+        raise AssertionError("skipped grain case reached provider execution")
+
+    monkeypatch.setattr(semantic_view, "get_dimensions", categorical_dimensions)
+    monkeypatch.setattr(semantic_view, "get_table", must_not_execute)
+    cases: dict[str, tuple[SemanticQuery, pa.Table]] = (
+        {"grain": semantic_query_cases["identity"]} if include_case else {}
+    )
+    with pytest.raises(pytest.skip.Exception, match="no grain-bearing dimension"):
+        SemanticProviderConformance().test_query_outputs("grain", semantic_view, cases)
 
 
 def test_adhoc_column_lane_skips_without_an_sdk_shape(

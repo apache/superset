@@ -110,6 +110,10 @@ class SemanticProviderConformance:
         semantic_query_cases: Mapping[str, tuple[SemanticQuery, pa.Table]],
     ) -> None:
         """Compare executed results, including column names and row order."""
+        if case == "grain" and not any(
+            dimension.grain is not None for dimension in semantic_view.get_dimensions()
+        ):
+            pytest.skip("grain: catalog declares no grain-bearing dimension")
         query: SemanticQuery
         expected: pa.Table
         query, expected = semantic_query_cases[case]
