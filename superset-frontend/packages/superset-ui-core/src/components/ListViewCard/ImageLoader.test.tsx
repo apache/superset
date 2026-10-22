@@ -18,7 +18,8 @@
  */
 import fetchMock from 'fetch-mock';
 
-import { render, screen } from '@superset-ui/core/spec';
+import { render, screen, waitFor } from '@superset-ui/core/spec';
+import { SupersetClient } from '../../connection';
 import { ImageLoader, type BackgroundPosition } from './ImageLoader';
 
 global.URL.createObjectURL = jest.fn(() => '/local_url');
@@ -63,12 +64,26 @@ describe('ImageLoader', () => {
       'src',
       '/fallback',
     );
-    expect(fetchMock.callHistory.calls(/thumbnail/)).toHaveLength(1);
-    expect(global.URL.createObjectURL).toHaveBeenCalled();
     expect(await screen.findByTestId('image-loader')).toHaveAttribute(
       'src',
       '/local_url',
     );
+    expect(fetchMock.callHistory.calls(/thumbnail/)).toHaveLength(1);
+    expect(global.URL.createObjectURL).toHaveBeenCalled();
+  });
+
+  test('requests src through SupersetClient', async () => {
+    const getSpy = jest.spyOn(SupersetClient, 'get');
+    setup();
+    expect(getSpy).toHaveBeenCalledWith({
+      endpoint: '/thumbnail',
+      parseMethod: 'raw',
+    });
+    expect(await screen.findByTestId('image-loader')).toHaveAttribute(
+      'src',
+      '/local_url',
+    );
+    getSpy.mockRestore();
   });
 
   test('displays fallback image when response is not an image', async () => {
@@ -79,7 +94,9 @@ describe('ImageLoader', () => {
       'src',
       '/fallback',
     );
-    expect(fetchMock.callHistory.calls(/thumbnail2/)).toHaveLength(1);
+    await waitFor(() =>
+      expect(fetchMock.callHistory.calls(/thumbnail2/)).toHaveLength(1),
+    );
     expect(await screen.findByTestId('image-loader')).toHaveAttribute(
       'src',
       '/fallback',
