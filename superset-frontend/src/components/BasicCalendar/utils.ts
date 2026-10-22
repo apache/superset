@@ -60,9 +60,9 @@ export function decodeDateTimeRange(value: string): CalendarRange {
   return start && end && end.isAfter(start) ? [start, end] : [null, null];
 }
 
-/** Store exact date-time endpoints using Superset's exclusive end convention. */
+/** Store minute-precision endpoints using Superset's exclusive end convention. */
 export function encodeDateTimeRange(start: Dayjs, end: Dayjs): string {
-  return `${start.format('YYYY-MM-DDTHH:mm:ss')} : ${end.format('YYYY-MM-DDTHH:mm:ss')}`;
+  return `${start.startOf('minute').format('YYYY-MM-DDTHH:mm:ss')} : ${end.startOf('minute').format('YYYY-MM-DDTHH:mm:ss')}`;
 }
 
 /** Decode day boundaries without changing Superset's exclusive upper bound. */

@@ -180,7 +180,7 @@ export default function BasicCalendar({
       candidate[0] &&
       candidate[1] &&
       (candidateMode === 'datetime'
-        ? candidate[1].isAfter(candidate[0])
+        ? candidate[1].startOf('minute').isAfter(candidate[0].startOf('minute'))
         : !candidate[1].isBefore(candidate[0], 'day'))
     );
   const emitRange = (candidate: CalendarRange, candidateMode = mode) => {
@@ -209,7 +209,7 @@ export default function BasicCalendar({
           ? date
               .hour(start?.hour() ?? 0)
               .minute(start?.minute() ?? 0)
-              .second(start?.second() ?? 0)
+              .startOf('minute')
           : date,
         null,
       ]);
@@ -223,7 +223,7 @@ export default function BasicCalendar({
         ? date
             .hour(end?.hour() ?? 0)
             .minute(end?.minute() ?? 0)
-            .second(end?.second() ?? 0)
+            .startOf('minute')
         : date;
     const ordered: [Dayjs, Dayjs] = nextEnd.isBefore(start)
       ? [nextEnd, start]

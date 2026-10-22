@@ -113,8 +113,9 @@ switch between date-only and date-time inputs.
 **Simple Date Time Range** accepts `DD/MM/YYYY HH:mm`, with separate hour and
 minute columns in its picker. Click **Done** to confirm the picker. Its quick
 ranges contain only minute and hour windows, from **Last 15 minutes** through
-**Last 24 hours**. Date-time endpoints retain their exact timestamps, with an
-exclusive end time. Neither component exposes advanced expression controls or
+**Last 24 hours**. Inputs show hours and minutes only, even when a saved or
+resolved range contains seconds. Manually selected date-time endpoints use
+minute precision, with an exclusive end time. Neither component exposes advanced expression controls or
 technical query-range previews.
 
 Quick ranges remain relative expressions when saved. For example, **Last 4

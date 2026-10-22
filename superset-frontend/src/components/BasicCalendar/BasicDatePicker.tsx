@@ -171,16 +171,13 @@ export default function BasicDatePicker({
   status,
   onFocus,
 }: BasicDatePickerProps) {
-  const format =
-    mode === 'datetime' && value?.second()
-      ? 'DD/MM/YYYY HH:mm:ss'
-      : pickerFormat(mode);
+  const format = pickerFormat(mode);
   const mask = dateInputMask(format);
   const [text, setText] = useState(value?.format(format) ?? mask);
   const [invalid, setInvalid] = useState(false);
   const [open, setOpen] = useState(false);
   const [pickerValue, setPickerValue] = useState(
-    value ?? dayjs().startOf('minute'),
+    (value ?? dayjs()).startOf('minute'),
   );
   const [month, setMonth] = useState((value ?? dayjs()).startOf('month'));
   const inputRef = useRef<InputRef>(null);
@@ -204,10 +201,11 @@ export default function BasicDatePicker({
   }, [text]);
 
   const commit = (date: Dayjs | null) => {
-    setText(date?.format(format) ?? mask);
+    const next = date?.startOf(mode === 'datetime' ? 'minute' : 'day') ?? null;
+    setText(next?.format(format) ?? mask);
     setInvalid(false);
     onValidityChange?.(true);
-    onChange(date);
+    onChange(next);
   };
   const updateText = (nextText: string, caret: number) => {
     pendingCaret.current = caret;
@@ -232,7 +230,7 @@ export default function BasicDatePicker({
   const openPicker = () => {
     onFocus?.();
     const parsed = parseTypedDate(text, mode);
-    const next = parsed ?? value ?? dayjs().startOf('minute');
+    const next = (parsed ?? value ?? dayjs()).startOf('minute');
     setPickerValue(next);
     setMonth(next.startOf('month'));
     setOpen(true);
@@ -241,7 +239,7 @@ export default function BasicDatePicker({
     const next = date
       .hour(pickerValue.hour())
       .minute(pickerValue.minute())
-      .second(pickerValue.second());
+      .startOf('minute');
     setPickerValue(next);
     if (mode === 'date') {
       commit(next.startOf('day'));

@@ -226,3 +226,48 @@ test('date-time quick ranges contain only minute/hour windows and no selection h
   expect(screen.queryByRole('status')).not.toBeInTheDocument();
   expect(screen.queryByRole('radiogroup')).not.toBeInTheDocument();
 });
+
+test('resolved quick ranges display minutes and calendar edits remove seconds from absolute bounds', async () => {
+  const onChange = jest.fn();
+  render(
+    <BasicCalendar
+      mode="datetime"
+      value="Last 4 hours"
+      resolvedRange="2026-10-09T12:10:39 ≤ col < 2026-10-09T16:10:39"
+      onChange={onChange}
+      onValidityChange={jest.fn()}
+    />,
+  );
+  expect(
+    screen.getByRole('textbox', { name: 'Start date and time' }),
+  ).toHaveValue('09/10/2026 12:10');
+  const end = screen.getByRole('textbox', { name: 'End date and time' });
+  expect(end).toHaveValue('09/10/2026 16:10');
+  expect(onChange).not.toHaveBeenCalled();
+  await userEvent.click(end);
+  await userEvent.click(screen.getByRole('button', { name: '2026-10-11' }));
+  expect(onChange).toHaveBeenLastCalledWith(
+    '2026-10-09T12:10:00 : 2026-10-11T16:10:00',
+  );
+});
+
+test('hidden saved seconds cannot make equal displayed minutes a valid edited range', async () => {
+  const onChange = jest.fn();
+  const onValidityChange = jest.fn();
+  render(
+    <BasicCalendar
+      mode="datetime"
+      value="2026-10-09T12:09:39 : 2026-10-09T12:10:50"
+      onChange={onChange}
+      onValidityChange={onValidityChange}
+    />,
+  );
+  const start = screen.getByRole('textbox', { name: 'Start date and time' });
+  await userEvent.clear(start);
+  await userEvent.type(start, '091020261210');
+  expect(onValidityChange).toHaveBeenLastCalledWith(false);
+  expect(onChange).not.toHaveBeenCalled();
+  expect(
+    screen.getByRole('textbox', { name: 'End date and time' }),
+  ).toHaveAttribute('aria-invalid', 'true');
+});

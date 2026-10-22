@@ -223,19 +223,21 @@ test('overwrites selected digits across separators and preserves the other segme
   expect(onChange).toHaveBeenLastCalledWith('2026-12-11T14:35:00');
 });
 
-test.each(['111220261435', '11/12/2026 14:35', '2026-12-11T14:35:00'])(
-  'pastes %s into the fixed date-time mask',
-  async pasted => {
-    const { onChange } = setup('datetime');
-    const input = screen.getByRole('textbox') as HTMLInputElement;
-    await userEvent.click(input);
-    input.setSelectionRange(0, input.value.length);
-    fireEvent.paste(input, { clipboardData: { getData: () => pasted } });
-    expect(input).toHaveValue('11/12/2026 14:35');
-    expect(onChange).toHaveBeenLastCalledWith('2026-12-11T14:35:00');
-    expect(input.selectionStart).toBe(16);
-  },
-);
+test.each([
+  '111220261435',
+  '11/12/2026 14:35',
+  '2026-12-11T14:35:00',
+  '2026-12-11T14:35:47',
+])('pastes %s into the fixed date-time mask', async pasted => {
+  const { onChange } = setup('datetime');
+  const input = screen.getByRole('textbox') as HTMLInputElement;
+  await userEvent.click(input);
+  input.setSelectionRange(0, input.value.length);
+  fireEvent.paste(input, { clipboardData: { getData: () => pasted } });
+  expect(input).toHaveValue('11/12/2026 14:35');
+  expect(onChange).toHaveBeenLastCalledWith('2026-12-11T14:35:00');
+  expect(input.selectionStart).toBe(16);
+});
 
 test('cutting a selection clears its digits but leaves the fixed separators', async () => {
   setup('datetime');
@@ -312,11 +314,35 @@ test('clearing a saved timestamp with seconds keeps the caret ready at the first
   const onChange = jest.fn();
   setup('datetime', onChange, '2026-10-09T12:10:39');
   const input = screen.getByRole('textbox') as HTMLInputElement;
-  expect(input).toHaveValue('09/10/2026 12:10:39');
+  expect(input).toHaveValue('09/10/2026 12:10');
   await userEvent.click(screen.getByLabelText('Clear'));
   expect(input).toHaveValue('__/__/____ __:__');
   expect(input.selectionStart).toBe(0);
   await userEvent.keyboard('091020261435');
   expect(input).toHaveValue('09/10/2026 14:35');
   expect(onChange).toHaveBeenLastCalledWith('2026-10-09T14:35:00');
+});
+
+test('saved seconds stay out of the input and picker confirmations use minute precision', async () => {
+  const onChange = jest.fn();
+  setup('datetime', onChange, '2026-10-09T12:10:39');
+  expect(screen.getByRole('textbox')).toHaveValue('09/10/2026 12:10');
+  expect(onChange).not.toHaveBeenCalled();
+  await userEvent.click(
+    screen.getByRole('button', { name: 'Open picker for Planned start' }),
+  );
+  await userEvent.click(screen.getByRole('button', { name: 'Hour 16' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Minute 25' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Done' }));
+  expect(screen.getByRole('textbox')).toHaveValue('09/10/2026 16:25');
+  expect(onChange).toHaveBeenLastCalledWith('2026-10-09T16:25:00');
+});
+
+test('manual date-time ranges store minute boundaries even when saved values have seconds', () => {
+  expect(
+    encodeDateTimeRange(
+      dayjs('2026-10-09T12:10:39'),
+      dayjs('2026-10-09T16:25:47'),
+    ),
+  ).toBe('2026-10-09T12:10:00 : 2026-10-09T16:25:00');
 });
