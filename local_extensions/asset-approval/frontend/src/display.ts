@@ -167,9 +167,12 @@ export function reviewRequiredToast(
     message ?? t('Changes saved. Viewers still see the live version.');
   const linkText = t('Review changes');
   return {
-    text: `${escape(text)} <a href="/approvals/${encodeURIComponent(
-      String(changeRequestId),
-    )}/">${escape(linkText)} →</a>`,
+    // The author's own queue, not `/approvals/<id>/`: that screen went with
+    // the move to contributed pages, and the path now falls through to the
+    // reviewer's queue, which is the one list an author has no business in.
+    text: `${escape(text)} <a href="/approvals/submitted-by-me">${escape(
+      linkText,
+    )} →</a>`,
     options: { allowHtml: true, duration: 10000 },
   };
 }

@@ -100,7 +100,17 @@ reviewer. It prints what it set up, and it is safe to re-run at any time.
 |---|---|---|---|
 | `maker` | `general` | Alpha | making changes |
 | `checker` | `general` | Alpha | reviewing them |
+| `viewer` | `general` | Gamma + data access | seeing what everyone else sees |
 | `admin` | `admin` | Admin | setup only |
+
+`viewer` is the account that proves the point of the feature: while a change
+sits in review it has no bell, nothing in Approvals, and the asset still reads
+the way it did before the edit. It is deliberately an editor of nothing.
+
+Two assets are set up to reach different states. **USA Births Names** has two
+editors, so a change made on it can be approved -- that is the walkthrough
+below. **Sales Dashboard** has only one, so a change made on it has nobody to
+go to, and the request dialog says so instead of offering a reviewer.
 
 **Test as `maker` and `checker`, not as `admin`.** Admin's blanket access
 deliberately does not count as editorship for approval, so admin sees a

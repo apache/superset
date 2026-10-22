@@ -37,13 +37,31 @@ from superset.app import create_app
 
 MAKER = "maker"
 CHECKER = "checker"
+VIEWER = "viewer"
 PASSWORD = "general"  # noqa: S105 -- a local QA fixture, never a deployment
 ROLE = "Alpha"
+
+# The viewer exists to prove the feature's central claim -- that a change
+# under review is invisible until it is approved. Gamma alone cannot read the
+# example data, so the dashboards render empty and prove nothing; the extra
+# permission is what lets this account actually SEE the live version it is
+# supposed to be still seeing.
+# Gamma is what makes the account usable at all -- the data-access role
+# below carries one grant and nothing else, so on its own it cannot even
+# read a dashboard, and the viewer could not sign in to be a viewer.
+VIEWER_BASE_ROLE = "Gamma"
+VIEWER_ROLE = "Viewer (data access)"
+VIEWER_PERMISSION = ("all_datasource_access", "all_datasource_access")
 
 # The example dashboard the walkthrough edits. Shipped by `superset load-examples`,
 # so it is the same object in every environment built from the README.
 DASHBOARD_TITLE = "USA Births Names"
 PROPOSED_TITLE = "USA Births Names (Q4)"
+
+# A second dashboard with ONE editor, so the "nobody can approve this yet"
+# path has something to happen on. Every other seeded asset has two, which
+# is the happy path and can never reach that state.
+SOLO_DASHBOARD_TITLE = "Sales Dashboard"
 
 app = create_app()
 # The seed drives the app through its own HTTP API rather than writing rows:
@@ -52,13 +70,39 @@ app = create_app()
 app.config["WTF_CSRF_ENABLED"] = False
 
 
-def ensure_user(username: str):
+def ensure_viewer_role():
+    """Gamma plus the one grant that lets this account read the examples."""
+    from superset import db
+    from superset.extensions import security_manager
+
+    role = security_manager.find_role(VIEWER_ROLE)
+    if not role:
+        role = security_manager.add_role(VIEWER_ROLE)
+    grant = security_manager.find_permission_view_menu(*VIEWER_PERMISSION)
+    if grant and grant not in role.permissions:
+        security_manager.add_permission_role(role, grant)
+        db.session.commit()
+    return role
+
+
+def grant_extra_role(user, role_name: str) -> None:
+    """A second role alongside the first, added once."""
+    from superset import db
+    from superset.extensions import security_manager
+
+    role = security_manager.find_role(role_name)
+    if role and role not in user.roles:
+        user.roles.append(role)
+        db.session.commit()
+
+
+def ensure_user(username: str, role_name: str = ROLE):
     """The QA account, created once and reused after that."""
     from superset.extensions import security_manager
 
     if user := security_manager.find_user(username=username):
         return user
-    role = security_manager.find_role(ROLE)
+    role = security_manager.find_role(role_name)
     user = security_manager.add_user(
         username=username,
         first_name=username.capitalize(),
@@ -69,7 +113,7 @@ def ensure_user(username: str):
     )
     if not user:
         sys.exit(f"could not create {username}")
-    print(f"created {username} ({ROLE})")
+    print(f"created {username} ({role_name})")
     return user
 
 
@@ -89,6 +133,24 @@ def grant_editorship(model, user_ids: list[int]) -> None:
             continue
         if subject := get_or_create_user_subject(user_id):
             model.editors.append(subject)
+    db.session.commit()
+
+
+def set_sole_editor(model, user_id: int) -> None:
+    """Exactly one editor, whoever else was there before.
+
+    Adding an editor is not enough: anyone else already holding this asset
+    gives the author an approver, and then the state this is here to produce
+    -- an author with nobody to send to -- cannot be reached. The seed claims
+    this asset has one editor, so it has to make that true rather than hope.
+    """
+    from superset import db
+    from superset.subjects.utils import get_or_create_user_subject
+
+    subject = get_or_create_user_subject(user_id)
+    if subject is None:
+        return
+    model.editors = [subject]
     db.session.commit()
 
 
@@ -114,6 +176,13 @@ def main() -> None:
         maker = ensure_user(MAKER)
         checker = ensure_user(CHECKER)
         both = [maker.id, checker.id]
+
+        # Deliberately an editor of nothing: a viewer must never be offered
+        # as an approver, and the whole point of the account is what it does
+        # NOT see while a change is in review.
+        ensure_viewer_role()
+        viewer = ensure_user(VIEWER, VIEWER_BASE_ROLE)
+        grant_extra_role(viewer, VIEWER_ROLE)
 
         # Either title: an approved run leaves the dashboard carrying the
         # proposed one, and resetting after walking the flow is exactly when
@@ -141,6 +210,17 @@ def main() -> None:
         ):
             if model is not None:
                 grant_editorship(model, both)
+
+        # One asset with a single editor, so an author can reach the state
+        # where there is no one to send the change to and the dialog has to
+        # say so. `maker` alone, because `maker` is who the walkthrough is.
+        solo = (
+            db.session.query(Dashboard)
+            .filter_by(dashboard_title=SOLO_DASHBOARD_TITLE)
+            .first()
+        )
+        if solo is not None:
+            set_sole_editor(solo, maker.id)
 
         # Start from nothing pending, and from the title the examples ship.
         from asset_approval.models import ChangeRequest
@@ -190,7 +270,9 @@ def main() -> None:
 
     print()
     print("Ready.")
-    print(f"  logins       {MAKER} / {CHECKER}  (password: {PASSWORD})")
+    print(f"  logins       {MAKER} / {CHECKER} / {VIEWER}  (password: {PASSWORD})")
+    print(f"  {VIEWER:12} sees only what is live -- editor of nothing")
+    print(f"  no approver  {SOLO_DASHBOARD_TITLE}: {MAKER} is its only editor")
     print(f"  waiting      {queue['count']} change(s) for {CHECKER}")
     if queue["count"]:
         print(f"  on           {queue['result'][0]['asset_title']}")

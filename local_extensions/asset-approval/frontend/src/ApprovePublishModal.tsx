@@ -19,7 +19,7 @@
 
 import React from 'react';
 import { Modal, styled, t } from './host';
-import { changeCount } from './display';
+import { changeCount, totalChangeCount } from './display';
 import type { ChangeRequest } from './types';
 
 const Hint = styled.div`
@@ -69,10 +69,16 @@ export default function ApprovePublishModal({
             'This removes the %s. It cannot be undone.',
             changeRequest.asset_type,
           )
-        : t(
-            'Viewers see these %s right away. The current version moves to version history.',
-            changeCount(changeRequest),
-          )}
+        : // "these 1 change" otherwise: the count reads naturally in a list
+          // ("What changed · 1 change") but not after a demonstrative.
+          totalChangeCount(changeRequest) === 1
+          ? t(
+              'Viewers see this change right away. The current version moves to version history.',
+            )
+          : t(
+              'Viewers see these %s right away. The current version moves to version history.',
+              changeCount(changeRequest),
+            )}
       <Hint>{t('Your note is saved with the approval.')}</Hint>
     </Modal>
   );
