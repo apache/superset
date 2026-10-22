@@ -35,6 +35,25 @@ const assetsConfig = {
 };
 
 // Multi-layer cache definition
+// A pg_dump of the metadata + examples database the Playwright jobs load with
+// `superset load_examples`. Keyed on everything that shapes that data: the
+// example loaders and their YAML configs, migrations, the CLI commands that
+// run, the CI config, and the E2E workflow itself (it pins the Postgres image
+// the dump has to match).
+const playwrightTestdataConfig = {
+  path: ['/tmp/superset-playwright-testdata'],
+  hashFiles: [
+    `${workspaceDirectory}/superset/examples/**/*`,
+    `${workspaceDirectory}/superset/migrations/**/*`,
+    `${workspaceDirectory}/superset/cli/examples.py`,
+    `${workspaceDirectory}/superset/cli/test.py`,
+    `${workspaceDirectory}/tests/integration_tests/superset_test_config.py`,
+    `${workspaceDirectory}/.github/workflows/superset-e2e.yml`,
+    `${workspaceDirectory}/.github/workflows/bashlib.sh`,
+  ],
+  restoreKeys: '',
+};
+
 module.exports = {
   pip: {
     path: [`${homeDirectory}/.cache/pip`],
@@ -49,4 +68,5 @@ module.exports = {
   // one is built with `npm run build`,
   // another is built with `npm run build-instrumented`
   'instrumented-assets': assetsConfig,
+  'playwright-testdata': playwrightTestdataConfig,
 };

@@ -127,6 +127,8 @@ jobs:
         # on the workspace-relative ./ form, consistent with every other
         # workflow in the repo that references this action.
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         with:
           run: playwright_testdata
       - name: Setup Node.js
@@ -359,6 +361,8 @@ jobs:
         # on the workspace-relative ./ form, consistent with every other
         # workflow in the repo that references this action.
         uses: ./.github/actions/cached-dependencies # zizmor: ignore[self-repository] - $/ cannot resolve an action that lives in a submodule; ./ is required here
+        env:
+          POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
         with:
           run: playwright_testdata
       - name: Setup Node.js
