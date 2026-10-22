@@ -47,6 +47,8 @@ import {
 import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmContent,
+  archiveToastContent,
+  ToastContent,
   archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
@@ -240,7 +242,7 @@ const createFetchDatasets = async (
 
 interface ChartListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -432,11 +434,13 @@ function ChartList(props: ChartListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(
-          softDelete
-            ? t('Archived %s item(s)', chartsToDelete.length)
-            : json.message,
-        );
+        const toast: ToastContent = softDelete
+          ? archiveToastContent(
+              t('Archived %s item(s)', chartsToDelete.length),
+              'chart',
+            )
+          : { text: json.message };
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(

@@ -127,6 +127,7 @@ test.each([
           favoriteStatus={false}
           handleBulkDashboardExport={mockHandleBulkDashboardExport}
           onDelete={mockOnDelete}
+          openDashboardEditModal={mockOpenDashboardEditModal}
           user={nonEditorUser}
         />
       </MemoryRouter>,
@@ -139,6 +140,11 @@ test.each([
       'dashboard-card-option-delete-button',
     );
     expect(archiveButton).toBeDisabled();
+    const editButton = screen.getByTestId('dashboard-card-option-edit-button');
+    expect(editButton).toBeDisabled();
+    expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
     expect(archiveButton).toHaveAttribute('aria-disabled', 'true');
     expect(archiveButton).toHaveStyleRule('color', 'inherit');
     expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', {

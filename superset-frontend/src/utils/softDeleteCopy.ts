@@ -21,6 +21,7 @@ import { escape } from 'lodash-es';
 import { t, tn } from '@apache-superset/core/translation';
 import { isFeatureEnabled, FeatureFlag } from '@superset-ui/core';
 import getBootstrapData from 'src/utils/getBootstrapData';
+import { LocalStorageKeys, setItem } from 'src/utils/localStorageHelpers';
 import { ensureAppRoot } from 'src/utils/navigationUtils';
 
 export interface ToastContent {
@@ -174,9 +175,9 @@ function archiveHref(type: ArchivedObjectType): string {
   return ensureAppRoot(`/archived/?type=${type}`);
 }
 
-/** Explain recovery without navigating away before archiving is confirmed. */
+/** Explain recovery and link directly to the archived collection. */
 export function archiveConfirmContent(
-  _type: ArchivedObjectType,
+  type: ArchivedObjectType,
   typeLabel: string,
   plural = false,
 ): ReactElement {
@@ -184,7 +185,25 @@ export function archiveConfirmContent(
     Fragment,
     null,
     archiveConfirmDescription(typeLabel, plural),
+    ' ',
+    createElement(
+      'a',
+      { href: archiveHref(type) },
+      t('View in Recently Archived →'),
+    ),
   );
+}
+
+/** Link a successful archive to its collection and remember the navigation default. */
+export function archiveToastContent(
+  text: string,
+  type: ArchivedObjectType,
+): ToastContent {
+  setItem(LocalStorageKeys.LastArchivedType, type);
+  return {
+    text: `${escape(text)} <a href="${escape(archiveHref(type))}">${escape(t('View in Recently Archived →'))}</a>`,
+    options: { allowHtml: true },
+  };
 }
 
 /** An escaped archive toast with a collection link; hard-delete copy stays plain. */
@@ -194,10 +213,7 @@ export function deletedToastContent(
 ): ToastContent {
   const text = deletedToast(name);
   return isFeatureEnabled(FeatureFlag.SoftDelete)
-    ? {
-        text: `${escape(text)} <a href="${escape(archiveHref(type))}">${escape(t('Recently Archived'))}</a>`,
-        options: { allowHtml: true },
-      }
+    ? archiveToastContent(text, type)
     : { text };
 }
 

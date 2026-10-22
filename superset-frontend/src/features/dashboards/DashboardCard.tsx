@@ -123,6 +123,8 @@ function DashboardCard({
               allowEdit ? () => openDashboardEditModal(dashboard) : undefined
             }
             data-test="dashboard-card-option-edit-button"
+            disabled={!allowEdit}
+            aria-disabled={!allowEdit}
           >
             <Icons.EditOutlined iconSize="l" data-test="edit-alt" /> {t('Edit')}
           </MenuItemButton>

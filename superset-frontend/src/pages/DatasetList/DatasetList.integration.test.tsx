@@ -576,6 +576,9 @@ test.each([0, 2])(
       } else {
         expect(modal).not.toHaveTextContent('linked to');
         expect(modal).not.toHaveTextContent('0 charts');
+        expect(modal).toHaveTextContent(
+          'No charts or dashboards depend on the selected dataset.',
+        );
       }
     } finally {
       window.featureFlags = previousFlags;

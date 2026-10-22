@@ -77,6 +77,7 @@ import handleResourceExport from 'src/utils/export';
 import { ensureAppRoot, stripAppRoot } from 'src/utils/navigationUtils';
 import {
   archiveConfirmContent,
+  archiveToastContent,
   archiveTitle,
   datasetArchiveImpact,
   deleteActionLabel,
@@ -1474,23 +1475,21 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
       // Always refresh so the list reflects whatever actually got deleted.
       refreshData();
       if (failures.length === 0) {
-        if (softDelete && semanticViews.length) {
-          // Semantic views were hard-deleted, not archived; counting them as
-          // archived would tell the user they are recoverable.
-          addSuccessToast(
-            t(
-              'Archived %s item(s); permanently deleted %s semantic view(s)',
-              datasets.length,
-              semanticViews.length,
-            ),
-          );
-        } else {
-          addSuccessToast(
-            softDelete
+        const message =
+          softDelete && semanticViews.length
+            ? t(
+                'Archived %s item(s); permanently deleted %s semantic view(s)',
+                datasets.length,
+                semanticViews.length,
+              )
+            : softDelete
               ? t('Archived %s item(s)', datasetsToDelete.length)
-              : t('Deleted %s item(s)', datasetsToDelete.length),
-          );
-        }
+              : t('Deleted %s item(s)', datasetsToDelete.length);
+        const toast: ToastContent =
+          softDelete && datasets.length
+            ? archiveToastContent(message, 'dataset')
+            : { text: message };
+        addSuccessToast(toast.text, toast.options);
       } else {
         const semanticResult = semanticViews.length
           ? results[results.length - 1]
@@ -1564,6 +1563,16 @@ const DatasetList: FunctionComponent<DatasetListProps> = ({
               {softDelete && (
                 <p>{archiveConfirmContent('dataset', datasetLabelLower())}</p>
               )}
+              {softDelete &&
+                datasetCurrentlyDeleting.charts.count === 0 &&
+                datasetCurrentlyDeleting.dashboards.count === 0 && (
+                  <p>
+                    {t(
+                      'No charts or dashboards depend on the selected %s.',
+                      datasetLabelLower(),
+                    )}
+                  </p>
+                )}
               {softDelete ? (
                 (datasetCurrentlyDeleting.charts.count > 0 ||
                   datasetCurrentlyDeleting.dashboards.count > 0) && (

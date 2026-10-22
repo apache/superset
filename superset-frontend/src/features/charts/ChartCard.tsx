@@ -129,6 +129,8 @@ export default function ChartCard({
           <MenuItemButton
             type="button"
             data-test="chart-list-edit-option"
+            disabled={!allowEdit}
+            aria-disabled={!allowEdit}
             onClick={allowEdit ? () => openChartEditModal(chart) : undefined}
           >
             <Icons.EditOutlined

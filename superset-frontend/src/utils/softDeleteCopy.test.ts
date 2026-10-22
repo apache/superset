@@ -19,6 +19,7 @@
 import {
   archiveConfirmDescription,
   archiveConfirmContent,
+  archiveToastContent,
   deletedToastContent,
   datasetArchiveImpact,
   getSoftDeleteRetentionDays,
@@ -46,6 +47,7 @@ const withConf = (conf: Record<string, unknown>) =>
   mockBootstrapData.mockReturnValue({ common: { conf } });
 
 beforeEach(() => {
+  localStorage.clear();
   withConf({});
   (applicationRoot as jest.Mock).mockReturnValue('');
 });
@@ -147,17 +149,18 @@ test('the confirm copy omits the clause when there is no window', () => {
 });
 
 test.each(['', '/superset'])(
-  'archive confirmation stays in the dialog under app root %s',
+  'archive confirmation links directly to recovery under app root %s',
   root => {
     (applicationRoot as jest.Mock).mockReturnValue(root);
     const { container } = render(
       archiveConfirmContent('dashboard', 'dashboard'),
     );
-    expect(screen.queryByRole('link')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'View in Recently Archived →' }),
+    ).toHaveAttribute('href', `${root}/archived/?type=dashboard`);
     expect(container).toHaveTextContent(
       'This dashboard will be moved to Recently Archived. You can recover it there.',
     );
-    expect(container.textContent?.match(/Recently Archived/g)).toHaveLength(1);
   },
 );
 
@@ -168,6 +171,7 @@ test('archive toast escapes names and links to its collection', () => {
   expect(toast.text).not.toContain('<img');
   expect(toast.text).toContain('&lt;img');
   expect(toast.text).toContain('href="/archived/?type=dataset"');
+  expect(toast.text).toContain('View in Recently Archived');
   expect(toast.options).toEqual({ allowHtml: true });
   spy.mockReturnValue(false);
   expect(deletedToastContent('name', 'chart')).toEqual({
@@ -203,3 +207,14 @@ test('dataset impact omits empty dependencies and retains nonzero dashboard coun
     'linked to 2 charts on 1 dashboard',
   );
 });
+
+test.each(['chart', 'dashboard', 'dataset'] as const)(
+  'bulk %s archive toast links to its collection',
+  type => {
+    const toast = archiveToastContent('Archived 2 item(s)', type);
+    expect(toast.text).toContain('Archived 2 item(s)');
+    expect(toast.text).toContain(`href="/archived/?type=${type}"`);
+    expect(toast.text).toContain('View in Recently Archived →');
+    expect(toast.options).toEqual({ allowHtml: true });
+  },
+);

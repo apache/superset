@@ -125,6 +125,11 @@ test.each([
     await userEvent.hover(screen.getByTestId('chart-list-delete-option'));
     const archiveButton = screen.getByTestId('chart-list-delete-option');
     expect(archiveButton).toBeDisabled();
+    const editButton = screen.getByTestId('chart-list-edit-option');
+    expect(editButton).toBeDisabled();
+    expect(editButton).toHaveStyleRule('cursor', 'not-allowed', {
+      target: ':disabled',
+    });
     expect(archiveButton).toHaveAttribute('aria-disabled', 'true');
     expect(archiveButton).toHaveStyleRule('color', 'inherit');
     expect(archiveButton).toHaveStyleRule('cursor', 'not-allowed', {

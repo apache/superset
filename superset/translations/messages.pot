@@ -10852,9 +10852,6 @@ msgstr ""
 msgid "Recently Archived"
 msgstr ""
 
-msgid "Recently archived"
-msgstr ""
-
 msgid "Recently modified"
 msgstr ""
 
@@ -18365,4 +18362,7 @@ msgstr ""
 msgid ""
 "Semantic view validation timed out before this view was checked. Retry it"
 " in a separate request."
+msgstr ""
+
+msgid "View in Recently Archived →"
 msgstr ""

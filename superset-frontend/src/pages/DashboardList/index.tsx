@@ -65,6 +65,8 @@ import {
 import handleResourceExport from 'src/utils/export';
 import {
   archiveConfirmContent,
+  archiveToastContent,
+  ToastContent,
   archiveTitle,
   deleteActionLabel,
 } from 'src/utils/softDeleteCopy';
@@ -106,7 +108,7 @@ const CONFIRM_OVERWRITE_MESSAGE = t(
 
 interface DashboardListProps {
   addDangerToast: (msg: string) => void;
-  addSuccessToast: (msg: string) => void;
+  addSuccessToast: (msg: string, options?: ToastContent['options']) => void;
   user?: UserWithPermissionsAndRoles;
 }
 
@@ -357,11 +359,13 @@ function DashboardList(props: DashboardListProps) {
     }).then(
       ({ json = {} }) => {
         refreshData();
-        addSuccessToast(
-          softDelete
-            ? t('Archived %s item(s)', dashboardsToDelete.length)
-            : json.message,
-        );
+        const toast: ToastContent = softDelete
+          ? archiveToastContent(
+              t('Archived %s item(s)', dashboardsToDelete.length),
+              'dashboard',
+            )
+          : { text: json.message };
+        addSuccessToast(toast.text, toast.options);
       },
       createErrorHandler(errMsg =>
         addDangerToast(
