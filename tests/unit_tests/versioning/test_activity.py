@@ -298,7 +298,7 @@ def decoration_lookups(mocker: MockerFixture) -> None:
         "superset.versioning.activity.render._lookup_entity_uuids", return_value={}
     )
     mocker.patch(
-        "superset.versioning.activity.render.resolve_historical_entity_uuids",
+        "superset.versioning.activity.render.resolve_historical_entity_snapshots",
         return_value={},
     )
     mocker.patch(
@@ -633,8 +633,8 @@ def test_decoration_redacts_record_from_reused_entity_id() -> None:
             return_value={("Slice", 7): live_uuid},
         ),
         patch(
-            "superset.versioning.activity.render.resolve_historical_entity_uuids",
-            return_value={("Slice", 7, 20): historical_uuid},
+            "superset.versioning.activity.render.resolve_historical_entity_snapshots",
+            return_value={("Slice", 7, 20): (historical_uuid, 20)},
         ),
         patch(
             "superset.versioning.activity.render.batch_chart_impacts", return_value={}
@@ -1012,7 +1012,7 @@ def test_related_record_impact_payload_carries_affected_charts() -> None:
             return_value={},
         ),
         patch(
-            "superset.versioning.activity.render.resolve_historical_entity_uuids",
+            "superset.versioning.activity.render.resolve_historical_entity_snapshots",
             return_value={},
         ),
         patch(

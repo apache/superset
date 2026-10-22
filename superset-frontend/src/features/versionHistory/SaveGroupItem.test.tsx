@@ -58,6 +58,24 @@ const groupBackground = (root: HTMLElement) =>
   getComputedStyle(within(root).getByTestId('version-history-save-group'))
     .backgroundColor;
 
+test.each<VersionedEntityType>(['chart', 'dashboard'])(
+  '%s saves without snapshots omit the creation preview and version menu',
+  entityType => {
+    renderItem({
+      entityType,
+      group: makeGroup({ versionUuid: null, creationKind: 'created' }),
+    });
+    expect(screen.getByTestId('version-history-save-group')).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: /preview/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'More actions' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Restore this version')).not.toBeInTheDocument();
+  },
+);
+
 test('a highlighted group carries the active treatment; a resting one does not', () => {
   // Which single group is highlighted is the panel's decision (see the
   // exclusivity test in VersionHistoryPanel.test.tsx); this component's
