@@ -64,7 +64,12 @@ import { useContextMenu } from '../ChartContextMenu/useContextMenu';
 import { requestChartDataResolved } from '../chartAction';
 import { useDisplayModeToggle } from './useDisplayModeToggle';
 import { useResultsTableView } from './useResultsTableView';
-import { applyDrillByTimeRange, getDrillByTimeRange } from './drillByTimeRange';
+import {
+  applyDrillByTimeRange,
+  fetchDrillByTimeRange,
+  getDrillByOuterTimeRange,
+  getDrillByTimeFilter,
+} from './drillByTimeRange';
 
 const DEFAULT_ADHOC_FILTER_FIELD_NAME = 'adhoc_filters';
 interface ModalFooterProps {
@@ -345,6 +350,48 @@ export default function DrillByModal({
     })
     .filter((item): item is NonNullable<typeof item> => item !== undefined);
 
+  const drillTimeFilter = useMemo(
+    () => getDrillByTimeFilter(drillByConfigs),
+    [drillByConfigs],
+  );
+  const drillTimeRange = drillTimeFilter?.val as string | undefined;
+  const outerTimeRange = useMemo(
+    () =>
+      drillTimeFilter
+        ? getDrillByOuterTimeRange(formData, drillTimeFilter.col)
+        : undefined,
+    [drillTimeFilter, formData],
+  );
+  const timeRangeKey = `${drillTimeRange} | ${outerTimeRange}`;
+  const [resolvedTimeRange, setResolvedTimeRange] = useState<{
+    key: string;
+    value: string;
+  }>();
+  useEffect(() => {
+    if (!drillTimeRange || !outerTimeRange) {
+      return undefined;
+    }
+    let active = true;
+    fetchDrillByTimeRange(drillTimeRange, outerTimeRange).then(value => {
+      if (active) {
+        setResolvedTimeRange({ key: timeRangeKey, value });
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [drillTimeRange, outerTimeRange, timeRangeKey]);
+  // Wait for the chart's own range to resolve before querying, so the drill
+  // only returns the part of the bucket the chart displayed.
+  const isTimeRangePending =
+    !!drillTimeRange &&
+    !!outerTimeRange &&
+    resolvedTimeRange?.key !== timeRangeKey;
+  const drilledTimeRange =
+    drillTimeRange && outerTimeRange && !isTimeRangePending
+      ? resolvedTimeRange?.value
+      : drillTimeRange;
+
   const drilledFormData = useMemo(() => {
     let updatedFormData = { ...currentFormData };
     if (currentColumn && groupbyFieldName) {
@@ -362,10 +409,7 @@ export default function DrillByModal({
       };
     });
 
-    updatedFormData = applyDrillByTimeRange(
-      updatedFormData,
-      getDrillByTimeRange(drillByConfigs),
-    );
+    updatedFormData = applyDrillByTimeRange(updatedFormData, drilledTimeRange);
 
     updatedFormData.slice_id = 0;
     delete updatedFormData.slice_name;
@@ -378,7 +422,7 @@ export default function DrillByModal({
     getFiltersFromConfigsByFieldName,
     getNewGroupby,
     formData,
-    drillByConfigs,
+    drilledTimeRange,
   ]);
 
   const handleDownload = useCallback(
@@ -498,6 +542,11 @@ export default function DrillByModal({
   });
 
   useEffect(() => {
+    if (isTimeRangePending) {
+      setIsChartDataLoading(true);
+      setChartDataResult(undefined);
+      return;
+    }
     if (drilledFormData) {
       setIsChartDataLoading(true);
       setChartDataResult(undefined);
@@ -515,7 +564,7 @@ export default function DrillByModal({
           setIsChartDataLoading(false);
         });
     }
-  }, [addDangerToast, asyncModeOverride, drilledFormData]);
+  }, [addDangerToast, asyncModeOverride, drilledFormData, isTimeRangePending]);
   const { metadataBar } = useDatasetMetadataBar({ dataset });
 
   return (

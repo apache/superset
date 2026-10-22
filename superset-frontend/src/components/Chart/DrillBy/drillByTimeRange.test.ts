@@ -16,8 +16,15 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import fetchMock from 'fetch-mock';
 import { buildQueryObject, QueryFormData } from '@superset-ui/core';
-import { applyDrillByTimeRange, getDrillByTimeRange } from './drillByTimeRange';
+import {
+  applyDrillByTimeRange,
+  fetchDrillByTimeRange,
+  getDrillByOuterTimeRange,
+  getDrillByTimeRange,
+  intersectTimeRanges,
+} from './drillByTimeRange';
 
 const OCT_2003 = '2003-10-01T00:00:00 : 2003-11-01T00:00:00';
 const OCT_1_2003 = '2003-10-01T00:00:00 : 2003-10-02T00:00:00';
@@ -215,4 +222,124 @@ test('the drilled query keeps categorical cross-filters and narrows a temporal c
     { col: 'deal_size', op: 'IN', val: ['Small'], isExtra: true },
   ]);
   expect(formData.extra_form_data?.time_range).toEqual(OCT_2003);
+});
+
+const YEAR_2003 = '2003-01-01T00:00:00 : 2004-01-01T00:00:00';
+const TIME_RANGE_ENDPOINT = 'glob:*/api/v1/time_range/*';
+
+afterEach(() => fetchMock.removeRoutes().clearHistory());
+
+test('intersectTimeRanges keeps a bucket that lies inside the outer range', () => {
+  expect(
+    intersectTimeRanges(OCT_2003, '2003-01-01T00:00:00', '2005-01-01T00:00:00'),
+  ).toEqual(OCT_2003);
+});
+
+test('intersectTimeRanges keeps only the part of a bucket inside the outer range', () => {
+  expect(
+    intersectTimeRanges(
+      YEAR_2003,
+      '2003-06-01T00:00:00',
+      '2003-11-15T12:30:00.250000',
+    ),
+  ).toEqual('2003-06-01T00:00:00 : 2003-11-15T12:30:00.250000');
+});
+
+test('intersectTimeRanges treats an empty outer bound as unbounded', () => {
+  expect(intersectTimeRanges(YEAR_2003, '', '2003-06-01T00:00:00')).toEqual(
+    '2003-01-01T00:00:00 : 2003-06-01T00:00:00',
+  );
+  expect(intersectTimeRanges(YEAR_2003, '2003-06-01T00:00:00', '')).toEqual(
+    '2003-06-01T00:00:00 : 2004-01-01T00:00:00',
+  );
+});
+
+test('intersectTimeRanges returns an empty range when the bucket is outside the outer range', () => {
+  expect(
+    intersectTimeRanges(
+      YEAR_2003,
+      '2004-02-01T00:00:00',
+      '2004-03-01T00:00:00',
+    ),
+  ).toEqual('2004-02-01T00:00:00 : 2004-02-01T00:00:00');
+});
+
+test('getDrillByOuterTimeRange follows the precedence of the chart query', () => {
+  const formData: QueryFormData = {
+    datasource: '1__table',
+    viz_type: 'echarts_timeseries',
+    time_range: 'Last year',
+    adhoc_filters: [
+      {
+        clause: 'WHERE',
+        expressionType: 'SIMPLE',
+        operator: 'TEMPORAL_RANGE',
+        subject: 'order_date',
+        comparator: '2003-06-01 : 2004-01-01',
+      },
+    ],
+  };
+  expect(getDrillByOuterTimeRange(formData, 'order_date')).toEqual('Last year');
+  expect(
+    getDrillByOuterTimeRange(
+      {
+        ...formData,
+        extra_filters: [{ col: '__time_range', op: '==', val: 'Last week' }],
+      },
+      'order_date',
+    ),
+  ).toEqual('Last week');
+  expect(
+    getDrillByOuterTimeRange(
+      {
+        ...formData,
+        extra_form_data: { time_range: '2003-01-01 : 2005-01-01' },
+      },
+      'order_date',
+    ),
+  ).toEqual('2003-01-01 : 2005-01-01');
+  // Without a time_range the chart's own range on the drilled column applies.
+  const { time_range: _, ...ownRangeOnly } = formData;
+  expect(getDrillByOuterTimeRange(ownRangeOnly, 'order_date')).toEqual(
+    '2003-06-01 : 2004-01-01',
+  );
+  expect(getDrillByOuterTimeRange(ownRangeOnly, 'ship_date')).toBeUndefined();
+});
+
+test('getDrillByOuterTimeRange returns undefined for an unlimited chart', () => {
+  expect(
+    getDrillByOuterTimeRange(
+      {
+        datasource: '1__table',
+        viz_type: 'echarts_timeseries',
+        time_range: 'No filter',
+      },
+      'order_date',
+    ),
+  ).toBeUndefined();
+});
+
+test('fetchDrillByTimeRange intersects the bucket with the resolved outer range', async () => {
+  fetchMock.get(TIME_RANGE_ENDPOINT, {
+    result: [
+      {
+        since: '2003-06-01T00:00:00',
+        until: '2004-01-01T00:00:00',
+        timeRange: 'Last year',
+      },
+    ],
+  });
+  await expect(fetchDrillByTimeRange(YEAR_2003, 'Last year')).resolves.toEqual(
+    '2003-06-01T00:00:00 : 2004-01-01T00:00:00',
+  );
+  expect(fetchMock.callHistory.lastCall(TIME_RANGE_ENDPOINT)?.url).toContain(
+    '?q=%27Last+year%27',
+  );
+});
+
+test('fetchDrillByTimeRange falls back to the bucket when the range cannot be resolved', async () => {
+  fetchMock.get(TIME_RANGE_ENDPOINT, 400);
+  await expect(fetchDrillByTimeRange(YEAR_2003, 'nonsense')).resolves.toEqual(
+    YEAR_2003,
+  );
 });

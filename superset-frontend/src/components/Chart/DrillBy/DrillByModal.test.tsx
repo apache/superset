@@ -246,6 +246,14 @@ const getLastChartDataFormData = () =>
       ?.body as string,
   ).form_data;
 
+const TIME_RANGE_ENDPOINT = 'glob:*/api/v1/time_range/*';
+const mockTimeRange = (since: string, until: string) =>
+  fetchMock.get(
+    TIME_RANGE_ENDPOINT,
+    { result: [{ since, until }] },
+    { name: TIME_RANGE_ENDPOINT },
+  );
+
 const getLastChartDataQuery = (): QueryObject =>
   JSON.parse(
     fetchMock.callHistory.lastCall(CHART_DATA_ENDPOINT)?.options
@@ -280,6 +288,7 @@ test('Drill by from a grained temporal bucket queries that bucket as the time ra
 });
 
 test('Drill by from a grained temporal bucket overrides a dashboard time range', async () => {
+  mockTimeRange('2003-01-01T00:00:00', '2005-01-01T00:00:00');
   await renderModal({
     column: { column_name: 'name', verbose_name: null },
     formData: {
@@ -303,6 +312,7 @@ test('Drill by from a grained temporal bucket overrides a dashboard time range',
 });
 
 test('Drill by from a grained temporal bucket overrides a legacy dashboard time range', async () => {
+  mockTimeRange('2003-01-01T00:00:00', '2005-01-01T00:00:00');
   await renderModal({
     column: { column_name: 'name', verbose_name: null },
     formData: {
@@ -321,6 +331,62 @@ test('Drill by from a grained temporal bucket overrides a legacy dashboard time 
     expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
   );
   expect(getLastChartDataQuery().time_range).toEqual(OCT_2003_BUCKET);
+});
+
+const YEAR_2003_BUCKET = '2003-01-01T00:00:00 : 2004-01-01T00:00:00';
+const year2003BucketFilter = {
+  col: 'ds',
+  op: 'TEMPORAL_RANGE' as const,
+  val: YEAR_2003_BUCKET,
+  formattedVal: '2003',
+};
+
+test('Drill by from a grained temporal bucket keeps only the part inside a narrower dashboard time range', async () => {
+  mockTimeRange('2003-06-01T00:00:00', '2004-01-01T00:00:00');
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...formData,
+      time_range: 'No filter',
+      extra_form_data: { time_range: '2003-06-01 : 2004-01-01' },
+    },
+    drillByConfig: {
+      filters: [year2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+
+  // The bar only counted Jun-Dec 2003, so the drill must not return Jan-May.
+  expect(getLastChartDataQuery().time_range).toEqual(
+    '2003-06-01T00:00:00 : 2004-01-01T00:00:00',
+  );
+  expect(fetchMock.callHistory.calls(CHART_DATA_ENDPOINT)).toHaveLength(1);
+});
+
+test("Drill by from a grained temporal bucket keeps only the part inside the chart's own time range", async () => {
+  mockTimeRange('2003-06-01T00:00:00', '2004-01-01T00:00:00');
+  await renderModal({
+    column: { column_name: 'name', verbose_name: null },
+    formData: {
+      ...formData,
+      time_range: '2003-06-01 : 2004-01-01',
+    },
+    drillByConfig: {
+      filters: [year2003BucketFilter],
+      groupbyFieldName: 'groupby',
+    },
+  });
+  await waitFor(() =>
+    expect(fetchMock.callHistory.called(CHART_DATA_ENDPOINT)).toBe(true),
+  );
+
+  expect(getLastChartDataQuery().time_range).toEqual(
+    '2003-06-01T00:00:00 : 2004-01-01T00:00:00',
+  );
+  expect(fetchMock.callHistory.calls(CHART_DATA_ENDPOINT)).toHaveLength(1);
 });
 
 test('Drill by from a grained temporal bucket shows one bucket label in the breadcrumb', async () => {

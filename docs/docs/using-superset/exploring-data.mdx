@@ -493,8 +493,9 @@ These expressions are evaluated at query time, so saved charts always display da
 
 On time-series charts, **Drill by** from a grained temporal axis keeps the clicked
 time bucket, such as a day, week, month, quarter, or year, rather than querying the
-chart's entire time range. The bucket also takes precedence over a dashboard Time
-range filter. The breadcrumb uses the bucket's formatted label.
+chart's entire time range. When the chart's or the dashboard's time range covers
+only part of the bucket, only that part is queried, so the drilled rows match the
+value that was clicked. The breadcrumb uses the bucket's formatted label.
 
 ### Downloading Drill to Detail and Drill By Results
 

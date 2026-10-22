@@ -16,25 +16,32 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+import rison from 'rison';
 import {
+  BinaryQueryObjectFilterClause,
   ContextMenuFilters,
   JsonObject,
+  NO_TIME_RANGE,
   QueryFormData,
+  SupersetClient,
+  buildQueryObject,
   ensureIsArray,
+  getColumnLabel,
 } from '@superset-ui/core';
 
 type DrillByConfig = ContextMenuFilters['drillBy'];
 
+const TIME_RANGE_SEPARATOR = ' : ';
+
 /**
- * Return the time range of the innermost temporal bucket a Drill by was
- * started from, i.e. the value of the last TEMPORAL_RANGE drill filter.
- * Each further drill narrows the previous one, so the last bucket is the
- * one to query.
+ * Return the innermost temporal bucket filter a Drill by was started from,
+ * i.e. the last TEMPORAL_RANGE drill filter. Each further drill narrows the
+ * previous one, so the last bucket is the one to query.
  */
-export const getDrillByTimeRange = (
+export const getDrillByTimeFilter = (
   configs: DrillByConfig[],
-): string | undefined => {
-  let timeRange: string | undefined;
+): BinaryQueryObjectFilterClause | undefined => {
+  let timeFilter: BinaryQueryObjectFilterClause | undefined;
   configs.forEach(config => {
     ensureIsArray(config?.filters).forEach(filter => {
       if (
@@ -42,11 +49,125 @@ export const getDrillByTimeRange = (
         typeof filter.val === 'string' &&
         filter.val
       ) {
-        timeRange = filter.val;
+        timeFilter = filter;
       }
     });
   });
-  return timeRange;
+  return timeFilter;
+};
+
+/**
+ * Return the time range of the innermost temporal bucket a Drill by was
+ * started from.
+ */
+export const getDrillByTimeRange = (
+  configs: DrillByConfig[],
+): string | undefined =>
+  getDrillByTimeFilter(configs)?.val as string | undefined;
+
+/**
+ * Return the time range the chart displayed before the drill, using the same
+ * precedence as the chart's own query: a dashboard override, a legacy
+ * dashboard time filter or the chart's time_range, and otherwise the chart's
+ * TEMPORAL_RANGE filter on the drilled column. Returns undefined when the
+ * chart is not limited in time.
+ */
+export const getDrillByOuterTimeRange = (
+  formData: QueryFormData,
+  column?: BinaryQueryObjectFilterClause['col'],
+): string | undefined => {
+  let timeRange: unknown;
+  try {
+    const queryObject = buildQueryObject(formData);
+    const columnLabel =
+      column === undefined ? undefined : getColumnLabel(column);
+    timeRange =
+      queryObject.time_range ??
+      ensureIsArray(queryObject.filters).find(
+        (filter): filter is BinaryQueryObjectFilterClause =>
+          filter.op === 'TEMPORAL_RANGE' &&
+          (columnLabel === undefined ||
+            getColumnLabel(filter.col) === columnLabel),
+      )?.val;
+  } catch {
+    return undefined;
+  }
+  return typeof timeRange === 'string' &&
+    timeRange.trim() &&
+    timeRange !== NO_TIME_RANGE
+    ? timeRange
+    : undefined;
+};
+
+const TIMEZONE_SUFFIX_RE = /(Z|[+-]\d{2}:?\d{2})$/;
+
+interface TimeBound {
+  value: string;
+  time: number;
+}
+
+const toBound = (value: string | undefined): TimeBound | undefined => {
+  if (!value) {
+    return undefined;
+  }
+  const time = new Date(
+    TIMEZONE_SUFFIX_RE.test(value) ? value : `${value}Z`,
+  ).getTime();
+  return Number.isNaN(time) ? undefined : { value, time };
+};
+
+/**
+ * Intersect a bucket time range ("since : until", naive ISO datetimes) with
+ * resolved outer bounds. An empty outer bound is unbounded on that side. A
+ * bucket that does not overlap the outer range yields an empty range.
+ */
+export const intersectTimeRanges = (
+  bucket: string,
+  outerSince: string | undefined,
+  outerUntil: string | undefined,
+): string => {
+  const [bucketSince, bucketUntil] = bucket.split(TIME_RANGE_SEPARATOR);
+  let since = toBound(bucketSince);
+  let until = toBound(bucketUntil);
+  if (!since || !until) {
+    return bucket;
+  }
+  const outerStart = toBound(outerSince);
+  const outerEnd = toBound(outerUntil);
+  if (outerStart && outerStart.time > since.time) {
+    since = outerStart;
+  }
+  if (outerEnd && outerEnd.time < until.time) {
+    until = outerEnd;
+  }
+  return since.time < until.time
+    ? `${since.value}${TIME_RANGE_SEPARATOR}${until.value}`
+    : `${since.value}${TIME_RANGE_SEPARATOR}${since.value}`;
+};
+
+/**
+ * Resolve the outer time range (which may be relative, e.g. "Last year") and
+ * return the part of the bucket that lies inside it, so a bucket that is
+ * only partly inside the chart's or dashboard's range does not return rows
+ * the chart never displayed. Falls back to the bucket if the range cannot be
+ * resolved.
+ */
+export const fetchDrillByTimeRange = async (
+  bucket: string,
+  outerTimeRange: string,
+): Promise<string> => {
+  try {
+    const { json } = await SupersetClient.get({
+      endpoint: `/api/v1/time_range/?q=${rison.encode_uri(outerTimeRange)}`,
+    });
+    const result = ensureIsArray(json?.result)[0];
+    if (!result) {
+      return bucket;
+    }
+    return intersectTimeRanges(bucket, result.since, result.until);
+  } catch {
+    return bucket;
+  }
 };
 
 /**
