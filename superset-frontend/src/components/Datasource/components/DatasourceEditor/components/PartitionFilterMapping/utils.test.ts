@@ -612,7 +612,7 @@ test('a temporal column stored as a number or as text gets no pre-fill', () => {
 });
 
 test('a mapping onto an array partition column is never active', () => {
-  // SC-128852: the banner said filters would apply to `region_keys TEXT[]`,
+  // The banner said filters would apply to `region_keys TEXT[]`,
   // which no mirror can compare against.
   const datasource = {
     main_dttm_col: 'event_time',
