@@ -52,7 +52,8 @@ def _writer(app: Any, mocker: MockerFixture, auth: str) -> tuple[Any, dict[str, 
     mocker.patch.object(security_manager, "get_user_by_id", return_value=user)
     client: Any = app.test_client()
     if auth == "session":
-        mocker.patch.object(app.login_manager, "_user_callback", return_value=user)
+        # Flask-Login resolves the cookie through FAB's load_user, which
+        # calls the patched get_user_by_id above.
         with client.session_transaction() as session:
             session["_user_id"] = str(user.id)
         return client, {}
@@ -61,7 +62,10 @@ def _writer(app: Any, mocker: MockerFixture, auth: str) -> tuple[Any, dict[str, 
             return client, {"Authorization": f"Bearer {create_access_token('1')}"}
 
     def validate(_key: str) -> User:
+        # Mirrors the SQLA manager, which records the key's user on ``g``
+        # for has_access as well as setting the current user.
         g.user = user
+        g._api_key_user = user  # noqa: SLF001
         return user
 
     mocker.patch.object(security_manager, "validate_api_key", side_effect=validate)
