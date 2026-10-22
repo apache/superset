@@ -211,6 +211,15 @@ export function hasValidPreviousData(
   return hasPreviousResponse && !hasAnyErrors;
 }
 
+// The colour settings a dashboard merges into each chart's form data.
+const DASHBOARD_COLOR_KEYS = [
+  'color_scheme',
+  'own_color_scheme',
+  'label_colors',
+  'shared_label_colors',
+  'map_label_colors',
+] as const;
+
 const BLANK = {};
 
 const BIG_NO_RESULT_MIN_WIDTH = 300;
@@ -333,9 +342,20 @@ function ChartRendererComponent({
 
   // A filter change updates formData as soon as the new query starts, so the
   // previous response is drawn with the form data it was queried with until
-  // the new one lands.
-  const renderedFormData =
-    (isRefreshing && responseFormData) || currentFormData;
+  // the new one lands. The dashboard's colours change without a new query, so
+  // those always come from the current form data.
+  const renderedFormData = useMemo(
+    () =>
+      isRefreshing && responseFormData
+        ? {
+            ...responseFormData,
+            ...Object.fromEntries(
+              DASHBOARD_COLOR_KEYS.map(key => [key, currentFormData[key]]),
+            ),
+          }
+        : currentFormData,
+    [isRefreshing, responseFormData, currentFormData],
+  );
 
   // Clone queriesResponse to protect against plugin mutation of Redux state.
   // Gate on `hasRenderableResults` so the deep clone doesn't run for every

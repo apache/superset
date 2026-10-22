@@ -45,11 +45,13 @@ const NO_RESULTS = 'No results were returned for this query';
 interface TestChartProps {
   queriesData: { data: { value: number }[] }[];
   label?: string;
+  colorScheme?: string;
 }
 
-const TestChart = ({ queriesData, label }: TestChartProps) => (
+const TestChart = ({ queriesData, label, colorScheme }: TestChartProps) => (
   <div data-test="refresh-test-chart">
     value={queriesData[0].data[0].value} label={label}
+    <span data-test="refresh-test-chart-scheme">{colorScheme}</span>
   </div>
 );
 
@@ -71,6 +73,7 @@ beforeAll(() => {
     transformProps: chartProps => ({
       queriesData: chartProps.queriesData,
       label: chartProps.formData.label,
+      colorScheme: chartProps.formData.colorScheme,
     }),
   })
     .configure({ key: VIZ_TYPE })
@@ -317,6 +320,52 @@ test('draws the previous data with its own form data when a virtualized chart sc
   } finally {
     window.featureFlags = previousFlags;
   }
+});
+
+test('draws the previous data with the current dashboard colour scheme', async () => {
+  // Changing the dashboard colour scheme doesn't run a new query, so formData
+  // moves on while the response in the store stays the same.
+  const previous = queriesResponse(1);
+  const withScheme = (colorScheme: string) =>
+    ({
+      ...labelledFormData('before'),
+      color_scheme: colorScheme,
+    }) as ChartRendererProps['formData'];
+  const { rerender } = render(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={withScheme('supersetColors')}
+      queriesResponse={previous}
+    />,
+  );
+  expect(
+    await screen.findByTestId('refresh-test-chart-scheme'),
+  ).toHaveTextContent('supersetColors');
+
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="rendered"
+      formData={withScheme('bnbColors')}
+      queriesResponse={previous}
+    />,
+  );
+  expect(
+    await screen.findByTestId('refresh-test-chart-scheme'),
+  ).toHaveTextContent('bnbColors');
+
+  rerender(
+    <Chart
+      {...dashboardChartProps}
+      chartStatus="loading"
+      formData={withScheme('bnbColors')}
+      queriesResponse={previous}
+    />,
+  );
+  expect(screen.getByTestId('refresh-test-chart-scheme')).toHaveTextContent(
+    'bnbColors',
+  );
 });
 
 test('shows the regular spinner for a dashboard chart mounted while its query is in flight', async () => {
