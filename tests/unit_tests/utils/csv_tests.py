@@ -457,6 +457,28 @@ def test_df_to_escaped_csv_keeps_a_sibling_level_dtype():
     assert rows[2] == "safe,01/01/1600,2"
 
 
+def test_df_to_escaped_csv_keeps_a_sibling_level_dtype_with_a_missing_value():
+    """
+    A sibling level holding a missing value keeps its integer dtype.
+
+    Reading a level back row by row codes the missing value as ``-1`` and
+    widens the level to ``float64``, which writes an id past 2**53 as a
+    different number. Only the level that needs escaping is rebuilt, so the
+    others keep their own values and codes.
+    """
+    df = pd.DataFrame(
+        data={"v": [1, 2]},
+        index=pd.MultiIndex.from_tuples(
+            [("=cmd()", 9007199254740993), ("safe", None)], names=["dim", "id"]
+        ),
+    )
+
+    assert (
+        df_to_escaped_csv(df, encoding="utf8", index=True)
+        == "dim,id,v\n'=cmd(),9007199254740993,1\nsafe,,2\n"
+    )
+
+
 def test_df_to_escaped_csv_leaves_safe_index_alone():
     """
     A numeric index and a negative numeric label are not escaped, so ordinary

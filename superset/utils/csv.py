@@ -144,11 +144,23 @@ def df_to_escaped_csv(df: pd.DataFrame, **kwargs: Any) -> Any:
         # ``levels`` carries each level's distinct values, so an index with
         # nothing to escape is recognised without a pass over every row.
         if any(needs_escaping(level) for level in index.levels):
-            index = pd.MultiIndex.from_arrays(
-                [
-                    escape_axis_level(index.get_level_values(position))
-                    for position in range(index.nlevels)
-                ],
+            # Only a level carrying a formula label is rebuilt. A sibling keeps
+            # its own values and codes, and with them its dtype: read back row
+            # by row it would lose a missing value to ``float64``, which writes
+            # an integer id as ``5.0`` and rounds one past 2**53 to a different
+            # number. ``escape_value`` prepends a quote, so two distinct labels
+            # can escape to the same text, and ``factorize`` folds those onto a
+            # single code, which the level values of a ``MultiIndex`` have to
+            # be unique for.
+            rebuilt = [
+                pd.factorize(index.get_level_values(position).map(escape_values))
+                if needs_escaping(level)
+                else (index.codes[position], level)
+                for position, level in enumerate(index.levels)
+            ]
+            index = pd.MultiIndex(
+                levels=[level for _, level in rebuilt],
+                codes=[level_codes for level_codes, _ in rebuilt],
                 names=index.names,
             )
     else:
