@@ -224,12 +224,14 @@ def saved_chart_display_labels(
 ) -> dict[str, str]:
     """Map a chart's saved dimension/metric IDs to their configured labels.
 
-    Display references come from active saved form controls. Viewer-writable
+    Display references come from recognized saved display controls, with
+    query-mode pruning for table, AG Grid and Handlebars charts. Viewer-writable
     query context cannot add labels. Raw names resolve against the dataset's
     stored column and saved-metric ``verbose_name`` attributes. An entry is
     omitted when no label is configured. Expressions are never parsed: columns
-    appearing only inside an expression, aggregate or filter, and every unused
-    dataset field, are excluded. No external metadata is discovered.
+    appearing only inside an expression, aggregate or filter, and dataset fields
+    absent from the recognized controls are excluded. No external metadata is
+    discovered.
 
     :param datasource: The chart's SQLAlchemy dataset
     :param chart: A chart whose datasource is ``datasource``

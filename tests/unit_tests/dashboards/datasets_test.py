@@ -1541,8 +1541,84 @@ def test_chart_display_labels_ignore_viewer_writable_query_context() -> None:
     assert labels == {"region": "Region"}
     verbose_map = table.data_for_slices([chart])["verbose_map"]
     assert verbose_map["metro"] == "Metro area"
-    assert verbose_map["Cost grouping"] == "Cost grouping"
+    assert "Cost grouping" not in verbose_map
     assert verbose_map["revenue"] == "Revenue"
+
+
+def test_data_for_slices_only_adds_authored_labels_from_saved_controls() -> None:
+    """Query outputs retain stored fields without introducing authored labels."""
+    table = _labelled_table()
+    chart = _chart(
+        11,
+        table,
+        groupby=[
+            "region",
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "UPPER(region)",
+                "label": "Saved grouping",
+                "hasCustomLabel": True,
+            },
+        ],
+        metrics=[
+            {
+                "expressionType": "SQL",
+                "sqlExpression": "COUNT(*)",
+                "label": "Saved count",
+                "hasCustomLabel": True,
+            }
+        ],
+    )
+    chart.query_context = json.dumps(
+        {
+            "queries": [
+                {
+                    "columns": [
+                        "metro",
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": "cost_center",
+                            "label": "cost_center",
+                            "isColumnReference": True,
+                        },
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": "LOWER(region)",
+                            "label": "Injected grouping",
+                            "hasCustomLabel": True,
+                        },
+                    ],
+                    "metrics": [
+                        "revenue",
+                        {
+                            "expressionType": "SQL",
+                            "sqlExpression": "SUM(margin)",
+                            "label": "Injected margin",
+                            "hasCustomLabel": True,
+                        },
+                    ],
+                }
+            ]
+        }
+    )
+
+    data = table.data_for_slices([chart])
+
+    assert data["verbose_map"] == {
+        "__timestamp": "Time",
+        "region": "Region",
+        "metro": "Metro area",
+        "cost_center": "Cost center",
+        "revenue": "Revenue",
+        "Saved grouping": "Saved grouping",
+        "Saved count": "Saved count",
+    }
+    assert {column["column_name"] for column in data["columns"]} == {
+        "region",
+        "metro",
+        "cost_center",
+    }
+    assert {metric["metric_name"] for metric in data["metrics"]} == {"revenue"}
 
 
 @pytest.mark.parametrize("sort_is_displayed", [False, True])

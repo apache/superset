@@ -798,10 +798,12 @@ class BaseDatasource(
     def _form_display_references(
         cls, form_data: dict[str, Any], viz_type: str | None
     ) -> ChartDisplayReferences:
-        """Collect explicit display controls without reading SQL or dependencies.
+        """Collect recognized saved display controls without reading SQL.
 
         List controls require lists. The single-column controls ``series`` and
         ``all_columns_x`` also support their established legacy list shapes.
+        Control names are shared across visualizations, not validated against
+        each plugin's control panel or rendered fields.
         """
         columns: list[DisplayReference] = []
         metrics: list[DisplayReference] = []
@@ -842,11 +844,14 @@ class BaseDatasource(
 
     @classmethod
     def _slice_display_references(cls, slc: Slice) -> ChartDisplayReferences:
-        """Collect label references from editor-controlled, active saved controls.
+        """Collect label references from editor-controlled saved display controls.
 
         Query context is viewer-writable and cannot expand the label allowlist.
         Filter, sort, granularity and expression-internal dependencies are not
         display controls, even when plugins include them in query outputs.
+        Query-mode pruning applies to table, AG Grid and Handlebars; other
+        plugins retain recognized controls even if a legacy or imported chart
+        saved fields that its visualization no longer uses.
         """
         form_data = cls._saved_display_form_data(slc)
         viz_type = slc.viz_type or form_data.get("viz_type")
@@ -912,11 +917,17 @@ class BaseDatasource(
                 column_names.update(_columns)
 
             # Full-access metadata retains hidden controls and query-only
-            # dependencies; only active saved controls authorize chart labels.
+            # dependencies. Only saved display controls supply authored labels.
             display_columns, display_metrics = self._form_display_references(
                 form_data,
                 slc.viz_type or self._saved_display_form_data(slc).get("viz_type"),
             )
+            for references in (display_columns, display_metrics):
+                for reference in references:
+                    if isinstance(reference, dict) and (
+                        label := _authored_display_label(reference)
+                    ):
+                        authored_labels.setdefault(label, label)
             query_columns, query_metrics = self._query_output_references(
                 slc.query_context
             )
@@ -929,8 +940,6 @@ class BaseDatasource(
                 for reference in references:
                     if isinstance(reference, str):
                         names.add(reference)
-                    elif label := _authored_display_label(reference):
-                        authored_labels.setdefault(label, label)
             for reference in display_columns:
                 if isinstance(reference, dict) and (
                     column_name := _physical_display_column(reference)

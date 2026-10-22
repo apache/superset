@@ -140,7 +140,7 @@ export default function transformProps(
   const originalLabel = getOriginalLabel(
     metric,
     metrics,
-    chartProps.datasource.verboseMap,
+    chartProps.datasource?.verboseMap,
   );
   const showMetricName = chartProps.rawFormData?.show_metric_name ?? false;
   const compareLag = Number(compareLag_) || 0;

@@ -71,14 +71,16 @@ For viewers without dataset access, the dashboard datasets API supplies these
 names in `chart_display_labels`, keyed by chart ID and then by field or metric
 identifier. Viewers with dataset access use the existing `verbose_map`; the API
 omits `chart_display_labels` and skips the per-chart checks needed to generate it.
-Each entry contains only labels referenced by an accessible chart on that
-dashboard. Filter-only fields,
-sort-only fields, expression internals, and unrelated dataset metadata are
-excluded. Display references come from the chart editor's saved controls; a
-background query-context refresh cannot add labels for other fields. Table,
-AG Grid, and Handlebars charts include only the controls used by their saved query
-mode; Handlebars does not use percentage metrics. Generated identifiers such as
-`__timestamp` keep their existing fallback labels.
+Each entry contains labels from recognized saved display controls on an accessible
+chart on that dashboard. Filter-only fields, sort-only fields, expression
+internals, and dataset fields absent from those controls are excluded. A background
+query-context refresh cannot add labels for other fields. Table, AG Grid, and
+Handlebars charts exclude controls hidden by their saved query mode; Handlebars
+does not use percentage metrics. Other visualizations use the shared list of
+recognized control names without checking whether their plugin renders each
+control. Legacy, API-created, or imported charts can therefore retain labels for
+unused saved controls, such as `all_columns` left over on a pie chart. Generated
+identifiers such as `__timestamp` keep their existing fallback labels.
 Guest tokens must authorize the dashboard and, when a `datasets`
 allowlist is present, the SQL dataset. Semantic views do not supply this map.
 
