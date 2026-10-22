@@ -5518,13 +5518,23 @@ class ExploreMixin:  # pylint: disable=too-many-public-methods
                     db_extra=self.db_extra,
                     # Engines without SQL shifts group raw timestamps, then add
                     # Hours offset in pandas. Invert that display-only shift on
-                    # the selected bucket, not on the underlying column.
+                    # each selected bucket, not on the underlying column.
                     temporal_offset_hours=(
                         (self.offset or 0)
                         if filter_grain
                         and offset_column is not None
                         and offset_column.is_dttm
-                        and op == utils.FilterOperator.EQUALS
+                        and op
+                        in {
+                            utils.FilterOperator.EQUALS,
+                            utils.FilterOperator.NOT_EQUALS,
+                            utils.FilterOperator.IN,
+                            utils.FilterOperator.NOT_IN,
+                            utils.FilterOperator.GREATER_THAN,
+                            utils.FilterOperator.LESS_THAN,
+                            utils.FilterOperator.GREATER_THAN_OR_EQUALS,
+                            utils.FilterOperator.LESS_THAN_OR_EQUALS,
+                        }
                         and not db_engine_spec.supports_temporal_column_shift
                         and not self.get_dataset_timezone()
                         else 0

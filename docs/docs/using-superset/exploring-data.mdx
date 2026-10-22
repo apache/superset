@@ -499,7 +499,9 @@ For supported bucket ranges, the selection replaces the target chart's Time Rang
 and also applies to its other temporal range filters, even on another time column.
 Drill to detail and Drill by retain the selected bucket within the chart's time range,
 including a dataset Hours offset. On engines without SQL temporal shifts, drilling
-uses the displayed bucket's original, unshifted grouping boundaries.
+uses the displayed bucket's original, unshifted grouping boundaries. Grained
+`IN` / `NOT IN` cross-filters and other bucket comparisons use the same boundaries,
+undoing the display-only Hours offset for each selected value.
 
 ### Downloading Drill to Detail and Drill By Results
 

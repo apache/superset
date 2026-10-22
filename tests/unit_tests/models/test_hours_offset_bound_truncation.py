@@ -808,13 +808,15 @@ def test_grained_drill_filter_by_adhoc_label_applies_hours_offset(
     "filter_path", ["physical", "verbose", "timestamp", "adhoc", "label"]
 )
 @pytest.mark.parametrize("offset", [0, 1, -1, 25, -25])
+@pytest.mark.parametrize("operator", ["==", "!=", "IN", "NOT IN", ">", "<", ">=", "<="])
 def test_grained_drill_matches_every_bucket_with_hours_offset(
     mocker: MockerFixture,
     supports_sql_shift: bool,
     filter_path: str,
     offset: int,
+    operator: str,
 ) -> None:
-    """Drill filters invert pandas-only offsets or reuse SQL-shifted grouping."""
+    """Bucket comparisons invert display-only offsets for every operand."""
     mocker.patch.object(
         SqliteEngineSpec, "supports_temporal_column_shift", supports_sql_shift
     )
@@ -857,12 +859,26 @@ def test_grained_drill_matches_every_bucket_with_hours_offset(
     ]
     for _, segment in grouped.df.iterrows():
         bucket = pd.Timestamp(segment[bucket_label])
+        matching_buckets = [
+            expected_bucket
+            for expected_bucket in expected_buckets
+            if {
+                "==": expected_bucket == bucket,
+                "!=": expected_bucket != bucket,
+                "IN": expected_bucket == bucket,
+                "NOT IN": expected_bucket != bucket,
+                ">": expected_bucket > bucket,
+                "<": expected_bucket < bucket,
+                ">=": expected_bucket >= bucket,
+                "<=": expected_bucket <= bucket,
+            }[operator]
+        ]
+        assert segment["ct"] == expected_buckets.count(bucket)
         expected_rows = sorted(
             pd.Timestamp(value)
             for value, expected_bucket in zip(raw_rows, expected_buckets, strict=True)
-            if expected_bucket == bucket
+            if expected_bucket in matching_buckets
         )
-        assert segment["ct"] == len(expected_rows)
         filter_columns: dict[str, str | AdhocColumn] = {
             "physical": "ts",
             "verbose": "Event time",
@@ -891,16 +907,26 @@ def test_grained_drill_matches_every_bucket_with_hours_offset(
             filters=[
                 {
                     "col": filter_column,
-                    "op": "==",
-                    "val": value,
+                    "op": operator,
+                    "val": [value] if operator in {"IN", "NOT IN"} else value,
                     **({} if filter_path in {"adhoc", "label"} else {"grain": "P1D"}),
                 }
             ],
         )
         detail = table.get_query_result(query)
         if filter_path == "label":
-            assert detail.df["ct"].tolist() == [len(expected_rows)]
-            assert pd.to_datetime(detail.df["bucket"]).tolist() == [bucket]
+            actual = sorted(
+                zip(
+                    pd.to_datetime(detail.df["bucket"]),
+                    detail.df["ct"],
+                    strict=True,
+                )
+            )
+            expected = sorted(
+                (value, matching_buckets.count(value))
+                for value in dict.fromkeys(matching_buckets)
+            )
+            assert actual == expected
         else:
             assert len(detail.df) == len(expected_rows)
             # A timeseries detail query also normalizes its returned time axis.
@@ -943,8 +969,9 @@ def test_display_only_bucket_offset_value_formats(
 
 @pytest.mark.parametrize("supports_sql_shift", [False, True])
 @pytest.mark.parametrize("offset", [1, -1])
+@pytest.mark.parametrize("operator", ["==", "IN", "NOT IN"])
 def test_grained_drill_with_dataset_timezone_ignores_hours_offset(
-    mocker: MockerFixture, supports_sql_shift: bool, offset: int
+    mocker: MockerFixture, supports_sql_shift: bool, offset: int, operator: str
 ) -> None:
     """Dataset timezone takes precedence over Hours offset on both engine paths."""
     mocker.patch.object(
@@ -970,11 +997,61 @@ def test_grained_drill_with_dataset_timezone_ignores_hours_offset(
                 filters=[
                     {
                         "col": "ts",
-                        "op": "==",
+                        "op": operator,
                         "grain": "P1D",
-                        "val": int(bucket.value // 10**6),
+                        "val": [int(bucket.value // 10**6)]
+                        if operator in {"IN", "NOT IN"}
+                        else int(bucket.value // 10**6),
                     }
                 ],
             )
         )
         assert len(detail.df) == 1
+
+
+@pytest.mark.parametrize("supports_sql_shift", [False, True])
+@pytest.mark.parametrize("offset", [1, -1])
+@pytest.mark.parametrize("operator", ["IN", "NOT IN"])
+def test_grained_membership_filter_shifts_each_bucket_value(
+    mocker: MockerFixture, supports_sql_shift: bool, offset: int, operator: str
+) -> None:
+    """Multi-bucket filters invert every displayed operand without losing NULL."""
+    mocker.patch.object(
+        SqliteEngineSpec, "supports_temporal_column_shift", supports_sql_shift
+    )
+    raw_rows = [
+        "2026-08-01 12:30:00",
+        "2026-08-02 12:30:00",
+        "2026-08-03 12:30:00",
+    ]
+    table, engine = _sqlite_dataset(mocker, offset, "TIMESTAMP", raw_rows)
+    with engine.begin() as connection:
+        connection.exec_driver_sql("INSERT INTO events VALUES (NULL, 1)")
+    grouped = table.get_query_result(_physical_axis_query(table, time_grain="P1D"))
+    buckets = sorted(pd.to_datetime(grouped.df["__timestamp"]).dropna())
+    assert len(buckets) == 3
+    assert grouped.df["ct"].sum() == 3
+    # Select nonadjacent buckets, so NOT IN must retain the middle bucket.
+    values: FilterValues = [
+        int(buckets[0].value // 10**6),
+        int(buckets[2].value // 10**6),
+        None,
+    ]
+    detail = table.get_query_result(
+        QueryObject(
+            datasource=table,
+            columns=["ts", "val"],
+            metrics=[],
+            is_timeseries=False,
+            filters=[{"col": "ts", "op": operator, "val": values, "grain": "P1D"}],
+        )
+    )
+    if operator == "IN":
+        assert len(detail.df) == 3
+        assert pd.to_datetime(detail.df["ts"]).isna().sum() == 1
+        expected_rows = [pd.Timestamp(raw_rows[0]), pd.Timestamp(raw_rows[2])]
+    else:
+        assert len(detail.df) == 1
+        assert pd.to_datetime(detail.df["ts"]).isna().sum() == 0
+        expected_rows = [pd.Timestamp(raw_rows[1])]
+    assert sorted(pd.to_datetime(detail.df["ts"]).dropna()) == expected_rows
