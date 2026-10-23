@@ -1404,14 +1404,23 @@ def table(
     return df
 
 
+# The viz type whose report attachments are left as they arrive; see the
+# serialization branch in ``apply_client_processing``.
+AG_GRID_TABLE_VIZ_TYPE = "ag-grid-table"
+
 post_processors = {
     "pivot_table_v2": pivot_table_v2,
     "table": table,
-    # The AG Grid table plugin's column meta block and ``formatColumnValue``
-    # are the Table plugin's, same column config keys and same rules, so a
-    # report on one is formatted by the same post-processor. The query-building
-    # side pairs the two viz types the same way.
-    "ag-grid-table": table,
+    # The AG Grid table plugin picks each column's formatter with the Table
+    # plugin's ``transformProps`` logic and the same ``column_config`` keys:
+    # ``d3NumberFormat``, then the saved format, then the currency, then
+    # PERCENT_3_POINT or SMART_NUMBER. That selection is what the two plugins
+    # share, so a report on one is formatted by the same post-processor. The
+    # cells themselves are painted by the AG Grid ``valueFormatter``, which
+    # calls the column's own formatter; ``formatColumnValue`` only labels
+    # drill-to-detail. The query-building side pairs the two viz types the same
+    # way.
+    AG_GRID_TABLE_VIZ_TYPE: table,
 }
 
 
@@ -1592,6 +1601,23 @@ def apply_client_processing(  # noqa: C901
 
         if query["result_format"] == ChartDataResultFormat.JSON:
             query["data"] = processed_df.to_dict()
+        elif viz_type == AG_GRID_TABLE_VIZ_TYPE:
+            # ``table`` only formats numbers, and ``apply_number_format`` is
+            # false for every format but JSON, so the frame handed back here is
+            # the frame that went in. Writing it out again would be a round trip
+            # that gains nothing and loses data: ``pd.read_csv`` reads ``01234``
+            # as ``1234`` and, under the default ``REPORTS_CSV_NA_NAMES``, ``NA``
+            # as an empty cell. Before this viz type was registered its
+            # attachments returned unchanged, so they are left alone rather than
+            # rewritten. The column and row metadata above still comes from the
+            # parsed frame, as it does for every other viz type.
+            #
+            # The classic ``table`` viz type keeps its rewrite. It loses the same
+            # values, but it has always done so, and the rewrite is also what
+            # applies the formula escaping, the configured separator and decimal
+            # and the default-index suppression that its own tests pin. Changing
+            # that belongs in its own fix rather than here.
+            pass
         elif query["result_format"] == ChartDataResultFormat.CSV:
             # Route through the formula-escaping CSV writer, consistent with the
             # other CSV export paths (viz, query context, SQL Lab export), while

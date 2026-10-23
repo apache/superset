@@ -4879,6 +4879,66 @@ def test_table_export_preserves_selected_dimension(
 @pytest.mark.parametrize(
     "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
 )
+@pytest.mark.parametrize("selection", ["groupby", "all_columns"])
+def test_ag_grid_table_export_is_left_unchanged(
+    result_format: ChartDataResultFormat,
+    selection: str,
+) -> None:
+    """
+    An AG Grid report attachment comes back byte for byte as it arrived.
+
+    Registering the viz type for post-processing is what makes these formats
+    reach the parser at all; before that they hit the early return and went out
+    untouched. `table` cannot change them, since `apply_number_format` is false
+    for every format but JSON, so parsing and rewriting them buys nothing and
+    costs data.
+
+    The frame carries the two values that a round trip through the reader loses:
+    a zero-padded code, which `pd.read_csv` reads as `1234`, and an `NA` label,
+    which it reads as an empty cell under the default `REPORTS_CSV_NA_NAMES`.
+    Both selection keys are covered because the XLSX reader decides whether to
+    move the first column into the index by looking for it among them.
+    """
+    source_df: pd.DataFrame = pd.DataFrame(
+        {"code": ["01234", "00077"], "label": ["NA", "ok"], "total_amount": [15, 20]}
+    )
+    datasource: MagicMock = MagicMock()
+    datasource.data = {"verbose_map": {}, "column_formats": {}}
+    datasource.columns = []
+    form_data: dict[str, Any] = {
+        "viz_type": "ag-grid-table",
+        selection: ["code", "label"],
+        "metrics": ["total_amount"],
+    }
+    attachment: bytes | str = (
+        excel.df_to_excel(source_df, index=False)
+        if result_format == ChartDataResultFormat.XLSX
+        else source_df.to_csv(index=False)
+    )
+    result: dict[str, Any] = {
+        "queries": [{"result_format": result_format, "data": attachment}]
+    }
+
+    query: dict[str, Any] = apply_client_processing(result, form_data, datasource)[
+        "queries"
+    ][0]
+
+    assert query["data"] == attachment
+    # Read back with the coercions turned off, so the assertion is about what
+    # the attachment holds rather than about what the reader does to it.
+    output_df: pd.DataFrame = (
+        pd.read_excel(BytesIO(query["data"]), dtype=str, keep_default_na=False)
+        if result_format == ChartDataResultFormat.XLSX
+        else pd.read_csv(StringIO(query["data"]), dtype=str, keep_default_na=False)
+    )
+    assert output_df["code"].tolist() == ["01234", "00077"]
+    assert output_df["label"].tolist() == ["NA", "ok"]
+    assert list(output_df.columns) == ["code", "label", "total_amount"]
+
+
+@pytest.mark.parametrize(
+    "result_format", [ChartDataResultFormat.XLSX, ChartDataResultFormat.CSV]
+)
 def test_serialized_export_does_not_rename_display_label_twice(
     result_format: ChartDataResultFormat,
 ) -> None:
