@@ -156,7 +156,13 @@ RUN useradd --user-group -d ${SUPERSET_HOME} -m --no-log-init --shell /bin/bash 
 # Some bash scripts needed throughout the layers
 COPY --chmod=755 docker/*.sh /app/docker/
 
-RUN pip install --no-cache-dir --upgrade uv
+# Bring the system CA store up to date before the first download, rather than
+# relying on whatever the base image was built with
+RUN /app/docker/apt-install.sh ca-certificates
+
+# Have pip use the system CA store instead of its vendored copy
+RUN PIP_CERT=/etc/ssl/certs/ca-certificates.crt \
+    pip install --no-cache-dir --upgrade "uv>=0.13.5"
 
 # Using uv as it's faster/simpler than pip
 RUN uv venv /app/.venv
@@ -207,7 +213,9 @@ RUN mkdir -p \
       requirements \
     && touch superset/static/version_info.json
 
-# Optionally install Playwright and the headless Chromium used for screenshots
+# Optionally install Playwright and the headless Chromium used for screenshots.
+# `playwright install` runs on Playwright's bundled Node; --use-openssl-ca makes
+# it use the system CA store, consistent with the rest of the build.
 ENV PLAYWRIGHT_BROWSERS_PATH=/usr/local/share/playwright-browsers
 
 ARG INCLUDE_CHROMIUM="false"
@@ -215,7 +223,8 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     if [ "${INCLUDE_CHROMIUM}" = "true" ]; then \
         uv pip install playwright && \
         playwright install-deps && \
-        playwright install chromium; \
+        NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+            playwright install chromium; \
     else \
         echo "Skipping browser installation"; \
     fi
@@ -328,10 +337,12 @@ RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
 # INCLUDE_CHROMIUM build arg on python-common) because this stage builds
 # FROM lean, which is already past that arg. Chromium ships for both
 # linux/amd64 and linux/arm64, so this works on multi-platform builds.
+# See the INCLUDE_CHROMIUM step in python-common for --use-openssl-ca.
 RUN --mount=type=cache,target=${SUPERSET_HOME}/.cache/uv \
     uv pip install playwright \
     && playwright install-deps \
-    && playwright install chromium
+    && NODE_OPTIONS=--use-openssl-ca SSL_CERT_FILE=/etc/ssl/certs/ca-certificates.crt \
+        playwright install chromium
 
 USER superset
 
