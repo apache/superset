@@ -3856,6 +3856,16 @@
           "cache_timeout": {
             "type": "integer"
           },
+          "chart_display_labels": {
+            "additionalProperties": {
+              "additionalProperties": {
+                "type": "string"
+              },
+              "type": "object"
+            },
+            "description": "Display labels keyed by member chart ID, then by the raw column or metric ID that chart uses. Only charts the caller can access and labels configured for their saved dimensions and metrics are included; omitted for semantic views, when there are none, or when the caller has datasource access and already receives verbose_map.",
+            "type": "object"
+          },
           "column_formats": {
             "type": "object"
           },
@@ -11747,6 +11757,9 @@
             "type": "string"
           }
         },
+        "required": [
+          "client_id"
+        ],
         "type": "object"
       },
       "SubjectResponse": {
