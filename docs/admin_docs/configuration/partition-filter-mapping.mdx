@@ -272,7 +272,22 @@ adds a round trip to the chart query path. Day-aligned ranges like "Last month" 
 constantly; second-granularity relative ranges like "Last 24 hours" essentially never do.
 
 If the evaluation fails for any reason, no predicate is added: the query still runs and is
-still correct, it just scans more partitions.
+still correct, it just scans more partitions. A failure is remembered for
+`PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT` (5 minutes by default), so a transform the
+database always rejects is not re-run on every chart load, and a transient error costs
+minutes of pruning rather than a day.
+
+The evaluation is bounded. Every distinct filter value is one column of a single `SELECT`,
+and engines cap the select list — PostgreSQL refuses more than 1,664 entries — so a filter
+with more than `PARTITION_TRANSFORM_PROBE_MAX_VALUES` distinct values (1,000 by default) is
+not evaluated and its query does not prune. An evaluation that runs longer than
+`PARTITION_TRANSFORM_PROBE_TIMEOUT` (10 seconds) is abandoned the same way. That timeout is
+best effort: like Superset's other query timeouts it is enforced with `SIGALRM`, so only in
+a worker that serves requests on its main thread.
+
+Each evaluation reports to the configured `STATS_LOGGER` under `partition_mapping.probe.`:
+`cache_hit`, `cache_miss`, `failure_cache_hit`, `success`, `error`, `timeout`,
+`declined.<reason>`, and a `latency_ms` timing.
 
 The same goes for a transform that evaluates but answers with something the partition column
 cannot hold — a number against a text key, or text against a numeric one. Not every engine
@@ -324,26 +339,25 @@ column resolved back to it.
 | Setting | Default | Purpose |
 |---|---|---|
 | `PARTITION_TRANSFORM_PROBE_CACHE_TIMEOUT` | 24 hours | How long an evaluated transform stays cached |
+| `PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT` | 5 minutes | How long a failed evaluation is remembered before the database is asked again; 0 retries on every query |
+| `PARTITION_TRANSFORM_PROBE_MAX_VALUES` | 1,000 | Most distinct filter values one evaluation covers; a wider filter does not prune. 0 for no cap |
+| `PARTITION_TRANSFORM_PROBE_TIMEOUT` | 10 seconds | How long one evaluation may run before it is abandoned; 0 to disable |
 | `PARTITION_TRANSFORM_PREVIEW_RATE_LIMIT` | 30 | Per-user, per-dataset preview requests per minute; the editor's preview panel runs a real query |
 
-### Three things need a working cache backend
+### Configure a shared cache backend
 
-None of them does anything on its own. The probe cache, the preview budget and
-the pruning indicator all live in **`CACHE_CONFIG`**, whose default is
-`{"CACHE_TYPE": "NullCache"}` — so out of the box:
+The probe cache, the preview budget and the pruning indicator all live in
+**`CACHE_CONFIG`**, whose default is `{"CACHE_TYPE": "NullCache"}`.
 
-- every chart load on a mapped dataset re-probes the warehouse, because nothing
-  is cached;
-- the preview budget is never enforced, because a null cache reports every
-  request as the first one in its window; and
-- the pruning indicator stays optimistic. A transform the database rejects
-  parses fine, so Superset cannot tell it apart from a working one until
-  something probes — and with nothing to record that answer in, the editor's
-  banner and the glyph on a filter chip go on promising a speed-up the query
-  gives up. Charts stay correct either way; what is lost is the UI's ability
-  to stop claiming otherwise.
+The probe cache and the pruning indicator fall back to `DATA_CACHE_CONFIG` when
+`CACHE_CONFIG` is a null cache, and to a small per-process cache when both are.
+That keeps a chart load from re-probing the warehouse every time, but each
+gunicorn worker probes and records on its own, so the indicator can disagree
+between workers until each one has probed.
 
-Configuring `DATA_CACHE_CONFIG` does not help; all three read `CACHE_CONFIG`.
+The preview budget has no fallback: under a null `CACHE_CONFIG` it is never
+enforced, because a null cache reports every request as the first one in its
+window.
 
 The backend also has to be **shared** across processes. A per-process
 `SimpleCache` or a `FileSystemCache` on a local disk gives each gunicorn worker

@@ -18,6 +18,7 @@
 
 from __future__ import annotations
 
+from contextlib import nullcontext
 from datetime import datetime
 from decimal import Decimal
 from importlib import import_module
@@ -2142,8 +2143,40 @@ def test_the_cache_key_includes_the_catalog_and_schema(app: Flask) -> None:
     assert _probe(database).call_count == 2
 
 
-def test_a_failed_probe_is_not_cached(app: Flask) -> None:
-    """Caching a failure would keep a transient engine blip pruning-free for a day."""
+def test_a_failed_probe_is_remembered_briefly(app: Flask) -> None:
+    """
+    A transform the engine always rejects must not cost a warehouse round trip
+    on every chart load -- and the preview must still be able to say why.
+    """
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=RuntimeError("function no_such_fn does not exist")
+    )
+    errors: list[str] = []
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
+        assert (
+            evaluate_transform(
+                database, None, None, "lower(:value)", ["x"], errors=errors
+            )
+            is None
+        )
+
+    _probe(database).assert_called_once()
+    assert errors == ["function no_such_fn does not exist"]
+
+
+def test_a_failed_probe_is_retried_once_its_failure_expires(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """
+    Remembering a failure for the full cache timeout would keep a transient
+    engine blip pruning-free for a day; zero turns the failure cache off.
+    """
+    mocker.patch.dict(
+        app.config, {"PARTITION_TRANSFORM_PROBE_FAILURE_CACHE_TIMEOUT": 0}
+    )
     database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
     database.get_df = MagicMock(  # type: ignore[method-assign]
         side_effect=[
@@ -2155,6 +2188,135 @@ def test_a_failed_probe_is_not_cached(app: Flask) -> None:
     with app.app_context():
         assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) is None
         assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) == [42]
+
+
+def test_a_filter_wider_than_the_probe_cap_is_not_probed(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    """
+    Every value is one select column, and PostgreSQL refuses a 1,665th: a wide
+    `IN` list would otherwise fail on the engine on every chart load.
+    """
+    mocker.patch.dict(app.config, {"PARTITION_TRANSFORM_PROBE_MAX_VALUES": 3})
+    database = _database_returning([1, 2, 3])
+    errors: list[str] = []
+
+    with app.app_context():
+        assert (
+            evaluate_transform(
+                database,
+                None,
+                None,
+                "lower(:value)",
+                ["a", "b", "c", "d"],
+                errors=errors,
+            )
+            is None
+        )
+        # The cap counts distinct values, so duplicates do not trip it.
+        assert evaluate_transform(
+            database, None, None, "lower(:value)", ["a", "b", "c", "a"]
+        ) == [1, 2, 3, 1]
+
+    _probe(database).assert_called_once()
+    assert errors == [
+        "4 distinct values exceed PARTITION_TRANSFORM_PROBE_MAX_VALUES (3)"
+    ]
+
+
+def test_a_probe_runs_under_its_own_timeout(app: Flask, mocker: MockerFixture) -> None:
+    """Chart requests carry no deadline, so nothing else bounds the probe."""
+    from superset.errors import ErrorLevel, SupersetErrorType
+    from superset.exceptions import SupersetTimeoutException
+
+    mocker.patch.dict(app.config, {"PARTITION_TRANSFORM_PROBE_TIMEOUT": 7})
+    timeout = mocker.patch(
+        "superset.connectors.sqla.partition_mapping.utils.timeout",
+        return_value=nullcontext(),
+    )
+    database = Database(database_name="probe_db", sqlalchemy_uri="sqlite://")
+    database.get_df = MagicMock(  # type: ignore[method-assign]
+        side_effect=SupersetTimeoutException(
+            error_type=SupersetErrorType.BACKEND_TIMEOUT_ERROR,
+            message="Partition transform probe exceeded 7s",
+            level=ErrorLevel.ERROR,
+        )
+    )
+    errors: list[str] = []
+
+    with app.app_context():
+        assert (
+            evaluate_transform(
+                database, None, None, "lower(:value)", ["x"], errors=errors
+            )
+            is None
+        )
+
+    assert timeout.call_args.kwargs["seconds"] == 7
+    assert errors == ["Partition transform probe exceeded 7s"]
+
+
+def test_a_null_cache_falls_back_to_a_local_one(app: Flask) -> None:
+    """
+    `CACHE_CONFIG` and `DATA_CACHE_CONFIG` both default to `NullCache`, under
+    which every chart query on a mapped dataset probed again.
+    """
+    from flask_caching import Cache
+
+    from superset.extensions import cache_manager
+
+    null = Cache(config={"CACHE_TYPE": "NullCache"})
+    null.init_app(app)
+    database = _database_returning([1767225600])
+
+    with patch.object(cache_manager, "_cache", null):
+        with patch.object(cache_manager, "_data_cache", null):
+            with app.app_context():
+                for _ in range(2):
+                    assert evaluate_transform(
+                        database, None, None, "unix_timestamp(:value)", ["x"]
+                    ) == [1767225600]
+                assert (
+                    known_mirror_verdict(database, None, None, "unix_timestamp(:value)")
+                    is True
+                )
+
+    _probe(database).assert_called_once()
+
+
+def test_the_probe_reports_its_outcome_and_latency(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    stats = mocker.patch(
+        "superset.connectors.sqla.partition_mapping.stats_logger_manager"
+    ).instance
+    database = _database_returning([1])
+
+    with app.app_context():
+        evaluate_transform(database, None, None, "lower(:value)", ["x"])
+        evaluate_transform(database, None, None, "lower(:value)", ["x"])
+
+    assert [call.args[0] for call in stats.incr.call_args_list] == [
+        "partition_mapping.probe.cache_miss",
+        "partition_mapping.probe.success",
+        "partition_mapping.probe.cache_hit",
+    ]
+    stats.timing.assert_called_once()
+    assert stats.timing.call_args.args[0] == "partition_mapping.probe.latency_ms"
+
+
+def test_a_broken_stats_logger_does_not_cost_the_probe(
+    app: Flask, mocker: MockerFixture
+) -> None:
+    stats = mocker.patch(
+        "superset.connectors.sqla.partition_mapping.stats_logger_manager"
+    ).instance
+    stats.incr.side_effect = RuntimeError("statsd down")
+    stats.timing.side_effect = RuntimeError("statsd down")
+    database = _database_returning([1])
+
+    with app.app_context():
+        assert evaluate_transform(database, None, None, "lower(:value)", ["x"]) == [1]
 
 
 def test_a_null_monotonic_flag_reads_as_not_declared(app: Flask) -> None:
