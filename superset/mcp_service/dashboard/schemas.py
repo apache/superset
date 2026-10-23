@@ -1386,8 +1386,10 @@ class ManageDashboardCertificationRequest(BaseModel):
 
     @field_validator("certified_by", mode="before")
     @classmethod
-    def sanitize_certified_by(cls, v: str | None) -> str | None:
+    def sanitize_certified_by(cls, v: object) -> object:
         """Sanitize certified_by to prevent XSS; it renders as a UI badge."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if not isinstance(v, str):
             return v
         if v == "":
@@ -1408,9 +1410,11 @@ class ManageDashboardCertificationRequest(BaseModel):
 
     @field_validator("certification_details", mode="before")
     @classmethod
-    def sanitize_certification_details(cls, v: str | None) -> str | None:
+    def sanitize_certification_details(cls, v: object) -> object:
         """Sanitize certification_details to prevent XSS; it renders in the
         same CertifiedBadge tooltip as certified_by."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if not isinstance(v, str):
             return v
         if v == "":

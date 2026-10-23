@@ -874,8 +874,10 @@ class BaseChartConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
     @field_validator("temporal_column", mode="before")
     @classmethod
-    def sanitize_temporal_column(cls, v: str | None) -> str | None:
+    def sanitize_temporal_column(cls, v: object) -> object:
         """Sanitize temporal column names to prevent SQL injection."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if not isinstance(v, str):
             return v
         return sanitize_user_input(
@@ -998,8 +1000,10 @@ class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
     @field_validator("name", mode="before")
     @classmethod
-    def sanitize_name(cls, v: str | None) -> str | None:
+    def sanitize_name(cls, v: object) -> object:
         """Sanitize column name to prevent XSS and SQL injection."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if not isinstance(v, str):
             return v
         return sanitize_user_input(
@@ -1008,8 +1012,10 @@ class ColumnRef(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
     @field_validator("label", mode="before")
     @classmethod
-    def sanitize_label(cls, v: str | None) -> str | None:
+    def sanitize_label(cls, v: object) -> object:
         """Sanitize display label to prevent XSS attacks."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if not isinstance(v, str):
             return v
         return sanitize_user_input(v, "Label", max_length=500, allow_empty=True)
@@ -1129,15 +1135,15 @@ class FilterConfig(UnknownFieldCheckMixin, OmittedMeansUnchanged):
 
     @field_validator("column", mode="before")
     @classmethod
-    def sanitize_column(cls, v: str) -> str:
+    def sanitize_column(cls, v: object) -> object:
         """Sanitize filter column name to prevent injection attacks."""
+        if isinstance(v, (bytes, bytearray)):
+            v = v.decode()
         if not isinstance(v, str):
             return v
-        # sanitize_user_input raises ValueError when allow_empty=False (default)
-        # so the return value is guaranteed to be a non-None str
         return sanitize_user_input(
             v, "Filter column", max_length=255, check_sql_keywords=True
-        )  # type: ignore[return-value]
+        )
 
     @field_validator("value")
     @classmethod
@@ -1212,8 +1218,10 @@ class GanttSortByConfig(UnknownFieldCheckMixin):
 
     @field_validator("column", mode="before")
     @classmethod
-    def sanitize_column(cls, value: str) -> str:
+    def sanitize_column(cls, value: object) -> object:
         """Sanitize the order column like every other dimension name."""
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
         if not isinstance(value, str):
             return value
         return sanitize_user_input(
@@ -1221,7 +1229,7 @@ class GanttSortByConfig(UnknownFieldCheckMixin):
             "Gantt order column",
             max_length=255,
             check_sql_keywords=True,
-        )  # type: ignore[return-value]
+        )
 
 
 # Actual chart types
@@ -2764,8 +2772,10 @@ class SunburstChartConfig(BaseChartConfig):
 
     @field_validator("time_range", mode="before")
     @classmethod
-    def sanitize_time_range(cls, value: str | None) -> str | None:
+    def sanitize_time_range(cls, value: object) -> object:
         """Sanitize a human-readable Superset time-range expression."""
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
         if not isinstance(value, str):
             return value
         return sanitize_user_input(
@@ -3158,8 +3168,10 @@ class InteractivePivotChartConfig(BaseChartConfig):
 
     @field_validator("comparison_period", mode="before")
     @classmethod
-    def sanitize_comparison_period(cls, value: str | None) -> str | None:
+    def sanitize_comparison_period(cls, value: object) -> object:
         """Sanitize the relative time-shift label."""
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
         if not isinstance(value, str):
             return value
         return sanitize_user_input(
@@ -4643,8 +4655,10 @@ class BulletChartConfig(BaseChartConfig):
 
     @field_validator("time_range", mode="before")
     @classmethod
-    def sanitize_time_range(cls, value: str | None) -> str | None:
+    def sanitize_time_range(cls, value: object) -> object:
         """Sanitize the time range before enforcing its text length limit."""
+        if isinstance(value, (bytes, bytearray)):
+            value = value.decode()
         if not isinstance(value, str):
             return value
         return sanitize_user_input(

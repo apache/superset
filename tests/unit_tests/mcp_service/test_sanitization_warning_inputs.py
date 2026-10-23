@@ -1336,3 +1336,25 @@ def test_sibling_sanitized_length_budget(
         assert getattr(request, field) == (
             [text] if field.endswith("_labels") else text
         )
+
+
+@pytest.mark.parametrize(
+    "model,payload,field",
+    [
+        case
+        for case in _SIBLING_SANITIZATION_CASES
+        if case[2] != "value" and not case[2].endswith("_labels")
+    ],
+)
+@pytest.mark.parametrize("value", [b"<b>Safe</b>", bytearray(b"<b>Safe</b>")])
+def test_sibling_byte_strings_are_sanitized_before_coercion(
+    model: type[BaseModel],
+    payload: dict[str, Any],
+    field: str,
+    value: bytes | bytearray,
+) -> None:
+    """Pydantic's byte-string decoding must not bypass before sanitizers."""
+    if model is InteractivePivotChartConfig:
+        payload = {**payload, "comparison_type": "values"}
+    request = model.model_validate({**payload, field: value})
+    assert getattr(request, field) == "Safe"
