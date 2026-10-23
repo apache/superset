@@ -208,7 +208,7 @@ def _log_discovery_fault(
 ) -> None:
     """Log enough to locate a discovery fault without logging provider text."""
     fields: str = (
-        f"operation={operation} view_id={target.view_id} "
+        f"requested_operation={operation} view_id={target.view_id} "
         f"layer_uuid={target.layer_uuid} error={type(ex).__name__}"
     )
     # The read's nearest callers, which the fault's own traceback does not include.

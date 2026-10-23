@@ -167,7 +167,7 @@ def test_mapper_metadata_fault_is_backend_error(
     assert captured.value.__cause__ is None
     assert "metadata fault" not in "".join(traceback.format_exception(captured.value))
     date_view.get_table.assert_not_called()
-    assert f"operation={method} view_id=7 " in caplog.text
+    assert f"requested_operation={method} view_id=7 " in caplog.text
 
 
 def test_discovery_preserves_host_validation(
@@ -262,7 +262,7 @@ def test_metadata_discovery_fault_http(
     assert len(records) == 1
     message: str = records[0].getMessage()
     assert message.startswith("Semantic provider metadata discovery failed:")
-    assert f"operation={method}" in message
+    assert f"requested_operation={method}" in message
     assert "view_id=7" in message
     assert "error=ValueError" in message
     assert "private-provider" not in caplog.text
@@ -375,7 +375,7 @@ def test_provider_discovery_fault_log_identifies_view(
     assert len(records) == 1
     message: str = records[0].getMessage()
     assert message.startswith("Semantic provider metadata discovery failed:")
-    assert f"operation={operation}" in message
+    assert f"requested_operation={operation}" in message
     assert "view_id=7" in message
     assert f"layer_uuid={LAYER_UUID}" in message
     assert "error=ValueError" in message
@@ -413,6 +413,13 @@ def test_host_metadata_reads_classify_binding_faults(
     message: str = records[0].getMessage()
     assert message.startswith("Semantic provider metadata discovery failed:")
     assert "view_id=7" in message
+    # Binding failed before the requested metadata operation could run.
+    assert "requested_operation=get_" in message
+    provider_view: MagicMock = (
+        provider_class.from_configuration.return_value.get_semantic_view.return_value
+    )
+    provider_view.get_metrics.assert_not_called()
+    provider_view.get_dimensions.assert_not_called()
     assert "failing_provider_call" in message
     assert "private-provider" not in caplog.text
 
@@ -455,6 +462,7 @@ def test_host_fault_during_discovery_is_logged_as_host_fault(
     assert "view_id=7" in message
     assert f"layer_uuid={LAYER_UUID}" in message
     assert f"error={expected}" in message
+    assert "requested_operation=get_dimensions" in message
     assert "superset/semantic_layers/" in message
     assert f"{expected}:" in message
     # The entry point that read the metadata is named.
