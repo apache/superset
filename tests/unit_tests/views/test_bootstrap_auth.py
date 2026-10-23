@@ -18,7 +18,7 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
-from flask import g
+from flask import current_app, g
 from flask_appbuilder.const import (
     AUTH_DB,
     AUTH_LDAP,
@@ -27,6 +27,7 @@ from flask_appbuilder.const import (
     AUTH_SAML,
 )
 
+from superset import config
 from superset.views.base import cached_common_bootstrap_data, common_bootstrap_payload
 
 
@@ -316,3 +317,28 @@ def test_language_pack_template_context_inline_for_override_pack(
         "fr", {"language_pack": {"domain": "superset"}}
     )
     assert context == {"language_pack_src": None, "language_pack_inline": True}
+
+
+@pytest.mark.parametrize("url", [None, "https://docs.example.org/semantic-setup"])
+def test_semantic_setup_documentation_config_in_bootstrap(
+    app_context: None,
+    url: str | None,
+) -> None:
+    with (
+        patch.dict(
+            current_app.config,
+            {
+                "SEMANTIC_LAYER_DOCUMENTATION_URL": url,
+                "DOCUMENTATION_URL": "https://docs.example.org/main",
+            },
+        ),
+        patch("superset.views.base.menu_data", return_value={}),
+    ):
+        payload: dict[str, Any] = cached_common_bootstrap_data.uncached(
+            user_id=1, locale=None
+        )
+    assert payload["conf"]["SEMANTIC_LAYER_DOCUMENTATION_URL"] == url
+
+
+def test_semantic_setup_documentation_is_opt_in() -> None:
+    assert config.SEMANTIC_LAYER_DOCUMENTATION_URL is None

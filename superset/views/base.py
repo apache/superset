@@ -81,6 +81,7 @@ from superset.websocket.permissions import can_access_realtime_notifications
 from .utils import bootstrap_user_data, get_config_value
 
 FRONTEND_CONF_KEYS = (
+    "SEMANTIC_LAYER_DOCUMENTATION_URL",
     "AUTH_ROLE_ADMIN",
     "SUPERSET_WEBSERVER_TIMEOUT",
     "SUPERSET_DASHBOARD_POSITION_DATA_LIMIT",
