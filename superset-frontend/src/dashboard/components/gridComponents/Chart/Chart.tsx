@@ -54,6 +54,7 @@ import { DEFAULT_CSV_STREAMING_ROW_THRESHOLD } from 'src/constants';
 import { enforceSharedLabelsColorsArray } from 'src/utils/colorScheme';
 import exportPivotExcel from 'src/utils/downloadAsPivotExcel';
 import type { RootState, Datasource, Slice } from 'src/dashboard/types';
+import { withChartDisplayLabels } from 'src/dashboard/util/withChartDisplayLabels';
 import {
   convertChartStateToOwnState,
   hasChartStateConverter,
@@ -250,6 +251,10 @@ const Chart = (props: ChartProps) => {
       (chart?.form_data?.datasource &&
         state.datasources[chart.form_data.datasource]) ||
       PLACEHOLDER_DATASOURCE,
+  );
+  const chartDatasource = useMemo(
+    () => withChartDisplayLabels(datasource, props.id),
+    [datasource, props.id],
   );
   const dashboardInfo = useSelector((state: RootState) => state.dashboardInfo);
   const showChartTimestamps: boolean = useSelector(
@@ -864,7 +869,7 @@ const Chart = (props: ChartProps) => {
           chartId={props.id}
           chartStatus={chartStatus ?? undefined}
           chartStackTrace={chart.chartStackTrace ?? undefined}
-          datasource={datasource}
+          datasource={chartDatasource}
           dashboardId={props.dashboardId}
           initialValues={EMPTY_OBJECT}
           formData={
