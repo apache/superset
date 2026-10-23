@@ -1,7 +1,11 @@
 name: "UTSC 2026 Student Labeler"
 
-on:
+on: # zizmor: ignore[dangerous-triggers] - needs pull_request_target for a
+  # writable token on fork PRs; the script only reads the opaque author
+  # login/number fields below, never PR-controlled free text (title, body,
+  # branch), and nothing is interpolated into a shell `run:`
   pull_request_target:
+    branches: [master]
     types: [opened]
   issues:
     types: [opened]
@@ -15,10 +19,11 @@ permissions:
 
 jobs:
   label:
+    name: Label
     permissions:
       contents: read
-      issues: write
-      pull-requests: write
+      issues: write # to add the utsc2026 label to a matching issue
+      pull-requests: write # to add the utsc2026 label to a matching PR
     runs-on: ubuntu-slim
     steps:
     - name: Label if author is a UTSC 2026 student
