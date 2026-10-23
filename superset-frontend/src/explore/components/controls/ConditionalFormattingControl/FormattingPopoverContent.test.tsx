@@ -84,17 +84,17 @@ const getBoundInputs = () => ({
 // portals its popup to <body>, and antd never removes a closed dropdown's list
 // node afterward, so a stale closed list from an earlier Select would win any
 // *unscoped* "first match" query. Scope explicitly to the target Select's own
-// popup, located through the trigger's `aria-controls` listbox id.
+// open popup.
 const selectFieldOption = async (option: string, selectName: string) => {
   const trigger = await screen.findByRole('combobox', { name: selectName });
-  const listboxId = trigger.getAttribute('aria-controls')!;
   await userEvent.click(trigger);
+  // closed dropdowns keep a hidden node, so only an open one is a match
   const dropdown = await waitFor(() => {
-    const el = document
-      .getElementById(listboxId)
-      ?.closest<HTMLElement>('.ant-select-dropdown');
-    expect(el).toBeTruthy();
-    return el as HTMLElement;
+    const open = Array.from(
+      document.querySelectorAll<HTMLElement>('.ant-select-dropdown'),
+    ).filter(el => !el.classList.contains('ant-select-dropdown-hidden'));
+    expect(open.length).toBeGreaterThan(0);
+    return open[open.length - 1];
   });
   const item = await within(dropdown).findByText(option);
   await userEvent.click(item);
