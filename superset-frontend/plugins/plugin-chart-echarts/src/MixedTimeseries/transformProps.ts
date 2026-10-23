@@ -91,8 +91,8 @@ import {
   getAnnotationData,
 } from '../utils/annotation';
 import {
-  collapseForecastKeys,
   addLabelMapToVerboseMap,
+  collapseForecastKeys,
   extractForecastSeriesContext,
   extractForecastValuesFromTooltipParams,
   formatForecastTooltipSeries,
