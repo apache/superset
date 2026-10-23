@@ -110,3 +110,14 @@ test('does not treat adhoc groupby labels as histogram bin edges', () => {
   expect(series[0].name).toBe('WEST');
   expect(series[0].data).toEqual([3, 7]);
 });
+
+test('tooltip rows start with a marker in the series color', () => {
+  const { tooltip } = transformProps(
+    createChartProps([{ '0 - 5': 3, '5 - 10': 7 }]) as HistogramChartProps,
+  ).echartOptions as { tooltip: { formatter: (params: unknown) => string } };
+  const html = tooltip.formatter([
+    { name: '0 - 5', seriesName: 'price', value: 3, color: '#1f77b4' },
+  ]);
+  expect(html.replace(/\s/g, '')).toContain('style="color:#1f77b4;');
+  expect(html).toContain('price');
+});
