@@ -168,6 +168,28 @@ test('prefers an operator-supplied bootstrap pack over the window pack', async (
   expect(mockConfigure).toHaveBeenCalledWith({ languagePack: overridePack });
 });
 
+test('maps zh_TW to the zh-tw dayjs locale when the pack is preloaded', async () => {
+  mockGetBootstrapData.mockReturnValue(bootstrapData('zh_TW'));
+  window.__SUPERSET_LANGUAGE_PACK__ = FAKE_PACK;
+
+  await runPreamble();
+
+  expect(mockDayjsLocale).toHaveBeenCalledWith('zh-tw');
+});
+
+test('maps zh_TW to the zh-tw dayjs locale after a successful fallback fetch', async () => {
+  mockGetBootstrapData.mockReturnValue(bootstrapData('zh_TW'));
+  const fetchSpy = jest.spyOn(global, 'fetch').mockResolvedValue({
+    ok: true,
+    json: () => Promise.resolve(FAKE_PACK),
+  } as unknown as Response);
+
+  await runPreamble();
+
+  expect(mockDayjsLocale).toHaveBeenCalledWith('zh-tw');
+  fetchSpy.mockRestore();
+});
+
 test('loads no language pack at all for English', async () => {
   mockGetBootstrapData.mockReturnValue(bootstrapData('en'));
   const fetchSpy = jest.spyOn(global, 'fetch');
