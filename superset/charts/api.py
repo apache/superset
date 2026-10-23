@@ -36,7 +36,7 @@ from flask_appbuilder.const import (
     API_LABEL_COLUMNS_RIS_KEY,
     API_LIST_COLUMNS_RIS_KEY,
     API_LIST_TITLE_RIS_KEY,
-    API_ORDER_COLUMNS_RIS_KEY,
+    API_ORDER_COLUMNS_RIS_KE,
 )
 from flask_appbuilder.hooks import before_request
 from flask_appbuilder.models.sqla.interface import SQLAInterface
