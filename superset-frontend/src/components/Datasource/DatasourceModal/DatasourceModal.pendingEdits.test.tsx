@@ -68,6 +68,10 @@ beforeEach(() => {
   setupDatasourceEditorMocks();
 });
 
+// Each case mounts the whole dataset modal, edits two collections and saves:
+// about 8s locally, and past the global 20s on a loaded CI shard.
+jest.setTimeout(60000);
+
 afterEach(async () => {
   cleanup();
   await cleanupAsyncOperations();
