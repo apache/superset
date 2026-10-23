@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2023-05-22 08:04-0400\n"
 "Last-Translator: \n"
 "Language: pt_BR\n"
@@ -1311,6 +1311,9 @@ msgstr "Abortando"
 msgid "About"
 msgstr "Sobre"
 
+msgid "Accept"
+msgstr ""
+
 #, fuzzy
 msgid "Access"
 msgstr "Acesso"
@@ -1790,6 +1793,9 @@ msgstr "Agregação"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "Método de agregação"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3815,6 +3821,12 @@ msgstr "É proibido alterar esta camada semântica"
 msgid "Changing this semantic view is forbidden"
 msgstr "É proibido alterar esta visão semântica"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "Alterar esta tarefa é proibido"
@@ -4531,6 +4543,10 @@ msgstr "Cor do local de destino"
 msgid "Color scheme"
 msgstr "Esquema de cores"
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
@@ -5180,8 +5196,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Contar"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "País"
@@ -8236,6 +8269,10 @@ msgstr "Falhou"
 msgid "Failed at retrieving results"
 msgstr "Falha na obtenção de resultados"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8569,7 +8606,13 @@ msgstr "Filtrar gráficos"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -9858,6 +9901,11 @@ msgstr "Longitude/latitude inválida"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Objeto de métrica inválido: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Função numpy inválida: %(operator)s"
@@ -10250,6 +10298,9 @@ msgstr "Ano passado"
 msgid "Lat"
 msgstr "Lat."
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Latitude"
 
@@ -10555,6 +10606,9 @@ msgstr "Listar grupos"
 
 msgid "List Roles"
 msgstr "Funções"
+
+msgid "List Unique Values"
+msgstr ""
 
 #, fuzzy
 msgid "List Users"
@@ -10972,6 +11026,9 @@ msgstr "Média dos valores durante o período especificado"
 
 msgid "Mean values"
 msgstr "Valores médios"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11877,6 +11934,9 @@ msgid ""
 msgstr ""
 "Nenhum validador chamado%(validator_name)sencontrado (configurado para o "
 "mecanismo%(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Posição do rótulo do nó"
@@ -15563,6 +15623,11 @@ msgstr "Os parâmetros de visualização semântica são inválidos."
 msgid "Semantic view updated"
 msgstr "Visualização semântica atualizada"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15937,12 +16002,12 @@ msgstr "Mostrar carimbos de data/hora da consulta do gráfico"
 msgid "Show column headers"
 msgstr "Mostrar cabeçalhos de coluna"
 
+msgid "Show column summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show columns subtotal"
 msgstr "Mostrar subtotal de colunas"
-
-msgid "Show columns total"
-msgstr "Mostrar o total de colunas"
 
 msgid "Show empty columns"
 msgstr "Mostrar colunas vazias"
@@ -16026,12 +16091,12 @@ msgstr "Mostrar identificadores de consulta"
 msgid "Show row labels"
 msgstr "Mostrar rótulos de linha"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "Mostrar subtotal de linhas"
-
-msgid "Show rows total"
-msgstr "Mostrar total de linhas"
 
 msgid "Show series values on the chart"
 msgstr "Mostrar valores de série sobre o gráfico"
@@ -16290,6 +16355,9 @@ msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr ""
 "Alguns filtros obrigatórios em outras guias possuem valores e não serão "
 "apagados"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr "Algumas tabelas não são mostradas. Refine sua pesquisa."
@@ -16813,6 +16881,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Soma"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "Soma dos valores durante o período especificado"
 
@@ -17166,6 +17243,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "Parâmetros do Modelo"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
@@ -18535,6 +18615,9 @@ msgstr "Os valores se sobrepõem a outros valores de ponto de interrupção"
 msgid "The version of the service"
 msgstr "A versão do serviço"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "O título visível da camada"
@@ -19057,6 +19140,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -19435,6 +19521,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -19868,6 +19961,12 @@ msgid ""
 msgstr ""
 "Muitas subfatias solicitadas. O máximo permitido é%(max)s, mas foram "
 "solicitados%(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -20665,6 +20764,13 @@ msgstr ""
 "carimbo de data/hora"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -20673,6 +20779,9 @@ msgstr ""
 #, fuzzy
 msgid "Use gradient"
 msgstr "Usar gradiente"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Use métricas como um grupo de nível superior para colunas ou linhas"
@@ -21017,6 +21126,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Porta de exibição"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtual"
@@ -22389,6 +22501,11 @@ msgstr "Sua consulta foi atualizada"
 
 msgid "Your report could not be deleted"
 msgstr "Não foi possível excluir seu relatório"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

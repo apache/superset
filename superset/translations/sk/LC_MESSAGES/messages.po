@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2026-05-18 15:42+0200\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: sk\n"
@@ -1302,6 +1302,9 @@ msgstr "Pracuje se"
 msgid "About"
 msgstr "O aplikácii"
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr "Prístup"
 
@@ -1752,6 +1755,9 @@ msgstr "Agregace"
 
 msgid "Aggregation Method"
 msgstr "Metoda agregace"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3638,6 +3644,12 @@ msgstr "Zmena tohoto grafu je zakázána"
 msgid "Changing this semantic view is forbidden"
 msgstr "Zmena tejto sady dat je zakázána"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "Zmena tejto sady dat je zakázána"
@@ -4310,6 +4322,10 @@ msgstr "Farba cieľového umístení"
 msgid "Color scheme"
 msgstr "Barevné schéma"
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
@@ -4917,8 +4933,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "Počet"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "Zeme"
@@ -7774,6 +7807,10 @@ msgstr "Zlyhalo"
 msgid "Failed at retrieving results"
 msgstr "Nepodarilo sa načítať výsledky"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr "Nepodarilo sa aplikovať téma: neplatný JSON"
 
@@ -8068,7 +8105,13 @@ msgstr "Filtrovať grafy"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -9226,6 +9269,11 @@ msgstr "Neplatná zemepisná dĺžka/šírka"
 msgid "Invalid metric object: %(metric)s"
 msgstr "Neplatný objekt metriky: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "Neplatná funkce numpy: %(operator)s"
@@ -9583,6 +9631,9 @@ msgstr "Posledný rok"
 msgid "Lat"
 msgstr "Zem. šírka"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "Zemepisná šírka"
 
@@ -9867,6 +9918,9 @@ msgstr "Zoznam skupin"
 
 msgid "List Roles"
 msgstr "Zoznam rolí"
+
+msgid "List Unique Values"
+msgstr ""
 
 msgid "List Users"
 msgstr "Zoznam používateľov"
@@ -10263,6 +10317,9 @@ msgstr "Priemer hodnôt za zadané období"
 
 msgid "Mean values"
 msgstr "Průmerné hodnoty"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11125,6 +11182,9 @@ msgid ""
 msgstr ""
 "Nebyl nalezen žiadny validátor s názvom %(validator_name)s "
 "(nakonfigurovaný pre engine %(engine_spec)s)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "Pozice popisku uzlu"
@@ -14548,6 +14608,11 @@ msgstr "Parametre sady dat sú neplatné."
 msgid "Semantic view updated"
 msgstr "Sémantický pohľad bol aktualizovaný"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -14897,11 +14962,11 @@ msgstr "Zobraziť časové značky dotazov na graf"
 msgid "Show column headers"
 msgstr "Zobraziť záhlavie stĺpcov"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "Zobraziť mezisoučet stĺpcov"
-
-msgid "Show columns total"
-msgstr "Zobraziť súčet stĺpcov"
 
 msgid "Show empty columns"
 msgstr "Zobraziť prázdne stĺpce"
@@ -14984,11 +15049,11 @@ msgstr "Zobraziť identifikátory dotazov"
 msgid "Show row labels"
 msgstr "Zobraziť popisky riadkov"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "Zobraziť mezisoučet riadkov"
-
-msgid "Show rows total"
-msgstr "Zobraziť súčet riadkov"
 
 msgid "Show series values on the chart"
 msgstr "Zobraziť hodnoty sérií v grafu"
@@ -15229,6 +15294,9 @@ msgstr "Niektoré oprávnenia sa nepodarilo vyriešiť a sú zobrazené ako ID."
 #, fuzzy
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "Niektoré požadované filtre na iných kartách majú hodnoty a nebudú vymazané"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -15726,6 +15794,15 @@ msgstr ""
 msgid "Sum"
 msgstr "Súčet"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "Súčet hodnôt za zadané období"
 
@@ -16050,6 +16127,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "Parametre šablony"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
@@ -17302,6 +17382,9 @@ msgstr "Hodnoty překrývají hodnoty iných breakpointů"
 msgid "The version of the service"
 msgstr "Verzia služby"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "Viditelný názov vrstvy"
 
@@ -17805,6 +17888,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18147,6 +18233,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -18569,6 +18662,12 @@ msgid ""
 msgstr ""
 "Bolo požadovaných príliš veľa podrezov. Maximálny povolený počet je "
 "%(max)s, ale bolo požadovaných %(count)s."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -19307,6 +19406,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "Použít formátovanie data, i keď hodnota metriky nie je časová značka"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -19315,6 +19421,9 @@ msgstr ""
 #, fuzzy
 msgid "Use gradient"
 msgstr "Použít gradient"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "Použít metriky ako skupinu najvyššej úrovne pre stĺpce alebo riadky"
@@ -19633,6 +19742,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "Zobrazovací oblasť"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "Virtuální"
@@ -20919,6 +21031,11 @@ msgstr "Váš dotaz bol aktualizován"
 
 msgid "Your report could not be deleted"
 msgstr "Váš report sa nepodarilo zmazať"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

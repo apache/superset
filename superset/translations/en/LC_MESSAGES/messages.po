@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2016-05-02 08:49-0700\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language: en\n"
@@ -1151,6 +1151,9 @@ msgstr ""
 msgid "About"
 msgstr ""
 
+msgid "Accept"
+msgstr ""
+
 msgid "Access"
 msgstr ""
 
@@ -1564,6 +1567,9 @@ msgid "Aggregation"
 msgstr ""
 
 msgid "Aggregation Method"
+msgstr ""
+
+msgid "Aggregation function"
 msgstr ""
 
 msgid ""
@@ -3276,6 +3282,12 @@ msgstr ""
 msgid "Changing this semantic view is forbidden"
 msgstr ""
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr ""
 
@@ -3891,6 +3903,10 @@ msgstr ""
 msgid "Color scheme"
 msgstr ""
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
@@ -4459,7 +4475,24 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
+msgstr ""
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
 msgstr ""
 
 msgid "Country"
@@ -7036,6 +7069,10 @@ msgstr ""
 msgid "Failed at retrieving results"
 msgstr ""
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 msgid "Failed to apply theme: Invalid JSON"
 msgstr ""
 
@@ -7316,7 +7353,13 @@ msgstr ""
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -8371,6 +8414,11 @@ msgstr ""
 msgid "Invalid metric object: %(metric)s"
 msgstr ""
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr ""
@@ -8708,6 +8756,9 @@ msgstr ""
 msgid "Lat"
 msgstr ""
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr ""
 
@@ -8971,6 +9022,9 @@ msgid "List Groups"
 msgstr ""
 
 msgid "List Roles"
+msgstr ""
+
+msgid "List Unique Values"
 msgstr ""
 
 msgid "List Users"
@@ -9330,6 +9384,9 @@ msgid "Mean of values over specified period"
 msgstr ""
 
 msgid "Mean values"
+msgstr ""
+
+msgid "Median"
 msgstr ""
 
 msgid ""
@@ -10126,6 +10183,9 @@ msgstr ""
 msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
+msgstr ""
+
+msgid "No views provided"
 msgstr ""
 
 msgid "Node label position"
@@ -13241,6 +13301,11 @@ msgstr ""
 msgid "Semantic view updated"
 msgstr ""
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 msgid "Semantic views"
 msgstr ""
 
@@ -13560,10 +13625,10 @@ msgstr ""
 msgid "Show column headers"
 msgstr ""
 
-msgid "Show columns subtotal"
+msgid "Show column summaries"
 msgstr ""
 
-msgid "Show columns total"
+msgid "Show columns subtotal"
 msgstr ""
 
 msgid "Show empty columns"
@@ -13642,10 +13707,10 @@ msgstr ""
 msgid "Show row labels"
 msgstr ""
 
-msgid "Show rows subtotal"
+msgid "Show row summaries"
 msgstr ""
 
-msgid "Show rows total"
+msgid "Show rows subtotal"
 msgstr ""
 
 msgid "Show series values on the chart"
@@ -13854,6 +13919,9 @@ msgid "Some permissions could not be resolved and are shown as IDs."
 msgstr ""
 
 msgid "Some required filters on other tabs have values and will not be cleared"
+msgstr ""
+
+msgid "Some semantic views could not be added"
 msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
@@ -14312,6 +14380,15 @@ msgstr ""
 msgid "Sum"
 msgstr ""
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr ""
 
@@ -14603,6 +14680,9 @@ msgid ""
 msgstr ""
 
 msgid "Template parameters"
+msgstr ""
+
+msgid "Template parameters must be a valid JSON object."
 msgstr ""
 
 #, python-format
@@ -15644,6 +15724,9 @@ msgstr ""
 msgid "The version of the service"
 msgstr ""
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr ""
 
@@ -16103,6 +16186,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -16371,6 +16457,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -16744,6 +16837,12 @@ msgstr ""
 msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
+msgstr ""
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
 msgstr ""
 
 msgid "Tool Panel"
@@ -17403,12 +17502,22 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr ""
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
 msgstr ""
 
 msgid "Use gradient"
+msgstr ""
+
+msgid "Use metric definition"
 msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
@@ -17689,6 +17798,9 @@ msgid ""
 msgstr ""
 
 msgid "Viewport"
+msgstr ""
+
+msgid "Views must be a list of objects"
 msgstr ""
 
 msgid "Virtual"
@@ -18817,6 +18929,11 @@ msgid "Your query was updated"
 msgstr ""
 
 msgid "Your report could not be deleted"
+msgstr ""
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
 msgstr ""
 
 msgid "Your session has ended. Please sign in again."

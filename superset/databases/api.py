@@ -128,7 +128,6 @@ from superset.extensions import security_manager
 from superset.models.core import Database
 from superset.sql.parse import Partition, Table
 from superset.superset_typing import FlaskResponse
-from superset.utils import json
 from superset.utils.core import (
     error_msg_from_exception,
     get_username,
@@ -141,6 +140,7 @@ from superset.utils.oauth2 import decode_oauth2_state
 from superset.utils.ssh_tunnel import mask_password_info
 from superset.views.base_api import (
     BaseSupersetModelRestApi,
+    parse_json_form_field,
     RelatedFieldFilter,
     requires_form_data,
     requires_json,
@@ -1711,32 +1711,14 @@ class DatabaseRestApi(BaseSupersetModelRestApi):
         if not contents:
             raise NoValidFilesFoundError()
 
-        passwords = (
-            json.loads(request.form["passwords"])
-            if "passwords" in request.form
-            else None
-        )
+        passwords = parse_json_form_field("passwords")
         overwrite = request.form.get("overwrite") == "true"
-        ssh_tunnel_passwords = (
-            json.loads(request.form["ssh_tunnel_passwords"])
-            if "ssh_tunnel_passwords" in request.form
-            else None
+        ssh_tunnel_passwords = parse_json_form_field("ssh_tunnel_passwords")
+        ssh_tunnel_private_keys = parse_json_form_field("ssh_tunnel_private_keys")
+        ssh_tunnel_priv_key_passwords = parse_json_form_field(
+            "ssh_tunnel_private_key_passwords"
         )
-        ssh_tunnel_private_keys = (
-            json.loads(request.form["ssh_tunnel_private_keys"])
-            if "ssh_tunnel_private_keys" in request.form
-            else None
-        )
-        ssh_tunnel_priv_key_passwords = (
-            json.loads(request.form["ssh_tunnel_private_key_passwords"])
-            if "ssh_tunnel_private_key_passwords" in request.form
-            else None
-        )
-        encrypted_extra_secrets = (
-            json.loads(request.form["encrypted_extra_secrets"])
-            if "encrypted_extra_secrets" in request.form
-            else None
-        )
+        encrypted_extra_secrets = parse_json_form_field("encrypted_extra_secrets")
 
         command = ImportDatabasesCommand(
             contents,

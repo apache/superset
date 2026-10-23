@@ -21,7 +21,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Superset VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2024-10-20 00:07+0330\n"
 "Last-Translator: Emad Rad <codewithemad@gmail.com>\n"
 "Language: fa\n"
@@ -1318,6 +1318,9 @@ msgstr "در حال کار کردن"
 msgid "About"
 msgstr "در مورد"
 
+msgid "Accept"
+msgstr ""
+
 #, fuzzy
 msgid "Access"
 msgstr "موفقیت"
@@ -1784,6 +1787,9 @@ msgstr "تجمیع"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "تجمیع"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3745,6 +3751,12 @@ msgstr "تغییر این نمودار ممنوع است"
 msgid "Changing this semantic view is forbidden"
 msgstr "تغییر این مجموعه داده ممنوع است"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "تغییر این مجموعه داده ممنوع است"
@@ -4445,6 +4457,10 @@ msgstr "رنگ مکان هدف"
 msgid "Color scheme"
 msgstr "طرح رنگ"
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
@@ -5090,8 +5106,25 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 msgid "Count"
 msgstr "شمارش"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "کشور"
@@ -8052,6 +8085,10 @@ msgstr "ناموفق"
 msgid "Failed at retrieving results"
 msgstr "در بازیابی نتایج شکست خورد."
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -8373,7 +8410,13 @@ msgstr "فیلتر چارت‌ها"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -9598,6 +9641,11 @@ msgstr "طول جغرافیایی/عرض جغرافیایی نامعتبر"
 msgid "Invalid metric object: %(metric)s"
 msgstr "شیء متریک نامعتبر: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "تابع نان‌پای نامعتبر: %(operator)s"
@@ -9971,6 +10019,9 @@ msgstr "سال گذشته"
 msgid "Lat"
 msgstr "ساده"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "عرض جغرافیایی"
 
@@ -10272,6 +10323,9 @@ msgstr "عدد را تقسیم کن"
 #, fuzzy
 msgid "List Roles"
 msgstr "فهرست نقش‌ها"
+
+msgid "List Unique Values"
+msgstr ""
 
 #, fuzzy
 msgid "List Users"
@@ -10693,6 +10747,9 @@ msgstr "میانگین مقادیر در دوره مشخص شده"
 
 msgid "Mean values"
 msgstr "مقادیر میانگین"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11577,6 +11634,9 @@ msgid ""
 msgstr ""
 "هیچ اعتبارسنجی با نام %(validator_name)s پیدا نشد (برای موتور "
 "%(engine_spec)s پیکربندی شده است)"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "موقعیت برچسب گره"
@@ -15099,6 +15159,11 @@ msgstr "پارامترهای مجموعه داده نامعتبر هستند."
 msgid "Semantic view updated"
 msgstr "نمای معنایی به‌روزرسانی شد"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15481,11 +15546,11 @@ msgstr "نمایش زمان‌سنج"
 msgid "Show column headers"
 msgstr "برچسب سرستون"
 
+msgid "Show column summaries"
+msgstr ""
+
 msgid "Show columns subtotal"
 msgstr "نمایش زیرمجموعه ستون‌ها"
-
-msgid "Show columns total"
-msgstr "نمایش مجموع ستون‌ها"
 
 msgid "Show empty columns"
 msgstr "ستون‌های خالی را نمایش بدهید"
@@ -15568,11 +15633,11 @@ msgstr "جزئیات کوئری را ببینید"
 msgid "Show row labels"
 msgstr "نمایش برچسب‌ها"
 
+msgid "Show row summaries"
+msgstr ""
+
 msgid "Show rows subtotal"
 msgstr "نمایش زیرمجموعه ردیف‌ها"
-
-msgid "Show rows total"
-msgstr "نمایش مجموع سطرها"
 
 msgid "Show series values on the chart"
 msgstr "نمایش مقادیر سری در نمودار"
@@ -15821,6 +15886,9 @@ msgstr "برخی مجوزها قابل حل‌وفصل نبودند و به صو
 #, fuzzy
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "برخی فیلترهای اجباری در برگه‌های دیگر دارای مقادیری هستند و پاک نخواهند شد"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -16334,6 +16402,15 @@ msgstr ""
 msgid "Sum"
 msgstr "جمع"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "مجموع مقادیر در بازه زمانی مشخص شده"
 
@@ -16685,6 +16762,9 @@ msgstr ""
 
 msgid "Template parameters"
 msgstr "پارامترهای الگو"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
@@ -17987,6 +18067,9 @@ msgstr "مقادیر با مقادیر دیگر نقاط شکست همپوشان
 msgid "The version of the service"
 msgstr "موقعیت افسانه را انتخاب کنید"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 #, fuzzy
 msgid "The visible title of the layer"
 msgstr "نمایش مقدار بر روی نوار"
@@ -18501,6 +18584,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18878,6 +18964,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -19316,6 +19409,12 @@ msgid ""
 msgstr ""
 "تعداد زیرشاخه‌های درخواستی بیش از حد است. حداکثر مجاز %(max)s است، اما "
 "%(count)s درخواست شده است."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 #, fuzzy
 msgid "Tool Panel"
@@ -20080,6 +20179,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "از فرمت تاریخ استفاده کنید حتی زمانی که مقدار متریک زمان‌سنج نیست."
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -20088,6 +20194,9 @@ msgstr ""
 #, fuzzy
 msgid "Use gradient"
 msgstr "دانه زمانی"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr ""
@@ -20421,6 +20530,9 @@ msgstr ""
 
 msgid "Viewport"
 msgstr "نمایشگر"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 msgid "Virtual"
 msgstr "مجازی"
@@ -21741,6 +21853,11 @@ msgstr "کوئری شما بروزرسانی شد"
 
 msgid "Your report could not be deleted"
 msgstr "گزارش شما نتوانست حذف شود"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

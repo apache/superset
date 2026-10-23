@@ -17,7 +17,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2019-02-02 22:28+0900\n"
 "Last-Translator: \n"
 "Language: ko\n"
@@ -1675,6 +1675,9 @@ msgstr "주석"
 msgid "About"
 msgstr "정보"
 
+msgid "Accept"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -2314,6 +2317,9 @@ msgstr "생성자"
 #, fuzzy
 msgid "Aggregation Method"
 msgstr "생성자"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -5131,6 +5137,12 @@ msgstr "이 차트를 변경하는 것은 불가능합니다"
 msgid "Changing this semantic view is forbidden"
 msgstr "이 차트를 변경하는 것은 불가능합니다"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 #, fuzzy
 msgid "Changing this task is forbidden"
 msgstr "이 차트를 변경하는 것은 불가능합니다"
@@ -6098,6 +6110,10 @@ msgstr "대상 위치의 색상"
 msgid "Color scheme"
 msgstr "색상 구성표"
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
@@ -7003,9 +7019,26 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 #, fuzzy
 msgid "Count"
 msgstr "컬럼 추가"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 #, fuzzy
 msgid "Country"
@@ -11100,6 +11133,10 @@ msgstr "실패"
 msgid "Failed at retrieving results"
 msgstr "결과 검색에 실패했습니다"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -11515,7 +11552,13 @@ msgstr "차트 수정"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
@@ -13285,6 +13328,11 @@ msgstr "잘못된 경도/위도"
 msgid "Invalid metric object: %(metric)s"
 msgstr "잘못된 측정 항목 개체: %(metric)s"
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -13837,6 +13885,9 @@ msgstr "년"
 msgid "Lat"
 msgstr "위도"
 
+msgid "Latest save"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -14277,6 +14328,9 @@ msgstr "저장된 Query 수정"
 #, fuzzy
 msgid "List Roles"
 msgstr "역할 목록"
+
+msgid "List Unique Values"
+msgstr ""
 
 #, fuzzy
 msgid "List Users"
@@ -14895,6 +14949,9 @@ msgstr "지정된 기간의 평균값"
 #, fuzzy
 msgid "Mean values"
 msgstr "테이블 명"
+
+msgid "Median"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -16203,6 +16260,9 @@ msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
 msgstr "%(engine_spec)s 엔진에 구성된 %(validator_name)s 이름의 유효성 검사기를 찾을 수 없습니다"
+
+msgid "No views provided"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -21251,6 +21311,11 @@ msgstr "차트의 파라미터가 부적절합니다."
 msgid "Semantic view updated"
 msgstr "시맨틱 뷰가 업데이트되었습니다"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -21778,12 +21843,11 @@ msgstr "저장된 Query"
 msgid "Show column headers"
 msgstr "컬럼 보기"
 
-#, fuzzy
-msgid "Show columns subtotal"
-msgstr "컬럼 보기"
+msgid "Show column summaries"
+msgstr ""
 
 #, fuzzy
-msgid "Show columns total"
+msgid "Show columns subtotal"
 msgstr "컬럼 보기"
 
 #, fuzzy
@@ -21902,16 +21966,12 @@ msgstr "저장된 Query"
 msgid "Show row labels"
 msgstr "테이블 보기"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "컬럼 보기"
-
-# Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
-# de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
-# uk, zh, zh_TW]
-#, fuzzy
-msgid "Show rows total"
-msgstr "행 합계 표시"
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -22253,6 +22313,9 @@ msgstr "일부 권한을 확인할 수 없어 ID로 표시됩니다."
 #, fuzzy
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "다른 탭의 일부 필수 필터에 값이 있으며 지워지지 않습니다"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr ""
@@ -23031,6 +23094,15 @@ msgstr ""
 msgid "Sum"
 msgstr "합계"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
 # uk, zh, zh_TW]
@@ -23498,6 +23570,9 @@ msgstr ""
 #, fuzzy
 msgid "Template parameters"
 msgstr "템플릿 매개변수"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
@@ -25214,6 +25289,9 @@ msgstr "값이 다른 중단점 값과 겹칩니다."
 msgid "The version of the service"
 msgstr "서비스 버전"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # es, ja, lv, mi, ro, ru, sk, sr, sr_Latn, tr, uk]
 #, fuzzy
@@ -25873,6 +25951,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -26323,6 +26404,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -26929,6 +27017,12 @@ msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr "요청된 하위 슬라이스가 너무 많습니다. 허용되는 최대 수는 %(max)s이지만 %(count)s개가 요청되었습니다."
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, ja, lv,
 # ro, ru, sr, sr_Latn, uk]
@@ -28008,6 +28102,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "측정값이 타임스탬프가 아닌 경우에도 날짜 형식 사용"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -28018,6 +28119,9 @@ msgstr ""
 #, fuzzy
 msgid "Use gradient"
 msgstr "그라데이션 사용"
+
+msgid "Use metric definition"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr,
@@ -28480,6 +28584,9 @@ msgstr ""
 #, fuzzy
 msgid "Viewport"
 msgstr "뷰포트"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ar, ca, cs,
 # de, es, fa, fr, ja, lv, mi, nl, pt_BR, ro, ru, sk, sl, sr, sr_Latn, tr, uk]
@@ -30440,6 +30547,11 @@ msgstr "쿼리가 업데이트되었습니다"
 #, fuzzy
 msgid "Your report could not be deleted"
 msgstr "차트를 삭제할 수 없습니다."
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 #, fuzzy

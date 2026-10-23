@@ -711,6 +711,50 @@ def test_import_with_encrypted_extra_secrets(
     )
 
 
+@pytest.mark.parametrize(
+    "field, value, message",
+    [
+        ("passwords", "{not json", "Form field 'passwords' is not valid JSON"),
+        ("passwords", "123", "Form field 'passwords' must be a JSON object"),
+        (
+            "encrypted_extra_secrets",
+            "{not json",
+            "Form field 'encrypted_extra_secrets' is not valid JSON",
+        ),
+    ],
+)
+def test_import_invalid_json_form_field(
+    mocker: MockerFixture,
+    client: Any,
+    full_api_access: None,
+    field: str,
+    value: str,
+    message: str,
+) -> None:
+    """
+    Test that a malformed JSON form field returns a 400 instead of a 500.
+    """
+    mocker.patch("superset.databases.api.is_zipfile", return_value=True)
+    mocker.patch("superset.databases.api.open_import_bundle")
+    mocker.patch(
+        "superset.databases.api.get_contents_from_bundle",
+        return_value={"metadata.yaml": "version: 1.0.0\n"},
+    )
+    command = mocker.patch("superset.databases.api.ImportDatabasesCommand")
+
+    form_data = {"formData": (BytesIO(b"test"), "test.zip"), field: value}
+    response = client.post(
+        "/api/v1/database/import/",
+        data=form_data,
+        content_type="multipart/form-data",
+    )
+
+    assert response.status_code == 400
+    assert response.json["errors"][0]["message"] == message
+    assert response.json["errors"][0]["error_type"] == "INVALID_PAYLOAD_FORMAT_ERROR"
+    command.assert_not_called()
+
+
 def test_non_zip_import(client: Any, full_api_access: None) -> None:
     """
     Test that non-ZIP imports are not allowed.

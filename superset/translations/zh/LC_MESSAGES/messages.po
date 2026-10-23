@@ -18,7 +18,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Apache Superset 0.22.1\n"
 "Report-Msgid-Bugs-To: zhouyao94@qq.com\n"
-"POT-Creation-Date: 2026-10-19 13:00-0400\n"
+"POT-Creation-Date: 2026-10-23 02:33-0400\n"
 "PO-Revision-Date: 2019-01-04 22:19+0800\n"
 "Last-Translator: cdmikechen\n"
 "Language: zh\n"
@@ -1310,6 +1310,9 @@ msgstr "正在中止"
 msgid "About"
 msgstr "关于"
 
+msgid "Accept"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ca, cs, de,
 # fr, it, ja, lv, mi, nl, ru, sk, sl, tr, uk]
 #, fuzzy
@@ -1762,6 +1765,9 @@ msgstr "聚合"
 
 msgid "Aggregation Method"
 msgstr "聚合方法"
+
+msgid "Aggregation function"
+msgstr ""
 
 msgid ""
 "Aggregation used for the summary row. By default each metric keeps its "
@@ -3651,6 +3657,12 @@ msgstr "禁止更改此语义层"
 msgid "Changing this semantic view is forbidden"
 msgstr "禁止更改此语义视图"
 
+msgid ""
+"Changing this setting may change the casing for all columns in this "
+"dataset, which may break any existing charts and dashboard filters that "
+"reference the current column names."
+msgstr ""
+
 msgid "Changing this task is forbidden"
 msgstr "禁止更改此任务"
 
@@ -4317,6 +4329,10 @@ msgstr "目标位置的颜色"
 msgid "Color scheme"
 msgstr "配色方案"
 
+#, python-format
+msgid "Color scheme: %s"
+msgstr ""
+
 msgid ""
 "Color used when the close value is greater than or equal to the open "
 "value."
@@ -4951,9 +4967,26 @@ msgid ""
 "shown."
 msgstr ""
 
+msgid ""
+"Couldn't validate this semantic view: it may not exist, or the semantic "
+"layer is unreachable."
+msgstr ""
+
 #, fuzzy
 msgid "Count"
 msgstr "计数"
+
+msgid "Count Unique Values"
+msgstr ""
+
+msgid "Count as Fraction of Columns"
+msgstr ""
+
+msgid "Count as Fraction of Rows"
+msgstr ""
+
+msgid "Count as Fraction of Total"
+msgstr ""
 
 msgid "Country"
 msgstr "国家"
@@ -7789,6 +7822,10 @@ msgstr "失败"
 msgid "Failed at retrieving results"
 msgstr "检索结果失败"
 
+#, python-format
+msgid "Failed to add %s: %s"
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: cs, de, fr,
 # ja, lv, ro, ru, sk, sr, sr_Latn, tr, uk]
 msgid "Failed to apply theme: Invalid JSON"
@@ -8118,7 +8155,13 @@ msgstr "筛选图表"
 #, python-format
 msgid ""
 "Filter column '%(column)s' is a metric; semantic views only filter on "
-"dimensions"
+"dimensions. Select a dimension or remove the filter."
+msgstr ""
+
+#, python-format
+msgid ""
+"Filter column '%(column)s' is not in this semantic view. Select a "
+"dimension or remove the filter."
 msgstr ""
 
 msgid "Filter has default value"
@@ -9309,6 +9352,11 @@ msgstr "无效的经度/纬度"
 msgid "Invalid metric object: %(metric)s"
 msgstr ""
 
+msgid ""
+"Invalid number format: must be a d3-format specifier or a supported named"
+" format"
+msgstr ""
+
 #, python-format
 msgid "Invalid numpy function: %(operator)s"
 msgstr "无效的numpy函数：%(operator)s"
@@ -9683,6 +9731,9 @@ msgstr "上一年"
 msgid "Lat"
 msgstr "纬度"
 
+msgid "Latest save"
+msgstr ""
+
 msgid "Latitude"
 msgstr "纬度"
 
@@ -9971,6 +10022,9 @@ msgstr "分组列表"
 #, fuzzy
 msgid "List Roles"
 msgstr "角色列表"
+
+msgid "List Unique Values"
+msgstr ""
 
 msgid "List Users"
 msgstr "用户列表"
@@ -10382,6 +10436,9 @@ msgstr "特定时期内的平均值"
 #, fuzzy
 msgid "Mean values"
 msgstr "平均值"
+
+msgid "Median"
+msgstr ""
 
 msgid ""
 "Median edge width, the thickest edge will be 4 times thicker than the "
@@ -11278,6 +11335,9 @@ msgid ""
 "No validator named %(validator_name)s found (configured for the "
 "%(engine_spec)s engine)"
 msgstr "未找到名为 %(validator_name)s 的验证器（为 %(engine_spec)s 引擎配置）"
+
+msgid "No views provided"
+msgstr ""
 
 msgid "Node label position"
 msgstr "节点标签位置"
@@ -14716,6 +14776,11 @@ msgstr "语义视图参数无效。"
 msgid "Semantic view updated"
 msgstr "语义视图已更新"
 
+msgid ""
+"Semantic view validation timed out before this view was checked. Retry it"
+" in a separate request."
+msgstr ""
+
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: de, sr,
 # sr_Latn]
 #, fuzzy
@@ -15077,12 +15142,12 @@ msgstr "显示图表查询时间戳"
 msgid "Show column headers"
 msgstr "显示列标题"
 
+msgid "Show column summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show columns subtotal"
 msgstr "显示列小计"
-
-msgid "Show columns total"
-msgstr "显示列总计"
 
 #, fuzzy
 msgid "Show empty columns"
@@ -15163,12 +15228,12 @@ msgstr "显示查询标识符"
 msgid "Show row labels"
 msgstr "显示行标签"
 
+msgid "Show row summaries"
+msgstr ""
+
 #, fuzzy
 msgid "Show rows subtotal"
 msgstr "显示行小计"
-
-msgid "Show rows total"
-msgstr "显示行总计"
 
 msgid "Show series values on the chart"
 msgstr "在图表上显示系列值"
@@ -15397,6 +15462,9 @@ msgstr "某些权限无法解析，已显示为ID。"
 # sr_Latn]
 msgid "Some required filters on other tabs have values and will not be cleared"
 msgstr "其他选项卡上的一些必填筛选器已有值，不会被清除"
+
+msgid "Some semantic views could not be added"
+msgstr ""
 
 msgid "Some tables are not shown. Refine your search."
 msgstr "部分表未显示。请优化您的搜索。"
@@ -15906,6 +15974,15 @@ msgstr ""
 msgid "Sum"
 msgstr "求和"
 
+msgid "Sum as Fraction of Columns"
+msgstr ""
+
+msgid "Sum as Fraction of Rows"
+msgstr ""
+
+msgid "Sum as Fraction of Total"
+msgstr ""
+
 msgid "Sum of values over specified period"
 msgstr "指定期间内的值总和"
 
@@ -16246,6 +16323,9 @@ msgstr "单元格标题的模板。使用Handlebars模板语法（一种流行�
 
 msgid "Template parameters"
 msgstr "模板参数"
+
+msgid "Template parameters must be a valid JSON object."
+msgstr ""
 
 #, fuzzy, python-format
 msgid "Template processing error: %(error)s"
@@ -17434,6 +17514,9 @@ msgstr "这些值与其他断点值重叠"
 msgid "The version of the service"
 msgstr "服务的版本"
 
+msgid "The view configuration must be a JSON object."
+msgstr ""
+
 msgid "The visible title of the layer"
 msgstr "图层的可见标题"
 
@@ -17911,6 +17994,9 @@ msgid ""
 "semantic view or dataset, or recreate the chart."
 msgstr ""
 
+msgid "This chart was updated to use the restored aggregation"
+msgstr ""
+
 msgid "This chart will be restored to the following version:"
 msgstr ""
 
@@ -18256,6 +18342,13 @@ msgid "This password reset link is invalid or has expired"
 msgstr ""
 
 msgid "This password reset link is invalid or has expired."
+msgstr ""
+
+msgid ""
+"This pivot table used a legacy per-table aggregation setting that could "
+"be stale or incorrect, depending on which version you upgraded from. It "
+"now computes correctly, so totals and subtotals may look different than "
+"before. Please validate them, then accept this notice or save the chart."
 msgstr ""
 
 msgid ""
@@ -18668,6 +18761,12 @@ msgid ""
 "Too many sub-slices requested. The maximum allowed is %(max)s, but "
 "%(count)s were requested."
 msgstr "请求的子切片数量过多。最大允许数量为 %(max)s，但实际请求了 %(count)s 个子切片。"
+
+#, python-format
+msgid ""
+"Too many views in one request: %(count)s provided, at most %(limit)s "
+"allowed."
+msgstr ""
 
 msgid "Tool Panel"
 msgstr "工具面板"
@@ -19431,6 +19530,13 @@ msgid "Use date formatting even when metric value is not a timestamp"
 msgstr "即使指标值不是时间戳，也使用日期格式"
 
 msgid ""
+"Use each metric’s own definition for cells and summaries (the default "
+"since SIP-216), or aggregate a second time over the metric’s own grouped "
+"results — e.g. the median of a set of per-store averages. Query limits "
+"apply before a result aggregation runs."
+msgstr ""
+
+msgid ""
 "Use example.com for an exact domain, *.example.com for subdomains, or "
 "preset.* for preset.io and preset.ai. A trailing wildcard matches one "
 "segment. Leave empty to allow any domain."
@@ -19438,6 +19544,9 @@ msgstr ""
 
 msgid "Use gradient"
 msgstr "使用渐变"
+
+msgid "Use metric definition"
+msgstr ""
 
 msgid "Use metrics as a top level group for columns or for rows"
 msgstr "将指标作为列或行的顶级组使用"
@@ -19761,6 +19870,9 @@ msgstr "查看者是指可以查看该看板的主体列表。如果未定义查
 
 msgid "Viewport"
 msgstr "视口"
+
+msgid "Views must be a list of objects"
+msgstr ""
 
 #, fuzzy
 msgid "Virtual"
@@ -21014,6 +21126,11 @@ msgstr "您的查询已更新"
 
 msgid "Your report could not be deleted"
 msgstr "这个报告无法被删除"
+
+msgid ""
+"Your role does not have access to the profile page needed to change your "
+"password. Contact an administrator."
+msgstr ""
 
 # Machine-translated via backfill_po.py (claude-sonnet-4-6) [refs: ja]
 msgid "Your session has ended. Please sign in again."

@@ -641,8 +641,19 @@ class BigQueryEngineSpec(BaseEngineSpec):  # pylint: disable=too-many-public-met
         database: Database,
         table: Table,
     ) -> dict[str, Any]:
-        payload = {}
-        partition_column = cls.get_time_partition_column(database, table)
+        from google.api_core.exceptions import NotFound
+
+        payload: dict[str, Any] = {}
+        try:
+            partition_column = cls.get_time_partition_column(database, table)
+        except NotFound:
+            # The table was dropped/renamed (or is otherwise not resolvable);
+            # partition metadata is optional enrichment, so degrade gracefully.
+            logger.warning(
+                "BigQuery table %s not found while fetching extra metadata",
+                table,
+            )
+            return payload
         with cls.get_engine(
             database, catalog=table.catalog, schema=table.schema
         ) as engine:
