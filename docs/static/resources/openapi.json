@@ -4838,6 +4838,93 @@
         },
         "type": "object"
       },
+      "DatabaseOAuth2TokensDeleteSchema": {
+        "properties": {
+          "token_ids": {
+            "items": {
+              "minimum": 1,
+              "type": "integer"
+            },
+            "maxItems": 100,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "token_ids"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get_list": {
+        "properties": {
+          "access_token_expiration": {
+            "format": "date-time",
+            "nullable": true,
+            "type": "string"
+          },
+          "id": {
+            "type": "integer"
+          },
+          "user": {
+            "$ref": "#/components/schemas/DatabaseOAuth2TokensRestApi.get_list.User"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.get_list.User": {
+        "properties": {
+          "email": {
+            "maxLength": 320,
+            "type": "string"
+          },
+          "first_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "last_name": {
+            "maxLength": 64,
+            "type": "string"
+          },
+          "username": {
+            "maxLength": 128,
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "first_name",
+          "last_name",
+          "username"
+        ],
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.post": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
+      "DatabaseOAuth2TokensRestApi.put": {
+        "properties": {
+          "id": {
+            "type": "integer"
+          }
+        },
+        "type": "object"
+      },
       "DatabaseRelatedChart": {
         "properties": {
           "id": {
@@ -7292,6 +7379,10 @@
               }
             ],
             "description": "Characters used to quote identifiers for this dialect"
+          },
+          "oauth2_enabled": {
+            "description": "OAuth2 authentication is enabled on this connection",
+            "type": "boolean"
           },
           "supports_dynamic_catalog": {
             "description": "The database supports multiple catalogs in a single connection",
@@ -22680,6 +22771,109 @@
           }
         ],
         "summary": "Get function names supported by a database",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/": {
+      "get": {
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/all/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "All OAuth2 credentials deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete all OAuth2 access and refresh tokens  for a DB connection.",
+        "tags": [
+          "Database"
+        ]
+      }
+    },
+    "/api/v1/database/{pk}/oauth2_tokens/delete/": {
+      "post": {
+        "parameters": [
+          {
+            "in": "path",
+            "name": "pk",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatabaseOAuth2TokensDeleteSchema"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth2 credentials deleted successfully"
+          },
+          "400": {
+            "$ref": "#/components/responses/400"
+          },
+          "403": {
+            "$ref": "#/components/responses/403"
+          },
+          "404": {
+            "$ref": "#/components/responses/404"
+          },
+          "422": {
+            "$ref": "#/components/responses/422"
+          }
+        },
+        "security": [
+          {
+            "jwt": []
+          },
+          {
+            "api_key": []
+          }
+        ],
+        "summary": "Delete OAuth2 access and refresh tokens for a DB connection.",
         "tags": [
           "Database"
         ]
