@@ -1057,6 +1057,26 @@ class TestChartApi(ApiEditorsTestCaseMixin, InsertChartMixin, SupersetTestCase):
         assert self.original_dashboard not in self.chart.dashboards
 
     @pytest.mark.usefixtures("add_dashboard_to_chart")
+    def test_update_chart_new_dashboard_with_missing_datasource(self):
+        """
+        Chart API: Linking a new dashboard while repointing the chart at a
+        missing datasource reports the datasource error (422)
+        """
+        chart_data = {
+            "datasource_id": 0,
+            "datasource_type": "table",
+            "dashboards": [self.new_dashboard.id],
+        }
+        self.login(ADMIN_USERNAME)
+        uri = f"api/v1/chart/{self.chart.id}"
+        rv = self.put_assert_metric(uri, chart_data, "put")
+        assert rv.status_code == 422
+        response = json.loads(rv.data.decode("utf-8"))
+        assert response == {"message": {"datasource_id": ["Datasource does not exist"]}}
+        db.session.expire_all()
+        assert self.new_dashboard not in self.chart.dashboards
+
+    @pytest.mark.usefixtures("add_dashboard_to_chart")
     def test_not_update_chart_none_dashboards(self):
         """
         Chart API: Test update chart without changing dashboards configuration

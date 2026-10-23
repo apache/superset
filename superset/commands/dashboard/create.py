@@ -88,5 +88,12 @@ class CreateDashboardCommand(CreateMixin, BaseCommand):
 
         populate_subjects(self._properties, exceptions)
 
+        # Every chart in the new dashboard's layout is a new member, so the
+        # creator must be able to access each one's datasource (it can be served
+        # through the dashboard).
+        DashboardDAO.raise_for_added_member_datasource_access(
+            self._properties.get("json_metadata")
+        )
+
         if exceptions:
             raise DashboardInvalidError(exceptions=exceptions)

@@ -25,7 +25,7 @@ from typing import Any, Callable, Dict, List, TYPE_CHECKING
 from flask import g
 from flask_appbuilder.models.sqla.interface import SQLAInterface
 from marshmallow import ValidationError
-from sqlalchemy import or_, select
+from sqlalchemy import or_, Select, select
 from sqlalchemy.engine import Row
 from sqlalchemy.orm import lazyload, Query, selectinload
 
@@ -142,6 +142,23 @@ def _layout_chart_id(node: Any) -> int | None:
     if isinstance(chart_id, str) and chart_id.strip().isdecimal():
         return int(chart_id.strip())
     return None
+
+
+def _slice_ids_from_positions(positions: dict[str, Any]) -> list[int]:
+    """Return the chart ids referenced by a dashboard layout's ``positions``."""
+    chart_id: int | None
+    return [
+        chart_id
+        for value in positions.values()
+        if (chart_id := _layout_chart_id(value)) is not None
+    ]
+
+
+def _member_slice_ids_select(dashboard_id: int) -> Select:
+    """Select a dashboard's member chart ids from ``dashboard_slices``."""
+    return select(dashboard_slices.c.slice_id).where(
+        dashboard_slices.c.dashboard_id == dashboard_id
+    )
 
 
 def _is_empty_chart_slot(node: object) -> bool:
@@ -480,11 +497,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # Select the ids through the association table instead of binding
             # one parameter per chart -- a dashboard with enough charts would
             # otherwise run past SQLite's 999-variable floor.
-            Slice.id.in_(
-                select(dashboard_slices.c.slice_id).where(
-                    dashboard_slices.c.dashboard_id == dashboard.id
-                )
-            )
+            Slice.id.in_(_member_slice_ids_select(dashboard.id))
         ).all()
 
     @staticmethod
@@ -622,6 +635,53 @@ class DashboardDAO(BaseDAO[Dashboard]):
         return True
 
     @staticmethod
+    def raise_for_added_member_datasource_access(
+        json_metadata: str | None,
+        slice_ids: list[int] | None = None,
+        existing_dashboard_id: int | None = None,
+    ) -> None:
+        """Require the acting user's access to each chart newly added to a dashboard.
+
+        A chart's datasource can be served through a dashboard it belongs to
+        (see ``can_drill_dataset_via_dashboard_access`` / ``has_drill_access``),
+        so adding one must not grant data the user could not otherwise read.
+        Called from the command ``validate()`` layer, before any side effects.
+
+        The candidate charts are those in the ``json_metadata`` layout plus
+        ``slice_ids``; charts already linked to ``existing_dashboard_id`` are
+        not re-checked. The admin, no-request-user and unresolvable-datasource
+        exemptions live in ``security_manager.raise_for_datasources_access``.
+        Raises ``DashboardForbiddenError`` when refused.
+        """
+        candidate_ids: set[int] = set(slice_ids or [])
+        if json_metadata and (positions := json.loads(json_metadata).get("positions")):
+            candidate_ids.update(_slice_ids_from_positions(positions))
+        if not candidate_ids:
+            return
+        # Read prior membership from ``dashboard_slices`` rather than
+        # ``Dashboard.slices``: a dashboard loaded through a query carries the
+        # soft-delete loader criteria into that relationship, which would hide
+        # an archived member and make it look like a new addition.
+        if existing_dashboard_id is not None:
+            candidate_ids -= set(
+                db.session.scalars(_member_slice_ids_select(existing_dashboard_id))
+            )
+        if not candidate_ids:
+            return
+        # Resolve the incoming charts with the visibility filter lifted, the same
+        # as ``set_dash_metadata``'s rebuild, since it links archived charts too.
+        with skip_visibility_filter(db.session, Slice):
+            added_slices = (
+                db.session.query(Slice).filter(Slice.id.in_(candidate_ids)).all()
+            )
+        try:
+            security_manager.raise_for_datasources_access(
+                Slice.iter_resolved_datasources(added_slices)
+            )
+        except SupersetSecurityException as ex:
+            raise DashboardForbiddenError() from ex
+
+    @staticmethod
     def set_dash_metadata(  # noqa: C901
         dashboard: Dashboard,
         data: dict[Any, Any],
@@ -649,12 +709,7 @@ class DashboardDAO(BaseDAO[Dashboard]):
             # failed the save too, but with a 500 from the bad ``IN`` value).
             _reject_malformed_chart_nodes(positions)
             # find slices in the position data
-            chart_id: int | None
-            slice_ids = [
-                chart_id
-                for value in positions.values()
-                if (chart_id := _layout_chart_id(value)) is not None
-            ]
+            slice_ids = _slice_ids_from_positions(positions)
 
             # Bypass the soft-delete visibility filter when resolving the
             # incoming chart ids: a dashboard's ``position_json`` may still

@@ -62,3 +62,12 @@ class CopyDashboardCommand(BaseCommand):
             raise DashboardInvalidError()
         if not security_manager.is_editor(self._original_dash):
             raise DashboardForbiddenError()
+
+        # A copy that rebuilds membership from a caller-supplied layout must not
+        # pull in a chart whose datasource the caller cannot access. The
+        # ``duplicate_slices`` (clone) mode is exempt: it duplicates charts from
+        # the source dashboard the caller already edits, so it grants nothing new.
+        if not self._properties.get("duplicate_slices"):
+            DashboardDAO.raise_for_added_member_datasource_access(
+                self._properties["json_metadata"]
+            )

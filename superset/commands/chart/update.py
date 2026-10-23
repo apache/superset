@@ -155,6 +155,23 @@ class UpdateChartCommand(UpdateMixin, BaseCommand):
                 if dash.is_managed_externally or not security_manager.is_editor(dash):
                     raise DashboardsForbiddenError()
 
+            # A chart's datasource can be served through a dashboard it belongs
+            # to (drill access, and promiscuous-viewer access), so linking the
+            # chart to a new dashboard must require access to that datasource.
+            # A request that repoints the chart has its incoming datasource
+            # resolved and access-checked by ``validate()`` (or reported there
+            # as 422), so only the stored one is left to check. Admin and
+            # unresolvable-datasource exemptions live in
+            # ``raise_for_datasources_access``.
+            if self._properties.get("datasource_type"):
+                return
+            try:
+                security_manager.raise_for_datasources_access(
+                    [self._model.resolved_datasource]
+                )
+            except SupersetSecurityException as ex:
+                raise ChartForbiddenError() from ex
+
     def _validate_query_context_datasource(
         self, exceptions: list[ValidationError]
     ) -> None:

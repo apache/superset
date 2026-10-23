@@ -23,7 +23,10 @@ from sqlalchemy import event, inspect
 from sqlalchemy.orm.session import Session
 
 from superset import db, security_manager
-from superset.commands.dashboard.exceptions import DashboardInvalidError
+from superset.commands.dashboard.exceptions import (
+    DashboardForbiddenError,
+    DashboardInvalidError,
+)
 from superset.commands.dashboard.update import UpdateDashboardCommand
 from superset.connectors.sqla.models import Database, SqlaTable
 from superset.daos.dashboard import (
@@ -32,6 +35,8 @@ from superset.daos.dashboard import (
     reconcile_position_json,
 )
 from superset.dashboards.filter_scope import derive_metadata_scopes
+from superset.errors import ErrorLevel, SupersetError, SupersetErrorType
+from superset.exceptions import SupersetSecurityException
 from superset.models.dashboard import Dashboard
 from superset.models.helpers import skip_visibility_filter
 from superset.models.slice import Slice
@@ -1682,3 +1687,203 @@ def test_set_dash_metadata_does_not_double_remap_overlapping_ids(
 
     saved_legacy_custom = saved_metadata["chart_customization_config"][0]
     assert saved_legacy_custom["chartId"] == 2
+
+
+def _access_denied(**_: Any) -> None:
+    raise SupersetSecurityException(
+        SupersetError(
+            message="denied",
+            error_type=SupersetErrorType.DATASOURCE_SECURITY_ACCESS_ERROR,
+            level=ErrorLevel.ERROR,
+        )
+    )
+
+
+def _dashboard_with_member(session: Session, member: bool) -> tuple[Dashboard, Slice]:
+    """A chart on its own dataset, optionally already a dashboard member."""
+    Dashboard.metadata.create_all(session.get_bind())
+    database = Database(database_name="acc_db", sqlalchemy_uri="sqlite://")
+    dataset = SqlaTable(table_name="acc_table", database=database)
+    db.session.add(dataset)
+    db.session.flush()
+    chart = Slice(
+        slice_name="acc_chart",
+        datasource_id=dataset.id,
+        datasource_type="table",
+    )
+    dashboard = Dashboard(
+        dashboard_title="acc_dash",
+        slug="acc_dash",
+        published=True,
+        slices=[chart] if member else [],
+    )
+    db.session.add_all([chart, dashboard])
+    db.session.flush()
+    return dashboard, chart
+
+
+def _positions_for(chart: Slice) -> dict[str, dict[str, Any]]:
+    return {
+        "CHART-acc": {
+            "type": "CHART",
+            "id": "CHART-acc",
+            "children": [],
+            "meta": {"chartId": chart.id, "width": 4, "height": 50},
+        }
+    }
+
+
+def _raise_added(data: dict[str, Any], existing: Dashboard | None = None) -> None:
+    DashboardDAO.raise_for_added_member_datasource_access(
+        json.dumps(data), existing_dashboard_id=existing.id if existing else None
+    )
+
+
+def test_added_member_datasource_access_requires_access(session: Session) -> None:
+    """Adding a chart whose datasource the user cannot reach is refused."""
+    dashboard, chart = _dashboard_with_member(session, member=False)
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "raise_for_access", side_effect=_access_denied),
+    ):
+        with pytest.raises(DashboardForbiddenError):
+            _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
+
+
+def test_added_member_datasource_access_allows_accessible(session: Session) -> None:
+    """A reachable datasource passes and is actually checked."""
+    dashboard, chart = _dashboard_with_member(session, member=False)
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(
+            security_manager, "raise_for_access", return_value=None
+        ) as raise_for_access,
+    ):
+        _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
+    assert raise_for_access.called
+
+
+def test_added_member_datasource_access_skips_for_admins(session: Session) -> None:
+    """Admins are a trusted boundary and are not re-checked."""
+    dashboard, chart = _dashboard_with_member(session, member=False)
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=True),
+        patch.object(
+            security_manager,
+            "raise_for_access",
+            side_effect=AssertionError("admin add must not be access-checked"),
+        ),
+    ):
+        _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
+
+
+def test_added_member_datasource_access_skips_without_request_user(
+    session: Session,
+) -> None:
+    """A context with no request user (CLI / background) cannot enforce."""
+    dashboard, chart = _dashboard_with_member(session, member=False)
+    with (
+        patch("superset.security.manager.get_user_id", return_value=None),
+        patch.object(
+            security_manager,
+            "raise_for_access",
+            side_effect=AssertionError("no request user to enforce for"),
+        ),
+    ):
+        _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
+
+
+def test_added_member_datasource_access_skips_existing_members(
+    session: Session,
+) -> None:
+    """A chart already on the dashboard is not re-checked on a later save."""
+    dashboard, chart = _dashboard_with_member(session, member=True)
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(
+            security_manager,
+            "raise_for_access",
+            side_effect=AssertionError("existing member must not be access-checked"),
+        ),
+    ):
+        _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
+
+
+def test_added_member_datasource_access_checks_copy_with_layout(
+    session: Session,
+) -> None:
+    """A copy that rebuilds membership from a caller-supplied layout (no
+    existing dashboard) is checked like create/update."""
+    dashboard, chart = _dashboard_with_member(session, member=False)
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "raise_for_access", side_effect=_access_denied),
+    ):
+        with pytest.raises(DashboardForbiddenError):
+            _raise_added({"positions": _positions_for(chart)}, existing=None)
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_added_member_datasource_access_skips_soft_deleted_member(
+    session: Session,
+) -> None:
+    """A soft-deleted member still referenced by the layout is recognised as an
+    existing member, so it is not treated as a new addition. The dashboard is
+    loaded through a query, as on the PUT path, so its ``slices`` relationship
+    carries the soft-delete loader criteria and hides the archived member."""
+    dashboard, chart = _dashboard_with_member(session, member=True)
+    chart.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    db.session.flush()
+    db.session.expunge_all()
+    loaded: Dashboard = db.session.query(Dashboard).filter_by(id=dashboard.id).one()
+    assert chart.id not in {slc.id for slc in loaded.slices}
+
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(
+            security_manager,
+            "raise_for_access",
+            side_effect=AssertionError("existing member must not be access-checked"),
+        ),
+    ):
+        _raise_added({"positions": _positions_for(chart)}, existing=loaded)
+
+
+@with_feature_flags(SOFT_DELETE=True)
+def test_added_member_datasource_access_checks_soft_deleted_non_member(
+    session: Session,
+) -> None:
+    """A soft-deleted chart that is not yet a member is still checked: the
+    visibility filter is lifted when resolving the incoming charts, since
+    ``set_dash_metadata`` links archived charts too."""
+    dashboard, chart = _dashboard_with_member(session, member=False)
+    chart.deleted_at = datetime(2026, 1, 1, tzinfo=timezone.utc)
+    db.session.flush()
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "raise_for_access", side_effect=_access_denied),
+    ):
+        with pytest.raises(DashboardForbiddenError):
+            _raise_added({"positions": _positions_for(chart)}, existing=dashboard)
+
+
+def test_set_dash_metadata_no_longer_enforces_datasource_access(
+    session: Session,
+) -> None:
+    """The datasource check moved to the command ``validate()`` layer, so
+    ``set_dash_metadata`` itself links charts without enforcing access."""
+    dashboard, chart = _dashboard_with_member(session, member=False)
+    with (
+        patch("superset.security.manager.get_user_id", return_value=1),
+        patch.object(security_manager, "is_admin", return_value=False),
+        patch.object(security_manager, "raise_for_access", side_effect=_access_denied),
+    ):
+        DashboardDAO.set_dash_metadata(dashboard, {"positions": _positions_for(chart)})
+    assert chart.id in {c.id for c in dashboard.slices}
