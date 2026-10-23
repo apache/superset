@@ -428,7 +428,7 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
             # Keep independent predicates when the Time Column is unchanged.
             # A swapped x-axis drill can carry the overriding column's bucket.
             # Sunburst levels are independent of the Time Column, so their
-            # predicates remain valid even when that column changes.
+            # non-dashboard predicates remain valid when that column changes.
             if filter_to_remove and is_adhoc_column(filter_to_remove):  # type: ignore
                 filter_to_remove = filter_to_remove.get("sqlExpression")
 
@@ -441,7 +441,11 @@ class QueryContextFactory:  # pylint: disable=too-few-public-methods
                         filter["op"] != "TEMPORAL_RANGE"
                         and (
                             filter_to_remove == granularity
-                            or (form_data or {}).get("viz_type") == "sunburst_v2"
+                            or (
+                                (form_data or {}).get("viz_type") == "sunburst_v2"
+                                # Dashboard filters can come from a swapped x-axis.
+                                and not filter.get("isExtra")
+                            )
                         )
                     )
                 ]

@@ -566,3 +566,67 @@ def test_sunburst_factory_drill_keeps_bucket_on_different_time_column(
             order_date for order_date, _ in ROWS[:4]
         )
         assert sorted(df["kind"].tolist()) == ["a", "a", "b", "b"]
+
+
+@pytest.mark.parametrize("result_type", ["samples", "drill_detail", "full"])
+def test_sunburst_factory_drops_extra_filter_on_replaced_time_column(
+    events_table: SqlaTable,
+    app: Flask,
+    mocker: MockerFixture,
+    result_type: str,
+) -> None:
+    """A swapped dashboard axis must not filter a Sunburst's independent level."""
+    from superset.common.chart_data import ChartDataResultType
+
+    events_table.offset = 0
+    events_table.columns.append(
+        TableColumn(column_name="ship_date", is_dttm=True, type="TIMESTAMP")
+    )
+    with events_table.database.get_sqla_engine() as engine, engine.begin() as conn:
+        conn.execute(text("ALTER TABLE events ADD COLUMN ship_date TIMESTAMP"))
+        conn.execute(text("UPDATE events SET ship_date = '2026-08-01 12:00:00'"))
+        conn.execute(
+            text(
+                "INSERT INTO events VALUES "
+                "('2026-08-01 12:00:00', 'z', '2026-12-25 12:00:00')"
+            )
+        )
+    mocker.patch.object(
+        QueryContextFactory, "_convert_to_model", return_value=events_table
+    )
+    independent_filter = _drill_filter("2026-08-01")
+    with app.test_request_context():
+        context = QueryContextFactory().create(
+            datasource={"id": 1, "type": "table"},
+            result_type=ChartDataResultType(result_type),
+            form_data={
+                "viz_type": "sunburst_v2",
+                "extra_form_data": {"granularity_sqla": "ship_date"},
+            },
+            queries=[
+                {
+                    "columns": ["order_date", "kind"],
+                    "metrics": [],
+                    "granularity": "ship_date",
+                    "filters": [
+                        {
+                            "col": "order_date",
+                            "op": "TEMPORAL_RANGE",
+                            "val": "No filter",
+                        },
+                        {
+                            "col": "order_date",
+                            "op": "IN",
+                            "val": ["2026-08-01 12:00:00"],
+                            "isExtra": True,
+                        },
+                        independent_filter,
+                    ],
+                    "row_limit": 100,
+                }
+            ],
+        )
+        query = context.queries[0]
+        df = events_table.get_query_result(query).df
+    assert sorted(df["kind"].tolist()) == ["a", "b", "b", "c", "z"]
+    assert query.filter == [independent_filter]
