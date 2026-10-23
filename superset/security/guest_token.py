@@ -19,12 +19,27 @@ import logging
 import re
 from typing import Any, Optional, TypedDict, Union
 
+from flask import current_app
 from flask_appbuilder.security.sqla.models import Group, Role
 from flask_login import AnonymousUserMixin
 
 from superset.utils.backports import StrEnum
 
 logger = logging.getLogger(__name__)
+
+
+def incr_security_metric(action: str) -> None:
+    """Increment the ``security.<action>`` metric, never raising."""
+    # Deferred: superset.extensions imports the security manager, which imports
+    # this module.
+    from superset.extensions import (  # pylint: disable=import-outside-toplevel
+        stats_logger_manager,
+    )
+
+    try:
+        stats_logger_manager.instance.incr(f"security.{action}")
+    except Exception:  # pylint: disable=broad-except
+        logger.warning("Failed to emit audit metric: %s", action, exc_info=True)
 
 
 def build_guest_token_audit_payload(
@@ -152,6 +167,10 @@ class GuestTokenIdentityError(ValueError):
     """Raised when a guest token's ``user`` claim carries an invalid identity."""
 
 
+class GuestTokenIdentityShapeError(GuestTokenIdentityError):
+    """The ``user`` claim is not an object at all; never warn-only."""
+
+
 def validate_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
     """Validate the identity strings carried in a guest token's ``user`` claim.
 
@@ -176,7 +195,7 @@ def validate_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
     if user is None:
         return
     if not isinstance(user, dict):
-        raise GuestTokenIdentityError("Guest token user must be an object")
+        raise GuestTokenIdentityShapeError("Guest token user must be an object")
     for field in GUEST_TOKEN_IDENTITY_FIELDS:
         value = user.get(field)
         if value is None:
@@ -193,26 +212,42 @@ def validate_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
             )
 
 
-# Warn-first rollout flag. While False, enforce_guest_token_identity logs an
-# invalid identity instead of raising, so a host already sending a long or
-# multi-line value is not broken on deploy. Flip to True to enforce.
-GUEST_TOKEN_IDENTITY_ENFORCE = False
-
-
-def enforce_guest_token_identity(user: Optional[GuestTokenUser]) -> None:
+def enforce_guest_token_identity(
+    user: Optional[GuestTokenUser],
+    resources: Optional["GuestTokenResources"] = None,
+) -> None:
     """Validate a guest token identity, honoring the warn-first rollout flag.
 
-    While ``GUEST_TOKEN_IDENTITY_ENFORCE`` is False an invalid identity is logged
-    and allowed through; once it is True the underlying ``GuestTokenIdentityError``
-    propagates and the caller rejects the token. Mint and consume paths call this
-    rather than ``validate_guest_token_identity`` directly.
+    While ``GUEST_TOKEN_IDENTITY_ENFORCE`` is False an invalid identity is logged,
+    counted (``security.GuestTokenIdentityViolation``) and allowed through; once it
+    is True the underlying ``GuestTokenIdentityError`` propagates and the caller
+    rejects the token. A ``user`` claim that is not an object is always rejected,
+    since nothing downstream can build a guest user from it. Mint and consume
+    paths call this rather than ``validate_guest_token_identity`` directly.
+
+    :param user: the ``user`` claim from a guest token
+    :param resources: the token's ``resources`` claim, logged to attribute the
+        violation to the embedded resource it was minted for
     """
     try:
         validate_guest_token_identity(user)
+    except GuestTokenIdentityShapeError:
+        raise
     except GuestTokenIdentityError as exc:
-        if GUEST_TOKEN_IDENTITY_ENFORCE:
+        if current_app.config["GUEST_TOKEN_IDENTITY_ENFORCE"]:
             raise
-        logger.warning("Guest token identity violation (warn-only): %s", exc)
+        incr_security_metric("GuestTokenIdentityViolation")
+        # ``resources`` is an unvalidated claim on the consume path.
+        resource_ids = (
+            [r.get("id") for r in resources if isinstance(r, dict)]
+            if isinstance(resources, list)
+            else []
+        )
+        logger.warning(
+            "Guest token identity violation (warn-only): %s; resources=%s",
+            exc,
+            resource_ids,
+        )
 
 
 class GuestTokenResourceType(StrEnum):

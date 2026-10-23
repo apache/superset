@@ -25,9 +25,11 @@ from pytest_mock import MockerFixture
 
 from superset.extensions import appbuilder
 from superset.security.guest_token import (
+    enforce_guest_token_identity,
     GUEST_TOKEN_IDENTITY_FIELDS,
     GUEST_TOKEN_IDENTITY_MAX_LENGTH,
     GuestTokenIdentityError,
+    GuestTokenIdentityShapeError,
     GuestTokenResources,
     GuestTokenResourceType,
     GuestTokenUser,
@@ -62,8 +64,26 @@ def test_missing_user_claim_is_accepted() -> None:
 
 
 def test_non_object_user_claim_is_rejected() -> None:
-    with pytest.raises(ValueError, match="must be an object"):
+    with pytest.raises(GuestTokenIdentityShapeError, match="must be an object"):
         validate_guest_token_identity(cast(GuestTokenUser, "user@example.com"))
+
+
+def test_non_object_user_claim_is_rejected_while_warn_only(app_context: None) -> None:
+    # a non-object claim cannot become a guest user, so it is never warn-only
+    with pytest.raises(GuestTokenIdentityShapeError):
+        enforce_guest_token_identity(cast(GuestTokenUser, "user@example.com"))
+
+
+def test_warn_only_violation_is_logged_and_counted(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    incr = mocker.patch("superset.extensions.stats_logger_manager.instance.incr")
+    warning = mocker.patch("superset.security.guest_token.logger.warning")
+
+    enforce_guest_token_identity({"username": "bob\nalice"}, RESOURCES)
+
+    incr.assert_called_once_with("security.GuestTokenIdentityViolation")
+    assert warning.call_args.args[-1] == ["some-uuid"]
 
 
 @pytest.mark.parametrize("field", GUEST_TOKEN_IDENTITY_FIELDS)
@@ -102,11 +122,13 @@ def test_non_string_value_is_rejected(field: str) -> None:
         validate_guest_token_identity(_identity(field, 123))
 
 
-@patch("superset.security.guest_token.GUEST_TOKEN_IDENTITY_ENFORCE", True)
 def test_mint_rejects_invalid_identity(app_context: None) -> None:
     # enforce path: with the rollout flag on, minting a bad identity is rejected
     sm = SupersetSecurityManager(appbuilder)
-    with pytest.raises(GuestTokenIdentityError):
+    with (
+        patch.dict(current_app.config, {"GUEST_TOKEN_IDENTITY_ENFORCE": True}),
+        pytest.raises(GuestTokenIdentityError),
+    ):
         sm.create_guest_access_token({"username": "bob\nalice"}, RESOURCES, [])
 
 
@@ -122,7 +144,6 @@ def _guest_request(mocker: MockerFixture, raw_token: bytes) -> Any:
     ["x" * (GUEST_TOKEN_IDENTITY_MAX_LENGTH + 1), "trailing-newline\n"],
     ids=["overlong", "trailing-newline"],
 )
-@patch("superset.security.guest_token.GUEST_TOKEN_IDENTITY_ENFORCE", True)
 def test_invalid_identity_rejected_through_request_flow(
     mocker: MockerFixture, app_context: None, username: str
 ) -> None:
@@ -133,7 +154,8 @@ def test_invalid_identity_rejected_through_request_flow(
     with patch("superset.security.manager.enforce_guest_token_identity"):
         raw_token = sm.create_guest_access_token({"username": username}, RESOURCES, [])
 
-    assert sm.get_guest_user_from_request(_guest_request(mocker, raw_token)) is None
+    with patch.dict(current_app.config, {"GUEST_TOKEN_IDENTITY_ENFORCE": True}):
+        assert sm.get_guest_user_from_request(_guest_request(mocker, raw_token)) is None
 
 
 def test_valid_identity_resolves_through_request_flow(
@@ -145,3 +167,22 @@ def test_valid_identity_resolves_through_request_flow(
     guest_user = sm.get_guest_user_from_request(_guest_request(mocker, raw_token))
     assert guest_user is not None
     assert guest_user.username == "guest"
+
+
+def test_non_object_user_claim_rejected_through_request_flow(
+    mocker: MockerFixture, app_context: None
+) -> None:
+    """Warn-first default: a non-object user claim is a 401, not a crash."""
+    sm = SupersetSecurityManager(appbuilder)
+    with patch("superset.security.manager.enforce_guest_token_identity"):
+        raw_token = sm.create_guest_access_token(
+            cast(GuestTokenUser, "user@example.com"), RESOURCES, []
+        )
+
+    assert sm.get_guest_user_from_request(_guest_request(mocker, raw_token)) is None
+
+
+def test_warn_only_tolerates_malformed_resources_claim(app_context: None) -> None:
+    enforce_guest_token_identity(
+        {"username": "bob\nalice"}, cast(GuestTokenResources, "not-a-list")
+    )

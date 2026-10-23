@@ -96,6 +96,7 @@ from superset.security.guest_token import (
     GuestTokenRlsRule,
     GuestTokenUser,
     GuestUser,
+    incr_security_metric,
 )
 from superset.sql.parse import process_jinja_sql, Table
 from superset.tasks.utils import get_current_user
@@ -347,13 +348,9 @@ def _log_audit_event(action: str, payload: dict[str, Any]) -> None:
     """
     from superset.extensions import (  # pylint: disable=import-outside-toplevel
         event_logger,
-        stats_logger_manager,
     )
 
-    try:
-        stats_logger_manager.instance.incr(f"security.{action}")
-    except Exception:  # pylint: disable=broad-except
-        logger.warning("Failed to emit audit metric: %s", action, exc_info=True)
+    incr_security_metric(action)
 
     user_id = get_user_id()
     try:
@@ -6163,7 +6160,7 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
         rls: list[GuestTokenRlsRule],
         datasets: Optional[list[int]] = None,
     ) -> bytes:
-        enforce_guest_token_identity(user)
+        enforce_guest_token_identity(user, resources)
         secret = get_conf()["GUEST_TOKEN_JWT_SECRET"]
         algo = get_conf()["GUEST_TOKEN_JWT_ALGO"]
         exp_seconds = get_conf()["GUEST_TOKEN_JWT_EXP_SECONDS"]
@@ -6220,9 +6217,9 @@ class SupersetSecurityManager(  # pylint: disable=too-many-public-methods
             token = self.parse_jwt_guest_token(raw_token)
             if token.get("user") is None:
                 raise ValueError("Guest token does not contain a user claim")
-            enforce_guest_token_identity(token["user"])
             if token.get("resources") is None:
                 raise ValueError("Guest token does not contain a resources claim")
+            enforce_guest_token_identity(token["user"], token["resources"])
             if token.get("rls_rules") is None:
                 raise ValueError("Guest token does not contain an rls_rules claim")
             if token.get("type") != "guest":

@@ -51,8 +51,10 @@ assists people when migrating to a new version.
   newline and carriage return) or Unicode line/paragraph separators. In this
   release a value outside those bounds is logged (`Guest token identity
   violation`) but still accepted, both when a token is minted and when it is
-  consumed, so existing integrations are not broken. A later release will enforce
-  it (`GUEST_TOKEN_IDENTITY_ENFORCE`), at which point minting such a value returns
+  consumed, so existing integrations are not broken. Violations are also counted
+  under the `security.GuestTokenIdentityViolation` metric. Setting
+  `GUEST_TOKEN_IDENTITY_ENFORCE = True` in `superset_config.py` enforces it, and a
+  later release will make that the default: minting such a value then returns
   HTTP 400 and an already-issued token carrying one is treated as unauthenticated.
   Host applications that pass long display names or names containing those
   characters should truncate or normalize them before then.

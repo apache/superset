@@ -118,7 +118,7 @@ class GuestTokenVerifier(TokenVerifier):
                     return None
 
                 try:
-                    enforce_guest_token_identity(parsed["user"])
+                    enforce_guest_token_identity(parsed["user"], parsed["resources"])
                 except GuestTokenIdentityError:
                     logger.debug("Guest token carries an invalid identity; deferring")
                     return None
