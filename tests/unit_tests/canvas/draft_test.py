@@ -192,7 +192,7 @@ def test_commit_replays_the_ops_strictly_and_deletes_the_draft(
     canvas_id, base_revision, replayed = command.call_args.args
     assert (canvas_id, base_revision) == (7, 3)
     assert [op.id for op in replayed] == ["chart"]
-    assert command.call_args.kwargs == {"strict": True}
+    assert command.call_args.kwargs == {"strict": True, "widgets": {}}
     assert result is not None
     assert result.revision == 4
     assert store.entries == {}
@@ -233,3 +233,64 @@ def test_drafts_are_stored_as_json_strings(store: Store) -> None:
     ((key, value),) = store.entries.items()
     assert key == f"canvas_draft:{draft.token}"
     assert isinstance(value, str)
+
+
+def test_a_draft_holds_the_widgets_it_creates_and_commits_them(
+    store: Store, mocker: MockerFixture
+) -> None:
+    from superset_core.canvas import StoredWidget
+
+    from superset.commands.canvas.draft import (
+        ApplyCanvasDraftOperationsCommand,
+        CommitCanvasDraftCommand,
+        CreateCanvasDraftCommand,
+        load_draft,
+    )
+
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    draft = CreateCanvasDraftCommand(7).run()
+    draft, logged = ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        0,
+        ops({"op": "add", "id": "sales", "widgetType": "chart", "name": "Sales"}),
+    ).run()
+    widget_id = logged[0]["widgetId"]
+    # Edits to a widget are held with it, not replayed on the canvas.
+    ApplyCanvasDraftOperationsCommand(
+        draft.token,
+        1,
+        ops({"op": "set_props", "id": "sales", "props": {"metric": "avg"}}),
+    ).run()
+
+    reloaded = load_draft(draft.token)
+    assert reloaded.widgets == {
+        widget_id: StoredWidget("chart", 1, "Sales", {"metric": "avg"})
+    }
+    assert [op["op"] for op in reloaded.ops] == ["add"]
+
+    CommitCanvasDraftCommand(draft.token, 2).run()
+
+    assert command.call_args.kwargs["widgets"] == reloaded.widgets
+
+
+def test_a_draft_that_only_changes_widgets_still_commits(
+    store: Store, mocker: MockerFixture
+) -> None:
+    from superset.canvas.definition.schemas import empty_definition
+    from superset.commands.canvas import draft as drafts
+
+    placed = empty_definition()
+    placed["root"]["children"] = ["chart"]
+    placed["nodes"]["chart"] = {"widgetId": "chart-1", "layout": {}}
+    dao: Any = drafts.CanvasDAO
+    dao.load.return_value = placed
+    command = mocker.patch(f"{DRAFT}.ApplyCanvasOperationsCommand")
+    draft = drafts.CreateCanvasDraftCommand(7).run()
+    drafts.ApplyCanvasDraftOperationsCommand(
+        draft.token, 0, ops({"op": "set_props", "id": "chart", "props": {}})
+    ).run()
+
+    drafts.CommitCanvasDraftCommand(draft.token, 1).run()
+
+    assert command.call_args.args[2] == []
+    assert set(command.call_args.kwargs["widgets"]) == {"chart-1"}

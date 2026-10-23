@@ -19,6 +19,7 @@ from __future__ import annotations
 from typing import Any
 
 from superset.canvas.data import PlacementData, run_binding, RuntimeFilter
+from superset.canvas.definition.registry import get_widget_resolver
 from superset.commands.base import BaseCommand
 from superset.commands.canvas.draft import load_draft
 from superset.commands.canvas.exceptions import (
@@ -59,17 +60,23 @@ class GetPlacementDataCommand(BaseCommand):
         canvas = CanvasDAO.find_by_id_or_uuid(self._id_or_uuid)
         if canvas is None:
             raise CanvasNotFoundError()
+        resolver = get_widget_resolver()
         if self._draft_token:
             draft = load_draft(self._draft_token)
             if draft.canvas_id != canvas.id:
                 raise CanvasDraftNotFoundError()
             definition = draft.definition
+            resolver = draft.resolver()
         else:
             definition = CanvasDAO.load(canvas)
         node = definition["nodes"].get(self._placement_id)
         if node is None:
             raise CanvasPlacementNotFoundError()
-        binding = (node.get("props") or {}).get("dataBinding")
+        props = node.get("props") or {}
+        if widget_id := node.get("widgetId"):
+            widget = resolver.widgets({widget_id}).get(widget_id)
+            props = widget.props if widget is not None else {}
+        binding = props.get("dataBinding")
         if not isinstance(binding, dict) or not isinstance(
             binding.get("datasetId"), int
         ):

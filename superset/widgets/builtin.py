@@ -86,7 +86,7 @@ def _metric_key(metric: Any) -> str:
 )
 class Markdown(Widget):
     controls_class = MarkdownControls
-    behavior = QUERYING
+    behavior = WidgetBehavior(filterable=True, structural=True)
     ui = WidgetUi(default_size=(6, 4))
 
 
@@ -345,6 +345,7 @@ class FilterBar(Widget):
         accepted_children=frozenset({"filter.select"}),
         # Filters in the bar drive the canvas, not just the bar.
         bounds_filter_scope=False,
+        structural=True,
     )
     ui = WidgetUi(default_size=(24, 2))
 
@@ -356,7 +357,9 @@ class FilterBar(Widget):
 )
 class Tabs(Widget):
     controls_class = TabsControls
-    behavior = WidgetBehavior(container=True, accepted_children=frozenset({"tab"}))
+    behavior = WidgetBehavior(
+        container=True, accepted_children=frozenset({"tab"}), structural=True
+    )
     ui = WidgetUi(default_size=(24, 12), chrome_rows=1)
 
 
@@ -368,7 +371,10 @@ class Tabs(Widget):
 class Tab(Widget):
     controls_class = TabControls
     behavior = WidgetBehavior(
-        container=True, allowed_parents=frozenset({"tabs"}), grid_columns=24
+        container=True,
+        allowed_parents=frozenset({"tabs"}),
+        grid_columns=24,
+        structural=True,
     )
 
 
@@ -379,5 +385,5 @@ class Tab(Widget):
 )
 class Group(Widget):
     controls_class = GroupControls
-    behavior = WidgetBehavior(container=True, grid_columns=12)
+    behavior = WidgetBehavior(container=True, grid_columns=12, structural=True)
     ui = WidgetUi(default_size=(24, 6))

@@ -20,6 +20,7 @@ from collections.abc import Callable, Container, Iterable
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, TypeAdapter
+from superset_core.canvas import StoredWidget
 from superset_core.widgets import Widget, WidgetBehavior
 
 from superset.canvas.definition.schemas import Operation
@@ -63,22 +64,32 @@ class BoardColumn(BaseModel):
 def canvas_widget_types() -> dict[str, type[Widget]]:
     """Test widgets by id, standing in for the widget registry."""
     widget_types = [
-        _widget("group", WidgetBehavior(container=True, grid_columns=12)),
+        _widget(
+            "group", WidgetBehavior(container=True, grid_columns=12, structural=True)
+        ),
         _widget(
             "tabs",
-            WidgetBehavior(container=True, accepted_children=frozenset({"tab"})),
+            WidgetBehavior(
+                container=True, accepted_children=frozenset({"tab"}), structural=True
+            ),
         ),
         _widget(
             "tab",
             WidgetBehavior(
-                container=True, allowed_parents=frozenset({"tabs"}), grid_columns=24
+                container=True,
+                allowed_parents=frozenset({"tabs"}),
+                grid_columns=24,
+                structural=True,
             ),
         ),
         # A container with its own, non-grid child layout.
         _widget(
-            "board", WidgetBehavior(container=True, child_layout_model=BoardColumn)
+            "board",
+            WidgetBehavior(
+                container=True, child_layout_model=BoardColumn, structural=True
+            ),
         ),
-        _widget("markdown"),
+        _widget("markdown", WidgetBehavior(structural=True)),
         _widget("chart", WidgetBehavior(filterable=True), ChartProps),
         # A chart that can also cross-filter others.
         _widget("xchart", WidgetBehavior(filterable=True, emits_filters=True)),
@@ -93,6 +104,7 @@ def canvas_widget_types() -> dict[str, type[Widget]]:
                 grid_columns=24,
                 accepted_children=frozenset({"filter"}),
                 bounds_filter_scope=False,
+                structural=True,
             ),
         ),
     ]
@@ -101,13 +113,18 @@ def canvas_widget_types() -> dict[str, type[Widget]]:
 
 class FakeResolver:
     """
-    Persisted instances are named ``<widget>`` or ``<widget>-<n>``, so an
-    instance's widget is readable from its id. Ids in ``hidden`` exist but
-    cannot be placed, and ids starting with ``missing`` do not exist.
+    Widget entities are named ``<widget>`` or ``<widget>-<n>``, so a widget's
+    type is readable from its id. Ids in ``hidden`` exist but cannot be placed,
+    ids in ``readonly`` cannot be changed, and ids starting with ``missing`` do
+    not exist. Each one's props are in ``props``, empty by default.
     """
 
-    def __init__(self, hidden: Iterable[str] = ()) -> None:
+    def __init__(
+        self, hidden: Iterable[str] = (), readonly: Iterable[str] = ()
+    ) -> None:
         self.hidden = set(hidden)
+        self.readonly = set(readonly)
+        self.props: dict[str, dict[str, Any]] = {}
 
     def widget_types(self, widget_ids: Iterable[str]) -> dict[str, str]:
         return {
@@ -118,6 +135,21 @@ class FakeResolver:
 
     def placeable(self, widget_ids: Iterable[str]) -> set[str]:
         return set(self.widget_types(widget_ids)) - self.hidden
+
+    def widgets(self, widget_ids: Iterable[str]) -> dict[str, StoredWidget]:
+        return {
+            widget_id: StoredWidget(
+                widget_type=widget_type,
+                schema_version=1,
+                name=widget_id,
+                props=dict(self.props.get(widget_id, {})),
+                revision=1,
+            )
+            for widget_id, widget_type in self.widget_types(widget_ids).items()
+        }
+
+    def editable(self, widget_ids: Iterable[str]) -> set[str]:
+        return set(self.widget_types(widget_ids)) - self.readonly
 
 
 _ops_adapter = TypeAdapter(list[Operation])
@@ -156,3 +188,9 @@ def canvas(
         },
         "nodes": nodes,
     }
+
+
+def sequential_widget_ids(prefix: str = "w") -> Callable[[], str]:
+    """Widget UUIDs ``w0``, ``w1``, ... for widgets operations create."""
+    count = iter(range(1_000_000))
+    return lambda: f"{prefix}{next(count)}"

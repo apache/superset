@@ -18,7 +18,7 @@
 Whole-canvas validation and normalization.
 
 Checks the envelope, tree integrity, each widget's nesting rules, each
-child's layout under its parent and inline props, and resolves grid
+child's layout under its parent and widget props, and resolves grid
 collisions.
 
 A placement whose widget doesn't resolve (see ``placements``) is kept as an
@@ -29,8 +29,8 @@ checked by the caller.
 Widgets' behavior (nesting, sizes, child layouts, filter roles) can change
 after a canvas is saved. With ``strict_nodes`` given, only those placements
 are checked against it; the others keep their stored placement, so a
-tightened rule never blocks edits elsewhere. Inline props are validated where
-they were written (``props_nodes``), so a write can't introduce an error but
+tightened rule never blocks edits elsewhere. Props are validated where they
+were written (``props_nodes``), so a write can't introduce an error but
 never fails over props it didn't touch. Tree integrity is always checked.
 """
 
@@ -213,8 +213,21 @@ class _Validator:
                     node.setdefault("children", [])
                 else:
                     node.pop("children", None)
-                if "widgetType" in node and self.wrote_props(node_id):
-                    self._check_props(node_id, widget, node["props"])
+                if "widgetType" in node:
+                    if not widget.behavior.structural and self.is_strict(node_id):
+                        self.fail(
+                            pointer("nodes", node_id, "widgetType"),
+                            f"a {widget.widget_type} widget is its own entity: "
+                            "place it by widgetId",
+                        )
+                    if self.wrote_props(node_id):
+                        self._check_props(node_id, widget, node["props"])
+                elif self.props_nodes is not None and node_id in self.props_nodes:
+                    stored = self.resolver.widgets({node["widgetId"]})
+                    if node["widgetId"] in stored:
+                        self._check_props(
+                            node_id, widget, stored[node["widgetId"]].props
+                        )
                 continue
             self.unresolved.add(node_id)
             if "widgetType" in node and self.wrote_props(node_id):
@@ -431,7 +444,7 @@ def normalize_definition(
     Validate ``raw`` and return the normalized canvas to store.
 
     ``strict_nodes`` limits the widget behavior checks to those placements, and
-    ``props_nodes`` the inline props checks; ``None`` checks every placement.
+    ``props_nodes`` the props checks; ``None`` checks every placement.
     Raises ``DefinitionValidationError`` listing every problem found, each
     with a JSON-pointer path into the canvas.
     """

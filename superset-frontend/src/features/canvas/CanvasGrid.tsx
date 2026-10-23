@@ -139,7 +139,14 @@ export default function CanvasGrid({
     filterScopes,
     crossFilterScopes,
     customizationScopes,
+    widgets = {},
   } = result;
+  // Props and schema version live on the placement for a structural widget,
+  // and with the widget entity otherwise.
+  const contentOf = (nodeId: string) => {
+    const node = definition.nodes[nodeId];
+    return node.widgetId ? widgets[node.widgetId] : node;
+  };
   const { gap, rowUnit, columns } = definition.root.layout;
   const { colors, display, crossFilters } = definition.settings;
   const sharedColors = useMemo<canvasApi.CanvasColors>(
@@ -211,7 +218,7 @@ export default function CanvasGrid({
     const childNodes: canvasApi.CanvasChild[] = childIds.map(childId => ({
       nodeId: childId,
       widgetType: widgetTypes[childId],
-      props: definition.nodes[childId].props,
+      props: contentOf(childId)?.props,
       layout: definition.nodes[childId].layout,
       element: renderNode(childId),
     }));
@@ -223,8 +230,8 @@ export default function CanvasGrid({
           nodeId={nodeId}
           widgetType={widgetType}
           widgetId={node.widgetId}
-          props={node.props}
-          schemaVersion={node.schemaVersion}
+          props={contentOf(nodeId)?.props}
+          schemaVersion={contentOf(nodeId)?.schemaVersion}
           filters={filtersByNode[nodeId] ?? NO_VALUES}
           crossFilters={crossFiltersByNode[nodeId] ?? NO_VALUES}
           customizations={customizationsByNode[nodeId] ?? NO_VALUES}

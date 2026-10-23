@@ -26,15 +26,18 @@ since the revision the caller last saw (see ``overlapping``).
 from __future__ import annotations
 
 import copy
+import dataclasses
 from collections.abc import Callable, Container, Iterable
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any
+from uuid import uuid4
 
-from superset_core.canvas import WidgetResolver
+from superset_core.canvas import StoredWidget, WidgetResolver
 from superset_core.widgets import PropsVersionError, Widget
 
 from superset.canvas.definition.grid import Rect, resolve_grid
+from superset.canvas.definition.pending import PendingWidgetResolver
 from superset.canvas.definition.placements import new_placement_id, placement_types
 from superset.canvas.definition.registry import (
     get_widget_resolver,
@@ -64,7 +67,7 @@ class FieldGroup(str, Enum):
     # Existence and position in the tree; overlaps with every other group.
     TREE = "tree"
     LAYOUT = "layout"
-    # An inline instance's props.
+    # A structural widget's props, or those of the widget a placement holds.
     PROPS = "props"
     # A node's scope override, per kind.
     FILTER_SCOPE = "filterScope"
@@ -92,9 +95,14 @@ class Touch:
 
 @dataclass
 class AppliedOperation:
-    # The operation as logged; ``add`` always carries the new node's id.
+    # The operation as logged; ``add`` always carries the new node's id, and
+    # the UUID of a widget it created.
     op: dict[str, Any]
     touched: list[Touch] = field(default_factory=list)
+    # Whether replaying ``op`` changes the canvas. A widget's props are saved
+    # with the widget instead, so an operation that only changed them is not
+    # logged or replayed.
+    replay: bool = True
 
 
 class OperationError(ValueError):
@@ -162,11 +170,15 @@ class _Applier:
         new_id: Callable[[str, Container[str]], str],
         widget_types: WidgetTypes,
         resolver: WidgetResolver,
+        pending: dict[str, StoredWidget],
+        new_widget_id: Callable[[], str],
     ) -> None:
         self.canvas = copy.deepcopy(canvas)
         self.new_id = new_id
         self.widget_types = widget_types
-        self.resolver = resolver
+        self.pending = copy.deepcopy(pending)
+        self.resolver = PendingWidgetResolver(resolver, self.pending)
+        self.new_widget_id = new_widget_id
 
     def is_container(self, node_id: str) -> bool:
         # Placements that no longer resolve keep their stored children but
@@ -236,6 +248,7 @@ class _Applier:
             removed = self.subtree(op.id)
             for node_id in removed:
                 del self.nodes[node_id]
+            self._forget_unplaced()
             touched = [Touch(node_id, FieldGroup.TREE) for node_id in removed]
             return AppliedOperation(
                 logged,
@@ -269,14 +282,37 @@ class _Applier:
 
     def set_props(self, op: SetPropsOp, logged: dict[str, Any]) -> AppliedOperation:
         node = self.node(op.id)
+        if node.get("widgetId"):
+            return self.set_widget_props(op, logged)
         widget = self.widget_types.get(node.get("widgetType") or "")
         if widget is None:
-            raise ValueError(
-                f"{op.id!r} is not an inline instance of a registered widget"
-            )
+            raise ValueError(f"{op.id!r} does not hold a registered widget")
         node["props"] = current_props(widget, op.props, op.schema_version)
         node["schemaVersion"] = widget.schema_version
         return AppliedOperation(logged, [Touch(op.id, FieldGroup.PROPS)])
+
+    def set_widget_props(
+        self, op: SetPropsOp, logged: dict[str, Any]
+    ) -> AppliedOperation:
+        """Change the widget a placement holds, everywhere it is placed."""
+        widget_id, stored = self.widget_of(op.id)
+        widget = self.widget_types.get(stored.widget_type)
+        if widget is None:
+            raise ValueError(f"{op.id!r} does not hold a registered widget")
+        if widget_id not in self.resolver.editable({widget_id}):
+            raise ValueError(
+                f"you may not change widget {widget_id!r}, which {op.id!r} holds"
+            )
+        self.pending[widget_id] = dataclasses.replace(
+            stored,
+            props=current_props(widget, op.props, op.schema_version),
+            schema_version=widget.schema_version,
+        )
+        return AppliedOperation(
+            {**logged, "widgetId": widget_id},
+            [Touch(op.id, FieldGroup.PROPS)],
+            replay=False,
+        )
 
     def bring_forward(self, node_id: str, layout: dict[str, Any]) -> None:
         """
@@ -344,11 +380,31 @@ class _Applier:
             props = current_props(widget, op.props or {}, op.schema_version)
             title = props.get("title")
             name = title if isinstance(title, str) and title.strip() else widget.name
-            node: dict[str, Any] = {
-                "widgetType": op.widget_type,
-                "schemaVersion": widget.schema_version,
-                "props": props,
-            }
+            node: dict[str, Any]
+            if widget.behavior.structural:
+                if op.name is not None:
+                    raise ValueError("only a widget entity has a name")
+                node = {
+                    "widgetType": op.widget_type,
+                    "schemaVersion": widget.schema_version,
+                    "props": props,
+                }
+            else:
+                # Not part of the canvas: a new widget, saved with the canvas.
+                widget_id = self.new_widget_id()
+                self.pending[widget_id] = StoredWidget(
+                    widget_type=op.widget_type,
+                    schema_version=widget.schema_version,
+                    name=op.name or name,
+                    props=props,
+                )
+                node = {"widgetId": widget_id}
+                logged = {
+                    key: value
+                    for key, value in logged.items()
+                    if key not in {"widgetType", "props", "schemaVersion", "name"}
+                }
+                logged["widgetId"] = widget_id
         else:
             assert op.widget_id is not None  # noqa: S101
             widget_type = self.resolver.widget_types({op.widget_id}).get(op.widget_id)
@@ -365,6 +421,23 @@ class _Applier:
         if op.widget_type is not None:
             touched.append(Touch(node_id, FieldGroup.PROPS))
         return AppliedOperation({**logged, "id": node_id}, touched)
+
+    def widget_of(self, node_id: str) -> tuple[str, StoredWidget]:
+        widget_id = self.node(node_id)["widgetId"]
+        stored = self.resolver.widgets({widget_id}).get(widget_id)
+        if stored is None:
+            raise ValueError(f"{node_id!r} holds a widget that no longer exists")
+        return widget_id, stored
+
+    def _forget_unplaced(self) -> None:
+        """Drop widgets created here that no placement holds any more."""
+        placed = {node.get("widgetId") for node in self.nodes.values()}
+        for widget_id in [
+            widget_id
+            for widget_id, widget in self.pending.items()
+            if widget.revision is None and widget_id not in placed
+        ]:
+            del self.pending[widget_id]
 
     def scopes(self, kind: str) -> dict[str, Any]:
         interactions = self.canvas.setdefault("interactions", {})
@@ -423,6 +496,8 @@ def apply_operations(
     widget_types: WidgetTypes | None = None,
     resolver: WidgetResolver | None = None,
     new_id: Callable[[str, Container[str]], str] = new_placement_id,
+    pending: dict[str, StoredWidget] | None = None,
+    new_widget_id: Callable[[], str] = lambda: str(uuid4()),
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     """
     Apply ``ops`` in order to a copy of ``canvas``.
@@ -430,10 +505,15 @@ def apply_operations(
     All operations apply or none do: a bad operation raises ``OperationError``
     and an invalid result raises ``DefinitionValidationError``. Returns the
     normalized canvas and what each operation touched.
+
+    Widgets the operations create or change are kept in ``pending``, keyed by
+    UUID, which is updated only if every operation applies; the caller saves
+    them with the canvas. ``pending`` may already hold a draft's widgets.
     """
     widget_types = get_widget_types() if widget_types is None else widget_types
     resolver = resolver or get_widget_resolver()
-    applier = _Applier(canvas, new_id, widget_types, resolver)
+    pending = {} if pending is None else pending
+    applier = _Applier(canvas, new_id, widget_types, resolver, pending, new_widget_id)
     applied: list[AppliedOperation] = []
     for index, op in enumerate(ops):
         try:
@@ -448,13 +528,15 @@ def apply_operations(
         definition = normalize_definition(
             applier.canvas,
             widget_types,
-            resolver,
+            applier.resolver,
             strict_nodes={touch.node_id for touch in touches},
             props_nodes={t.node_id for t in touches if t.group == FieldGroup.PROPS},
         )
     except DefinitionValidationError as ex:
         ex.operation = _culprit(ex, applied)
         raise
+    pending.clear()
+    pending.update(applier.pending)
     return definition, applied
 
 

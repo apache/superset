@@ -173,6 +173,7 @@ def describe_widget(widget: type[Widget]) -> dict[str, Any]:
         "name": widget.name,
         "schemaVersion": widget.schema_version,
         "container": behavior.container,
+        "structural": behavior.structural,
         "acceptedChildren": names(behavior.accepted_children),
         "allowedParents": names(behavior.allowed_parents),
         "gridColumns": behavior.grid_columns,
@@ -435,9 +436,8 @@ class CanvasRestApi(BaseSupersetModelRestApi):
         delete:
           summary: Delete a canvas
           description: >-
-            Deletes the canvas, its inline widget instances and its operation
-            log. Persisted widget instances it placed are separate entities and
-            are not deleted.
+            Deletes the canvas and its operation log. The widgets it placed
+            are separate entities and are not deleted.
           parameters:
           - in: path
             schema:
@@ -564,6 +564,11 @@ class CanvasRestApi(BaseSupersetModelRestApi):
                           gridColumns:
                             type: object
                             description: The column count of each grid container
+                          widgets:
+                            type: object
+                            description: >-
+                              The widgets placements hold by UUID, with their
+                              widgetType, schemaVersion, name and props
             401:
               $ref: '#/components/responses/401'
             404:

@@ -23,7 +23,9 @@ without re-implementing auto-placement and collision push-down.
 ``widgetTypes`` maps placements to their widget so clients pick a renderer;
 placements that don't resolve are left out and render as placeholders.
 ``gridColumns`` gives the column count of each grid container, whose
-children's placements are in its own grid units.
+children's placements are in its own grid units. ``widgets`` holds the content
+of the widget entities placements hold, keyed by UUID: whoever can read the
+canvas can read the widgets it places.
 """
 
 from __future__ import annotations
@@ -34,6 +36,7 @@ from pydantic import ValidationError
 from superset_core.canvas import GridPlacement, WidgetResolver
 
 from superset.canvas.definition.grid import resolve_grid
+from superset.canvas.definition.pending import widget_payload
 from superset.canvas.definition.placements import placement_types
 from superset.canvas.definition.registry import (
     get_widget_resolver,
@@ -48,10 +51,14 @@ def render_context(
     resolver: WidgetResolver | None = None,
 ) -> dict[str, Any]:
     nodes = definition["nodes"]
+    resolver = resolver or get_widget_resolver()
     node_types = placement_types(
         nodes,
         get_widget_types() if widget_types is None else widget_types,
-        resolver or get_widget_resolver(),
+        resolver,
+    )
+    widgets = resolver.widgets(
+        {node["widgetId"] for node in nodes.values() if node.get("widgetId")}
     )
     type_ids = {node_id: w.widget_type for node_id, w in node_types.items()}
 
@@ -80,6 +87,7 @@ def render_context(
         "widgetTypes": type_ids,
         "placements": placements,
         "gridColumns": grid_columns,
+        "widgets": widget_payload(widgets),
     }
 
 

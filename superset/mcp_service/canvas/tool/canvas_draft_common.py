@@ -50,6 +50,7 @@ def describe(draft: CanvasDraft, include_definition: bool) -> dict[str, Any]:
     }
     if include_definition:
         result["definition"] = payload["definition"]
+        result["widgets"] = payload["widgets"]
     return result
 
 
@@ -67,6 +68,7 @@ def error_result(ex: Exception) -> dict[str, Any] | None:
             "error": payload["message"],
             "revision": payload["revision"],
             "canvas_changed": payload["canvasChanged"],
+            "changed_widgets": payload.get("widgets"),
         }
     if isinstance(ex, DefinitionInvalidError):
         payload = ex.to_payload()

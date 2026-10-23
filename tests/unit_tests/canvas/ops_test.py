@@ -18,6 +18,7 @@ import dataclasses
 from typing import Any
 
 import pytest
+from superset_core.canvas import StoredWidget
 from superset_core.widgets import Widget, WidgetUi
 
 from superset.canvas.definition.ops import (
@@ -37,18 +38,24 @@ from tests.unit_tests.canvas.fixtures import (
     FakeResolver,
     ops,
     sequential_ids,
+    sequential_widget_ids,
 )
 
 
 def apply(
-    canvas: dict[str, Any], *raw: dict[str, Any]
+    canvas: dict[str, Any],
+    *raw: dict[str, Any],
+    pending: dict[str, StoredWidget] | None = None,
+    resolver: FakeResolver | None = None,
 ) -> tuple[dict[str, Any], list[AppliedOperation]]:
     return apply_operations(
         canvas,
         ops(*raw),
         widget_types=canvas_widget_types(),
-        resolver=FakeResolver(),
+        resolver=resolver or FakeResolver(),
         new_id=sequential_ids(),
+        pending=pending,
+        new_widget_id=sequential_widget_ids(),
     )
 
 
@@ -140,22 +147,76 @@ def test_add_derives_readable_ids_from_titles_and_widget_names() -> None:
     assert result["root"]["children"] == [a.op["id"] for a in applied]
 
 
-def test_add_inline_stores_props_at_the_widget_schema_version() -> None:
+def test_add_creates_a_widget_that_the_placement_holds() -> None:
+    pending: dict[str, StoredWidget] = {}
     result, applied = apply(
         empty_definition(),
         {"op": "add", "widgetType": "chart", "props": {"metric": "sum"}},
+        {"op": "add", "widgetType": "chart", "name": "Orders", "props": {}},
+        pending=pending,
     )
 
-    assert result["nodes"]["n0"] == {
-        "widgetType": "chart",
-        "schemaVersion": 1,
-        "props": {"metric": "sum"},
+    assert result["nodes"]["n0"] == {"widgetId": "w0", "layout": {}}
+    assert pending == {
+        "w0": StoredWidget("chart", 1, "Chart", {"metric": "sum"}),
+        "w1": StoredWidget("chart", 1, "Orders", {}),
+    }
+    # The op as replayed on save places the widget by UUID.
+    assert applied[0].op == {
+        "op": "add",
+        "id": "n0",
+        "widgetId": "w0",
         "layout": {},
+        "parent": "root",
     }
     assert set(applied[0].touched) == {
         Touch("n0", FieldGroup.TREE),
         Touch("n0", FieldGroup.PROPS),
     }
+
+
+def test_add_stores_a_structural_widget_on_its_placement() -> None:
+    pending: dict[str, StoredWidget] = {}
+    result, _ = apply(
+        empty_definition(),
+        {"op": "add", "widgetType": "markdown", "props": {"title": "Notes"}},
+        pending=pending,
+    )
+
+    assert result["nodes"]["n0"] == {
+        "widgetType": "markdown",
+        "schemaVersion": 1,
+        "props": {"title": "Notes"},
+        "layout": {},
+    }
+    assert pending == {}
+    with pytest.raises(OperationError, match="only a widget entity has a name"):
+        apply(empty_definition(), {"op": "add", "widgetType": "group", "name": "G"})
+
+
+def test_a_failed_batch_leaves_pending_widgets_alone() -> None:
+    pending: dict[str, StoredWidget] = {}
+    with pytest.raises(OperationError):
+        apply(
+            empty_definition(),
+            {"op": "add", "widgetType": "chart"},
+            {"op": "remove", "id": "nope"},
+            pending=pending,
+        )
+
+    assert pending == {}
+
+
+def test_removing_a_new_widget_forgets_it() -> None:
+    pending: dict[str, StoredWidget] = {}
+    apply(
+        empty_definition(),
+        {"op": "add", "id": "a", "widgetType": "chart"},
+        {"op": "remove", "id": "a"},
+        pending=pending,
+    )
+
+    assert pending == {}
 
 
 def test_add_inline_rejects_unknown_widgets_and_invalid_props() -> None:
@@ -174,11 +235,12 @@ def test_add_inline_rejects_unknown_widgets_and_invalid_props() -> None:
         {"op": "add"},
         {"op": "add", "widgetId": "chart-1", "widgetType": "chart"},
         {"op": "add", "widgetId": "chart-1", "props": {}},
+        {"op": "add", "widgetId": "chart-1", "name": "Sales"},
     ],
 )
 def test_add_takes_exactly_one_kind_of_instance(raw: dict[str, Any]) -> None:
     with pytest.raises(
-        ValueError, match="either widgetId or widgetType|props are only"
+        ValueError, match="either widgetId or widgetType|props and name are only"
     ):
         ops(raw)
 
@@ -205,15 +267,51 @@ def test_add_uses_the_widget_default_size_on_grids() -> None:
     assert result["nodes"]["c"]["layout"] == {"colSpan": 12, "rowSpan": 4}
 
 
-def test_set_props_replaces_inline_props() -> None:
-    doc = build({"op": "add", "widgetType": "chart", "props": {"title": "A"}})
+def test_set_props_replaces_a_structural_widgets_props() -> None:
+    doc = build({"op": "add", "widgetType": "markdown", "props": {"title": "A"}})
 
     result, applied = apply(
-        doc, {"op": "set_props", "id": "n0", "props": {"metric": "avg"}}
+        doc, {"op": "set_props", "id": "n0", "props": {"title": "B"}}
     )
 
-    assert result["nodes"]["n0"]["props"] == {"metric": "avg"}
+    assert result["nodes"]["n0"]["props"] == {"title": "B"}
     assert applied[0].touched == [Touch("n0", FieldGroup.PROPS)]
+    assert applied[0].replay
+
+
+def test_set_props_changes_the_widget_a_placement_holds() -> None:
+    doc = build(add("chart-1"))
+    pending: dict[str, StoredWidget] = {}
+
+    result, applied = apply(
+        doc,
+        {"op": "set_props", "id": "n0", "props": {"metric": "avg"}},
+        pending=pending,
+    )
+
+    assert result == doc
+    assert pending == {
+        "chart-1": StoredWidget("chart", 1, "chart-1", {"metric": "avg"}, revision=1)
+    }
+    # Saved with the widget, so not replayed on the canvas.
+    assert not applied[0].replay
+    assert applied[0].op["widgetId"] == "chart-1"
+    assert applied[0].touched == [Touch("n0", FieldGroup.PROPS)]
+
+
+def test_set_props_on_a_new_widget_keeps_it_new() -> None:
+    pending: dict[str, StoredWidget] = {}
+    doc, _ = apply(
+        empty_definition(), {"op": "add", "widgetType": "chart"}, pending=pending
+    )
+
+    apply(
+        doc,
+        {"op": "set_props", "id": "n0", "props": {"metric": "avg"}},
+        pending=pending,
+    )
+
+    assert pending == {"w0": StoredWidget("chart", 1, "Chart", {"metric": "avg"})}
 
 
 def test_props_written_at_an_older_version_are_migrated() -> None:
@@ -225,14 +323,18 @@ def test_props_written_at_an_older_version_are_migrated() -> None:
         {"schema_version": 2, "migrators": {1: lambda p: {"metric": p["measure"]}}},
     )
 
-    def run(*raw: dict[str, Any]) -> dict[str, Any]:
+    def run(
+        *raw: dict[str, Any], pending: dict[str, StoredWidget] | None = None
+    ) -> dict[str, Any]:
         return apply_operations(
             empty_definition(),
             ops(*raw),
             widget_types=widget_types,
             resolver=FakeResolver(),
+            pending=pending,
         )[0]
 
+    pending: dict[str, StoredWidget] = {}
     added = run(
         {
             "op": "add",
@@ -242,23 +344,32 @@ def test_props_written_at_an_older_version_are_migrated() -> None:
             "schemaVersion": 1,
         },
         {"op": "set_props", "id": "a", "props": {"measure": "avg"}, "schemaVersion": 1},
+        pending=pending,
     )
-    assert added["nodes"]["a"]["props"] == {"metric": "avg"}
-    assert added["nodes"]["a"]["schemaVersion"] == 2
+    widget = pending[added["nodes"]["a"]["widgetId"]]
+    assert widget.props == {"metric": "avg"}
+    assert widget.schema_version == 2
     with pytest.raises(OperationError, match="supports up to 2"):
         run({"op": "add", "widgetType": "chart", "props": {}, "schemaVersion": 3})
 
 
-def test_set_props_needs_an_inline_instance() -> None:
+def test_set_props_needs_a_widget_the_user_may_change() -> None:
     doc = build(add("chart-1"))
 
-    with pytest.raises(OperationError, match="not an inline instance"):
+    with pytest.raises(OperationError, match="may not change widget 'chart-1'"):
+        apply(
+            doc,
+            {"op": "set_props", "id": "n0", "props": {}},
+            resolver=FakeResolver(readonly={"chart-1"}),
+        )
+    doc["nodes"]["n0"]["widgetId"] = "missing-1"
+    with pytest.raises(OperationError, match="no longer exists"):
         apply(doc, {"op": "set_props", "id": "n0", "props": {}})
 
 
 def test_props_are_only_validated_where_written() -> None:
     doc = build(
-        {"op": "add", "widgetType": "chart", "props": {"title": "A"}},
+        {"op": "add", "widgetType": "markdown", "props": {"title": "A"}},
         add("chart-1"),
     )
     # Stored props a newer widget no longer accepts don't block other edits.

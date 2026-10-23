@@ -25,6 +25,9 @@ database; only a commit does. The token locates the draft but never
 authorizes it: every use checks that the caller created the draft and can
 still edit its canvas. Drafts expire after ``CANVAS_DRAFT_TTL_SECONDS``
 without a write, and are deleted on commit.
+
+Widgets the draft creates or changes are held with it too, and saved with the
+canvas on commit; a widget created in a draft that is discarded never exists.
 """
 
 from __future__ import annotations
@@ -35,8 +38,15 @@ from uuid import UUID, uuid4
 
 from flask import current_app
 from pydantic import TypeAdapter
+from superset_core.canvas import StoredWidget
 
 from superset import security_manager
+from superset.canvas.definition.pending import (
+    pending_from_value,
+    pending_to_value,
+    PendingWidgetResolver,
+)
+from superset.canvas.definition.registry import get_widget_resolver
 from superset.canvas.definition.render import render_context
 from superset.canvas.definition.schemas import Operation
 from superset.canvas.definition.scopes import resolve_scopes
@@ -75,8 +85,14 @@ class CanvasDraft:
     # Incremented on every accepted write to the draft.
     revision: int
     definition: dict[str, Any]
-    # The operations applied so far, as logged; commit replays them.
+    # The operations applied so far that change the canvas; commit replays
+    # them.
     ops: list[dict[str, Any]] = field(default_factory=list)
+    # Widgets created or changed so far, by UUID; commit saves them.
+    widgets: dict[str, StoredWidget] = field(default_factory=dict)
+
+    def resolver(self) -> PendingWidgetResolver:
+        return PendingWidgetResolver(get_widget_resolver(), self.widgets)
 
     def to_value(self) -> dict[str, Any]:
         return {
@@ -86,6 +102,7 @@ class CanvasDraft:
             "revision": self.revision,
             "definition": self.definition,
             "ops": self.ops,
+            "widgets": pending_to_value(self.widgets),
         }
 
 
@@ -137,6 +154,7 @@ def load_draft(token: str) -> CanvasDraft:
         revision=value["revision"],
         definition=value["definition"],
         ops=value["ops"],
+        widgets=pending_from_value(value.get("widgets") or {}),
     )
 
 
@@ -148,8 +166,8 @@ def draft_payload(draft: CanvasDraft, resolved: bool = True) -> dict[str, Any]:
         "definition": draft.definition,
     }
     if resolved:
-        payload.update(resolve_scopes(draft.definition))
-        payload.update(render_context(draft.definition))
+        payload.update(resolve_scopes(draft.definition, resolver=draft.resolver()))
+        payload.update(render_context(draft.definition, resolver=draft.resolver()))
     return payload
 
 
@@ -188,14 +206,14 @@ class ApplyCanvasDraftOperationsCommand:
         draft = load_draft(self._token)
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision)
-        if issues := placement_issues(self._ops):
+        if issues := placement_issues(self._ops, draft.resolver()):
             raise DefinitionInvalidError(
                 "The operations add widgets that cannot be placed", issues=issues
             )
-        definition, applied = apply_or_raise(draft.definition, self._ops)
+        definition, applied = apply_or_raise(draft.definition, self._ops, draft.widgets)
         logged = [operation.op for operation in applied]
         draft.definition = definition
-        draft.ops = [*draft.ops, *logged]
+        draft.ops = [*draft.ops, *(a.op for a in applied if a.replay)]
         draft.revision += 1
         _save(draft)
         return draft, logged
@@ -203,8 +221,9 @@ class ApplyCanvasDraftOperationsCommand:
 
 class CommitCanvasDraftCommand:
     """
-    Publish a draft: replay its operations on the canvas, which must not have
-    changed since the draft started, then delete the draft.
+    Publish a draft: save its widgets and replay its operations on the canvas,
+    neither of which may have changed since the draft started, then delete the
+    draft.
     """
 
     def __init__(self, token: str, revision: int) -> None:
@@ -216,12 +235,13 @@ class CommitCanvasDraftCommand:
         if self._revision != draft.revision:
             raise DraftConflictError(draft.revision)
         result = None
-        if draft.ops:
+        if draft.ops or draft.widgets:
             result = ApplyCanvasOperationsCommand(
                 draft.canvas_id,
                 draft.base_revision,
                 OPERATIONS.validate_python(draft.ops),
                 strict=True,
+                widgets=draft.widgets,
             ).run()
         DeleteCanvasDraftCommand(self._token).run()
         return result

@@ -47,9 +47,11 @@ def canvas(
 
     definition = empty_definition()
     definition["root"]["children"] = ["chart", "text"]
+    # The chart's binding is saved with its widget, not on the canvas.
+    widget_types.props["chart-1"] = {"dataBinding": BINDING}
     definition["nodes"] = {
-        "chart": {"widgetType": "chart", "props": {"dataBinding": BINDING}},
-        "text": {"widgetType": "chart", "props": {}},
+        "chart": {"widgetId": "chart-1"},
+        "text": {"widgetType": "markdown", "props": {}},
     }
     Canvas.metadata.create_all(session.get_bind())  # pylint: disable=no-member
     canvas = Canvas(

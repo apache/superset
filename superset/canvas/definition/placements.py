@@ -15,12 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 """
-The widget behind each placement, inline props upgrades and placement ids.
+The widget behind each placement, stored props upgrades and placement ids.
 
-A placement resolves when its widget is registered and, for an inline
-instance, its props are at the widget's schema version. Anything else (a
-deleted instance, an uninstalled extension, props saved by a newer widget or
-whose migration fails) is an unresolved placeholder, kept exactly as stored.
+A placement resolves when its widget is registered and, for a structural
+widget stored on the placement, its props are at the widget's schema version.
+Anything else (a deleted widget, an uninstalled extension, props saved by a
+newer widget or whose migration fails) is an unresolved placeholder, kept
+exactly as stored.
 """
 
 from __future__ import annotations
@@ -64,7 +65,7 @@ def upgrade_inline_props(
     definition: dict[str, Any], widget_types: WidgetTypes
 ) -> dict[str, Any]:
     """
-    Bring inline props to their widget's schema version, in place.
+    Bring props stored on placements to their widget's schema version, in place.
 
     Props a widget can't upgrade are left as stored, so the placement stays
     an unresolved placeholder until the widget can read them.
