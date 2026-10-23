@@ -29,6 +29,7 @@ from flask_babel import lazy_gettext as t, ngettext
 from marshmallow import ValidationError
 from pydantic import ValidationError as PydanticValidationError
 from sqlalchemy.orm import load_only, Query
+from superset_core.semantic_layers.transport import ProviderRequestError
 
 from superset import db, event_logger, is_feature_enabled, security_manager
 from superset.commands.semantic_layer.create import (
@@ -76,6 +77,7 @@ from superset.semantic_layers.schemas import (
     SemanticViewPostSchema,
     SemanticViewPutSchema,
 )
+from superset.semantic_layers.transport import build_provider_transport
 from superset.superset_typing import FlaskResponse
 from superset.utils import json
 from superset.views.base_api import (
@@ -339,13 +341,12 @@ class SemanticViewRestApi(_RuntimeGuardedApiMixin, BaseSupersetModelRestApi):
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
-            logger.error(
-                "Error fetching structure for semantic view %d: %s",
-                pk,
-                str(ex),
-                exc_info=True,
+            logger.exception("Error fetching structure for semantic view %d", pk)
+            return self.response_422(
+                message=str(ex)
+                if isinstance(ex, ProviderRequestError)
+                else t("Unable to fetch semantic view structure.")
             )
-            return self.response_422(message=str(ex))
 
         return self.response(
             200,
@@ -820,7 +821,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
 
         warning: str | None = None
         try:
-            schema = cls.get_configuration_schema(parsed_config)
+            schema: dict[str, Any] = cls.get_configuration_schema(
+                parsed_config, transport=build_provider_transport()
+            )
         except Exception:  # pylint: disable=broad-except
             # Show a stable, user-friendly message in the UI; the exception
             # detail goes to the server log below.
@@ -836,7 +839,9 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             )
             # Connection or query failures during schema enrichment should not
             # prevent the form from rendering — return the base schema instead.
-            schema = cls.get_configuration_schema(None)
+            schema = cls.get_configuration_schema(
+                None, transport=build_provider_transport()
+            )
 
         payload: dict[str, Any] = {"result": schema}
         if warning:
@@ -897,14 +902,22 @@ class SemanticLayerRestApi(_RuntimeGuardedApiMixin, BaseSupersetApi):
             return self.response_400(message=f"Unknown type: {layer.type}")
 
         try:
-            schema = cls.get_runtime_schema(
+            schema: dict[str, Any] = cls.get_runtime_schema(
                 layer.implementation.configuration,  # type: ignore[attr-defined]
                 runtime_data,
+                transport=build_provider_transport(),
             )
         except SupersetSecurityException as ex:
             return self.response(403, message=ex.message, errors=[ex.to_dict()])
         except Exception as ex:  # pylint: disable=broad-except
-            return self.response_400(message=str(ex))
+            logger.exception(
+                "Error fetching runtime schema for semantic layer %s", uuid
+            )
+            return self.response_400(
+                message=str(ex)
+                if isinstance(ex, ProviderRequestError)
+                else t("Unable to fetch semantic layer runtime schema.")
+            )
 
         return self.response(200, result=schema)
 

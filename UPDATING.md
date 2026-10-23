@@ -24,6 +24,17 @@ assists people when migrating to a new version.
 
 ## Next
 
+- **Semantic-layer SDK transport argument.** Provider implementations must accept
+  the required keyword-only `transport: ProviderTransport` in `from_configuration`,
+  `get_configuration_schema`, and `get_runtime_schema`. Superset supplies it even
+  for static schema discovery. Store it on the layer and pass it to views and HTTP
+  helpers; do not construct HTTP clients for provider endpoints. Every request now
+  requires an absolute monotonic deadline and a response byte cap. The default
+  host policy allows public HTTPS destinations only; the provider-specific
+  `SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS = True` setting also allows HTTP and internal
+  destinations. Both policies ignore environment proxies and preserve budgets and
+  TLS hostname verification. See the [provider transport guide](docs/developer_docs/extensions/semantic-provider-transport.md).
+
 - **Large nullable-integer dimensions stay exact in chart data.** In a plain chart
   query (no post-processing or time offsets, and not a report's client-processed
   result), a dimension column of nullable integers that holds a value beyond

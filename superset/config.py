@@ -3024,6 +3024,9 @@ DATABASE_OAUTH2_TIMEOUT = timedelta(seconds=30)
 # create or edit database connections.
 DATABASE_OAUTH2_ALLOW_INTERNAL_HOSTS: bool = False
 
+# Provider-only opt-out: budgets, direct connections and redirect checks still apply.
+SEMANTIC_LAYER_ALLOW_INTERNAL_HOSTS: bool = False
+
 # Enable/disable CSP warning
 CONTENT_SECURITY_POLICY_WARNING = True
 

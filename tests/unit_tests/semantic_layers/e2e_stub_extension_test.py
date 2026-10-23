@@ -45,6 +45,7 @@ from werkzeug.test import TestResponse
 from superset.semantic_layers.models import (
     SemanticLayer as SemanticLayerModel,
 )
+from superset.semantic_layers.transport import build_provider_transport
 from tests.unit_tests.semantic_layers.conftest import make_execution_context, STUB_TYPE
 
 
@@ -71,13 +72,14 @@ def test_stub_registers_through_the_extension_loader(
     stub_layer: type[Any],
 ) -> None:
     """The stub carries the extension-prefixed type that seeding code uses."""
-    assert stub_layer.name == "E2E Semantic Stub"
+    assert vars(stub_layer)["name"] == "E2E Semantic Stub"
     assert {
         view.name
         for view in stub_layer.from_configuration(
             {},
             cache_token="test",  # noqa: S106
             context=make_execution_context(),
+            transport=build_provider_transport(),
         ).get_semantic_views({})
     } == {"orders"}
 
@@ -92,12 +94,14 @@ def test_stub_rejects_configuration_and_unknown_views(
             {"account": "unexpected"},
             cache_token="test",  # noqa: S106
             context=context,
+            transport=build_provider_transport(),
         )
     with pytest.raises(ValueError, match="no semantic view"):
         stub_layer.from_configuration(
             {},
             cache_token="test",  # noqa: S106
             context=context,
+            transport=build_provider_transport(),
         ).get_semantic_view("missing", {})
 
 

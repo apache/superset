@@ -16,3 +16,19 @@
 # under the License.
 
 """Semantic layer contracts for extension authors."""
+
+from superset_core.semantic_layers.transport import (
+    ProviderRequestError,
+    ProviderRequestFailure,
+    ProviderResponse,
+    ProviderTransport,
+    RequestBudget,
+)
+
+__all__: list[str] = [
+    "ProviderRequestError",
+    "ProviderRequestFailure",
+    "ProviderResponse",
+    "ProviderTransport",
+    "RequestBudget",
+]
