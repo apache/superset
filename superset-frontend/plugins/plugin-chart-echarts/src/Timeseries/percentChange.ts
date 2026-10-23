@@ -75,10 +75,16 @@ export function rebaseSeriesData(
 ): SeriesDataPoint[] {
   // the non-null point with the largest x at or before the baseline,
   // falling back to the first non-null point
+  // `data` is already in displayed order, which for a naturally sorted
+  // category axis differs from string order ('10' < '2'), so an exact match
+  // locates the baseline by position instead of comparing x values.
+  const baselineIndex = data.findIndex(([x]) => x === baselineX);
   let baselineValue: number | null = null;
-  data.forEach(([x, y]) => {
+  data.forEach(([x, y], index) => {
     if (y == null) return;
-    if (x <= baselineX || baselineValue === null) {
+    const atOrBefore =
+      baselineIndex >= 0 ? index <= baselineIndex : x <= baselineX;
+    if (atOrBefore || baselineValue === null) {
       baselineValue = y;
     }
   });

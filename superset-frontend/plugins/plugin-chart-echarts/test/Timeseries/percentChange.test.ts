@@ -19,6 +19,7 @@
 import {
   rebaseToPercentChange,
   rebaseSeriesData,
+  SeriesDataPoint,
   snapToNearestX,
 } from '../../src/Timeseries/percentChange';
 
@@ -95,4 +96,14 @@ test('validates a category-axis x instead of coercing it to a number', () => {
   expect(snapToNearestX(['a', 'b', 'c'], 'b')).toBe('b');
   // a pixel that landed outside the axis falls back to the first category
   expect(snapToNearestX(['a', 'b', 'c'], 'unknown')).toBe('a');
+});
+
+test('rebaseSeriesData locates a category baseline by displayed position, not string order', () => {
+  const displayed: SeriesDataPoint[] = [
+    ['1', 0],
+    ['2', 1],
+    ['10', 9],
+  ];
+  const reindexed = rebaseSeriesData(displayed, '2');
+  expect(reindexed.map(([, y]) => y)).toEqual([-0.5, 0, 4]);
 });

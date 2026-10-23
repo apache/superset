@@ -603,6 +603,19 @@ export default function transformProps(
       ...ensureIsArray(metrics).map(getMetricLabel),
       ...extractExtraMetrics(chartProps.rawFormData).map(getMetricLabel),
     ].includes(xAxisSort);
+  // Cumulative sums and rolling windows are computed by the backend over its
+  // own row order, so re-ordering rows afterwards would leave a running total
+  // that no longer matches the displayed neighbors.
+  const rollingType = (
+    chartProps.rawFormData as { rolling_type?: string } | undefined
+  )?.rolling_type;
+  const hasOrderDependentPostProcessing =
+    Boolean(rollingType) && rollingType !== 'None';
+  // extractSeries re-sorts a multi-series chart by series name when
+  // x_axis_sort is set, and imputes stacked-area neighbor zeros by indexing
+  // the rows it was given, so the rows must keep the order that sort expects.
+  const hasSeriesNameSort =
+    isDefined(xAxisSort) && (groupBy.length > 0 || metrics?.length > 1);
   // A category axis renders points in data-array order, not by sorted
   // x-value: the backend can return string (and numeric-like-string, e.g.
   // "202401") dimensions in an arbitrary order, which drew line segments
@@ -624,7 +637,9 @@ export default function transformProps(
   const shouldNaturalSort =
     xAxisType === AxisType.Category &&
     seriesType !== EchartsTimeseriesSeriesType.Bar &&
-    !xAxisSortAppliedByBackend;
+    !xAxisSortAppliedByBackend &&
+    !hasOrderDependentPostProcessing &&
+    !hasSeriesNameSort;
   const naturalSortMode = classifyNaturalSortMode(
     forecastRebasedData.map(row => row[xAxisLabel]),
   );

@@ -4821,6 +4821,25 @@ describe('natural sort of a category x-axis (#35853)', () => {
     expect(data.map(row => row[1])).toEqual([0, 1, 3]);
   });
 
+  test('skips the natural sort when a cumulative/rolling operator is active', () => {
+    const chartProps = categoryChartProps(
+      [
+        { dim: '1', metric: 1 },
+        { dim: '10', metric: 2 },
+        { dim: '2', metric: 3 },
+      ],
+      {
+        rolling_type: 'cumsum',
+      } as unknown as Partial<EchartsTimeseriesFormData>,
+    );
+
+    const { echartOptions } = transformProps(chartProps);
+    const series = echartOptions.series as SeriesOption[];
+    const data = series[0].data as [string, number][];
+
+    expect(data.map(row => row[0])).toEqual(['1', '10', '2']);
+  });
+
   test('skips the natural sort when x_axis_sort already orders categories by a metric', () => {
     // sortOperator (buildQuery.ts) would have the backend return these rows
     // pre-sorted by `metric` ascending, an explicit user choice. Natural-
