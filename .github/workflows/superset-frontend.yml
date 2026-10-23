@@ -114,6 +114,9 @@ jobs:
     runs-on: ubuntu-slim
     timeout-minutes: 15
     permissions:
+      # Declaring any permission drops the defaults, and the checkout below
+      # needs read access wherever the repository is not public.
+      contents: read
       id-token: write
     steps:
       - name: Checkout Code
@@ -157,12 +160,12 @@ jobs:
       - name: lint
         run: |
           docker run --rm $TAG bash -c \
-          "npm i && npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
+          "npm run lint && node --import tsx --test custom-lint-rules/**/*.test.ts"
 
       - name: tsc
         run: |
           docker run --rm $TAG bash -c \
-          "npm i && npm run plugins:build && npm run type"
+          "npm run plugins:build && npm run type"
 
   validate-frontend:
     needs: frontend-build
@@ -282,7 +285,7 @@ jobs:
           -v ${{ github.workspace }}/superset-frontend/.temp_cache:/app/superset-frontend/.temp_cache \
           --rm $TAG \
           bash -c \
-          "npm i && BUNDLE_SIZE_STATS=true npm run build -- --json=bundle-stats/stats.json"
+          "BUNDLE_SIZE_STATS=true npm run build -- --json=bundle-stats/stats.json"
 
       - name: Summarize bundle size
         run: |

@@ -116,11 +116,11 @@ jobs:
           docker run \
           -v ${{ github.workspace }}/superset-frontend/storybook-static:/app/superset-frontend/storybook-static \
           --rm $TAG \
-          bash -c "npm i && npm run build-storybook -- --webpack-stats-json"
+          bash -c "npm run build-storybook -- --webpack-stats-json"
 
       - name: Publish to Chromatic
         if: ${{ env.CHROMATIC_PROJECT_TOKEN != '' }}
-        uses: chromaui/action@8e6c25f2af5570e4a0ed34674569c345d545ac4a # v18.12.1
+        uses: chromaui/action@18599f2ae5010524d496b86099c9b69a37f5d8d2 # v18.12.2
         with:
           projectToken: ${{ env.CHROMATIC_PROJECT_TOKEN }}
           token: ${{ secrets.GITHUB_TOKEN }}

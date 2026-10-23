@@ -837,6 +837,12 @@ To run a single test file:
 npm run test -- path/to/file.js
 ```
 
+Jest uses 80% of the machine's cores by default. On a shared or busy machine, cap the worker pool with `JEST_MAX_WORKERS` (a number or a percentage):
+
+```bash
+JEST_MAX_WORKERS=2 npm run test -- path/to/file.js
+```
+
 #### Known Issues and Workarounds
 
 **Jest Test Hanging (MessageChannel Issue)**
